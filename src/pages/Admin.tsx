@@ -13,6 +13,7 @@ import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager"
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
+import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
 
 const Admin = () => {
@@ -295,7 +296,10 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="settings">
-            <AppSettingsManager />
+            <div className="space-y-6">
+              <RoleImpersonator />
+              <AppSettingsManager />
+            </div>
           </TabsContent>
         </Tabs>
       </main>

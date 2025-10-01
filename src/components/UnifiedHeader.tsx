@@ -8,6 +8,7 @@ import { LogOut, Shield } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
+import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
 
 export const UnifiedHeader = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export const UnifiedHeader = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const { count: moderationCount } = useModerationCount();
+  const { getEffectiveRole } = useRoleImpersonation();
 
   useEffect(() => {
     checkUser();

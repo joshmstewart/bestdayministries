@@ -7,6 +7,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { EventDetailDialog } from "@/components/EventDetailDialog";
 import { LocationLink } from "@/components/LocationLink";
+import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
 
 interface EventDate {
   id: string;
@@ -41,10 +42,11 @@ export default function PublicEvents() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedDisplayDate, setSelectedDisplayDate] = useState<Date | null>(null);
   const [selectedAllDates, setSelectedAllDates] = useState<Date[]>([]);
+  const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
   useEffect(() => {
     loadPublicEvents();
-  }, []);
+  }, [isImpersonating]); // Reload when impersonation changes
 
   const loadPublicEvents = async () => {
     setLoading(true);
@@ -60,7 +62,8 @@ export default function PublicEvents() {
         .eq("id", user.id)
         .single();
       
-      userRole = profile?.role;
+      // Use effective role (impersonated if active)
+      userRole = getEffectiveRole(profile?.role);
     }
     
     const { data, error } = await supabase
@@ -75,12 +78,12 @@ export default function PublicEvents() {
     if (error) {
       console.error("Error loading events:", error);
     } else {
-      // Filter events based on user role (or show all if not logged in for public events)
+      // Filter events based on effective user role
       const filteredEvents = (data || []).filter(event => {
         // If not logged in, show all public events
         if (!user || !userRole) return true;
         
-        // Admins and owners can see all events
+        // Admins and owners can see all events (unless impersonating)
         if (userRole === 'admin' || userRole === 'owner') return true;
         
         // Check if user's role is in visible_to_roles

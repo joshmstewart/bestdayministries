@@ -12,6 +12,7 @@ import { TextToSpeech } from "@/components/TextToSpeech";
 import { cn } from "@/lib/utils";
 import { EventDetailDialog } from "@/components/EventDetailDialog";
 import { LocationLink } from "@/components/LocationLink";
+import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
 
 interface EventDate {
   id: string;
@@ -46,10 +47,11 @@ export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedDisplayDate, setSelectedDisplayDate] = useState<Date | null>(null);
   const [selectedAllDates, setSelectedAllDates] = useState<Date[]>([]);
+  const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
   useEffect(() => {
     loadEvents();
-  }, []);
+  }, [isImpersonating]); // Reload when impersonation changes
 
   const loadEvents = async () => {
     setLoading(true);
@@ -65,7 +67,8 @@ export default function EventsPage() {
         .eq("id", user.id)
         .single();
       
-      userRole = profile?.role;
+      // Use effective role (impersonated if active)
+      userRole = getEffectiveRole(profile?.role);
     }
     
     const { data, error } = await supabase
@@ -79,10 +82,10 @@ export default function EventsPage() {
     if (error) {
       console.error("Error loading events:", error);
     } else {
-      // Filter events based on user role
+      // Filter events based on effective user role
       const filteredEvents = (data || []).filter(event => {
-        // Admins and owners can see all events
-        if (userRole === 'admin' || userRole === 'owner') return true;
+        // Admins and owners can see all events (only if not impersonating)
+        if ((userRole === 'admin' || userRole === 'owner')) return true;
         
         // Check if user's role is in visible_to_roles
         return event.visible_to_roles?.includes(userRole);
