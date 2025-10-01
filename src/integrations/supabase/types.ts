@@ -60,6 +60,7 @@ export type Database = {
           created_at: string
           id: string
           is_moderated: boolean | null
+          moderation_notes: string | null
           post_id: string
         }
         Insert: {
@@ -68,6 +69,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_moderated?: boolean | null
+          moderation_notes?: string | null
           post_id: string
         }
         Update: {
@@ -76,6 +78,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_moderated?: boolean | null
+          moderation_notes?: string | null
           post_id?: string
         }
         Relationships: [
