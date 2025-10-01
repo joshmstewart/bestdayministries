@@ -33,6 +33,7 @@ interface FlaggedComment {
   author_id: string;
   post_id: string;
   is_moderated: boolean;
+  moderation_notes: string | null;
   author?: Profile;
   post?: { title: string };
 }
@@ -316,10 +317,23 @@ const ModerationQueue = () => {
                             By {comment.author?.display_name} • {new Date(comment.created_at).toLocaleString()}
                           </CardDescription>
                         </div>
+                        {comment.moderation_notes && (
+                          <Badge className={getSeverityColor(comment.moderation_notes)}>
+                            {comment.moderation_notes.includes("high") ? "High Severity" :
+                             comment.moderation_notes.includes("medium") ? "Medium Severity" :
+                             "Low Severity"}
+                          </Badge>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-foreground">{comment.content}</p>
+                      {comment.moderation_notes && (
+                        <div className="bg-muted p-3 rounded-lg">
+                          <p className="text-sm font-medium mb-1">Flagging Reason:</p>
+                          <p className="text-sm text-muted-foreground">{comment.moderation_notes}</p>
+                        </div>
+                      )}
                       <div className="flex gap-2">
                         <Button
                           onClick={() => handleApproveComment(comment.id)}

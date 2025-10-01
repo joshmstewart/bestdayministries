@@ -231,6 +231,8 @@ const Discussions = () => {
       }
 
       const isApproved = moderationResult?.approved ?? true;
+      const reason = moderationResult?.reason || "";
+      const severity = moderationResult?.severity || "";
 
       const { error } = await supabase
         .from("discussion_comments")
@@ -239,6 +241,7 @@ const Discussions = () => {
           content: content,
           author_id: user?.id,
           is_moderated: isApproved,
+          moderation_notes: isApproved ? null : `${severity} severity: ${reason}`,
         });
 
       if (error) {
