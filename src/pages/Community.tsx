@@ -147,6 +147,20 @@ const Community = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       <UnifiedHeader />
 
+      {/* Role Badge - Top Right */}
+      {profile && effectiveRole && (
+        <div className="fixed top-[104px] right-4 z-40">
+          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-card border border-primary/20 rounded-full shadow-lg">
+            {effectiveRole === "bestie" && <Heart className="w-3.5 h-3.5 text-primary fill-primary" />}
+            {effectiveRole === "caregiver" && <Users className="w-3.5 h-3.5 text-secondary" />}
+            {effectiveRole === "supporter" && <Sparkles className="w-3.5 h-3.5 text-accent" />}
+            {effectiveRole === "admin" && <Users className="w-3.5 h-3.5 text-accent" />}
+            {effectiveRole === "owner" && <Users className="w-3.5 h-3.5 text-accent" />}
+            <span className="text-sm font-semibold text-foreground capitalize">{effectiveRole}</span>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto space-y-12">
@@ -163,20 +177,6 @@ const Community = () => {
               Connect, share, and grow with our amazing community
             </p>
           </div>
-
-          {/* Role Badge */}
-          {profile && effectiveRole && (
-            <div className="flex justify-center -mt-6">
-              <div className="inline-flex items-center gap-1.5 px-4 py-0.5 bg-gradient-card border border-primary/20 rounded-full">
-                {effectiveRole === "bestie" && <Heart className="w-3.5 h-3.5 text-primary fill-primary" />}
-                {effectiveRole === "caregiver" && <Users className="w-3.5 h-3.5 text-secondary" />}
-                {effectiveRole === "supporter" && <Sparkles className="w-3.5 h-3.5 text-accent" />}
-                {effectiveRole === "admin" && <Users className="w-3.5 h-3.5 text-accent" />}
-                {effectiveRole === "owner" && <Users className="w-3.5 h-3.5 text-accent" />}
-                <span className="text-sm font-semibold text-foreground capitalize">{effectiveRole}</span>
-              </div>
-            </div>
-          )}
 
           {/* Featured Bestie */}
           <FeaturedBestieDisplay />
