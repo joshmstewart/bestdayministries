@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import bdeLogo from "@/assets/bde-logo.png";
+import bdeLogo from "@/assets/bde-logo-no-subtitle.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,7 +21,7 @@ const Navigation = () => {
             <img 
               src={bdeLogo} 
               alt="Best Day Ever" 
-              className="h-14 w-auto"
+              className="h-20 w-auto"
             />
           </div>
 
