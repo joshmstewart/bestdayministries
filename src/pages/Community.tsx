@@ -11,6 +11,7 @@ import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
+import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
   useEffect(() => {
     checkUser();
@@ -35,6 +37,13 @@ const Community = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Reload content when impersonation changes
+  useEffect(() => {
+    if (user && profile) {
+      loadLatestContent();
+    }
+  }, [isImpersonating]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -67,16 +76,35 @@ const Community = () => {
       setLatestDiscussion(discussions);
     }
 
-    // Fetch upcoming events (up to 3)
+    // Get user role for event filtering
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    let userRole = null;
+    
+    if (currentUser) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", currentUser.id)
+        .single();
+      
+      userRole = getEffectiveRole(profileData?.role);
+    }
+
+    // Fetch upcoming events (up to 3) with role-based filtering
     const { data: events } = await supabase
       .from("events")
       .select("*")
       .order("event_date", { ascending: true })
-      .gte("event_date", new Date().toISOString())
-      .limit(3);
+      .gte("event_date", new Date().toISOString());
 
     if (events) {
-      setUpcomingEvents(events);
+      // Filter events based on effective user role
+      const filteredEvents = events.filter(event => {
+        // Check if user's role is in visible_to_roles
+        return event.visible_to_roles?.includes(userRole);
+      }).slice(0, 3); // Take only first 3 after filtering
+      
+      setUpcomingEvents(filteredEvents);
     }
   };
 
