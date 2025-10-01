@@ -4,6 +4,7 @@ import composite1 from "@/assets/avatars/composite-1.png";
 import composite2 from "@/assets/avatars/composite-2.png";
 import composite3 from "@/assets/avatars/composite-3.png";
 import composite4 from "@/assets/avatars/composite-4.png";
+import composite5 from "@/assets/avatars/composite-5.png";
 
 interface AvatarDisplayProps {
   avatarNumber?: number | null;
@@ -56,6 +57,17 @@ const getAvatarConfig = (avatarNumber: number) => {
       { x: 100, y: 100 },  // 16: bottom-right
     ];
     return { image: composite4, position: positions[avatarNumber - 13] };
+  }
+  
+  // Composite 5: avatars 17-20
+  if (avatarNumber >= 17 && avatarNumber <= 20) {
+    const positions = [
+      { x: 0, y: 0 },      // 17: top-left
+      { x: 100, y: 0 },    // 18: top-right
+      { x: 0, y: 100 },    // 19: bottom-left
+      { x: 100, y: 100 },  // 20: bottom-right
+    ];
+    return { image: composite5, position: positions[avatarNumber - 17] };
   }
   
   return null;
