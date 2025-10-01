@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Crop, Save } from "lucide-react";
@@ -194,13 +195,23 @@ export const AvatarUploader = () => {
 
     // Draw crop border
     ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
     
-    // Draw resize handle (bottom-right corner)
-    const handleSize = 12;
+    // Draw resize handle (bottom-right corner) - make it bigger and more visible
+    const handleSize = 20;
     ctx.fillStyle = '#3b82f6';
     ctx.fillRect(
+      cropArea.x + cropArea.width - handleSize,
+      cropArea.y + cropArea.height - handleSize,
+      handleSize,
+      handleSize
+    );
+    
+    // Add white border to handle for better visibility
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
       cropArea.x + cropArea.width - handleSize,
       cropArea.y + cropArea.height - handleSize,
       handleSize,
@@ -333,6 +344,46 @@ export const AvatarUploader = () => {
 
         {previewUrl && (
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Crop Size Controls</Label>
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                <div>
+                  <Label className="text-sm">Width: {cropArea.width}px</Label>
+                  <Slider
+                    value={[cropArea.width]}
+                    onValueChange={([width]) => {
+                      const maxWidth = canvasRef.current ? canvasRef.current.width - cropArea.x : 500;
+                      setCropArea({
+                        ...cropArea,
+                        width: Math.min(width, maxWidth)
+                      });
+                    }}
+                    min={50}
+                    max={canvasRef.current?.width || 500}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm">Height: {cropArea.height}px</Label>
+                  <Slider
+                    value={[cropArea.height]}
+                    onValueChange={([height]) => {
+                      const maxHeight = canvasRef.current ? canvasRef.current.height - cropArea.y : 500;
+                      setCropArea({
+                        ...cropArea,
+                        height: Math.min(height, maxHeight)
+                      });
+                    }}
+                    min={50}
+                    max={canvasRef.current?.height || 500}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+            
             <div className="relative">
               <img
                 ref={imageRef}
@@ -355,7 +406,7 @@ export const AvatarUploader = () => {
               <p className="text-sm text-muted-foreground mt-2">
                 <strong>Move:</strong> Drag the blue box to reposition
                 <br />
-                <strong>Resize:</strong> Drag the blue square in the bottom-right corner
+                <strong>Resize:</strong> Use the sliders above or drag the blue square in the corner
               </p>
             </div>
 
