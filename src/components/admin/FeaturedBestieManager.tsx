@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -423,36 +423,30 @@ export const FeaturedBestieManager = () => {
               </div>
             </div>
 
-            <div className="border-t pt-4 bg-background">
-              <div className="flex gap-2">
-                <Button 
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log("Update button clicked!");
-                    handleSubmit();
-                  }} 
-                  disabled={uploading} 
-                  className="flex-1"
-                >
-                  {uploading ? "Uploading..." : editingId ? "Update" : "Create"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    resetForm();
-                    setDialogOpen(false);
-                  }}
-                  disabled={uploading}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  console.log("Cancel clicked");
+                  resetForm();
+                  setDialogOpen(false);
+                }}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  console.log("Update button clicked!");
+                  handleSubmit();
+                }}
+                disabled={uploading}
+              >
+                {uploading ? "Uploading..." : editingId ? "Update" : "Create"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
