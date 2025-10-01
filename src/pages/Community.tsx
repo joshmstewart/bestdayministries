@@ -22,6 +22,14 @@ const Community = () => {
   const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
+  const [effectiveRole, setEffectiveRole] = useState<string | null>(null);
+
+  // Update effective role whenever profile or impersonation changes
+  useEffect(() => {
+    if (profile) {
+      setEffectiveRole(getEffectiveRole(profile.role));
+    }
+  }, [profile, isImpersonating, getEffectiveRole]);
 
   useEffect(() => {
     checkUser();
@@ -163,13 +171,15 @@ const Community = () => {
           </div>
 
           {/* Role Badge */}
-          {profile && (
+          {profile && effectiveRole && (
             <div className="flex justify-center -mt-6">
               <div className="inline-flex items-center gap-1.5 px-4 py-0.5 bg-gradient-card border border-primary/20 rounded-full">
-                {profile?.role === "bestie" && <Heart className="w-3.5 h-3.5 text-primary fill-primary" />}
-                {profile?.role === "caregiver" && <Users className="w-3.5 h-3.5 text-secondary" />}
-                {profile?.role === "supporter" && <Sparkles className="w-3.5 h-3.5 text-accent" />}
-                <span className="text-sm font-semibold text-foreground capitalize">{profile?.role}</span>
+                {effectiveRole === "bestie" && <Heart className="w-3.5 h-3.5 text-primary fill-primary" />}
+                {effectiveRole === "caregiver" && <Users className="w-3.5 h-3.5 text-secondary" />}
+                {effectiveRole === "supporter" && <Sparkles className="w-3.5 h-3.5 text-accent" />}
+                {effectiveRole === "admin" && <Users className="w-3.5 h-3.5 text-accent" />}
+                {effectiveRole === "owner" && <Users className="w-3.5 h-3.5 text-accent" />}
+                <span className="text-sm font-semibold text-foreground capitalize">{effectiveRole}</span>
               </div>
             </div>
           )}
