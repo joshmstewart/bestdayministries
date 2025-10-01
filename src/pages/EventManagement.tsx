@@ -665,10 +665,6 @@ export default function EventManagement() {
                           variant="secondary"
                           size="icon"
                           onClick={() => {
-                            // Use current preview as source for recropping
-                            if (!rawImageUrl && imagePreview) {
-                              setRawImageUrl(imagePreview);
-                            }
                             setShowCropDialog(true);
                           }}
                         >
@@ -939,11 +935,11 @@ export default function EventManagement() {
       </main>
       <Footer />
       
-      {rawImageUrl && (
+      {(rawImageUrl || imagePreview) && (
         <ImageCropDialog
           open={showCropDialog}
           onOpenChange={setShowCropDialog}
-          imageUrl={rawImageUrl}
+          imageUrl={rawImageUrl || imagePreview || ""}
           onCropComplete={handleCroppedImage}
           aspectRatio={16 / 9}
           title="Crop Event Image"

@@ -636,9 +636,6 @@ const Discussions = () => {
                           variant="secondary"
                           size="icon"
                           onClick={() => {
-                            if (!imageToCrop && imagePreview) {
-                              setImageToCrop(imagePreview);
-                            }
                             setCropDialogOpen(true);
                           }}
                         >
@@ -946,11 +943,11 @@ const Discussions = () => {
       <Footer />
 
       {/* Image Crop Dialog */}
-      {imageToCrop && (
+      {(imageToCrop || imagePreview) && (
         <ImageCropDialog
           open={cropDialogOpen}
           onOpenChange={setCropDialogOpen}
-          imageUrl={imageToCrop}
+          imageUrl={imageToCrop || imagePreview || ""}
           onCropComplete={handleCropComplete}
           aspectRatio={16 / 9}
           title="Crop Post Image"

@@ -421,9 +421,6 @@ export const FeaturedBestieManager = () => {
                           size="icon"
                           className="h-6 w-6"
                           onClick={() => {
-                            if (!rawImageUrl && imagePreview) {
-                              setRawImageUrl(imagePreview);
-                            }
                             setShowCropDialog(true);
                           }}
                         >
@@ -694,11 +691,11 @@ export const FeaturedBestieManager = () => {
         </Card>
       )}
       
-      {rawImageUrl && (
+      {(rawImageUrl || imagePreview) && (
         <ImageCropDialog
           open={showCropDialog}
           onOpenChange={setShowCropDialog}
-          imageUrl={rawImageUrl}
+          imageUrl={rawImageUrl || imagePreview || ""}
           onCropComplete={handleCroppedImage}
           aspectRatio={1}
           title="Crop Bestie Image"
