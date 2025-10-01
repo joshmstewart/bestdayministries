@@ -406,9 +406,9 @@ export default function EventManagement() {
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={() => navigate("/community")}>
+              <Button variant="outline" onClick={() => navigate("/admin")}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Community
+                Back to Admin
               </Button>
               <h1 className="text-3xl font-bold">Event Management</h1>
             </div>
