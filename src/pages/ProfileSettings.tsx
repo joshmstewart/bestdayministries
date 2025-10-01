@@ -14,6 +14,7 @@ import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 
 interface Profile {
   id: string;
@@ -306,6 +307,23 @@ const ProfileSettings = () => {
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? "Saving..." : "Save Profile"}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Security Section */}
+          <Card className="border-2 shadow-warm">
+            <CardHeader>
+              <CardTitle>Security</CardTitle>
+              <CardDescription>Manage your account security settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">Password</p>
+                  <p className="text-sm text-muted-foreground">Change your account password</p>
+                </div>
+                <PasswordChangeDialog />
+              </div>
             </CardContent>
           </Card>
         </div>

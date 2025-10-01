@@ -8,7 +8,6 @@ import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles, Shield, 
 import { useToast } from "@/hooks/use-toast";
 import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
-import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 
@@ -156,7 +155,6 @@ const Community = () => {
                   <span className="hidden sm:inline">Admin</span>
                 </Button>
               )}
-              <PasswordChangeDialog />
               <Button 
                 variant="outline" 
                 onClick={handleLogout}
