@@ -23,6 +23,7 @@ interface FlaggedPost {
   created_at: string;
   author_id: string;
   moderation_notes: string | null;
+  image_url?: string | null;
   author?: Profile;
 }
 
@@ -265,6 +266,18 @@ const ModerationQueue = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
+                      
+                      {/* Display Image if present */}
+                      {post.image_url && (
+                        <div className="rounded-lg overflow-hidden border-2 border-orange-300">
+                          <img 
+                            src={post.image_url} 
+                            alt="Post image" 
+                            className="w-full max-h-96 object-cover"
+                          />
+                        </div>
+                      )}
+                      
                       {post.moderation_notes && (
                         <div className="bg-muted p-3 rounded-lg">
                           <p className="text-sm font-medium mb-1">Flagging Reason:</p>
