@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Roca', 'system-ui', 'sans-serif'],
+        handwriting: ['Seth', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",

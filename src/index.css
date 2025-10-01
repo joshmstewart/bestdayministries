@@ -87,6 +87,15 @@ All colors MUST be HSL.
   font-display: swap;
 }
 
+/* Seth Handwriting Font - Use Sparingly */
+@font-face {
+  font-family: 'Seth';
+  src: url('/fonts/Sethregular-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
