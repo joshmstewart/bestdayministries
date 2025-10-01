@@ -476,6 +476,7 @@ export type Database = {
           display_name: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
+          tts_enabled: boolean
           tts_voice: string | null
           updated_at: string
         }
@@ -488,6 +489,7 @@ export type Database = {
           display_name: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
+          tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
         }
@@ -500,6 +502,7 @@ export type Database = {
           display_name?: string
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
+          tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
         }

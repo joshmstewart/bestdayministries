@@ -20,6 +20,7 @@ export const TextToSpeech = ({
   const [isLoading, setIsLoading] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [userVoice, setUserVoice] = useState<string>('Aria');
+  const [ttsEnabled, setTtsEnabled] = useState(true);
 
   useEffect(() => {
     const loadUserVoice = async () => {
@@ -27,12 +28,15 @@ export const TextToSpeech = ({
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('tts_voice')
+          .select('tts_voice, tts_enabled')
           .eq('id', user.id)
           .single();
         
         if (profile?.tts_voice) {
           setUserVoice(profile.tts_voice);
+        }
+        if (profile?.tts_enabled !== undefined) {
+          setTtsEnabled(profile.tts_enabled);
         }
       }
     };
@@ -103,6 +107,11 @@ export const TextToSpeech = ({
       setIsLoading(false);
     }
   };
+
+  // Don't render if TTS is disabled
+  if (!ttsEnabled) {
+    return null;
+  }
 
   return (
     <Button

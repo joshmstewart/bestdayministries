@@ -14,6 +14,7 @@ import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 
 interface Profile {
@@ -24,6 +25,7 @@ interface Profile {
   avatar_number?: number;
   role: string;
   tts_voice?: string;
+  tts_enabled?: boolean;
 }
 
 const ProfileSettings = () => {
@@ -37,6 +39,7 @@ const ProfileSettings = () => {
   const [bio, setBio] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string>("Aria");
+  const [ttsEnabled, setTtsEnabled] = useState(true);
 
   useEffect(() => {
     checkUser();
@@ -76,6 +79,7 @@ const ProfileSettings = () => {
     setDisplayName(data.display_name || "");
     setBio(data.bio || "");
     setSelectedVoice(data.tts_voice || "Aria");
+    setTtsEnabled(data.tts_enabled ?? true);
     
     // Set avatar number directly from the database
     if (data.avatar_number) {
@@ -111,6 +115,7 @@ const ProfileSettings = () => {
           bio: bio.trim() || null,
           avatar_number: selectedAvatar,
           tts_voice: selectedVoice,
+          tts_enabled: ttsEnabled,
         })
         .eq("id", user.id);
 
@@ -224,15 +229,30 @@ const ProfileSettings = () => {
                 </p>
               </div>
 
-              {/* Voice Preference */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Volume2 className="w-4 h-4" />
-                  Text-to-Speech Voice
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Choose your preferred voice - click the speaker icon to preview
-                </p>
+              {/* Text-to-Speech Settings */}
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2 text-base">
+                      <Volume2 className="w-4 h-4" />
+                      Text-to-Speech
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Enable audio playback for text content throughout the app
+                    </p>
+                  </div>
+                  <Switch
+                    checked={ttsEnabled}
+                    onCheckedChange={setTtsEnabled}
+                  />
+                </div>
+
+                {ttsEnabled && (
+                  <div className="space-y-3 pt-2 border-t">
+                    <Label className="text-sm">Preferred Voice</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Choose your preferred voice - click the speaker icon to preview
+                    </p>
                 <div className="grid grid-cols-1 gap-3">
                   {[
                     { value: 'Aria', label: 'Aria', description: 'Female, Warm' },
@@ -295,6 +315,8 @@ const ProfileSettings = () => {
                     </div>
                   ))}
                 </div>
+                  </div>
+                )}
               </div>
 
               {/* Save Button */}
