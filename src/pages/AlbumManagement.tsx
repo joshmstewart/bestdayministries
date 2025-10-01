@@ -73,6 +73,7 @@ export default function AlbumManagement() {
   const [uploading, setUploading] = useState(false);
   const [cropImageIndex, setCropImageIndex] = useState<number | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
+  const [cropExistingImage, setCropExistingImage] = useState<AlbumImage | null>(null);
 
   useEffect(() => {
     checkAdminAccess();
@@ -181,32 +182,71 @@ export default function AlbumManagement() {
     setShowCropDialog(true);
   };
 
-  const handleCroppedImage = (blob: Blob) => {
-    if (cropImageIndex === null) return;
-
-    // Convert blob to File
-    const file = new File([blob], `cropped-${cropImageIndex}.jpg`, { type: "image/jpeg" });
-    
-    // Replace the image at the crop index
-    setSelectedImages(prev => {
-      const newImages = [...prev];
-      newImages[cropImageIndex] = file;
-      return newImages;
-    });
-    
-    // Update preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreviews(prev => {
-        const newPreviews = [...prev];
-        newPreviews[cropImageIndex] = reader.result as string;
-        return newPreviews;
+  const handleCroppedImage = async (blob: Blob) => {
+    if (cropImageIndex !== null) {
+      // Convert blob to File
+      const file = new File([blob], `cropped-${cropImageIndex}.jpg`, { type: "image/jpeg" });
+      
+      // Replace the image at the crop index
+      setSelectedImages(prev => {
+        const newImages = [...prev];
+        newImages[cropImageIndex] = file;
+        return newImages;
       });
-    };
-    reader.readAsDataURL(blob);
-    
-    setCropImageIndex(null);
-    toast.success("Image cropped successfully");
+      
+      // Update preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => {
+          const newPreviews = [...prev];
+          newPreviews[cropImageIndex] = reader.result as string;
+          return newPreviews;
+        });
+      };
+      reader.readAsDataURL(blob);
+      
+      setCropImageIndex(null);
+      toast.success("Image cropped successfully");
+    } else if (cropExistingImage) {
+      // Handle recropping existing image
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        const compressedImage = await compressImage(blob as File, 4.5);
+        const fileName = `${user.id}/${Date.now()}_recropped_${cropExistingImage.id}.jpg`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("album-images")
+          .upload(fileName, compressedImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("album-images")
+          .getPublicUrl(fileName);
+
+        // Update the image record
+        const { error: updateError } = await supabase
+          .from("album_images")
+          .update({ image_url: publicUrl })
+          .eq("id", cropExistingImage.id);
+
+        if (updateError) throw updateError;
+
+        toast.success("Image recropped successfully");
+        setCropExistingImage(null);
+        loadAlbums();
+      } catch (error: any) {
+        console.error("Error recropping image:", error);
+        toast.error(error.message || "Failed to recrop image");
+      }
+    }
+  };
+
+  const handleCropExistingImage = (image: AlbumImage) => {
+    setCropExistingImage(image);
+    setShowCropDialog(true);
   };
 
   const resetForm = () => {
@@ -709,14 +749,25 @@ export default function AlbumManagement() {
                               alt={image.caption || "Album image"}
                               className="w-full h-16 object-cover rounded"
                             />
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-0 right-0 w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => handleDeleteImage(image.id, album.id)}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
+                            <div className="absolute top-0 right-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="w-5 h-5"
+                                onClick={() => handleCropExistingImage(image)}
+                                title="Recrop image"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="w-5 h-5"
+                                onClick={() => handleDeleteImage(image.id, album.id)}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -730,17 +781,21 @@ export default function AlbumManagement() {
       </main>
       <Footer />
       
-      {cropImageIndex !== null && imagePreviews[cropImageIndex] && (
-        <ImageCropDialog
-          open={showCropDialog}
-          onOpenChange={setShowCropDialog}
-          imageUrl={imagePreviews[cropImageIndex]}
-          onCropComplete={handleCroppedImage}
-          aspectRatio={4 / 3}
-          title="Crop Album Image"
-          description="Adjust the crop area to match how this image will appear in the album (4:3 aspect ratio)"
-        />
-      )}
+      <ImageCropDialog
+        open={showCropDialog}
+        onOpenChange={(open) => {
+          setShowCropDialog(open);
+          if (!open) {
+            setCropImageIndex(null);
+            setCropExistingImage(null);
+          }
+        }}
+        imageUrl={cropExistingImage?.image_url || (cropImageIndex !== null ? imagePreviews[cropImageIndex] : "")}
+        onCropComplete={handleCroppedImage}
+        aspectRatio={4 / 3}
+        title="Crop Album Image"
+        description="Adjust the crop area to match how this image will appear in the album (4:3 aspect ratio)"
+      />
     </div>
   );
 }
