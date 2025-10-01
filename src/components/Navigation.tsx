@@ -23,6 +23,7 @@ const Navigation = () => {
               alt="Best Day Ever" 
               className="h-20 w-auto"
             />
+            <span className="font-handwriting text-3xl text-primary hidden sm:inline">Best Day Ever</span>
           </div>
 
           {/* Desktop Navigation */}

@@ -107,7 +107,10 @@ export default function LatestAlbum() {
               className="w-full"
             />
             <CardContent className="p-6 space-y-4">
-              <div>
+              <div 
+                className="cursor-pointer hover:text-primary transition-colors"
+                onClick={() => navigate("/gallery")}
+              >
                 <h3 className="text-2xl font-bold">{album.title}</h3>
                 {album.event && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
@@ -118,7 +121,12 @@ export default function LatestAlbum() {
               </div>
               
               {album.description && (
-                <p className="text-muted-foreground">{album.description}</p>
+                <p 
+                  className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                  onClick={() => navigate("/gallery")}
+                >
+                  {album.description}
+                </p>
               )}
 
               {album.audio_url && (

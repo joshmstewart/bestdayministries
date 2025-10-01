@@ -186,7 +186,7 @@ const Community = () => {
           </div>
 
           {/* Role Badge */}
-          <div className="flex justify-center my-2">
+          <div className="flex justify-center -mt-6">
             <div className="inline-flex items-center gap-1.5 px-4 py-0.5 bg-gradient-card border border-primary/20 rounded-full">
               {profile?.role === "bestie" && <Heart className="w-3.5 h-3.5 text-primary fill-primary" />}
               {profile?.role === "caregiver" && <Users className="w-3.5 h-3.5 text-secondary" />}

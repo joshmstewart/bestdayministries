@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ImageLightbox from "./ImageLightbox";
 
 interface ImageCarouselProps {
   images: { image_url: string; caption?: string | null }[];
@@ -16,6 +17,8 @@ export default function ImageCarousel({
   className = ""
 }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     if (!autoPlay || images.length <= 1) return;
@@ -35,6 +38,19 @@ export default function ImageCarousel({
     setCurrentIndex((prev) => (prev + 1) % images.length);
   };
 
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const goToPreviousLightbox = () => {
+    setLightboxIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const goToNextLightbox = () => {
+    setLightboxIndex((prev) => (prev + 1) % images.length);
+  };
+
   if (images.length === 0) {
     return (
       <div className={`flex items-center justify-center bg-muted rounded-lg ${className}`}>
@@ -46,11 +62,14 @@ export default function ImageCarousel({
   return (
     <div className={`relative group ${className}`}>
       {/* Main Image */}
-      <div className="aspect-video overflow-hidden rounded-lg bg-muted">
+      <div 
+        className="aspect-video overflow-hidden rounded-lg bg-muted cursor-pointer"
+        onClick={() => openLightbox(currentIndex)}
+      >
         <img
           src={images[currentIndex].image_url}
           alt={images[currentIndex].caption || `Image ${currentIndex + 1}`}
-          className="w-full h-full object-cover transition-opacity duration-300"
+          className="w-full h-full object-cover transition-opacity duration-300 hover:opacity-90"
         />
       </div>
 
@@ -100,6 +119,16 @@ export default function ImageCarousel({
           ))}
         </div>
       )}
+
+      {/* Lightbox */}
+      <ImageLightbox
+        images={images}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onPrevious={goToPreviousLightbox}
+        onNext={goToNextLightbox}
+      />
     </div>
   );
 }
