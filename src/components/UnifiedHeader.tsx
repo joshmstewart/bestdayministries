@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Shield } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
-import bdeLogo from "@/assets/bde-logo-transparent.png";
 
 export const UnifiedHeader = () => {
   const navigate = useNavigate();
@@ -115,15 +114,16 @@ export const UnifiedHeader = () => {
       <div className="container mx-auto px-4 py-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img 
-              src={logoUrl || bdeLogo} 
-              alt="Best Day Ever Coffee + Crepes" 
-              className="h-[102px] w-auto cursor-pointer m-0"
-              onClick={() => navigate(user ? "/community" : "/")}
-              onError={(e) => {
-                e.currentTarget.src = bdeLogo;
-              }}
-            />
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt="Best Day Ever Coffee + Crepes" 
+                className="h-[102px] w-auto cursor-pointer m-0"
+                onClick={() => navigate(user ? "/community" : "/")}
+              />
+            ) : (
+              <div className="h-[102px] w-[150px]" />
+            )}
             {user && profile && (
               <div className="hidden sm:block">
                 <div className="text-xs text-muted-foreground">Welcome back,</div>
