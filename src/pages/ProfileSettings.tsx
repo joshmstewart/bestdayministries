@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Volume2 } from "lucide-react";
-import Navigation from "@/components/Navigation";
+import { Save, Volume2 } from "lucide-react";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
@@ -163,19 +163,11 @@ const ProfileSettings = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
-      <Navigation />
+      <UnifiedHeader />
       
-      <main className="container mx-auto px-4 py-24">
+      <main className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto space-y-8">
           <div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/community")}
-              className="mb-4 gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Community
-            </Button>
             <h1 className="text-4xl font-black text-foreground">
               Profile <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Settings</span>
             </h1>

@@ -1,4 +1,4 @@
-import Navigation from "@/components/Navigation";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Hero from "@/components/Hero";
 import Mission from "@/components/Mission";
 import CommunityFeatures from "@/components/CommunityFeatures";
@@ -13,7 +13,7 @@ import LatestAlbum from "@/components/LatestAlbum";
 const Index = () => {
   return (
     <div className="min-h-screen">
-      <Navigation />
+      <UnifiedHeader />
       <main>
         <Hero />
         <section className="container mx-auto px-4 py-16">

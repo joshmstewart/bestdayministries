@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, ArrowLeft } from "lucide-react";
+import { Calendar } from "lucide-react";
 import Footer from "@/components/Footer";
 import ImageCarousel from "@/components/ImageCarousel";
 import AudioPlayer from "@/components/AudioPlayer";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
 
 interface Album {
   id: string;
@@ -69,14 +70,7 @@ const GalleryPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <Button variant="outline" onClick={() => navigate("/community")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Community
-          </Button>
-        </div>
-      </header>
+      <UnifiedHeader />
       <main className="flex-1 container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center space-y-4">

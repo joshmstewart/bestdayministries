@@ -4,15 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles, Shield, ArrowRight } from "lucide-react";
-import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { Heart, Calendar, Users, MessageSquare, Gift, Sparkles, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { LocationLink } from "@/components/LocationLink";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -20,14 +18,11 @@ const Community = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [logoUrl, setLogoUrl] = useState(joyHouseLogo);
 
   useEffect(() => {
     checkUser();
-    loadLogo();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
@@ -40,36 +35,6 @@ const Community = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  const loadLogo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("app_settings_public")
-        .select("setting_value")
-        .eq("setting_key", "logo_url")
-        .single();
-
-      if (error) throw error;
-
-      if (data?.setting_value) {
-        try {
-          const url = typeof data.setting_value === 'string' 
-            ? JSON.parse(data.setting_value) 
-            : data.setting_value;
-          
-          if (url && !url.includes('object/public/app-assets/logo.png')) {
-            setLogoUrl(url);
-          }
-        } catch (e) {
-          if (typeof data.setting_value === 'string' && data.setting_value.startsWith('http')) {
-            setLogoUrl(data.setting_value);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading logo:', error);
-    }
-  };
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -128,16 +93,6 @@ const Community = () => {
     }
 
     setProfile(data);
-    setIsAdmin(data?.role === "admin" || data?.role === "owner");
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Logged out successfully",
-      description: "See you soon!",
-    });
-    navigate("/");
   };
 
   if (loading) {
@@ -160,59 +115,7 @@ const Community = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
-      {/* Header */}
-      <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img 
-                src={logoUrl} 
-                alt="Joy House" 
-                className="h-10"
-                onError={(e) => {
-                  e.currentTarget.src = joyHouseLogo;
-                }}
-              />
-              <div className="hidden sm:block">
-                <div className="text-xs text-muted-foreground">Welcome back,</div>
-                <div className="font-bold text-foreground">{profile?.display_name}</div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate("/profile")}
-                className="gap-2"
-              >
-                <AvatarDisplay 
-                  avatarNumber={profile?.avatar_number} 
-                  displayName={profile?.display_name}
-                  size="sm"
-                />
-                <span className="hidden sm:inline">Profile</span>
-              </Button>
-              {isAdmin && (
-                <Button 
-                  variant="default" 
-                  onClick={() => navigate("/admin")}
-                  className="gap-2"
-                >
-                  <Shield className="w-4 h-4" />
-                  <span className="hidden sm:inline">Admin</span>
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                onClick={handleLogout}
-                className="gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <UnifiedHeader />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
@@ -232,14 +135,16 @@ const Community = () => {
           </div>
 
           {/* Role Badge */}
-          <div className="flex justify-center -mt-6">
-            <div className="inline-flex items-center gap-1.5 px-4 py-0.5 bg-gradient-card border border-primary/20 rounded-full">
-              {profile?.role === "bestie" && <Heart className="w-3.5 h-3.5 text-primary fill-primary" />}
-              {profile?.role === "caregiver" && <Users className="w-3.5 h-3.5 text-secondary" />}
-              {profile?.role === "supporter" && <Sparkles className="w-3.5 h-3.5 text-accent" />}
-              <span className="text-sm font-semibold text-foreground capitalize">{profile?.role}</span>
+          {profile && (
+            <div className="flex justify-center -mt-6">
+              <div className="inline-flex items-center gap-1.5 px-4 py-0.5 bg-gradient-card border border-primary/20 rounded-full">
+                {profile?.role === "bestie" && <Heart className="w-3.5 h-3.5 text-primary fill-primary" />}
+                {profile?.role === "caregiver" && <Users className="w-3.5 h-3.5 text-secondary" />}
+                {profile?.role === "supporter" && <Sparkles className="w-3.5 h-3.5 text-accent" />}
+                <span className="text-sm font-semibold text-foreground capitalize">{profile?.role}</span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Featured Bestie */}
           <FeaturedBestieDisplay />
