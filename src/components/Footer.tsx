@@ -1,4 +1,5 @@
 import { Heart } from "lucide-react";
+import bdeLogo from "@/assets/bde-logo-transparent.png";
 
 const Footer = () => {
   const footerLinks = [
@@ -36,10 +37,11 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div className="space-y-4">
-            <div className="text-3xl font-bold">
-              <span className="text-foreground">Best Day Ever</span>
-              <span className="text-primary">Ministries</span>
-            </div>
+            <img 
+              src={bdeLogo} 
+              alt="Best Day Ever Ministries" 
+              className="h-24 w-auto"
+            />
             <p className="text-muted-foreground">
               Spreading joy through the unique gifts and talents of the special needs community.
             </p>
