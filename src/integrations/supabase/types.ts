@@ -14,7 +14,375 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      caregiver_bestie_links: {
+        Row: {
+          bestie_id: string
+          caregiver_id: string
+          created_at: string
+          id: string
+          relationship: string
+        }
+        Insert: {
+          bestie_id: string
+          caregiver_id: string
+          created_at?: string
+          id?: string
+          relationship: string
+        }
+        Update: {
+          bestie_id?: string
+          caregiver_id?: string
+          created_at?: string
+          id?: string
+          relationship?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caregiver_bestie_links_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_bestie_links_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussion_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          is_moderated: boolean | null
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_moderated?: boolean | null
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_moderated?: boolean | null
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussion_posts: {
+        Row: {
+          author_id: string
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          is_moderated: boolean | null
+          moderation_notes: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_moderated?: boolean | null
+          moderation_notes?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_moderated?: boolean | null
+          moderation_notes?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_attendees: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          event_date: string
+          id: string
+          image_url: string | null
+          location: string | null
+          max_attendees: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          event_date: string
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          max_attendees?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          event_date?: string
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          max_attendees?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      featured_bestie_hearts: {
+        Row: {
+          created_at: string
+          featured_bestie_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          featured_bestie_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          featured_bestie_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_bestie_hearts_featured_bestie_id_fkey"
+            columns: ["featured_bestie_id"]
+            isOneToOne: false
+            referencedRelation: "featured_besties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "featured_bestie_hearts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      featured_besties: {
+        Row: {
+          bestie_id: string
+          created_at: string
+          description: string
+          featured_month: string
+          id: string
+          image_url: string
+          is_active: boolean | null
+          voice_note_url: string | null
+        }
+        Insert: {
+          bestie_id: string
+          created_at?: string
+          description: string
+          featured_month: string
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          voice_note_url?: string | null
+        }
+        Update: {
+          bestie_id?: string
+          created_at?: string
+          description?: string
+          featured_month?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          voice_note_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_besties_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          audio_notifications_enabled: boolean | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          audio_notifications_enabled?: boolean | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          audio_notifications_enabled?: boolean | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sponsorships: {
+        Row: {
+          amount: number | null
+          bestie_id: string
+          ended_at: string | null
+          frequency: string | null
+          id: string
+          sponsor_id: string
+          started_at: string
+          status: string | null
+        }
+        Insert: {
+          amount?: number | null
+          bestie_id: string
+          ended_at?: string | null
+          frequency?: string | null
+          id?: string
+          sponsor_id: string
+          started_at?: string
+          status?: string | null
+        }
+        Update: {
+          amount?: number | null
+          bestie_id?: string
+          ended_at?: string | null
+          frequency?: string | null
+          id?: string
+          sponsor_id?: string
+          started_at?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsorships_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorships_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +391,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "bestie" | "caregiver" | "supporter" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +518,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["bestie", "caregiver", "supporter", "admin"],
+    },
   },
 } as const
