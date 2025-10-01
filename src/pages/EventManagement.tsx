@@ -796,6 +796,30 @@ export default function EventManagement() {
                   )}
                 </div>
 
+                <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isPublic"
+                      checked={isPublic}
+                      onCheckedChange={setIsPublic}
+                    />
+                    <Label htmlFor="isPublic" className="cursor-pointer font-medium">
+                      {isPublic ? "Public Event" : "Private Event"}
+                    </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p><strong>Public:</strong> Visible on homepage and community page</p>
+                          <p className="mt-1"><strong>Private:</strong> Only visible on community page (logged-in users)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
                   <Button onClick={handleSubmit} disabled={uploading}>
                     {uploading ? "Saving..." : editingEvent ? "Update Event" : "Create Event"}

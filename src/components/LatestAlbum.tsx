@@ -39,6 +39,7 @@ export default function LatestAlbum() {
         event:events(title, event_date)
       `)
       .eq("is_active", true)
+      .eq("is_public", true)
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
