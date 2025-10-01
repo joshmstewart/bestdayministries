@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
 import AudioRecorder from "@/components/AudioRecorder";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface EventDate {
   id: string;
@@ -60,6 +61,8 @@ export default function EventManagement() {
   const [expiresAfterDate, setExpiresAfterDate] = useState(true);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const [showCropDialog, setShowCropDialog] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
@@ -127,12 +130,27 @@ export default function EventManagement() {
       return;
     }
 
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setRawImageUrl(reader.result as string);
+      setShowCropDialog(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCroppedImage = (blob: Blob) => {
+    // Convert blob to File
+    const file = new File([blob], "cropped-image.jpg", { type: "image/jpeg" });
     setSelectedImage(file);
+    
+    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(blob);
+    
+    toast.success("Image cropped successfully");
   };
 
   const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -904,6 +922,18 @@ export default function EventManagement() {
         </div>
       </main>
       <Footer />
+      
+      {rawImageUrl && (
+        <ImageCropDialog
+          open={showCropDialog}
+          onOpenChange={setShowCropDialog}
+          imageUrl={rawImageUrl}
+          onCropComplete={handleCroppedImage}
+          aspectRatio={16 / 9}
+          title="Crop Event Image"
+          description="Adjust the crop area to match how the image will appear in event cards (16:9 aspect ratio)"
+        />
+      )}
     </div>
   );
 }

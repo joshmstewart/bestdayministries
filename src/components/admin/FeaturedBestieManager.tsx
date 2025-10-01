@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Heart, Upload, Calendar, Mic } from "lucide-react";
+import { Plus, Edit, Trash2, Heart, Upload, Calendar, Mic, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { compressImage, compressAudio } from "@/lib/imageUtils";
 import AudioRecorder from "../AudioRecorder";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface FeaturedBestie {
   id: string;
@@ -49,6 +50,9 @@ export const FeaturedBestieManager = () => {
   const [uploading, setUploading] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
   const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
+  const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const [showCropDialog, setShowCropDialog] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -267,6 +271,21 @@ export const FeaturedBestieManager = () => {
     setShowAudioRecorder(false);
     setCurrentImageUrl("");
     setCurrentAudioUrl(null);
+    setRawImageUrl(null);
+    setImagePreview(null);
+    setShowCropDialog(false);
+  };
+
+  const handleCroppedImage = (blob: Blob) => {
+    const file = new File([blob], "cropped-bestie.jpg", { type: "image/jpeg" });
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(blob);
   };
 
   if (loading) {
@@ -390,13 +409,44 @@ export const FeaturedBestieManager = () => {
                     <img src={currentImageUrl} alt="Current" className="w-32 h-32 object-cover rounded border" />
                   </div>
                 )}
+                {imagePreview && (
+                  <div className="mb-2">
+                    <p className="text-xs text-muted-foreground mb-1">New cropped image:</p>
+                    <div className="relative inline-block">
+                      <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded border" />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6"
+                        onClick={() => {
+                          setImageFile(null);
+                          setImagePreview(null);
+                          setRawImageUrl(null);
+                        }}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <Input
                   id="image"
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setRawImageUrl(reader.result as string);
+                        setShowCropDialog(true);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
                 />
-                {editingId && <p className="text-xs text-muted-foreground">Leave empty to keep current image</p>}
+                {editingId && !imagePreview && <p className="text-xs text-muted-foreground">Leave empty to keep current image</p>}
               </div>
 
               <div className="space-y-2">
@@ -626,6 +676,18 @@ export const FeaturedBestieManager = () => {
             </Button>
           </CardContent>
         </Card>
+      )}
+      
+      {rawImageUrl && (
+        <ImageCropDialog
+          open={showCropDialog}
+          onOpenChange={setShowCropDialog}
+          imageUrl={rawImageUrl}
+          onCropComplete={handleCroppedImage}
+          aspectRatio={1}
+          title="Crop Bestie Image"
+          description="Adjust the crop area for the featured bestie image (square 1:1 aspect ratio)"
+        />
       )}
     </div>
   );

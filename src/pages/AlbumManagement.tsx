@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface Album {
   id: string;
@@ -70,6 +71,8 @@ export default function AlbumManagement() {
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [isPost, setIsPost] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [cropImageIndex, setCropImageIndex] = useState<number | null>(null);
+  const [showCropDialog, setShowCropDialog] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -171,6 +174,39 @@ export default function AlbumManagement() {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
     setImageCaptions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCropImage = (index: number) => {
+    setCropImageIndex(index);
+    setShowCropDialog(true);
+  };
+
+  const handleCroppedImage = (blob: Blob) => {
+    if (cropImageIndex === null) return;
+
+    // Convert blob to File
+    const file = new File([blob], `cropped-${cropImageIndex}.jpg`, { type: "image/jpeg" });
+    
+    // Replace the image at the crop index
+    setSelectedImages(prev => {
+      const newImages = [...prev];
+      newImages[cropImageIndex] = file;
+      return newImages;
+    });
+    
+    // Update preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreviews(prev => {
+        const newPreviews = [...prev];
+        newPreviews[cropImageIndex] = reader.result as string;
+        return newPreviews;
+      });
+    };
+    reader.readAsDataURL(blob);
+    
+    setCropImageIndex(null);
+    toast.success("Image cropped successfully");
   };
 
   const resetForm = () => {
@@ -562,16 +598,30 @@ export default function AlbumManagement() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                       {imagePreviews.map((preview, index) => (
                         <div key={index} className="relative space-y-2">
-                          <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2"
-                            onClick={() => removeImage(index)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                          <div className="relative">
+                            <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                            <div className="absolute top-2 right-2 flex gap-1">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => handleCropImage(index)}
+                                title="Crop image"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => removeImage(index)}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
                           <Input
                             placeholder="Caption (optional)"
                             value={imageCaptions[index]}
@@ -679,6 +729,18 @@ export default function AlbumManagement() {
         </div>
       </main>
       <Footer />
+      
+      {cropImageIndex !== null && imagePreviews[cropImageIndex] && (
+        <ImageCropDialog
+          open={showCropDialog}
+          onOpenChange={setShowCropDialog}
+          imageUrl={imagePreviews[cropImageIndex]}
+          onCropComplete={handleCroppedImage}
+          aspectRatio={4 / 3}
+          title="Crop Album Image"
+          description="Adjust the crop area to match how this image will appear in the album (4:3 aspect ratio)"
+        />
+      )}
     </div>
   );
 }
