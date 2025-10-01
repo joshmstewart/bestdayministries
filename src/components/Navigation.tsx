@@ -12,7 +12,7 @@ const Navigation = () => {
     const loadLogo = async () => {
       try {
         const { data, error } = await supabase
-          .from("app_settings")
+          .from("app_settings_public")
           .select("setting_value")
           .eq("setting_key", "logo_url")
           .single();
