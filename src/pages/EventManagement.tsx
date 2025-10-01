@@ -117,12 +117,23 @@ export default function EventManagement() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("audio/")) {
-      toast.error("Please select an audio file");
+    // Accept common audio formats including iPhone voice memos
+    const validAudioTypes = [
+      'audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/mp4', 
+      'audio/x-m4a', 'audio/m4a', 'audio/webm', 'audio/ogg'
+    ];
+    const validExtensions = ['.mp3', '.wav', '.m4a', '.mp4', '.webm', '.ogg'];
+    
+    const isValidType = file.type.startsWith("audio/") || validAudioTypes.includes(file.type);
+    const isValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+    if (!isValidType && !isValidExtension) {
+      toast.error("Please select a valid audio file (MP3, WAV, M4A, MP4, WebM, or OGG)");
       return;
     }
 
     setSelectedAudio(file);
+    toast.success(`Selected: ${file.name}`);
   };
 
   const resetForm = () => {
