@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
+import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -150,6 +151,9 @@ const Community = () => {
               <span className="font-bold text-foreground capitalize">{profile?.role}</span>
             </div>
           </div>
+
+          {/* Featured Bestie */}
+          <FeaturedBestieDisplay />
 
           {/* Quick Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
