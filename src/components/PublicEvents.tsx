@@ -83,9 +83,6 @@ export default function PublicEvents() {
         // If not logged in, show all public events
         if (!user || !userRole) return true;
         
-        // Admins and owners can see all events (unless impersonating)
-        if (userRole === 'admin' || userRole === 'owner') return true;
-        
         // Check if user's role is in visible_to_roles
         return event.visible_to_roles?.includes(userRole);
       });

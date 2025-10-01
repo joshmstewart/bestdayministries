@@ -84,9 +84,6 @@ export default function EventsPage() {
     } else {
       // Filter events based on effective user role
       const filteredEvents = (data || []).filter(event => {
-        // Admins and owners can see all events (only if not impersonating)
-        if ((userRole === 'admin' || userRole === 'owner')) return true;
-        
         // Check if user's role is in visible_to_roles
         return event.visible_to_roles?.includes(userRole);
       });
