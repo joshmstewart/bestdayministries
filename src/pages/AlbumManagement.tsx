@@ -742,7 +742,7 @@ export default function AlbumManagement() {
 
                     {album.images && album.images.length > 0 && (
                       <div className="grid grid-cols-4 gap-1 mt-2">
-                        {album.images.slice(0, 4).map((image) => (
+                        {album.images.map((image) => (
                           <div key={image.id} className="relative group">
                             <img
                               src={image.image_url}
