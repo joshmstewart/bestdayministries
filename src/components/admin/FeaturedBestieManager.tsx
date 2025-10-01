@@ -195,8 +195,9 @@ export const FeaturedBestieManager = () => {
     setEditingId(bestie.id);
     setBestieName(bestie.bestie_name);
     setDescription(bestie.description);
-    setStartDate(new Date(bestie.start_date));
-    setEndDate(new Date(bestie.end_date));
+    // Parse dates at noon local time to avoid timezone shifts
+    setStartDate(new Date(bestie.start_date + 'T12:00:00'));
+    setEndDate(new Date(bestie.end_date + 'T12:00:00'));
     setIsActive(bestie.is_active);
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
@@ -474,7 +475,7 @@ export const FeaturedBestieManager = () => {
                 {bestie.bestie_name}
               </CardTitle>
               <CardDescription>
-                {format(new Date(bestie.start_date), "MMM d, yyyy")} - {format(new Date(bestie.end_date), "MMM d, yyyy")}
+                {format(new Date(bestie.start_date + 'T12:00:00'), "MMM d, yyyy")} - {format(new Date(bestie.end_date + 'T12:00:00'), "MMM d, yyyy")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
