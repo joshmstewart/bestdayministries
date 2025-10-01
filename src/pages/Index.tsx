@@ -9,6 +9,7 @@ import About from "@/components/About";
 import Footer from "@/components/Footer";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
+import PublicEvents from "@/components/PublicEvents";
 
 const Index = () => {
   return (
@@ -22,6 +23,7 @@ const Index = () => {
         <Mission />
         <CommunityFeatures />
         <LatestAlbum />
+        <PublicEvents />
         <CommunityGallery />
         <JoyRocks />
         <Donate />
