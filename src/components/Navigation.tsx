@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import bdeLogo from "@/assets/bde-logo-no-subtitle.png";
+import bdeLogo from "@/assets/bde-logo-transparent.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
