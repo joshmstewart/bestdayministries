@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles } from "lucide-react";
+import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 
@@ -14,6 +14,7 @@ const Community = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -56,6 +57,7 @@ const Community = () => {
     }
 
     setProfile(data);
+    setIsAdmin(data?.role === "admin");
   };
 
   const handleLogout = async () => {
@@ -98,14 +100,26 @@ const Community = () => {
                 <div className="font-bold text-foreground">{profile?.display_name}</div>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={handleLogout}
-              className="gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
+            <div className="flex gap-2">
+              {isAdmin && (
+                <Button 
+                  variant="default" 
+                  onClick={() => navigate("/admin")}
+                  className="gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
