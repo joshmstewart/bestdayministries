@@ -12,6 +12,7 @@ import composite7 from "@/assets/avatars/composite-7.png";
 import composite8 from "@/assets/avatars/composite-8.png";
 import composite9 from "@/assets/avatars/composite-9.png";
 import composite10 from "@/assets/avatars/composite-10.png";
+import composite11 from "@/assets/avatars/composite-11.png";
 
 interface AvatarPickerProps {
   selectedAvatar: number | null;
@@ -123,6 +124,16 @@ const getAvatarConfig = (avatarNumber: number) => {
       { x: 100, y: 100 },
     ];
     return { image: composite10, position: positions[avatarNumber - 37] };
+  }
+  
+  if (avatarNumber >= 41 && avatarNumber <= 44) {
+    const positions = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 0, y: 100 },
+      { x: 100, y: 100 },
+    ];
+    return { image: composite11, position: positions[avatarNumber - 41] };
   }
   
   return null;
