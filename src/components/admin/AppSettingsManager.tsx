@@ -30,9 +30,23 @@ export const AppSettingsManager = () => {
 
       if (error) throw error;
 
-      const settingsMap: any = {};
+      const settingsMap: any = {
+        logo_url: "",
+        mobile_app_name: "Joy House Community",
+        mobile_app_icon_url: "",
+      };
+      
       data?.forEach((setting) => {
-        settingsMap[setting.setting_key] = JSON.parse(setting.setting_value as string);
+        try {
+          // Handle both string and already-parsed JSON values
+          const value = typeof setting.setting_value === 'string' 
+            ? JSON.parse(setting.setting_value) 
+            : setting.setting_value;
+          settingsMap[setting.setting_key] = value;
+        } catch (e) {
+          // If JSON parse fails, use the value as-is
+          settingsMap[setting.setting_key] = setting.setting_value;
+        }
       });
 
       setSettings(settingsMap);
@@ -73,6 +87,8 @@ export const AppSettingsManager = () => {
           setting_key: settingKey,
           setting_value: JSON.stringify(urlData.publicUrl),
           updated_by: user?.id,
+        }, {
+          onConflict: 'setting_key'
         });
 
       if (updateError) throw updateError;
@@ -109,6 +125,8 @@ export const AppSettingsManager = () => {
           setting_key: "mobile_app_name",
           setting_value: JSON.stringify(settings.mobile_app_name),
           updated_by: user?.id,
+        }, {
+          onConflict: 'setting_key'
         });
 
       if (error) throw error;
