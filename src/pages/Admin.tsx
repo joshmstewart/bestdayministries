@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
+import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -169,6 +170,7 @@ const Admin = () => {
             <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="featured">Featured Besties</TabsTrigger>
             <TabsTrigger value="moderation">Moderation</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -269,6 +271,10 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <AppSettingsManager />
           </TabsContent>
         </Tabs>
       </main>

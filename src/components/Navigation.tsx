@@ -1,10 +1,28 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import bdeLogo from "@/assets/bde-logo-no-subtitle.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(bdeLogo);
+
+  useEffect(() => {
+    const loadLogo = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "logo_url")
+        .single();
+
+      if (data?.setting_value) {
+        const url = JSON.parse(data.setting_value as string);
+        setLogoUrl(url);
+      }
+    };
+    loadLogo();
+  }, []);
 
   const navItems = [
     { label: "About", href: "#about" },
@@ -19,7 +37,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src={bdeLogo} 
+              src={logoUrl} 
               alt="Best Day Ever" 
               className="h-20 w-auto"
             />
