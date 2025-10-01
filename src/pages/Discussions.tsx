@@ -19,6 +19,7 @@ interface Profile {
   display_name: string;
   role: string;
   avatar_url?: string;
+  avatar_number?: number;
 }
 
 interface Comment {
@@ -105,7 +106,7 @@ const Discussions = () => {
       .from("discussion_posts")
       .select(`
         *,
-        author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
+        author:profiles!discussion_posts_author_id_fkey(id, display_name, role, avatar_number)
       `)
       .eq("is_moderated", true)
       .order("created_at", { ascending: false });
@@ -127,7 +128,7 @@ const Discussions = () => {
           .from("discussion_comments")
           .select(`
             *,
-            author:profiles!discussion_comments_author_id_fkey(id, display_name, role)
+            author:profiles!discussion_comments_author_id_fkey(id, display_name, role, avatar_number)
           `)
           .eq("post_id", post.id)
           .eq("is_moderated", true)
@@ -604,7 +605,7 @@ const Discussions = () => {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1">
                         <AvatarDisplay 
-                          avatarNumber={post.author?.avatar_url ? parseInt(post.author.avatar_url.replace("avatar-", "")) : null}
+                          avatarNumber={post.author?.avatar_number || null}
                           displayName={post.author?.display_name || "Unknown"}
                           size="md"
                         />
@@ -662,7 +663,7 @@ const Discussions = () => {
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-2 flex-1">
                               <AvatarDisplay 
-                                avatarNumber={comment.author?.avatar_url ? parseInt(comment.author.avatar_url.replace("avatar-", "")) : null}
+                                avatarNumber={comment.author?.avatar_number || null}
                                 displayName={comment.author?.display_name || "Unknown"}
                                 size="sm"
                               />

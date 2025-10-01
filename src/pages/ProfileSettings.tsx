@@ -19,6 +19,7 @@ interface Profile {
   display_name: string;
   bio?: string;
   avatar_url?: string;
+  avatar_number?: number;
   role: string;
 }
 
@@ -71,8 +72,11 @@ const ProfileSettings = () => {
     setDisplayName(data.display_name || "");
     setBio(data.bio || "");
     
-    // Parse avatar number from avatar_url (stored as "avatar-1", "avatar-2", etc.)
-    if (data.avatar_url) {
+    // Set avatar number directly from the database
+    if (data.avatar_number) {
+      setSelectedAvatar(data.avatar_number);
+    } else if (data.avatar_url) {
+      // Fallback for old avatar_url format
       const avatarNum = parseInt(data.avatar_url.replace("avatar-", ""));
       if (!isNaN(avatarNum)) {
         setSelectedAvatar(avatarNum);
@@ -100,7 +104,7 @@ const ProfileSettings = () => {
         .update({
           display_name: displayName.trim(),
           bio: bio.trim() || null,
-          avatar_url: selectedAvatar ? `avatar-${selectedAvatar}` : null,
+          avatar_number: selectedAvatar,
         })
         .eq("id", user.id);
 

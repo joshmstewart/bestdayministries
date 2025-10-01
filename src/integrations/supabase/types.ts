@@ -336,6 +336,7 @@ export type Database = {
       profiles: {
         Row: {
           audio_notifications_enabled: boolean | null
+          avatar_number: number | null
           avatar_url: string | null
           bio: string | null
           created_at: string
@@ -346,6 +347,7 @@ export type Database = {
         }
         Insert: {
           audio_notifications_enabled?: boolean | null
+          avatar_number?: number | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -356,6 +358,7 @@ export type Database = {
         }
         Update: {
           audio_notifications_enabled?: boolean | null
+          avatar_number?: number | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -364,7 +367,15 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_avatar_number_fkey"
+            columns: ["avatar_number"]
+            isOneToOne: false
+            referencedRelation: "avatars"
+            referencedColumns: ["avatar_number"]
+          },
+        ]
       }
       sponsorships: {
         Row: {
