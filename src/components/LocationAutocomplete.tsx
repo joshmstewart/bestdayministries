@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useLoadScript } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-const libraries: ("places")[] = ["places"];
+import { useGoogleMapsScript } from "@/hooks/useGoogleMapsScript";
 
 interface LocationAutocompleteProps {
   value: string;
@@ -55,11 +53,8 @@ export function LocationAutocomplete({
     fetchApiKey();
   }, []);
 
-  // Load Google Maps script with Places library - only when we have the API key
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey || "PLACEHOLDER", // Use placeholder until we have real key
-    libraries,
-  });
+  // Load Google Maps script with our custom hook
+  const { isLoaded, loadError } = useGoogleMapsScript(apiKey);
 
   const hasValidKey = apiKey && apiKey !== "PLACEHOLDER";
 
