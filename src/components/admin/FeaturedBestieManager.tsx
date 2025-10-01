@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { compressImage, compressAudio } from "@/lib/imageUtils";
 
 interface FeaturedBestie {
   id: string;
@@ -99,14 +100,16 @@ export const FeaturedBestieManager = () => {
       let imageUrl = "";
       let voiceNoteUrl = null;
 
-      // Upload image if new file selected
+      // Compress and upload image if new file selected
       if (imageFile) {
-        imageUrl = await uploadFile(imageFile, "featured-bestie-images");
+        const compressedImage = await compressImage(imageFile, 4.5); // Slightly under 5MB limit
+        imageUrl = await uploadFile(compressedImage, "featured-bestie-images");
       }
       
-      // Upload audio if provided
+      // Compress and upload audio if provided
       if (audioFile) {
-        voiceNoteUrl = await uploadFile(audioFile, "featured-bestie-audio");
+        const compressedAudio = await compressAudio(audioFile, 9.5); // Slightly under 10MB limit
+        voiceNoteUrl = await uploadFile(compressedAudio, "featured-bestie-audio");
       }
 
       const data: any = {
