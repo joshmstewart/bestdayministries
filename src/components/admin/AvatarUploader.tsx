@@ -72,6 +72,45 @@ export const AvatarUploader = () => {
     setIsDragging(false);
   };
 
+  // Touch event handlers for mobile support
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const touch = e.touches[0];
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      setDragStart({
+        x: touch.clientX - rect.left - cropArea.x,
+        y: touch.clientY - rect.top - cropArea.y
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (!isDragging || !canvasRef.current) return;
+    
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    const newX = touch.clientX - rect.left - dragStart.x;
+    const newY = touch.clientY - rect.top - dragStart.y;
+    
+    // Constrain to image bounds
+    const maxX = canvasRef.current.width - cropArea.width;
+    const maxY = canvasRef.current.height - cropArea.height;
+    
+    setCropArea({
+      ...cropArea,
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY))
+    });
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   const drawCropOverlay = () => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
@@ -237,11 +276,14 @@ export const AvatarUploader = () => {
               />
               <canvas
                 ref={canvasRef}
-                className="max-w-full border-2 border-border rounded cursor-move"
+                className="max-w-full border-2 border-border rounded cursor-move touch-none"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               />
               <p className="text-sm text-muted-foreground mt-2">
                 Drag the blue box to select the area to crop
