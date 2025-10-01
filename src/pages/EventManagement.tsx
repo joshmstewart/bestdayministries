@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic } from "lucide-react";
+import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
@@ -20,6 +20,7 @@ import AudioRecorder from "@/components/AudioRecorder";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { LocationLink } from "@/components/LocationLink";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EventDate {
   id: string;
@@ -40,6 +41,7 @@ interface Event {
   recurrence_type: string | null;
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
+  is_public: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -61,6 +63,7 @@ export default function EventManagement() {
   const [eventTime, setEventTime] = useState("12:00");
   const [location, setLocation] = useState("");
   const [expiresAfterDate, setExpiresAfterDate] = useState(true);
+  const [isPublic, setIsPublic] = useState(true);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
@@ -188,6 +191,7 @@ export default function EventManagement() {
     setEventTime("12:00");
     setLocation("");
     setExpiresAfterDate(true);
+    setIsPublic(true);
     setSelectedImage(null);
     setImagePreview(null);
     setSelectedAudio(null);
@@ -271,6 +275,7 @@ export default function EventManagement() {
         event_date: combinedDate.toISOString(),
         location: location || null,
         expires_after_date: expiresAfterDate,
+        is_public: isPublic,
         image_url: imageUrl,
         audio_url: audioUrl,
         is_recurring: isRecurring,
@@ -352,6 +357,7 @@ export default function EventManagement() {
     setEventTime(format(date, "HH:mm"));
     setLocation(event.location || "");
     setExpiresAfterDate(event.expires_after_date);
+    setIsPublic(event.is_public ?? true);
     setIsRecurring(event.is_recurring);
     setRecurrenceType(event.recurrence_type || "daily");
     setRecurrenceInterval(event.recurrence_interval || 1);

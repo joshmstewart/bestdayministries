@@ -60,6 +60,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_post: boolean
+          is_public: boolean
           title: string
           updated_at: string
         }
@@ -73,6 +74,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_post?: boolean
+          is_public?: boolean
           title: string
           updated_at?: string
         }
@@ -86,6 +88,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_post?: boolean
+          is_public?: boolean
           title?: string
           updated_at?: string
         }
@@ -365,6 +368,7 @@ export type Database = {
           expires_after_date: boolean
           id: string
           image_url: string | null
+          is_public: boolean
           is_recurring: boolean
           location: string | null
           max_attendees: number | null
@@ -383,6 +387,7 @@ export type Database = {
           expires_after_date?: boolean
           id?: string
           image_url?: string | null
+          is_public?: boolean
           is_recurring?: boolean
           location?: string | null
           max_attendees?: number | null
@@ -401,6 +406,7 @@ export type Database = {
           expires_after_date?: boolean
           id?: string
           image_url?: string | null
+          is_public?: boolean
           is_recurring?: boolean
           location?: string | null
           max_attendees?: number | null

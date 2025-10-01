@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic } from "lucide-react";
+import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import AudioRecorder from "@/components/AudioRecorder";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -31,6 +33,7 @@ interface Album {
   created_at: string;
   audio_url: string | null;
   is_post: boolean;
+  is_public: boolean;
   images?: AlbumImage[];
   event?: { title: string } | null;
 }
@@ -70,6 +73,7 @@ export default function AlbumManagement() {
   const [audioPreview, setAudioPreview] = useState<string>("");
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [isPost, setIsPost] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [cropImageIndex, setCropImageIndex] = useState<number | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
@@ -261,6 +265,7 @@ export default function AlbumManagement() {
     setAudioPreview("");
     setShowAudioRecorder(false);
     setIsPost(false);
+    setIsPublic(true);
     setEditingAlbum(null);
     setShowForm(false);
   };
@@ -307,6 +312,7 @@ export default function AlbumManagement() {
             event_id: eventId === "none" ? null : eventId,
             audio_url: audioUrl,
             is_post: isPost,
+            is_public: isPublic,
           })
           .eq("id", editingAlbum.id);
 
@@ -320,6 +326,7 @@ export default function AlbumManagement() {
             event_id: eventId === "none" ? null : eventId,
             audio_url: audioUrl,
             is_post: isPost,
+            is_public: isPublic,
             created_by: user.id,
           })
           .select()
@@ -386,6 +393,7 @@ export default function AlbumManagement() {
     setAudioBlob(null);
     setShowAudioRecorder(false);
     setIsPost(album.is_post || false);
+    setIsPublic(album.is_public ?? true);
     setShowForm(true);
   };
 
@@ -607,6 +615,30 @@ export default function AlbumManagement() {
                   <Label htmlFor="isPost" className="cursor-pointer">
                     Display as a post on community page
                   </Label>
+                </div>
+
+                <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isPublic"
+                      checked={isPublic}
+                      onCheckedChange={setIsPublic}
+                    />
+                    <Label htmlFor="isPublic" className="cursor-pointer font-medium">
+                      {isPublic ? "Public Album" : "Private Album"}
+                    </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p><strong>Public:</strong> Visible on homepage and community page</p>
+                          <p className="mt-1"><strong>Private:</strong> Only visible on community page (logged-in users)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
