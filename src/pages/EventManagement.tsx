@@ -179,7 +179,10 @@ export default function EventManagement() {
           .from("event-images")
           .upload(fileName, compressedImage);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Image upload error:", uploadError);
+          throw new Error(`Failed to upload image: ${uploadError.message}`);
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from("event-images")
@@ -196,7 +199,10 @@ export default function EventManagement() {
           .from("event-audio")
           .upload(fileName, selectedAudio);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Audio upload error:", uploadError);
+          throw new Error(`Failed to upload audio: ${uploadError.message}`);
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from("event-audio")
