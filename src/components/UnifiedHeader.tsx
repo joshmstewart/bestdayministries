@@ -18,7 +18,7 @@ export const UnifiedHeader = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const { count: moderationCount } = useModerationCount();
-  const { getEffectiveRole } = useRoleImpersonation();
+  const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
   useEffect(() => {
     checkUser();
@@ -36,6 +36,14 @@ export const UnifiedHeader = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Update admin status when impersonation changes
+  useEffect(() => {
+    if (profile) {
+      const effectiveRole = getEffectiveRole(profile.role);
+      setIsAdmin(effectiveRole === "admin" || effectiveRole === "owner");
+    }
+  }, [isImpersonating, profile, getEffectiveRole]);
 
   const loadLogo = async () => {
     try {
