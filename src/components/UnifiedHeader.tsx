@@ -160,7 +160,7 @@ export const UnifiedHeader = () => {
                   <AvatarDisplay 
                     avatarNumber={profile?.avatar_number} 
                     displayName={profile?.display_name}
-                    size="sm"
+                    size="md"
                   />
                   <span className="hidden sm:inline font-semibold">Profile</span>
                 </Button>
