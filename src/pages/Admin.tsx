@@ -165,6 +165,7 @@ const Admin = () => {
           <TabsList>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
+            <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="featured">Featured Besties</TabsTrigger>
             <TabsTrigger value="moderation">Moderation</TabsTrigger>
           </TabsList>
@@ -199,6 +200,26 @@ const Admin = () => {
                   <Button onClick={() => navigate("/admin/events")} className="gap-2">
                     <Calendar className="w-4 h-4" />
                     Manage Events
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="albums">
+            <Card>
+              <CardHeader>
+                <CardTitle>Photo Albums</CardTitle>
+                <CardDescription>Create and manage photo albums</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Create photo albums with multiple images, captions, and optional event links.
+                  </p>
+                  <Button onClick={() => navigate("/admin/albums")} className="gap-2">
+                    <Heart className="w-4 h-4" />
+                    Manage Albums
                   </Button>
                 </div>
               </CardContent>

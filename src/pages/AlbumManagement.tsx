@@ -1,0 +1,517 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface Album {
+  id: string;
+  title: string;
+  description: string | null;
+  event_id: string | null;
+  cover_image_url: string | null;
+  created_at: string;
+  images?: AlbumImage[];
+  event?: { title: string } | null;
+}
+
+interface AlbumImage {
+  id: string;
+  image_url: string;
+  caption: string | null;
+  display_order: number;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  event_date: string;
+}
+
+export default function AlbumManagement() {
+  const navigate = useNavigate();
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+  
+  // Form fields
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [eventId, setEventId] = useState<string>("");
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imageCaptions, setImageCaptions] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    checkAdminAccess();
+  }, []);
+
+  const checkAdminAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || (profile.role !== "admin" && profile.role !== "owner")) {
+      toast.error("Access denied. Admin privileges required.");
+      navigate("/");
+      return;
+    }
+
+    setIsAdmin(true);
+    await Promise.all([loadAlbums(), loadEvents()]);
+  };
+
+  const loadAlbums = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("albums")
+      .select(`
+        *,
+        event:events(title)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("Failed to load albums");
+      console.error(error);
+    } else {
+      // Load images for each album
+      const albumsWithImages = await Promise.all(
+        (data || []).map(async (album) => {
+          const { data: images } = await supabase
+            .from("album_images")
+            .select("*")
+            .eq("album_id", album.id)
+            .order("display_order", { ascending: true });
+          return { ...album, images: images || [] };
+        })
+      );
+      setAlbums(albumsWithImages);
+    }
+    setLoading(false);
+  };
+
+  const loadEvents = async () => {
+    const { data } = await supabase
+      .from("events")
+      .select("id, title, event_date")
+      .order("event_date", { ascending: false });
+    
+    if (data) setEvents(data);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast.error("Please select image files");
+      return;
+    }
+
+    setSelectedImages(prev => [...prev, ...imageFiles]);
+    setImageCaptions(prev => [...prev, ...new Array(imageFiles.length).fill("")]);
+
+    imageFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImageCaptions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setEventId("");
+    setSelectedImages([]);
+    setImagePreviews([]);
+    setImageCaptions([]);
+    setEditingAlbum(null);
+    setShowForm(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!title || selectedImages.length === 0) {
+      toast.error("Please provide a title and at least one image");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      let albumId = editingAlbum?.id;
+
+      // Create or update album
+      if (editingAlbum) {
+        const { error } = await supabase
+          .from("albums")
+          .update({
+            title,
+            description: description || null,
+            event_id: eventId || null,
+          })
+          .eq("id", editingAlbum.id);
+
+        if (error) throw error;
+      } else {
+        const { data: newAlbum, error } = await supabase
+          .from("albums")
+          .insert({
+            title,
+            description: description || null,
+            event_id: eventId || null,
+            created_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        albumId = newAlbum.id;
+      }
+
+      // Upload images
+      for (let i = 0; i < selectedImages.length; i++) {
+        const file = selectedImages[i];
+        const compressedImage = await compressImage(file, 4.5);
+        const fileName = `${user.id}/${Date.now()}_${file.name}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("album-images")
+          .upload(fileName, compressedImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("album-images")
+          .getPublicUrl(fileName);
+        
+        // Insert image record
+        const { error: imageError } = await supabase
+          .from("album_images")
+          .insert({
+            album_id: albumId,
+            image_url: publicUrl,
+            caption: imageCaptions[i] || null,
+            display_order: i,
+          });
+
+        if (imageError) throw imageError;
+
+        // Set first image as cover if creating new album
+        if (i === 0 && !editingAlbum) {
+          await supabase
+            .from("albums")
+            .update({ cover_image_url: publicUrl })
+            .eq("id", albumId);
+        }
+      }
+
+      toast.success(editingAlbum ? "Album updated successfully" : "Album created successfully");
+      resetForm();
+      loadAlbums();
+    } catch (error: any) {
+      console.error("Error saving album:", error);
+      toast.error(error.message || "Failed to save album");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleEdit = (album: Album) => {
+    setEditingAlbum(album);
+    setTitle(album.title);
+    setDescription(album.description || "");
+    setEventId(album.event_id || "");
+    setShowForm(true);
+  };
+
+  const handleDelete = async (albumId: string) => {
+    if (!confirm("Are you sure you want to delete this album? This will delete all associated images.")) return;
+
+    const { error } = await supabase
+      .from("albums")
+      .delete()
+      .eq("id", albumId);
+
+    if (error) {
+      toast.error("Failed to delete album");
+      console.error(error);
+    } else {
+      toast.success("Album deleted successfully");
+      loadAlbums();
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string, albumId: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+
+    const { error } = await supabase
+      .from("album_images")
+      .delete()
+      .eq("id", imageId);
+
+    if (error) {
+      toast.error("Failed to delete image");
+      console.error(error);
+    } else {
+      toast.success("Image deleted successfully");
+      loadAlbums();
+    }
+  };
+
+  if (loading || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+          <p className="text-muted-foreground">Loading album management...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navigation />
+      <main className="flex-1 container mx-auto px-4 py-8 pt-28">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={() => navigate("/admin")}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Admin
+              </Button>
+              <h1 className="text-3xl font-bold">Album Management</h1>
+            </div>
+            <Button onClick={() => setShowForm(!showForm)}>
+              {showForm ? "Cancel" : "Add New Album"}
+            </Button>
+          </div>
+
+          {showForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{editingAlbum ? "Edit Album" : "Create New Album"}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title *</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Album title"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Album description"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="event">Link to Event (Optional)</Label>
+                  <Select value={eventId} onValueChange={setEventId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No event</SelectItem>
+                      {events.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.title} ({new Date(event.event_date).toLocaleDateString()})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Images *</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("image-upload")?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Images
+                  </Button>
+                  
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative space-y-2">
+                          <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2"
+                            onClick={() => removeImage(index)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                          <Input
+                            placeholder="Caption (optional)"
+                            value={imageCaptions[index]}
+                            onChange={(e) => {
+                              const newCaptions = [...imageCaptions];
+                              newCaptions[index] = e.target.value;
+                              setImageCaptions(newCaptions);
+                            }}
+                            className="text-sm"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={handleSubmit} disabled={uploading}>
+                    {uploading ? "Saving..." : editingAlbum ? "Update Album" : "Create Album"}
+                  </Button>
+                  <Button variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {loading ? (
+            <p>Loading albums...</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {albums.map((album) => (
+                <Card key={album.id}>
+                  {album.cover_image_url && (
+                    <img
+                      src={album.cover_image_url}
+                      alt={album.title}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                    />
+                  )}
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{album.title}</h3>
+                        {album.event && (
+                          <p className="text-xs text-muted-foreground">Event: {album.event.title}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(album)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(album.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {album.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {album.description}
+                      </p>
+                    )}
+
+                    <p className="text-xs text-muted-foreground">
+                      {album.images?.length || 0} images
+                    </p>
+
+                    {album.images && album.images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-1 mt-2">
+                        {album.images.slice(0, 4).map((image) => (
+                          <div key={image.id} className="relative group">
+                            <img
+                              src={image.image_url}
+                              alt={image.caption || "Album image"}
+                              className="w-full h-16 object-cover rounded"
+                            />
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-0 right-0 w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleDeleteImage(image.id, album.id)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}

@@ -9,6 +9,7 @@ import Community from "./pages/Community";
 import Admin from "./pages/Admin";
 import AvatarManagement from "./pages/AvatarManagement";
 import EventManagement from "./pages/EventManagement";
+import AlbumManagement from "./pages/AlbumManagement";
 import EventsPage from "./pages/EventsPage";
 import AboutPage from "./pages/AboutPage";
 import JoyRocksPage from "./pages/JoyRocksPage";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/avatars" element={<AvatarManagement />} />
           <Route path="/admin/events" element={<EventManagement />} />
+          <Route path="/admin/albums" element={<AlbumManagement />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/joy-rocks" element={<JoyRocksPage />} />

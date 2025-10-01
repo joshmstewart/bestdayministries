@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
+import LatestAlbum from "@/components/LatestAlbum";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -303,6 +304,9 @@ const Community = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Latest Album */}
+          <LatestAlbum />
 
           {/* Quick Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

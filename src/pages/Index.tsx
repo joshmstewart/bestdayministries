@@ -8,6 +8,7 @@ import Donate from "@/components/Donate";
 import About from "@/components/About";
 import Footer from "@/components/Footer";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
+import LatestAlbum from "@/components/LatestAlbum";
 
 const Index = () => {
   return (
@@ -20,6 +21,7 @@ const Index = () => {
         </section>
         <Mission />
         <CommunityFeatures />
+        <LatestAlbum />
         <CommunityGallery />
         <JoyRocks />
         <Donate />
