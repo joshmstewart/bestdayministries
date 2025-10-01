@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Heart, ArrowLeft } from "lucide-react";
+import { MessageSquare, Send, Heart, ArrowLeft, Trash2 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 
@@ -274,6 +274,59 @@ const Discussions = () => {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("discussion_posts")
+      .delete()
+      .eq("id", postId);
+
+    if (error) {
+      toast({
+        title: "Error deleting post",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Post deleted successfully" });
+    loadPosts();
+  };
+
+  const handleDeleteComment = async (commentId: string, postId: string) => {
+    if (!confirm("Are you sure you want to delete this comment? This action cannot be undone.")) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("discussion_comments")
+      .delete()
+      .eq("id", commentId);
+
+    if (error) {
+      toast({
+        title: "Error deleting comment",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Comment deleted successfully" });
+    loadPosts();
+  };
+
+  const canDeleteContent = (authorId: string) => {
+    return profile && (
+      ['admin', 'owner'].includes(profile.role) || 
+      profile.id === authorId
+    );
+  };
+
   const getRoleBadgeColor = (role: string) => {
     const colors: { [key: string]: string } = {
       owner: "bg-purple-500 text-white",
@@ -397,6 +450,16 @@ const Discussions = () => {
                           </span>
                         </div>
                       </div>
+                      {canDeleteContent(post.author_id) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeletePost(post.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -412,14 +475,26 @@ const Discussions = () => {
                       {/* Comments List */}
                       {post.comments?.map((comment) => (
                         <div key={comment.id} className="bg-muted/50 rounded-lg p-4 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{comment.author?.display_name}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
-                              {comment.author?.role}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(comment.created_at).toLocaleDateString()}
-                            </span>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{comment.author?.display_name}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
+                                {comment.author?.role}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(comment.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {canDeleteContent(comment.author_id) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteComment(comment.id, post.id)}
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </div>
                           <p className="text-sm">{comment.content}</p>
                         </div>
