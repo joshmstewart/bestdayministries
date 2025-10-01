@@ -106,12 +106,17 @@ const Community = () => {
       .gte("event_date", new Date().toISOString());
 
     if (events) {
+      console.log('Community - User role:', userRole);
+      console.log('Community - Total events fetched:', events.length);
+      
       // Filter events based on effective user role
       const filteredEvents = events.filter(event => {
-        // Check if user's role is in visible_to_roles
-        return event.visible_to_roles?.includes(userRole);
+        const isVisible = event.visible_to_roles?.includes(userRole);
+        console.log(`Community - Event "${event.title}" - Visible to roles:`, event.visible_to_roles, 'User role:', userRole, 'Is visible:', isVisible);
+        return isVisible;
       }).slice(0, 3); // Take only first 3 after filtering
       
+      console.log('Community - Filtered events count:', filteredEvents.length);
       setUpcomingEvents(filteredEvents);
     }
   };
