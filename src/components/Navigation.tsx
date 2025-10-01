@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import joyHouseLogo from "@/assets/joy-house-logo-full.png";
+import bdeLogo from "@/assets/bde-logo.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,8 +19,8 @@ const Navigation = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src={joyHouseLogo} 
-              alt="Joy House" 
+              src={bdeLogo} 
+              alt="Best Day Ever" 
               className="h-14 w-auto"
             />
           </div>
