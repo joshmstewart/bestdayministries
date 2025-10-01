@@ -420,10 +420,20 @@ export const FeaturedBestieManager = () => {
               </p>
 
               <div className="flex gap-2 pt-4">
-                <Button onClick={handleSubmit} disabled={uploading} className="flex-1">
+                <Button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    console.log("Update button clicked!");
+                    handleSubmit();
+                  }} 
+                  disabled={uploading} 
+                  className="flex-1"
+                >
                   {uploading ? "Uploading..." : editingId ? "Update" : "Create"}
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => {
                     resetForm();
