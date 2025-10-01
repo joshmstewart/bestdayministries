@@ -22,9 +22,13 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
 
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => {
-      if (audio.duration && isFinite(audio.duration)) {
-        console.log("Duration loaded:", audio.duration);
+      console.log("Duration update:", audio.duration);
+      // For streaming audio or audio without metadata, duration might be Infinity
+      if (audio.duration && !isNaN(audio.duration) && audio.duration !== Infinity) {
         setDuration(audio.duration);
+      } else if (audio.duration === Infinity) {
+        // For streaming audio, we'll hide the time display
+        setDuration(-1);
       }
     };
     const handleEnded = () => {
@@ -55,8 +59,10 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
     };
     const handleCanPlay = () => {
       console.log("Audio can play, duration:", audio.duration);
-      if (audio.duration && isFinite(audio.duration)) {
+      if (audio.duration && !isNaN(audio.duration) && audio.duration !== Infinity) {
         setDuration(audio.duration);
+      } else if (audio.duration === Infinity) {
+        setDuration(-1);
       }
     };
 
@@ -150,6 +156,8 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
       <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-[60px]">
         {duration > 0 ? (
           <span>-{formatTime(timeRemaining)}</span>
+        ) : duration === -1 ? (
+          <span className="text-xs">Live</span>
         ) : (
           <span className="text-xs">Loading...</span>
         )}
