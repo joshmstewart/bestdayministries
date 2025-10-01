@@ -44,6 +44,8 @@ export const FeaturedBestieManager = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -88,10 +90,21 @@ export const FeaturedBestieManager = () => {
   };
 
   const handleSubmit = async () => {
-    if (!bestieName || !description || !startDate || !endDate || (!imageFile && !editingId)) {
+    console.log("Submit clicked", { bestieName, description, startDate, endDate, imageFile, editingId });
+    
+    if (!bestieName || !description || !startDate || !endDate) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields including start and end dates",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!imageFile && !editingId) {
+      toast({
+        title: "Missing image",
+        description: "Please upload an image for the featured bestie",
         variant: "destructive",
       });
       return;
@@ -140,12 +153,17 @@ export const FeaturedBestieManager = () => {
       }
 
       if (editingId) {
+        console.log("Updating bestie with data:", data);
         const { error } = await supabase
           .from("featured_besties")
           .update(data)
           .eq("id", editingId);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Update error:", error);
+          throw error;
+        }
+        console.log("Update successful");
         toast({ title: "Featured bestie updated successfully" });
       } else {
         if (!imageFile) {
@@ -180,6 +198,8 @@ export const FeaturedBestieManager = () => {
     setStartDate(new Date(bestie.start_date));
     setEndDate(new Date(bestie.end_date));
     setIsActive(bestie.is_active);
+    setCurrentImageUrl(bestie.image_url);
+    setCurrentAudioUrl(bestie.voice_note_url);
     setDialogOpen(true);
   };
 
@@ -232,6 +252,8 @@ export const FeaturedBestieManager = () => {
     setIsActive(true);
     setImageFile(null);
     setAudioFile(null);
+    setCurrentImageUrl("");
+    setCurrentAudioUrl(null);
   };
 
   if (loading) {
@@ -349,6 +371,12 @@ export const FeaturedBestieManager = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="image">Image {!editingId && "*"} (JPEG, PNG, WEBP, GIF - max 5MB)</Label>
+                {editingId && currentImageUrl && (
+                  <div className="mb-2">
+                    <p className="text-xs text-muted-foreground mb-1">Current image:</p>
+                    <img src={currentImageUrl} alt="Current" className="w-32 h-32 object-cover rounded border" />
+                  </div>
+                )}
                 <Input
                   id="image"
                   type="file"
@@ -360,6 +388,14 @@ export const FeaturedBestieManager = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="audio">Voice Note (MP3, WAV - max 10MB)</Label>
+                {editingId && currentAudioUrl && (
+                  <div className="mb-2">
+                    <p className="text-xs text-muted-foreground mb-1">Current audio:</p>
+                    <audio controls className="w-full">
+                      <source src={currentAudioUrl} type="audio/mpeg" />
+                    </audio>
+                  </div>
+                )}
                 <Input
                   id="audio"
                   type="file"
