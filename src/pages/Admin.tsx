@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -190,15 +191,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="featured">
-            <Card>
-              <CardHeader>
-                <CardTitle>Featured Besties</CardTitle>
-                <CardDescription>Manage featured community members</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Featured besties management coming soon...</p>
-              </CardContent>
-            </Card>
+            <FeaturedBestieManager />
           </TabsContent>
 
           <TabsContent value="moderation">
