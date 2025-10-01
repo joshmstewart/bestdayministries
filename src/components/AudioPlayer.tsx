@@ -23,17 +23,45 @@ export default function AudioPlayer({ src, className, variant = "large" }: Audio
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
     const handleEnded = () => {
+      console.log("Audio ended naturally");
       setIsPlaying(false);
       setCurrentTime(0);
     };
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      console.log("Audio started playing");
+      setIsPlaying(true);
+    };
+    const handlePause = () => {
+      console.log("Audio paused");
+      setIsPlaying(false);
+    };
+    const handleError = (e: Event) => {
+      console.error("Audio error:", e, audio.error);
+      setIsPlaying(false);
+    };
+    const handleStalled = () => {
+      console.warn("Audio stalled");
+    };
+    const handleSuspend = () => {
+      console.warn("Audio suspended");
+    };
+    const handleWaiting = () => {
+      console.log("Audio waiting for data");
+    };
+    const handleCanPlay = () => {
+      console.log("Audio can play, duration:", audio.duration);
+    };
 
     audio.addEventListener("timeupdate", updateTime);
     audio.addEventListener("loadedmetadata", updateDuration);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("play", handlePlay);
     audio.addEventListener("pause", handlePause);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("stalled", handleStalled);
+    audio.addEventListener("suspend", handleSuspend);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("canplay", handleCanPlay);
 
     return () => {
       audio.removeEventListener("timeupdate", updateTime);
@@ -41,6 +69,11 @@ export default function AudioPlayer({ src, className, variant = "large" }: Audio
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("stalled", handleStalled);
+      audio.removeEventListener("suspend", handleSuspend);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("canplay", handleCanPlay);
     };
   }, []);
 
