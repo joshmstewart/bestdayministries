@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -277,7 +277,7 @@ export const FeaturedBestieManager = () => {
               Add Featured Bestie
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingId ? "Edit" : "Create"} Featured Bestie
@@ -287,8 +287,7 @@ export const FeaturedBestieManager = () => {
               </DialogDescription>
             </DialogHeader>
             
-            <div className="overflow-y-auto flex-1 px-1">
-              <div className="space-y-4 pb-4">
+            <div className="space-y-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="bestie-name">Bestie Name *</Label>
                 <Input
@@ -420,33 +419,33 @@ export const FeaturedBestieManager = () => {
                 This bestie will only appear publicly when both Active is ON and today is within their featured date range
               </p>
 
+              <div className="flex gap-2 pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    console.log("Cancel clicked");
+                    resetForm();
+                    setDialogOpen(false);
+                  }}
+                  disabled={uploading}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    console.log("Update button clicked!");
+                    handleSubmit();
+                  }}
+                  disabled={uploading}
+                  className="flex-1"
+                >
+                  {uploading ? "Uploading..." : editingId ? "Update" : "Create"}
+                </Button>
               </div>
             </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  console.log("Cancel clicked");
-                  resetForm();
-                  setDialogOpen(false);
-                }}
-                disabled={uploading}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  console.log("Update button clicked!");
-                  handleSubmit();
-                }}
-                disabled={uploading}
-              >
-                {uploading ? "Uploading..." : editingId ? "Update" : "Create"}
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
