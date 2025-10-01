@@ -25,26 +25,37 @@ export function LocationAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [apiKey, setApiKey] = useState<string>("");
+  const [fetchingKey, setFetchingKey] = useState(true);
 
   // Fetch API key from edge function
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
+        console.log('Fetching Google Places API key...');
         const { data, error } = await supabase.functions.invoke('get-google-places-key');
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error from edge function:', error);
+          throw error;
+        }
+        
         if (data?.apiKey) {
+          console.log('API key fetched successfully');
           setApiKey(data.apiKey);
+        } else {
+          console.error('No API key in response:', data);
         }
       } catch (error) {
         console.error('Error fetching Google Places API key:', error);
+      } finally {
+        setFetchingKey(false);
       }
     };
     
     fetchApiKey();
   }, []);
 
-  // Load Google Maps script with Places library
+  // Load Google Maps script with Places library - only when we have the API key
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: apiKey,
     libraries,
@@ -98,13 +109,15 @@ export function LocationAutocomplete({
     );
   }
 
-  if (!isLoaded) {
+  if (fetchingKey || (!isLoaded && apiKey)) {
     return (
       <div className="space-y-2">
         {label && <Label htmlFor="location">{label}</Label>}
         <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted/50">
           <MapPin className="w-4 h-4 animate-pulse" />
-          <span className="text-sm text-muted-foreground">Loading location search...</span>
+          <span className="text-sm text-muted-foreground">
+            {fetchingKey ? 'Fetching API key...' : 'Loading location search...'}
+          </span>
         </div>
       </div>
     );
