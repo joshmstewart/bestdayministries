@@ -14,9 +14,11 @@ export const UnifiedHeader = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     checkUser();
+    loadLogo();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
@@ -30,6 +32,25 @@ export const UnifiedHeader = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const loadLogo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "logo_url")
+        .maybeSingle();
+
+      if (data?.setting_value) {
+        const url = typeof data.setting_value === 'string' 
+          ? JSON.parse(data.setting_value) 
+          : data.setting_value;
+        setLogoUrl(url);
+      }
+    } catch (error) {
+      console.error('Error loading logo:', error);
+    }
+  };
 
 
   const checkUser = async () => {
@@ -72,10 +93,13 @@ export const UnifiedHeader = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src={bdeLogo} 
+              src={logoUrl || bdeLogo} 
               alt="Best Day Ever Coffee + Crepes" 
               className="h-[102px] w-auto cursor-pointer m-0"
               onClick={() => navigate(user ? "/community" : "/")}
+              onError={(e) => {
+                e.currentTarget.src = bdeLogo;
+              }}
             />
             {user && profile && (
               <div className="hidden sm:block">
