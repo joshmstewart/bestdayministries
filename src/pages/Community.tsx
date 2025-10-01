@@ -11,7 +11,7 @@ import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
-import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
+import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const Community = () => {
   const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
-  const [effectiveRole, setEffectiveRole] = useState<string | null>(null);
+  const [effectiveRole, setEffectiveRole] = useState<UserRole | null>(null);
 
   // Update effective role whenever profile or impersonation changes
   useEffect(() => {
@@ -48,10 +48,10 @@ const Community = () => {
 
   // Reload content when impersonation changes
   useEffect(() => {
-    if (user && profile) {
+    if (user && profile && effectiveRole !== null) {
       loadLatestContent();
     }
-  }, [isImpersonating]);
+  }, [effectiveRole]); // Changed from isImpersonating to effectiveRole
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -68,6 +68,9 @@ const Community = () => {
   };
 
   const loadLatestContent = async () => {
+    // Don't load if we don't have an effective role yet
+    if (!effectiveRole) return;
+    
     // Fetch latest discussion
     const { data: discussions } = await supabase
       .from("discussion_posts")
@@ -84,20 +87,6 @@ const Community = () => {
       setLatestDiscussion(discussions);
     }
 
-    // Get user role for event filtering
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    let userRole = null;
-    
-    if (currentUser) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", currentUser.id)
-        .single();
-      
-      userRole = getEffectiveRole(profileData?.role);
-    }
-
     // Fetch upcoming events (up to 3) with role-based filtering
     const { data: events } = await supabase
       .from("events")
@@ -106,13 +95,13 @@ const Community = () => {
       .gte("event_date", new Date().toISOString());
 
     if (events) {
-      console.log('Community - User role:', userRole);
+      console.log('Community - User role:', effectiveRole);
       console.log('Community - Total events fetched:', events.length);
       
       // Filter events based on effective user role
       const filteredEvents = events.filter(event => {
-        const isVisible = event.visible_to_roles?.includes(userRole);
-        console.log(`Community - Event "${event.title}" - Visible to roles:`, event.visible_to_roles, 'User role:', userRole, 'Is visible:', isVisible);
+        const isVisible = event.visible_to_roles?.includes(effectiveRole);
+        console.log(`Community - Event "${event.title}" - Visible to roles:`, event.visible_to_roles, 'User role:', effectiveRole, 'Is visible:', isVisible);
         return isVisible;
       }).slice(0, 3); // Take only first 3 after filtering
       
