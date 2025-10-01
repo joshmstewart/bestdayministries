@@ -225,9 +225,16 @@ const Community = () => {
               <CardContent>
                 {latestDiscussion ? (
                   <div 
-                    className="space-y-2 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
+                    className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
                     onClick={() => navigate("/discussions")}
                   >
+                    {latestDiscussion.image_url && (
+                      <img
+                        src={latestDiscussion.image_url}
+                        alt={latestDiscussion.title}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    )}
                     <h3 className="font-semibold text-lg">{latestDiscussion.title}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2">{latestDiscussion.content}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -263,9 +270,16 @@ const Community = () => {
               <CardContent>
                 {latestEvent ? (
                   <div 
-                    className="space-y-2 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
+                    className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
                     onClick={() => navigate("/events")}
                   >
+                    {latestEvent.image_url && (
+                      <img
+                        src={latestEvent.image_url}
+                        alt={latestEvent.title}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    )}
                     <h3 className="font-semibold text-lg">{latestEvent.title}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2">{latestEvent.description}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -278,6 +292,12 @@ const Community = () => {
                         </>
                       )}
                     </div>
+                    {latestEvent.audio_url && (
+                      <audio controls className="w-full mt-2">
+                        <source src={latestEvent.audio_url} />
+                        Your browser does not support audio playback.
+                      </audio>
+                    )}
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No upcoming events</p>

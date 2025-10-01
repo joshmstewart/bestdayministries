@@ -8,8 +8,6 @@ import Donate from "@/components/Donate";
 import About from "@/components/About";
 import Footer from "@/components/Footer";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
-import RecentDiscussions from "@/components/RecentDiscussions";
-import UpcomingEvents from "@/components/UpcomingEvents";
 
 const Index = () => {
   return (
@@ -22,8 +20,6 @@ const Index = () => {
         </section>
         <Mission />
         <CommunityFeatures />
-        <RecentDiscussions />
-        <UpcomingEvents />
         <CommunityGallery />
         <JoyRocks />
         <Donate />
