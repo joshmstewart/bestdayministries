@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Heart, ArrowLeft, Trash2, Image as ImageIcon, X } from "lucide-react";
+import { MessageSquare, Send, Heart, ArrowLeft, Trash2, Image as ImageIcon, X, Mic } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import AudioRecorder from "@/components/AudioRecorder";
 
 interface Profile {
   id: string;
@@ -27,6 +28,7 @@ interface Comment {
   content: string;
   created_at: string;
   author_id: string;
+  audio_url?: string | null;
   author?: Profile;
 }
 
@@ -55,6 +57,8 @@ const Discussions = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [commentAudio, setCommentAudio] = useState<{ [key: string]: Blob | null }>({});
+  const [showAudioRecorder, setShowAudioRecorder] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     checkUser();
@@ -328,39 +332,74 @@ const Discussions = () => {
 
   const handleAddComment = async (postId: string) => {
     const content = newComment[postId];
-    if (!content?.trim()) return;
+    const audioBlob = commentAudio[postId];
+    
+    // Must have either text or audio
+    if (!content?.trim() && !audioBlob) return;
 
     try {
-      // Moderate content before posting
-      const { data: moderationResult, error: moderationError } = await supabase.functions.invoke('moderate-content', {
-        body: { 
-          content: content,
-          contentType: 'comment'
-        }
-      });
+      let audioUrl: string | null = null;
 
-      if (moderationError) {
-        console.error("Moderation error:", moderationError);
-        toast({
-          title: "Error checking content",
-          description: "Please try again",
-          variant: "destructive",
-        });
-        return;
+      // Upload audio if provided
+      if (audioBlob) {
+        const fileName = `${user?.id}/${Date.now()}_comment.webm`;
+        const { error: uploadError } = await supabase.storage
+          .from('discussion-images') // Reusing the same bucket for simplicity
+          .upload(fileName, audioBlob);
+
+        if (uploadError) {
+          toast({
+            title: "Error uploading audio",
+            description: uploadError.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('discussion-images')
+          .getPublicUrl(fileName);
+
+        audioUrl = publicUrl;
       }
 
-      const isApproved = moderationResult?.approved ?? true;
-      const reason = moderationResult?.reason || "";
-      const severity = moderationResult?.severity || "";
+      // Moderate text content if provided
+      let isApproved = true;
+      let moderationNotes = null;
+
+      if (content?.trim()) {
+        const { data: moderationResult, error: moderationError } = await supabase.functions.invoke('moderate-content', {
+          body: { 
+            content: content,
+            contentType: 'comment'
+          }
+        });
+
+        if (moderationError) {
+          console.error("Moderation error:", moderationError);
+          toast({
+            title: "Error checking content",
+            description: "Please try again",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        isApproved = moderationResult?.approved ?? true;
+        const reason = moderationResult?.reason || "";
+        const severity = moderationResult?.severity || "";
+        moderationNotes = isApproved ? null : `${severity} severity: ${reason}`;
+      }
 
       const { error } = await supabase
         .from("discussion_comments")
         .insert({
           post_id: postId,
-          content: content,
+          content: content || '',
+          audio_url: audioUrl,
           author_id: user?.id,
           is_moderated: isApproved,
-          moderation_notes: isApproved ? null : `${severity} severity: ${reason}`,
+          moderation_notes: moderationNotes,
         });
 
       if (error) {
@@ -373,7 +412,7 @@ const Discussions = () => {
       }
 
       if (isApproved) {
-        toast({ title: "Comment added!" });
+        toast({ title: audioUrl ? "Audio comment added!" : "Comment added!" });
       } else {
         toast({ 
           title: "Comment submitted for review",
@@ -382,6 +421,8 @@ const Discussions = () => {
       }
 
       setNewComment({ ...newComment, [postId]: "" });
+      setCommentAudio({ ...commentAudio, [postId]: null });
+      setShowAudioRecorder({ ...showAudioRecorder, [postId]: false });
       loadPosts();
     } catch (error) {
       console.error("Error adding comment:", error);
@@ -669,11 +710,17 @@ const Discussions = () => {
                                   <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
                                     {comment.author?.role}
                                   </span>
-                                  <span className="text-xs text-muted-foreground">
+                                   <span className="text-xs text-muted-foreground">
                                     {new Date(comment.created_at).toLocaleDateString()}
                                   </span>
                                 </div>
-                                <p className="text-sm">{comment.content}</p>
+                                {comment.content && <p className="text-sm">{comment.content}</p>}
+                                {comment.audio_url && (
+                                  <audio controls className="w-full mt-2">
+                                    <source src={comment.audio_url} type="audio/webm" />
+                                    Your browser does not support audio playback.
+                                  </audio>
+                                )}
                               </div>
                             </div>
                             {canDeleteContent(comment.author_id) && (
@@ -691,25 +738,66 @@ const Discussions = () => {
                       ))}
 
                       {/* Add Comment */}
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Add a comment..."
-                          value={newComment[post.id] || ""}
-                          onChange={(e) => setNewComment({ ...newComment, [post.id]: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleAddComment(post.id);
-                            }
-                          }}
-                        />
-                        <Button
-                          size="icon"
-                          onClick={() => handleAddComment(post.id)}
-                          disabled={!newComment[post.id]?.trim()}
-                        >
-                          <Send className="w-4 h-4" />
-                        </Button>
+                      <div className="space-y-3">
+                        {!showAudioRecorder[post.id] ? (
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Add a comment..."
+                              value={newComment[post.id] || ""}
+                              onChange={(e) => setNewComment({ ...newComment, [post.id]: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleAddComment(post.id);
+                                }
+                              }}
+                            />
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => setShowAudioRecorder({ ...showAudioRecorder, [post.id]: true })}
+                            >
+                              <Mic className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              onClick={() => handleAddComment(post.id)}
+                              disabled={!newComment[post.id]?.trim() && !commentAudio[post.id]}
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <AudioRecorder
+                              onRecordingComplete={(blob) => {
+                                setCommentAudio({ ...commentAudio, [post.id]: blob });
+                                toast({ title: "Audio ready to post" });
+                              }}
+                              onRecordingCancel={() => {
+                                setCommentAudio({ ...commentAudio, [post.id]: null });
+                                setShowAudioRecorder({ ...showAudioRecorder, [post.id]: false });
+                              }}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setCommentAudio({ ...commentAudio, [post.id]: null });
+                                  setShowAudioRecorder({ ...showAudioRecorder, [post.id]: false });
+                                }}
+                              >
+                                Back to Text
+                              </Button>
+                              <Button
+                                onClick={() => handleAddComment(post.id)}
+                                disabled={!commentAudio[post.id]}
+                              >
+                                Post Audio Comment
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

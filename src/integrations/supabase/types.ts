@@ -167,6 +167,7 @@ export type Database = {
       }
       discussion_comments: {
         Row: {
+          audio_url: string | null
           author_id: string
           content: string
           created_at: string
@@ -176,6 +177,7 @@ export type Database = {
           post_id: string
         }
         Insert: {
+          audio_url?: string | null
           author_id: string
           content: string
           created_at?: string
@@ -185,6 +187,7 @@ export type Database = {
           post_id: string
         }
         Update: {
+          audio_url?: string | null
           author_id?: string
           content?: string
           created_at?: string
