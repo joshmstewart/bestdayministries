@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Send, Heart, ArrowLeft, Trash2, Image as ImageIcon, X } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 
@@ -151,11 +152,11 @@ const Discussions = () => {
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 20MB before compression)
+    if (file.size > 20 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please select an image under 5MB",
+        description: "Please select an image under 20MB",
         variant: "destructive",
       });
       return;
@@ -234,11 +235,14 @@ const Discussions = () => {
           imageModerationNotes = `${imageModeration.severity} severity: ${imageModeration.reason}`;
         }
 
-        // Upload image to storage
+        // Compress image before uploading
+        const compressedImage = await compressImage(selectedImage, 4.5); // Slightly under 5MB limit
+
+        // Upload compressed image to storage
         const fileName = `${user?.id}/${Date.now()}_${selectedImage.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('discussion-images')
-          .upload(fileName, selectedImage);
+          .upload(fileName, compressedImage);
 
         if (uploadError) {
           console.error("Upload error:", uploadError);
@@ -522,7 +526,7 @@ const Discussions = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="image">Image (optional)</Label>
+                  <Label htmlFor="image">Image (optional, auto-compressed)</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       id="image"
@@ -544,6 +548,7 @@ const Discussions = () => {
                       <span className="text-sm text-muted-foreground">{selectedImage.name}</span>
                     )}
                   </div>
+                  <p className="text-xs text-muted-foreground">Images are automatically compressed. Max 20MB.</p>
                   {imagePreview && (
                     <div className="relative inline-block">
                       <img 
