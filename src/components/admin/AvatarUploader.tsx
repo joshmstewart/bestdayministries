@@ -17,6 +17,7 @@ export const AvatarUploader = () => {
   const [isCropping, setIsCropping] = useState(false);
   const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 200, height: 200 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [uploading, setUploading] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -40,75 +41,131 @@ export const AvatarUploader = () => {
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    setIsDragging(true);
     const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect) {
-      setDragStart({
-        x: e.clientX - rect.left - cropArea.x,
-        y: e.clientY - rect.top - cropArea.y
+    if (!rect) return;
+    
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    
+    // Check if clicking near the bottom-right corner (resize handle)
+    const handleSize = 20;
+    const isNearHandle = 
+      Math.abs(clickX - (cropArea.x + cropArea.width)) < handleSize &&
+      Math.abs(clickY - (cropArea.y + cropArea.height)) < handleSize;
+    
+    if (isNearHandle) {
+      setIsResizing(true);
+    } else {
+      setIsDragging(true);
+    }
+    
+    setDragStart({
+      x: clickX - cropArea.x,
+      y: clickY - cropArea.y
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    if (isResizing) {
+      const newWidth = Math.max(50, Math.min(mouseX - cropArea.x, canvasRef.current.width - cropArea.x));
+      const newHeight = Math.max(50, Math.min(mouseY - cropArea.y, canvasRef.current.height - cropArea.y));
+      
+      setCropArea({
+        ...cropArea,
+        width: newWidth,
+        height: newHeight
+      });
+    } else if (isDragging) {
+      const newX = mouseX - dragStart.x;
+      const newY = mouseY - dragStart.y;
+      
+      const maxX = canvasRef.current.width - cropArea.width;
+      const maxY = canvasRef.current.height - cropArea.height;
+      
+      setCropArea({
+        ...cropArea,
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY))
       });
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDragging || !canvasRef.current) return;
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const newX = e.clientX - rect.left - dragStart.x;
-    const newY = e.clientY - rect.top - dragStart.y;
-    
-    // Constrain to image bounds
-    const maxX = canvasRef.current.width - cropArea.width;
-    const maxY = canvasRef.current.height - cropArea.height;
-    
-    setCropArea({
-      ...cropArea,
-      x: Math.max(0, Math.min(newX, maxX)),
-      y: Math.max(0, Math.min(newY, maxY))
-    });
-  };
-
   const handleMouseUp = () => {
     setIsDragging(false);
+    setIsResizing(false);
   };
 
   // Touch event handlers for mobile support
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    setIsDragging(true);
     const touch = e.touches[0];
     const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect) {
-      setDragStart({
-        x: touch.clientX - rect.left - cropArea.x,
-        y: touch.clientY - rect.top - cropArea.y
-      });
+    if (!rect) return;
+    
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    
+    // Check if touching near the bottom-right corner (resize handle)
+    const handleSize = 30; // Larger for touch
+    const isNearHandle = 
+      Math.abs(touchX - (cropArea.x + cropArea.width)) < handleSize &&
+      Math.abs(touchY - (cropArea.y + cropArea.height)) < handleSize;
+    
+    if (isNearHandle) {
+      setIsResizing(true);
+    } else {
+      setIsDragging(true);
     }
+    
+    setDragStart({
+      x: touchX - cropArea.x,
+      y: touchY - cropArea.y
+    });
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    if (!isDragging || !canvasRef.current) return;
+    if (!canvasRef.current) return;
     
     const touch = e.touches[0];
     const rect = canvasRef.current.getBoundingClientRect();
-    const newX = touch.clientX - rect.left - dragStart.x;
-    const newY = touch.clientY - rect.top - dragStart.y;
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
     
-    // Constrain to image bounds
-    const maxX = canvasRef.current.width - cropArea.width;
-    const maxY = canvasRef.current.height - cropArea.height;
-    
-    setCropArea({
-      ...cropArea,
-      x: Math.max(0, Math.min(newX, maxX)),
-      y: Math.max(0, Math.min(newY, maxY))
-    });
+    if (isResizing) {
+      const newWidth = Math.max(50, Math.min(touchX - cropArea.x, canvasRef.current.width - cropArea.x));
+      const newHeight = Math.max(50, Math.min(touchY - cropArea.y, canvasRef.current.height - cropArea.y));
+      
+      setCropArea({
+        ...cropArea,
+        width: newWidth,
+        height: newHeight
+      });
+    } else if (isDragging) {
+      const newX = touchX - dragStart.x;
+      const newY = touchY - dragStart.y;
+      
+      const maxX = canvasRef.current.width - cropArea.width;
+      const maxY = canvasRef.current.height - cropArea.height;
+      
+      setCropArea({
+        ...cropArea,
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY))
+      });
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     setIsDragging(false);
+    setIsResizing(false);
   };
 
   const drawCropOverlay = () => {
@@ -139,6 +196,16 @@ export const AvatarUploader = () => {
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 2;
     ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+    
+    // Draw resize handle (bottom-right corner)
+    const handleSize = 12;
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(
+      cropArea.x + cropArea.width - handleSize,
+      cropArea.y + cropArea.height - handleSize,
+      handleSize,
+      handleSize
+    );
   };
 
   const getCroppedImage = async (): Promise<Blob> => {
@@ -286,7 +353,9 @@ export const AvatarUploader = () => {
                 onTouchEnd={handleTouchEnd}
               />
               <p className="text-sm text-muted-foreground mt-2">
-                Drag the blue box to select the area to crop
+                <strong>Move:</strong> Drag the blue box to reposition
+                <br />
+                <strong>Resize:</strong> Drag the blue square in the bottom-right corner
               </p>
             </div>
 
