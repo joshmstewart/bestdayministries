@@ -8,13 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Heart, Upload, Calendar } from "lucide-react";
+import { Plus, Edit, Trash2, Heart, Upload, Calendar, Mic } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { compressImage, compressAudio } from "@/lib/imageUtils";
+import AudioRecorder from "../AudioRecorder";
 
 interface FeaturedBestie {
   id: string;
@@ -43,6 +44,8 @@ export const FeaturedBestieManager = () => {
   const [isActive, setIsActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
   const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
@@ -130,10 +133,17 @@ export const FeaturedBestieManager = () => {
         imageUrl = await uploadFile(compressedImage, "featured-bestie-images");
       }
       
-      // Compress and upload audio if provided
-      if (audioFile) {
-        const compressedAudio = await compressAudio(audioFile, 9.5); // Slightly under 10MB limit
-        voiceNoteUrl = await uploadFile(compressedAudio, "featured-bestie-audio");
+      // Compress and upload audio if provided (either file or recorded)
+      const audioToUpload = audioBlob || audioFile;
+      if (audioToUpload) {
+        if (audioBlob) {
+          // Convert Blob to File for upload
+          const audioFileFromBlob = new File([audioBlob], `recorded_${Date.now()}.webm`, { type: 'audio/webm' });
+          voiceNoteUrl = await uploadFile(audioFileFromBlob, "featured-bestie-audio");
+        } else if (audioFile) {
+          const compressedAudio = await compressAudio(audioFile, 9.5);
+          voiceNoteUrl = await uploadFile(compressedAudio, "featured-bestie-audio");
+        }
       }
 
       const data: any = {
@@ -148,7 +158,7 @@ export const FeaturedBestieManager = () => {
         data.image_url = imageUrl;
       }
       
-      if (audioFile) {
+      if (audioFile || audioBlob) {
         data.voice_note_url = voiceNoteUrl;
       }
 
@@ -253,6 +263,8 @@ export const FeaturedBestieManager = () => {
     setIsActive(true);
     setImageFile(null);
     setAudioFile(null);
+    setAudioBlob(null);
+    setShowAudioRecorder(false);
     setCurrentImageUrl("");
     setCurrentAudioUrl(null);
   };
@@ -388,7 +400,7 @@ export const FeaturedBestieManager = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="audio">Voice Note (MP3, WAV - max 10MB)</Label>
+                <Label htmlFor="audio">Voice Note (for Besties)</Label>
                 {editingId && currentAudioUrl && (
                   <div className="mb-2">
                     <p className="text-xs text-muted-foreground mb-1">Current audio:</p>
@@ -397,13 +409,97 @@ export const FeaturedBestieManager = () => {
                     </audio>
                   </div>
                 )}
-                <Input
-                  id="audio"
-                  type="file"
-                  accept="audio/mpeg,audio/wav,audio/mp3,audio/webm"
-                  onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                />
-                {editingId && <p className="text-xs text-muted-foreground">Leave empty to keep current audio</p>}
+                
+                {!showAudioRecorder ? (
+                  <div className="space-y-2">
+                    <Input
+                      id="audio"
+                      type="file"
+                      accept="audio/mpeg,audio/wav,audio/mp3,audio/webm"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAudioFile(file);
+                          setAudioBlob(null);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById("audio")?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {audioFile ? "Change Audio File" : "Upload Audio File"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowAudioRecorder(true)}
+                      >
+                        <Mic className="w-4 h-4 mr-2" />
+                        Record Audio
+                      </Button>
+                    </div>
+                    {audioFile && <span className="text-xs text-muted-foreground">{audioFile.name}</span>}
+                    {editingId && <p className="text-xs text-muted-foreground">Leave empty to keep current audio</p>}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {!audioBlob ? (
+                      <>
+                        <AudioRecorder
+                          onRecordingComplete={(blob) => {
+                            setAudioBlob(blob);
+                            setAudioFile(null);
+                          }}
+                          onRecordingCancel={() => {
+                            setShowAudioRecorder(false);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowAudioRecorder(false)}
+                          className="w-full"
+                        >
+                          Back to File Upload
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="p-4 border rounded-lg bg-muted/50">
+                          <p className="text-sm font-medium mb-2">Recorded audio ready:</p>
+                          <audio controls className="w-full">
+                            <source src={URL.createObjectURL(audioBlob)} type="audio/webm" />
+                            Your browser does not support audio playback.
+                          </audio>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setAudioBlob(null)}
+                          >
+                            Re-record
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setAudioBlob(null);
+                              setShowAudioRecorder(false);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">

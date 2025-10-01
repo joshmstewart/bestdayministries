@@ -12,10 +12,11 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft } from "lucide-react";
+import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
+import AudioRecorder from "@/components/AudioRecorder";
 
 interface Event {
   id: string;
@@ -54,6 +55,8 @@ export default function EventManagement() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceType, setRecurrenceType] = useState("daily");
@@ -154,6 +157,8 @@ export default function EventManagement() {
     setSelectedImage(null);
     setImagePreview(null);
     setSelectedAudio(null);
+    setAudioBlob(null);
+    setShowAudioRecorder(false);
     setIsRecurring(false);
     setRecurrenceType("daily");
     setRecurrenceInterval(1);
@@ -203,13 +208,14 @@ export default function EventManagement() {
         imageUrl = publicUrl;
       }
 
-      // Upload audio if selected
-      if (selectedAudio) {
-        const fileName = `${user.id}/${Date.now()}_${selectedAudio.name}`;
+      // Upload audio if selected (either file or recorded)
+      const audioToUpload = audioBlob || selectedAudio;
+      if (audioToUpload) {
+        const fileName = `${user.id}/${Date.now()}_event_audio.${audioBlob ? 'webm' : selectedAudio!.name.split('.').pop()}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("event-audio")
-          .upload(fileName, selectedAudio);
+          .upload(fileName, audioToUpload);
 
         if (uploadError) {
           console.error("Audio upload error:", uploadError);
@@ -534,25 +540,111 @@ export default function EventManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Event Audio</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      accept="audio/*,.m4a,.mp3,.wav,.mp4,.webm,.ogg"
-                      onChange={handleAudioSelect}
-                      className="hidden"
-                      id="audio-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById("audio-upload")?.click()}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {selectedAudio ? "Change Audio" : "Upload Audio"}
-                    </Button>
-                    {selectedAudio && <span className="text-sm">{selectedAudio.name}</span>}
-                  </div>
+                  <Label>Event Audio (for Besties)</Label>
+                  
+                  {!showAudioRecorder ? (
+                    <div className="space-y-2">
+                      <Input
+                        type="file"
+                        accept="audio/*,.m4a,.mp3,.wav,.mp4,.webm,.ogg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const validAudioTypes = [
+                              'audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/mp4', 
+                              'audio/x-m4a', 'audio/m4a', 'audio/webm', 'audio/ogg'
+                            ];
+                            const validExtensions = ['.mp3', '.wav', '.m4a', '.mp4', '.webm', '.ogg'];
+                            
+                            const isValidType = file.type.startsWith("audio/") || validAudioTypes.includes(file.type);
+                            const isValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+                          
+                            if (isValidType || isValidExtension) {
+                              setSelectedAudio(file);
+                              setAudioBlob(null);
+                              toast.success(`Selected: ${file.name}`);
+                            } else {
+                              toast.error("Please select a valid audio file");
+                            }
+                          }
+                        }}
+                        className="hidden"
+                        id="audio-upload"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById("audio-upload")?.click()}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {selectedAudio ? "Change Audio File" : "Upload Audio File"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowAudioRecorder(true)}
+                        >
+                          <Mic className="w-4 h-4 mr-2" />
+                          Record Audio
+                        </Button>
+                      </div>
+                      {selectedAudio && <span className="text-sm">{selectedAudio.name}</span>}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {!audioBlob ? (
+                        <>
+                          <AudioRecorder
+                            onRecordingComplete={(blob) => {
+                              setAudioBlob(blob);
+                              setSelectedAudio(null);
+                            }}
+                            onRecordingCancel={() => {
+                              setShowAudioRecorder(false);
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowAudioRecorder(false)}
+                            className="w-full"
+                          >
+                            Back to File Upload
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="p-4 border rounded-lg bg-muted/50">
+                            <p className="text-sm font-medium mb-2">Recorded audio ready:</p>
+                            <audio controls className="w-full">
+                              <source src={URL.createObjectURL(audioBlob)} type="audio/webm" />
+                              Your browser does not support audio playback.
+                            </audio>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setAudioBlob(null)}
+                            >
+                              Re-record
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setAudioBlob(null);
+                                setShowAudioRecorder(false);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
