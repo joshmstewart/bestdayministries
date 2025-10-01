@@ -59,7 +59,7 @@ const Community = () => {
     }
 
     setProfile(data);
-    setIsAdmin(data?.role === "admin");
+    setIsAdmin(data?.role === "admin" || data?.role === "owner");
   };
 
   const handleLogout = async () => {
