@@ -10,6 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 
 type AvatarCategory = "humans" | "animals" | "monsters" | "shapes";
 
@@ -93,6 +95,21 @@ export default function AvatarManagement() {
     updateAvatar(avatarId, { is_active: isActive });
   };
 
+  const handleDelete = async (avatarId: string, avatarNumber: number) => {
+    const { error } = await supabase
+      .from("avatars")
+      .delete()
+      .eq("id", avatarId);
+
+    if (error) {
+      toast.error("Failed to delete avatar");
+      console.error(error);
+    } else {
+      toast.success(`Avatar ${avatarNumber} deleted successfully`);
+      loadAvatars();
+    }
+  };
+
   if (!isAdmin) {
     return null;
   }
@@ -122,6 +139,30 @@ export default function AvatarManagement() {
                         <div className="flex-1">
                           <p className="font-semibold">Avatar {avatar.avatar_number}</p>
                         </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Avatar {avatar.avatar_number}</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this avatar? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(avatar.id, avatar.avatar_number)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
 
                       <div className="space-y-3">
