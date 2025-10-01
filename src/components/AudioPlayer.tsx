@@ -153,16 +153,6 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
         )}
       </Button>
 
-      <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-[60px]">
-        {duration > 0 ? (
-          <span>-{formatTime(timeRemaining)}</span>
-        ) : duration === -1 ? (
-          <span className="text-xs">Live</span>
-        ) : (
-          <span className="text-xs">Loading...</span>
-        )}
-      </div>
-
       <div className="flex items-center gap-2">
         <Button
           onClick={toggleMute}
