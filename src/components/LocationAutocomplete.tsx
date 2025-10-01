@@ -40,7 +40,7 @@ export function LocationAutocomplete({
         }
         
         if (data?.apiKey) {
-          console.log('API key fetched successfully');
+          console.log('API key fetched successfully:', data.apiKey.substring(0, 10) + '...');
           setApiKey(data.apiKey);
         } else {
           console.error('No API key in response:', data);
@@ -57,12 +57,19 @@ export function LocationAutocomplete({
 
   // Load Google Maps script with Places library - only when we have the API key
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey,
+    googleMapsApiKey: apiKey || "PLACEHOLDER", // Use placeholder until we have real key
     libraries,
   });
 
+  const hasValidKey = apiKey && apiKey !== "PLACEHOLDER";
+
   useEffect(() => {
-    if (!isLoaded || !inputRef.current || !apiKey) return;
+    if (!isLoaded || !inputRef.current || !hasValidKey) {
+      console.log('Waiting for:', { isLoaded, hasInput: !!inputRef.current, hasValidKey });
+      return;
+    }
+
+    console.log('Initializing autocomplete with API key...');
 
     // Initialize autocomplete
     const autocompleteInstance = new google.maps.places.Autocomplete(inputRef.current, {
@@ -73,6 +80,7 @@ export function LocationAutocomplete({
     // Listen for place selection
     autocompleteInstance.addListener("place_changed", () => {
       const place = autocompleteInstance.getPlace();
+      console.log('Place selected:', place);
       
       if (place.formatted_address) {
         onChange(place.formatted_address);
@@ -82,13 +90,14 @@ export function LocationAutocomplete({
     });
 
     setAutocomplete(autocompleteInstance);
+    console.log('Autocomplete initialized successfully');
 
     return () => {
       if (autocomplete) {
         google.maps.event.clearInstanceListeners(autocomplete);
       }
     };
-  }, [isLoaded, onChange, apiKey]);
+  }, [isLoaded, onChange, hasValidKey]);
 
   if (loadError) {
     console.error("Error loading Google Maps:", loadError);
@@ -109,7 +118,7 @@ export function LocationAutocomplete({
     );
   }
 
-  if (fetchingKey || (!isLoaded && apiKey)) {
+  if (fetchingKey || (!isLoaded && hasValidKey)) {
     return (
       <div className="space-y-2">
         {label && <Label htmlFor="location">{label}</Label>}
