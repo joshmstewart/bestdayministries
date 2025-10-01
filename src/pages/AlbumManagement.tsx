@@ -55,7 +55,7 @@ export default function AlbumManagement() {
   // Form fields
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [eventId, setEventId] = useState<string>("");
+  const [eventId, setEventId] = useState<string>("none");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [imageCaptions, setImageCaptions] = useState<string[]>([]);
@@ -159,7 +159,7 @@ export default function AlbumManagement() {
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setEventId("");
+    setEventId("none");
     setSelectedImages([]);
     setImagePreviews([]);
     setImageCaptions([]);
@@ -188,7 +188,7 @@ export default function AlbumManagement() {
           .update({
             title,
             description: description || null,
-            event_id: eventId || null,
+            event_id: eventId === "none" ? null : eventId,
           })
           .eq("id", editingAlbum.id);
 
@@ -199,7 +199,7 @@ export default function AlbumManagement() {
           .insert({
             title,
             description: description || null,
-            event_id: eventId || null,
+            event_id: eventId === "none" ? null : eventId,
             created_by: user.id,
           })
           .select()
@@ -261,7 +261,7 @@ export default function AlbumManagement() {
     setEditingAlbum(album);
     setTitle(album.title);
     setDescription(album.description || "");
-    setEventId(album.event_id || "");
+    setEventId(album.event_id || "none");
     setShowForm(true);
   };
 
@@ -362,7 +362,7 @@ export default function AlbumManagement() {
                       <SelectValue placeholder="Select an event" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No event</SelectItem>
+                      <SelectItem value="none">No event</SelectItem>
                       {events.map((event) => (
                         <SelectItem key={event.id} value={event.id}>
                           {event.title} ({new Date(event.event_date).toLocaleDateString()})
