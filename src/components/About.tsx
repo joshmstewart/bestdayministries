@@ -22,7 +22,7 @@ const About = () => {
               <span className="text-sm font-semibold text-primary">Founded with Love</span>
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-foreground">
-              Our <span className="bg-gradient-warm bg-clip-text text-transparent">Story</span>
+              Our <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Story</span>
             </h2>
             <div className="max-w-3xl mx-auto space-y-4 text-lg text-muted-foreground">
               <p>
@@ -50,7 +50,7 @@ const About = () => {
                   <p className="text-lg text-muted-foreground leading-relaxed">
                     Watch our documentary to learn the inspiring story of how Joy House came to be and the lives we're touching every day.
                   </p>
-                  <Button size="lg" className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
+                  <Button size="lg" className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
                     <Film className="mr-2 w-5 h-5" />
                     Watch Documentary
                   </Button>

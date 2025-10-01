@@ -25,7 +25,7 @@ const Donate = () => {
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-foreground">
               Make a{" "}
-              <span className="bg-gradient-warm bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                 Difference
               </span>{" "}
               Today
@@ -42,7 +42,7 @@ const Donate = () => {
                 <div className="flex items-end justify-between flex-wrap gap-4">
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-3">
-                      <div className="text-5xl md:text-6xl font-black bg-gradient-warm bg-clip-text text-transparent">
+                      <div className="text-5xl md:text-6xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                         ${raised.toLocaleString()}
                       </div>
                       <TrendingUp className="w-8 h-8 text-primary animate-float" />
@@ -59,14 +59,14 @@ const Donate = () => {
                 
                 <div className="relative">
                   <Progress value={percentage} className="h-6 bg-muted" />
-                  <div className="absolute inset-0 bg-gradient-warm opacity-80 rounded-full" style={{ width: `${percentage}%` }} />
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-secondary opacity-80 rounded-full" style={{ width: `${percentage}%` }} />
                 </div>
               </div>
 
               {/* Donation Options */}
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="border-2 bg-card hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-warm opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <CardContent className="p-8 space-y-4 relative">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                       <Heart className="w-8 h-8 text-primary" />
@@ -77,7 +77,7 @@ const Donate = () => {
                     </p>
                     <Button 
                       size="lg" 
-                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
                     >
                       Donate Now
                     </Button>
@@ -86,7 +86,7 @@ const Donate = () => {
 
                 <Card className="border-2 bg-card hover:border-secondary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden relative">
                   {/* Popular badge */}
-                  <div className="absolute top-4 right-4 bg-gradient-warm text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+                  <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-white text-xs font-bold px-3 py-1 rounded-full z-10">
                     ⭐ POPULAR
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-accent/5 opacity-100 group-hover:opacity-100 transition-opacity duration-500" />
@@ -103,7 +103,7 @@ const Donate = () => {
                     </p>
                     <Button 
                       size="lg" 
-                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
                     >
                       Join the Club
                     </Button>

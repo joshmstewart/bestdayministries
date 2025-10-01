@@ -69,7 +69,7 @@ const Mission = () => {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-3">
-                      <div className="text-5xl font-black bg-gradient-warm bg-clip-text text-transparent">4.8%</div>
+                      <div className="text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">4.8%</div>
                       <Award className="w-6 h-6 text-primary" />
                     </div>
                     <p className="text-muted-foreground">
@@ -81,7 +81,7 @@ const Mission = () => {
                   
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-3">
-                      <div className="text-5xl font-black bg-gradient-warm bg-clip-text text-transparent">78.7%</div>
+                      <div className="text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">78.7%</div>
                       <Award className="w-6 h-6 text-secondary" />
                     </div>
                     <p className="text-muted-foreground">
@@ -122,7 +122,7 @@ const Mission = () => {
             <div className="grid lg:grid-cols-2 gap-0">
               <div className="p-8 lg:p-12 bg-gradient-card space-y-6 flex flex-col justify-center">
                 <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-warm flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-primary via-accent to-secondary flex items-center justify-center">
                     <Heart className="w-6 h-6 text-white fill-white" />
                   </div>
                   <h3 className="text-3xl font-black text-foreground">Our Mission</h3>

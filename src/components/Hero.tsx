@@ -23,7 +23,7 @@ const Hero = () => {
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] text-foreground">
               Spreading{" "}
               <span className="relative inline-block">
-                <span className="bg-gradient-warm bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                   JOY
                 </span>
                 <svg className="absolute -bottom-2 left-0 w-full" height="12" viewBox="0 0 200 12" fill="none">
@@ -40,7 +40,7 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Button 
                 size="lg" 
-                className="group text-lg px-8 py-7 shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                className="group text-lg px-8 py-7 shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
               >
                 Support Our Mission
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />

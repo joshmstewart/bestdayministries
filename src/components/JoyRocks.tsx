@@ -30,7 +30,7 @@ const JoyRocks = () => {
             {/* Floating badge */}
             <div className="absolute -bottom-4 -right-4 bg-card border-2 border-border rounded-2xl p-4 shadow-float backdrop-blur-sm">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-warm flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-primary via-accent to-secondary flex items-center justify-center">
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -49,7 +49,7 @@ const JoyRocks = () => {
             
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground leading-tight">
               Planting Seeds of{" "}
-              <span className="bg-gradient-warm bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                 Love Globally
               </span>
             </h2>
@@ -68,7 +68,7 @@ const JoyRocks = () => {
               </div>
             </div>
 
-            <Button size="lg" className="group shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0 text-lg px-8 py-6">
+            <Button size="lg" className="group shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0 text-lg px-8 py-6">
               Learn More About Joy Rocks
               <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>

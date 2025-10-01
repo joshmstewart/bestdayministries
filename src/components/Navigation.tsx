@@ -37,7 +37,7 @@ const Navigation = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-warm transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
-            <Button size="lg" className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
+            <Button size="lg" className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
               Donate Now
             </Button>
           </div>
@@ -65,7 +65,7 @@ const Navigation = () => {
                 {item.label}
               </a>
             ))}
-            <Button size="lg" className="w-full shadow-warm bg-gradient-warm border-0">
+            <Button size="lg" className="w-full shadow-warm bg-gradient-to-r from-primary via-accent to-secondary border-0">
               Donate Now
             </Button>
           </div>

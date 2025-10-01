@@ -49,7 +49,7 @@ const CommunityGallery = () => {
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-foreground">
             Our Community in{" "}
-            <span className="bg-gradient-warm bg-clip-text text-transparent">Action</span>
+            <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Action</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             See the joy, creativity, and growth happening every day at Joy House
