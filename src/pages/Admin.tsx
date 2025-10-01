@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, Calendar, MessageSquare, Heart } from "lucide-react";
+import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
@@ -107,6 +107,14 @@ const Admin = () => {
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/community")}
+            className="mb-4 gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Community
+          </Button>
           <h1 className="text-4xl font-black text-foreground flex items-center gap-2">
             <Shield className="w-8 h-8 text-primary" />
             Admin Dashboard
