@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Images, Calendar, ArrowRight } from "lucide-react";
 import ImageCarousel from "./ImageCarousel";
 import AudioPlayer from "./AudioPlayer";
+import { TextToSpeech } from "./TextToSpeech";
 
 interface Album {
   id: string;
@@ -107,17 +108,20 @@ export default function LatestAlbum() {
               className="w-full"
             />
             <CardContent className="p-6 space-y-4">
-              <div 
-                className="cursor-pointer hover:text-primary transition-colors"
-                onClick={() => navigate("/gallery")}
-              >
-                <h3 className="text-2xl font-bold">{album.title}</h3>
-                {album.event && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>From: {album.event.title}</span>
-                  </div>
-                )}
+              <div className="flex items-start gap-2">
+                <div 
+                  className="flex-1 cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => navigate("/gallery")}
+                >
+                  <h3 className="text-2xl font-bold">{album.title}</h3>
+                  {album.event && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>From: {album.event.title}</span>
+                    </div>
+                  )}
+                </div>
+                <TextToSpeech text={`${album.title}. ${album.description || ''}`} />
               </div>
               
               {album.description && (

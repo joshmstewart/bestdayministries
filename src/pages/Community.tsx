@@ -11,6 +11,7 @@ import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -275,7 +276,14 @@ const Community = () => {
                         className="w-full h-48 object-cover rounded-lg"
                       />
                     )}
-                    <h3 className="font-semibold text-lg">{latestDiscussion.title}</h3>
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{latestDiscussion.title}</h3>
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <TextToSpeech text={`${latestDiscussion.title}. ${latestDiscussion.content}`} />
+                      </div>
+                    </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">{latestDiscussion.content}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>by {latestDiscussion.author?.display_name}</span>
