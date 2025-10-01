@@ -164,7 +164,17 @@ const Admin = () => {
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="featured">Featured Besties</TabsTrigger>
-            <TabsTrigger value="moderation">Moderation</TabsTrigger>
+            <TabsTrigger value="moderation" className="relative">
+              Moderation
+              {moderationCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
+                >
+                  {moderationCount}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
