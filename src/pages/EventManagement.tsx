@@ -18,6 +18,11 @@ import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
 import AudioRecorder from "@/components/AudioRecorder";
 
+interface EventDate {
+  id: string;
+  event_date: string;
+}
+
 interface Event {
   id: string;
   title: string;
@@ -35,6 +40,7 @@ interface Event {
   created_by: string;
   created_at: string;
   updated_at: string;
+  event_dates?: EventDate[];
 }
 
 export default function EventManagement() {
@@ -776,8 +782,13 @@ export default function EventManagement() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {events.map((event) => {
-                const isPast = new Date(event.event_date) < new Date();
-                const isExpired = isPast && event.expires_after_date;
+                // Check if ALL dates (main + additional) are past
+                const allDates = [
+                  new Date(event.event_date),
+                  ...(event.event_dates || []).map(d => new Date(d.event_date))
+                ];
+                const allDatesPast = allDates.every(date => date < new Date());
+                const isExpired = allDatesPast && event.expires_after_date;
 
                 return (
                   <Card key={event.id} className={isExpired ? "opacity-60" : ""}>
@@ -827,17 +838,52 @@ export default function EventManagement() {
                         {event.description}
                       </p>
 
-                      <div className="space-y-1 text-sm">
-                        <div className="flex items-center gap-2">
-                          <CalendarIcon className="w-4 h-4" />
-                          {format(new Date(event.event_date), "PPP")}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          {format(new Date(event.event_date), "p")}
-                        </div>
+                      <div className="space-y-2">
+                        <div className="font-semibold text-xs">Event Dates:</div>
+                        {event.event_dates && event.event_dates.length > 0 ? (
+                          <div className="space-y-1">
+                            {/* Main date */}
+                            <div className={cn(
+                              "text-xs p-1.5 rounded flex items-center gap-1",
+                              new Date(event.event_date) < new Date() 
+                                ? "bg-muted/50 opacity-60" 
+                                : "bg-primary/10"
+                            )}>
+                              <CalendarIcon className="w-3 h-3" />
+                              <span className={new Date(event.event_date) < new Date() ? "line-through" : ""}>
+                                {format(new Date(event.event_date), "PPP")} at {format(new Date(event.event_date), "p")}
+                              </span>
+                            </div>
+                            {/* Additional dates */}
+                            {event.event_dates.map((ed) => {
+                              const isPast = new Date(ed.event_date) < new Date();
+                              return (
+                                <div key={ed.id} className={cn(
+                                  "text-xs p-1.5 rounded flex items-center gap-1",
+                                  isPast ? "bg-muted/50 opacity-60" : "bg-primary/10"
+                                )}>
+                                  <CalendarIcon className="w-3 h-3" />
+                                  <span className={isPast ? "line-through" : ""}>
+                                    {format(new Date(ed.event_date), "PPP")} at {format(new Date(ed.event_date), "p")}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="space-y-1 text-sm">
+                            <div className="flex items-center gap-2">
+                              <CalendarIcon className="w-4 h-4" />
+                              {format(new Date(event.event_date), "PPP")}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              {format(new Date(event.event_date), "p")}
+                            </div>
+                          </div>
+                        )}
                         {event.location && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-sm pt-1 border-t">
                             <MapPin className="w-4 h-4" />
                             {event.location}
                           </div>

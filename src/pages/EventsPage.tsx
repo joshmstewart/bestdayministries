@@ -9,6 +9,12 @@ import { Calendar as CalendarIcon, Clock, MapPin, ArrowLeft } from "lucide-react
 import { format } from "date-fns";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { cn } from "@/lib/utils";
+
+interface EventDate {
+  id: string;
+  event_date: string;
+}
 
 interface Event {
   id: string;
@@ -27,6 +33,7 @@ interface Event {
   created_by: string;
   created_at: string;
   updated_at: string;
+  event_dates?: EventDate[];
 }
 
 export default function EventsPage() {
@@ -42,7 +49,10 @@ export default function EventsPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("events")
-      .select("*")
+      .select(`
+        *,
+        event_dates(id, event_date)
+      `)
       .order("event_date", { ascending: true });
 
     if (error) {
@@ -53,12 +63,33 @@ export default function EventsPage() {
     setLoading(false);
   };
 
+  // Helper function to get all dates for an event (sorted)
+  const getAllEventDates = (event: Event): Date[] => {
+    const dates = [new Date(event.event_date)];
+    if (event.event_dates) {
+      dates.push(...event.event_dates.map(d => new Date(d.event_date)));
+    }
+    return dates.sort((a, b) => a.getTime() - b.getTime());
+  };
+
+  // Helper function to check if event has any future dates
+  const hasUpcomingDates = (event: Event): boolean => {
+    const allDates = getAllEventDates(event);
+    return allDates.some(date => date >= new Date());
+  };
+
+  // Helper function to check if all dates are past
+  const allDatesPast = (event: Event): boolean => {
+    const allDates = getAllEventDates(event);
+    return allDates.every(date => date < new Date());
+  };
+
   const upcomingEvents = events.filter(
-    (event) => new Date(event.event_date) >= new Date()
+    (event) => hasUpcomingDates(event)
   );
 
   const pastEvents = events.filter(
-    (event) => new Date(event.event_date) < new Date() && !event.expires_after_date
+    (event) => !event.expires_after_date && allDatesPast(event)
   );
 
   return (
@@ -117,17 +148,43 @@ export default function EventsPage() {
                             {event.description}
                           </p>
 
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2 text-foreground">
-                              <CalendarIcon className="w-4 h-4 text-primary" />
-                              {format(new Date(event.event_date), "PPPP")}
-                            </div>
-                            <div className="flex items-center gap-2 text-foreground">
-                              <Clock className="w-4 h-4 text-primary" />
-                              {format(new Date(event.event_date), "p")}
+                          <div className="space-y-3">
+                            <div className="font-semibold text-sm">Event Dates:</div>
+                            <div className="space-y-2">
+                              {getAllEventDates(event).map((date, idx) => {
+                                const isPast = date < new Date();
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={cn(
+                                      "flex items-center gap-2 text-sm p-2 rounded-md",
+                                      isPast ? "opacity-50 bg-muted/50" : "bg-primary/10"
+                                    )}
+                                  >
+                                    <CalendarIcon className="w-4 h-4" />
+                                    <div className="flex-1">
+                                      <div className={isPast ? "line-through" : "font-medium"}>
+                                        {format(date, "PPPP")}
+                                      </div>
+                                      <div className="flex items-center gap-2 text-xs mt-1">
+                                        <Clock className="w-3 h-3" />
+                                        {format(date, "p")}
+                                      </div>
+                                    </div>
+                                    <span className={cn(
+                                      "text-xs px-2 py-1 rounded-full",
+                                      isPast 
+                                        ? "bg-muted text-muted-foreground" 
+                                        : "bg-primary text-primary-foreground"
+                                    )}>
+                                      {isPast ? "Passed" : "Upcoming"}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
                             {event.location && (
-                              <div className="flex items-center gap-2 text-foreground">
+                              <div className="flex items-center gap-2 text-foreground pt-2 border-t">
                                 <MapPin className="w-4 h-4 text-primary" />
                                 {event.location}
                               </div>
@@ -170,13 +227,32 @@ export default function EventsPage() {
                             {event.description}
                           </p>
 
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <CalendarIcon className="w-4 h-4" />
-                              {format(new Date(event.event_date), "PPP")}
+                          <div className="space-y-3">
+                            <div className="font-semibold text-sm">Event Dates:</div>
+                            <div className="space-y-2">
+                              {getAllEventDates(event).map((date, idx) => {
+                                const isPast = date < new Date();
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={cn(
+                                      "flex items-center gap-2 text-sm p-2 rounded-md opacity-60",
+                                      "bg-muted/50"
+                                    )}
+                                  >
+                                    <CalendarIcon className="w-4 h-4" />
+                                    <div className="flex-1 line-through">
+                                      {format(date, "PPP")}
+                                    </div>
+                                    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                                      Passed
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
                             {event.location && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 pt-2 border-t">
                                 <MapPin className="w-4 h-4" />
                                 {event.location}
                               </div>
