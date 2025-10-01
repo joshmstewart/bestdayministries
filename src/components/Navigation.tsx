@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
+import joyHouseLogo from "@/assets/joy-house-logo-full.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,7 +21,7 @@ const Navigation = () => {
             <img 
               src={joyHouseLogo} 
               alt="Joy House" 
-              className="h-12 w-auto"
+              className="h-14 w-auto"
             />
           </div>
 
