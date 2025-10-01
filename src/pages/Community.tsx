@@ -144,13 +144,13 @@ const Community = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background relative">
       <UnifiedHeader />
 
       {/* Role Badge - Top Right */}
       {profile && effectiveRole && (
-        <div className="fixed top-[116px] right-4 z-40">
-          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-card border border-primary/20 rounded-full shadow-lg">
+        <div className="absolute top-4 right-4 z-40">
+          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-card border border-primary/20 rounded-full">
             {effectiveRole === "bestie" && <Heart className="w-3.5 h-3.5 text-primary fill-primary" />}
             {effectiveRole === "caregiver" && <Users className="w-3.5 h-3.5 text-secondary" />}
             {effectiveRole === "supporter" && <Sparkles className="w-3.5 h-3.5 text-accent" />}
