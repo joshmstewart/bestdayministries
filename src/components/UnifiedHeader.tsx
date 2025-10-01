@@ -41,7 +41,10 @@ export const UnifiedHeader = () => {
         .eq("setting_key", "logo_url")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.log('No custom logo in database, using default:', bdeLogo);
+        throw error;
+      }
 
       if (data?.setting_value) {
         try {
@@ -50,16 +53,19 @@ export const UnifiedHeader = () => {
             : data.setting_value;
           
           if (url && !url.includes('object/public/app-assets/logo.png')) {
+            console.log('Setting custom logo from database:', url);
             setLogoUrl(url);
           }
         } catch (e) {
           if (typeof data.setting_value === 'string' && data.setting_value.startsWith('http')) {
+            console.log('Setting custom logo from database (string):', data.setting_value);
             setLogoUrl(data.setting_value);
           }
         }
       }
     } catch (error) {
       console.error('Error loading logo:', error);
+      console.log('Default logo being used:', bdeLogo);
     }
   };
 
@@ -106,9 +112,16 @@ export const UnifiedHeader = () => {
               src={logoUrl} 
               alt="Best Day Ever" 
               className="h-[102px] w-auto cursor-pointer m-0"
-              onClick={() => navigate(user ? "/community" : "/")}
+              onClick={() => {
+                console.log('Logo clicked, current logoUrl:', logoUrl);
+                navigate(user ? "/community" : "/");
+              }}
               onError={(e) => {
+                console.log('Logo failed to load, falling back to:', bdeLogo);
                 e.currentTarget.src = bdeLogo;
+              }}
+              onLoad={() => {
+                console.log('Logo loaded successfully:', logoUrl);
               }}
             />
             {user && profile && (
