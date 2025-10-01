@@ -32,7 +32,7 @@ export const AppSettingsManager = () => {
 
       const settingsMap: any = {
         logo_url: "",
-        mobile_app_name: "Joy House Community",
+        mobile_app_name: "Best Day Ever Ministries Community",
         mobile_app_icon_url: "",
       };
       
@@ -266,7 +266,7 @@ export const AppSettingsManager = () => {
                   mobile_app_name: e.target.value,
                 }))
               }
-              placeholder="Joy House Community"
+              placeholder="Best Day Ever Ministries Community"
               disabled={uploading}
             />
             <Button onClick={handleAppNameUpdate} disabled={uploading}>

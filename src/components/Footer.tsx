@@ -37,8 +37,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div className="space-y-4">
             <div className="text-3xl font-bold">
-              <span className="text-foreground">Joy</span>
-              <span className="text-primary">House</span>
+              <span className="text-foreground">Best Day Ever</span>
+              <span className="text-primary">Ministries</span>
             </div>
             <p className="text-muted-foreground">
               Spreading joy through the unique gifts and talents of the special needs community.
@@ -66,10 +66,10 @@ const Footer = () => {
 
         <div className="pt-8 border-t border-border text-center text-muted-foreground">
           <p className="flex items-center justify-center gap-2">
-            Made with <Heart className="w-4 h-4 text-primary fill-primary" /> by Joy House Community
+            Made with <Heart className="w-4 h-4 text-primary fill-primary" /> by Best Day Ever Ministries Community
           </p>
           <p className="mt-2 text-sm">
-            © {new Date().getFullYear()} Joy House Community. All rights reserved.
+            © {new Date().getFullYear()} Best Day Ever Ministries Community. All rights reserved.
           </p>
         </div>
       </div>

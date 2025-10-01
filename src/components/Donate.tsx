@@ -95,7 +95,7 @@ const Donate = () => {
                       <Heart className="w-8 h-8 text-secondary fill-secondary" />
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <h3 className="text-2xl font-black">Joy House Club</h3>
+                      <h3 className="text-2xl font-black">Best Day Ever Ministries Club</h3>
                       <div className="text-2xl font-black text-secondary">$20/mo</div>
                     </div>
                     <p className="text-muted-foreground">
@@ -148,7 +148,7 @@ const Donate = () => {
                     <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-primary text-sm">✓</span>
                     </span>
-                    <span className="text-muted-foreground">Expanding Joy House locations nationwide</span>
+                    <span className="text-muted-foreground">Expanding Best Day Ever Ministries locations nationwide</span>
                   </li>
                 </ul>
               </CardContent>

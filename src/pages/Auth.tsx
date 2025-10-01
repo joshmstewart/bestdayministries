@@ -63,7 +63,7 @@ const Auth = () => {
         if (error) throw error;
 
         toast({
-          title: "Welcome to Joy House!",
+          title: "Welcome to Best Day Ever Ministries!",
           description: "Your account has been created successfully.",
         });
       } else {
@@ -131,7 +131,7 @@ const Auth = () => {
           <div className="text-center space-y-4">
             <img 
               src={joyHouseLogo} 
-              alt="Joy House" 
+              alt="Best Day Ever Ministries" 
               className="h-16 mx-auto"
             />
             <div>
@@ -143,7 +143,7 @@ const Auth = () => {
                   ? "Enter your email to receive a password reset link"
                   : isSignUp 
                     ? "Create your account to connect with our community" 
-                    : "Sign in to access your Joy House community"}
+                    : "Sign in to access your Best Day Ever Ministries community"}
               </p>
             </div>
           </div>

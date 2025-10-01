@@ -111,7 +111,7 @@ const Admin = () => {
             <Shield className="w-8 h-8 text-primary" />
             Admin Dashboard
           </h1>
-          <p className="text-muted-foreground mt-2">Manage your Joy House community</p>
+          <p className="text-muted-foreground mt-2">Manage your Best Day Ever Ministries community</p>
         </div>
 
         {/* Stats Overview */}

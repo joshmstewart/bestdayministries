@@ -75,7 +75,7 @@ const Hero = () => {
             <div className="relative h-full rounded-3xl overflow-hidden shadow-xl">
               <img
                 src={heroImage}
-                alt="Joy House community members creating together"
+                alt="Best Day Ever Ministries community members creating together"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent" />
