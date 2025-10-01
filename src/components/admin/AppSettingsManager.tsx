@@ -174,12 +174,15 @@ export const AppSettingsManager = () => {
           <p className="text-sm text-muted-foreground">
             This logo will appear in the header across all pages
           </p>
-          {settings.logo_url && (
+          {settings.logo_url && !settings.logo_url.includes('object/public/app-assets/logo.png') && (
             <div className="border rounded-lg p-4 bg-muted/50">
               <img
                 src={settings.logo_url}
                 alt="Current logo"
                 className="max-h-20 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
           )}
@@ -209,12 +212,15 @@ export const AppSettingsManager = () => {
           <p className="text-sm text-muted-foreground">
             The icon used for the mobile app (recommended: 1024x1024px PNG)
           </p>
-          {settings.mobile_app_icon_url && (
+          {settings.mobile_app_icon_url && !settings.mobile_app_icon_url.includes('object/public/app-assets/icon.png') && (
             <div className="border rounded-lg p-4 bg-muted/50">
               <img
                 src={settings.mobile_app_icon_url}
                 alt="Current mobile icon"
                 className="max-h-20 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
           )}
