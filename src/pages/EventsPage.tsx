@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar as CalendarIcon, Clock, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar as CalendarIcon, Clock, MapPin, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 
 interface Event {
@@ -26,6 +28,7 @@ interface Event {
 }
 
 export default function EventsPage() {
+  const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,13 +64,19 @@ export default function EventsPage() {
       <Navigation />
       <main className="flex-1 container mx-auto px-4 py-24">
         <div className="max-w-6xl mx-auto space-y-12">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-black text-foreground">
-              Community <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Events</span>
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Join us for exciting events and activities in our community
-            </p>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => navigate("/community")}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Community
+            </Button>
+            <div className="flex-1 text-center space-y-4">
+              <h1 className="text-4xl md:text-5xl font-black text-foreground">
+                Community <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Events</span>
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Join us for exciting events and activities in our community
+              </p>
+            </div>
           </div>
 
           {loading ? (

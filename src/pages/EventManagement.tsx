@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
@@ -319,7 +319,13 @@ export default function EventManagement() {
       <main className="flex-1 container mx-auto px-4 py-8 pt-28">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Event Management</h1>
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={() => navigate("/community")}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Community
+              </Button>
+              <h1 className="text-3xl font-bold">Event Management</h1>
+            </div>
             <Button onClick={() => setShowForm(!showForm)}>
               {showForm ? "Cancel" : "Add New Event"}
             </Button>

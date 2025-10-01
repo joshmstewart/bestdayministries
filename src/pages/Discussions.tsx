@@ -476,16 +476,12 @@ const Discussions = () => {
       <main className="container mx-auto px-4 py-24">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/community")}
-                className="mb-4 gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Community
-              </Button>
+          <div className="flex items-center gap-4 mb-8">
+            <Button variant="outline" onClick={() => navigate("/community")}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Community
+            </Button>
+            <div className="flex-1">
               <h1 className="text-4xl font-black text-foreground">
                 Community <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Discussions</span>
               </h1>
