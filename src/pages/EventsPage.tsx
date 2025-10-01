@@ -1,0 +1,188 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
+import { Card, CardContent } from "@/components/ui/card";
+import { Calendar as CalendarIcon, Clock, MapPin } from "lucide-react";
+import { format } from "date-fns";
+
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  audio_url: string | null;
+  event_date: string;
+  location: string | null;
+  expires_after_date: boolean;
+}
+
+export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const loadEvents = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .order("event_date", { ascending: true });
+
+    if (error) {
+      console.error("Error loading events:", error);
+    } else {
+      setEvents(data || []);
+    }
+    setLoading(false);
+  };
+
+  const upcomingEvents = events.filter(
+    (event) => new Date(event.event_date) >= new Date()
+  );
+
+  const pastEvents = events.filter(
+    (event) => new Date(event.event_date) < new Date() && !event.expires_after_date
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navigation />
+      <main className="flex-1 container mx-auto px-4 py-24">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-black text-foreground">
+              Community <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Events</span>
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Join us for exciting events and activities in our community
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+              <p className="text-muted-foreground mt-4">Loading events...</p>
+            </div>
+          ) : (
+            <>
+              {/* Upcoming Events */}
+              {upcomingEvents.length > 0 && (
+                <section className="space-y-6">
+                  <h2 className="text-3xl font-bold">Upcoming Events</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {upcomingEvents.map((event) => (
+                      <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                        {event.image_url && (
+                          <img
+                            src={event.image_url}
+                            alt={event.title}
+                            className="w-full h-48 object-cover"
+                          />
+                        )}
+                        <CardContent className="p-6 space-y-4">
+                          <h3 className="text-xl font-bold">{event.title}</h3>
+                          
+                          <p className="text-muted-foreground">
+                            {event.description}
+                          </p>
+
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2 text-foreground">
+                              <CalendarIcon className="w-4 h-4 text-primary" />
+                              {format(new Date(event.event_date), "PPPP")}
+                            </div>
+                            <div className="flex items-center gap-2 text-foreground">
+                              <Clock className="w-4 h-4 text-primary" />
+                              {format(new Date(event.event_date), "p")}
+                            </div>
+                            {event.location && (
+                              <div className="flex items-center gap-2 text-foreground">
+                                <MapPin className="w-4 h-4 text-primary" />
+                                {event.location}
+                              </div>
+                            )}
+                          </div>
+
+                          {event.audio_url && (
+                            <div className="pt-2">
+                              <audio controls className="w-full">
+                                <source src={event.audio_url} />
+                                Your browser does not support the audio element.
+                              </audio>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Past Events */}
+              {pastEvents.length > 0 && (
+                <section className="space-y-6">
+                  <h2 className="text-3xl font-bold">Past Events</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pastEvents.map((event) => (
+                      <Card key={event.id} className="overflow-hidden opacity-75">
+                        {event.image_url && (
+                          <img
+                            src={event.image_url}
+                            alt={event.title}
+                            className="w-full h-48 object-cover grayscale"
+                          />
+                        )}
+                        <CardContent className="p-6 space-y-4">
+                          <div>
+                            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                              Past Event
+                            </span>
+                            <h3 className="text-xl font-bold mt-2">{event.title}</h3>
+                          </div>
+                          
+                          <p className="text-muted-foreground text-sm">
+                            {event.description}
+                          </p>
+
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <CalendarIcon className="w-4 h-4" />
+                              {format(new Date(event.event_date), "PPP")}
+                            </div>
+                            {event.location && (
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4" />
+                                {event.location}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {upcomingEvents.length === 0 && pastEvents.length === 0 && (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <CalendarIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No events yet</h3>
+                    <p className="text-muted-foreground">
+                      Check back soon for upcoming community events!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
