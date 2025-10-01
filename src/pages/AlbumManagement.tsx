@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
@@ -45,6 +45,7 @@ interface Event {
 
 export default function AlbumManagement() {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,6 +139,8 @@ export default function AlbumManagement() {
       return;
     }
 
+    toast.success(`${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''} selected`);
+    
     setSelectedImages(prev => [...prev, ...imageFiles]);
     setImageCaptions(prev => [...prev, ...new Array(imageFiles.length).fill("")]);
 
@@ -148,6 +151,11 @@ export default function AlbumManagement() {
       };
       reader.readAsDataURL(file);
     });
+
+    // Reset the input so the same files can be selected again if needed
+    if (e.target) {
+      e.target.value = '';
+    }
   };
 
   const removeImage = (index: number) => {
@@ -375,20 +383,20 @@ export default function AlbumManagement() {
                 <div className="space-y-2">
                   <Label>Images *</Label>
                   <Input
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     multiple
                     onChange={handleImageSelect}
                     className="hidden"
-                    id="image-upload"
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => document.getElementById("image-upload")?.click()}
+                    onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Images
+                    Select Images
                   </Button>
                   
                   {imagePreviews.length > 0 && (
