@@ -5,19 +5,20 @@ import composite2 from "@/assets/avatars/composite-2.png";
 import composite3 from "@/assets/avatars/composite-3.png";
 import composite4 from "@/assets/avatars/composite-4.png";
 import composite5 from "@/assets/avatars/composite-5.png";
+import composite6 from "@/assets/avatars/composite-6.png";
 
 interface AvatarPickerProps {
   selectedAvatar: number | null;
   onSelectAvatar: (avatarNumber: number) => void;
 }
 
-const AVATAR_COUNT = 20;
+const AVATAR_COUNT = 24;
 
 const AVATAR_CATEGORIES = {
-  humans: { label: "Humans", avatars: [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 18] },
-  animals: { label: "Animals", avatars: [9, 15, 17, 20] },
+  humans: { label: "Humans", avatars: [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 18, 23] },
+  animals: { label: "Animals", avatars: [9, 15, 17, 20, 21, 22] },
   monsters: { label: "Monsters & Aliens", avatars: [12, 13, 14, 19] },
-  shapes: { label: "Shapes", avatars: [16] },
+  shapes: { label: "Shapes", avatars: [16, 24] },
 };
 
 const getAvatarConfig = (avatarNumber: number) => {
@@ -69,6 +70,16 @@ const getAvatarConfig = (avatarNumber: number) => {
       { x: 100, y: 100 },
     ];
     return { image: composite5, position: positions[avatarNumber - 17] };
+  }
+  
+  if (avatarNumber >= 21 && avatarNumber <= 24) {
+    const positions = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 0, y: 100 },
+      { x: 100, y: 100 },
+    ];
+    return { image: composite6, position: positions[avatarNumber - 21] };
   }
   
   return null;
