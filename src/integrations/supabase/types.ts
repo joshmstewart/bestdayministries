@@ -263,7 +263,8 @@ export type Database = {
       }
       featured_besties: {
         Row: {
-          bestie_id: string
+          bestie_id: string | null
+          bestie_name: string
           created_at: string
           description: string
           featured_month: string
@@ -273,7 +274,8 @@ export type Database = {
           voice_note_url: string | null
         }
         Insert: {
-          bestie_id: string
+          bestie_id?: string | null
+          bestie_name: string
           created_at?: string
           description: string
           featured_month: string
@@ -283,7 +285,8 @@ export type Database = {
           voice_note_url?: string | null
         }
         Update: {
-          bestie_id?: string
+          bestie_id?: string | null
+          bestie_name?: string
           created_at?: string
           description?: string
           featured_month?: string
@@ -292,15 +295,7 @@ export type Database = {
           is_active?: boolean | null
           voice_note_url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "featured_besties_bestie_id_fkey"
-            columns: ["bestie_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {

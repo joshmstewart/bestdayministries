@@ -17,33 +17,24 @@ import { cn } from "@/lib/utils";
 
 interface FeaturedBestie {
   id: string;
-  bestie_id: string;
+  bestie_id: string | null;
+  bestie_name: string;
   image_url: string;
   voice_note_url: string | null;
   description: string;
   featured_month: string;
   is_active: boolean;
-  profiles?: {
-    display_name: string;
-  };
-}
-
-interface BestieProfile {
-  id: string;
-  display_name: string;
-  role: string;
 }
 
 export const FeaturedBestieManager = () => {
   const { toast } = useToast();
   const [featuredBesties, setFeaturedBesties] = useState<FeaturedBestie[]>([]);
-  const [bestieProfiles, setBestieProfiles] = useState<BestieProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // Form state
-  const [selectedBestieId, setSelectedBestieId] = useState("");
+  const [bestieName, setBestieName] = useState("");
   const [description, setDescription] = useState("");
   const [featuredMonth, setFeaturedMonth] = useState<Date>();
   const [isActive, setIsActive] = useState(false);
@@ -57,26 +48,13 @@ export const FeaturedBestieManager = () => {
 
   const loadData = async () => {
     try {
-      // Load featured besties
       const { data: featured, error: featuredError } = await supabase
         .from("featured_besties")
-        .select(`
-          *,
-          profiles:bestie_id (display_name)
-        `)
+        .select("*")
         .order("featured_month", { ascending: false });
 
       if (featuredError) throw featuredError;
       setFeaturedBesties(featured || []);
-
-      // Load bestie profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, display_name, role")
-        .eq("role", "bestie");
-
-      if (profilesError) throw profilesError;
-      setBestieProfiles(profiles || []);
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -107,7 +85,7 @@ export const FeaturedBestieManager = () => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedBestieId || !description || !featuredMonth || (!imageFile && !editingId)) {
+    if (!bestieName || !description || !featuredMonth || (!imageFile && !editingId)) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields",
@@ -132,7 +110,7 @@ export const FeaturedBestieManager = () => {
       }
 
       const data: any = {
-        bestie_id: selectedBestieId,
+        bestie_name: bestieName,
         description,
         featured_month: format(featuredMonth, "yyyy-MM-dd"),
         is_active: isActive,
@@ -182,7 +160,7 @@ export const FeaturedBestieManager = () => {
 
   const handleEdit = (bestie: FeaturedBestie) => {
     setEditingId(bestie.id);
-    setSelectedBestieId(bestie.bestie_id);
+    setBestieName(bestie.bestie_name);
     setDescription(bestie.description);
     setFeaturedMonth(new Date(bestie.featured_month));
     setIsActive(bestie.is_active);
@@ -231,7 +209,7 @@ export const FeaturedBestieManager = () => {
 
   const resetForm = () => {
     setEditingId(null);
-    setSelectedBestieId("");
+    setBestieName("");
     setDescription("");
     setFeaturedMonth(undefined);
     setIsActive(false);
@@ -272,19 +250,13 @@ export const FeaturedBestieManager = () => {
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="bestie">Bestie *</Label>
-                <Select value={selectedBestieId} onValueChange={setSelectedBestieId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a bestie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bestieProfiles.map((profile) => (
-                      <SelectItem key={profile.id} value={profile.id}>
-                        {profile.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="bestie-name">Bestie Name *</Label>
+                <Input
+                  id="bestie-name"
+                  value={bestieName}
+                  onChange={(e) => setBestieName(e.target.value)}
+                  placeholder="Enter the bestie's name"
+                />
               </div>
 
               <div className="space-y-2">
@@ -391,13 +363,13 @@ export const FeaturedBestieManager = () => {
               <div className="aspect-video relative overflow-hidden rounded-lg mb-2">
                 <img
                   src={bestie.image_url}
-                  alt={bestie.profiles?.display_name}
+                  alt={bestie.bestie_name}
                   className="object-cover w-full h-full"
                 />
               </div>
               <CardTitle className="flex items-center gap-2">
                 <Heart className="w-5 h-5 text-primary fill-primary" />
-                {bestie.profiles?.display_name}
+                {bestie.bestie_name}
               </CardTitle>
               <CardDescription>
                 {format(new Date(bestie.featured_month), "MMMM yyyy")}
