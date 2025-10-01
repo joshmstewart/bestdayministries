@@ -426,7 +426,7 @@ export default function EventManagement() {
                   <div className="flex items-center gap-2">
                     <Input
                       type="file"
-                      accept="audio/*"
+                      accept="audio/*,.m4a,.mp3,.wav,.mp4,.webm,.ogg"
                       onChange={handleAudioSelect}
                       className="hidden"
                       id="audio-upload"
