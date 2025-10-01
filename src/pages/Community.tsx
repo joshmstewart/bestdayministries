@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles, Shield } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles, Shield, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
@@ -17,6 +17,8 @@ const Community = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
+  const [latestEvent, setLatestEvent] = useState<any>(null);
 
   useEffect(() => {
     checkUser();
@@ -43,7 +45,39 @@ const Community = () => {
 
     setUser(session.user);
     await fetchProfile(session.user.id);
+    await loadLatestContent();
     setLoading(false);
+  };
+
+  const loadLatestContent = async () => {
+    // Fetch latest discussion
+    const { data: discussions } = await supabase
+      .from("discussion_posts")
+      .select(`
+        *,
+        author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
+      `)
+      .eq("is_moderated", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (discussions) {
+      setLatestDiscussion(discussions);
+    }
+
+    // Fetch latest event
+    const { data: events } = await supabase
+      .from("events")
+      .select("*")
+      .order("event_date", { ascending: true })
+      .gte("event_date", new Date().toISOString())
+      .limit(1)
+      .single();
+
+    if (events) {
+      setLatestEvent(events);
+    }
   };
 
   const fetchProfile = async (userId: string) => {
@@ -159,6 +193,90 @@ const Community = () => {
 
           {/* Featured Bestie */}
           <FeaturedBestieDisplay />
+
+          {/* Latest Activity Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Latest Discussion */}
+            <Card className="border-2 hover:border-primary/50 transition-colors">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-xl">Latest Discussion</CardTitle>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate("/discussions")}
+                    className="gap-1"
+                  >
+                    View All <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {latestDiscussion ? (
+                  <div 
+                    className="space-y-2 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
+                    onClick={() => navigate("/discussions")}
+                  >
+                    <h3 className="font-semibold text-lg">{latestDiscussion.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{latestDiscussion.content}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>by {latestDiscussion.author?.display_name}</span>
+                      <span>•</span>
+                      <span>{new Date(latestDiscussion.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No discussions yet. Be the first!</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Latest Event */}
+            <Card className="border-2 hover:border-primary/50 transition-colors">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-secondary" />
+                    <CardTitle className="text-xl">Upcoming Event</CardTitle>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate("/events")}
+                    className="gap-1"
+                  >
+                    View All <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {latestEvent ? (
+                  <div 
+                    className="space-y-2 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
+                    onClick={() => navigate("/events")}
+                  >
+                    <h3 className="font-semibold text-lg">{latestEvent.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{latestEvent.description}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
+                      <span>{new Date(latestEvent.event_date).toLocaleDateString()}</span>
+                      {latestEvent.location && (
+                        <>
+                          <span>•</span>
+                          <span>{latestEvent.location}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No upcoming events</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Quick Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
