@@ -337,7 +337,7 @@ const Community = () => {
                         </div>
                         {event.audio_url && (
                           <div onClick={(e) => e.stopPropagation()}>
-                            <AudioPlayer src={event.audio_url} variant="compact" />
+                            <AudioPlayer src={event.audio_url} />
                           </div>
                         )}
                       </div>

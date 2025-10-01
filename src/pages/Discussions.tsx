@@ -786,7 +786,7 @@ const Discussions = () => {
                                 </div>
                                 {comment.content && <p className="text-sm">{comment.content}</p>}
                                 {comment.audio_url && (
-                                  <AudioPlayer src={comment.audio_url} variant="compact" />
+                                  <AudioPlayer src={comment.audio_url} />
                                 )}
                               </div>
                             </div>
