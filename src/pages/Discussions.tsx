@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Send, Heart, ArrowLeft, Trash2, Image as ImageIcon, X, Mic } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
@@ -40,6 +41,7 @@ interface Post {
   created_at: string;
   author_id: string;
   image_url?: string | null;
+  visible_to_roles?: string[];
   author?: Profile;
   comments?: Comment[];
 }
@@ -60,6 +62,7 @@ const Discussions = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [commentAudio, setCommentAudio] = useState<{ [key: string]: Blob | null }>({});
   const [showAudioRecorder, setShowAudioRecorder] = useState<{ [key: string]: boolean }>({});
+  const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
 
   useEffect(() => {
     checkUser();
@@ -284,6 +287,9 @@ const Discussions = () => {
         finalModerationNotes = notes.join('; ');
       }
 
+      // Always include admin and owner roles
+      const finalVisibleRoles = [...new Set([...visibleToRoles, 'admin', 'owner'])] as any;
+
       const { error } = await supabase
         .from("discussion_posts")
         .insert({
@@ -291,6 +297,7 @@ const Discussions = () => {
           content: newPost.content,
           author_id: user?.id,
           image_url: imageUrl,
+          visible_to_roles: finalVisibleRoles,
           is_moderated: textIsApproved && !imageModerationNotes,
           moderation_notes: finalModerationNotes,
         });
@@ -317,6 +324,7 @@ const Discussions = () => {
       setNewPost({ title: "", content: "" });
       setSelectedImage(null);
       setImagePreview(null);
+      setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
       setShowNewPost(false);
       setUploadingImage(false);
       loadPosts();
@@ -609,6 +617,59 @@ const Discussions = () => {
                     </div>
                   )}
                 </div>
+                <div className="space-y-3">
+                  <Label>Visible To (Admin & Owner always included)</Label>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-caregiver"
+                        checked={visibleToRoles.includes('caregiver')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'caregiver']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'caregiver'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-caregiver" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Guardians
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-bestie"
+                        checked={visibleToRoles.includes('bestie')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'bestie']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'bestie'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-bestie" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Besties
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-supporter"
+                        checked={visibleToRoles.includes('supporter')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'supporter']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'supporter'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-supporter" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Supporters
+                      </label>
+                    </div>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button onClick={handleCreatePost} disabled={uploadingImage}>
                     {uploadingImage ? "Posting..." : "Post"}
@@ -616,6 +677,7 @@ const Discussions = () => {
                   <Button variant="outline" onClick={() => {
                     setShowNewPost(false);
                     removeImage();
+                    setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
                   }} disabled={uploadingImage}>
                     Cancel
                   </Button>

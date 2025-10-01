@@ -225,6 +225,7 @@ export type Database = {
           moderation_notes: string | null
           title: string
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           author_id: string
@@ -237,6 +238,7 @@ export type Database = {
           moderation_notes?: string | null
           title: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           author_id?: string
@@ -249,6 +251,7 @@ export type Database = {
           moderation_notes?: string | null
           title?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: [
           {
