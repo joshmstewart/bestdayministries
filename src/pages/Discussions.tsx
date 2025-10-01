@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Heart, ArrowLeft, Trash2, Image as ImageIcon, X, Mic } from "lucide-react";
+import { MessageSquare, Send, Heart, ArrowLeft, Trash2, Image as ImageIcon, X, Mic, Edit } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import Navigation from "@/components/Navigation";
@@ -630,15 +630,28 @@ const Discussions = () => {
                         alt="Preview" 
                         className="max-w-xs max-h-48 rounded-lg"
                       />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={removeImage}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon"
+                          onClick={() => {
+                            if (imageToCrop) {
+                              setCropDialogOpen(true);
+                            }
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          onClick={removeImage}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>

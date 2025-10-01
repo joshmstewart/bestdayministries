@@ -414,19 +414,34 @@ export const FeaturedBestieManager = () => {
                     <p className="text-xs text-muted-foreground mb-1">New cropped image:</p>
                     <div className="relative inline-block">
                       <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded border" />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6"
-                        onClick={() => {
-                          setImageFile(null);
-                          setImagePreview(null);
-                          setRawImageUrl(null);
-                        }}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
+                      <div className="absolute top-1 right-1 flex gap-1">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => {
+                            if (rawImageUrl) {
+                              setShowCropDialog(true);
+                            }
+                          }}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreview(null);
+                            setRawImageUrl(null);
+                          }}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
