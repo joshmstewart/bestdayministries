@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,14 +14,15 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="fixed top-0 w-full bg-background/95 backdrop-blur-sm z-50 border-b border-border shadow-sm">
+    <nav className="fixed top-0 w-full bg-card/80 backdrop-blur-xl z-50 border-b border-border/50 shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="text-3xl font-bold">
-              <span className="text-foreground">Joy</span>
-              <span className="text-primary">House</span>
-            </div>
+          <div className="flex items-center gap-3">
+            <img 
+              src={joyHouseLogo} 
+              alt="Joy House" 
+              className="h-12 w-auto"
+            />
           </div>
 
           {/* Desktop Navigation */}
@@ -29,19 +31,20 @@ const Navigation = () => {
               <a
                 key={item.label}
                 href={item.href}
-                className="text-foreground hover:text-primary transition-colors font-medium"
+                className="text-foreground hover:text-primary transition-colors font-semibold relative group"
               >
                 {item.label}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-warm transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
-            <Button size="lg" className="shadow-warm">
+            <Button size="lg" className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
               Donate Now
             </Button>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-foreground"
+            className="md:hidden text-foreground p-2 hover:bg-muted rounded-lg transition-colors"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -51,18 +54,18 @@ const Navigation = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 flex flex-col gap-4">
+          <div className="md:hidden mt-4 pb-4 flex flex-col gap-4 animate-fade-in">
             {navItems.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
-                className="text-foreground hover:text-primary transition-colors font-medium py-2"
+                className="text-foreground hover:text-primary transition-colors font-semibold py-2 px-4 hover:bg-muted rounded-lg"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {item.label}
               </a>
             ))}
-            <Button size="lg" className="w-full shadow-warm">
+            <Button size="lg" className="w-full shadow-warm bg-gradient-warm border-0">
               Donate Now
             </Button>
           </div>
