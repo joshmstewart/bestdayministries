@@ -121,7 +121,6 @@ const Community = () => {
     { icon: Gift, label: "Sponsor a Bestie", href: "/sponsor", color: "from-primary/20 to-secondary/5" },
     { icon: Users, label: "About Joy House", href: "/about", color: "from-secondary/20 to-accent/5" },
     { icon: Sparkles, label: "Joy Rocks Coffee", href: "/joy-rocks", color: "from-accent/20 to-primary/5" },
-    { icon: Heart, label: "Photo Gallery", href: "/gallery", color: "from-primary/20 to-accent/5" },
     { icon: Gift, label: "Support Us", href: "/donate", color: "from-secondary/20 to-primary/5" },
   ];
 
