@@ -16,6 +16,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -89,6 +90,34 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Check your email",
+        description: "We've sent you a password reset link.",
+      });
+      
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Decorative elements */}
@@ -107,17 +136,52 @@ const Auth = () => {
             />
             <div>
               <h1 className="text-3xl font-black text-foreground mb-2">
-                {isSignUp ? "Join Our Community" : "Welcome Back"}
+                {isForgotPassword ? "Reset Password" : isSignUp ? "Join Our Community" : "Welcome Back"}
               </h1>
               <p className="text-muted-foreground">
-                {isSignUp 
-                  ? "Create your account to connect with our community" 
-                  : "Sign in to access your Joy House community"}
+                {isForgotPassword
+                  ? "Enter your email to receive a password reset link"
+                  : isSignUp 
+                    ? "Create your account to connect with our community" 
+                    : "Sign in to access your Joy House community"}
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleAuth} className="space-y-4">
+          {isForgotPassword ? (
+            <form onSubmit={handlePasswordReset} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Send Reset Link"}
+              </Button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(false)}
+                  className="text-primary hover:underline font-semibold"
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleAuth} className="space-y-4">
             {isSignUp && (
               <>
                 <div className="space-y-2">
@@ -180,7 +244,18 @@ const Auth = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPassword(true)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -200,18 +275,21 @@ const Auth = () => {
               {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
             </Button>
           </form>
+          )}
 
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-primary hover:underline font-semibold"
-            >
-              {isSignUp 
-                ? "Already have an account? Sign in" 
-                : "Don't have an account? Sign up"}
-            </button>
-          </div>
+          {!isForgotPassword && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-primary hover:underline font-semibold"
+              >
+                {isSignUp 
+                  ? "Already have an account? Sign in" 
+                  : "Don't have an account? Sign up"}
+              </button>
+            </div>
+          )}
 
           <div className="pt-4 border-t border-border">
             <Button
