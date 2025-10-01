@@ -277,7 +277,7 @@ export default function EventManagement() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8 pt-28">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold">Event Management</h1>
