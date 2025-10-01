@@ -2,11 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 import bdeLogo from "@/assets/bde-logo-no-subtitle.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState(bdeLogo);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<{ avatar_number?: number; display_name?: string } | null>(null);
 
   useEffect(() => {
     const loadLogo = async () => {
@@ -44,6 +47,44 @@ const Navigation = () => {
     loadLogo();
   }, []);
 
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      if (session?.user) {
+        loadProfile(session.user.id);
+      }
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      if (session?.user) {
+        loadProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_number, display_name')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  };
+
   const navItems = [
     { label: "About", href: "#about" },
     { label: "Mission", href: "#mission" },
@@ -80,9 +121,19 @@ const Navigation = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-warm transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
-            <Button size="lg" onClick={() => window.location.href = "/auth"} className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
-              Sign In
-            </Button>
+            {user && profile ? (
+              <a href="/profile-settings" className="hover:opacity-80 transition-opacity">
+                <AvatarDisplay 
+                  avatarNumber={profile.avatar_number} 
+                  displayName={profile.display_name}
+                  size="md"
+                />
+              </a>
+            ) : (
+              <Button size="lg" onClick={() => window.location.href = "/auth"} className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
+                Sign In
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -108,9 +159,19 @@ const Navigation = () => {
                 {item.label}
               </a>
             ))}
-            <Button size="lg" onClick={() => window.location.href = "/auth"} className="w-full shadow-warm bg-gradient-to-r from-primary via-accent to-secondary border-0">
-              Sign In
-            </Button>
+            {user && profile ? (
+              <a href="/profile-settings" className="flex justify-center hover:opacity-80 transition-opacity" onClick={() => setIsMenuOpen(false)}>
+                <AvatarDisplay 
+                  avatarNumber={profile.avatar_number} 
+                  displayName={profile.display_name}
+                  size="md"
+                />
+              </a>
+            ) : (
+              <Button size="lg" onClick={() => window.location.href = "/auth"} className="w-full shadow-warm bg-gradient-to-r from-primary via-accent to-secondary border-0">
+                Sign In
+              </Button>
+            )}
           </div>
         )}
       </div>
