@@ -62,6 +62,8 @@ export default function EventManagement() {
   const [recurrenceType, setRecurrenceType] = useState("daily");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date>();
+  const [additionalDates, setAdditionalDates] = useState<Date[]>([]);
+  const [showAdditionalDatePicker, setShowAdditionalDatePicker] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -95,7 +97,10 @@ export default function EventManagement() {
     setLoading(true);
     const { data, error } = await supabase
       .from("events")
-      .select("*")
+      .select(`
+        *,
+        event_dates(id, event_date)
+      `)
       .order("event_date", { ascending: false });
 
     if (error) {
@@ -163,6 +168,8 @@ export default function EventManagement() {
     setRecurrenceType("daily");
     setRecurrenceInterval(1);
     setRecurrenceEndDate(undefined);
+    setAdditionalDates([]);
+    setShowAdditionalDatePicker(false);
     setEditingEvent(null);
     setShowForm(false);
   };
@@ -244,6 +251,8 @@ export default function EventManagement() {
         created_by: user.id,
       };
 
+      let eventId = editingEvent?.id;
+
       if (editingEvent) {
         const { error } = await supabase
           .from("events")
@@ -251,14 +260,47 @@ export default function EventManagement() {
           .eq("id", editingEvent.id);
 
         if (error) throw error;
+        
+        // Delete existing additional dates
+        await supabase
+          .from("event_dates")
+          .delete()
+          .eq("event_id", editingEvent.id);
+          
         toast.success("Event updated successfully");
       } else {
-        const { error } = await supabase
+        const { data: newEvent, error } = await supabase
           .from("events")
-          .insert(eventData);
+          .insert(eventData)
+          .select()
+          .single();
 
         if (error) throw error;
+        eventId = newEvent.id;
         toast.success("Event created successfully");
+      }
+
+      // Insert additional dates
+      if (additionalDates.length > 0 && eventId) {
+        const datesToInsert = additionalDates.map(date => {
+          const [hours, minutes] = eventTime.split(":");
+          const dateWithTime = new Date(date);
+          dateWithTime.setHours(parseInt(hours), parseInt(minutes));
+          
+          return {
+            event_id: eventId,
+            event_date: dateWithTime.toISOString()
+          };
+        });
+
+        const { error: datesError } = await supabase
+          .from("event_dates")
+          .insert(datesToInsert);
+
+        if (datesError) {
+          console.error("Error saving additional dates:", datesError);
+          toast.error("Event saved but failed to add some dates");
+        }
       }
 
       resetForm();
@@ -271,7 +313,7 @@ export default function EventManagement() {
     }
   };
 
-  const handleEdit = (event: Event) => {
+  const handleEdit = async (event: Event) => {
     setEditingEvent(event);
     setTitle(event.title);
     setDescription(event.description);
@@ -288,6 +330,17 @@ export default function EventManagement() {
       setRecurrenceEndDate(new Date(event.recurrence_end_date));
     }
     setImagePreview(event.image_url);
+    
+    // Load additional dates
+    const { data: eventDates } = await supabase
+      .from("event_dates")
+      .select("event_date")
+      .eq("event_id", event.id);
+    
+    if (eventDates) {
+      setAdditionalDates(eventDates.map(d => new Date(d.event_date)));
+    }
+    
     setShowForm(true);
   };
 
@@ -420,6 +473,65 @@ export default function EventManagement() {
                     checked={expiresAfterDate}
                     onCheckedChange={setExpiresAfterDate}
                   />
+                </div>
+
+                <div className="space-y-4 border-t pt-4">
+                  <div className="space-y-4">
+                    <Label>Additional Custom Dates</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Add specific dates when this event occurs (uses the same time as the main event date)
+                    </p>
+                    
+                    {additionalDates.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {additionalDates.map((date, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full"
+                          >
+                            <span className="text-sm">{format(date, "PPP")}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 rounded-full"
+                              onClick={() => {
+                                setAdditionalDates(additionalDates.filter((_, i) => i !== index));
+                              }}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <Popover open={showAdditionalDatePicker} onOpenChange={setShowAdditionalDatePicker}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          Add Another Date
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          onSelect={(date) => {
+                            if (date && !additionalDates.some(d => d.getTime() === date.getTime())) {
+                              setAdditionalDates([...additionalDates, date]);
+                              setShowAdditionalDatePicker(false);
+                            }
+                          }}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
 
                 <div className="space-y-4 border-t pt-4">
