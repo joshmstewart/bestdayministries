@@ -65,6 +65,12 @@ export const AppSettingsManager = () => {
     try {
       setUploading(true);
 
+      // Validate file type
+      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Please upload a web-compatible image (PNG, JPG, WEBP, or SVG)');
+      }
+
       const fileExt = file.name.split(".").pop();
       const fileName = `${settingKey}-${Date.now()}.${fileExt}`;
       const filePath = fileName;
@@ -189,7 +195,7 @@ export const AppSettingsManager = () => {
           <div className="flex items-center gap-2">
             <Input
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleImageUpload(file, "logo_url");
@@ -227,7 +233,7 @@ export const AppSettingsManager = () => {
           <div className="flex items-center gap-2">
             <Input
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleImageUpload(file, "mobile_app_icon_url");
