@@ -10,15 +10,35 @@ const Navigation = () => {
 
   useEffect(() => {
     const loadLogo = async () => {
-      const { data } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "logo_url")
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "logo_url")
+          .single();
 
-      if (data?.setting_value) {
-        const url = JSON.parse(data.setting_value as string);
-        setLogoUrl(url);
+        if (error) throw error;
+
+        if (data?.setting_value) {
+          try {
+            // Handle both string and JSON-encoded values
+            const url = typeof data.setting_value === 'string' 
+              ? JSON.parse(data.setting_value) 
+              : data.setting_value;
+            
+            // Only update if it's a valid URL (not the default placeholder)
+            if (url && !url.includes('object/public/app-assets/logo.png')) {
+              setLogoUrl(url);
+            }
+          } catch (e) {
+            // If JSON parse fails, use the value as-is if it's a valid URL
+            if (typeof data.setting_value === 'string' && data.setting_value.startsWith('http')) {
+              setLogoUrl(data.setting_value);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading logo:', error);
       }
     };
     loadLogo();
@@ -40,6 +60,10 @@ const Navigation = () => {
               src={logoUrl} 
               alt="Best Day Ever" 
               className="h-20 w-auto"
+              onError={(e) => {
+                // Fallback to default logo if uploaded logo fails to load
+                e.currentTarget.src = bdeLogo;
+              }}
             />
             <span className="font-handwriting text-3xl text-primary hidden sm:inline">Best Day Ever</span>
           </div>
