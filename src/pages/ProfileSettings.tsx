@@ -175,7 +175,7 @@ const ProfileSettings = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Current Avatar Preview */}
-              <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
                 <AvatarDisplay 
                   avatarNumber={selectedAvatar} 
                   displayName={displayName}
@@ -183,7 +183,7 @@ const ProfileSettings = () => {
                 />
                 <div>
                   <p className="font-semibold text-foreground">{displayName || "Your Name"}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground">
                     {profile?.role.charAt(0).toUpperCase() + profile?.role.slice(1)}
                   </p>
                 </div>
