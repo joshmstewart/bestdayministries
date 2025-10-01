@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles, Shield, ArrowRight, UserCircle } from "lucide-react";
+import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles, Shield, ArrowRight } from "lucide-react";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
@@ -181,7 +182,11 @@ const Community = () => {
                 onClick={() => navigate("/profile")}
                 className="gap-2"
               >
-                <UserCircle className="w-4 h-4" />
+                <AvatarDisplay 
+                  avatarNumber={profile?.avatar_number} 
+                  displayName={profile?.display_name}
+                  size="sm"
+                />
                 <span className="hidden sm:inline">Profile</span>
               </Button>
               {isAdmin && (
