@@ -17,9 +17,9 @@ interface AvatarPickerProps {
 const AVATAR_COUNT = 32;
 
 const AVATAR_CATEGORIES = {
-  humans: { label: "Humans", avatars: [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 18, 23, 25, 26] },
+  humans: { label: "Humans", avatars: [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 23, 25, 26] },
   animals: { label: "Animals", avatars: [9, 15, 17, 20, 21, 22, 27, 29, 30, 31, 32] },
-  monsters: { label: "Monsters & Aliens", avatars: [12, 13, 14, 19] },
+  monsters: { label: "Monsters & Aliens", avatars: [12, 14, 18, 19] },
   shapes: { label: "Shapes", avatars: [16, 24, 28] },
 };
 
