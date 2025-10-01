@@ -16,6 +16,16 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
+import grandpaWerthersPattern from "@/assets/voice-patterns/grandpa-werthers.png";
+import johnnyDynamitePattern from "@/assets/voice-patterns/johnny-dynamite.png";
+import batmanPattern from "@/assets/voice-patterns/batman.png";
+import cherryTwinklePattern from "@/assets/voice-patterns/cherry-twinkle.png";
+import creaturePattern from "@/assets/voice-patterns/creature.png";
+import marshalPattern from "@/assets/voice-patterns/marshal.png";
+import austinPattern from "@/assets/voice-patterns/austin.png";
+import jerryBPattern from "@/assets/voice-patterns/jerry-b.png";
+import maverickPattern from "@/assets/voice-patterns/maverick.png";
+import grandmaMuffinPattern from "@/assets/voice-patterns/grandma-muffin.png";
 
 interface Profile {
   id: string;
@@ -253,78 +263,154 @@ const ProfileSettings = () => {
                     <p className="text-xs text-muted-foreground">
                       Choose your preferred voice - click the speaker icon to preview
                     </p>
-                <div className="grid grid-cols-1 gap-3">
-                  {[
-                    { value: 'Aria', label: 'Aria', description: 'Female, Warm' },
-                    { value: 'Roger', label: 'Roger', description: 'Male, Deep' },
-                    { value: 'Sarah', label: 'Sarah', description: 'Female, Clear' },
-                    { value: 'Charlie', label: 'Charlie', description: 'Male, Friendly' },
-                    { value: 'Johnny Dynamite', label: 'Johnny Dynamite', description: '80s Radio DJ' },
-                    { value: 'Grampa Werthers', label: 'Grampa Werthers', description: 'Cartoon Old Man' },
-                    { value: 'Batman', label: 'Batman', description: 'Dark Knight' },
-                    { value: 'Cherry Twinkle', label: 'Cherry Twinkle', description: 'Adorable Cartoon Girl' },
-                    { value: 'Creature', label: 'Creature', description: 'Goblin Mythical Monster' },
-                    { value: 'Marshal', label: 'Marshal', description: 'Toon Character' },
-                    { value: 'Austin', label: 'Austin', description: 'Texas Boy' },
-                    { value: 'Jerry B.', label: 'Jerry B.', description: 'California Surfer Dude' },
-                    { value: 'Maverick', label: 'Maverick', description: 'Epic Heroic Legend' },
-                    { value: 'Grandma Muffin', label: 'Grandma Muffin', description: 'Warm Grandmother' }
-                  ].map((voice) => (
-                    <div
-                      key={voice.value}
-                      className={`flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer hover:border-primary/50 ${
-                        selectedVoice === voice.value ? 'border-primary bg-primary/5' : 'border-border'
-                      }`}
-                      onClick={() => setSelectedVoice(voice.value)}
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">{voice.label}</div>
-                        <div className="text-sm text-muted-foreground">{voice.description}</div>
+                
+                    {/* Classic Voices Section */}
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-foreground">Classic Voices</h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        {[
+                          { value: 'Aria', label: 'Aria', description: 'Female, Warm' },
+                          { value: 'Roger', label: 'Roger', description: 'Male, Deep' },
+                          { value: 'Sarah', label: 'Sarah', description: 'Female, Clear' },
+                          { value: 'Charlie', label: 'Charlie', description: 'Male, Friendly' }
+                        ].map((voice) => (
+                          <div
+                            key={voice.value}
+                            className={`flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer hover:border-primary/50 ${
+                              selectedVoice === voice.value ? 'border-primary bg-primary/5' : 'border-border'
+                            }`}
+                            onClick={() => setSelectedVoice(voice.value)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium">{voice.label}</div>
+                              <div className="text-sm text-muted-foreground">{voice.description}</div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const previewText = `Hello! I'm ${voice.label}. This is what I sound like.`;
+                                const audio = document.createElement('audio');
+                                audio.style.display = 'none';
+                                document.body.appendChild(audio);
+                                
+                                supabase.functions.invoke('text-to-speech', {
+                                  body: { text: previewText, voice: voice.value }
+                                }).then(({ data, error }) => {
+                                  if (error) {
+                                    toast({
+                                      title: "Preview Error",
+                                      description: "Failed to load voice preview",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  if (data?.audioContent) {
+                                    const audioBlob = new Blob(
+                                      [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
+                                      { type: 'audio/mpeg' }
+                                    );
+                                    const audioUrl = URL.createObjectURL(audioBlob);
+                                    audio.src = audioUrl;
+                                    audio.play();
+                                    audio.onended = () => {
+                                      URL.revokeObjectURL(audioUrl);
+                                      document.body.removeChild(audio);
+                                    };
+                                  }
+                                });
+                              }}
+                              title="Preview voice"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const previewText = `Hello! I'm ${voice.label}. This is what I sound like.`;
-                          const audio = document.createElement('audio');
-                          audio.style.display = 'none';
-                          document.body.appendChild(audio);
-                          
-                          supabase.functions.invoke('text-to-speech', {
-                            body: { text: previewText, voice: voice.value }
-                          }).then(({ data, error }) => {
-                            if (error) {
-                              toast({
-                                title: "Preview Error",
-                                description: "Failed to load voice preview",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            if (data?.audioContent) {
-                              const audioBlob = new Blob(
-                                [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
-                                { type: 'audio/mpeg' }
-                              );
-                              const audioUrl = URL.createObjectURL(audioBlob);
-                              audio.src = audioUrl;
-                              audio.play();
-                              audio.onended = () => {
-                                URL.revokeObjectURL(audioUrl);
-                                document.body.removeChild(audio);
-                              };
-                            }
-                          });
-                        }}
-                        title="Preview voice"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                      </Button>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Fun Voices Section */}
+                    <div className="space-y-2 mt-6">
+                      <h3 className="text-sm font-semibold text-foreground">Fun Voices</h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        {[
+                          { value: 'Johnny Dynamite', label: 'Johnny Dynamite', description: '80s Radio DJ', pattern: johnnyDynamitePattern },
+                          { value: 'Grampa Werthers', label: 'Grampa Werthers', description: 'Cartoon Old Man', pattern: grandpaWerthersPattern },
+                          { value: 'Batman', label: 'Batman', description: 'Dark Knight', pattern: batmanPattern },
+                          { value: 'Cherry Twinkle', label: 'Cherry Twinkle', description: 'Adorable Cartoon Girl', pattern: cherryTwinklePattern },
+                          { value: 'Creature', label: 'Creature', description: 'Goblin Mythical Monster', pattern: creaturePattern },
+                          { value: 'Marshal', label: 'Marshal', description: 'Toon Character', pattern: marshalPattern },
+                          { value: 'Austin', label: 'Austin', description: 'Texas Boy', pattern: austinPattern },
+                          { value: 'Jerry B.', label: 'Jerry B.', description: 'California Surfer Dude', pattern: jerryBPattern },
+                          { value: 'Maverick', label: 'Maverick', description: 'Epic Heroic Legend', pattern: maverickPattern },
+                          { value: 'Grandma Muffin', label: 'Grandma Muffin', description: 'Warm Grandmother', pattern: grandmaMuffinPattern }
+                        ].map((voice) => (
+                          <div
+                            key={voice.value}
+                            className={`relative flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer hover:border-primary/50 overflow-hidden ${
+                              selectedVoice === voice.value ? 'border-primary bg-primary/5' : 'border-border'
+                            }`}
+                            onClick={() => setSelectedVoice(voice.value)}
+                            style={{
+                              backgroundImage: `url(${voice.pattern})`,
+                              backgroundSize: '150px 150px',
+                              backgroundRepeat: 'repeat',
+                              backgroundPosition: 'center'
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm"></div>
+                            <div className="flex-1 relative z-10">
+                              <div className="font-medium">{voice.label}</div>
+                              <div className="text-sm text-muted-foreground">{voice.description}</div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="relative z-10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const previewText = `Hello! I'm ${voice.label}. This is what I sound like.`;
+                                const audio = document.createElement('audio');
+                                audio.style.display = 'none';
+                                document.body.appendChild(audio);
+                                
+                                supabase.functions.invoke('text-to-speech', {
+                                  body: { text: previewText, voice: voice.value }
+                                }).then(({ data, error }) => {
+                                  if (error) {
+                                    toast({
+                                      title: "Preview Error",
+                                      description: "Failed to load voice preview",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  if (data?.audioContent) {
+                                    const audioBlob = new Blob(
+                                      [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
+                                      { type: 'audio/mpeg' }
+                                    );
+                                    const audioUrl = URL.createObjectURL(audioBlob);
+                                    audio.src = audioUrl;
+                                    audio.play();
+                                    audio.onended = () => {
+                                      URL.revokeObjectURL(audioUrl);
+                                      document.body.removeChild(audio);
+                                    };
+                                  }
+                                });
+                              }}
+                              title="Preview voice"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
