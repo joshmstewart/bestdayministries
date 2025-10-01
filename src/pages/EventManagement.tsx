@@ -139,13 +139,16 @@ export default function EventManagement() {
   };
 
   const handleCroppedImage = (blob: Blob) => {
+    console.log("handleCroppedImage called with blob:", blob);
     // Convert blob to File
     const file = new File([blob], "cropped-image.jpg", { type: "image/jpeg" });
+    console.log("Created file:", file);
     setSelectedImage(file);
     
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
+      console.log("Preview created");
       setImagePreview(reader.result as string);
     };
     reader.readAsDataURL(blob);
