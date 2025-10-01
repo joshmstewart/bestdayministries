@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Shield } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
-import bdeLogo from "@/assets/bde-logo-no-subtitle.png";
+import bdeLogo from "@/assets/bde-logo-transparent.png";
 
 export const UnifiedHeader = () => {
   const navigate = useNavigate();
