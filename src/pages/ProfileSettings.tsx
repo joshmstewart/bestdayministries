@@ -258,7 +258,17 @@ const ProfileSettings = () => {
                     { value: 'Aria', label: 'Aria', description: 'Female, Warm' },
                     { value: 'Roger', label: 'Roger', description: 'Male, Deep' },
                     { value: 'Sarah', label: 'Sarah', description: 'Female, Clear' },
-                    { value: 'Charlie', label: 'Charlie', description: 'Male, Friendly' }
+                    { value: 'Charlie', label: 'Charlie', description: 'Male, Friendly' },
+                    { value: 'Johnny Dynamite', label: 'Johnny Dynamite', description: '80s Radio DJ' },
+                    { value: 'Grampa Werthers', label: 'Grampa Werthers', description: 'Cartoon Old Man' },
+                    { value: 'Batman', label: 'Batman', description: 'Dark Knight' },
+                    { value: 'Cherry Twinkle', label: 'Cherry Twinkle', description: 'Adorable Cartoon Girl' },
+                    { value: 'Creature', label: 'Creature', description: 'Goblin Mythical Monster' },
+                    { value: 'Marshal', label: 'Marshal', description: 'Toon Character' },
+                    { value: 'Austin', label: 'Austin', description: 'Texas Boy' },
+                    { value: 'Jerry B.', label: 'Jerry B.', description: 'California Surfer Dude' },
+                    { value: 'Maverick', label: 'Maverick', description: 'Epic Heroic Legend' },
+                    { value: 'Grandma Muffin', label: 'Grandma Muffin', description: 'Warm Grandmother' }
                   ].map((voice) => (
                     <div
                       key={voice.value}

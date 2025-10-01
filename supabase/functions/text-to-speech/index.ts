@@ -34,6 +34,16 @@ serve(async (req) => {
       'Roger': 'CwhRBWXzGAHq8TQ4Fs17',
       'Sarah': 'EXAVITQu4vr4xnSDxMaL',
       'Charlie': 'IKne3meq5aSn9XLyUdCD',
+      'Johnny Dynamite': 'CeNX9CMwmxDxUF5Q2Inm',
+      'Grampa Werthers': 'MKlLqCItoCkvdhrxgtLv',
+      'Batman': '2qkvhTnYa7pn9h0BQAUq',
+      'Cherry Twinkle': 'XJ2fW4ybq7HouelYYGcL',
+      'Creature': 'Z7RrOqZFTyLpIlzCgfsp',
+      'Marshal': 'lE5ZJB6jGeeuvSNxOvs2',
+      'Austin': 'Bj9UqZbhQsanLzgalpEG',
+      'Jerry B.': 'rHWSYoq8UlV0YIBKMryp',
+      'Maverick': 'V33LkP9pVLdcjeB2y5Na',
+      'Grandma Muffin': 'vFLqXa8bgbofGarf6fZh',
     };
 
     const voiceId = voiceIds[voice] || voiceIds['Aria'];

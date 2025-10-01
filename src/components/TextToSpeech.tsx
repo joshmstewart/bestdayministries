@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface TextToSpeechProps {
   text: string;
-  voice?: 'Aria' | 'Roger' | 'Sarah' | 'Charlie';
+  voice?: 'Aria' | 'Roger' | 'Sarah' | 'Charlie' | 'Johnny Dynamite' | 'Grampa Werthers' | 'Batman' | 'Cherry Twinkle' | 'Creature' | 'Marshal' | 'Austin' | 'Jerry B.' | 'Maverick' | 'Grandma Muffin';
   size?: 'default' | 'sm' | 'lg' | 'icon';
 }
 
