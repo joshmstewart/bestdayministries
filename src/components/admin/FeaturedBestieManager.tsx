@@ -277,7 +277,7 @@ export const FeaturedBestieManager = () => {
               Add Featured Bestie
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle>
                 {editingId ? "Edit" : "Create"} Featured Bestie
@@ -287,7 +287,8 @@ export const FeaturedBestieManager = () => {
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4">
+            <div className="overflow-y-auto flex-1 px-1">
+              <div className="space-y-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="bestie-name">Bestie Name *</Label>
                 <Input
@@ -419,11 +420,16 @@ export const FeaturedBestieManager = () => {
                 This bestie will only appear publicly when both Active is ON and today is within their featured date range
               </p>
 
-              <div className="flex gap-2 pt-4">
+              </div>
+            </div>
+
+            <div className="border-t pt-4 bg-background">
+              <div className="flex gap-2">
                 <Button 
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     console.log("Update button clicked!");
                     handleSubmit();
                   }} 
@@ -435,7 +441,9 @@ export const FeaturedBestieManager = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     resetForm();
                     setDialogOpen(false);
                   }}
