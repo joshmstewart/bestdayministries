@@ -14,6 +14,8 @@ import composite9 from "@/assets/avatars/composite-9.png";
 import composite10 from "@/assets/avatars/composite-10.png";
 import composite11 from "@/assets/avatars/composite-11.png";
 import composite12 from "@/assets/avatars/composite-12.png";
+import monsterPirateStarfish from "@/assets/avatars/monster-pirate-starfish.png";
+import monsterPurpleThreeEyes from "@/assets/avatars/monster-purple-three-eyes.png";
 
 interface AvatarPickerProps {
   selectedAvatar: number | null;
@@ -147,6 +149,15 @@ const getAvatarConfig = (avatarNumber: number) => {
     return { image: composite12, position: positions[avatarNumber - 45] };
   }
   
+  // Individual monsters: avatars 49-50
+  if (avatarNumber === 49) {
+    return { image: monsterPirateStarfish, position: null };
+  }
+  
+  if (avatarNumber === 50) {
+    return { image: monsterPurpleThreeEyes, position: null };
+  }
+  
   return null;
 };
 
@@ -224,8 +235,8 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
                   title={`Avatar ${avatarNum}`}
                   style={{
                     backgroundImage: `url(${config.image})`,
-                    backgroundSize: '200% 200%',
-                    backgroundPosition: `${config.position.x}% ${config.position.y}%`,
+                    backgroundSize: config.position ? '200% 200%' : 'cover',
+                    backgroundPosition: config.position ? `${config.position.x}% ${config.position.y}%` : 'center',
                   }}
                 >
                   {isSelected && (

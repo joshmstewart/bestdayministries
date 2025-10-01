@@ -14,6 +14,8 @@ import composite9 from "@/assets/avatars/composite-9.png";
 import composite10 from "@/assets/avatars/composite-10.png";
 import composite11 from "@/assets/avatars/composite-11.png";
 import composite12 from "@/assets/avatars/composite-12.png";
+import monsterPirateStarfish from "@/assets/avatars/monster-pirate-starfish.png";
+import monsterPurpleThreeEyes from "@/assets/avatars/monster-purple-three-eyes.png";
 
 const DEFAULT_AVATAR = 1;
 
@@ -158,6 +160,15 @@ const getAvatarConfig = (avatarNumber: number) => {
     return { image: composite12, position: positions[avatarNumber - 45] };
   }
   
+  // Individual monsters: avatars 49-50
+  if (avatarNumber === 49) {
+    return { image: monsterPirateStarfish, position: null };
+  }
+  
+  if (avatarNumber === 50) {
+    return { image: monsterPurpleThreeEyes, position: null };
+  }
+  
   return null;
 };
 
@@ -201,6 +212,26 @@ export const AvatarDisplay = ({
   const config = effectiveAvatarNumber ? getAvatarConfig(effectiveAvatarNumber) : null;
 
   if (config) {
+    // For individual images without position (full images)
+    if (config.position === null) {
+      return (
+        <div 
+          className={cn(
+            sizeClasses[size], 
+            "rounded-full overflow-hidden border-2 border-border bg-muted shrink-0",
+            className
+          )}
+          style={{
+            backgroundImage: `url(${config.image})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+          title={displayName}
+        />
+      );
+    }
+    
+    // For composite images with position
     return (
       <div 
         className={cn(

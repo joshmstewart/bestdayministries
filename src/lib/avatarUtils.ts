@@ -3,10 +3,10 @@
  * Each avatar is represented by a number (1-34) corresponding to the design system
  */
 
-export const AVAILABLE_AVATARS = Array.from({ length: 34 }, (_, i) => i + 1);
+export const AVAILABLE_AVATARS = Array.from({ length: 50 }, (_, i) => i + 1);
 
 export const getAvatarDisplay = (avatarNumber: number | null | undefined) => {
-  if (!avatarNumber || avatarNumber < 1 || avatarNumber > 34) {
+  if (!avatarNumber || avatarNumber < 1 || avatarNumber > 50) {
     // Default avatar
     return {
       emoji: "😊",
@@ -51,6 +51,8 @@ export const getAvatarDisplay = (avatarNumber: number | null | undefined) => {
     32: { emoji: "👨🏻‍🦰", bgColor: "bg-gradient-to-br from-green-200 to-lime-200", textColor: "text-green-900" },
     33: { emoji: "🤖", bgColor: "bg-gradient-to-br from-green-300 to-lime-300", textColor: "text-green-900" },
     34: { emoji: "😈", bgColor: "bg-gradient-to-br from-blue-300 to-purple-300", textColor: "text-blue-900" },
+    49: { emoji: "🌟", bgColor: "bg-gradient-to-br from-orange-300 to-red-300", textColor: "text-orange-900" },
+    50: { emoji: "👾", bgColor: "bg-gradient-to-br from-purple-300 to-violet-400", textColor: "text-purple-900" },
   };
 
   return avatarMap[avatarNumber] || avatarMap[1];
