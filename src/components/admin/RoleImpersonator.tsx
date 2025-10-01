@@ -20,6 +20,11 @@ export const RoleImpersonator = () => {
     startImpersonation(selectedRole);
   };
 
+  const handleStopImpersonation = () => {
+    stopImpersonation();
+    window.location.reload();
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -65,7 +70,7 @@ export const RoleImpersonator = () => {
                 Start Impersonation
               </Button>
             ) : (
-              <Button onClick={stopImpersonation} variant="destructive" className="gap-2">
+              <Button onClick={handleStopImpersonation} variant="destructive" className="gap-2">
                 <EyeOff className="w-4 h-4" />
                 Stop Impersonation
               </Button>
