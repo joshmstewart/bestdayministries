@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
@@ -26,6 +27,8 @@ interface Album {
   event_id: string | null;
   cover_image_url: string | null;
   created_at: string;
+  audio_url: string | null;
+  is_post: boolean;
   images?: AlbumImage[];
   event?: { title: string } | null;
 }
@@ -60,6 +63,9 @@ export default function AlbumManagement() {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [imageCaptions, setImageCaptions] = useState<string[]>([]);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioPreview, setAudioPreview] = useState<string>("");
+  const [isPost, setIsPost] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -164,6 +170,20 @@ export default function AlbumManagement() {
     setImageCaptions(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("audio/")) {
+      toast.error("Please select an audio file");
+      return;
+    }
+
+    setAudioFile(file);
+    setAudioPreview(URL.createObjectURL(file));
+    toast.success("Audio file selected");
+  };
+
   const resetForm = () => {
     setTitle("");
     setDescription("");
@@ -171,6 +191,9 @@ export default function AlbumManagement() {
     setSelectedImages([]);
     setImagePreviews([]);
     setImageCaptions([]);
+    setAudioFile(null);
+    setAudioPreview("");
+    setIsPost(false);
     setEditingAlbum(null);
     setShowForm(false);
   };
@@ -188,6 +211,23 @@ export default function AlbumManagement() {
       if (!user) throw new Error("Not authenticated");
 
       let albumId = editingAlbum?.id;
+      let audioUrl = editingAlbum?.audio_url || null;
+
+      // Upload audio if provided
+      if (audioFile) {
+        const audioFileName = `${user.id}/${Date.now()}_${audioFile.name}`;
+        const { error: audioUploadError } = await supabase.storage
+          .from("event-audio")
+          .upload(audioFileName, audioFile);
+
+        if (audioUploadError) throw audioUploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("event-audio")
+          .getPublicUrl(audioFileName);
+
+        audioUrl = publicUrl;
+      }
 
       // Create or update album
       if (editingAlbum) {
@@ -197,6 +237,8 @@ export default function AlbumManagement() {
             title,
             description: description || null,
             event_id: eventId === "none" ? null : eventId,
+            audio_url: audioUrl,
+            is_post: isPost,
           })
           .eq("id", editingAlbum.id);
 
@@ -208,6 +250,8 @@ export default function AlbumManagement() {
             title,
             description: description || null,
             event_id: eventId === "none" ? null : eventId,
+            audio_url: audioUrl,
+            is_post: isPost,
             created_by: user.id,
           })
           .select()
@@ -270,6 +314,8 @@ export default function AlbumManagement() {
     setTitle(album.title);
     setDescription(album.description || "");
     setEventId(album.event_id || "none");
+    setAudioPreview(album.audio_url || "");
+    setIsPost(album.is_post || false);
     setShowForm(true);
   };
 
@@ -378,6 +424,44 @@ export default function AlbumManagement() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="audio">Audio Description (for Besties)</Label>
+                  <Input
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleAudioSelect}
+                    className="hidden"
+                    id="audio-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("audio-upload")?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {audioFile || audioPreview ? "Change Audio" : "Upload Audio"}
+                  </Button>
+                  {audioPreview && (
+                    <audio controls className="w-full mt-2">
+                      <source src={audioPreview} />
+                      Your browser does not support audio playback.
+                    </audio>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isPost"
+                    checked={isPost}
+                    onChange={(e) => setIsPost(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="isPost" className="cursor-pointer">
+                    Display as a post on community page
+                  </Label>
                 </div>
 
                 <div className="space-y-2">

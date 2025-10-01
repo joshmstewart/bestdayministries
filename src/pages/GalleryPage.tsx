@@ -13,6 +13,8 @@ interface Album {
   description: string | null;
   cover_image_url: string | null;
   updated_at: string;
+  audio_url: string | null;
+  is_post: boolean;
   event: { title: string; event_date: string } | null;
   images: { id: string; image_url: string; caption: string | null }[];
 }
@@ -106,6 +108,15 @@ const GalleryPage = () => {
                         </div>
                       )}
                     </div>
+                    
+                    {album.audio_url && (
+                      <div>
+                        <audio controls className="w-full">
+                          <source src={album.audio_url} />
+                          Your browser does not support audio playback.
+                        </audio>
+                      </div>
+                    )}
                     
                     {album.images.length > 0 && (
                       <ImageCarousel

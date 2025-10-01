@@ -19,7 +19,7 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
-  const [latestEvent, setLatestEvent] = useState<any>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
 
   useEffect(() => {
     checkUser();
@@ -67,17 +67,16 @@ const Community = () => {
       setLatestDiscussion(discussions);
     }
 
-    // Fetch latest event
+    // Fetch upcoming events (up to 3)
     const { data: events } = await supabase
       .from("events")
       .select("*")
       .order("event_date", { ascending: true })
       .gte("event_date", new Date().toISOString())
-      .limit(1)
-      .single();
+      .limit(3);
 
     if (events) {
-      setLatestEvent(events);
+      setUpcomingEvents(events);
     }
   };
 
@@ -247,13 +246,13 @@ const Community = () => {
               </CardContent>
             </Card>
 
-            {/* Latest Event */}
+            {/* Upcoming Events */}
             <Card className="border-2 hover:border-primary/50 transition-colors">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-secondary" />
-                    <CardTitle className="text-xl">Upcoming Event</CardTitle>
+                    <CardTitle className="text-xl">Upcoming Events</CardTitle>
                   </div>
                   <Button 
                     variant="ghost" 
@@ -266,36 +265,41 @@ const Community = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {latestEvent ? (
-                  <div 
-                    className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
-                    onClick={() => navigate("/events")}
-                  >
-                    {latestEvent.image_url && (
-                      <img
-                        src={latestEvent.image_url}
-                        alt={latestEvent.title}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    )}
-                    <h3 className="font-semibold text-lg">{latestEvent.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{latestEvent.description}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      <span>{new Date(latestEvent.event_date).toLocaleDateString()}</span>
-                      {latestEvent.location && (
-                        <>
-                          <span>•</span>
-                          <span>{latestEvent.location}</span>
-                        </>
-                      )}
-                    </div>
-                    {latestEvent.audio_url && (
-                      <audio controls className="w-full mt-2">
-                        <source src={latestEvent.audio_url} />
-                        Your browser does not support audio playback.
-                      </audio>
-                    )}
+                {upcomingEvents.length > 0 ? (
+                  <div className="space-y-4">
+                    {upcomingEvents.map((event) => (
+                      <div 
+                        key={event.id}
+                        className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors border-b last:border-0"
+                        onClick={() => navigate("/events")}
+                      >
+                        {event.image_url && (
+                          <img
+                            src={event.image_url}
+                            alt={event.title}
+                            className="w-full h-40 object-cover rounded-lg"
+                          />
+                        )}
+                        <h3 className="font-semibold text-base">{event.title}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          <span>{new Date(event.event_date).toLocaleDateString()}</span>
+                          {event.location && (
+                            <>
+                              <span>•</span>
+                              <span>{event.location}</span>
+                            </>
+                          )}
+                        </div>
+                        {event.audio_url && (
+                          <audio controls className="w-full mt-2">
+                            <source src={event.audio_url} />
+                            Your browser does not support audio playback.
+                          </audio>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No upcoming events</p>

@@ -12,6 +12,7 @@ interface Album {
   description: string | null;
   event_id: string | null;
   created_at: string;
+  audio_url: string | null;
   event?: {
     title: string;
     event_date: string;
@@ -117,6 +118,15 @@ export default function LatestAlbum() {
               
               {album.description && (
                 <p className="text-muted-foreground">{album.description}</p>
+              )}
+
+              {album.audio_url && (
+                <div className="mt-4">
+                  <audio controls className="w-full">
+                    <source src={album.audio_url} />
+                    Your browser does not support audio playback.
+                  </audio>
+                </div>
               )}
 
               <div className="flex items-center justify-between pt-4 border-t">

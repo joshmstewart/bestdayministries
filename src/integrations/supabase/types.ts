@@ -51,6 +51,7 @@ export type Database = {
       }
       albums: {
         Row: {
+          audio_url: string | null
           cover_image_url: string | null
           created_at: string
           created_by: string
@@ -58,10 +59,12 @@ export type Database = {
           event_id: string | null
           id: string
           is_active: boolean
+          is_post: boolean
           title: string
           updated_at: string
         }
         Insert: {
+          audio_url?: string | null
           cover_image_url?: string | null
           created_at?: string
           created_by: string
@@ -69,10 +72,12 @@ export type Database = {
           event_id?: string | null
           id?: string
           is_active?: boolean
+          is_post?: boolean
           title: string
           updated_at?: string
         }
         Update: {
+          audio_url?: string | null
           cover_image_url?: string | null
           created_at?: string
           created_by?: string
@@ -80,6 +85,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           is_active?: boolean
+          is_post?: boolean
           title?: string
           updated_at?: string
         }
