@@ -17,6 +17,7 @@ import Footer from "@/components/Footer";
 import AudioRecorder from "@/components/AudioRecorder";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface Profile {
   id: string;
@@ -64,6 +65,9 @@ const Discussions = () => {
   const [commentAudio, setCommentAudio] = useState<{ [key: string]: Blob | null }>({});
   const [showAudioRecorder, setShowAudioRecorder] = useState<{ [key: string]: boolean }>({});
   const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -174,19 +178,39 @@ const Discussions = () => {
       return;
     }
 
-    setSelectedImage(file);
+    // Store original file and open crop dialog
+    setOriginalImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageToCrop(reader.result as string);
+      setCropDialogOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = (croppedImageBlob: Blob) => {
+    // Convert blob to file
+    const croppedFile = new File(
+      [croppedImageBlob], 
+      originalImageFile?.name || 'cropped-image.jpg',
+      { type: 'image/jpeg' }
+    );
     
-    // Create preview
+    setSelectedImage(croppedFile);
+    
+    // Create preview from blob
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(croppedImageBlob);
   };
 
   const removeImage = () => {
     setSelectedImage(null);
     setImagePreview(null);
+    setImageToCrop(null);
+    setOriginalImageFile(null);
   };
 
   const handleCreatePost = async () => {
@@ -904,8 +928,21 @@ const Discussions = () => {
           </div>
         </div>
       </main>
-
+      
       <Footer />
+
+      {/* Image Crop Dialog */}
+      {imageToCrop && (
+        <ImageCropDialog
+          open={cropDialogOpen}
+          onOpenChange={setCropDialogOpen}
+          imageUrl={imageToCrop}
+          onCropComplete={handleCropComplete}
+          aspectRatio={16 / 9}
+          title="Crop Post Image"
+          description="Adjust the image to show what will be visible in the post (16:9 format)"
+        />
+      )}
     </div>
   );
 };
