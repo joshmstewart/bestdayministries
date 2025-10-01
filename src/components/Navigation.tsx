@@ -3,10 +3,16 @@ import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import bdeLogo from "@/assets/bde-logo-no-subtitle.png";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { useNavigate } from "react-router-dom";
+import type { User } from "@supabase/supabase-js";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState(bdeLogo);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<{ avatar_number?: number; display_name?: string } | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadLogo = async () => {
@@ -44,6 +50,40 @@ const Navigation = () => {
     loadLogo();
   }, []);
 
+  useEffect(() => {
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadProfile(session.user.id);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("avatar_number, display_name")
+      .eq("id", userId)
+      .single();
+
+    if (!error && data) {
+      setProfile(data);
+    }
+  };
+
   const navItems = [
     { label: "About", href: "#about" },
     { label: "Mission", href: "#mission" },
@@ -80,9 +120,23 @@ const Navigation = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-warm transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
-            <Button size="lg" onClick={() => window.location.href = "/auth"} className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
-              Sign In
-            </Button>
+            {user && profile ? (
+              <button
+                onClick={() => navigate("/profile-settings")}
+                className="hover:opacity-80 transition-opacity"
+                aria-label="Profile settings"
+              >
+                <AvatarDisplay
+                  avatarNumber={profile.avatar_number}
+                  displayName={profile.display_name}
+                  size="md"
+                />
+              </button>
+            ) : (
+              <Button size="lg" onClick={() => window.location.href = "/auth"} className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
+                Sign In
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -108,9 +162,26 @@ const Navigation = () => {
                 {item.label}
               </a>
             ))}
-            <Button size="lg" onClick={() => window.location.href = "/auth"} className="w-full shadow-warm bg-gradient-to-r from-primary via-accent to-secondary border-0">
-              Sign In
-            </Button>
+            {user && profile ? (
+              <button
+                onClick={() => {
+                  navigate("/profile-settings");
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-3 py-2 px-4 hover:bg-muted rounded-lg transition-colors"
+              >
+                <AvatarDisplay
+                  avatarNumber={profile.avatar_number}
+                  displayName={profile.display_name}
+                  size="md"
+                />
+                <span className="font-semibold">Profile Settings</span>
+              </button>
+            ) : (
+              <Button size="lg" onClick={() => window.location.href = "/auth"} className="w-full shadow-warm bg-gradient-to-r from-primary via-accent to-secondary border-0">
+                Sign In
+              </Button>
+            )}
           </div>
         )}
       </div>
