@@ -11,6 +11,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { cn } from "@/lib/utils";
 import { EventDetailDialog } from "@/components/EventDetailDialog";
+import { LocationLink } from "@/components/LocationLink";
 
 interface EventDate {
   id: string;
@@ -227,9 +228,8 @@ export default function EventsPage() {
                             )}
 
                             {event.location && (
-                              <div className="flex items-center gap-2 text-foreground pt-2 border-t">
-                                <MapPin className="w-4 h-4 text-primary" />
-                                {event.location}
+                              <div className="pt-2 border-t">
+                                <LocationLink location={event.location} className="text-foreground" />
                               </div>
                             )}
 
@@ -313,9 +313,8 @@ export default function EventsPage() {
                             )}
 
                             {event.location && (
-                              <div className="flex items-center gap-2 pt-2 border-t">
-                                <MapPin className="w-4 h-4" />
-                                {event.location}
+                              <div className="pt-2 border-t">
+                                <LocationLink location={event.location} />
                               </div>
                             )}
                           </CardContent>

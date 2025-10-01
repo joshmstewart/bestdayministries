@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
 import AudioRecorder from "@/components/AudioRecorder";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import { LocationLink } from "@/components/LocationLink";
 
 interface EventDate {
   id: string;
@@ -483,15 +485,11 @@ export default function EventManagement() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Event location"
-                  />
-                </div>
+                <LocationAutocomplete
+                  value={location}
+                  onChange={setLocation}
+                  placeholder="Search for event location"
+                />
 
                 <div className="flex items-center justify-between">
                   <Label htmlFor="expires">Expires only after all event dates pass</Label>
@@ -916,9 +914,8 @@ export default function EventManagement() {
                           </div>
                         )}
                         {event.location && (
-                          <div className="flex items-center gap-2 text-sm pt-1 border-t">
-                            <MapPin className="w-4 h-4" />
-                            {event.location}
+                          <div className="text-sm pt-1 border-t">
+                            <LocationLink location={event.location} className="text-sm" />
                           </div>
                         )}
                       </div>

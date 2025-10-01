@@ -12,6 +12,7 @@ import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { LocationLink } from "@/components/LocationLink";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -339,7 +340,20 @@ const Community = () => {
                           {event.location && (
                             <>
                               <span>•</span>
-                              <span>{event.location}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(
+                                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`,
+                                    '_blank',
+                                    'noopener,noreferrer'
+                                  );
+                                }}
+                                className="hover:text-primary transition-colors hover:underline"
+                                title="Open in Google Maps"
+                              >
+                                {event.location}
+                              </button>
                             </>
                           )}
                         </div>
