@@ -769,33 +769,63 @@ const Discussions = () => {
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            <AudioRecorder
-                              onRecordingComplete={(blob) => {
-                                setCommentAudio({ ...commentAudio, [post.id]: blob });
-                                toast({ title: "Audio ready to post" });
-                              }}
-                              onRecordingCancel={() => {
-                                setCommentAudio({ ...commentAudio, [post.id]: null });
-                                setShowAudioRecorder({ ...showAudioRecorder, [post.id]: false });
-                              }}
-                            />
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setCommentAudio({ ...commentAudio, [post.id]: null });
-                                  setShowAudioRecorder({ ...showAudioRecorder, [post.id]: false });
-                                }}
-                              >
-                                Back to Text
-                              </Button>
-                              <Button
-                                onClick={() => handleAddComment(post.id)}
-                                disabled={!commentAudio[post.id]}
-                              >
-                                Post Audio Comment
-                              </Button>
-                            </div>
+                            {!commentAudio[post.id] ? (
+                              <>
+                                <AudioRecorder
+                                  onRecordingComplete={(blob) => {
+                                    setCommentAudio({ ...commentAudio, [post.id]: blob });
+                                  }}
+                                  onRecordingCancel={() => {
+                                    setShowAudioRecorder({ ...showAudioRecorder, [post.id]: false });
+                                  }}
+                                />
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setShowAudioRecorder({ ...showAudioRecorder, [post.id]: false });
+                                  }}
+                                  className="w-full"
+                                >
+                                  Back to Text
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <div className="p-4 border rounded-lg bg-muted/50">
+                                  <p className="text-sm font-medium mb-2">Audio ready to post:</p>
+                                  <audio controls className="w-full">
+                                    <source src={URL.createObjectURL(commentAudio[post.id])} type="audio/webm" />
+                                    Your browser does not support audio playback.
+                                  </audio>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setCommentAudio({ ...commentAudio, [post.id]: null });
+                                    }}
+                                  >
+                                    Re-record
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setCommentAudio({ ...commentAudio, [post.id]: null });
+                                      setShowAudioRecorder({ ...showAudioRecorder, [post.id]: false });
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleAddComment(post.id)}
+                                    className="flex-1"
+                                  >
+                                    <Send className="w-4 h-4 mr-2" />
+                                    Post Audio Comment
+                                  </Button>
+                                </div>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>

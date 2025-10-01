@@ -74,7 +74,7 @@ export default function AudioRecorder({ onRecordingComplete, onRecordingCancel }
   const submitRecording = () => {
     if (audioBlob) {
       onRecordingComplete(audioBlob);
-      deleteRecording();
+      // Don't delete yet - let parent handle the UI flow
     }
   };
 
