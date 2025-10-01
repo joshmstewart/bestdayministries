@@ -13,6 +13,7 @@ import composite8 from "@/assets/avatars/composite-8.png";
 import composite9 from "@/assets/avatars/composite-9.png";
 import composite10 from "@/assets/avatars/composite-10.png";
 import composite11 from "@/assets/avatars/composite-11.png";
+import composite12 from "@/assets/avatars/composite-12.png";
 
 interface AvatarPickerProps {
   selectedAvatar: number | null;
@@ -136,6 +137,16 @@ const getAvatarConfig = (avatarNumber: number) => {
     return { image: composite11, position: positions[avatarNumber - 41] };
   }
   
+  if (avatarNumber >= 45 && avatarNumber <= 48) {
+    const positions = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 0, y: 100 },
+      { x: 100, y: 100 },
+    ];
+    return { image: composite12, position: positions[avatarNumber - 45] };
+  }
+  
   return null;
 };
 
@@ -171,6 +182,11 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
       if (categories[avatar.category]) {
         categories[avatar.category].avatars.push(avatar.avatar_number);
       }
+    });
+
+    // Shuffle avatars within each category
+    Object.keys(categories).forEach(key => {
+      categories[key].avatars = categories[key].avatars.sort(() => Math.random() - 0.5);
     });
 
     setAvatarsByCategory(categories);
