@@ -271,7 +271,7 @@ export default function AlbumManagement() {
   };
 
   const handleSubmit = async () => {
-    if (!title || selectedImages.length === 0) {
+    if (!title || (selectedImages.length === 0 && !editingAlbum?.images?.length)) {
       toast.error("Please provide a title and at least one image");
       return;
     }
