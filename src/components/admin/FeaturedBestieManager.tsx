@@ -37,7 +37,7 @@ export const FeaturedBestieManager = () => {
   const [bestieName, setBestieName] = useState("");
   const [description, setDescription] = useState("");
   const [featuredMonth, setFeaturedMonth] = useState<Date>();
-  const [isActive, setIsActive] = useState(false);
+  const [isActive, setIsActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -212,7 +212,7 @@ export const FeaturedBestieManager = () => {
     setBestieName("");
     setDescription("");
     setFeaturedMonth(undefined);
-    setIsActive(false);
+    setIsActive(true);
     setImageFile(null);
     setAudioFile(null);
   };
@@ -325,8 +325,13 @@ export const FeaturedBestieManager = () => {
                   checked={isActive}
                   onCheckedChange={setIsActive}
                 />
-                <Label htmlFor="active">Active (visible to community)</Label>
+                <Label htmlFor="active">
+                  Active (will show during featured month)
+                </Label>
               </div>
+              <p className="text-sm text-muted-foreground">
+                This bestie will only appear publicly when both Active is ON and it's their featured month
+              </p>
 
               <div className="flex gap-2 pt-4">
                 <Button onClick={handleSubmit} disabled={uploading} className="flex-1">
