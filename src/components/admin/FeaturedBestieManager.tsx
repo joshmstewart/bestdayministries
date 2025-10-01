@@ -139,8 +139,8 @@ export const FeaturedBestieManager = () => {
       const data: any = {
         bestie_name: bestieName,
         description,
-        start_date: format(startDate, "yyyy-MM-dd"),
-        end_date: format(endDate, "yyyy-MM-dd"),
+        start_date: `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`,
+        end_date: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`,
         is_active: isActive,
       };
 
