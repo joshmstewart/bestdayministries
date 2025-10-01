@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Images, Calendar, ArrowRight } from "lucide-react";
 import ImageCarousel from "./ImageCarousel";
+import AudioPlayer from "./AudioPlayer";
 
 interface Album {
   id: string;
@@ -121,12 +122,7 @@ export default function LatestAlbum() {
               )}
 
               {album.audio_url && (
-                <div className="mt-4">
-                  <audio controls className="w-full">
-                    <source src={album.audio_url} />
-                    Your browser does not support audio playback.
-                  </audio>
-                </div>
+                <AudioPlayer src={album.audio_url} />
               )}
 
               <div className="flex items-center justify-between pt-4 border-t">

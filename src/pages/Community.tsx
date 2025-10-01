@@ -10,6 +10,7 @@ import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 import LatestAlbum from "@/components/LatestAlbum";
+import AudioPlayer from "@/components/AudioPlayer";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -293,10 +294,7 @@ const Community = () => {
                           )}
                         </div>
                         {event.audio_url && (
-                          <audio controls className="w-full mt-2">
-                            <source src={event.audio_url} />
-                            Your browser does not support audio playback.
-                          </audio>
+                          <AudioPlayer src={event.audio_url} variant="compact" />
                         )}
                       </div>
                     ))}

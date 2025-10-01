@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Volume2 } from "lucide-react";
+import { Heart } from "lucide-react";
 import { format } from "date-fns";
+import AudioPlayer from "./AudioPlayer";
 
 interface FeaturedBestie {
   id: string;
@@ -81,15 +82,8 @@ export const FeaturedBestieDisplay = () => {
             {bestie.description}
           </p>
           {bestie.voice_note_url && (
-            <div className="bg-secondary/20 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Volume2 className="w-4 h-4 text-primary" />
-                <span className="font-semibold text-sm">Hear from {bestie.bestie_name}</span>
-              </div>
-              <audio controls className="w-full">
-                <source src={bestie.voice_note_url} type="audio/mpeg" />
-                Your browser does not support the audio element.
-              </audio>
+            <div className="space-y-2">
+              <AudioPlayer src={bestie.voice_note_url} />
             </div>
           )}
         </div>

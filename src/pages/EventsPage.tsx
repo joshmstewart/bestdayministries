@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Clock, MapPin, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import AudioPlayer from "@/components/AudioPlayer";
 
 interface Event {
   id: string;
@@ -132,12 +133,7 @@ export default function EventsPage() {
                           </div>
 
                           {event.audio_url && (
-                            <div className="pt-2">
-                              <audio controls className="w-full">
-                                <source src={event.audio_url} />
-                                Your browser does not support the audio element.
-                              </audio>
-                            </div>
+                            <AudioPlayer src={event.audio_url} />
                           )}
                         </CardContent>
                       </Card>

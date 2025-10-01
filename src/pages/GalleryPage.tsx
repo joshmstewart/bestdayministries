@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { Calendar, ArrowLeft } from "lucide-react";
 import Footer from "@/components/Footer";
 import ImageCarousel from "@/components/ImageCarousel";
+import AudioPlayer from "@/components/AudioPlayer";
 
 interface Album {
   id: string;
@@ -110,12 +111,7 @@ const GalleryPage = () => {
                     </div>
                     
                     {album.audio_url && (
-                      <div>
-                        <audio controls className="w-full">
-                          <source src={album.audio_url} />
-                          Your browser does not support audio playback.
-                        </audio>
-                      </div>
+                      <AudioPlayer src={album.audio_url} />
                     )}
                     
                     {album.images.length > 0 && (

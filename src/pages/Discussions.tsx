@@ -14,6 +14,7 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import AudioRecorder from "@/components/AudioRecorder";
+import AudioPlayer from "@/components/AudioPlayer";
 
 interface Profile {
   id: string;
@@ -716,10 +717,7 @@ const Discussions = () => {
                                 </div>
                                 {comment.content && <p className="text-sm">{comment.content}</p>}
                                 {comment.audio_url && (
-                                  <audio controls className="w-full mt-2">
-                                    <source src={comment.audio_url} type="audio/webm" />
-                                    Your browser does not support audio playback.
-                                  </audio>
+                                  <AudioPlayer src={comment.audio_url} variant="compact" />
                                 )}
                               </div>
                             </div>
