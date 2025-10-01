@@ -383,7 +383,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_owner: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       user_role: "bestie" | "caregiver" | "supporter" | "admin" | "owner"

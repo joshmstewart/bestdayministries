@@ -9,12 +9,14 @@ import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft } from "lucide
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
+import { UserManagement } from "@/components/admin/UserManagement";
 
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
@@ -41,7 +43,7 @@ const Admin = () => {
         .eq("id", user.id)
         .single();
 
-      if (profile?.role !== "admin") {
+      if (profile?.role !== "admin" && profile?.role !== "owner") {
         toast({
           title: "Access Denied",
           description: "You don't have permission to access this page.",
@@ -52,6 +54,7 @@ const Admin = () => {
       }
 
       setIsAdmin(true);
+      setIsOwner(profile?.role === "owner");
       await loadStats();
     } catch (error: any) {
       toast({
@@ -167,15 +170,19 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage community members and their roles</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">User management interface coming soon...</p>
-              </CardContent>
-            </Card>
+            {isOwner ? (
+              <UserManagement />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Management</CardTitle>
+                  <CardDescription>Manage community members and their roles</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Only owners can create and manage users.</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="events">
