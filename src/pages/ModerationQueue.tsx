@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, CheckCircle, XCircle, ArrowLeft, AlertTriangle } from "lucide-react";
-import Navigation from "@/components/Navigation";
+import { Shield, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
 
 interface Profile {
   id: string;
@@ -200,19 +200,11 @@ const ModerationQueue = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
-      <Navigation />
+      <UnifiedHeader />
       
-      <main className="container mx-auto px-4 py-24">
+      <main className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto space-y-8">
           <div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/admin")}
-              className="mb-4 gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Admin
-            </Button>
             <h1 className="text-4xl font-black text-foreground flex items-center gap-3">
               <Shield className="w-10 h-10" />
               Content <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Moderation</span>

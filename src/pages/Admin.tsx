@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft } from "lucide-react";
-import Navigation from "@/components/Navigation";
+import { Shield, Users, Calendar, MessageSquare, Heart } from "lucide-react";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
 import { UserManagement } from "@/components/admin/UserManagement";
@@ -100,23 +100,15 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation />
+      <UnifiedHeader />
       
-      <main className="flex-1 container mx-auto px-4 pt-24 pb-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => navigate("/community")}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Community
-            </Button>
-            <div>
-              <h1 className="text-4xl font-black text-foreground flex items-center gap-2">
-                <Shield className="w-8 h-8 text-primary" />
-                Admin Dashboard
-              </h1>
-              <p className="text-muted-foreground mt-2">Manage your Joy House community</p>
-            </div>
-          </div>
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-black text-foreground flex items-center gap-2">
+            <Shield className="w-8 h-8 text-primary" />
+            Admin Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2">Manage your Joy House community</p>
         </div>
 
         {/* Stats Overview */}

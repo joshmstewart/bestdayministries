@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Navigation from "@/components/Navigation";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -436,17 +436,11 @@ export default function AlbumManagement() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation />
-      <main className="flex-1 container mx-auto px-4 py-8 pt-28">
+      <UnifiedHeader />
+      <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={() => navigate("/admin")}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Admin
-              </Button>
-              <h1 className="text-3xl font-bold">Album Management</h1>
-            </div>
+            <h1 className="text-3xl font-bold">Album Management</h1>
             <Button onClick={() => setShowForm(!showForm)}>
               {showForm ? "Cancel" : "Add New Album"}
             </Button>
