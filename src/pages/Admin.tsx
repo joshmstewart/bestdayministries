@@ -208,7 +208,15 @@ const Admin = () => {
                 <CardDescription>Review and moderate community content</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Moderation interface coming soon...</p>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Review posts and comments that have been flagged by our AI moderation system.
+                  </p>
+                  <Button onClick={() => navigate("/moderation")} className="gap-2">
+                    <Shield className="w-4 h-4" />
+                    Open Moderation Queue
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -94,12 +94,13 @@ const Discussions = () => {
   };
 
   const loadPosts = async () => {
-    const { data: postsData, error: postsError } = await supabase
+      const { data: postsData, error: postsError } = await supabase
       .from("discussion_posts")
       .select(`
         *,
         author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
       `)
+      .eq("is_moderated", true)
       .order("created_at", { ascending: false });
 
     if (postsError) {
@@ -122,6 +123,7 @@ const Discussions = () => {
             author:profiles!discussion_comments_author_id_fkey(id, display_name, role)
           `)
           .eq("post_id", post.id)
+          .eq("is_moderated", true)
           .order("created_at", { ascending: true });
 
         return { ...post, comments: commentsData || [] };
@@ -141,53 +143,132 @@ const Discussions = () => {
       return;
     }
 
-    const { error } = await supabase
-      .from("discussion_posts")
-      .insert({
-        title: newPost.title,
-        content: newPost.content,
-        author_id: user?.id,
+    try {
+      // Moderate content before posting
+      const { data: moderationResult, error: moderationError } = await supabase.functions.invoke('moderate-content', {
+        body: { 
+          content: `${newPost.title}\n\n${newPost.content}`,
+          contentType: 'post'
+        }
       });
 
-    if (error) {
+      if (moderationError) {
+        console.error("Moderation error:", moderationError);
+        toast({
+          title: "Error checking content",
+          description: "Please try again",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const isApproved = moderationResult?.approved ?? true;
+      const reason = moderationResult?.reason || "";
+      const severity = moderationResult?.severity || "";
+
+      const { error } = await supabase
+        .from("discussion_posts")
+        .insert({
+          title: newPost.title,
+          content: newPost.content,
+          author_id: user?.id,
+          is_moderated: isApproved,
+          moderation_notes: isApproved ? null : `${severity} severity: ${reason}`,
+        });
+
+      if (error) {
+        toast({
+          title: "Error creating post",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (isApproved) {
+        toast({ title: "Post created successfully!" });
+      } else {
+        toast({ 
+          title: "Post submitted for review",
+          description: "Your post will be reviewed by moderators before being published.",
+        });
+      }
+
+      setNewPost({ title: "", content: "" });
+      setShowNewPost(false);
+      loadPosts();
+    } catch (error) {
+      console.error("Error creating post:", error);
       toast({
-        title: "Error creating post",
-        description: error.message,
+        title: "Error",
+        description: "Failed to create post",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({ title: "Post created successfully!" });
-    setNewPost({ title: "", content: "" });
-    setShowNewPost(false);
-    loadPosts();
   };
 
   const handleAddComment = async (postId: string) => {
     const content = newComment[postId];
     if (!content?.trim()) return;
 
-    const { error } = await supabase
-      .from("discussion_comments")
-      .insert({
-        post_id: postId,
-        content: content,
-        author_id: user?.id,
+    try {
+      // Moderate content before posting
+      const { data: moderationResult, error: moderationError } = await supabase.functions.invoke('moderate-content', {
+        body: { 
+          content: content,
+          contentType: 'comment'
+        }
       });
 
-    if (error) {
+      if (moderationError) {
+        console.error("Moderation error:", moderationError);
+        toast({
+          title: "Error checking content",
+          description: "Please try again",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const isApproved = moderationResult?.approved ?? true;
+
+      const { error } = await supabase
+        .from("discussion_comments")
+        .insert({
+          post_id: postId,
+          content: content,
+          author_id: user?.id,
+          is_moderated: isApproved,
+        });
+
+      if (error) {
+        toast({
+          title: "Error adding comment",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (isApproved) {
+        toast({ title: "Comment added!" });
+      } else {
+        toast({ 
+          title: "Comment submitted for review",
+          description: "Your comment will be reviewed by moderators.",
+        });
+      }
+
+      setNewComment({ ...newComment, [postId]: "" });
+      loadPosts();
+    } catch (error) {
+      console.error("Error adding comment:", error);
       toast({
-        title: "Error adding comment",
-        description: error.message,
+        title: "Error",
+        description: "Failed to add comment",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({ title: "Comment added!" });
-    setNewComment({ ...newComment, [postId]: "" });
-    loadPosts();
   };
 
   const getRoleBadgeColor = (role: string) => {
