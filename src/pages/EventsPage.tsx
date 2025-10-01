@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Clock, MapPin, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import AudioPlayer from "@/components/AudioPlayer";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface Event {
   id: string;
@@ -102,14 +103,15 @@ export default function EventsPage() {
                           />
                         )}
                         <CardContent className="p-6 space-y-4">
-                          <div>
-                            <h3 className="text-xl font-bold">{event.title}</h3>
-                            {event.is_recurring && (
-                              <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                                Recurring {event.recurrence_type === "custom" ? `every ${event.recurrence_interval}` : event.recurrence_type}
-                              </span>
-                            )}
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-xl font-bold flex-1">{event.title}</h3>
+                            <TextToSpeech text={`${event.title}. ${event.description}`} />
                           </div>
+                          {event.is_recurring && (
+                            <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                              Recurring {event.recurrence_type === "custom" ? `every ${event.recurrence_interval}` : event.recurrence_type}
+                            </span>
+                          )}
                           
                           <p className="text-muted-foreground">
                             {event.description}

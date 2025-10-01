@@ -16,6 +16,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import AudioRecorder from "@/components/AudioRecorder";
 import AudioPlayer from "@/components/AudioPlayer";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface Profile {
   id: string;
@@ -709,8 +710,11 @@ const Discussions = () => {
                           displayName={post.author?.display_name || "Unknown"}
                           size="md"
                         />
-                        <div className="flex-1">
-                          <CardTitle className="text-2xl">{post.title}</CardTitle>
+                      <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-2xl">{post.title}</CardTitle>
+                            <TextToSpeech text={`${post.title}. ${post.content}`} />
+                          </div>
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-sm font-medium text-foreground">
                               {post.author?.display_name || "Unknown"}
@@ -770,6 +774,9 @@ const Discussions = () => {
                               <div className="flex-1 space-y-1">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-medium text-sm">{comment.author?.display_name}</span>
+                                  {comment.content && (
+                                    <TextToSpeech text={comment.content} size="sm" />
+                                  )}
                                   <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
                                     {comment.author?.role}
                                   </span>

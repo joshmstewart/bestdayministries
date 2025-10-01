@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart } from "lucide-react";
 import { format } from "date-fns";
 import AudioPlayer from "./AudioPlayer";
+import { TextToSpeech } from "./TextToSpeech";
 
 interface FeaturedBestie {
   id: string;
@@ -75,9 +76,12 @@ export const FeaturedBestieDisplay = () => {
 
         {/* Content Section */}
         <div className="flex flex-col justify-center space-y-4">
-          <h2 className="text-3xl font-black text-foreground">
-            {bestie.bestie_name}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-3xl font-black text-foreground flex-1">
+              {bestie.bestie_name}
+            </h2>
+            <TextToSpeech text={`${bestie.bestie_name}. ${bestie.description}`} />
+          </div>
           <p className="text-base text-muted-foreground leading-relaxed">
             {bestie.description}
           </p>
