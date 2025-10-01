@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import composite1 from "@/assets/avatars/composite-1.png";
 import composite2 from "@/assets/avatars/composite-2.png";
 import composite3 from "@/assets/avatars/composite-3.png";
@@ -14,14 +16,11 @@ interface AvatarPickerProps {
   onSelectAvatar: (avatarNumber: number) => void;
 }
 
-const AVATAR_COUNT = 32;
-
-const AVATAR_CATEGORIES = {
-  humans: { label: "Humans", avatars: [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 18, 23, 25, 26] },
-  animals: { label: "Animals", avatars: [9, 15, 17, 20, 21, 22, 27, 29, 30, 31, 32] },
-  monsters: { label: "Monsters & Aliens", avatars: [12, 14, 19] },
-  shapes: { label: "Shapes", avatars: [16, 24, 28] },
-};
+interface AvatarData {
+  avatar_number: number;
+  category: string;
+  is_active: boolean;
+}
 
 const getAvatarConfig = (avatarNumber: number) => {
   if (avatarNumber >= 1 && avatarNumber <= 4) {
@@ -108,10 +107,51 @@ const getAvatarConfig = (avatarNumber: number) => {
 };
 
 export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerProps) => {
+  const [avatarsByCategory, setAvatarsByCategory] = useState<Record<string, { label: string; avatars: number[] }>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAvatars();
+  }, []);
+
+  const loadAvatars = async () => {
+    const { data, error } = await supabase
+      .from("avatars")
+      .select("avatar_number, category, is_active")
+      .eq("is_active", true)
+      .order("avatar_number");
+
+    if (error) {
+      console.error("Error loading avatars:", error);
+      setLoading(false);
+      return;
+    }
+
+    const categories: Record<string, { label: string; avatars: number[] }> = {
+      humans: { label: "Humans", avatars: [] },
+      animals: { label: "Animals", avatars: [] },
+      monsters: { label: "Monsters & Aliens", avatars: [] },
+      shapes: { label: "Shapes", avatars: [] },
+    };
+
+    data.forEach((avatar: AvatarData) => {
+      if (categories[avatar.category]) {
+        categories[avatar.category].avatars.push(avatar.avatar_number);
+      }
+    });
+
+    setAvatarsByCategory(categories);
+    setLoading(false);
+  };
+
+  if (loading) {
+    return <div className="text-muted-foreground">Loading avatars...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <Label>Choose Your Avatar</Label>
-      {Object.entries(AVATAR_CATEGORIES).map(([key, category]) => (
+      {Object.entries(avatarsByCategory).map(([key, category]) => (
         <div key={key} className="space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">{category.label}</h3>
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 p-4 border rounded-lg bg-muted/20">

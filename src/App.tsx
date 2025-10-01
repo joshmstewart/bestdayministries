@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Community from "./pages/Community";
 import Admin from "./pages/Admin";
+import AvatarManagement from "./pages/AvatarManagement";
 import AboutPage from "./pages/AboutPage";
 import JoyRocksPage from "./pages/JoyRocksPage";
 import GalleryPage from "./pages/GalleryPage";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/community" element={<Community />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/avatars" element={<AvatarManagement />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/joy-rocks" element={<JoyRocksPage />} />
           <Route path="/gallery" element={<GalleryPage />} />

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatars: {
+        Row: {
+          avatar_number: number
+          category: Database["public"]["Enums"]["avatar_category"]
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          avatar_number: number
+          category: Database["public"]["Enums"]["avatar_category"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          avatar_number?: number
+          category?: Database["public"]["Enums"]["avatar_category"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       caregiver_bestie_links: {
         Row: {
           bestie_id: string
@@ -398,6 +425,7 @@ export type Database = {
       }
     }
     Enums: {
+      avatar_category: "humans" | "animals" | "monsters" | "shapes"
       user_role: "bestie" | "caregiver" | "supporter" | "admin" | "owner"
     }
     CompositeTypes: {
@@ -526,6 +554,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      avatar_category: ["humans", "animals", "monsters", "shapes"],
       user_role: ["bestie", "caregiver", "supporter", "admin", "owner"],
     },
   },

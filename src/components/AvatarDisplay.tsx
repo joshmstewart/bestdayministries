@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import composite1 from "@/assets/avatars/composite-1.png";
 import composite2 from "@/assets/avatars/composite-2.png";
 import composite3 from "@/assets/avatars/composite-3.png";
@@ -8,6 +10,8 @@ import composite5 from "@/assets/avatars/composite-5.png";
 import composite6 from "@/assets/avatars/composite-6.png";
 import composite7 from "@/assets/avatars/composite-7.png";
 import composite8 from "@/assets/avatars/composite-8.png";
+
+const DEFAULT_AVATAR = 1;
 
 interface AvatarDisplayProps {
   avatarNumber?: number | null;
@@ -115,13 +119,38 @@ export const AvatarDisplay = ({
   size = "md",
   className 
 }: AvatarDisplayProps) => {
+  const [effectiveAvatarNumber, setEffectiveAvatarNumber] = useState(avatarNumber);
+
+  useEffect(() => {
+    checkAvatarActive();
+  }, [avatarNumber]);
+
+  const checkAvatarActive = async () => {
+    if (!avatarNumber) {
+      setEffectiveAvatarNumber(null);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("avatars")
+      .select("is_active")
+      .eq("avatar_number", avatarNumber)
+      .single();
+
+    if (data && !data.is_active) {
+      setEffectiveAvatarNumber(DEFAULT_AVATAR);
+    } else {
+      setEffectiveAvatarNumber(avatarNumber);
+    }
+  };
+
   const sizeClasses = {
     sm: "h-8 w-8",
     md: "h-10 w-10",
     lg: "h-16 w-16"
   };
 
-  const config = avatarNumber ? getAvatarConfig(avatarNumber) : null;
+  const config = effectiveAvatarNumber ? getAvatarConfig(effectiveAvatarNumber) : null;
 
   if (config) {
     return (
