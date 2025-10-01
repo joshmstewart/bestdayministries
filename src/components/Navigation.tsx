@@ -15,7 +15,7 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 w-full bg-card/80 backdrop-blur-xl z-50 border-b border-border/50 shadow-sm">
-      <div className="container mx-auto px-4 py-2">
+      <div className="container mx-auto px-4 py-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
