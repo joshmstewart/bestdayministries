@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ interface Event {
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
   is_public: boolean;
+  visible_to_roles?: string[];
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -78,6 +80,7 @@ export default function EventManagement() {
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date>();
   const [additionalDates, setAdditionalDates] = useState<Date[]>([]);
   const [showAdditionalDatePicker, setShowAdditionalDatePicker] = useState(false);
+  const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
 
   useEffect(() => {
     checkAdminAccess();
@@ -192,6 +195,7 @@ export default function EventManagement() {
     setLocation("");
     setExpiresAfterDate(true);
     setIsPublic(true);
+    setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
     setSelectedImage(null);
     setImagePreview(null);
     setSelectedAudio(null);
@@ -269,6 +273,9 @@ export default function EventManagement() {
         audioUrl = publicUrl;
       }
 
+      // Ensure admin and owner are always included
+      const finalVisibleRoles = [...new Set([...visibleToRoles, 'admin', 'owner'])] as any;
+      
       const eventData = {
         title,
         description,
@@ -276,6 +283,7 @@ export default function EventManagement() {
         location: location || null,
         expires_after_date: expiresAfterDate,
         is_public: isPublic,
+        visible_to_roles: finalVisibleRoles,
         image_url: imageUrl,
         audio_url: audioUrl,
         is_recurring: isRecurring,
@@ -358,6 +366,7 @@ export default function EventManagement() {
     setLocation(event.location || "");
     setExpiresAfterDate(event.expires_after_date);
     setIsPublic(event.is_public ?? true);
+    setVisibleToRoles(event.visible_to_roles?.filter(r => !['admin', 'owner'].includes(r)) || ['caregiver', 'bestie', 'supporter']);
     setIsRecurring(event.is_recurring);
     setRecurrenceType(event.recurrence_type || "daily");
     setRecurrenceInterval(event.recurrence_interval || 1);
@@ -817,6 +826,60 @@ export default function EventManagement() {
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                  </div>
+                </div>
+
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                  <Label>Visible To (Admin & Owner always included)</Label>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-caregiver"
+                        checked={visibleToRoles.includes('caregiver')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'caregiver']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'caregiver'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-caregiver" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Guardians
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-bestie"
+                        checked={visibleToRoles.includes('bestie')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'bestie']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'bestie'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-bestie" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Besties
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-supporter"
+                        checked={visibleToRoles.includes('supporter')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'supporter']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'supporter'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-supporter" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Supporters
+                      </label>
+                    </div>
                   </div>
                 </div>
 

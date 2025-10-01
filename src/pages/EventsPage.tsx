@@ -29,6 +29,7 @@ interface Event {
   max_attendees: number | null;
   expires_after_date: boolean;
   is_recurring: boolean;
+  visible_to_roles?: string[];
   recurrence_type: string | null;
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
@@ -52,6 +53,21 @@ export default function EventsPage() {
 
   const loadEvents = async () => {
     setLoading(true);
+    
+    // Get current user and their role
+    const { data: { user } } = await supabase.auth.getUser();
+    let userRole = null;
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      
+      userRole = profile?.role;
+    }
+    
     const { data, error } = await supabase
       .from("events")
       .select(`
@@ -63,7 +79,16 @@ export default function EventsPage() {
     if (error) {
       console.error("Error loading events:", error);
     } else {
-      setEvents(data || []);
+      // Filter events based on user role
+      const filteredEvents = (data || []).filter(event => {
+        // Admins and owners can see all events
+        if (userRole === 'admin' || userRole === 'owner') return true;
+        
+        // Check if user's role is in visible_to_roles
+        return event.visible_to_roles?.includes(userRole);
+      });
+      
+      setEvents(filteredEvents);
     }
     setLoading(false);
   };

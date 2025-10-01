@@ -25,6 +25,7 @@ interface Event {
   expires_after_date: boolean;
   is_recurring: boolean;
   is_public: boolean;
+  visible_to_roles?: string[];
   recurrence_type: string | null;
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
@@ -47,6 +48,21 @@ export default function PublicEvents() {
 
   const loadPublicEvents = async () => {
     setLoading(true);
+    
+    // Get current user and their role (if logged in)
+    const { data: { user } } = await supabase.auth.getUser();
+    let userRole = null;
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      
+      userRole = profile?.role;
+    }
+    
     const { data, error } = await supabase
       .from("events")
       .select(`
@@ -59,7 +75,19 @@ export default function PublicEvents() {
     if (error) {
       console.error("Error loading events:", error);
     } else {
-      setEvents(data || []);
+      // Filter events based on user role (or show all if not logged in for public events)
+      const filteredEvents = (data || []).filter(event => {
+        // If not logged in, show all public events
+        if (!user || !userRole) return true;
+        
+        // Admins and owners can see all events
+        if (userRole === 'admin' || userRole === 'owner') return true;
+        
+        // Check if user's role is in visible_to_roles
+        return event.visible_to_roles?.includes(userRole);
+      });
+      
+      setEvents(filteredEvents);
     }
     setLoading(false);
   };
