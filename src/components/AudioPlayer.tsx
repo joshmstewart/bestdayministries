@@ -21,7 +21,12 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
     if (!audio) return;
 
     const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
+    const updateDuration = () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        console.log("Duration loaded:", audio.duration);
+        setDuration(audio.duration);
+      }
+    };
     const handleEnded = () => {
       console.log("Audio ended naturally");
       setIsPlaying(false);
@@ -50,10 +55,15 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
     };
     const handleCanPlay = () => {
       console.log("Audio can play, duration:", audio.duration);
+      if (audio.duration && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
     };
 
     audio.addEventListener("timeupdate", updateTime);
     audio.addEventListener("loadedmetadata", updateDuration);
+    audio.addEventListener("durationchange", updateDuration);
+    audio.addEventListener("canplay", handleCanPlay);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("play", handlePlay);
     audio.addEventListener("pause", handlePause);
@@ -61,11 +71,15 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
     audio.addEventListener("stalled", handleStalled);
     audio.addEventListener("suspend", handleSuspend);
     audio.addEventListener("waiting", handleWaiting);
-    audio.addEventListener("canplay", handleCanPlay);
+
+    // Force load metadata
+    audio.load();
 
     return () => {
       audio.removeEventListener("timeupdate", updateTime);
       audio.removeEventListener("loadedmetadata", updateDuration);
+      audio.removeEventListener("durationchange", updateDuration);
+      audio.removeEventListener("canplay", handleCanPlay);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
@@ -73,9 +87,8 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
       audio.removeEventListener("stalled", handleStalled);
       audio.removeEventListener("suspend", handleSuspend);
       audio.removeEventListener("waiting", handleWaiting);
-      audio.removeEventListener("canplay", handleCanPlay);
     };
-  }, []);
+  }, [src]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -135,7 +148,11 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
       </Button>
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-[60px]">
-        <span>-{formatTime(timeRemaining)}</span>
+        {duration > 0 ? (
+          <span>-{formatTime(timeRemaining)}</span>
+        ) : (
+          <span className="text-xs">Loading...</span>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
