@@ -419,7 +419,7 @@ export const FeaturedBestieManager = () => {
                 This bestie will only appear publicly when both Active is ON and today is within their featured date range
               </p>
 
-              <div className="flex gap-2 pt-6 border-t">
+              <div className="flex gap-2 pt-6 border-t mt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -429,7 +429,7 @@ export const FeaturedBestieManager = () => {
                     setDialogOpen(false);
                   }}
                   disabled={uploading}
-                  className="flex-1"
+                  className="flex-1 pointer-events-auto"
                 >
                   Cancel
                 </Button>
@@ -440,7 +440,7 @@ export const FeaturedBestieManager = () => {
                     handleSubmit();
                   }}
                   disabled={uploading}
-                  className="flex-1"
+                  className="flex-1 pointer-events-auto z-50"
                 >
                   {uploading ? "Uploading..." : editingId ? "Update" : "Create"}
                 </Button>
