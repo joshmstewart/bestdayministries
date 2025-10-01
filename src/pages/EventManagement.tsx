@@ -27,6 +27,10 @@ interface Event {
   location: string | null;
   max_attendees: number | null;
   expires_after_date: boolean;
+  is_recurring: boolean;
+  recurrence_type: string | null;
+  recurrence_interval: number | null;
+  recurrence_end_date: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -51,6 +55,10 @@ export default function EventManagement() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState("daily");
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date>();
 
   useEffect(() => {
     checkAdminAccess();
@@ -146,6 +154,10 @@ export default function EventManagement() {
     setSelectedImage(null);
     setImagePreview(null);
     setSelectedAudio(null);
+    setIsRecurring(false);
+    setRecurrenceType("daily");
+    setRecurrenceInterval(1);
+    setRecurrenceEndDate(undefined);
     setEditingEvent(null);
     setShowForm(false);
   };
@@ -219,6 +231,10 @@ export default function EventManagement() {
         expires_after_date: expiresAfterDate,
         image_url: imageUrl,
         audio_url: audioUrl,
+        is_recurring: isRecurring,
+        recurrence_type: isRecurring ? recurrenceType : null,
+        recurrence_interval: isRecurring ? recurrenceInterval : null,
+        recurrence_end_date: isRecurring && recurrenceEndDate ? format(recurrenceEndDate, "yyyy-MM-dd") : null,
         created_by: user.id,
       };
 
@@ -259,6 +275,12 @@ export default function EventManagement() {
     setEventTime(format(date, "HH:mm"));
     setLocation(event.location || "");
     setExpiresAfterDate(event.expires_after_date);
+    setIsRecurring(event.is_recurring);
+    setRecurrenceType(event.recurrence_type || "daily");
+    setRecurrenceInterval(event.recurrence_interval || 1);
+    if (event.recurrence_end_date) {
+      setRecurrenceEndDate(new Date(event.recurrence_end_date));
+    }
     setImagePreview(event.image_url);
     setShowForm(true);
   };
@@ -388,6 +410,84 @@ export default function EventManagement() {
                   />
                 </div>
 
+                <div className="space-y-4 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="recurring">Recurring Event</Label>
+                    <Switch
+                      id="recurring"
+                      checked={isRecurring}
+                      onCheckedChange={setIsRecurring}
+                    />
+                  </div>
+
+                  {isRecurring && (
+                    <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="recurrence-type">Repeat</Label>
+                          <select
+                            id="recurrence-type"
+                            value={recurrenceType}
+                            onChange={(e) => setRecurrenceType(e.target.value)}
+                            className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          >
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="custom">Custom</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="interval">Every</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="interval"
+                              type="number"
+                              min="1"
+                              value={recurrenceInterval}
+                              onChange={(e) => setRecurrenceInterval(parseInt(e.target.value) || 1)}
+                              className="w-20"
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {recurrenceType === "daily" ? "day(s)" : 
+                               recurrenceType === "weekly" ? "week(s)" : 
+                               recurrenceType === "monthly" ? "month(s)" : "interval(s)"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>End Date (optional)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !recurrenceEndDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {recurrenceEndDate ? format(recurrenceEndDate, "PPP") : <span>No end date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={recurrenceEndDate}
+                              onSelect={setRecurrenceEndDate}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label>Event Image</Label>
                   <div className="flex items-center gap-2">
@@ -480,7 +580,14 @@ export default function EventManagement() {
                     )}
                     <CardContent className="p-4 space-y-2">
                       <div className="flex justify-between items-start">
-                        <h3 className="font-semibold text-lg">{event.title}</h3>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{event.title}</h3>
+                          {event.is_recurring && (
+                            <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                              Recurring {event.recurrence_type === "custom" ? `every ${event.recurrence_interval}` : event.recurrence_type}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"

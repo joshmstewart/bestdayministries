@@ -221,8 +221,12 @@ export type Database = {
           expires_after_date: boolean
           id: string
           image_url: string | null
+          is_recurring: boolean
           location: string | null
           max_attendees: number | null
+          recurrence_end_date: string | null
+          recurrence_interval: number | null
+          recurrence_type: string | null
           title: string
           updated_at: string
         }
@@ -235,8 +239,12 @@ export type Database = {
           expires_after_date?: boolean
           id?: string
           image_url?: string | null
+          is_recurring?: boolean
           location?: string | null
           max_attendees?: number | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_type?: string | null
           title: string
           updated_at?: string
         }
@@ -249,8 +257,12 @@ export type Database = {
           expires_after_date?: boolean
           id?: string
           image_url?: string | null
+          is_recurring?: boolean
           location?: string | null
           max_attendees?: number | null
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_type?: string | null
           title?: string
           updated_at?: string
         }

@@ -16,6 +16,10 @@ interface Event {
   location: string | null;
   max_attendees: number | null;
   expires_after_date: boolean;
+  is_recurring: boolean;
+  recurrence_type: string | null;
+  recurrence_interval: number | null;
+  recurrence_end_date: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -88,7 +92,14 @@ export default function EventsPage() {
                           />
                         )}
                         <CardContent className="p-6 space-y-4">
-                          <h3 className="text-xl font-bold">{event.title}</h3>
+                          <div>
+                            <h3 className="text-xl font-bold">{event.title}</h3>
+                            {event.is_recurring && (
+                              <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                Recurring {event.recurrence_type === "custom" ? `every ${event.recurrence_interval}` : event.recurrence_type}
+                              </span>
+                            )}
+                          </div>
                           
                           <p className="text-muted-foreground">
                             {event.description}
