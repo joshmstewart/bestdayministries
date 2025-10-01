@@ -20,9 +20,11 @@ const Community = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [logoUrl, setLogoUrl] = useState(joyHouseLogo);
 
   useEffect(() => {
     checkUser();
+    loadLogo();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
@@ -35,6 +37,36 @@ const Community = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const loadLogo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "logo_url")
+        .single();
+
+      if (error) throw error;
+
+      if (data?.setting_value) {
+        try {
+          const url = typeof data.setting_value === 'string' 
+            ? JSON.parse(data.setting_value) 
+            : data.setting_value;
+          
+          if (url && !url.includes('object/public/app-assets/logo.png')) {
+            setLogoUrl(url);
+          }
+        } catch (e) {
+          if (typeof data.setting_value === 'string' && data.setting_value.startsWith('http')) {
+            setLogoUrl(data.setting_value);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading logo:', error);
+    }
+  };
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -130,7 +162,14 @@ const Community = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={joyHouseLogo} alt="Joy House" className="h-10" />
+              <img 
+                src={logoUrl} 
+                alt="Joy House" 
+                className="h-10"
+                onError={(e) => {
+                  e.currentTarget.src = joyHouseLogo;
+                }}
+              />
               <div className="hidden sm:block">
                 <div className="text-xs text-muted-foreground">Welcome back,</div>
                 <div className="font-bold text-foreground">{profile?.display_name}</div>
