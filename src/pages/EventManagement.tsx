@@ -473,7 +473,7 @@ export default function EventManagement() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="expires">Expires after event date</Label>
+                  <Label htmlFor="expires">Expires only after all event dates pass</Label>
                   <Switch
                     id="expires"
                     checked={expiresAfterDate}

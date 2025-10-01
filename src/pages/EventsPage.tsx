@@ -84,13 +84,37 @@ export default function EventsPage() {
     return allDates.every(date => date < new Date());
   };
 
-  const upcomingEvents = events.filter(
-    (event) => hasUpcomingDates(event)
-  );
+  // Create individual cards for each date
+  interface EventDateCard {
+    event: Event;
+    displayDate: Date;
+    allDates: Date[];
+  }
 
-  const pastEvents = events.filter(
-    (event) => !event.expires_after_date && allDatesPast(event)
-  );
+  const upcomingEventCards: EventDateCard[] = [];
+  const pastEventCards: EventDateCard[] = [];
+
+  events.forEach(event => {
+    const allDates = getAllEventDates(event);
+    
+    allDates.forEach(date => {
+      const card: EventDateCard = {
+        event,
+        displayDate: date,
+        allDates
+      };
+      
+      if (date >= new Date()) {
+        upcomingEventCards.push(card);
+      } else if (!event.expires_after_date) {
+        pastEventCards.push(card);
+      }
+    });
+  });
+
+  // Sort by date
+  upcomingEventCards.sort((a, b) => a.displayDate.getTime() - b.displayDate.getTime());
+  pastEventCards.sort((a, b) => b.displayDate.getTime() - a.displayDate.getTime());
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -120,152 +144,169 @@ export default function EventsPage() {
           ) : (
             <>
               {/* Upcoming Events */}
-              {upcomingEvents.length > 0 && (
+              {upcomingEventCards.length > 0 && (
                 <section className="space-y-6">
                   <h2 className="text-3xl font-bold">Upcoming Events</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {upcomingEvents.map((event) => (
-                      <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                        {event.image_url && (
-                          <img
-                            src={event.image_url}
-                            alt={event.title}
-                            className="w-full h-48 object-cover"
-                          />
-                        )}
-                        <CardContent className="p-6 space-y-4">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-xl font-bold flex-1">{event.title}</h3>
-                            <TextToSpeech text={`${event.title}. ${event.description}`} />
-                          </div>
-                          {event.is_recurring && (
-                            <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                              Recurring {event.recurrence_type === "custom" ? `every ${event.recurrence_interval}` : event.recurrence_type}
-                            </span>
+                    {upcomingEventCards.map((card, idx) => {
+                      const { event, displayDate, allDates } = card;
+                      return (
+                        <Card key={`${event.id}-${displayDate.getTime()}`} className="overflow-hidden hover:shadow-lg transition-shadow">
+                          {event.image_url && (
+                            <img
+                              src={event.image_url}
+                              alt={event.title}
+                              className="w-full h-48 object-cover"
+                            />
                           )}
-                          
-                          <p className="text-muted-foreground">
-                            {event.description}
-                          </p>
-
-                          <div className="space-y-3">
-                            <div className="font-semibold text-sm">Event Dates:</div>
-                            <div className="space-y-2">
-                              {getAllEventDates(event).map((date, idx) => {
-                                const isPast = date < new Date();
-                                return (
-                                  <div
-                                    key={idx}
-                                    className={cn(
-                                      "flex items-center gap-2 text-sm p-2 rounded-md",
-                                      isPast ? "opacity-50 bg-muted/50" : "bg-primary/10"
-                                    )}
-                                  >
-                                    <CalendarIcon className="w-4 h-4" />
-                                    <div className="flex-1">
-                                      <div className={isPast ? "line-through" : "font-medium"}>
-                                        {format(date, "PPPP")}
-                                      </div>
-                                      <div className="flex items-center gap-2 text-xs mt-1">
-                                        <Clock className="w-3 h-3" />
-                                        {format(date, "p")}
-                                      </div>
-                                    </div>
-                                    <span className={cn(
-                                      "text-xs px-2 py-1 rounded-full",
-                                      isPast 
-                                        ? "bg-muted text-muted-foreground" 
-                                        : "bg-primary text-primary-foreground"
-                                    )}>
-                                      {isPast ? "Passed" : "Upcoming"}
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                          <CardContent className="p-6 space-y-4">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-xl font-bold flex-1">{event.title}</h3>
+                              <TextToSpeech text={`${event.title}. ${event.description}`} />
                             </div>
+                            
+                            {/* Primary display date for this card */}
+                            <div className="bg-primary/10 p-3 rounded-lg">
+                              <div className="flex items-center gap-2 text-foreground font-semibold">
+                                <CalendarIcon className="w-5 h-5 text-primary" />
+                                {format(displayDate, "PPPP")}
+                              </div>
+                              <div className="flex items-center gap-2 text-foreground mt-1">
+                                <Clock className="w-4 h-4 text-primary" />
+                                {format(displayDate, "p")}
+                              </div>
+                            </div>
+
+                            {event.is_recurring && (
+                              <span className="inline-block text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                Recurring {event.recurrence_type === "custom" ? `every ${event.recurrence_interval}` : event.recurrence_type}
+                              </span>
+                            )}
+                            
+                            <p className="text-muted-foreground">
+                              {event.description}
+                            </p>
+
+                            {/* Show all dates if there are multiple */}
+                            {allDates.length > 1 && (
+                              <div className="space-y-2 pt-2 border-t">
+                                <div className="text-xs font-semibold text-muted-foreground">All Event Dates:</div>
+                                <div className="space-y-1">
+                                  {allDates.map((date, dateIdx) => {
+                                    const isPast = date < new Date();
+                                    const isCurrent = date.getTime() === displayDate.getTime();
+                                    return (
+                                      <div
+                                        key={dateIdx}
+                                        className={cn(
+                                          "flex items-center gap-2 text-xs p-1.5 rounded",
+                                          isCurrent && "bg-primary/20 font-semibold",
+                                          !isCurrent && isPast && "opacity-50 line-through",
+                                          !isCurrent && !isPast && "opacity-70"
+                                        )}
+                                      >
+                                        <CalendarIcon className="w-3 h-3" />
+                                        {format(date, "MMM d, yyyy")} at {format(date, "p")}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
                             {event.location && (
                               <div className="flex items-center gap-2 text-foreground pt-2 border-t">
                                 <MapPin className="w-4 h-4 text-primary" />
                                 {event.location}
                               </div>
                             )}
-                          </div>
 
-                          {event.audio_url && (
-                            <AudioPlayer src={event.audio_url} />
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
+                            {event.audio_url && (
+                              <AudioPlayer src={event.audio_url} />
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </section>
               )}
 
               {/* Past Events */}
-              {pastEvents.length > 0 && (
+              {pastEventCards.length > 0 && (
                 <section className="space-y-6">
                   <h2 className="text-3xl font-bold">Past Events</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {pastEvents.map((event) => (
-                      <Card key={event.id} className="overflow-hidden opacity-75">
-                        {event.image_url && (
-                          <img
-                            src={event.image_url}
-                            alt={event.title}
-                            className="w-full h-48 object-cover grayscale"
-                          />
-                        )}
-                        <CardContent className="p-6 space-y-4">
-                          <div>
-                            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                              Past Event
-                            </span>
-                            <h3 className="text-xl font-bold mt-2">{event.title}</h3>
-                          </div>
-                          
-                          <p className="text-muted-foreground text-sm">
-                            {event.description}
-                          </p>
-
-                          <div className="space-y-3">
-                            <div className="font-semibold text-sm">Event Dates:</div>
-                            <div className="space-y-2">
-                              {getAllEventDates(event).map((date, idx) => {
-                                const isPast = date < new Date();
-                                return (
-                                  <div
-                                    key={idx}
-                                    className={cn(
-                                      "flex items-center gap-2 text-sm p-2 rounded-md opacity-60",
-                                      "bg-muted/50"
-                                    )}
-                                  >
-                                    <CalendarIcon className="w-4 h-4" />
-                                    <div className="flex-1 line-through">
-                                      {format(date, "PPP")}
-                                    </div>
-                                    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                                      Passed
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                    {pastEventCards.map((card, idx) => {
+                      const { event, displayDate, allDates } = card;
+                      return (
+                        <Card key={`${event.id}-${displayDate.getTime()}`} className="overflow-hidden opacity-75">
+                          {event.image_url && (
+                            <img
+                              src={event.image_url}
+                              alt={event.title}
+                              className="w-full h-48 object-cover grayscale"
+                            />
+                          )}
+                          <CardContent className="p-6 space-y-4">
+                            <div>
+                              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                Past Event
+                              </span>
+                              <h3 className="text-xl font-bold mt-2">{event.title}</h3>
                             </div>
+                            
+                            {/* Primary display date for this card */}
+                            <div className="bg-muted/50 p-3 rounded-lg opacity-60">
+                              <div className="flex items-center gap-2 line-through">
+                                <CalendarIcon className="w-4 h-4" />
+                                {format(displayDate, "PPP")}
+                              </div>
+                            </div>
+                            
+                            <p className="text-muted-foreground text-sm">
+                              {event.description}
+                            </p>
+
+                            {/* Show all dates if there are multiple */}
+                            {allDates.length > 1 && (
+                              <div className="space-y-2 pt-2 border-t">
+                                <div className="text-xs font-semibold text-muted-foreground">All Event Dates:</div>
+                                <div className="space-y-1">
+                                  {allDates.map((date, dateIdx) => {
+                                    const isCurrent = date.getTime() === displayDate.getTime();
+                                    return (
+                                      <div
+                                        key={dateIdx}
+                                        className={cn(
+                                          "flex items-center gap-2 text-xs p-1.5 rounded opacity-60 line-through",
+                                          isCurrent && "bg-muted/50 font-semibold"
+                                        )}
+                                      >
+                                        <CalendarIcon className="w-3 h-3" />
+                                        {format(date, "MMM d, yyyy")}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
                             {event.location && (
                               <div className="flex items-center gap-2 pt-2 border-t">
                                 <MapPin className="w-4 h-4" />
                                 {event.location}
                               </div>
                             )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </section>
               )}
 
-              {upcomingEvents.length === 0 && pastEvents.length === 0 && (
+              {upcomingEventCards.length === 0 && pastEventCards.length === 0 && (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <CalendarIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
