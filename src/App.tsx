@@ -13,6 +13,7 @@ import GalleryPage from "./pages/GalleryPage";
 import DonatePage from "./pages/DonatePage";
 import Discussions from "./pages/Discussions";
 import ModerationQueue from "./pages/ModerationQueue";
+import ProfileSettings from "./pages/ProfileSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/donate" element={<DonatePage />} />
           <Route path="/discussions" element={<Discussions />} />
           <Route path="/moderation" element={<ModerationQueue />} />
+          <Route path="/profile" element={<ProfileSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

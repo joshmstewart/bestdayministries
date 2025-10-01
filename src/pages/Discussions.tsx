@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Send, Heart, ArrowLeft, Trash2, Image as ImageIcon, X } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 
@@ -17,6 +18,7 @@ interface Profile {
   id: string;
   display_name: string;
   role: string;
+  avatar_url?: string;
 }
 
 interface Comment {
@@ -599,19 +601,26 @@ const Discussions = () => {
               posts.map((post) => (
                 <Card key={post.id}>
                   <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-2xl">{post.title}</CardTitle>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-sm text-muted-foreground">
-                            by {post.author?.display_name || "Unknown"}
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(post.author?.role || "")}`}>
-                            {post.author?.role}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(post.created_at).toLocaleDateString()}
-                          </span>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <AvatarDisplay 
+                          avatarNumber={post.author?.avatar_url ? parseInt(post.author.avatar_url.replace("avatar-", "")) : null}
+                          displayName={post.author?.display_name || "Unknown"}
+                          size="md"
+                        />
+                        <div className="flex-1">
+                          <CardTitle className="text-2xl">{post.title}</CardTitle>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-sm font-medium text-foreground">
+                              {post.author?.display_name || "Unknown"}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(post.author?.role || "")}`}>
+                              {post.author?.role}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(post.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       {canDeleteContent(post.author_id) && (
@@ -649,29 +658,38 @@ const Discussions = () => {
 
                       {/* Comments List */}
                       {post.comments?.map((comment) => (
-                        <div key={comment.id} className="bg-muted/50 rounded-lg p-4 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{comment.author?.display_name}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
-                                {comment.author?.role}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(comment.created_at).toLocaleDateString()}
-                              </span>
+                        <div key={comment.id} className="bg-muted/50 rounded-lg p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2 flex-1">
+                              <AvatarDisplay 
+                                avatarNumber={comment.author?.avatar_url ? parseInt(comment.author.avatar_url.replace("avatar-", "")) : null}
+                                displayName={comment.author?.display_name || "Unknown"}
+                                size="sm"
+                              />
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium text-sm">{comment.author?.display_name}</span>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
+                                    {comment.author?.role}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(comment.created_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm">{comment.content}</p>
+                              </div>
                             </div>
                             {canDeleteContent(comment.author_id) && (
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleDeleteComment(comment.id, post.id)}
-                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </Button>
                             )}
                           </div>
-                          <p className="text-sm">{comment.content}</p>
                         </div>
                       ))}
 

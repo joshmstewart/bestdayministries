@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, Users, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AvatarPicker } from "@/components/AvatarPicker";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 import joyHouseLogo from "@/assets/joy-house-logo-full.png";
 
 const Auth = () => {
@@ -18,6 +20,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
+  const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -50,6 +53,7 @@ const Auth = () => {
             data: {
               display_name: displayName,
               role: role,
+              avatar_url: selectedAvatar ? `avatar-${selectedAvatar}` : null,
             },
             emailRedirectTo: `${window.location.origin}/community`,
           },
@@ -126,6 +130,11 @@ const Auth = () => {
                     required
                   />
                 </div>
+
+                <AvatarPicker 
+                  selectedAvatar={selectedAvatar}
+                  onSelectAvatar={setSelectedAvatar}
+                />
 
                 <div className="space-y-2">
                   <Label htmlFor="role">I am a...</Label>
