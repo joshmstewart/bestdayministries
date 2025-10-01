@@ -28,6 +28,12 @@ interface AvatarDisplayProps {
 
 // Map avatar numbers to composite images and positions
 const getAvatarConfig = (avatarNumber: number) => {
+  // Check if it's a dynamically uploaded avatar (49+)
+  if (avatarNumber >= 49) {
+    // Return a special marker for storage-based avatars
+    return { image: null, position: null, isStorageAvatar: true };
+  }
+  
   // Composite 1: avatars 1-4 (2x2 grid)
   if (avatarNumber >= 1 && avatarNumber <= 4) {
     const positions = [
@@ -179,6 +185,7 @@ export const AvatarDisplay = ({
   className 
 }: AvatarDisplayProps) => {
   const [effectiveAvatarNumber, setEffectiveAvatarNumber] = useState(avatarNumber);
+  const [storageUrl, setStorageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     checkAvatarActive();
@@ -194,12 +201,23 @@ export const AvatarDisplay = ({
       .from("avatars")
       .select("is_active")
       .eq("avatar_number", avatarNumber)
-      .single();
+      .maybeSingle();
 
     if (data && !data.is_active) {
       setEffectiveAvatarNumber(DEFAULT_AVATAR);
     } else {
       setEffectiveAvatarNumber(avatarNumber);
+      
+      // If it's a storage-based avatar (49+), load from storage
+      if (avatarNumber >= 49) {
+        const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(`avatar-${avatarNumber}.png`);
+        
+        if (urlData) {
+          setStorageUrl(urlData.publicUrl);
+        }
+      }
     }
   };
 
@@ -211,7 +229,26 @@ export const AvatarDisplay = ({
 
   const config = effectiveAvatarNumber ? getAvatarConfig(effectiveAvatarNumber) : null;
 
-  if (config) {
+  // If it's a storage-based avatar
+  if (config?.isStorageAvatar && storageUrl) {
+    return (
+      <div 
+        className={cn(
+          sizeClasses[size], 
+          "rounded-full overflow-hidden border-2 border-border bg-muted shrink-0",
+          className
+        )}
+        style={{
+          backgroundImage: `url(${storageUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+        title={displayName}
+      />
+    );
+  }
+
+  if (config && config.image) {
     // For individual images without position (full images)
     if (config.position === null) {
       return (

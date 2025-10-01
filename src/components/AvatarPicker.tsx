@@ -29,6 +29,11 @@ interface AvatarData {
 }
 
 const getAvatarConfig = (avatarNumber: number) => {
+  // Check if it's a dynamically uploaded avatar (49+)
+  if (avatarNumber >= 49) {
+    return { image: null, position: null, isStorageAvatar: true };
+  }
+  
   if (avatarNumber >= 1 && avatarNumber <= 4) {
     const positions = [
       { x: 0, y: 0 },      // 1: top-left
@@ -164,6 +169,7 @@ const getAvatarConfig = (avatarNumber: number) => {
 export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerProps) => {
   const [avatarsByCategory, setAvatarsByCategory] = useState<Record<string, { label: string; avatars: number[] }>>({});
   const [loading, setLoading] = useState(true);
+  const [storageUrls, setStorageUrls] = useState<Record<number, string>>({});
 
   useEffect(() => {
     loadAvatars();
@@ -189,9 +195,22 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
       shapes: { label: "Shapes", avatars: [] },
     };
 
+    const urls: Record<number, string> = {};
+    
     data.forEach((avatar: AvatarData) => {
       if (categories[avatar.category]) {
         categories[avatar.category].avatars.push(avatar.avatar_number);
+        
+        // Load storage URL for uploaded avatars (49+)
+        if (avatar.avatar_number >= 49) {
+          const { data: urlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(`avatar-${avatar.avatar_number}.png`);
+          
+          if (urlData) {
+            urls[avatar.avatar_number] = urlData.publicUrl;
+          }
+        }
       }
     });
 
@@ -201,6 +220,7 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
     });
 
     setAvatarsByCategory(categories);
+    setStorageUrls(urls);
     setLoading(false);
   };
 
@@ -221,6 +241,11 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
               
               if (!config) return null;
               
+              // Determine the background image URL
+              const backgroundUrl = config.isStorageAvatar 
+                ? storageUrls[avatarNum] 
+                : config.image;
+              
               return (
                 <button
                   key={avatarNum}
@@ -234,7 +259,7 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
                   )}
                   title={`Avatar ${avatarNum}`}
                   style={{
-                    backgroundImage: `url(${config.image})`,
+                    backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : undefined,
                     backgroundSize: config.position ? '200% 200%' : 'cover',
                     backgroundPosition: config.position ? `${config.position.x}% ${config.position.y}%` : 'center',
                   }}

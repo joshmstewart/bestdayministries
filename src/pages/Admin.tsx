@@ -10,6 +10,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
 import { UserManagement } from "@/components/admin/UserManagement";
+import { AvatarUploader } from "@/components/admin/AvatarUploader";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -230,7 +231,7 @@ const Admin = () => {
             <FeaturedBestieManager />
           </TabsContent>
 
-          <TabsContent value="moderation">
+          <TabsContent value="moderation" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Content Moderation</CardTitle>
@@ -249,9 +250,11 @@ const Admin = () => {
               </CardContent>
             </Card>
 
-            <Card className="mt-4">
+            <AvatarUploader />
+
+            <Card>
               <CardHeader>
-                <CardTitle>Avatar Management</CardTitle>
+                <CardTitle>Manage Existing Avatars</CardTitle>
                 <CardDescription>Manage avatar categories and visibility</CardDescription>
               </CardHeader>
               <CardContent>

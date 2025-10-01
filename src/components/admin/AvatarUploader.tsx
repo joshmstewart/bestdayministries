@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,13 @@ export const AvatarUploader = () => {
   const [uploading, setUploading] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+
+  // Redraw canvas whenever crop area changes
+  useEffect(() => {
+    if (previewUrl && imageRef.current?.complete) {
+      drawCropOverlay();
+    }
+  }, [cropArea, previewUrl]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
