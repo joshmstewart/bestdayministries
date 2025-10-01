@@ -566,7 +566,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      app_settings_public: {
+        Row: {
+          id: string | null
+          setting_key: string | null
+          setting_value: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string | null
+          setting_key?: string | null
+          setting_value?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string | null
+          setting_key?: string | null
+          setting_value?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       is_owner: {
