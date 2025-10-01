@@ -421,9 +421,10 @@ export const FeaturedBestieManager = () => {
                           size="icon"
                           className="h-6 w-6"
                           onClick={() => {
-                            if (rawImageUrl) {
-                              setShowCropDialog(true);
+                            if (!rawImageUrl && imagePreview) {
+                              setRawImageUrl(imagePreview);
                             }
+                            setShowCropDialog(true);
                           }}
                         >
                           <Edit className="w-3 h-3" />

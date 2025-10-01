@@ -636,9 +636,10 @@ const Discussions = () => {
                           variant="secondary"
                           size="icon"
                           onClick={() => {
-                            if (imageToCrop) {
-                              setCropDialogOpen(true);
+                            if (!imageToCrop && imagePreview) {
+                              setImageToCrop(imagePreview);
                             }
+                            setCropDialogOpen(true);
                           }}
                         >
                           <Edit className="w-4 h-4" />

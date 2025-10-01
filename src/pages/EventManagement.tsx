@@ -665,6 +665,10 @@ export default function EventManagement() {
                           variant="secondary"
                           size="icon"
                           onClick={() => {
+                            // Use current preview as source for recropping
+                            if (!rawImageUrl && imagePreview) {
+                              setRawImageUrl(imagePreview);
+                            }
                             setShowCropDialog(true);
                           }}
                         >
