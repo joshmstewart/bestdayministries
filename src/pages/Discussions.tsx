@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Heart, ArrowLeft, Trash2 } from "lucide-react";
+import { MessageSquare, Send, Heart, ArrowLeft, Trash2, Image as ImageIcon, X } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 
@@ -32,6 +32,7 @@ interface Post {
   content: string;
   created_at: string;
   author_id: string;
+  image_url?: string | null;
   author?: Profile;
   comments?: Comment[];
 }
@@ -47,6 +48,9 @@ const Discussions = () => {
   const [newPost, setNewPost] = useState({ title: "", content: "" });
   const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
   const [canCreatePosts, setCanCreatePosts] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -133,6 +137,45 @@ const Discussions = () => {
     setPosts(postsWithComments);
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedImage(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
   const handleCreatePost = async () => {
     if (!newPost.title || !newPost.content) {
       toast({
@@ -144,27 +187,90 @@ const Discussions = () => {
     }
 
     try {
-      // Moderate content before posting
-      const { data: moderationResult, error: moderationError } = await supabase.functions.invoke('moderate-content', {
+      setUploadingImage(true);
+
+      // Moderate text content
+      const { data: textModeration, error: textModerationError } = await supabase.functions.invoke('moderate-content', {
         body: { 
           content: `${newPost.title}\n\n${newPost.content}`,
           contentType: 'post'
         }
       });
 
-      if (moderationError) {
-        console.error("Moderation error:", moderationError);
+      if (textModerationError) {
+        console.error("Text moderation error:", textModerationError);
         toast({
           title: "Error checking content",
           description: "Please try again",
           variant: "destructive",
         });
+        setUploadingImage(false);
         return;
       }
 
-      const isApproved = moderationResult?.approved ?? true;
-      const reason = moderationResult?.reason || "";
-      const severity = moderationResult?.severity || "";
+      let imageUrl: string | null = null;
+      let imageModerationNotes: string | null = null;
+
+      // Moderate and upload image if present
+      if (selectedImage && imagePreview) {
+        const { data: imageModeration, error: imageModerationError } = await supabase.functions.invoke('moderate-image', {
+          body: { imageUrl: imagePreview }
+        });
+
+        if (imageModerationError) {
+          console.error("Image moderation error:", imageModerationError);
+          toast({
+            title: "Error checking image",
+            description: "Please try again",
+            variant: "destructive",
+          });
+          setUploadingImage(false);
+          return;
+        }
+
+        const imageApproved = imageModeration?.approved ?? true;
+
+        if (!imageApproved) {
+          imageModerationNotes = `${imageModeration.severity} severity: ${imageModeration.reason}`;
+        }
+
+        // Upload image to storage
+        const fileName = `${user?.id}/${Date.now()}_${selectedImage.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('discussion-images')
+          .upload(fileName, selectedImage);
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          toast({
+            title: "Error uploading image",
+            description: uploadError.message,
+            variant: "destructive",
+          });
+          setUploadingImage(false);
+          return;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('discussion-images')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+      }
+
+      const textIsApproved = textModeration?.approved ?? true;
+      const textReason = textModeration?.reason || "";
+      const textSeverity = textModeration?.severity || "";
+
+      // Combine moderation notes
+      let finalModerationNotes = null;
+      if (!textIsApproved || imageModerationNotes) {
+        const notes = [];
+        if (!textIsApproved) notes.push(`Text: ${textSeverity} severity - ${textReason}`);
+        if (imageModerationNotes) notes.push(`Image: ${imageModerationNotes}`);
+        finalModerationNotes = notes.join('; ');
+      }
 
       const { error } = await supabase
         .from("discussion_posts")
@@ -172,8 +278,9 @@ const Discussions = () => {
           title: newPost.title,
           content: newPost.content,
           author_id: user?.id,
-          is_moderated: isApproved,
-          moderation_notes: isApproved ? null : `${severity} severity: ${reason}`,
+          image_url: imageUrl,
+          is_moderated: textIsApproved && !imageModerationNotes,
+          moderation_notes: finalModerationNotes,
         });
 
       if (error) {
@@ -182,10 +289,11 @@ const Discussions = () => {
           description: error.message,
           variant: "destructive",
         });
+        setUploadingImage(false);
         return;
       }
 
-      if (isApproved) {
+      if (textIsApproved && !imageModerationNotes) {
         toast({ title: "Post created successfully!" });
       } else {
         toast({ 
@@ -195,7 +303,10 @@ const Discussions = () => {
       }
 
       setNewPost({ title: "", content: "" });
+      setSelectedImage(null);
+      setImagePreview(null);
       setShowNewPost(false);
+      setUploadingImage(false);
       loadPosts();
     } catch (error) {
       console.error("Error creating post:", error);
@@ -204,6 +315,7 @@ const Discussions = () => {
         description: "Failed to create post",
         variant: "destructive",
       });
+      setUploadingImage(false);
     }
   };
 
@@ -409,9 +521,56 @@ const Discussions = () => {
                     onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="image">Image (optional)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('image')?.click()}
+                      disabled={uploadingImage}
+                    >
+                      <ImageIcon className="w-4 h-4 mr-2" />
+                      {selectedImage ? 'Change Image' : 'Add Image'}
+                    </Button>
+                    {selectedImage && (
+                      <span className="text-sm text-muted-foreground">{selectedImage.name}</span>
+                    )}
+                  </div>
+                  {imagePreview && (
+                    <div className="relative inline-block">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="max-w-xs max-h-48 rounded-lg"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={removeImage}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleCreatePost}>Post</Button>
-                  <Button variant="outline" onClick={() => setShowNewPost(false)}>
+                  <Button onClick={handleCreatePost} disabled={uploadingImage}>
+                    {uploadingImage ? "Posting..." : "Post"}
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    setShowNewPost(false);
+                    removeImage();
+                  }} disabled={uploadingImage}>
                     Cancel
                   </Button>
                 </div>
@@ -464,6 +623,17 @@ const Discussions = () => {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
+
+                    {/* Display Image if present */}
+                    {post.image_url && (
+                      <div className="rounded-lg overflow-hidden">
+                        <img 
+                          src={post.image_url} 
+                          alt="Post image" 
+                          className="w-full max-h-96 object-cover"
+                        />
+                      </div>
+                    )}
 
                     {/* Comments Section */}
                     <div className="border-t pt-6 space-y-4">
