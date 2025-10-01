@@ -86,6 +86,10 @@ const Community = () => {
     { icon: Calendar, label: "Events", href: "/events", color: "from-secondary/20 to-secondary/5" },
     { icon: MessageSquare, label: "Discussions", href: "/discussions", color: "from-accent/20 to-accent/5" },
     { icon: Gift, label: "Sponsor a Bestie", href: "/sponsor", color: "from-primary/20 to-secondary/5" },
+    { icon: Users, label: "About Joy House", href: "/about", color: "from-secondary/20 to-accent/5" },
+    { icon: Sparkles, label: "Joy Rocks Coffee", href: "/joy-rocks", color: "from-accent/20 to-primary/5" },
+    { icon: Heart, label: "Photo Gallery", href: "/gallery", color: "from-primary/20 to-accent/5" },
+    { icon: Gift, label: "Support Us", href: "/donate", color: "from-secondary/20 to-primary/5" },
   ];
 
   return (
@@ -170,22 +174,6 @@ const Community = () => {
               </button>
             ))}
           </div>
-
-          {/* Coming Soon Notice */}
-          <Card className="border-2 shadow-float bg-gradient-card">
-            <CardContent className="p-8 text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-r from-primary via-accent to-secondary flex items-center justify-center">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-black text-foreground">
-                Building Something Amazing!
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                We're working hard to bring you an incredible community experience. Features like
-                Featured Bestie of the Month, Events, Discussions, and Sponsorships are coming soon!
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </main>
     </div>

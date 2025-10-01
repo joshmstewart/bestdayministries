@@ -7,6 +7,10 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Community from "./pages/Community";
 import Admin from "./pages/Admin";
+import AboutPage from "./pages/AboutPage";
+import JoyRocksPage from "./pages/JoyRocksPage";
+import GalleryPage from "./pages/GalleryPage";
+import DonatePage from "./pages/DonatePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +26,10 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/community" element={<Community />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/joy-rocks" element={<JoyRocksPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/donate" element={<DonatePage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
