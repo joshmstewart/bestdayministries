@@ -105,7 +105,7 @@ export const UnifiedHeader = () => {
             <img 
               src={logoUrl} 
               alt="Best Day Ever" 
-              className="h-32 w-auto cursor-pointer"
+              className="h-26 w-auto cursor-pointer m-0"
               onClick={() => navigate(user ? "/community" : "/")}
               onError={(e) => {
                 e.currentTarget.src = bdeLogo;
