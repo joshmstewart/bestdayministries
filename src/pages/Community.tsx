@@ -1,0 +1,177 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { LogOut, Heart, Calendar, Users, MessageSquare, Gift, Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import joyHouseLogo from "@/assets/joy-house-logo-gold.png";
+
+const Community = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+        fetchProfile(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const checkUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      navigate("/auth");
+      return;
+    }
+
+    setUser(session.user);
+    await fetchProfile(session.user.id);
+    setLoading(false);
+  };
+
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching profile:", error);
+      return;
+    }
+
+    setProfile(data);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Logged out successfully",
+      description: "See you soon!",
+    });
+    navigate("/");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+          <p className="text-muted-foreground">Loading your community...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const quickLinks = [
+    { icon: Heart, label: "Featured Bestie", href: "/featured-bestie", color: "from-primary/20 to-primary/5" },
+    { icon: Calendar, label: "Events", href: "/events", color: "from-secondary/20 to-secondary/5" },
+    { icon: MessageSquare, label: "Discussions", href: "/discussions", color: "from-accent/20 to-accent/5" },
+    { icon: Gift, label: "Sponsor a Bestie", href: "/sponsor", color: "from-primary/20 to-secondary/5" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+      {/* Header */}
+      <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={joyHouseLogo} alt="Joy House" className="h-10" />
+              <div className="hidden sm:block">
+                <div className="text-xs text-muted-foreground">Welcome back,</div>
+                <div className="font-bold text-foreground">{profile?.display_name}</div>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto space-y-12">
+          {/* Welcome Section */}
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-black text-foreground">
+              Welcome to Your{" "}
+              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                Joy House
+              </span>{" "}
+              Community
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Connect, share, and grow with our amazing community
+            </p>
+          </div>
+
+          {/* Role Badge */}
+          <div className="flex justify-center">
+            <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-card border-2 border-primary/20 rounded-full">
+              {profile?.role === "bestie" && <Heart className="w-5 h-5 text-primary fill-primary" />}
+              {profile?.role === "caregiver" && <Users className="w-5 h-5 text-secondary" />}
+              {profile?.role === "supporter" && <Sparkles className="w-5 h-5 text-accent" />}
+              <span className="font-bold text-foreground capitalize">{profile?.role}</span>
+            </div>
+          </div>
+
+          {/* Quick Links Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {quickLinks.map((link, index) => (
+              <button
+                key={index}
+                onClick={() => navigate(link.href)}
+                className="group"
+              >
+                <div className={`p-6 rounded-2xl border-2 border-border hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm bg-gradient-to-br ${link.color}`}>
+                  <link.icon className="w-10 h-10 text-primary mb-4 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-bold text-lg text-foreground">{link.label}</h3>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Coming Soon Notice */}
+          <Card className="border-2 shadow-float bg-gradient-card">
+            <CardContent className="p-8 text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-r from-primary via-accent to-secondary flex items-center justify-center">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-black text-foreground">
+                Building Something Amazing!
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                We're working hard to bring you an incredible community experience. Features like
+                Featured Bestie of the Month, Events, Discussions, and Sponsorships are coming soon!
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Community;

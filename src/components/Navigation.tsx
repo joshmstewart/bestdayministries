@@ -37,8 +37,8 @@ const Navigation = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-warm transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
-            <Button size="lg" className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
-              Donate Now
+            <Button size="lg" onClick={() => window.location.href = "/auth"} className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
+              Join Community
             </Button>
           </div>
 
@@ -65,8 +65,8 @@ const Navigation = () => {
                 {item.label}
               </a>
             ))}
-            <Button size="lg" className="w-full shadow-warm bg-gradient-to-r from-primary via-accent to-secondary border-0">
-              Donate Now
+            <Button size="lg" onClick={() => window.location.href = "/auth"} className="w-full shadow-warm bg-gradient-to-r from-primary via-accent to-secondary border-0">
+              Join Community
             </Button>
           </div>
         )}

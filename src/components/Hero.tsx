@@ -40,14 +40,16 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
                 size="lg" 
+                onClick={() => window.location.href = "/auth"}
                 className="group px-6 py-6 shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
               >
-                Support Our Mission
+                Join Our Community
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline"
+                onClick={() => document.getElementById('mission')?.scrollIntoView({ behavior: 'smooth' })}
                 className="px-6 py-6 border-2 hover:bg-primary/5 hover:border-primary transition-all hover:scale-105"
               >
                 Learn More
