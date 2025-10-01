@@ -192,7 +192,15 @@ const Admin = () => {
                 <CardDescription>Create and manage community events</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Event management interface coming soon...</p>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Create and manage events with images, audio, dates, times, and locations.
+                  </p>
+                  <Button onClick={() => navigate("/admin/events")} className="gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Manage Events
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

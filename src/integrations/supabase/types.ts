@@ -213,10 +213,12 @@ export type Database = {
       }
       events: {
         Row: {
+          audio_url: string | null
           created_at: string
           created_by: string
           description: string
           event_date: string
+          expires_after_date: boolean
           id: string
           image_url: string | null
           location: string | null
@@ -225,10 +227,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audio_url?: string | null
           created_at?: string
           created_by: string
           description: string
           event_date: string
+          expires_after_date?: boolean
           id?: string
           image_url?: string | null
           location?: string | null
@@ -237,10 +241,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audio_url?: string | null
           created_at?: string
           created_by?: string
           description?: string
           event_date?: string
+          expires_after_date?: boolean
           id?: string
           image_url?: string | null
           location?: string | null

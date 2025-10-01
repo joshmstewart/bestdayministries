@@ -14,7 +14,11 @@ interface Event {
   audio_url: string | null;
   event_date: string;
   location: string | null;
+  max_attendees: number | null;
   expires_after_date: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function EventsPage() {
