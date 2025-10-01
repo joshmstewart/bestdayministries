@@ -1,5 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Users, Sparkles, HandHeart } from "lucide-react";
+import communityMemberWithKitten from "@/assets/community-member-with-kitten.jpg";
+import communityMemberWithVolunteer from "@/assets/community-member-with-volunteer.jpg";
+import communityMemberLawnMower from "@/assets/community-member-lawn-mower.jpg";
+import communityPromCelebration from "@/assets/community-prom-celebration.png";
 
 const Mission = () => {
   const benefits = [
@@ -78,13 +82,28 @@ const Mission = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-muted/50 rounded-xl p-8 space-y-4">
-              <p className="text-lg font-semibold text-foreground">
-                "Our mission is to build a supportive community for special adults by sharing their creativity through their unique gifts."
-              </p>
-              <p className="text-muted-foreground">
-                By doing so, we give them the opportunity to light the world with their elevated confidence, independence, and JOY!
-              </p>
+            <div className="space-y-6">
+              <div className="bg-muted/50 rounded-xl p-8 space-y-4">
+                <p className="text-lg font-semibold text-foreground">
+                  "Our mission is to build a supportive community for special adults by sharing their creativity through their unique gifts."
+                </p>
+                <p className="text-muted-foreground">
+                  By doing so, we give them the opportunity to light the world with their elevated confidence, independence, and JOY!
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <img 
+                  src={communityMemberWithKitten}
+                  alt="Community member enjoying time with a kitten"
+                  className="rounded-xl object-cover w-full h-48 shadow-soft"
+                />
+                <img 
+                  src={communityMemberWithVolunteer}
+                  alt="Community member with volunteer"
+                  className="rounded-xl object-cover w-full h-48 shadow-soft"
+                />
+              </div>
             </div>
           </div>
         </div>

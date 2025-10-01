@@ -1,6 +1,7 @@
 import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
 import Mission from "@/components/Mission";
+import CommunityGallery from "@/components/CommunityGallery";
 import JoyRocks from "@/components/JoyRocks";
 import Donate from "@/components/Donate";
 import About from "@/components/About";
@@ -13,6 +14,7 @@ const Index = () => {
       <main>
         <Hero />
         <Mission />
+        <CommunityGallery />
         <JoyRocks />
         <Donate />
         <About />

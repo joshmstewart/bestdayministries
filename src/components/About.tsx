@@ -2,6 +2,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coffee, Film } from "lucide-react";
 import bdeLogo from "@/assets/bde-logo.png";
+import teamWithFounder from "@/assets/team-with-founder.jpg";
+import bdeOutdoorEvent from "@/assets/bde-outdoor-event.jpg";
 
 const About = () => {
   return (
@@ -41,11 +43,12 @@ const About = () => {
                     Watch Documentary
                   </Button>
                 </div>
-                <div className="bg-gradient-to-br from-primary/20 to-secondary/20 min-h-[300px] flex items-center justify-center">
-                  <div className="text-center space-y-4 p-8">
-                    <Film className="w-24 h-24 mx-auto text-primary/40" />
-                    <p className="text-muted-foreground">Available on YouTube, Vimeo, and DailyMotion</p>
-                  </div>
+                <div className="relative overflow-hidden min-h-[300px]">
+                  <img 
+                    src={teamWithFounder}
+                    alt="Joy House team with founder and community members"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
             </CardContent>
@@ -82,13 +85,12 @@ const About = () => {
                     Visit Best Day Ever
                   </Button>
                 </div>
-                <div className="flex items-center justify-center min-h-[300px]">
-                  <div className="text-center space-y-4">
-                    <Coffee className="w-24 h-24 mx-auto" style={{ color: 'hsl(13 33% 36%)' }} />
-                    <p className="text-2xl font-semibold" style={{ color: 'hsl(13 33% 36%)' }}>
-                      Experience joy in every sip and bite!
-                    </p>
-                  </div>
+                <div className="relative overflow-hidden rounded-xl min-h-[300px]">
+                  <img 
+                    src={bdeOutdoorEvent}
+                    alt="Best Day Ever outdoor event with Joy House partnership"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
             </CardContent>
