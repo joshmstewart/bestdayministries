@@ -41,11 +41,34 @@ export const UnifiedHeader = () => {
         .eq("setting_key", "logo_url")
         .maybeSingle();
 
+      console.log('Logo data from database:', data);
+
       if (data?.setting_value) {
-        const url = typeof data.setting_value === 'string' 
-          ? JSON.parse(data.setting_value) 
-          : data.setting_value;
-        setLogoUrl(url);
+        let url: string = '';
+        
+        // Handle different possible types
+        if (typeof data.setting_value === 'string') {
+          // If it's a string that looks like JSON, parse it
+          if (data.setting_value.startsWith('"')) {
+            try {
+              url = JSON.parse(data.setting_value);
+            } catch (e) {
+              url = data.setting_value;
+            }
+          } else {
+            url = data.setting_value;
+          }
+        } else if (typeof data.setting_value === 'object' && data.setting_value !== null) {
+          // If it's an object, stringify and check
+          url = JSON.stringify(data.setting_value);
+        }
+        
+        console.log('Setting logo URL to:', url);
+        if (url) {
+          setLogoUrl(url);
+        }
+      } else {
+        console.log('No logo in database, using fallback');
       }
     } catch (error) {
       console.error('Error loading logo:', error);
