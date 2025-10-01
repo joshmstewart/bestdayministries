@@ -224,25 +224,76 @@ const ProfileSettings = () => {
               </div>
 
               {/* Voice Preference */}
-              <div className="space-y-2">
-                <Label htmlFor="voice" className="flex items-center gap-2">
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
                   <Volume2 className="w-4 h-4" />
                   Text-to-Speech Voice
                 </Label>
-                <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                  <SelectTrigger id="voice">
-                    <SelectValue placeholder="Select a voice" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Aria">Aria (Female, Warm)</SelectItem>
-                    <SelectItem value="Roger">Roger (Male, Deep)</SelectItem>
-                    <SelectItem value="Sarah">Sarah (Female, Clear)</SelectItem>
-                    <SelectItem value="Charlie">Charlie (Male, Friendly)</SelectItem>
-                  </SelectContent>
-                </Select>
                 <p className="text-xs text-muted-foreground">
-                  Choose your preferred voice for reading posts and descriptions aloud
+                  Choose your preferred voice - click the speaker icon to preview
                 </p>
+                <div className="grid grid-cols-1 gap-3">
+                  {[
+                    { value: 'Aria', label: 'Aria', description: 'Female, Warm' },
+                    { value: 'Roger', label: 'Roger', description: 'Male, Deep' },
+                    { value: 'Sarah', label: 'Sarah', description: 'Female, Clear' },
+                    { value: 'Charlie', label: 'Charlie', description: 'Male, Friendly' }
+                  ].map((voice) => (
+                    <div
+                      key={voice.value}
+                      className={`flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer hover:border-primary/50 ${
+                        selectedVoice === voice.value ? 'border-primary bg-primary/5' : 'border-border'
+                      }`}
+                      onClick={() => setSelectedVoice(voice.value)}
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{voice.label}</div>
+                        <div className="text-sm text-muted-foreground">{voice.description}</div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const previewText = `Hello! I'm ${voice.label}. This is what I sound like.`;
+                          const audio = document.createElement('audio');
+                          audio.style.display = 'none';
+                          document.body.appendChild(audio);
+                          
+                          supabase.functions.invoke('text-to-speech', {
+                            body: { text: previewText, voice: voice.value }
+                          }).then(({ data, error }) => {
+                            if (error) {
+                              toast({
+                                title: "Preview Error",
+                                description: "Failed to load voice preview",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            if (data?.audioContent) {
+                              const audioBlob = new Blob(
+                                [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
+                                { type: 'audio/mpeg' }
+                              );
+                              const audioUrl = URL.createObjectURL(audioBlob);
+                              audio.src = audioUrl;
+                              audio.play();
+                              audio.onended = () => {
+                                URL.revokeObjectURL(audioUrl);
+                                document.body.removeChild(audio);
+                              };
+                            }
+                          });
+                        }}
+                        title="Preview voice"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Save Button */}
