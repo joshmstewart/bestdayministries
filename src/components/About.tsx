@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coffee, Film, MapPin, Clock } from "lucide-react";
-import bdeLogo from "@/assets/bde-logo.png";
+import bdeLogo from "@/assets/bde-logo-transparent.png";
 import teamWithFounder from "@/assets/team-with-founder.jpg";
 import bdeOutdoorEvent from "@/assets/bde-outdoor-event.jpg";
 
