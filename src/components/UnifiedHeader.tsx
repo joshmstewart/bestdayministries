@@ -153,9 +153,9 @@ export const UnifiedHeader = () => {
             {user && profile ? (
               <>
                 <Button 
-                  variant="outline" 
+                  variant="ghost" 
                   onClick={() => navigate("/profile")}
-                  className="gap-2"
+                  className="gap-2 hover:bg-muted"
                 >
                   <AvatarDisplay 
                     avatarNumber={profile?.avatar_number} 
