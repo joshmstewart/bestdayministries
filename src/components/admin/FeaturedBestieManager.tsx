@@ -23,7 +23,8 @@ interface FeaturedBestie {
   image_url: string;
   voice_note_url: string | null;
   description: string;
-  featured_month: string;
+  start_date: string;
+  end_date: string;
   is_active: boolean;
 }
 
@@ -37,7 +38,8 @@ export const FeaturedBestieManager = () => {
   // Form state
   const [bestieName, setBestieName] = useState("");
   const [description, setDescription] = useState("");
-  const [featuredMonth, setFeaturedMonth] = useState<Date>();
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
   const [isActive, setIsActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -52,7 +54,7 @@ export const FeaturedBestieManager = () => {
       const { data: featured, error: featuredError } = await supabase
         .from("featured_besties")
         .select("*")
-        .order("featured_month", { ascending: false });
+        .order("start_date", { ascending: false });
 
       if (featuredError) throw featuredError;
       setFeaturedBesties(featured || []);
@@ -86,10 +88,19 @@ export const FeaturedBestieManager = () => {
   };
 
   const handleSubmit = async () => {
-    if (!bestieName || !description || !featuredMonth || (!imageFile && !editingId)) {
+    if (!bestieName || !description || !startDate || !endDate || (!imageFile && !editingId)) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including start and end dates",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (endDate < startDate) {
+      toast({
+        title: "Invalid date range",
+        description: "End date must be after or equal to start date",
         variant: "destructive",
       });
       return;
@@ -115,7 +126,8 @@ export const FeaturedBestieManager = () => {
       const data: any = {
         bestie_name: bestieName,
         description,
-        featured_month: format(featuredMonth, "yyyy-MM-dd"),
+        start_date: format(startDate, "yyyy-MM-dd"),
+        end_date: format(endDate, "yyyy-MM-dd"),
         is_active: isActive,
       };
 
@@ -165,7 +177,8 @@ export const FeaturedBestieManager = () => {
     setEditingId(bestie.id);
     setBestieName(bestie.bestie_name);
     setDescription(bestie.description);
-    setFeaturedMonth(new Date(bestie.featured_month));
+    setStartDate(new Date(bestie.start_date));
+    setEndDate(new Date(bestie.end_date));
     setIsActive(bestie.is_active);
     setDialogOpen(true);
   };
@@ -214,7 +227,8 @@ export const FeaturedBestieManager = () => {
     setEditingId(null);
     setBestieName("");
     setDescription("");
-    setFeaturedMonth(undefined);
+    setStartDate(undefined);
+    setEndDate(undefined);
     setIsActive(true);
     setImageFile(null);
     setAudioFile(null);
@@ -273,32 +287,65 @@ export const FeaturedBestieManager = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Featured Month *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !featuredMonth && "text-muted-foreground"
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {featuredMonth ? format(featuredMonth, "MMMM yyyy") : "Pick a month"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={featuredMonth}
-                      onSelect={setFeaturedMonth}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "MMM d, yyyy") : "Pick start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>End Date *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "MMM d, yyyy") : "Pick end date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) => startDate ? date < startDate : false}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Choose specific dates or select the 1st day of a month for both to feature for the whole month
+              </p>
 
               <div className="space-y-2">
                 <Label htmlFor="image">Image {!editingId && "*"} (JPEG, PNG, WEBP, GIF - max 5MB)</Label>
@@ -329,11 +376,11 @@ export const FeaturedBestieManager = () => {
                   onCheckedChange={setIsActive}
                 />
                 <Label htmlFor="active">
-                  Active (will show during featured month)
+                  Active (will show during featured dates)
                 </Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                This bestie will only appear publicly when both Active is ON and it's their featured month
+                This bestie will only appear publicly when both Active is ON and today is within their featured date range
               </p>
 
               <div className="flex gap-2 pt-4">
@@ -380,7 +427,7 @@ export const FeaturedBestieManager = () => {
                 {bestie.bestie_name}
               </CardTitle>
               <CardDescription>
-                {format(new Date(bestie.featured_month), "MMMM yyyy")}
+                {format(new Date(bestie.start_date), "MMM d, yyyy")} - {format(new Date(bestie.end_date), "MMM d, yyyy")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">

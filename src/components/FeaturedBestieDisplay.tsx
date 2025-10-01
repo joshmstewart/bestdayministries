@@ -10,7 +10,8 @@ interface FeaturedBestie {
   image_url: string;
   voice_note_url: string | null;
   description: string;
-  featured_month: string;
+  start_date: string;
+  end_date: string;
 }
 
 export const FeaturedBestieDisplay = () => {
@@ -23,16 +24,15 @@ export const FeaturedBestieDisplay = () => {
 
   const loadCurrentBestie = async () => {
     try {
-      // Get current year-month in format YYYY-MM-01
-      const now = new Date();
-      const currentMonth = format(now, "yyyy-MM-01");
+      // Get today's date in format YYYY-MM-DD
+      const today = format(new Date(), "yyyy-MM-dd");
       
       const { data, error } = await supabase
         .from("featured_besties")
         .select("*")
         .eq("is_active", true)
-        .gte("featured_month", currentMonth)
-        .lt("featured_month", format(new Date(now.getFullYear(), now.getMonth() + 1, 1), "yyyy-MM-01"))
+        .lte("start_date", today)
+        .gte("end_date", today)
         .maybeSingle();
 
       if (error) throw error;

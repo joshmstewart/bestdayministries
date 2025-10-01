@@ -267,10 +267,11 @@ export type Database = {
           bestie_name: string
           created_at: string
           description: string
-          featured_month: string
+          end_date: string
           id: string
           image_url: string
           is_active: boolean | null
+          start_date: string
           voice_note_url: string | null
         }
         Insert: {
@@ -278,10 +279,11 @@ export type Database = {
           bestie_name: string
           created_at?: string
           description: string
-          featured_month: string
+          end_date?: string
           id?: string
           image_url: string
           is_active?: boolean | null
+          start_date?: string
           voice_note_url?: string | null
         }
         Update: {
@@ -289,10 +291,11 @@ export type Database = {
           bestie_name?: string
           created_at?: string
           description?: string
-          featured_month?: string
+          end_date?: string
           id?: string
           image_url?: string
           is_active?: boolean | null
+          start_date?: string
           voice_note_url?: string | null
         }
         Relationships: []
