@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { cn } from "@/lib/utils";
+import { EventDetailDialog } from "@/components/EventDetailDialog";
 
 interface EventDate {
   id: string;
@@ -40,6 +41,9 @@ export default function EventsPage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedDisplayDate, setSelectedDisplayDate] = useState<Date | null>(null);
+  const [selectedAllDates, setSelectedAllDates] = useState<Date[]>([]);
 
   useEffect(() => {
     loadEvents();
@@ -151,7 +155,15 @@ export default function EventsPage() {
                     {upcomingEventCards.map((card, idx) => {
                       const { event, displayDate, allDates } = card;
                       return (
-                        <Card key={`${event.id}-${displayDate.getTime()}`} className="overflow-hidden hover:shadow-lg transition-shadow">
+                        <Card 
+                          key={`${event.id}-${displayDate.getTime()}`} 
+                          className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                          onClick={() => {
+                            setSelectedEvent(event);
+                            setSelectedDisplayDate(displayDate);
+                            setSelectedAllDates(allDates);
+                          }}
+                        >
                           {event.image_url && (
                             <img
                               src={event.image_url}
@@ -240,7 +252,15 @@ export default function EventsPage() {
                     {pastEventCards.map((card, idx) => {
                       const { event, displayDate, allDates } = card;
                       return (
-                        <Card key={`${event.id}-${displayDate.getTime()}`} className="overflow-hidden opacity-75">
+                        <Card 
+                          key={`${event.id}-${displayDate.getTime()}`} 
+                          className="overflow-hidden opacity-75 cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => {
+                            setSelectedEvent(event);
+                            setSelectedDisplayDate(displayDate);
+                            setSelectedAllDates(allDates);
+                          }}
+                        >
                           {event.image_url && (
                             <img
                               src={event.image_url}
@@ -322,6 +342,20 @@ export default function EventsPage() {
         </div>
       </main>
       <Footer />
+      
+      <EventDetailDialog
+        event={selectedEvent}
+        open={!!selectedEvent}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedEvent(null);
+            setSelectedDisplayDate(null);
+            setSelectedAllDates([]);
+          }
+        }}
+        displayDate={selectedDisplayDate || undefined}
+        allDates={selectedAllDates}
+      />
     </div>
   );
 }
