@@ -58,10 +58,13 @@ export function ImageCropDialog({
     setProcessing(true);
     try {
       const image = new Image();
+      // Set crossOrigin to avoid CORS issues when cropping images from external sources
+      image.crossOrigin = "anonymous";
       image.src = imageUrl;
       
-      await new Promise((resolve) => {
+      await new Promise((resolve, reject) => {
         image.onload = resolve;
+        image.onerror = reject;
       });
 
       console.log("Image loaded, dimensions:", image.width, image.height);
