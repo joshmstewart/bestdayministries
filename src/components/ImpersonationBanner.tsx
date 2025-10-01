@@ -13,6 +13,11 @@ export const ImpersonationBanner = () => {
     supporter: "Supporter",
   };
 
+  const handleStopImpersonation = () => {
+    stopImpersonation();
+    window.location.reload();
+  };
+
   return (
     <div className="bg-orange-500 text-white py-2 px-4 flex items-center justify-center gap-4 sticky top-0 z-50 shadow-lg">
       <Eye className="w-5 h-5" />
@@ -22,7 +27,7 @@ export const ImpersonationBanner = () => {
       <Button
         variant="ghost"
         size="sm"
-        onClick={stopImpersonation}
+        onClick={handleStopImpersonation}
         className="text-white hover:bg-orange-600 hover:text-white"
       >
         <X className="w-4 h-4 mr-1" />
