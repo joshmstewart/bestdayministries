@@ -119,27 +119,26 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
   const timeRemaining = duration - currentTime;
 
   return (
-    <div className={cn("flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg", className)}>
+    <div className={cn("inline-flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg", className)}>
       <audio ref={audioRef} src={src} />
       
       <Button
         onClick={togglePlay}
         size="icon"
-        variant="ghost"
-        className="shrink-0 h-8 w-8"
+        className="shrink-0 h-10 w-10 bg-primary hover:bg-primary/90"
       >
         {isPlaying ? (
-          <Pause className="w-4 h-4" />
+          <Pause className="w-5 h-5" />
         ) : (
-          <Play className="w-4 h-4 ml-0.5" />
+          <Play className="w-5 h-5 ml-0.5" />
         )}
       </Button>
 
-      <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-[60px]">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-[60px]">
         <span>-{formatTime(timeRemaining)}</span>
       </div>
 
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center gap-2">
         <Button
           onClick={toggleMute}
           size="icon"
