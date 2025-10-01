@@ -83,7 +83,6 @@ const Community = () => {
   }
 
   const quickLinks = [
-    { icon: Heart, label: "Featured Bestie", href: "/featured-bestie", color: "from-primary/20 to-primary/5" },
     { icon: MessageSquare, label: "Discussions", href: "/discussions", color: "from-accent/20 to-accent/5" },
     { icon: Calendar, label: "Events", href: "/events", color: "from-secondary/20 to-secondary/5" },
     { icon: Gift, label: "Sponsor a Bestie", href: "/sponsor", color: "from-primary/20 to-secondary/5" },
