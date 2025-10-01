@@ -14,11 +14,9 @@ export const UnifiedHeader = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [logoUrl, setLogoUrl] = useState(bdeLogo);
 
   useEffect(() => {
     checkUser();
-    loadLogo();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
@@ -33,41 +31,6 @@ export const UnifiedHeader = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadLogo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("app_settings_public")
-        .select("setting_value")
-        .eq("setting_key", "logo_url")
-        .single();
-
-      if (error) {
-        console.log('No custom logo in database, using default:', bdeLogo);
-        throw error;
-      }
-
-      if (data?.setting_value) {
-        try {
-          const url = typeof data.setting_value === 'string' 
-            ? JSON.parse(data.setting_value) 
-            : data.setting_value;
-          
-          if (url && !url.includes('object/public/app-assets/logo.png')) {
-            console.log('Setting custom logo from database:', url);
-            setLogoUrl(url);
-          }
-        } catch (e) {
-          if (typeof data.setting_value === 'string' && data.setting_value.startsWith('http')) {
-            console.log('Setting custom logo from database (string):', data.setting_value);
-            setLogoUrl(data.setting_value);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading logo:', error);
-      console.log('Default logo being used:', bdeLogo);
-    }
-  };
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -109,20 +72,10 @@ export const UnifiedHeader = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src={logoUrl} 
-              alt="Best Day Ever" 
+              src={bdeLogo} 
+              alt="Best Day Ever Coffee + Crepes" 
               className="h-[102px] w-auto cursor-pointer m-0"
-              onClick={() => {
-                console.log('Logo clicked, current logoUrl:', logoUrl);
-                navigate(user ? "/community" : "/");
-              }}
-              onError={(e) => {
-                console.log('Logo failed to load, falling back to:', bdeLogo);
-                e.currentTarget.src = bdeLogo;
-              }}
-              onLoad={() => {
-                console.log('Logo loaded successfully:', logoUrl);
-              }}
+              onClick={() => navigate(user ? "/community" : "/")}
             />
             {user && profile && (
               <div className="hidden sm:block">
