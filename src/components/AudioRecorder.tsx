@@ -1,7 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+
+const MAX_RECORDING_DURATION = 60; // 60 seconds = 1 minute
 
 interface AudioRecorderProps {
   onRecordingComplete: (audioBlob: Blob) => void;
@@ -12,8 +14,38 @@ export default function AudioRecorder({ onRecordingComplete, onRecordingCancel }
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string>("");
+  const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timer effect for recording duration
+  useEffect(() => {
+    if (isRecording) {
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => {
+          if (prev >= MAX_RECORDING_DURATION - 1) {
+            stopRecording();
+            toast.info("Recording stopped - 1 minute limit reached");
+            return MAX_RECORDING_DURATION;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setRecordingTime(0);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isRecording]);
 
   const startRecording = async () => {
     try {
@@ -136,9 +168,14 @@ export default function AudioRecorder({ onRecordingComplete, onRecordingCancel }
       )}
 
       {isRecording && (
-        <div className="flex items-center gap-2 text-destructive animate-pulse">
-          <div className="w-3 h-3 bg-destructive rounded-full" />
-          <span className="text-sm font-medium">Recording...</span>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-destructive animate-pulse">
+            <div className="w-3 h-3 bg-destructive rounded-full" />
+            <span className="text-sm font-medium">Recording...</span>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {recordingTime}s / {MAX_RECORDING_DURATION}s
+          </div>
         </div>
       )}
     </div>
