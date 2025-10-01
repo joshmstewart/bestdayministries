@@ -87,26 +87,38 @@ const Community = () => {
       setLatestDiscussion(discussions);
     }
 
-    // Fetch upcoming events (up to 3) with role-based filtering
-    const { data: events } = await supabase
-      .from("events")
-      .select("*")
-      .order("event_date", { ascending: true })
-      .gte("event_date", new Date().toISOString());
+    // Fetch upcoming event dates (up to 3) with role-based filtering
+    const { data: eventDates } = await supabase
+      .from("event_dates")
+      .select(`
+        *,
+        events:event_id (*)
+      `)
+      .gte("event_date", new Date().toISOString())
+      .order("event_date", { ascending: true });
 
-    if (events) {
+    if (eventDates) {
       console.log('Community - User role:', effectiveRole);
-      console.log('Community - Total events fetched:', events.length);
+      console.log('Community - Total event dates fetched:', eventDates.length);
       
-      // Filter events based on effective user role
-      const filteredEvents = events.filter(event => {
-        const isVisible = event.visible_to_roles?.includes(effectiveRole);
-        console.log(`Community - Event "${event.title}" - Visible to roles:`, event.visible_to_roles, 'User role:', effectiveRole, 'Is visible:', isVisible);
-        return isVisible;
-      }).slice(0, 3); // Take only first 3 after filtering
+      // Filter event dates based on effective user role and take first 3
+      const filteredEventDates = eventDates
+        .filter(eventDate => {
+          const event = eventDate.events;
+          if (!event) return false;
+          const isVisible = event.visible_to_roles?.includes(effectiveRole);
+          console.log(`Community - Event "${event.title}" on ${eventDate.event_date} - Visible to roles:`, event.visible_to_roles, 'User role:', effectiveRole, 'Is visible:', isVisible);
+          return isVisible;
+        })
+        .slice(0, 3)
+        .map(eventDate => ({
+          ...eventDate.events,
+          event_date: eventDate.event_date, // Override with the specific date
+          event_date_id: eventDate.id
+        }));
       
-      console.log('Community - Filtered events count:', filteredEvents.length);
-      setUpcomingEvents(filteredEvents);
+      console.log('Community - Filtered event dates count:', filteredEventDates.length);
+      setUpcomingEvents(filteredEventDates);
     }
   };
 
