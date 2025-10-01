@@ -452,6 +452,7 @@ export type Database = {
           display_name: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
+          tts_voice: string | null
           updated_at: string
         }
         Insert: {
@@ -463,6 +464,7 @@ export type Database = {
           display_name: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
+          tts_voice?: string | null
           updated_at?: string
         }
         Update: {
@@ -474,6 +476,7 @@ export type Database = {
           display_name?: string
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
+          tts_voice?: string | null
           updated_at?: string
         }
         Relationships: [

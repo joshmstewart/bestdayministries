@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Volume2, VolumeX, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,7 @@ interface TextToSpeechProps {
 
 export const TextToSpeech = ({ 
   text, 
-  voice = 'Aria',
+  voice,
   variant = 'ghost',
   size = 'icon'
 }: TextToSpeechProps) => {
@@ -21,6 +21,26 @@ export const TextToSpeech = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [userVoice, setUserVoice] = useState<string>('Aria');
+
+  useEffect(() => {
+    const loadUserVoice = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('tts_voice')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.tts_voice) {
+          setUserVoice(profile.tts_voice);
+        }
+      }
+    };
+    
+    loadUserVoice();
+  }, []);
 
   const handlePlay = async () => {
     try {
@@ -34,8 +54,11 @@ export const TextToSpeech = ({
 
       setIsLoading(true);
 
+      // Use passed voice prop or user's preferred voice
+      const selectedVoice = voice || userVoice;
+
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { text, voice }
+        body: { text, voice: selectedVoice }
       });
 
       if (error) throw error;

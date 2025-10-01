@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Volume2 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Profile {
   id: string;
@@ -21,6 +22,7 @@ interface Profile {
   avatar_url?: string;
   avatar_number?: number;
   role: string;
+  tts_voice?: string;
 }
 
 const ProfileSettings = () => {
@@ -33,6 +35,7 @@ const ProfileSettings = () => {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<string>("Aria");
 
   useEffect(() => {
     checkUser();
@@ -71,6 +74,7 @@ const ProfileSettings = () => {
     setProfile(data);
     setDisplayName(data.display_name || "");
     setBio(data.bio || "");
+    setSelectedVoice(data.tts_voice || "Aria");
     
     // Set avatar number directly from the database
     if (data.avatar_number) {
@@ -105,6 +109,7 @@ const ProfileSettings = () => {
           display_name: displayName.trim(),
           bio: bio.trim() || null,
           avatar_number: selectedAvatar,
+          tts_voice: selectedVoice,
         })
         .eq("id", user.id);
 
@@ -215,6 +220,28 @@ const ProfileSettings = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   {bio.length}/500 characters
+                </p>
+              </div>
+
+              {/* Voice Preference */}
+              <div className="space-y-2">
+                <Label htmlFor="voice" className="flex items-center gap-2">
+                  <Volume2 className="w-4 h-4" />
+                  Text-to-Speech Voice
+                </Label>
+                <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                  <SelectTrigger id="voice">
+                    <SelectValue placeholder="Select a voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Aria">Aria (Female, Warm)</SelectItem>
+                    <SelectItem value="Roger">Roger (Male, Deep)</SelectItem>
+                    <SelectItem value="Sarah">Sarah (Female, Clear)</SelectItem>
+                    <SelectItem value="Charlie">Charlie (Male, Friendly)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose your preferred voice for reading posts and descriptions aloud
                 </p>
               </div>
 
