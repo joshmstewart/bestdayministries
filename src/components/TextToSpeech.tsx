@@ -1,20 +1,18 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Play, Pause, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface TextToSpeechProps {
   text: string;
   voice?: 'Aria' | 'Roger' | 'Sarah' | 'Charlie';
-  variant?: 'default' | 'ghost' | 'outline';
   size?: 'default' | 'sm' | 'lg' | 'icon';
 }
 
 export const TextToSpeech = ({ 
   text, 
   voice,
-  variant = 'ghost',
   size = 'icon'
 }: TextToSpeechProps) => {
   const { toast } = useToast();
@@ -108,18 +106,18 @@ export const TextToSpeech = ({
 
   return (
     <Button
-      variant={variant}
       size={size}
       onClick={handlePlay}
       disabled={isLoading}
       title={isPlaying ? "Stop reading" : "Read aloud"}
+      className="shrink-0 bg-primary hover:bg-primary/90"
     >
       {isLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="w-5 h-5 animate-spin" />
       ) : isPlaying ? (
-        <VolumeX className="w-4 h-4" />
+        <Pause className="w-5 h-5" />
       ) : (
-        <Volume2 className="w-4 h-4" />
+        <Play className="w-5 h-5 ml-0.5" />
       )}
     </Button>
   );
