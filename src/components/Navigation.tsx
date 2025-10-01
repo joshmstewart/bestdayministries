@@ -38,7 +38,7 @@ const Navigation = () => {
               </a>
             ))}
             <Button size="lg" onClick={() => window.location.href = "/auth"} className="shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
-              Join Community
+              Sign In
             </Button>
           </div>
 
@@ -66,7 +66,7 @@ const Navigation = () => {
               </a>
             ))}
             <Button size="lg" onClick={() => window.location.href = "/auth"} className="w-full shadow-warm bg-gradient-to-r from-primary via-accent to-secondary border-0">
-              Join Community
+              Sign In
             </Button>
           </div>
         )}
