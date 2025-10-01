@@ -11,6 +11,7 @@ import composite6 from "@/assets/avatars/composite-6.png";
 import composite7 from "@/assets/avatars/composite-7.png";
 import composite8 from "@/assets/avatars/composite-8.png";
 import composite9 from "@/assets/avatars/composite-9.png";
+import composite10 from "@/assets/avatars/composite-10.png";
 
 const DEFAULT_AVATAR = 1;
 
@@ -120,6 +121,17 @@ const getAvatarConfig = (avatarNumber: number) => {
       { x: 100, y: 100 },  // 36: bottom-right
     ];
     return { image: composite9, position: positions[avatarNumber - 33] };
+  }
+  
+  // Composite 10: avatars 37-40
+  if (avatarNumber >= 37 && avatarNumber <= 40) {
+    const positions = [
+      { x: 0, y: 0 },      // 37: top-left
+      { x: 100, y: 0 },    // 38: top-right
+      { x: 0, y: 100 },    // 39: bottom-left
+      { x: 100, y: 100 },  // 40: bottom-right
+    ];
+    return { image: composite10, position: positions[avatarNumber - 37] };
   }
   
   return null;
