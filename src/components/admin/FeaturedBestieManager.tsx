@@ -128,6 +128,32 @@ export const FeaturedBestieManager = () => {
 
     setUploading(true);
     try {
+      // Check for date overlaps with other active besties
+      const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+      const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+      
+      const { data: overlappingBesties, error: overlapError } = await supabase
+        .from("featured_besties")
+        .select("id, bestie_name, start_date, end_date")
+        .eq("is_active", true)
+        .or(`and(start_date.lte.${endDateStr},end_date.gte.${startDateStr})`);
+
+      if (overlapError) throw overlapError;
+
+      // Filter out the current bestie being edited
+      const conflicts = overlappingBesties?.filter(b => b.id !== editingId) || [];
+      
+      if (conflicts.length > 0) {
+        const conflictNames = conflicts.map(b => b.bestie_name).join(", ");
+        toast({
+          title: "Date overlap detected",
+          description: `The selected dates overlap with: ${conflictNames}. Please choose different dates.`,
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
+
       let imageUrl = "";
       let voiceNoteUrl = null;
 
