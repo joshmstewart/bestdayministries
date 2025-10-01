@@ -15,9 +15,9 @@ const getAvatarConfig = (avatarNumber: number) => {
   if (avatarNumber >= 1 && avatarNumber <= 4) {
     const positions = [
       { x: 0, y: 0 },      // 1: top-left
-      { x: 50, y: 0 },     // 2: top-right
-      { x: 0, y: 50 },     // 3: bottom-left
-      { x: 50, y: 50 },    // 4: bottom-right
+      { x: 100, y: 0 },    // 2: top-right
+      { x: 0, y: 100 },    // 3: bottom-left
+      { x: 100, y: 100 },  // 4: bottom-right
     ];
     return { image: composite1, position: positions[avatarNumber - 1] };
   }
@@ -25,9 +25,9 @@ const getAvatarConfig = (avatarNumber: number) => {
   if (avatarNumber >= 5 && avatarNumber <= 8) {
     const positions = [
       { x: 0, y: 0 },
-      { x: 50, y: 0 },
-      { x: 0, y: 50 },
-      { x: 50, y: 50 },
+      { x: 100, y: 0 },
+      { x: 0, y: 100 },
+      { x: 100, y: 100 },
     ];
     return { image: composite2, position: positions[avatarNumber - 5] };
   }
@@ -35,9 +35,9 @@ const getAvatarConfig = (avatarNumber: number) => {
   if (avatarNumber >= 9 && avatarNumber <= 12) {
     const positions = [
       { x: 0, y: 0 },
-      { x: 50, y: 0 },
-      { x: 0, y: 50 },
-      { x: 50, y: 50 },
+      { x: 100, y: 0 },
+      { x: 0, y: 100 },
+      { x: 100, y: 100 },
     ];
     return { image: composite3, position: positions[avatarNumber - 9] };
   }
