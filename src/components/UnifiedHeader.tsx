@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { LogOut, Shield } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
+import { useModerationCount } from "@/hooks/useModerationCount";
 
 export const UnifiedHeader = () => {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export const UnifiedHeader = () => {
   const [profile, setProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const { count: moderationCount } = useModerationCount();
 
   useEffect(() => {
     checkUser();
@@ -150,10 +153,18 @@ export const UnifiedHeader = () => {
                 {isAdmin && (
                   <Button 
                     onClick={() => navigate("/admin")}
-                    className="gap-2 bg-[#FF8C42] hover:bg-[#FF8C42]/90 text-white border-0"
+                    className="gap-2 bg-[#FF8C42] hover:bg-[#FF8C42]/90 text-white border-0 relative"
                   >
                     <Shield className="w-4 h-4" />
                     <span className="hidden sm:inline font-semibold">Admin</span>
+                    {moderationCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
+                      >
+                        {moderationCount}
+                      </Badge>
+                    )}
                   </Button>
                 )}
                 <Button 

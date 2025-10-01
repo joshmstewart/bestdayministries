@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +13,7 @@ import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager"
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
+import { useModerationCount } from "@/hooks/useModerationCount";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const { count: moderationCount } = useModerationCount();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
@@ -236,9 +239,17 @@ const Admin = () => {
                   <p className="text-muted-foreground">
                     Review posts and comments that have been flagged by our AI moderation system.
                   </p>
-                  <Button onClick={() => navigate("/moderation")} className="gap-2">
+                  <Button onClick={() => navigate("/moderation")} className="gap-2 relative">
                     <Shield className="w-4 h-4" />
                     Open Moderation Queue
+                    {moderationCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center rounded-full"
+                      >
+                        {moderationCount}
+                      </Badge>
+                    )}
                   </Button>
                 </div>
               </CardContent>
