@@ -9,6 +9,7 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
+import { Separator } from "@/components/ui/separator";
 
 export const UnifiedHeader = () => {
   const navigate = useNavigate();
@@ -138,10 +139,13 @@ export const UnifiedHeader = () => {
               <div className="h-[102px] w-[150px]" />
             )}
             {user && profile && (
-              <div className="hidden sm:block">
-                <div className="text-xs text-muted-foreground">Welcome back,</div>
-                <div className="font-bold text-foreground text-lg">{profile?.display_name}</div>
-              </div>
+              <>
+                <Separator orientation="vertical" className="h-16 mx-2" />
+                <div className="hidden sm:block">
+                  <div className="text-xs text-muted-foreground">Welcome back,</div>
+                  <div className="font-bold text-foreground text-lg">{profile?.display_name}</div>
+                </div>
+              </>
             )}
           </div>
           
