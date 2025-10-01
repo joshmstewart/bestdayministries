@@ -25,7 +25,7 @@ export default function ImageLightbox({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl w-[95vw] h-[95vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-[90vw] max-h-[90vh] w-auto h-auto p-0 overflow-hidden">
         <div className="relative w-full h-full flex items-center justify-center bg-black/95">
           {/* Close Button */}
           <Button
@@ -50,11 +50,11 @@ export default function ImageLightbox({
           )}
 
           {/* Main Image */}
-          <div className="w-full h-full flex items-center justify-center p-2">
+          <div className="w-full h-[90vh] flex items-center justify-center p-16">
             <img
               src={currentImage.image_url}
               alt={currentImage.caption || `Image ${currentIndex + 1}`}
-              className="max-w-full max-h-full object-contain"
+              className="max-w-full max-h-full w-auto h-auto object-contain"
             />
             
             {/* Caption */}
