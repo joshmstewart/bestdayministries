@@ -80,7 +80,19 @@ export const TextToSpeech = ({
       const audioUrl = URL.createObjectURL(audioBlob);
       const newAudio = new Audio(audioUrl);
 
-      // Set up event handlers before loading
+      // Ensure we start from the very beginning
+      newAudio.currentTime = 0;
+      
+      // Wait for audio to have enough data to play through
+      await new Promise<void>((resolve, reject) => {
+        newAudio.oncanplaythrough = () => {
+          newAudio.currentTime = 0; // Reset again just before playing
+          resolve();
+        };
+        newAudio.onerror = () => reject(new Error('Failed to load audio'));
+        newAudio.load();
+      });
+
       newAudio.onended = () => {
         setIsPlaying(false);
         URL.revokeObjectURL(audioUrl);
@@ -96,20 +108,9 @@ export const TextToSpeech = ({
         });
       };
 
-      // Wait for audio to be fully loaded
-      await new Promise<void>((resolve, reject) => {
-        newAudio.onloadeddata = () => resolve();
-        newAudio.onerror = () => reject(new Error('Failed to load audio'));
-        newAudio.load();
-      });
-
-      // Ensure we start from the beginning
-      newAudio.currentTime = 0;
       setAudio(newAudio);
-      
-      // Start playback and only set playing state after it starts
-      await newAudio.play();
       setIsPlaying(true);
+      await newAudio.play();
 
     } catch (error) {
       console.error('Text-to-speech error:', error);
