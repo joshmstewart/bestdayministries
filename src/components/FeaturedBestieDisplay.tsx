@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart } from "lucide-react";
+import { Heart, HandHeart } from "lucide-react";
 import { format } from "date-fns";
 import AudioPlayer from "./AudioPlayer";
 import { TextToSpeech } from "./TextToSpeech";
+import { Button } from "./ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface FeaturedBestie {
   id: string;
@@ -14,9 +16,12 @@ interface FeaturedBestie {
   description: string;
   start_date: string;
   end_date: string;
+  available_for_sponsorship: boolean;
+  is_fully_funded: boolean;
 }
 
 export const FeaturedBestieDisplay = () => {
+  const navigate = useNavigate();
   const [bestie, setBestie] = useState<FeaturedBestie | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -89,6 +94,16 @@ export const FeaturedBestieDisplay = () => {
             <div className="space-y-2">
               <AudioPlayer src={bestie.voice_note_url} />
             </div>
+          )}
+          {bestie.available_for_sponsorship && !bestie.is_fully_funded && (
+            <Button 
+              onClick={() => navigate(`/sponsor-bestie?bestie=${bestie.id}`)}
+              className="mt-4 bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all"
+              size="lg"
+            >
+              <HandHeart className="w-5 h-5 mr-2" />
+              Sponsor {bestie.bestie_name}
+            </Button>
           )}
         </div>
       </div>

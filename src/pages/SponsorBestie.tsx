@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Heart, Sparkles, Users, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface Bestie {
   id: string;
@@ -26,6 +26,7 @@ const sponsorshipSchema = z.object({
 
 const SponsorBestie = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [besties, setBesties] = useState<Bestie[]>([]);
   const [selectedBestie, setSelectedBestie] = useState<string>("");
   const [frequency, setFrequency] = useState<"one-time" | "monthly">("monthly");
@@ -38,6 +39,21 @@ const SponsorBestie = () => {
     loadBesties();
     checkAuthAndLoadEmail();
   }, []);
+
+  useEffect(() => {
+    // Check if there's a bestie ID in the URL
+    const bestieId = searchParams.get('bestie');
+    if (bestieId && besties.length > 0) {
+      const bestieExists = besties.find(b => b.id === bestieId);
+      if (bestieExists) {
+        setSelectedBestie(bestieId);
+        // Scroll to the bestie selection
+        setTimeout(() => {
+          document.getElementById(`bestie-${bestieId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    }
+  }, [searchParams, besties]);
 
   const checkAuthAndLoadEmail = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -165,7 +181,11 @@ const SponsorBestie = () => {
                   ) : (
                     <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4">
                       {besties.map((bestie) => (
-                        <Card key={bestie.id} className={`cursor-pointer transition-all ${selectedBestie === bestie.id ? "border-primary ring-2 ring-primary/20" : "border-border"}`}>
+                        <Card 
+                          key={bestie.id} 
+                          id={`bestie-${bestie.id}`}
+                          className={`cursor-pointer transition-all ${selectedBestie === bestie.id ? "border-primary ring-2 ring-primary/20" : "border-border"}`}
+                        >
                           <CardContent className="p-4" onClick={() => setSelectedBestie(bestie.id)}>
                             <div className="flex items-start gap-4">
                               <RadioGroupItem value={bestie.id} id={bestie.id} className="mt-1" />
