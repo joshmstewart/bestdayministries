@@ -20,6 +20,7 @@ import DonatePage from "./pages/DonatePage";
 import Discussions from "./pages/Discussions";
 import ModerationQueue from "./pages/ModerationQueue";
 import ProfileSettings from "./pages/ProfileSettings";
+import GuardianLinks from "./pages/GuardianLinks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => {
             <Route path="/discussions" element={<Discussions />} />
             <Route path="/moderation" element={<ModerationQueue />} />
             <Route path="/profile" element={<ProfileSettings />} />
+            <Route path="/guardian-links" element={<GuardianLinks />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
