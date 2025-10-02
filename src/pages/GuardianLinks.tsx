@@ -156,34 +156,48 @@ export default function GuardianLinks() {
 
   const loadSponsorships = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // First get sponsorships
+      const { data: sponsorshipsData, error: sponsorshipsError } = await supabase
         .from("sponsorships")
-        .select(`
-          id,
-          bestie_id,
-          amount,
-          frequency,
-          status,
-          started_at,
-          ended_at,
-          bestie:profiles!sponsorships_bestie_id_fkey(
-            display_name,
-            email,
-            avatar_number
-          )
-        `)
+        .select("id, bestie_id, amount, frequency, status, started_at, ended_at")
         .eq("sponsor_id", userId)
         .eq("status", "active")
         .order("started_at", { ascending: false });
 
-      if (error) throw error;
+      if (sponsorshipsError) throw sponsorshipsError;
 
-      const transformedData = (data || []).map(sponsorship => ({
-        ...sponsorship,
-        bestie: Array.isArray(sponsorship.bestie) ? sponsorship.bestie[0] : sponsorship.bestie
-      }));
+      if (!sponsorshipsData || sponsorshipsData.length === 0) {
+        setSponsorships([]);
+        return;
+      }
 
-      setSponsorships(transformedData as Sponsorship[]);
+      // Then get bestie profiles for those sponsorships
+      const bestieIds = sponsorshipsData.map(s => s.bestie_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, display_name, email, avatar_number")
+        .in("id", bestieIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const transformedData = sponsorshipsData
+        .map(sponsorship => {
+          const bestie = profilesData?.find(p => p.id === sponsorship.bestie_id);
+          if (!bestie) return null; // Filter out if bestie not found
+          
+          return {
+            ...sponsorship,
+            bestie: {
+              display_name: bestie.display_name,
+              email: bestie.email,
+              avatar_number: bestie.avatar_number
+            }
+          };
+        })
+        .filter(s => s !== null) as Sponsorship[];
+
+      setSponsorships(transformedData);
     } catch (error: any) {
       toast({
         title: "Error loading sponsorships",
