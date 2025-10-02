@@ -30,6 +30,9 @@ interface FeaturedBestie {
   is_active: boolean;
   available_for_sponsorship: boolean;
   is_fully_funded: boolean;
+  approval_status: string;
+  approved_at: string | null;
+  approved_by: string | null;
 }
 
 export const FeaturedBestieManager = () => {
@@ -207,6 +210,7 @@ export const FeaturedBestieManager = () => {
         is_active: isActive,
         available_for_sponsorship: availableForSponsorship,
         is_fully_funded: isFullyFunded,
+        approval_status: 'approved', // Admin posts are auto-approved
       };
 
       if (imageFile) {
@@ -344,6 +348,54 @@ export const FeaturedBestieManager = () => {
     } catch (error: any) {
       toast({
         title: "Error updating funding status",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("featured_besties")
+        .update({ 
+          approval_status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+      toast({ title: "Post approved successfully" });
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: "Error approving post",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("featured_besties")
+        .update({ 
+          approval_status: 'rejected',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+      toast({ title: "Post rejected" });
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: "Error rejecting post",
         description: error.message,
         variant: "destructive",
       });
@@ -758,15 +810,26 @@ export const FeaturedBestieManager = () => {
         {featuredBesties.map((bestie) => (
           <Card key={bestie.id} className={cn(
             "relative",
-            bestie.is_active && "ring-2 ring-primary"
+            bestie.is_active && "ring-2 ring-primary",
+            bestie.approval_status === 'pending_approval' && "ring-2 ring-yellow-500"
           )}>
             {bestie.is_active && (
               <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
                 ACTIVE
               </div>
             )}
+            {bestie.approval_status === 'pending_approval' && (
+              <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold z-10">
+                PENDING
+              </div>
+            )}
+            {bestie.approval_status === 'rejected' && (
+              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold z-10">
+                REJECTED
+              </div>
+            )}
             {bestie.available_for_sponsorship && !bestie.is_fully_funded && (
-              <div className="absolute top-2 left-2 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
+              <div className="absolute top-12 left-2 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
                 💝 SPONSOR
               </div>
             )}
@@ -807,6 +870,26 @@ export const FeaturedBestieManager = () => {
                 </audio>
               )}
               <div className="flex flex-col gap-2">
+                {bestie.approval_status === 'pending_approval' && (
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleApprove(bestie.id)}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleReject(bestie.id)}
+                      className="flex-1"
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button
                     variant="outline"

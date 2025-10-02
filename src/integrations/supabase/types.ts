@@ -592,6 +592,9 @@ export type Database = {
       }
       featured_besties: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           available_for_sponsorship: boolean
           bestie_id: string | null
           bestie_name: string
@@ -603,9 +606,13 @@ export type Database = {
           is_active: boolean | null
           is_fully_funded: boolean
           start_date: string
+          updated_at: string
           voice_note_url: string | null
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           available_for_sponsorship?: boolean
           bestie_id?: string | null
           bestie_name: string
@@ -617,9 +624,13 @@ export type Database = {
           is_active?: boolean | null
           is_fully_funded?: boolean
           start_date?: string
+          updated_at?: string
           voice_note_url?: string | null
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           available_for_sponsorship?: boolean
           bestie_id?: string | null
           bestie_name?: string
@@ -631,6 +642,7 @@ export type Database = {
           is_active?: boolean | null
           is_fully_funded?: boolean
           start_date?: string
+          updated_at?: string
           voice_note_url?: string | null
         }
         Relationships: []

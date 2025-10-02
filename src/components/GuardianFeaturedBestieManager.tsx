@@ -25,6 +25,8 @@ interface FeaturedBestie {
   available_for_sponsorship: boolean;
   is_fully_funded: boolean;
   is_active: boolean;
+  approval_status: string;
+  approved_at: string | null;
 }
 
 interface GuardianFeaturedBestieManagerProps {
@@ -158,6 +160,7 @@ export const GuardianFeaturedBestieManager = ({
         available_for_sponsorship: availableForSponsorship,
         image_url: imageUrl,
         voice_note_url: voiceNoteUrl,
+        approval_status: 'pending_approval', // Always set to pending for guardian posts
       };
 
       if (editingId) {
@@ -170,7 +173,7 @@ export const GuardianFeaturedBestieManager = ({
 
         toast({
           title: "Post updated",
-          description: "Featured bestie post has been updated",
+          description: "Your changes have been submitted for approval",
         });
       } else {
         const { error } = await supabase
@@ -181,7 +184,7 @@ export const GuardianFeaturedBestieManager = ({
 
         toast({
           title: "Post created",
-          description: "Featured bestie post has been created",
+          description: "Your post has been submitted for admin approval",
         });
       }
 
@@ -251,7 +254,7 @@ export const GuardianFeaturedBestieManager = ({
             Featured Posts for {bestieName}
           </DialogTitle>
           <DialogDescription>
-            Create and manage featured posts for this bestie
+            Create and manage featured posts for this bestie. All posts require admin approval before being published.
           </DialogDescription>
         </DialogHeader>
 
@@ -399,11 +402,28 @@ export const GuardianFeaturedBestieManager = ({
                     key={post.id}
                     className="p-3 border rounded-lg space-y-2"
                   >
-                    <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="text-sm font-medium line-clamp-2">
-                          {post.description}
-                        </p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-medium line-clamp-2">
+                            {post.description}
+                          </p>
+                          {post.approval_status === 'pending_approval' && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                              Pending
+                            </span>
+                          )}
+                          {post.approval_status === 'rejected' && (
+                            <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                              Rejected
+                            </span>
+                          )}
+                          {post.approval_status === 'approved' && (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                              Approved
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {format(new Date(post.start_date), "MMM d")} -{" "}
                           {format(new Date(post.end_date), "MMM d, yyyy")}
@@ -423,6 +443,7 @@ export const GuardianFeaturedBestieManager = ({
                         variant="outline"
                         onClick={() => handleEdit(post)}
                         className="flex-1"
+                        disabled={post.approval_status === 'approved'}
                       >
                         Edit
                       </Button>
@@ -431,10 +452,16 @@ export const GuardianFeaturedBestieManager = ({
                         variant="outline"
                         onClick={() => handleDelete(post.id)}
                         className="text-destructive"
+                        disabled={post.approval_status === 'approved'}
                       >
                         Delete
                       </Button>
                     </div>
+                    {post.approval_status === 'approved' && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Approved posts cannot be edited. Contact an admin to make changes.
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
