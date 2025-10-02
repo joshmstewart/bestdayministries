@@ -137,10 +137,7 @@ export const UnifiedHeader = () => {
 
       const backup = JSON.parse(backupStr);
       
-      // Sign out current test account
-      await supabase.auth.signOut();
-
-      // Restore admin session
+      // Restore admin session directly (this will replace the current session)
       const { error } = await supabase.auth.setSession({
         access_token: backup.access_token,
         refresh_token: backup.refresh_token,
