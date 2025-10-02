@@ -44,7 +44,10 @@ export const TextToSpeech = ({
     loadUserVoice();
   }, []);
 
-  const handlePlay = async () => {
+  const handlePlay = async (e: React.MouseEvent) => {
+    // Prevent the click from bubbling up to parent elements
+    e.stopPropagation();
+    
     try {
       if (isPlaying && audio) {
         // Stop current playback

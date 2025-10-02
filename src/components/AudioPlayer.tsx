@@ -96,7 +96,10 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
     };
   }, [src]);
 
-  const togglePlay = () => {
+  const togglePlay = (e: React.MouseEvent) => {
+    // Prevent the click from bubbling up to parent elements
+    e.stopPropagation();
+    
     if (!audioRef.current) return;
     
     if (isPlaying) {
@@ -109,7 +112,10 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
     }
   };
 
-  const toggleMute = () => {
+  const toggleMute = (e: React.MouseEvent) => {
+    // Prevent the click from bubbling up to parent elements
+    e.stopPropagation();
+    
     if (!audioRef.current) return;
     const newMutedState = !isMuted;
     audioRef.current.muted = newMutedState;
