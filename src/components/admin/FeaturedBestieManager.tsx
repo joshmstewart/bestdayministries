@@ -33,6 +33,7 @@ interface FeaturedBestie {
   approval_status: string;
   approved_at: string | null;
   approved_by: string | null;
+  monthly_goal: number | null;
 }
 
 export const FeaturedBestieManager = () => {
@@ -52,6 +53,7 @@ export const FeaturedBestieManager = () => {
   const [isActive, setIsActive] = useState(true);
   const [availableForSponsorship, setAvailableForSponsorship] = useState(true);
   const [isFullyFunded, setIsFullyFunded] = useState(false);
+  const [monthlyGoal, setMonthlyGoal] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -211,6 +213,7 @@ export const FeaturedBestieManager = () => {
         available_for_sponsorship: availableForSponsorship,
         is_fully_funded: isFullyFunded,
         approval_status: 'approved', // Admin posts are auto-approved
+        monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
       };
 
       if (imageFile) {
@@ -271,6 +274,7 @@ export const FeaturedBestieManager = () => {
     setIsActive(bestie.is_active);
     setAvailableForSponsorship(bestie.available_for_sponsorship);
     setIsFullyFunded(bestie.is_fully_funded);
+    setMonthlyGoal(bestie.monthly_goal ? bestie.monthly_goal.toString() : "");
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
     setDialogOpen(true);
@@ -412,6 +416,7 @@ export const FeaturedBestieManager = () => {
     setIsActive(true);
     setAvailableForSponsorship(true);
     setIsFullyFunded(false);
+    setMonthlyGoal("");
     setImageFile(null);
     setAudioFile(null);
     setAudioBlob(null);
@@ -759,6 +764,24 @@ export const FeaturedBestieManager = () => {
               <p className="text-sm text-muted-foreground">
                 When enabled, this bestie is eligible for sponsorships
               </p>
+
+              {availableForSponsorship && (
+                <div className="space-y-2">
+                  <Label htmlFor="monthly-goal">Monthly Sponsorship Goal ($)</Label>
+                  <Input
+                    id="monthly-goal"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={monthlyGoal}
+                    onChange={(e) => setMonthlyGoal(e.target.value)}
+                    placeholder="e.g., 500.00"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Set the monthly sponsorship goal amount for this bestie
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center space-x-2">
                 <Switch

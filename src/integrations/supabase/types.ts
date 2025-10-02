@@ -564,6 +564,13 @@ export type Database = {
             foreignKeyName: "featured_bestie_hearts_featured_bestie_id_fkey"
             columns: ["featured_bestie_id"]
             isOneToOne: false
+            referencedRelation: "bestie_funding_progress"
+            referencedColumns: ["featured_bestie_id"]
+          },
+          {
+            foreignKeyName: "featured_bestie_hearts_featured_bestie_id_fkey"
+            columns: ["featured_bestie_id"]
+            isOneToOne: false
             referencedRelation: "featured_besties"
             referencedColumns: ["id"]
           },
@@ -605,6 +612,7 @@ export type Database = {
           image_url: string
           is_active: boolean | null
           is_fully_funded: boolean
+          monthly_goal: number | null
           start_date: string
           updated_at: string
           voice_note_url: string | null
@@ -623,6 +631,7 @@ export type Database = {
           image_url: string
           is_active?: boolean | null
           is_fully_funded?: boolean
+          monthly_goal?: number | null
           start_date?: string
           updated_at?: string
           voice_note_url?: string | null
@@ -641,6 +650,7 @@ export type Database = {
           image_url?: string
           is_active?: boolean | null
           is_fully_funded?: boolean
+          monthly_goal?: number | null
           start_date?: string
           updated_at?: string
           voice_note_url?: string | null
@@ -883,6 +893,18 @@ export type Database = {
           setting_key?: string | null
           setting_value?: Json | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      bestie_funding_progress: {
+        Row: {
+          bestie_id: string | null
+          bestie_name: string | null
+          current_monthly_pledges: number | null
+          featured_bestie_id: string | null
+          funding_percentage: number | null
+          monthly_goal: number | null
+          remaining_needed: number | null
         }
         Relationships: []
       }

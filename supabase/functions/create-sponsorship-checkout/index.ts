@@ -1,5 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,8 +20,14 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeKey, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-08-27.basil',
     });
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     const { bestie_id, amount, frequency, email } = await req.json();
 
@@ -85,11 +92,42 @@ serve(async (req) => {
         frequency,
         amount: amount.toString(),
       },
+      // Add subscription metadata so webhook can access it
+      ...(frequency === 'monthly' && {
+        subscription_data: {
+          metadata: {
+            bestie_id,
+            frequency,
+            amount: amount.toString(),
+          },
+        },
+      }),
     };
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
     console.log('Checkout session created:', session.id);
+
+    // For one-time payments, create the sponsorship record immediately
+    if (frequency === 'one-time') {
+      // Get user by email
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (profile) {
+        await supabaseAdmin.from("sponsorships").insert({
+          sponsor_id: profile.id,
+          bestie_id: bestie_id,
+          amount: amount,
+          frequency: 'one-time',
+          status: 'pending',
+          started_at: new Date().toISOString(),
+        });
+      }
+    }
 
     return new Response(
       JSON.stringify({ url: session.url }),

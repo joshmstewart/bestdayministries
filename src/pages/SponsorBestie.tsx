@@ -11,12 +11,21 @@ import { Heart, Sparkles, Users, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { FundingProgressBar } from "@/components/FundingProgressBar";
 
 interface Bestie {
   id: string;
   bestie_name: string;
   image_url: string;
   description: string;
+  monthly_goal: number | null;
+}
+
+interface FundingProgress {
+  featured_bestie_id: string;
+  current_monthly_pledges: number;
+  monthly_goal: number;
+  funding_percentage: number;
 }
 
 const sponsorshipSchema = z.object({
@@ -28,6 +37,7 @@ const SponsorBestie = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [besties, setBesties] = useState<Bestie[]>([]);
+  const [fundingProgress, setFundingProgress] = useState<Record<string, FundingProgress>>({});
   const [selectedBestie, setSelectedBestie] = useState<string>("");
   const [frequency, setFrequency] = useState<"one-time" | "monthly">("monthly");
   const [amount, setAmount] = useState<string>("25");
@@ -55,6 +65,12 @@ const SponsorBestie = () => {
     }
   }, [searchParams, besties]);
 
+  useEffect(() => {
+    if (besties.length > 0) {
+      loadFundingProgress();
+    }
+  }, [besties]);
+
   const checkAuthAndLoadEmail = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -74,8 +90,9 @@ const SponsorBestie = () => {
   const loadBesties = async () => {
     const { data, error } = await supabase
       .from("featured_besties")
-      .select("id, bestie_name, image_url, description")
+      .select("id, bestie_name, image_url, description, monthly_goal")
       .eq("is_active", true)
+      .eq("approval_status", "approved")
       .eq("available_for_sponsorship", true)
       .eq("is_fully_funded", false)
       .order("created_at", { ascending: false });
@@ -89,6 +106,24 @@ const SponsorBestie = () => {
     if (data && data.length > 0) {
       setSelectedBestie(data[0].id);
     }
+  };
+
+  const loadFundingProgress = async () => {
+    const { data, error } = await supabase
+      .from("bestie_funding_progress")
+      .select("*");
+
+    if (error) {
+      console.error("Error loading funding progress:", error);
+      return;
+    }
+
+    // Create a map of bestie ID to funding progress
+    const progressMap: Record<string, FundingProgress> = {};
+    data?.forEach(progress => {
+      progressMap[progress.featured_bestie_id] = progress;
+    });
+    setFundingProgress(progressMap);
   };
 
   const handleSponsorship = async () => {
@@ -195,6 +230,15 @@ const SponsorBestie = () => {
                                   {bestie.bestie_name}
                                 </Label>
                                 <p className="text-sm text-muted-foreground mt-1">{bestie.description}</p>
+                                
+                                {bestie.monthly_goal && bestie.monthly_goal > 0 && fundingProgress[bestie.id] && (
+                                  <div className="mt-3">
+                                    <FundingProgressBar
+                                      currentAmount={fundingProgress[bestie.id].current_monthly_pledges}
+                                      goalAmount={fundingProgress[bestie.id].monthly_goal}
+                                    />
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </CardContent>

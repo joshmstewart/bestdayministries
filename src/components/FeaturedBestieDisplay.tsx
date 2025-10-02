@@ -7,6 +7,7 @@ import AudioPlayer from "./AudioPlayer";
 import { TextToSpeech } from "./TextToSpeech";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
+import { FundingProgressBar } from "./FundingProgressBar";
 
 interface FeaturedBestie {
   id: string;
@@ -18,11 +19,19 @@ interface FeaturedBestie {
   end_date: string;
   available_for_sponsorship: boolean;
   is_fully_funded: boolean;
+  monthly_goal: number | null;
+}
+
+interface FundingProgress {
+  current_monthly_pledges: number;
+  monthly_goal: number;
+  funding_percentage: number;
 }
 
 export const FeaturedBestieDisplay = () => {
   const navigate = useNavigate();
   const [bestie, setBestie] = useState<FeaturedBestie | null>(null);
+  const [fundingProgress, setFundingProgress] = useState<FundingProgress | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,12 +47,28 @@ export const FeaturedBestieDisplay = () => {
         .from("featured_besties")
         .select("*")
         .eq("is_active", true)
+        .eq("approval_status", "approved")
         .lte("start_date", today)
         .gte("end_date", today)
         .maybeSingle();
 
       if (error) throw error;
       setBestie(data);
+
+      // Load funding progress if bestie is available for sponsorship
+      if (data?.available_for_sponsorship && data?.monthly_goal && data.monthly_goal > 0) {
+        const { data: progressData, error: progressError } = await supabase
+          .from("bestie_funding_progress")
+          .select("current_monthly_pledges, monthly_goal, funding_percentage")
+          .eq("featured_bestie_id", data.id)
+          .maybeSingle();
+
+        if (progressError) {
+          console.error("Error loading funding progress:", progressError);
+        } else {
+          setFundingProgress(progressData);
+        }
+      }
     } catch (error: any) {
       console.error("Error loading featured bestie:", error);
     } finally {
@@ -95,6 +120,15 @@ export const FeaturedBestieDisplay = () => {
               <AudioPlayer src={bestie.voice_note_url} />
             </div>
           )}
+          
+          {fundingProgress && bestie.monthly_goal && bestie.monthly_goal > 0 && (
+            <FundingProgressBar
+              currentAmount={fundingProgress.current_monthly_pledges}
+              goalAmount={fundingProgress.monthly_goal}
+              className="mt-4"
+            />
+          )}
+          
           {bestie.available_for_sponsorship && !bestie.is_fully_funded && (
             <Button 
               onClick={() => navigate(`/sponsor-bestie?bestie=${bestie.id}`)}
