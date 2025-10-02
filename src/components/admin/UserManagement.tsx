@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound, Edit, TestTube, Copy } from "lucide-react";
+import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -30,6 +30,7 @@ export const UserManagement = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState("");
   const [creatingTestAccounts, setCreatingTestAccounts] = useState(false);
+  const [loggingInAs, setLoggingInAs] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -282,6 +283,37 @@ export const UserManagement = () => {
     });
   };
 
+  const handleLoginAs = async (email: string, password: string, displayName: string) => {
+    setLoggingInAs(email);
+    try {
+      // Sign out current user
+      await supabase.auth.signOut();
+      
+      // Sign in as test user
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Logged in successfully",
+        description: `You are now logged in as ${displayName}`,
+      });
+
+      // Redirect to community page
+      window.location.href = "/community";
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Could not log in as test user. Make sure the account exists.",
+        variant: "destructive",
+      });
+      setLoggingInAs(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -340,6 +372,24 @@ export const UserManagement = () => {
                       </Button>
                     </div>
                   </div>
+                  <Button
+                    onClick={() => handleLoginAs(account.email, account.password, account.displayName)}
+                    disabled={loggingInAs !== null}
+                    className="w-full gap-2 mt-2"
+                    size="sm"
+                  >
+                    {loggingInAs === account.email ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="w-3 h-3" />
+                        Login As
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             ))}
