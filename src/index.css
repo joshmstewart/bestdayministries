@@ -138,9 +138,20 @@ All colors MUST be HSL.
     --brand-white: 0 0% 100%;
     --warm-cream: 46 35% 96%;
     
-    /* Modern Gradients */
-    --gradient-warm: linear-gradient(135deg, hsl(24 85% 56%) 0%, hsl(33 100% 58%) 50%, hsl(46 95% 55%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(24 85% 56% / 0.95) 0%, hsl(33 100% 58% / 0.9) 50%, hsl(46 95% 55% / 0.85) 100%);
+    /* Modern Gradients - Organic Liquid Effect */
+    --gradient-warm: 
+      radial-gradient(circle at 20% 30%, hsl(46 95% 55% / 0.4) 0%, transparent 25%),
+      radial-gradient(circle at 75% 20%, hsl(46 95% 55% / 0.35) 0%, transparent 30%),
+      radial-gradient(circle at 85% 70%, hsl(46 95% 55% / 0.45) 0%, transparent 25%),
+      radial-gradient(circle at 40% 80%, hsl(46 95% 55% / 0.3) 0%, transparent 35%),
+      radial-gradient(circle at 15% 85%, hsl(46 95% 55% / 0.25) 0%, transparent 28%),
+      hsl(24 85% 56%);
+    --gradient-hero: 
+      radial-gradient(circle at 25% 35%, hsl(46 95% 55% / 0.35) 0%, transparent 25%),
+      radial-gradient(circle at 70% 25%, hsl(46 95% 55% / 0.3) 0%, transparent 30%),
+      radial-gradient(circle at 80% 75%, hsl(46 95% 55% / 0.4) 0%, transparent 25%),
+      radial-gradient(circle at 35% 85%, hsl(46 95% 55% / 0.25) 0%, transparent 35%),
+      hsl(24 85% 56% / 0.95);
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(46 35% 98%) 100%);
     --gradient-sunset: linear-gradient(180deg, hsl(33 100% 58% / 0.1) 0%, hsl(46 95% 55% / 0.05) 100%);
     --gradient-glow: radial-gradient(circle at 50% 50%, hsl(46 95% 55% / 0.2) 0%, transparent 70%);
