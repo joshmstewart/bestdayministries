@@ -185,25 +185,25 @@ export const UnifiedHeader = () => {
                   />
                   <span className="hidden sm:inline font-semibold">Profile</span>
                 </Button>
+                {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner") && (
+                  <Button 
+                    onClick={() => navigate("/guardian-links")}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="hidden sm:inline font-semibold">My Besties</span>
+                  </Button>
+                )}
                 {profile?.role === "caregiver" && (
-                  <>
-                    <Button 
-                      onClick={() => navigate("/guardian-links")}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <Users className="w-4 h-4" />
-                      <span className="hidden sm:inline font-semibold">My Besties</span>
-                    </Button>
-                    <Button 
-                      onClick={() => navigate("/guardian-approvals")}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="hidden sm:inline font-semibold">Approvals</span>
-                    </Button>
-                  </>
+                  <Button 
+                    onClick={() => navigate("/guardian-approvals")}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="hidden sm:inline font-semibold">Approvals</span>
+                  </Button>
                 )}
                 {isAdmin && (
                   <Button 

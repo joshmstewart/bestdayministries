@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star } from "lucide-react";
+import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
@@ -33,11 +33,28 @@ interface BestieLink {
   };
 }
 
+interface Sponsorship {
+  id: string;
+  bestie_id: string;
+  amount: number;
+  frequency: string;
+  status: string;
+  started_at: string;
+  ended_at: string | null;
+  bestie: {
+    display_name: string;
+    email: string;
+    avatar_number: number;
+  };
+}
+
 export default function GuardianLinks() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<BestieLink[]>([]);
+  const [sponsorships, setSponsorships] = useState<Sponsorship[]>([]);
+  const [userRole, setUserRole] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [emoji1, setEmoji1] = useState("");
   const [emoji2, setEmoji2] = useState("");
@@ -67,18 +84,27 @@ export default function GuardianLinks() {
         .eq("id", user.id)
         .single();
 
-      if (!profile || profile.role !== "caregiver") {
+      // Allow caregivers, supporters, admins, and owners
+      if (!profile || (profile.role !== "caregiver" && profile.role !== "supporter" && profile.role !== "admin" && profile.role !== "owner")) {
         toast({
           title: "Access denied",
-          description: "Only guardians can access this page",
+          description: "You don't have permission to access this page",
           variant: "destructive",
         });
         navigate("/community");
         return;
       }
 
+      setUserRole(profile.role);
       setCurrentUserId(user.id);
-      await loadLinks(user.id);
+      
+      // Only caregivers have guardian links
+      if (profile.role === "caregiver") {
+        await loadLinks(user.id);
+      }
+      
+      // Load sponsorships for all roles
+      await loadSponsorships(user.id);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -122,6 +148,45 @@ export default function GuardianLinks() {
     } catch (error: any) {
       toast({
         title: "Error loading links",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadSponsorships = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("sponsorships")
+        .select(`
+          id,
+          bestie_id,
+          amount,
+          frequency,
+          status,
+          started_at,
+          ended_at,
+          bestie:profiles!sponsorships_bestie_id_fkey(
+            display_name,
+            email,
+            avatar_number
+          )
+        `)
+        .eq("sponsor_id", userId)
+        .eq("status", "active")
+        .order("started_at", { ascending: false });
+
+      if (error) throw error;
+
+      const transformedData = (data || []).map(sponsorship => ({
+        ...sponsorship,
+        bestie: Array.isArray(sponsorship.bestie) ? sponsorship.bestie[0] : sponsorship.bestie
+      }));
+
+      setSponsorships(transformedData as Sponsorship[]);
+    } catch (error: any) {
+      toast({
+        title: "Error loading sponsorships",
         description: error.message,
         variant: "destructive",
       });
@@ -292,15 +357,18 @@ export default function GuardianLinks() {
       <UnifiedHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Linked Besties</h1>
+              <h1 className="text-3xl font-bold">My Besties</h1>
               <p className="text-muted-foreground mt-2">
-                Manage the bestie accounts you're connected with as a guardian
+                {userRole === "caregiver" 
+                  ? "Manage your guardian relationships and sponsorships"
+                  : "Manage the besties you sponsor"}
               </p>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            {userRole === "caregiver" && (
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <UserPlus className="w-4 h-4" />
@@ -403,9 +471,14 @@ export default function GuardianLinks() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            )}
           </div>
 
-          {links.length === 0 ? (
+          {/* Guardian Links Section - Only for caregivers */}
+          {userRole === "caregiver" && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">Guardian Relationships</h2>
+              {links.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <LinkIcon className="w-12 h-12 text-muted-foreground mb-4" />
@@ -419,7 +492,7 @@ export default function GuardianLinks() {
                 </Button>
               </CardContent>
             </Card>
-          ) : (
+              ) : (
             <div className="grid gap-4">
               {links.map((link) => (
                 <Card key={link.id}>
@@ -528,9 +601,73 @@ export default function GuardianLinks() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                ))}
+              </div>
+              )}
             </div>
           )}
+
+          {/* Sponsored Besties Section - For all roles */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold">Sponsored Besties</h2>
+            {sponsorships.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Heart className="w-12 h-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No sponsorships yet</h3>
+                  <p className="text-muted-foreground text-center mb-4">
+                    Sponsor a bestie to provide direct support for their programs and activities
+                  </p>
+                  <Button onClick={() => navigate("/sponsor-bestie")}>
+                    <Heart className="w-4 h-4 mr-2" />
+                    Sponsor a Bestie
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {sponsorships.map((sponsorship) => (
+                  <Card key={sponsorship.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <AvatarDisplay
+                            avatarNumber={sponsorship.bestie.avatar_number}
+                            displayName={sponsorship.bestie.display_name}
+                            size="lg"
+                          />
+                          <div>
+                            <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
+                            <CardDescription>{sponsorship.bestie.email}</CardDescription>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="font-medium">Amount:</span>
+                          <span className="text-lg font-bold text-primary">${sponsorship.amount}{sponsorship.frequency === 'monthly' ? '/month' : ''}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="font-medium">Type:</span>
+                          <span className="capitalize">{sponsorship.frequency}</span>
+                          <span className="mx-2">•</span>
+                          <span>Started {new Date(sponsorship.started_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium">Status:</span>
+                          <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
+                            Active
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
       

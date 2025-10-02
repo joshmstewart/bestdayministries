@@ -77,9 +77,16 @@ const SponsorBestie = () => {
       setIsLoggedIn(true);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("email")
+        .select("email, role")
         .eq("id", user.id)
         .single();
+      
+      // Block besties from sponsoring
+      if (profile?.role === "bestie") {
+        toast.error("Besties cannot sponsor other besties at this time");
+        navigate("/community");
+        return;
+      }
       
       if (profile?.email) {
         setEmail(profile.email);

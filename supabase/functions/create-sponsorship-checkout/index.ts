@@ -42,6 +42,17 @@ serve(async (req) => {
       throw new Error('Minimum sponsorship amount is $10');
     }
 
+    // Check if user is a bestie (prevent besties from sponsoring)
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (profile && profile.role === 'bestie') {
+      throw new Error('Besties cannot sponsor other besties at this time');
+    }
+
     // Convert amount to cents for Stripe
     const amountInCents = Math.round(amount * 100);
 
