@@ -190,10 +190,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "caregiver_bestie_links_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "caregiver_bestie_links_caregiver_id_fkey"
             columns: ["caregiver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_bestie_links_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -244,6 +258,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
             referencedColumns: ["id"]
           },
           {
@@ -312,6 +333,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "discussion_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_attendees: {
@@ -349,6 +377,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -451,6 +486,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       featured_bestie_hearts: {
@@ -485,6 +527,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "featured_bestie_hearts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -569,7 +618,7 @@ export type Database = {
           email: string | null
           friend_code: string | null
           id: string
-          role: Database["public"]["Enums"]["user_role"]
+          role: Database["public"]["Enums"]["user_role"] | null
           tts_enabled: boolean
           tts_voice: string | null
           updated_at: string
@@ -584,7 +633,7 @@ export type Database = {
           email?: string | null
           friend_code?: string | null
           id: string
-          role: Database["public"]["Enums"]["user_role"]
+          role?: Database["public"]["Enums"]["user_role"] | null
           tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
@@ -599,7 +648,7 @@ export type Database = {
           email?: string | null
           friend_code?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: Database["public"]["Enums"]["user_role"] | null
           tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
@@ -654,13 +703,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sponsorships_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sponsorships_sponsor_id_fkey"
             columns: ["sponsor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sponsorships_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -685,8 +772,39 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles_with_roles: {
+        Row: {
+          audio_notifications_enabled: boolean | null
+          avatar_number: number | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          current_role: Database["public"]["Enums"]["user_role"] | null
+          display_name: string | null
+          email: string | null
+          friend_code: string | null
+          id: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          tts_enabled: boolean | null
+          tts_voice: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_avatar_number_fkey"
+            columns: ["avatar_number"]
+            isOneToOne: false
+            referencedRelation: "avatars"
+            referencedColumns: ["avatar_number"]
+          },
+        ]
+      }
     }
     Functions: {
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       has_admin_access: {
         Args: { _user_id: string }
         Returns: boolean

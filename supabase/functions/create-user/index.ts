@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Verify the requesting user is an owner
+    // Verify the requesting user is an owner/admin using user_roles table
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
     const { data: { user: requestingUser } } = await supabaseAdmin.auth.getUser(token);
@@ -35,13 +35,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
+    // Check role from user_roles table
+    const { data: userRole } = await supabaseAdmin
+      .from('user_roles')
       .select('role')
-      .eq('id', requestingUser.id)
+      .eq('user_id', requestingUser.id)
       .single();
 
-    if (!['owner', 'admin'].includes(profile?.role || '')) {
+    if (!['owner', 'admin'].includes(userRole?.role || '')) {
       return new Response(
         JSON.stringify({ error: 'Only owners and admins can create users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -72,16 +73,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update the profile with the correct role
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update({ role: role || 'supporter', display_name: displayName || 'New Member' })
-      .eq('id', newUser.user.id);
-
-    if (updateError) {
-      console.error('Error updating profile:', updateError);
-    }
-
+    // Note: The trigger handle_new_user() will automatically:
+    // 1. Create profile entry
+    // 2. Insert role into user_roles table
+    
     console.log('User created successfully:', newUser.user.id);
 
     return new Response(

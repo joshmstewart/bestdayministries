@@ -4,6 +4,14 @@ export type UserRole = "admin" | "owner" | "caregiver" | "bestie" | "supporter";
 
 const IMPERSONATION_KEY = "admin_impersonated_role";
 
+/**
+ * SECURITY NOTE: This hook manages UI-only role impersonation for admin/owner users.
+ * The impersonation is stored in localStorage for UI testing purposes only.
+ * 
+ * CRITICAL: All server-side authorization MUST use the actual role from the 
+ * user_roles table via has_admin_access() or get_user_role() functions.
+ * Never trust client-supplied role information for access control decisions.
+ */
 export const useRoleImpersonation = () => {
   const [impersonatedRole, setImpersonatedRole] = useState<UserRole | null>(null);
 
@@ -27,7 +35,7 @@ export const useRoleImpersonation = () => {
 
   const getEffectiveRole = (actualRole: UserRole | null): UserRole | null => {
     // Only allow impersonation if user has admin-level access (admin or owner)
-    // Note: Owner role automatically has all admin permissions
+    // This is for UI display purposes only - server validates actual role
     if (actualRole === "admin" || actualRole === "owner") {
       return impersonatedRole || actualRole;
     }

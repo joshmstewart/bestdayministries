@@ -30,7 +30,7 @@ serve(async (req) => {
       throw new Error('No authorization header');
     }
 
-    // Verify the requesting user has admin-level access
+    // Verify the requesting user has admin-level access using user_roles table
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
@@ -38,14 +38,14 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Check if user has admin-level access (includes owner role)
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
+    // Check if user has admin-level access from user_roles table
+    const { data: userRole } = await supabaseAdmin
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single();
 
-    if (!profile || (profile.role !== 'admin' && profile.role !== 'owner')) {
+    if (!userRole || (userRole.role !== 'admin' && userRole.role !== 'owner')) {
       throw new Error('Insufficient permissions - admin access required');
     }
 
@@ -56,23 +56,23 @@ serve(async (req) => {
       throw new Error('User ID is required');
     }
 
-    // Check the target user's role
-    const { data: targetProfile, error: targetProfileError } = await supabaseAdmin
-      .from('profiles')
+    // Check the target user's role from user_roles table
+    const { data: targetUserRole, error: targetRoleError } = await supabaseAdmin
+      .from('user_roles')
       .select('role')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
-    if (targetProfileError) {
+    if (targetRoleError) {
       throw new Error('Target user not found');
     }
 
     // Only owners can delete admin accounts
-    if (targetProfile.role === 'admin' && profile.role !== 'owner') {
+    if (targetUserRole.role === 'admin' && userRole.role !== 'owner') {
       throw new Error('Only owners can delete admin accounts');
     }
 
-    console.log(`Admin ${user.id} (${profile.role}) deleting user: ${userId} (${targetProfile.role})`);
+    console.log(`Admin ${user.id} (${userRole.role}) deleting user: ${userId} (${targetUserRole.role})`);
 
     // Delete the user using admin API
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);

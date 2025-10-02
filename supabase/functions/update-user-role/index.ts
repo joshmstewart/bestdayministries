@@ -37,14 +37,14 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    // Check if user has admin-level access (admin or owner)
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
+    // Check if user has admin-level access using user_roles table
+    const { data: currentUserRole, error: roleError } = await supabaseClient
+      .from("user_roles")
       .select("role")
-      .eq("id", user.id)
+      .eq("user_id", user.id)
       .single();
 
-    if (profileError || !profile || !["admin", "owner"].includes(profile.role)) {
+    if (roleError || !currentUserRole || !["admin", "owner"].includes(currentUserRole.role)) {
       throw new Error("Insufficient permissions");
     }
 
@@ -55,35 +55,49 @@ serve(async (req) => {
       throw new Error("User ID and new role are required");
     }
 
-    // Check the target user's current role
-    const { data: targetProfile, error: targetProfileError } = await supabaseClient
-      .from("profiles")
+    // Check the target user's current role from user_roles table
+    const { data: targetUserRole, error: targetRoleError } = await supabaseClient
+      .from("user_roles")
       .select("role")
-      .eq("id", userId)
+      .eq("user_id", userId)
       .single();
 
-    if (targetProfileError) {
+    if (targetRoleError) {
       throw new Error("Target user not found");
     }
 
     // Admins can only change roles for non-admin users (caregiver, bestie, supporter)
     // Only owners can change admin/owner roles
     const adminLevelRoles = ["admin", "owner"];
-    if (adminLevelRoles.includes(targetProfile.role) || adminLevelRoles.includes(newRole)) {
-      if (profile.role !== "owner") {
+    if (adminLevelRoles.includes(targetUserRole.role) || adminLevelRoles.includes(newRole)) {
+      if (currentUserRole.role !== "owner") {
         throw new Error("Only owners can modify admin-level roles");
       }
     }
 
-    // Update the user's role
-    const { error: updateError } = await supabaseClient
+    // Delete old role(s) and insert new role
+    await supabaseClient
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId);
+
+    const { error: insertError } = await supabaseClient
+      .from("user_roles")
+      .insert({
+        user_id: userId,
+        role: newRole,
+        created_by: user.id,
+      });
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    // Also update profiles table for backward compatibility
+    await supabaseClient
       .from("profiles")
       .update({ role: newRole })
       .eq("id", userId);
-
-    if (updateError) {
-      throw updateError;
-    }
 
     console.log(`User ${userId} role changed to ${newRole} by ${user.id}`);
 
