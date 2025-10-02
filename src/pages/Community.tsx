@@ -12,6 +12,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
+import OurFamily from "@/components/OurFamily";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -322,6 +323,9 @@ const Community = () => {
 
           {/* Latest Album */}
           <LatestAlbum />
+
+          {/* Our Family Section */}
+          <OurFamily />
 
           {/* Quick Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
