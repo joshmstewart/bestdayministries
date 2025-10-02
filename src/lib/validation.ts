@@ -63,8 +63,8 @@ export type ProfileInput = z.infer<typeof profileSchema>;
 export const guardianLinkSchema = z.object({
   friendCode: z.string()
     .trim()
-    .length(3, "Friend code must be exactly 3 emojis")
-    .regex(/^[\p{Emoji}]{3}$/u, "Friend code must contain exactly 3 emojis"),
+    .length(4, "Friend code must be exactly 4 emojis")
+    .regex(/^[\p{Emoji}]{4}$/u, "Friend code must contain exactly 4 emojis"),
   relationship: z.string()
     .trim()
     .min(1, "Relationship is required")

@@ -56,6 +56,22 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check rate limit: 10 user creations per hour
+    const { data: rateLimitOk } = await supabaseAdmin.rpc('check_rate_limit', {
+      _user_id: requestingUser.id,
+      _endpoint: 'create-user',
+      _max_requests: 10,
+      _window_minutes: 60
+    });
+
+    if (!rateLimitOk) {
+      console.log(`Rate limit exceeded for user ${requestingUser.id} on create-user`);
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check role from user_roles table
     const { data: userRole } = await supabaseAdmin
       .from('user_roles')

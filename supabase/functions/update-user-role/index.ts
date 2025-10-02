@@ -50,6 +50,22 @@ serve(async (req) => {
       );
     }
 
+    // Check rate limit: 20 role updates per hour
+    const { data: rateLimitOk } = await supabaseClient.rpc('check_rate_limit', {
+      _user_id: user.id,
+      _endpoint: 'update-user-role',
+      _max_requests: 20,
+      _window_minutes: 60
+    });
+
+    if (!rateLimitOk) {
+      console.log(`Rate limit exceeded for user ${user.id} on update-user-role`);
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check if user has admin-level access using user_roles table
     const { data: currentUserRole, error: roleError } = await supabaseClient
       .from("user_roles")

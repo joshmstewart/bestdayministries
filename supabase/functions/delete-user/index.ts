@@ -27,7 +27,10 @@ serve(async (req) => {
     // Get the authorization header from the request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Verify the requesting user has admin-level access using user_roles table
@@ -35,7 +38,26 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check rate limit: 5 user deletions per hour
+    const { data: rateLimitOk } = await supabaseAdmin.rpc('check_rate_limit', {
+      _user_id: user.id,
+      _endpoint: 'delete-user',
+      _max_requests: 5,
+      _window_minutes: 60
+    });
+
+    if (!rateLimitOk) {
+      console.log(`Rate limit exceeded for user ${user.id} on delete-user`);
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Check if user has admin-level access from user_roles table
@@ -46,14 +68,20 @@ serve(async (req) => {
       .single();
 
     if (!userRole || (userRole.role !== 'admin' && userRole.role !== 'owner')) {
-      throw new Error('Insufficient permissions - admin access required');
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions - admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Get the user ID to delete from the request body
     const { userId } = await req.json();
     
     if (!userId) {
-      throw new Error('User ID is required');
+      return new Response(
+        JSON.stringify({ error: 'User ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Check the target user's role from user_roles table
@@ -64,12 +92,18 @@ serve(async (req) => {
       .single();
 
     if (targetRoleError) {
-      throw new Error('Target user not found');
+      return new Response(
+        JSON.stringify({ error: 'Target user not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Only owners can delete admin accounts
     if (targetUserRole.role === 'admin' && userRole.role !== 'owner') {
-      throw new Error('Only owners can delete admin accounts');
+      return new Response(
+        JSON.stringify({ error: 'Only owners can delete admin accounts' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log(`Admin ${user.id} (${userRole.role}) deleting user: ${userId} (${targetUserRole.role})`);
@@ -95,10 +129,10 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('Error in delete-user function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
+        status: 500
       }
     );
   }
