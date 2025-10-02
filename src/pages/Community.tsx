@@ -281,7 +281,12 @@ const Community = () => {
                             className="w-full h-40 object-cover rounded-lg"
                           />
                         )}
-                        <h3 className="font-semibold text-base">{event.title}</h3>
+                        <div className="flex items-start gap-2">
+                          <h3 className="font-semibold text-base flex-1">{event.title}</h3>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <TextToSpeech text={`${event.title}. ${event.description}. Date: ${new Date(event.event_date).toLocaleDateString()}${event.location ? `. Location: ${event.location}` : ''}`} />
+                          </div>
+                        </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
