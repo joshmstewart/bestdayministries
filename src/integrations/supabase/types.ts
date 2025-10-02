@@ -193,6 +193,13 @@ export type Database = {
             foreignKeyName: "caregiver_bestie_links_bestie_id_fkey"
             columns: ["bestie_id"]
             isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_bestie_links_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
             referencedRelation: "profiles_with_roles"
             referencedColumns: ["id"]
           },
@@ -201,6 +208,13 @@ export type Database = {
             columns: ["caregiver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caregiver_bestie_links_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
           {
@@ -258,6 +272,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
           {
@@ -337,6 +358,13 @@ export type Database = {
             foreignKeyName: "discussion_posts_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles_with_roles"
             referencedColumns: ["id"]
           },
@@ -377,6 +405,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
           {
@@ -490,6 +525,13 @@ export type Database = {
             foreignKeyName: "events_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles_with_roles"
             referencedColumns: ["id"]
           },
@@ -527,6 +569,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "featured_bestie_hearts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
           {
@@ -706,6 +755,13 @@ export type Database = {
             foreignKeyName: "sponsorships_bestie_id_fkey"
             columns: ["bestie_id"]
             isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorships_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
             referencedRelation: "profiles_with_roles"
             referencedColumns: ["id"]
           },
@@ -714,6 +770,13 @@ export type Database = {
             columns: ["sponsor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorships_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
           {
@@ -771,6 +834,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      profiles_public: {
+        Row: {
+          avatar_number: number | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+        }
+        Insert: {
+          avatar_number?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Update: {
+          avatar_number?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_avatar_number_fkey"
+            columns: ["avatar_number"]
+            isOneToOne: false
+            referencedRelation: "avatars"
+            referencedColumns: ["avatar_number"]
+          },
+        ]
       }
       profiles_with_roles: {
         Row: {
