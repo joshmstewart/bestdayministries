@@ -12,6 +12,7 @@ import type { UserRole } from "@/hooks/useRoleImpersonation";
 
 interface FeaturedBestie {
   id: string;
+  bestie_id: string | null;
   bestie_name: string;
   image_url: string;
   voice_note_url: string | null;
@@ -68,6 +69,7 @@ export const FeaturedBestieDisplay = () => {
 
   const checkSponsorshipStatus = async (bestieId: string, currentUserId: string) => {
     try {
+      console.log("Checking sponsorship for bestieId:", bestieId, "userId:", currentUserId);
       const { data, error } = await supabase
         .from("sponsorships")
         .select("id")
@@ -76,11 +78,15 @@ export const FeaturedBestieDisplay = () => {
         .eq("status", "active")
         .maybeSingle();
 
+      console.log("Sponsorship query result:", { data, error });
+
       if (error && error.code !== "PGRST116") {
         console.error("Error checking sponsorship:", error);
       }
       
-      setIsSponsoring(!!data);
+      const hasSponsorship = !!data;
+      console.log("Is sponsoring:", hasSponsorship);
+      setIsSponsoring(hasSponsorship);
     } catch (error) {
       console.error("Error checking sponsorship status:", error);
     }
@@ -104,8 +110,8 @@ export const FeaturedBestieDisplay = () => {
       setBestie(data);
 
       // Check if user is sponsoring this bestie
-      if (data && userId) {
-        await checkSponsorshipStatus(data.id, userId);
+      if (data && userId && data.bestie_id) {
+        await checkSponsorshipStatus(data.bestie_id, userId);
       }
 
       // Load funding progress if bestie is available for sponsorship
