@@ -89,6 +89,7 @@ export default function AlbumManagement() {
   const [editingCaption, setEditingCaption] = useState<AlbumImage | null>(null);
   const [showCaptionDialog, setShowCaptionDialog] = useState(false);
   const [newCaption, setNewCaption] = useState("");
+  const [existingImages, setExistingImages] = useState<AlbumImage[]>([]);
 
   useEffect(() => {
     checkAdminAccess();
@@ -279,11 +280,12 @@ export default function AlbumManagement() {
     setIsPost(false);
     setIsPublic(true);
     setEditingAlbum(null);
+    setExistingImages([]);
     setShowForm(false);
   };
 
   const handleSubmit = async () => {
-    if (!title || (selectedImages.length === 0 && !editingAlbum?.images?.length)) {
+    if (!title || (selectedImages.length === 0 && !editingAlbum?.images?.length && existingImages.length === 0)) {
       toast.error("Please provide a title and at least one image");
       return;
     }
@@ -364,6 +366,9 @@ export default function AlbumManagement() {
           .from("album-images")
           .getPublicUrl(fileName);
         
+        // Get the next display order (after existing images)
+        const nextOrder = existingImages.length + i;
+        
         // Insert image record
         const { error: imageError } = await supabase
           .from("album_images")
@@ -371,13 +376,13 @@ export default function AlbumManagement() {
             album_id: albumId,
             image_url: publicUrl,
             caption: imageCaptions[i] || null,
-            display_order: i,
+            display_order: nextOrder,
           });
 
         if (imageError) throw imageError;
 
-        // Set first image as cover if creating new album
-        if (i === 0 && !editingAlbum) {
+        // Set first image as cover if creating new album and no existing images
+        if (i === 0 && !editingAlbum && existingImages.length === 0) {
           await supabase
             .from("albums")
             .update({ cover_image_url: publicUrl })
@@ -397,6 +402,7 @@ export default function AlbumManagement() {
   };
 
   const handleEdit = (album: Album) => {
+    console.log("Editing album:", album);
     setEditingAlbum(album);
     setTitle(album.title);
     setDescription(album.description || "");
@@ -406,6 +412,7 @@ export default function AlbumManagement() {
     setShowAudioRecorder(false);
     setIsPost(album.is_post || false);
     setIsPublic(album.is_public ?? true);
+    setExistingImages(album.images || []);
     setShowForm(true);
   };
 
@@ -426,20 +433,28 @@ export default function AlbumManagement() {
     }
   };
 
-  const handleDeleteImage = async (imageId: string, albumId: string) => {
+  const handleDeleteImage = async (imageId: string, albumId?: string) => {
     if (!confirm("Are you sure you want to delete this image?")) return;
 
-    const { error } = await supabase
-      .from("album_images")
-      .delete()
-      .eq("id", imageId);
+    try {
+      const { error } = await supabase
+        .from("album_images")
+        .delete()
+        .eq("id", imageId);
 
-    if (error) {
-      toast.error("Failed to delete image");
-      console.error(error);
-    } else {
+      if (error) throw error;
+
       toast.success("Image deleted successfully");
+      
+      // Update existing images in form if editing
+      if (editingAlbum) {
+        setExistingImages(prev => prev.filter(img => img.id !== imageId));
+      }
+      
       loadAlbums();
+    } catch (error: any) {
+      console.error("Error deleting image:", error);
+      toast.error("Failed to delete image");
     }
   };
 
@@ -461,6 +476,18 @@ export default function AlbumManagement() {
       if (error) throw error;
 
       toast.success("Caption updated successfully");
+      
+      // Update existing images in form if editing
+      if (editingAlbum) {
+        setExistingImages(prev => 
+          prev.map(img => 
+            img.id === editingCaption.id 
+              ? { ...img, caption: newCaption || null }
+              : img
+          )
+        );
+      }
+      
       setShowCaptionDialog(false);
       setEditingCaption(null);
       setNewCaption("");
@@ -683,22 +710,83 @@ export default function AlbumManagement() {
 
                 <div className="space-y-2">
                   <Label>Images *</Label>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Select Images
-                  </Button>
+                  
+                  {/* Existing Images when editing */}
+                  {editingAlbum && existingImages.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Existing Images</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {existingImages.map((image) => (
+                          <div key={image.id} className="relative space-y-2">
+                            <div className="relative">
+                              <img 
+                                src={image.image_url} 
+                                alt={image.caption || "Album image"} 
+                                className="w-full h-32 object-cover rounded-lg" 
+                              />
+                              <div className="absolute top-2 right-2 flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleEditCaption(image)}
+                                  title="Edit caption"
+                                >
+                                  <MessageSquare className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleCropExistingImage(image)}
+                                  title="Recrop image"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleDeleteImage(image.id)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            {image.caption && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {image.caption}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Add New Images */}
+                  <div className="space-y-2">
+                    {editingAlbum && <p className="text-sm text-muted-foreground">Add New Images</p>}
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {editingAlbum ? "Add More Images" : "Select Images"}
+                    </Button>
+                  </div>
                   
                   {imagePreviews.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
