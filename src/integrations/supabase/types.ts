@@ -160,6 +160,8 @@ export type Database = {
           created_at: string
           id: string
           relationship: string
+          require_comment_approval: boolean
+          require_post_approval: boolean
         }
         Insert: {
           bestie_id: string
@@ -167,6 +169,8 @@ export type Database = {
           created_at?: string
           id?: string
           relationship: string
+          require_comment_approval?: boolean
+          require_post_approval?: boolean
         }
         Update: {
           bestie_id?: string
@@ -174,6 +178,8 @@ export type Database = {
           created_at?: string
           id?: string
           relationship?: string
+          require_comment_approval?: boolean
+          require_post_approval?: boolean
         }
         Relationships: [
           {

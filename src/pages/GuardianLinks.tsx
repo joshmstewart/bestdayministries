@@ -13,12 +13,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Link as LinkIcon, Trash2, UserPlus } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { Switch } from "@/components/ui/switch";
 
 interface BestieLink {
   id: string;
   bestie_id: string;
   relationship: string;
   created_at: string;
+  require_post_approval: boolean;
+  require_comment_approval: boolean;
   bestie: {
     display_name: string;
     email: string;
@@ -96,6 +99,8 @@ export default function GuardianLinks() {
           bestie_id,
           relationship,
           created_at,
+          require_post_approval,
+          require_comment_approval,
           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             display_name,
             email,
@@ -216,6 +221,32 @@ export default function GuardianLinks() {
     } catch (error: any) {
       toast({
         title: "Error removing link",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval', currentValue: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("caregiver_bestie_links")
+        .update({ [field]: !currentValue })
+        .eq("id", linkId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Settings updated",
+        description: `${field === 'require_post_approval' ? 'Post' : 'Comment'} approval ${!currentValue ? 'enabled' : 'disabled'}`,
+      });
+
+      if (currentUserId) {
+        await loadLinks(currentUserId);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error updating settings",
         description: error.message,
         variant: "destructive",
       });
@@ -363,11 +394,47 @@ export default function GuardianLinks() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span className="font-medium">Relationship:</span>
-                      <span>{link.relationship}</span>
-                      <span className="mx-2">•</span>
-                      <span>Linked {new Date(link.created_at).toLocaleDateString()}</span>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="font-medium">Relationship:</span>
+                        <span>{link.relationship}</span>
+                        <span className="mx-2">•</span>
+                        <span>Linked {new Date(link.created_at).toLocaleDateString()}</span>
+                      </div>
+                      
+                      <div className="space-y-3 pt-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor={`post-approval-${link.id}`} className="text-sm font-medium">
+                              Require Post Approval
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Review and approve posts before they're published
+                            </p>
+                          </div>
+                          <Switch
+                            id={`post-approval-${link.id}`}
+                            checked={link.require_post_approval}
+                            onCheckedChange={() => handleToggleApproval(link.id, 'require_post_approval', link.require_post_approval)}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor={`comment-approval-${link.id}`} className="text-sm font-medium">
+                              Require Comment Approval
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Review and approve comments before they're visible
+                            </p>
+                          </div>
+                          <Switch
+                            id={`comment-approval-${link.id}`}
+                            checked={link.require_comment_approval}
+                            onCheckedChange={() => handleToggleApproval(link.id, 'require_comment_approval', link.require_comment_approval)}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
