@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause, Volume2 } from "lucide-react";
+import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { FundingProgressBar } from "@/components/FundingProgressBar";
 import AudioPlayer from "@/components/AudioPlayer";
 import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBestieManager";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface BestieLink {
   id: string;
@@ -93,8 +94,6 @@ export default function GuardianLinks() {
   const [isSavingShares, setIsSavingShares] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
-  const [generatingTTS, setGeneratingTTS] = useState<string | null>(null);
-  const ttsAudioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   useEffect(() => {
     checkAccess();
@@ -527,53 +526,6 @@ export default function GuardianLinks() {
     }
   };
 
-  const handleTextToSpeech = async (sponsorshipId: string, text: string) => {
-    const ttsAudio = ttsAudioRefs.current.get(sponsorshipId);
-    
-    if (generatingTTS === sponsorshipId && ttsAudio) {
-      // Pause the current TTS audio
-      ttsAudio.pause();
-      setGeneratingTTS(null);
-      return;
-    }
-
-    try {
-      setGeneratingTTS(sponsorshipId);
-
-      const { data, error } = await supabase.functions.invoke('text-to-speech-bestie', {
-        body: { text }
-      });
-
-      if (error) throw error;
-
-      // Convert base64 to audio
-      const audioData = atob(data.audioContent);
-      const audioArray = new Uint8Array(audioData.length);
-      for (let i = 0; i < audioData.length; i++) {
-        audioArray[i] = audioData.charCodeAt(i);
-      }
-      const audioBlob = new Blob([audioArray], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      const audio = new Audio(audioUrl);
-      audio.addEventListener('ended', () => {
-        setGeneratingTTS(null);
-        URL.revokeObjectURL(audioUrl);
-      });
-      
-      ttsAudioRefs.current.set(sponsorshipId, audio);
-      await audio.play();
-      
-    } catch (error: any) {
-      console.error('Error with text-to-speech:', error);
-      setGeneratingTTS(null);
-      toast({
-        title: "Error",
-        description: "Could not generate speech",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleUpdateAmount = async () => {
     if (!changingAmountFor || !newAmount || !currentUserId) {
@@ -1076,19 +1028,7 @@ export default function GuardianLinks() {
                             <p className="text-base text-muted-foreground flex-1">
                               {sponsorship.featured_bestie.description}
                             </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleTextToSpeech(sponsorship.id, sponsorship.featured_bestie!.description)}
-                              disabled={generatingTTS === sponsorship.id}
-                              className="shrink-0"
-                            >
-                              {generatingTTS === sponsorship.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Volume2 className="w-4 h-4" />
-                              )}
-                            </Button>
+                            <TextToSpeech text={sponsorship.featured_bestie.description} size="icon" />
                           </div>
 
                           {sponsorship.featured_bestie.monthly_goal > 0 && (
@@ -1163,19 +1103,7 @@ export default function GuardianLinks() {
                             <p className="text-base text-muted-foreground flex-1">
                               {sponsorship.featured_bestie.description}
                             </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleTextToSpeech(sponsorship.id, sponsorship.featured_bestie!.description)}
-                              disabled={generatingTTS === sponsorship.id}
-                              className="shrink-0"
-                            >
-                              {generatingTTS === sponsorship.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Volume2 className="w-4 h-4" />
-                              )}
-                            </Button>
+                            <TextToSpeech text={sponsorship.featured_bestie.description} size="icon" />
                           </div>
 
                           {sponsorship.featured_bestie.monthly_goal > 0 && (
