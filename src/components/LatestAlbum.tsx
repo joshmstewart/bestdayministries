@@ -135,7 +135,9 @@ export default function LatestAlbum() {
               )}
 
               {album.audio_url && (
-                <AudioPlayer src={album.audio_url} />
+                <div onClick={(e) => e.stopPropagation()}>
+                  <AudioPlayer src={album.audio_url} />
+                </div>
               )}
 
               <div className="flex items-center justify-between pt-4 border-t">
