@@ -133,11 +133,11 @@ export const UnifiedHeader = () => {
               <img 
                 src={logoUrl} 
                 alt="Best Day Ever Coffee + Crepes" 
-                className="h-[85px] w-auto cursor-pointer my-3 mx-2"
+                className="h-[85px] w-auto cursor-pointer my-1.5 mx-1"
                 onClick={() => navigate(user ? "/community" : "/")}
               />
             ) : (
-              <div className="h-[85px] w-[140px] my-3 mx-2" />
+              <div className="h-[85px] w-[140px] my-1.5 mx-1" />
             )}
             {user && profile && (
               <>
