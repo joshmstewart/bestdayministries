@@ -98,12 +98,15 @@ export default function GuardianLinks() {
       setUserRole(profile.role);
       setCurrentUserId(user.id);
       
+      console.log("User role:", profile.role, "User ID:", user.id);
+      
       // Only caregivers have guardian links
       if (profile.role === "caregiver") {
         await loadLinks(user.id);
       }
       
       // Load sponsorships for all roles
+      console.log("About to load sponsorships for user:", user.id);
       await loadSponsorships(user.id);
     } catch (error: any) {
       toast({
@@ -156,6 +159,7 @@ export default function GuardianLinks() {
 
   const loadSponsorships = async (userId: string) => {
     try {
+      console.log("Loading sponsorships for user:", userId);
       // First get sponsorships
       const { data: sponsorshipsData, error: sponsorshipsError } = await supabase
         .from("sponsorships")
@@ -164,19 +168,26 @@ export default function GuardianLinks() {
         .eq("status", "active")
         .order("started_at", { ascending: false });
 
+      console.log("Sponsorships data:", sponsorshipsData, "Error:", sponsorshipsError);
       if (sponsorshipsError) throw sponsorshipsError;
 
       if (!sponsorshipsData || sponsorshipsData.length === 0) {
+        console.log("No sponsorships found");
         setSponsorships([]);
         return;
       }
 
+      console.log("Found sponsorships:", sponsorshipsData.length);
+
       // Then get bestie profiles for those sponsorships
       const bestieIds = sponsorshipsData.map(s => s.bestie_id);
+      console.log("Fetching profiles for bestie IDs:", bestieIds);
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, display_name, email, avatar_number")
         .in("id", bestieIds);
+
+      console.log("Profiles data:", profilesData, "Error:", profilesError);
 
       if (profilesError) throw profilesError;
 
