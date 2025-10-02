@@ -10,8 +10,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign } from "lucide-react";
+import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { FundingProgressBar } from "@/components/FundingProgressBar";
 import AudioPlayer from "@/components/AudioPlayer";
 import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBestieManager";
+
 interface BestieLink {
   id: string;
   bestie_id: string;
@@ -34,6 +36,12 @@ interface BestieLink {
   };
 }
 
+interface LinkedBestie {
+  id: string;
+  display_name: string;
+  avatar_number: number;
+}
+
 interface Sponsorship {
   id: string;
   bestie_id: string;
@@ -42,6 +50,8 @@ interface Sponsorship {
   status: string;
   started_at: string;
   ended_at: string | null;
+  is_shared?: boolean;
+  shared_by?: string;
   bestie: {
     display_name: string;
     email: string;
@@ -62,6 +72,7 @@ export default function GuardianLinks() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<BestieLink[]>([]);
+  const [linkedBesties, setLinkedBesties] = useState<LinkedBestie[]>([]);
   const [sponsorships, setSponsorships] = useState<Sponsorship[]>([]);
   const [userRole, setUserRole] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -76,6 +87,10 @@ export default function GuardianLinks() {
   const [changingAmountFor, setChangingAmountFor] = useState<string | null>(null);
   const [newAmount, setNewAmount] = useState<string>("");
   const [isUpdatingAmount, setIsUpdatingAmount] = useState(false);
+  const [sharingFor, setSharingFor] = useState<string | null>(null);
+  const [selectedBesties, setSelectedBesties] = useState<Set<string>>(new Set());
+  const [existingShares, setExistingShares] = useState<Map<string, Set<string>>>(new Map());
+  const [isSavingShares, setIsSavingShares] = useState(false);
 
   useEffect(() => {
     checkAccess();
@@ -98,8 +113,8 @@ export default function GuardianLinks() {
         .eq("id", user.id)
         .single();
 
-      // Allow caregivers, supporters, admins, and owners
-      if (!profile || (profile.role !== "caregiver" && profile.role !== "supporter" && profile.role !== "admin" && profile.role !== "owner")) {
+      // Allow caregivers, supporters, besties, admins, and owners
+      if (!profile || !['caregiver', 'supporter', 'bestie', 'admin', 'owner'].includes(profile.role)) {
         toast({
           title: "Access denied",
           description: "You don't have permission to access this page",
@@ -115,6 +130,7 @@ export default function GuardianLinks() {
       // Only caregivers have guardian links
       if (profile.role === "caregiver") {
         await loadLinks(user.id);
+        await loadLinkedBesties(user.id);
       }
       
       // Load sponsorships for all roles
@@ -168,25 +184,99 @@ export default function GuardianLinks() {
     }
   };
 
+  const loadLinkedBesties = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("caregiver_bestie_links")
+        .select(`
+          bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
+            id,
+            display_name,
+            avatar_number
+          )
+        `)
+        .eq("caregiver_id", userId);
+
+      if (error) throw error;
+
+      if (data) {
+        const besties = data
+          .map(link => Array.isArray(link.bestie) ? link.bestie[0] : link.bestie)
+          .filter(Boolean);
+        setLinkedBesties(besties as LinkedBestie[]);
+      }
+    } catch (error: any) {
+      console.error("Error loading linked besties:", error);
+    }
+  };
+
   const loadSponsorships = async (userId: string) => {
     try {
-      // First get sponsorships
-      const { data: sponsorshipsData, error: sponsorshipsError } = await supabase
+      // Load sponsorships where user is sponsor
+      const { data: ownSponsorshipsData, error: ownError } = await supabase
         .from("sponsorships")
         .select("id, bestie_id, amount, frequency, status, started_at, ended_at")
         .eq("sponsor_id", userId)
         .eq("status", "active")
         .order("started_at", { ascending: false });
 
-      if (sponsorshipsError) throw sponsorshipsError;
+      if (ownError) throw ownError;
 
-      if (!sponsorshipsData || sponsorshipsData.length === 0) {
+      // Load shared sponsorships (where user is a bestie who has been given access)
+      const { data: sharedSponsorshipsData, error: sharedError } = await supabase
+        .from("sponsorship_shares")
+        .select(`
+          sponsorship:sponsorships(
+            id,
+            bestie_id,
+            amount,
+            frequency,
+            status,
+            started_at,
+            ended_at
+          ),
+          shared_by
+        `)
+        .eq("bestie_id", userId);
+
+      if (sharedError) throw sharedError;
+
+      // Combine own and shared sponsorships
+      const allSponsorships = [
+        ...(ownSponsorshipsData || []).map(s => ({ ...s, is_shared: false })),
+        ...(sharedSponsorshipsData || [])
+          .filter(s => s.sponsorship && s.sponsorship.status === 'active')
+          .map(s => ({ 
+            ...s.sponsorship, 
+            is_shared: true,
+            shared_by: s.shared_by 
+          }))
+      ];
+
+      if (allSponsorships.length === 0) {
         setSponsorships([]);
         return;
       }
 
-      // Then get bestie profiles for those sponsorships
-      const bestieIds = sponsorshipsData.map(s => s.bestie_id);
+      // Load existing shares for own sponsorships
+      if (ownSponsorshipsData && ownSponsorshipsData.length > 0) {
+        const { data: sharesData } = await supabase
+          .from("sponsorship_shares")
+          .select("sponsorship_id, bestie_id")
+          .in("sponsorship_id", ownSponsorshipsData.map(s => s.id));
+
+        const sharesMap = new Map<string, Set<string>>();
+        (sharesData || []).forEach(share => {
+          if (!sharesMap.has(share.sponsorship_id)) {
+            sharesMap.set(share.sponsorship_id, new Set());
+          }
+          sharesMap.get(share.sponsorship_id)!.add(share.bestie_id);
+        });
+        setExistingShares(sharesMap);
+      }
+
+      // Get bestie profiles
+      const bestieIds = allSponsorships.map(s => s.bestie_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, display_name, email, avatar_number")
@@ -202,14 +292,13 @@ export default function GuardianLinks() {
         .eq("approval_status", "approved")
         .eq("is_active", true);
 
-      // Get funding progress
       const { data: fundingData } = await supabase
         .from("bestie_funding_progress")
         .select("bestie_id, current_monthly_pledges, monthly_goal")
         .in("bestie_id", bestieIds);
 
       // Combine the data
-      const transformedData = sponsorshipsData
+      const transformedData = allSponsorships
         .map(sponsorship => {
           const bestie = profilesData?.find(p => p.id === sponsorship.bestie_id);
           if (!bestie) return null;
@@ -319,6 +408,7 @@ export default function GuardianLinks() {
       setRelationship("");
       
       await loadLinks(currentUserId);
+      await loadLinkedBesties(currentUserId);
     } catch (error: any) {
       toast({
         title: "Error creating link",
@@ -347,6 +437,7 @@ export default function GuardianLinks() {
       });
 
       await loadLinks(currentUserId);
+      await loadLinkedBesties(currentUserId);
     } catch (error: any) {
       toast({
         title: "Error removing link",
@@ -436,7 +527,6 @@ export default function GuardianLinks() {
       setChangingAmountFor(null);
       setNewAmount("");
       
-      // Reload sponsorships
       if (currentUserId) {
         await loadSponsorships(currentUserId);
       }
@@ -448,6 +538,75 @@ export default function GuardianLinks() {
       });
     } finally {
       setIsUpdatingAmount(false);
+    }
+  };
+
+  const handleShareClick = (sponsorshipId: string) => {
+    setSharingFor(sponsorshipId);
+    const shares = existingShares.get(sponsorshipId) || new Set();
+    setSelectedBesties(new Set(shares));
+  };
+
+  const handleSaveShares = async () => {
+    if (!sharingFor) return;
+
+    setIsSavingShares(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const currentShares = existingShares.get(sharingFor) || new Set();
+      
+      // Find besties to add and remove
+      const toAdd = Array.from(selectedBesties).filter(id => !currentShares.has(id));
+      const toRemove = Array.from(currentShares).filter(id => !selectedBesties.has(id));
+
+      // Add new shares
+      if (toAdd.length > 0) {
+        const { error: insertError } = await supabase
+          .from("sponsorship_shares")
+          .insert(
+            toAdd.map(bestie_id => ({
+              sponsorship_id: sharingFor,
+              bestie_id,
+              shared_by: user.id
+            }))
+          );
+        
+        if (insertError) throw insertError;
+      }
+
+      // Remove shares
+      if (toRemove.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("sponsorship_shares")
+          .delete()
+          .eq("sponsorship_id", sharingFor)
+          .in("bestie_id", toRemove);
+        
+        if (deleteError) throw deleteError;
+      }
+
+      // Update local state
+      const newShares = new Map(existingShares);
+      newShares.set(sharingFor, new Set(selectedBesties));
+      setExistingShares(newShares);
+
+      toast({
+        title: "Sharing settings updated",
+        description: "Your besties can now view this sponsorship",
+      });
+      
+      setSharingFor(null);
+    } catch (error: any) {
+      console.error("Error updating shares:", error);
+      toast({
+        title: "Error updating sharing settings",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingShares(false);
     }
   };
 
@@ -463,6 +622,9 @@ export default function GuardianLinks() {
     );
   }
 
+  const ownSponsorships = sponsorships.filter(s => !s.is_shared);
+  const sharedWithMe = sponsorships.filter(s => s.is_shared);
+
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
@@ -475,113 +637,115 @@ export default function GuardianLinks() {
               <p className="text-muted-foreground mt-2">
                 {userRole === "caregiver" 
                   ? "Manage your guardian relationships and sponsorships"
+                  : userRole === "bestie" && sharedWithMe.length > 0
+                  ? "View sponsorships shared with you"
                   : "Manage the besties you sponsor"}
               </p>
             </div>
             {userRole === "caregiver" && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <UserPlus className="w-4 h-4" />
-                  Link Bestie
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Link Bestie Account</DialogTitle>
-                  <DialogDescription>
-                    Enter your bestie's 3-emoji friend code to connect
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-6 py-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label>First Emoji</Label>
-                      <Select value={emoji1} onValueChange={setEmoji1}>
-                        <SelectTrigger className="h-20 text-4xl">
-                          <SelectValue placeholder="?" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FRIEND_CODE_EMOJIS.map((item) => (
-                            <SelectItem key={`1-${item.emoji}`} value={item.emoji} className="text-3xl">
-                              {item.emoji}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Second Emoji</Label>
-                      <Select value={emoji2} onValueChange={setEmoji2}>
-                        <SelectTrigger className="h-20 text-4xl">
-                          <SelectValue placeholder="?" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FRIEND_CODE_EMOJIS.map((item) => (
-                            <SelectItem key={`2-${item.emoji}`} value={item.emoji} className="text-3xl">
-                              {item.emoji}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Third Emoji</Label>
-                      <Select value={emoji3} onValueChange={setEmoji3}>
-                        <SelectTrigger className="h-20 text-4xl">
-                          <SelectValue placeholder="?" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {FRIEND_CODE_EMOJIS.map((item) => (
-                            <SelectItem key={`3-${item.emoji}`} value={item.emoji} className="text-3xl">
-                              {item.emoji}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {emoji1 && emoji2 && emoji3 && (
-                    <div className="text-center p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-2">Friend Code Preview:</p>
-                      <p className="text-5xl tracking-wider">{emoji1}{emoji2}{emoji3}</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="relationship">Your Relationship</Label>
-                    <Input
-                      id="relationship"
-                      placeholder="e.g., Parent, Sibling, Friend"
-                      value={relationship}
-                      onChange={(e) => setRelationship(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => {
-                    setDialogOpen(false);
-                    setEmoji1("");
-                    setEmoji2("");
-                    setEmoji3("");
-                    setRelationship("");
-                  }}>
-                    Cancel
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Link Bestie
                   </Button>
-                  <Button onClick={handleAddLink} disabled={isSearching}>
-                    {isSearching ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Searching...
-                      </>
-                    ) : (
-                      "Create Link"
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Link Bestie Account</DialogTitle>
+                    <DialogDescription>
+                      Enter your bestie's 3-emoji friend code to connect
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-6 py-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label>First Emoji</Label>
+                        <Select value={emoji1} onValueChange={setEmoji1}>
+                          <SelectTrigger className="h-20 text-4xl">
+                            <SelectValue placeholder="?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FRIEND_CODE_EMOJIS.map((item) => (
+                              <SelectItem key={`1-${item.emoji}`} value={item.emoji} className="text-3xl">
+                                {item.emoji}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Second Emoji</Label>
+                        <Select value={emoji2} onValueChange={setEmoji2}>
+                          <SelectTrigger className="h-20 text-4xl">
+                            <SelectValue placeholder="?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FRIEND_CODE_EMOJIS.map((item) => (
+                              <SelectItem key={`2-${item.emoji}`} value={item.emoji} className="text-3xl">
+                                {item.emoji}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Third Emoji</Label>
+                        <Select value={emoji3} onValueChange={setEmoji3}>
+                          <SelectTrigger className="h-20 text-4xl">
+                            <SelectValue placeholder="?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FRIEND_CODE_EMOJIS.map((item) => (
+                              <SelectItem key={`3-${item.emoji}`} value={item.emoji} className="text-3xl">
+                                {item.emoji}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {emoji1 && emoji2 && emoji3 && (
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-2">Friend Code Preview:</p>
+                        <p className="text-5xl tracking-wider">{emoji1}{emoji2}{emoji3}</p>
+                      </div>
                     )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="relationship">Your Relationship</Label>
+                      <Input
+                        id="relationship"
+                        placeholder="e.g., Parent, Sibling, Friend"
+                        value={relationship}
+                        onChange={(e) => setRelationship(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setDialogOpen(false);
+                      setEmoji1("");
+                      setEmoji2("");
+                      setEmoji3("");
+                      setRelationship("");
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddLink} disabled={isSearching}>
+                      {isSearching ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Searching...
+                        </>
+                      ) : (
+                        "Create Link"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             )}
           </div>
 
@@ -590,183 +754,160 @@ export default function GuardianLinks() {
             <div className="space-y-4">
               <h2 className="text-2xl font-bold">Guardian Relationships</h2>
               {links.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <LinkIcon className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No linked besties yet</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  Link with bestie accounts to help monitor and approve their posts and comments
-                </p>
-                <Button onClick={() => setDialogOpen(true)}>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Link Your First Bestie
-                </Button>
-              </CardContent>
-            </Card>
-              ) : (
-            <div className="grid gap-4">
-              {links.map((link) => (
-                <Card key={link.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <AvatarDisplay
-                          avatarNumber={link.bestie.avatar_number}
-                          displayName={link.bestie.display_name}
-                          size="lg"
-                        />
-                        <div>
-                          <CardTitle>{link.bestie.display_name}</CardTitle>
-                          <CardDescription>{link.bestie.email}</CardDescription>
-                        </div>
-                      </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Link?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to unlink from {link.bestie.display_name}?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleRemoveLink(link.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Remove Link
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="font-medium">Relationship:</span>
-                        <span>{link.relationship}</span>
-                        <span className="mx-2">•</span>
-                        <span>Linked {new Date(link.created_at).toLocaleDateString()}</span>
-                      </div>
-                      
-                      <div className="space-y-3 pt-3 border-t">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="text-sm font-medium">
-                              Require Post Approval
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Review and approve posts before they're published
-                            </p>
-                          </div>
-                          <Switch
-                            checked={link.require_post_approval}
-                            onCheckedChange={() => handleToggleApproval(link.id, 'require_post_approval', link.require_post_approval)}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="text-sm font-medium">
-                              Require Comment Approval
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Review and approve comments before they're published
-                            </p>
-                          </div>
-                          <Switch
-                            checked={link.require_comment_approval}
-                            onCheckedChange={() => handleToggleApproval(link.id, 'require_comment_approval', link.require_comment_approval)}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label className="text-sm font-medium">
-                              Allow Featured Posts
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Allow creating featured posts for this bestie
-                            </p>
-                          </div>
-                          <Switch
-                            checked={link.allow_featured_posts}
-                            onCheckedChange={() => handleToggleApproval(link.id, 'allow_featured_posts', link.allow_featured_posts)}
-                          />
-                        </div>
-                        {link.allow_featured_posts && (
-                          <Button
-                            variant="outline"
-                            className="w-full gap-2"
-                            onClick={() => handleManageFeaturedPosts(link.bestie_id, link.bestie.display_name)}
-                          >
-                            <Star className="w-4 h-4" />
-                            Manage Featured Posts
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <LinkIcon className="w-12 h-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No linked besties yet</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      Link with bestie accounts to help monitor and approve their posts and comments
+                    </p>
+                    <Button onClick={() => setDialogOpen(true)}>
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Link Your First Bestie
+                    </Button>
                   </CardContent>
                 </Card>
-                ))}
-              </div>
+              ) : (
+                <div className="grid gap-4">
+                  {links.map((link) => (
+                    <Card key={link.id}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <AvatarDisplay
+                              avatarNumber={link.bestie.avatar_number}
+                              displayName={link.bestie.display_name}
+                              size="lg"
+                            />
+                            <div>
+                              <CardTitle>{link.bestie.display_name}</CardTitle>
+                              <CardDescription>{link.bestie.email}</CardDescription>
+                            </div>
+                          </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Link?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to unlink from {link.bestie.display_name}?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleRemoveLink(link.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Remove Link
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span className="font-medium">Relationship:</span>
+                            <span>{link.relationship}</span>
+                            <span className="mx-2">•</span>
+                            <span>Linked {new Date(link.created_at).toLocaleDateString()}</span>
+                          </div>
+                          
+                          <div className="space-y-3 pt-3 border-t">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">
+                                  Require Post Approval
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Review and approve posts before they're published
+                                </p>
+                              </div>
+                              <Switch
+                                checked={link.require_post_approval}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'require_post_approval', link.require_post_approval)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">
+                                  Require Comment Approval
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Review and approve comments before they're published
+                                </p>
+                              </div>
+                              <Switch
+                                checked={link.require_comment_approval}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'require_comment_approval', link.require_comment_approval)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">
+                                  Allow Featured Posts
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Allow creating featured posts for this bestie
+                                </p>
+                              </div>
+                              <Switch
+                                checked={link.allow_featured_posts}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'allow_featured_posts', link.allow_featured_posts)}
+                              />
+                            </div>
+                            {link.allow_featured_posts && (
+                              <Button
+                                variant="outline"
+                                className="w-full gap-2"
+                                onClick={() => handleManageFeaturedPosts(link.bestie_id, link.bestie.display_name)}
+                              >
+                                <Star className="w-4 h-4" />
+                                Manage Featured Posts
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
           )}
 
-          {/* Sponsored Besties Section - For all roles */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Sponsored Besties</h2>
-              {sponsorships.length > 0 && (
+          {/* Sponsored Besties Section */}
+          {ownSponsorships.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">My Sponsorships</h2>
                 <Button onClick={() => navigate("/sponsor-bestie")} variant="outline">
-                  <Heart className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 mr-2" />
                   Sponsor Another Bestie
                 </Button>
-              )}
-            </div>
-            {sponsorships.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Heart className="w-12 h-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No sponsorships yet</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    Sponsor a bestie to provide direct support for their programs and activities
-                  </p>
-                  <Button onClick={() => navigate("/sponsor-bestie")}>
-                    <Heart className="w-4 h-4 mr-2" />
-                    Sponsor a Bestie
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
+              </div>
               <div className="grid gap-4">
-                {sponsorships.map((sponsorship) => (
+                {ownSponsorships.map((sponsorship) => (
                   <Card key={sponsorship.id}>
                     <CardHeader>
-                      <div className="flex items-center gap-4">
-                        <AvatarDisplay
-                          avatarNumber={sponsorship.bestie.avatar_number}
-                          displayName={sponsorship.bestie.display_name}
-                          size="lg"
-                        />
-                        <div>
-                          <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Sponsorship Details */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="font-medium">Amount:</span>
-                            <span className="text-lg font-bold text-primary">${sponsorship.amount}{sponsorship.frequency === 'monthly' ? '/month' : ''}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <AvatarDisplay
+                            avatarNumber={sponsorship.bestie.avatar_number}
+                            displayName={sponsorship.bestie.display_name}
+                            size="lg"
+                          />
+                          <div>
+                            <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
                           </div>
+                        </div>
+                        <div className="flex gap-2">
                           {sponsorship.frequency === 'monthly' && (
                             <Button
                               variant="ghost"
@@ -780,6 +921,24 @@ export default function GuardianLinks() {
                               Change Amount
                             </Button>
                           )}
+                          {linkedBesties.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleShareClick(sponsorship.id)}
+                            >
+                              <Share2 className="w-4 h-4 mr-1" />
+                              Share
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="font-medium">Amount:</span>
+                          <span className="text-lg font-bold text-primary">${sponsorship.amount}{sponsorship.frequency === 'monthly' ? '/month' : ''}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">Type:</span>
@@ -787,47 +946,36 @@ export default function GuardianLinks() {
                           <span className="mx-2">•</span>
                           <span>Started {new Date(sponsorship.started_at).toLocaleDateString()}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium">Status:</span>
-                          <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
-                            Active
-                          </span>
-                        </div>
                       </div>
 
-                      {/* Featured Bestie Content */}
                       {sponsorship.featured_bestie && (
                         <div className="space-y-4 pt-4 border-t">
-                          <h3 className="font-semibold text-lg">Featured Story</h3>
+                          <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
                           
-                          {/* Funding Progress */}
-                          <FundingProgressBar
-                            currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
-                            goalAmount={sponsorship.featured_bestie.monthly_goal}
-                          />
-
-                          {/* Featured Image */}
-                          {sponsorship.featured_bestie.image_url && (
-                            <div className="aspect-video w-full overflow-hidden rounded-lg">
-                              <img
-                                src={sponsorship.featured_bestie.image_url}
-                                alt={sponsorship.bestie.display_name}
-                                className="w-full h-full object-contain bg-muted"
-                              />
-                            </div>
-                          )}
-
-                          {/* Description */}
-                          <p className="text-sm text-muted-foreground">
+                          <div className="aspect-video w-full overflow-hidden rounded-lg">
+                            <img 
+                              src={sponsorship.featured_bestie.image_url}
+                              alt={sponsorship.bestie.display_name}
+                              className="w-full h-full object-contain bg-muted"
+                            />
+                          </div>
+                          
+                          <p className="text-base text-muted-foreground">
                             {sponsorship.featured_bestie.description}
                           </p>
 
-                          {/* Voice Note */}
                           {sponsorship.featured_bestie.voice_note_url && (
-                            <div>
-                              <p className="text-sm font-medium mb-2">Hear from {sponsorship.bestie.display_name}</p>
+                            <div className="space-y-2">
                               <AudioPlayer src={sponsorship.featured_bestie.voice_note_url} />
                             </div>
+                          )}
+
+                          {sponsorship.featured_bestie.monthly_goal > 0 && (
+                            <FundingProgressBar
+                              currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
+                              goalAmount={sponsorship.featured_bestie.monthly_goal}
+                              className="mt-4"
+                            />
                           )}
                         </div>
                       )}
@@ -835,13 +983,92 @@ export default function GuardianLinks() {
                   </Card>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Shared Sponsorships Section */}
+          {sharedWithMe.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">Shared With Me</h2>
+              <div className="grid gap-4">
+                {sharedWithMe.map((sponsorship) => (
+                  <Card key={sponsorship.id} className="border-2 border-accent/30">
+                    <CardHeader>
+                      <div className="flex items-center gap-4">
+                        <AvatarDisplay
+                          avatarNumber={sponsorship.bestie.avatar_number}
+                          displayName={sponsorship.bestie.display_name}
+                          size="lg"
+                        />
+                        <div>
+                          <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
+                          <CardDescription>View only • Shared by guardian</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {sponsorship.featured_bestie && (
+                        <div className="space-y-4">
+                          <div className="aspect-video w-full overflow-hidden rounded-lg">
+                            <img 
+                              src={sponsorship.featured_bestie.image_url}
+                              alt={sponsorship.bestie.display_name}
+                              className="w-full h-full object-contain bg-muted"
+                            />
+                          </div>
+                          
+                          <p className="text-base text-muted-foreground">
+                            {sponsorship.featured_bestie.description}
+                          </p>
+
+                          {sponsorship.featured_bestie.voice_note_url && (
+                            <div className="space-y-2">
+                              <AudioPlayer src={sponsorship.featured_bestie.voice_note_url} />
+                            </div>
+                          )}
+
+                          {sponsorship.featured_bestie.monthly_goal > 0 && (
+                            <FundingProgressBar
+                              currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
+                              goalAmount={sponsorship.featured_bestie.monthly_goal}
+                              className="mt-4"
+                            />
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {ownSponsorships.length === 0 && sharedWithMe.length === 0 && userRole !== "caregiver" && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Heart className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No sponsorships yet</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  {userRole === "bestie" 
+                    ? "No sponsorships have been shared with you yet"
+                    : "Sponsor a bestie to provide direct support for their programs and activities"}
+                </p>
+                {userRole !== "bestie" && (
+                  <Button onClick={() => navigate("/sponsor-bestie")}>
+                    <Heart className="w-4 h-4 mr-2" />
+                    Sponsor a Bestie
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
-      
+
       <Footer />
 
+      {/* Featured Bestie Manager Dialog */}
       {selectedBestieForFeatured && (
         <GuardianFeaturedBestieManager
           bestieId={selectedBestieForFeatured.id}
@@ -855,35 +1082,37 @@ export default function GuardianLinks() {
       <Dialog open={changingAmountFor !== null} onOpenChange={(open) => !open && setChangingAmountFor(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change Sponsorship Amount</DialogTitle>
-            <DialogDescription>
-              Update your monthly sponsorship amount. Changes will take effect at the start of your next billing cycle.
-            </DialogDescription>
+            <DialogTitle>Change Monthly Amount</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="new-amount">New Monthly Amount ($)</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="new-amount"
-                  type="number"
-                  min="10"
-                  step="1"
-                  value={newAmount}
-                  onChange={(e) => setNewAmount(e.target.value)}
-                  placeholder="25"
-                  className="pl-9"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">Minimum: $10</p>
+              <Label htmlFor="amount">New Monthly Amount ($)</Label>
+              <Input
+                id="amount"
+                type="number"
+                min="10"
+                step="1"
+                value={newAmount}
+                onChange={(e) => setNewAmount(e.target.value)}
+                placeholder="Enter amount"
+              />
+              <p className="text-sm text-muted-foreground">
+                Minimum $10/month. Changes take effect on your next billing cycle.
+              </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setChangingAmountFor(null)} disabled={isUpdatingAmount}>
+            <Button
+              variant="outline"
+              onClick={() => setChangingAmountFor(null)}
+              disabled={isUpdatingAmount}
+            >
               Cancel
             </Button>
-            <Button onClick={handleUpdateAmount} disabled={isUpdatingAmount}>
+            <Button
+              onClick={handleUpdateAmount}
+              disabled={isUpdatingAmount || !newAmount || parseFloat(newAmount) < 10}
+            >
               {isUpdatingAmount ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -891,6 +1120,72 @@ export default function GuardianLinks() {
                 </>
               ) : (
                 "Update Amount"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share with Besties Dialog */}
+      <Dialog open={sharingFor !== null} onOpenChange={(open) => !open && setSharingFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share with Besties</DialogTitle>
+            <DialogDescription>
+              Select which besties can view this sponsorship (read-only)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              {linkedBesties.map((bestie) => (
+                <div key={bestie.id} className="flex items-center space-x-3">
+                  <Checkbox
+                    id={bestie.id}
+                    checked={selectedBesties.has(bestie.id)}
+                    onCheckedChange={(checked) => {
+                      const newSelected = new Set(selectedBesties);
+                      if (checked) {
+                        newSelected.add(bestie.id);
+                      } else {
+                        newSelected.delete(bestie.id);
+                      }
+                      setSelectedBesties(newSelected);
+                    }}
+                  />
+                  <Label
+                    htmlFor={bestie.id}
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
+                    <AvatarDisplay
+                      avatarNumber={bestie.avatar_number}
+                      displayName={bestie.display_name}
+                      size="sm"
+                    />
+                    <span>{bestie.display_name}</span>
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSharingFor(null)}
+              disabled={isSavingShares}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveShares}
+              disabled={isSavingShares}
+            >
+              {isSavingShares ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save"
               )}
             </Button>
           </DialogFooter>

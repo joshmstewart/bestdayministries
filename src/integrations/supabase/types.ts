@@ -773,6 +773,80 @@ export type Database = {
         }
         Relationships: []
       }
+      sponsorship_shares: {
+        Row: {
+          bestie_id: string
+          created_at: string
+          id: string
+          shared_by: string
+          sponsorship_id: string
+        }
+        Insert: {
+          bestie_id: string
+          created_at?: string
+          id?: string
+          shared_by: string
+          sponsorship_id: string
+        }
+        Update: {
+          bestie_id?: string
+          created_at?: string
+          id?: string
+          shared_by?: string
+          sponsorship_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsorship_shares_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorship_shares_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorship_shares_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorship_shares_shared_by_fkey"
+            columns: ["shared_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorship_shares_shared_by_fkey"
+            columns: ["shared_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorship_shares_shared_by_fkey"
+            columns: ["shared_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorship_shares_sponsorship_id_fkey"
+            columns: ["sponsorship_id"]
+            isOneToOne: false
+            referencedRelation: "sponsorships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sponsorships: {
         Row: {
           amount: number | null
