@@ -233,26 +233,37 @@ export const UserManagement = () => {
   const handleCreateTestAccounts = async () => {
     setCreatingTestAccounts(true);
     let successCount = 0;
-    let errorCount = 0;
+    const errors: string[] = [];
 
     for (const account of testAccounts) {
       try {
-        const { error } = await supabase.functions.invoke("create-user", {
+        const { data, error } = await supabase.functions.invoke("create-user", {
           body: account,
         });
 
         if (error) {
+          console.error(`Error creating ${account.displayName}:`, error);
           // If account already exists, that's okay
-          if (error.message?.includes("already registered")) {
+          if (error.message?.includes("already registered") || 
+              error.message?.includes("User already registered")) {
             successCount++;
           } else {
-            errorCount++;
+            errors.push(`${account.displayName}: ${error.message}`);
+          }
+        } else if (data?.error) {
+          console.error(`Error creating ${account.displayName}:`, data.error);
+          if (data.error.includes("already registered") || 
+              data.error.includes("User already registered")) {
+            successCount++;
+          } else {
+            errors.push(`${account.displayName}: ${data.error}`);
           }
         } else {
           successCount++;
         }
-      } catch (error) {
-        errorCount++;
+      } catch (error: any) {
+        console.error(`Exception creating ${account.displayName}:`, error);
+        errors.push(`${account.displayName}: ${error.message || 'Unknown error'}`);
       }
     }
 
@@ -263,10 +274,11 @@ export const UserManagement = () => {
       });
     }
 
-    if (errorCount > 0) {
+    if (errors.length > 0) {
+      console.error("Account creation errors:", errors);
       toast({
         title: "Some accounts failed",
-        description: `${errorCount} account(s) could not be created.`,
+        description: errors.join('\n'),
         variant: "destructive",
       });
     }

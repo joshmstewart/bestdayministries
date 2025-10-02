@@ -41,9 +41,9 @@ Deno.serve(async (req) => {
       .eq('id', requestingUser.id)
       .single();
 
-    if (profile?.role !== 'owner') {
+    if (!['owner', 'admin'].includes(profile?.role || '')) {
       return new Response(
-        JSON.stringify({ error: 'Only owners can create users' }),
+        JSON.stringify({ error: 'Only owners and admins can create users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
