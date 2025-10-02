@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound, Edit } from "lucide-react";
+import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound, Edit, TestTube, Copy } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -29,12 +29,19 @@ export const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState("");
+  const [creatingTestAccounts, setCreatingTestAccounts] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     displayName: "",
     role: "supporter",
   });
+
+  const testAccounts = [
+    { email: "testbestie@example.com", password: "TestBestie123!", displayName: "Test Bestie", role: "bestie" },
+    { email: "testguardian@example.com", password: "TestGuardian123!", displayName: "Test Guardian", role: "caregiver" },
+    { email: "testsupporter@example.com", password: "TestSupporter123!", displayName: "Test Supporter", role: "supporter" },
+  ];
 
   useEffect(() => {
     loadCurrentUser();
@@ -222,6 +229,59 @@ export const UserManagement = () => {
     }
   };
 
+  const handleCreateTestAccounts = async () => {
+    setCreatingTestAccounts(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const account of testAccounts) {
+      try {
+        const { error } = await supabase.functions.invoke("create-user", {
+          body: account,
+        });
+
+        if (error) {
+          // If account already exists, that's okay
+          if (error.message?.includes("already registered")) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast({
+        title: "Test accounts ready",
+        description: `${successCount} test account(s) are now available for testing.`,
+      });
+    }
+
+    if (errorCount > 0) {
+      toast({
+        title: "Some accounts failed",
+        description: `${errorCount} account(s) could not be created.`,
+        variant: "destructive",
+      });
+    }
+
+    setCreatingTestAccounts(false);
+    await loadUsers();
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "The credential has been copied.",
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -231,12 +291,87 @@ export const UserManagement = () => {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>User Management</CardTitle>
-          <CardDescription>Create and manage community members</CardDescription>
-        </div>
+    <div className="space-y-6">
+      {/* Test Accounts Card */}
+      <Card className="border-dashed border-2">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <TestTube className="w-5 h-5" />
+            <CardTitle>Test Accounts</CardTitle>
+          </div>
+          <CardDescription>
+            Use these accounts to test different user experiences. Click "Create Test Accounts" if they don't exist yet.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            {testAccounts.map((account) => (
+              <Card key={account.email} className="bg-muted/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">{account.displayName}</CardTitle>
+                  <CardDescription className="text-xs">{account.role}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">Email</div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-background px-2 py-1 rounded flex-1">{account.email}</code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => copyToClipboard(account.email)}
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">Password</div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-background px-2 py-1 rounded flex-1">{account.password}</code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => copyToClipboard(account.password)}
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Button 
+            onClick={handleCreateTestAccounts} 
+            disabled={creatingTestAccounts}
+            className="w-full gap-2"
+            variant="outline"
+          >
+            {creatingTestAccounts ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Creating Test Accounts...
+              </>
+            ) : (
+              <>
+                <TestTube className="w-4 h-4" />
+                Create/Verify Test Accounts
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* User Management Card */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>Create and manage community members</CardDescription>
+          </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -450,5 +585,6 @@ export const UserManagement = () => {
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   );
 };
