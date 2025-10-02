@@ -940,14 +940,20 @@ export default function GuardianLinks() {
                   <Card key={sponsorship.id}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 flex-1">
                           <AvatarDisplay
                             avatarNumber={sponsorship.bestie.avatar_number}
                             displayName={sponsorship.bestie.display_name}
                             size="lg"
                           />
-                          <div>
+                          <div className="flex items-center gap-2 flex-1">
                             <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
+                            {sponsorship.featured_bestie && (
+                              <TextToSpeech 
+                                text={`${sponsorship.bestie.display_name}. ${sponsorship.featured_bestie.description}`} 
+                                size="icon" 
+                              />
+                            )}
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -993,13 +999,7 @@ export default function GuardianLinks() {
 
                       {sponsorship.featured_bestie && (
                         <div className="space-y-4 pt-4 border-t">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
-                            <TextToSpeech 
-                              text={`${sponsorship.bestie.display_name}. ${sponsorship.featured_bestie.description}`} 
-                              size="icon" 
-                            />
-                          </div>
+                          <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
                           
                           <div 
                             className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer"
@@ -1058,14 +1058,22 @@ export default function GuardianLinks() {
                 {sharedWithMe.map((sponsorship) => (
                   <Card key={sponsorship.id} className="border-2 border-accent/30">
                     <CardHeader>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-1">
                         <AvatarDisplay
                           avatarNumber={sponsorship.bestie.avatar_number}
                           displayName={sponsorship.bestie.display_name}
                           size="lg"
                         />
-                        <div>
-                          <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
+                            {sponsorship.featured_bestie && (
+                              <TextToSpeech 
+                                text={`${sponsorship.bestie.display_name}. ${sponsorship.featured_bestie.description}`} 
+                                size="icon" 
+                              />
+                            )}
+                          </div>
                           <CardDescription>View only • Shared by guardian</CardDescription>
                         </div>
                       </div>
@@ -1073,13 +1081,7 @@ export default function GuardianLinks() {
                     <CardContent className="space-y-6">
                       {sponsorship.featured_bestie && (
                         <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
-                            <TextToSpeech 
-                              text={`${sponsorship.bestie.display_name}. ${sponsorship.featured_bestie.description}`} 
-                              size="icon" 
-                            />
-                          </div>
+                          <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
                           
                           <div
                             className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer"
