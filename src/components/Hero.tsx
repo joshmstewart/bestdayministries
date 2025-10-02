@@ -20,7 +20,7 @@ const Hero = () => {
               <span className="text-xs font-semibold text-primary">Building Community Through Creativity</span>
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.1] text-foreground">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-[1.1] text-foreground">
               Spreading{" "}
               <span className="relative inline-block">
                 <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
