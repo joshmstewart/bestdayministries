@@ -54,7 +54,7 @@ export const profileSchema = z.object({
     .optional()
     .or(z.literal('')),
   avatarCategory: z.enum(['composite', 'bestie', 'supporter', 'custom']).optional(),
-  avatarNumber: z.number().int().min(1).max(20).optional(),
+  avatarNumber: z.number().int().min(1).max(100).optional(), // Increased to support all avatar types
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;
