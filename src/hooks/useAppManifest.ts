@@ -22,8 +22,11 @@ export const useAppManifest = () => {
               ? JSON.parse(setting.setting_value)
               : setting.setting_value;
 
+            console.log('Setting:', setting.setting_key, 'Raw value:', setting.setting_value, 'Parsed value:', value);
+
             if (setting.setting_key === 'mobile_app_name') {
               appName = value;
+              console.log('App name set to:', appName);
             } else if (setting.setting_key === 'mobile_app_icon_url') {
               iconUrl = value;
             }
