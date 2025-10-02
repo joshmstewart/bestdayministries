@@ -537,8 +537,7 @@ export type Database = {
           created_at: string
           display_name: string
           email: string | null
-          friend_code_emoji: string | null
-          friend_code_number: number | null
+          friend_code: string | null
           id: string
           role: Database["public"]["Enums"]["user_role"]
           tts_enabled: boolean
@@ -553,8 +552,7 @@ export type Database = {
           created_at?: string
           display_name: string
           email?: string | null
-          friend_code_emoji?: string | null
-          friend_code_number?: number | null
+          friend_code?: string | null
           id: string
           role: Database["public"]["Enums"]["user_role"]
           tts_enabled?: boolean
@@ -569,8 +567,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string | null
-          friend_code_emoji?: string | null
-          friend_code_number?: number | null
+          friend_code?: string | null
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           tts_enabled?: boolean

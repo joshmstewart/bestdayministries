@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Link as LinkIcon, Trash2, UserPlus } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
-import { FRIEND_CODE_EMOJIS, formatFriendCode } from "@/lib/friendCodeEmojis";
+import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 
@@ -31,22 +31,15 @@ interface BestieLink {
   };
 }
 
-interface AvailableBestie {
-  id: string;
-  display_name: string;
-  email: string;
-  avatar_number: number;
-}
-
 export default function GuardianLinks() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<BestieLink[]>([]);
-  const [availableBesties, setAvailableBesties] = useState<AvailableBestie[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedEmoji, setSelectedEmoji] = useState("");
-  const [friendCodeNumber, setFriendCodeNumber] = useState("");
+  const [emoji1, setEmoji1] = useState("");
+  const [emoji2, setEmoji2] = useState("");
+  const [emoji3, setEmoji3] = useState("");
   const [relationship, setRelationship] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -115,7 +108,6 @@ export default function GuardianLinks() {
 
       if (error) throw error;
 
-      // Transform the data to match our interface
       const transformedData = (data || []).map(link => ({
         ...link,
         bestie: Array.isArray(link.bestie) ? link.bestie[0] : link.bestie
@@ -131,53 +123,11 @@ export default function GuardianLinks() {
     }
   };
 
-  const findBestieByFriendCode = async (emoji: string, number: string) => {
-    if (!emoji || !number || !currentUserId) return null;
-
-    const numValue = parseInt(number);
-    if (isNaN(numValue) || numValue < 1 || numValue > 20) {
-      return null;
-    }
-
-    try {
-      // Check if already linked
-      const { data: existingLink } = await supabase
-        .from("caregiver_bestie_links")
-        .select("bestie_id")
-        .eq("caregiver_id", currentUserId)
-        .eq("bestie_id", (await supabase
-          .from("profiles")
-          .select("id")
-          .eq("friend_code_emoji", emoji)
-          .eq("friend_code_number", numValue)
-          .single()).data?.id || "")
-        .maybeSingle();
-
-      if (existingLink) {
-        return null; // Already linked
-      }
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name, email, avatar_number, friend_code_emoji, friend_code_number")
-        .eq("role", "bestie")
-        .eq("friend_code_emoji", emoji)
-        .eq("friend_code_number", numValue)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    } catch (error: any) {
-      console.error("Error finding bestie:", error);
-      return null;
-    }
-  };
-
   const handleAddLink = async () => {
-    if (!selectedEmoji || !friendCodeNumber || !relationship.trim() || !currentUserId) {
+    if (!emoji1 || !emoji2 || !emoji3 || !relationship.trim() || !currentUserId) {
       toast({
         title: "Missing information",
-        description: "Please select an emoji, enter the number, and describe your relationship",
+        description: "Please select all 3 emojis and describe your relationship",
         variant: "destructive",
       });
       return;
@@ -186,19 +136,45 @@ export default function GuardianLinks() {
     setIsSearching(true);
 
     try {
-      const bestie = await findBestieByFriendCode(selectedEmoji, friendCodeNumber);
+      const friendCode = `${emoji1}${emoji2}${emoji3}`;
+      
+      const { data: bestie, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "bestie")
+        .eq("friend_code", friendCode)
+        .maybeSingle();
 
+      if (error) throw error;
       if (!bestie) {
         toast({
           title: "Friend code not found",
-          description: "No bestie found with that friend code or already linked",
+          description: "No bestie found with that friend code",
           variant: "destructive",
         });
         setIsSearching(false);
         return;
       }
 
-      const { error } = await supabase
+      // Check if already linked
+      const { data: existingLink } = await supabase
+        .from("caregiver_bestie_links")
+        .select("id")
+        .eq("caregiver_id", currentUserId)
+        .eq("bestie_id", bestie.id)
+        .maybeSingle();
+
+      if (existingLink) {
+        toast({
+          title: "Link already exists",
+          description: `You are already connected to ${bestie.display_name}`,
+          variant: "destructive",
+        });
+        setIsSearching(false);
+        return;
+      }
+
+      const { error: insertError } = await supabase
         .from("caregiver_bestie_links")
         .insert({
           caregiver_id: currentUserId,
@@ -206,7 +182,7 @@ export default function GuardianLinks() {
           relationship: relationship.trim(),
         });
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
       toast({
         title: "Link created",
@@ -214,8 +190,9 @@ export default function GuardianLinks() {
       });
 
       setDialogOpen(false);
-      setSelectedEmoji("");
-      setFriendCodeNumber("");
+      setEmoji1("");
+      setEmoji2("");
+      setEmoji3("");
       setRelationship("");
       
       await loadLinks(currentUserId);
@@ -318,61 +295,67 @@ export default function GuardianLinks() {
                 <DialogHeader>
                   <DialogTitle>Link Bestie Account</DialogTitle>
                   <DialogDescription>
-                    Enter your bestie's friend code to connect with their account
+                    Enter your bestie's 3-emoji friend code to connect
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
-                  <div className="space-y-3">
-                    <Label>Step 1: Select Emoji</Label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {FRIEND_CODE_EMOJIS.map(({ emoji, name }) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => setSelectedEmoji(emoji)}
-                          className={cn(
-                            "p-4 text-4xl rounded-lg border-2 transition-all hover:scale-110",
-                            selectedEmoji === emoji
-                              ? "border-primary bg-primary/10 scale-110"
-                              : "border-border hover:border-primary/50"
-                          )}
-                          title={name}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>First Emoji</Label>
+                      <Select value={emoji1} onValueChange={setEmoji1}>
+                        <SelectTrigger className="h-20 text-4xl">
+                          <SelectValue placeholder="?" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FRIEND_CODE_EMOJIS.map((item) => (
+                            <SelectItem key={`1-${item.emoji}`} value={item.emoji} className="text-3xl">
+                              {item.emoji}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    {selectedEmoji && (
-                      <p className="text-sm text-muted-foreground">
-                        Selected: {selectedEmoji} {FRIEND_CODE_EMOJIS.find(e => e.emoji === selectedEmoji)?.name}
-                      </p>
-                    )}
+                    <div>
+                      <Label>Second Emoji</Label>
+                      <Select value={emoji2} onValueChange={setEmoji2}>
+                        <SelectTrigger className="h-20 text-4xl">
+                          <SelectValue placeholder="?" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FRIEND_CODE_EMOJIS.map((item) => (
+                            <SelectItem key={`2-${item.emoji}`} value={item.emoji} className="text-3xl">
+                              {item.emoji}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Third Emoji</Label>
+                      <Select value={emoji3} onValueChange={setEmoji3}>
+                        <SelectTrigger className="h-20 text-4xl">
+                          <SelectValue placeholder="?" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FRIEND_CODE_EMOJIS.map((item) => (
+                            <SelectItem key={`3-${item.emoji}`} value={item.emoji} className="text-3xl">
+                              {item.emoji}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="number">Step 2: Enter Number (01-20)</Label>
-                    <Input
-                      id="number"
-                      type="number"
-                      min="1"
-                      max="20"
-                      placeholder="Enter 2-digit number"
-                      value={friendCodeNumber}
-                      onChange={(e) => setFriendCodeNumber(e.target.value)}
-                      className="text-xl text-center"
-                    />
-                    {selectedEmoji && friendCodeNumber && (
-                      <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Friend Code:</p>
-                        <p className="text-3xl font-bold">
-                          {formatFriendCode(selectedEmoji, parseInt(friendCodeNumber))}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  {emoji1 && emoji2 && emoji3 && (
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-2">Friend Code Preview:</p>
+                      <p className="text-5xl tracking-wider">{emoji1}{emoji2}{emoji3}</p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
-                    <Label htmlFor="relationship">Step 3: Your Relationship</Label>
+                    <Label htmlFor="relationship">Your Relationship</Label>
                     <Input
                       id="relationship"
                       placeholder="e.g., Parent, Sibling, Friend"
@@ -384,8 +367,9 @@ export default function GuardianLinks() {
                 <DialogFooter>
                   <Button variant="outline" onClick={() => {
                     setDialogOpen(false);
-                    setSelectedEmoji("");
-                    setFriendCodeNumber("");
+                    setEmoji1("");
+                    setEmoji2("");
+                    setEmoji3("");
                     setRelationship("");
                   }}>
                     Cancel
@@ -446,7 +430,7 @@ export default function GuardianLinks() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Remove Link?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to unlink from {link.bestie.display_name}? You will no longer be able to monitor or approve their activity.
+                              Are you sure you want to unlink from {link.bestie.display_name}?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -474,7 +458,7 @@ export default function GuardianLinks() {
                       <div className="space-y-3 pt-3 border-t">
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <Label htmlFor={`post-approval-${link.id}`} className="text-sm font-medium">
+                            <Label className="text-sm font-medium">
                               Require Post Approval
                             </Label>
                             <p className="text-sm text-muted-foreground">
@@ -482,23 +466,20 @@ export default function GuardianLinks() {
                             </p>
                           </div>
                           <Switch
-                            id={`post-approval-${link.id}`}
                             checked={link.require_post_approval}
                             onCheckedChange={() => handleToggleApproval(link.id, 'require_post_approval', link.require_post_approval)}
                           />
                         </div>
-                        
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <Label htmlFor={`comment-approval-${link.id}`} className="text-sm font-medium">
+                            <Label className="text-sm font-medium">
                               Require Comment Approval
                             </Label>
                             <p className="text-sm text-muted-foreground">
-                              Review and approve comments before they're visible
+                              Review and approve comments before they're published
                             </p>
                           </div>
                           <Switch
-                            id={`comment-approval-${link.id}`}
                             checked={link.require_comment_approval}
                             onCheckedChange={() => handleToggleApproval(link.id, 'require_comment_approval', link.require_comment_approval)}
                           />
@@ -512,7 +493,7 @@ export default function GuardianLinks() {
           )}
         </div>
       </main>
-
+      
       <Footer />
     </div>
   );

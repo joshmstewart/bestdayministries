@@ -16,7 +16,7 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
-import { formatFriendCode, getRandomEmoji, getRandomNumber } from "@/lib/friendCodeEmojis";
+import { formatFriendCode, generateRandomFriendCode } from "@/lib/friendCodeEmojis";
 import grandpaWerthersPattern from "@/assets/voice-patterns/grandpa-werthers.png";
 import johnnyDynamitePattern from "@/assets/voice-patterns/johnny-dynamite.png";
 import batmanPattern from "@/assets/voice-patterns/batman.png";
@@ -37,8 +37,7 @@ interface Profile {
   role: string;
   tts_voice?: string;
   tts_enabled?: boolean;
-  friend_code_emoji?: string | null;
-  friend_code_number?: number | null;
+  friend_code?: string | null;
 }
 
 const ProfileSettings = () => {
@@ -82,24 +81,21 @@ const ProfileSettings = () => {
       const maxAttempts = 100;
       
       while (attempts < maxAttempts) {
-        const emoji = getRandomEmoji();
-        const number = getRandomNumber();
+        const newCode = generateRandomFriendCode();
         
-        // Check if this combination is available
+        // Check if this code is available
         const { data: existing } = await supabase
           .from("profiles")
           .select("id")
-          .eq("friend_code_emoji", emoji)
-          .eq("friend_code_number", number)
+          .eq("friend_code", newCode)
           .maybeSingle();
 
         if (!existing) {
-          // This combo is available, use it
+          // This code is available, use it
           const { error } = await supabase
             .from("profiles")
             .update({
-              friend_code_emoji: emoji,
-              friend_code_number: number,
+              friend_code: newCode,
             })
             .eq("id", user.id);
 
@@ -107,7 +103,7 @@ const ProfileSettings = () => {
 
           toast({
             title: "Friend code generated",
-            description: `Your new friend code is ${formatFriendCode(emoji, number)}`,
+            description: `Your new friend code is ${newCode}`,
           });
 
           await loadProfile(user.id);
@@ -131,15 +127,12 @@ const ProfileSettings = () => {
   };
 
   const copyFriendCode = () => {
-    if (!profile?.friend_code_emoji || !profile?.friend_code_number) return;
-    const code = formatFriendCode(profile.friend_code_emoji, profile.friend_code_number);
-    if (code) {
-      navigator.clipboard.writeText(code);
-      toast({
-        title: "Copied!",
-        description: "Friend code copied to clipboard",
-      });
-    }
+    if (!profile?.friend_code) return;
+    navigator.clipboard.writeText(profile.friend_code);
+    toast({
+      title: "Copied!",
+      description: "Friend code copied to clipboard",
+    });
   };
 
   const loadProfile = async (userId: string) => {
@@ -221,6 +214,102 @@ const ProfileSettings = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const voiceOptions = [
+    { 
+      value: "Aria", 
+      label: "Aria (Expressive)", 
+      description: "Warm and friendly",
+      pattern: cherryTwinklePattern
+    },
+    { 
+      value: "Davis", 
+      label: "Davis (Conversational)", 
+      description: "Natural and clear",
+      pattern: austinPattern
+    },
+    { 
+      value: "Guy", 
+      label: "Guy (Newscast)", 
+      description: "Professional and authoritative",
+      pattern: johnnyDynamitePattern
+    },
+    { 
+      value: "Jane", 
+      label: "Jane (Newscast)", 
+      description: "Clear and professional",
+      pattern: grandmaMuffinPattern
+    },
+    { 
+      value: "Jason", 
+      label: "Jason (Casual)", 
+      description: "Relaxed and friendly",
+      pattern: marshalPattern
+    },
+    { 
+      value: "Jenny", 
+      label: "Jenny (Conversational)", 
+      description: "Warm and engaging",
+      pattern: cherryTwinklePattern
+    },
+    { 
+      value: "Nancy", 
+      label: "Nancy (Friendly)", 
+      description: "Approachable and kind",
+      pattern: grandmaMuffinPattern
+    },
+    { 
+      value: "Sara", 
+      label: "Sara (Conversational)", 
+      description: "Natural and expressive",
+      pattern: cherryTwinklePattern
+    },
+    { 
+      value: "Tony", 
+      label: "Tony (Conversational)", 
+      description: "Confident and clear",
+      pattern: maverickPattern
+    },
+  ];
+
+  const testVoice = async () => {
+    if (!selectedVoice) return;
+
+    try {
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "xi-api-key": import.meta.env.VITE_ELEVENLABS_API_KEY || "",
+          },
+          body: JSON.stringify({
+            text: "Hello! This is how I sound. I hope you like my voice!",
+            model_id: "eleven_turbo_v2",
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to generate speech");
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+
+      toast({
+        title: "Playing voice sample",
+        description: "Listen to how this voice sounds",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error testing voice",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -315,12 +404,12 @@ const ProfileSettings = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {profile.friend_code_emoji && profile.friend_code_number ? (
+                    {profile.friend_code ? (
                       <>
                         <div className="flex items-center justify-center p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg">
                           <div className="text-center space-y-2">
-                            <div className="text-6xl">
-                              {formatFriendCode(profile.friend_code_emoji, profile.friend_code_number)}
+                            <div className="text-6xl tracking-wider">
+                              {profile.friend_code}
                             </div>
                             <p className="text-sm text-muted-foreground">Your Friend Code</p>
                           </div>
@@ -383,213 +472,96 @@ const ProfileSettings = () => {
               )}
 
               {/* Text-to-Speech Settings */}
-              <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="flex items-center gap-2 text-base">
-                      <Volume2 className="w-4 h-4" />
-                      Text-to-Speech
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Enable audio playback for text content throughout the app
-                    </p>
-                  </div>
-                  <Switch
-                    checked={ttsEnabled}
-                    onCheckedChange={setTtsEnabled}
-                  />
-                </div>
-
-                {ttsEnabled && (
-                  <div className="space-y-3 pt-2 border-t">
-                    <Label className="text-sm">Preferred Voice</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Choose your preferred voice - click the speaker icon to preview
-                    </p>
-                
-                    {/* Classic Voices Section */}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-semibold text-foreground">Classic Voices</h3>
-                      <div className="grid grid-cols-1 gap-3">
-                        {[
-                          { value: 'Aria', label: 'Aria', description: 'Female, Warm' },
-                          { value: 'Roger', label: 'Roger', description: 'Male, Deep' },
-                          { value: 'Sarah', label: 'Sarah', description: 'Female, Clear' },
-                          { value: 'Charlie', label: 'Charlie', description: 'Male, Friendly' }
-                        ].map((voice) => (
-                          <div
-                            key={voice.value}
-                            className={`flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer hover:border-primary/50 ${
-                              selectedVoice === voice.value ? 'border-primary bg-primary/5' : 'border-border'
-                            }`}
-                            onClick={() => setSelectedVoice(voice.value)}
-                          >
-                            <div className="flex-1">
-                              <div className="font-medium">{voice.label}</div>
-                              <div className="text-sm text-muted-foreground">{voice.description}</div>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const previewText = `Hello! I'm ${voice.label}. This is what I sound like.`;
-                                const audio = document.createElement('audio');
-                                audio.style.display = 'none';
-                                document.body.appendChild(audio);
-                                
-                                supabase.functions.invoke('text-to-speech', {
-                                  body: { text: previewText, voice: voice.value }
-                                }).then(({ data, error }) => {
-                                  if (error) {
-                                    toast({
-                                      title: "Preview Error",
-                                      description: "Failed to load voice preview",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-                                  if (data?.audioContent) {
-                                    const audioBlob = new Blob(
-                                      [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
-                                      { type: 'audio/mpeg' }
-                                    );
-                                    const audioUrl = URL.createObjectURL(audioBlob);
-                                    audio.src = audioUrl;
-                                    audio.play();
-                                    audio.onended = () => {
-                                      URL.revokeObjectURL(audioUrl);
-                                      document.body.removeChild(audio);
-                                    };
-                                  }
-                                });
-                              }}
-                              title="Preview voice"
-                            >
-                              <Volume2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
+              <Card className="border-dashed border-2 border-accent/50">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Volume2 className="w-5 h-5" />
+                    Text-to-Speech Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Choose how text is read aloud to you
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="tts-enabled">Enable Text-to-Speech</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Automatically read text aloud
+                      </p>
                     </div>
-
-                    {/* Fun Voices Section */}
-                    <div className="space-y-2 mt-6">
-                      <h3 className="text-sm font-semibold text-foreground">Fun Voices</h3>
-                      <div className="grid grid-cols-1 gap-3">
-                        {[
-                          { value: 'Johnny Dynamite', label: 'Johnny Dynamite', description: '80s Radio DJ', pattern: johnnyDynamitePattern },
-                          { value: 'Grampa Werthers', label: 'Grampa Werthers', description: 'Cartoon Old Man', pattern: grandpaWerthersPattern },
-                          { value: 'Batman', label: 'Batman', description: 'Dark Knight', pattern: batmanPattern },
-                          { value: 'Cherry Twinkle', label: 'Cherry Twinkle', description: 'Adorable Cartoon Girl', pattern: cherryTwinklePattern },
-                          { value: 'Creature', label: 'Creature', description: 'Goblin Mythical Monster', pattern: creaturePattern },
-                          { value: 'Marshal', label: 'Marshal', description: 'Toon Character', pattern: marshalPattern },
-                          { value: 'Austin', label: 'Austin', description: 'Texas Boy', pattern: austinPattern },
-                          { value: 'Jerry B.', label: 'Jerry B.', description: 'California Surfer Dude', pattern: jerryBPattern },
-                          { value: 'Maverick', label: 'Maverick', description: 'Epic Heroic Legend', pattern: maverickPattern },
-                          { value: 'Grandma Muffin', label: 'Grandma Muffin', description: 'Warm Grandmother', pattern: grandmaMuffinPattern }
-                        ].map((voice) => (
-                          <div
-                            key={voice.value}
-                            className={`relative flex items-center justify-between p-4 border-2 rounded-lg transition-all cursor-pointer hover:border-primary/50 overflow-hidden ${
-                              selectedVoice === voice.value ? 'border-primary bg-primary/5' : 'border-border'
-                            }`}
-                            onClick={() => setSelectedVoice(voice.value)}
-                            style={{
-                              backgroundImage: `url(${voice.pattern})`,
-                              backgroundSize: '150px 150px',
-                              backgroundRepeat: 'repeat',
-                              backgroundPosition: 'center'
-                            }}
-                          >
-                            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm"></div>
-                            <div className="flex-1 relative z-10">
-                              <div className="font-medium">{voice.label}</div>
-                              <div className="text-sm text-muted-foreground">{voice.description}</div>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="relative z-10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const previewText = `Hello! I'm ${voice.label}. This is what I sound like.`;
-                                const audio = document.createElement('audio');
-                                audio.style.display = 'none';
-                                document.body.appendChild(audio);
-                                
-                                supabase.functions.invoke('text-to-speech', {
-                                  body: { text: previewText, voice: voice.value }
-                                }).then(({ data, error }) => {
-                                  if (error) {
-                                    toast({
-                                      title: "Preview Error",
-                                      description: "Failed to load voice preview",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-                                  if (data?.audioContent) {
-                                    const audioBlob = new Blob(
-                                      [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
-                                      { type: 'audio/mpeg' }
-                                    );
-                                    const audioUrl = URL.createObjectURL(audioBlob);
-                                    audio.src = audioUrl;
-                                    audio.play();
-                                    audio.onended = () => {
-                                      URL.revokeObjectURL(audioUrl);
-                                      document.body.removeChild(audio);
-                                    };
-                                  }
-                                });
-                              }}
-                              title="Preview voice"
-                            >
-                              <Volume2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <Switch
+                      id="tts-enabled"
+                      checked={ttsEnabled}
+                      onCheckedChange={setTtsEnabled}
+                    />
                   </div>
-                )}
-              </div>
 
-              {/* Save Button */}
+                  {ttsEnabled && (
+                    <div className="space-y-3 pt-4 border-t">
+                      <Label>Voice Selection</Label>
+                      <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {voiceOptions.map((voice) => (
+                            <SelectItem key={voice.value} value={voice.value}>
+                              <div className="flex items-center gap-3">
+                                <img 
+                                  src={voice.pattern} 
+                                  alt={voice.label}
+                                  className="w-8 h-8 rounded"
+                                />
+                                <div>
+                                  <div className="font-medium">{voice.label}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {voice.description}
+                                  </div>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={testVoice}
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        Test Voice
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Button 
-                onClick={handleSave}
+                onClick={handleSave} 
+                className="w-full gap-2" 
                 disabled={saving}
-                className="w-full"
-                size="lg"
               >
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? "Saving..." : "Save Profile"}
+                {saving ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Profile
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
 
-          {/* Security Section */}
-          <Card className="border-2 shadow-warm">
-            <CardHeader>
-              <CardTitle>Security</CardTitle>
-              <CardDescription>Manage your account security settings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">Password</p>
-                  <p className="text-sm text-muted-foreground">Change your account password</p>
-                </div>
-                <PasswordChangeDialog />
-              </div>
-            </CardContent>
-          </Card>
+          <PasswordChangeDialog />
         </div>
       </main>
-
+      
       <Footer />
     </div>
   );

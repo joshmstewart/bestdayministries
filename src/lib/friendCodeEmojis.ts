@@ -26,11 +26,14 @@ export const getRandomEmoji = () => {
   return FRIEND_CODE_EMOJIS[Math.floor(Math.random() * FRIEND_CODE_EMOJIS.length)].emoji;
 };
 
-export const getRandomNumber = () => {
-  return Math.floor(Math.random() * 20) + 1;
+export const generateRandomFriendCode = () => {
+  // Generate 3 random emojis (duplicates allowed)
+  const emoji1 = getRandomEmoji();
+  const emoji2 = getRandomEmoji();
+  const emoji3 = getRandomEmoji();
+  return `${emoji1}${emoji2}${emoji3}`;
 };
 
-export const formatFriendCode = (emoji: string | null, number: number | null) => {
-  if (!emoji || !number) return null;
-  return `${emoji}${number.toString().padStart(2, '0')}`;
+export const formatFriendCode = (friendCode: string | null) => {
+  return friendCode || null;
 };
