@@ -16,8 +16,9 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { FundingProgressBar } from "@/components/FundingProgressBar";
+import AudioPlayer from "@/components/AudioPlayer";
 import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBestieManager";
-
 interface BestieLink {
   id: string;
   bestie_id: string;
@@ -46,6 +47,14 @@ interface Sponsorship {
     email: string;
     avatar_number: number;
   };
+  featured_bestie?: {
+    id: string;
+    description: string;
+    image_url: string;
+    voice_note_url: string | null;
+    monthly_goal: number;
+    current_monthly_pledges: number;
+  } | null;
 }
 
 export default function GuardianLinks() {
@@ -182,11 +191,28 @@ export default function GuardianLinks() {
 
       if (profilesError) throw profilesError;
 
+      // Get featured bestie data and funding progress
+      const { data: featuredBestiesData } = await supabase
+        .from("featured_besties")
+        .select("id, bestie_id, description, image_url, voice_note_url, monthly_goal")
+        .in("bestie_id", bestieIds)
+        .eq("approval_status", "approved")
+        .eq("is_active", true);
+
+      // Get funding progress
+      const { data: fundingData } = await supabase
+        .from("bestie_funding_progress")
+        .select("bestie_id, current_monthly_pledges, monthly_goal")
+        .in("bestie_id", bestieIds);
+
       // Combine the data
       const transformedData = sponsorshipsData
         .map(sponsorship => {
           const bestie = profilesData?.find(p => p.id === sponsorship.bestie_id);
-          if (!bestie) return null; // Filter out if bestie not found
+          if (!bestie) return null;
+          
+          const featuredBestie = featuredBestiesData?.find(fb => fb.bestie_id === sponsorship.bestie_id);
+          const funding = fundingData?.find(f => f.bestie_id === sponsorship.bestie_id);
           
           return {
             ...sponsorship,
@@ -194,7 +220,15 @@ export default function GuardianLinks() {
               display_name: bestie.display_name,
               email: bestie.email,
               avatar_number: bestie.avatar_number
-            }
+            },
+            featured_bestie: featuredBestie ? {
+              id: featuredBestie.id,
+              description: featuredBestie.description,
+              image_url: featuredBestie.image_url,
+              voice_note_url: featuredBestie.voice_note_url,
+              monthly_goal: funding?.monthly_goal || featuredBestie.monthly_goal || 0,
+              current_monthly_pledges: funding?.current_monthly_pledges || 0
+            } : null
           };
         })
         .filter(s => s !== null) as Sponsorship[];
@@ -645,21 +679,19 @@ export default function GuardianLinks() {
                 {sponsorships.map((sponsorship) => (
                   <Card key={sponsorship.id}>
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <AvatarDisplay
-                            avatarNumber={sponsorship.bestie.avatar_number}
-                            displayName={sponsorship.bestie.display_name}
-                            size="lg"
-                          />
-                          <div>
-                            <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
-                            <CardDescription>{sponsorship.bestie.email}</CardDescription>
-                          </div>
+                      <div className="flex items-center gap-4">
+                        <AvatarDisplay
+                          avatarNumber={sponsorship.bestie.avatar_number}
+                          displayName={sponsorship.bestie.display_name}
+                          size="lg"
+                        />
+                        <div>
+                          <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-6">
+                      {/* Sponsorship Details */}
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">Amount:</span>
@@ -678,6 +710,41 @@ export default function GuardianLinks() {
                           </span>
                         </div>
                       </div>
+
+                      {/* Featured Bestie Content */}
+                      {sponsorship.featured_bestie && (
+                        <div className="space-y-4 pt-4 border-t">
+                          <h3 className="font-semibold text-lg">Featured Story</h3>
+                          
+                          {/* Funding Progress */}
+                          <FundingProgressBar
+                            currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
+                            goalAmount={sponsorship.featured_bestie.monthly_goal}
+                          />
+
+                          {/* Featured Image */}
+                          {sponsorship.featured_bestie.image_url && (
+                            <img
+                              src={sponsorship.featured_bestie.image_url}
+                              alt={sponsorship.bestie.display_name}
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                          )}
+
+                          {/* Description */}
+                          <p className="text-sm text-muted-foreground">
+                            {sponsorship.featured_bestie.description}
+                          </p>
+
+                          {/* Voice Note */}
+                          {sponsorship.featured_bestie.voice_note_url && (
+                            <div>
+                              <p className="text-sm font-medium mb-2">Hear from {sponsorship.bestie.display_name}</p>
+                              <AudioPlayer src={sponsorship.featured_bestie.voice_note_url} />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
