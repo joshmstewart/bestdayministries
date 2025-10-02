@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound } from "lucide-react";
+import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound, Edit } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -25,6 +25,10 @@ export const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<Profile | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [newRole, setNewRole] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -33,8 +37,26 @@ export const UserManagement = () => {
   });
 
   useEffect(() => {
+    loadCurrentUser();
     loadUsers();
   }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      setCurrentUserRole(profile?.role || null);
+    } catch (error: any) {
+      console.error("Error loading current user:", error);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -139,6 +161,52 @@ export const UserManagement = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditRole = (user: Profile) => {
+    setEditingUser(user);
+    setNewRole(user.role);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateRole = async () => {
+    if (!editingUser) return;
+
+    try {
+      const { error } = await supabase.functions.invoke("update-user-role", {
+        body: { userId: editingUser.id, newRole },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Role updated",
+        description: `${editingUser.display_name}'s role has been changed to ${newRole}.`,
+      });
+
+      setEditDialogOpen(false);
+      await loadUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error updating role",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const canEditUserRole = (userRole: string) => {
+    // Owners can edit any role
+    if (currentUserRole === "owner") return true;
+    // Admins can only edit non-admin roles
+    return currentUserRole === "admin" && !["admin", "owner"].includes(userRole);
+  };
+
+  const canDeleteUser = (userRole: string) => {
+    // Owners can delete anyone
+    if (currentUserRole === "owner") return true;
+    // Admins can only delete non-admin users
+    return currentUserRole === "admin" && !["admin", "owner"].includes(userRole);
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -282,6 +350,16 @@ export const UserManagement = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
+                    {canEditUserRole(user.role) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditRole(user)}
+                        title="Edit user role"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -291,35 +369,37 @@ export const UserManagement = () => {
                     >
                       <KeyRound className="w-4 h-4" />
                     </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          title="Delete user"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete User Account?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete {user.display_name}'s account? This action cannot be undone and will permanently remove all of their data.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteUser(user.id, user.display_name)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    {canDeleteUser(user.role) && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            title="Delete user"
                           >
-                            Delete Account
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete User Account?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete {user.display_name}'s account? This action cannot be undone and will permanently remove all of their data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteUser(user.id, user.display_name)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete Account
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -327,6 +407,48 @@ export const UserManagement = () => {
           </TableBody>
         </Table>
       </CardContent>
+
+      {/* Role Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User Role</DialogTitle>
+            <DialogDescription>
+              Change the role for {editingUser?.display_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newRole">New Role</Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="supporter">Supporter</SelectItem>
+                  <SelectItem value="bestie">Bestie</SelectItem>
+                  <SelectItem value="caregiver">Caregiver</SelectItem>
+                  {currentUserRole === "owner" && (
+                    <>
+                      <SelectItem value="moderator">Moderator</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="owner">Owner</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateRole}>
+              Update Role
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

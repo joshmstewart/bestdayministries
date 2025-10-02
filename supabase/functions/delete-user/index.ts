@@ -56,7 +56,23 @@ serve(async (req) => {
       throw new Error('User ID is required');
     }
 
-    console.log(`Admin ${user.id} deleting user: ${userId}`);
+    // Check the target user's role
+    const { data: targetProfile, error: targetProfileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (targetProfileError) {
+      throw new Error('Target user not found');
+    }
+
+    // Only owners can delete admin accounts
+    if (targetProfile.role === 'admin' && profile.role !== 'owner') {
+      throw new Error('Only owners can delete admin accounts');
+    }
+
+    console.log(`Admin ${user.id} (${profile.role}) deleting user: ${userId} (${targetProfile.role})`);
 
     // Delete the user using admin API
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
