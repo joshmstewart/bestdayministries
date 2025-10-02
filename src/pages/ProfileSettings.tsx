@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Volume2 } from "lucide-react";
+import { Save, Volume2, Copy, RefreshCw } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
@@ -16,6 +16,7 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
+import { formatFriendCode, getRandomEmoji, getRandomNumber } from "@/lib/friendCodeEmojis";
 import grandpaWerthersPattern from "@/assets/voice-patterns/grandpa-werthers.png";
 import johnnyDynamitePattern from "@/assets/voice-patterns/johnny-dynamite.png";
 import batmanPattern from "@/assets/voice-patterns/batman.png";
@@ -36,6 +37,8 @@ interface Profile {
   role: string;
   tts_voice?: string;
   tts_enabled?: boolean;
+  friend_code_emoji?: string | null;
+  friend_code_number?: number | null;
 }
 
 const ProfileSettings = () => {
@@ -50,6 +53,7 @@ const ProfileSettings = () => {
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string>("Aria");
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [generatingCode, setGeneratingCode] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -66,6 +70,76 @@ const ProfileSettings = () => {
     setUser(session.user);
     await loadProfile(session.user.id);
     setLoading(false);
+  };
+
+  const generateFriendCode = async () => {
+    if (!user || profile?.role !== "bestie") return;
+
+    setGeneratingCode(true);
+    try {
+      // Keep trying until we find an available code
+      let attempts = 0;
+      const maxAttempts = 100;
+      
+      while (attempts < maxAttempts) {
+        const emoji = getRandomEmoji();
+        const number = getRandomNumber();
+        
+        // Check if this combination is available
+        const { data: existing } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("friend_code_emoji", emoji)
+          .eq("friend_code_number", number)
+          .maybeSingle();
+
+        if (!existing) {
+          // This combo is available, use it
+          const { error } = await supabase
+            .from("profiles")
+            .update({
+              friend_code_emoji: emoji,
+              friend_code_number: number,
+            })
+            .eq("id", user.id);
+
+          if (error) throw error;
+
+          toast({
+            title: "Friend code generated",
+            description: `Your new friend code is ${formatFriendCode(emoji, number)}`,
+          });
+
+          await loadProfile(user.id);
+          setGeneratingCode(false);
+          return;
+        }
+
+        attempts++;
+      }
+
+      throw new Error("Could not generate unique friend code. Please try again.");
+    } catch (error: any) {
+      toast({
+        title: "Error generating friend code",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
+  const copyFriendCode = () => {
+    if (!profile?.friend_code_emoji || !profile?.friend_code_number) return;
+    const code = formatFriendCode(profile.friend_code_emoji, profile.friend_code_number);
+    if (code) {
+      navigator.clipboard.writeText(code);
+      toast({
+        title: "Copied!",
+        description: "Friend code copied to clipboard",
+      });
+    }
   };
 
   const loadProfile = async (userId: string) => {
@@ -230,6 +304,83 @@ const ProfileSettings = () => {
                   {bio.length}/500 characters
                 </p>
               </div>
+
+              {/* Friend Code for Besties */}
+              {profile?.role === "bestie" && (
+                <Card className="border-dashed border-2 border-primary/50">
+                  <CardHeader>
+                    <CardTitle className="text-lg">My Friend Code</CardTitle>
+                    <CardDescription>
+                      Share this code with your guardian so they can link to your account
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {profile.friend_code_emoji && profile.friend_code_number ? (
+                      <>
+                        <div className="flex items-center justify-center p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg">
+                          <div className="text-center space-y-2">
+                            <div className="text-6xl">
+                              {formatFriendCode(profile.friend_code_emoji, profile.friend_code_number)}
+                            </div>
+                            <p className="text-sm text-muted-foreground">Your Friend Code</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 gap-2"
+                            onClick={copyFriendCode}
+                          >
+                            <Copy className="w-4 h-4" />
+                            Copy Code
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 gap-2"
+                            onClick={generateFriendCode}
+                            disabled={generatingCode}
+                          >
+                            {generatingCode ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-4 h-4" />
+                                New Code
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center space-y-4 py-6">
+                        <p className="text-muted-foreground">
+                          You don't have a friend code yet
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={generateFriendCode}
+                          disabled={generatingCode}
+                          className="gap-2"
+                        >
+                          {generatingCode ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            "Generate Friend Code"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Text-to-Speech Settings */}
               <div className="space-y-4 p-4 bg-muted/30 rounded-lg">

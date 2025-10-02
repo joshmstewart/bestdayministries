@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Link as LinkIcon, Trash2, UserPlus } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { FRIEND_CODE_EMOJIS, formatFriendCode } from "@/lib/friendCodeEmojis";
+import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 
 interface BestieLink {
@@ -43,9 +45,11 @@ export default function GuardianLinks() {
   const [links, setLinks] = useState<BestieLink[]>([]);
   const [availableBesties, setAvailableBesties] = useState<AvailableBestie[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedBestie, setSelectedBestie] = useState("");
+  const [selectedEmoji, setSelectedEmoji] = useState("");
+  const [friendCodeNumber, setFriendCodeNumber] = useState("");
   const [relationship, setRelationship] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     checkAccess();
@@ -78,7 +82,6 @@ export default function GuardianLinks() {
 
       setCurrentUserId(user.id);
       await loadLinks(user.id);
-      await loadAvailableBesties(user.id);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -128,53 +131,78 @@ export default function GuardianLinks() {
     }
   };
 
-  const loadAvailableBesties = async (userId: string) => {
+  const findBestieByFriendCode = async (emoji: string, number: string) => {
+    if (!emoji || !number || !currentUserId) return null;
+
+    const numValue = parseInt(number);
+    if (isNaN(numValue) || numValue < 1 || numValue > 20) {
+      return null;
+    }
+
     try {
-      // Get all besties that are not already linked to this guardian
-      const { data: allBesties, error: bestiesError } = await supabase
-        .from("profiles")
-        .select("id, display_name, email, avatar_number")
-        .eq("role", "bestie");
-
-      if (bestiesError) throw bestiesError;
-
-      // Get already linked bestie IDs
-      const { data: linkedIds, error: linksError } = await supabase
+      // Check if already linked
+      const { data: existingLink } = await supabase
         .from("caregiver_bestie_links")
         .select("bestie_id")
-        .eq("caregiver_id", userId);
+        .eq("caregiver_id", currentUserId)
+        .eq("bestie_id", (await supabase
+          .from("profiles")
+          .select("id")
+          .eq("friend_code_emoji", emoji)
+          .eq("friend_code_number", numValue)
+          .single()).data?.id || "")
+        .maybeSingle();
 
-      if (linksError) throw linksError;
+      if (existingLink) {
+        return null; // Already linked
+      }
 
-      const linkedBestieIds = new Set(linkedIds?.map(l => l.bestie_id) || []);
-      const available = (allBesties || []).filter(b => !linkedBestieIds.has(b.id));
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name, email, avatar_number, friend_code_emoji, friend_code_number")
+        .eq("role", "bestie")
+        .eq("friend_code_emoji", emoji)
+        .eq("friend_code_number", numValue)
+        .maybeSingle();
 
-      setAvailableBesties(available);
+      if (error) throw error;
+      return data;
     } catch (error: any) {
-      toast({
-        title: "Error loading besties",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error finding bestie:", error);
+      return null;
     }
   };
 
   const handleAddLink = async () => {
-    if (!selectedBestie || !relationship.trim() || !currentUserId) {
+    if (!selectedEmoji || !friendCodeNumber || !relationship.trim() || !currentUserId) {
       toast({
         title: "Missing information",
-        description: "Please select a bestie and enter your relationship",
+        description: "Please select an emoji, enter the number, and describe your relationship",
         variant: "destructive",
       });
       return;
     }
 
+    setIsSearching(true);
+
     try {
+      const bestie = await findBestieByFriendCode(selectedEmoji, friendCodeNumber);
+
+      if (!bestie) {
+        toast({
+          title: "Friend code not found",
+          description: "No bestie found with that friend code or already linked",
+          variant: "destructive",
+        });
+        setIsSearching(false);
+        return;
+      }
+
       const { error } = await supabase
         .from("caregiver_bestie_links")
         .insert({
           caregiver_id: currentUserId,
-          bestie_id: selectedBestie,
+          bestie_id: bestie.id,
           relationship: relationship.trim(),
         });
 
@@ -182,21 +210,23 @@ export default function GuardianLinks() {
 
       toast({
         title: "Link created",
-        description: "Successfully linked to bestie account",
+        description: `Successfully linked to ${bestie.display_name}`,
       });
 
       setDialogOpen(false);
-      setSelectedBestie("");
+      setSelectedEmoji("");
+      setFriendCodeNumber("");
       setRelationship("");
       
       await loadLinks(currentUserId);
-      await loadAvailableBesties(currentUserId);
     } catch (error: any) {
       toast({
         title: "Error creating link",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -217,7 +247,6 @@ export default function GuardianLinks() {
       });
 
       await loadLinks(currentUserId);
-      await loadAvailableBesties(currentUserId);
     } catch (error: any) {
       toast({
         title: "Error removing link",
@@ -285,37 +314,65 @@ export default function GuardianLinks() {
                   Link Bestie
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Link Bestie Account</DialogTitle>
                   <DialogDescription>
-                    Connect with a bestie account to help monitor and support their activity
+                    Enter your bestie's friend code to connect with their account
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="bestie">Select Bestie</Label>
-                    <Select value={selectedBestie} onValueChange={setSelectedBestie}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a bestie to link" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableBesties.length === 0 ? (
-                          <div className="p-2 text-sm text-muted-foreground">
-                            No available besties to link
-                          </div>
-                        ) : (
-                          availableBesties.map((bestie) => (
-                            <SelectItem key={bestie.id} value={bestie.id}>
-                              {bestie.display_name} ({bestie.email})
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-6 py-4">
+                  <div className="space-y-3">
+                    <Label>Step 1: Select Emoji</Label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {FRIEND_CODE_EMOJIS.map(({ emoji, name }) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setSelectedEmoji(emoji)}
+                          className={cn(
+                            "p-4 text-4xl rounded-lg border-2 transition-all hover:scale-110",
+                            selectedEmoji === emoji
+                              ? "border-primary bg-primary/10 scale-110"
+                              : "border-border hover:border-primary/50"
+                          )}
+                          title={name}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedEmoji && (
+                      <p className="text-sm text-muted-foreground">
+                        Selected: {selectedEmoji} {FRIEND_CODE_EMOJIS.find(e => e.emoji === selectedEmoji)?.name}
+                      </p>
+                    )}
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="relationship">Your Relationship</Label>
+                    <Label htmlFor="number">Step 2: Enter Number (01-20)</Label>
+                    <Input
+                      id="number"
+                      type="number"
+                      min="1"
+                      max="20"
+                      placeholder="Enter 2-digit number"
+                      value={friendCodeNumber}
+                      onChange={(e) => setFriendCodeNumber(e.target.value)}
+                      className="text-xl text-center"
+                    />
+                    {selectedEmoji && friendCodeNumber && (
+                      <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Friend Code:</p>
+                        <p className="text-3xl font-bold">
+                          {formatFriendCode(selectedEmoji, parseInt(friendCodeNumber))}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="relationship">Step 3: Your Relationship</Label>
                     <Input
                       id="relationship"
                       placeholder="e.g., Parent, Sibling, Friend"
@@ -325,11 +382,23 @@ export default function GuardianLinks() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => {
+                    setDialogOpen(false);
+                    setSelectedEmoji("");
+                    setFriendCodeNumber("");
+                    setRelationship("");
+                  }}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddLink}>
-                    Create Link
+                  <Button onClick={handleAddLink} disabled={isSearching}>
+                    {isSearching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Searching...
+                      </>
+                    ) : (
+                      "Create Link"
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
