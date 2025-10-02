@@ -35,15 +35,25 @@ export const FeaturedBestieDisplay = () => {
   const [fundingProgress, setFundingProgress] = useState<FundingProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [isSponsoring, setIsSponsoring] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadCurrentBestie();
     loadUserRole();
   }, []);
+
+  useEffect(() => {
+    if (userId !== null) {
+      loadCurrentBestie();
+    } else {
+      loadCurrentBestie();
+    }
+  }, [userId]);
 
   const loadUserRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      setUserId(user.id);
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -53,6 +63,26 @@ export const FeaturedBestieDisplay = () => {
       if (profile) {
         setUserRole(profile.role);
       }
+    }
+  };
+
+  const checkSponsorshipStatus = async (bestieId: string, currentUserId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("sponsorships")
+        .select("id")
+        .eq("bestie_id", bestieId)
+        .eq("sponsor_id", currentUserId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error checking sponsorship:", error);
+      }
+      
+      setIsSponsoring(!!data);
+    } catch (error) {
+      console.error("Error checking sponsorship status:", error);
     }
   };
 
@@ -72,6 +102,11 @@ export const FeaturedBestieDisplay = () => {
 
       if (error) throw error;
       setBestie(data);
+
+      // Check if user is sponsoring this bestie
+      if (data && userId) {
+        await checkSponsorshipStatus(data.id, userId);
+      }
 
       // Load funding progress if bestie is available for sponsorship
       if (data?.available_for_sponsorship && data?.monthly_goal && data.monthly_goal > 0) {
@@ -107,7 +142,11 @@ export const FeaturedBestieDisplay = () => {
   }
 
   return (
-    <Card className="border-2 border-primary/20 shadow-warm overflow-hidden">
+    <Card className={`border-2 shadow-warm overflow-hidden transition-all ${
+      isSponsoring 
+        ? "border-primary/50 bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 shadow-glow" 
+        : "border-primary/20"
+    }`}>
       <div className="grid md:grid-cols-2 gap-6 p-6">
         {/* Image Section */}
         <div className="relative aspect-square md:aspect-auto overflow-hidden rounded-lg">
@@ -120,6 +159,12 @@ export const FeaturedBestieDisplay = () => {
             <Heart className="w-4 h-4 fill-current" />
             Bestie of the Month
           </div>
+          {isSponsoring && (
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm shadow-glow animate-pulse">
+              <Heart className="w-4 h-4 fill-current" />
+              You're Sponsoring!
+            </div>
+          )}
         </div>
 
         {/* Content Section */}
@@ -127,9 +172,22 @@ export const FeaturedBestieDisplay = () => {
           <div className="flex items-center gap-2">
             <h2 className="text-3xl font-black text-foreground flex-1">
               {bestie.bestie_name}
+              {isSponsoring && (
+                <span className="ml-2 inline-flex items-center gap-1 text-base font-normal text-primary">
+                  <Heart className="w-4 h-4 fill-current" />
+                </span>
+              )}
             </h2>
             <TextToSpeech text={`${bestie.bestie_name}. ${bestie.description}`} />
           </div>
+          {isSponsoring && (
+            <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 border border-primary/20 rounded-lg p-3">
+              <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                <Heart className="w-4 h-4 fill-current" />
+                Thank you for being an amazing sponsor! Your support makes a real difference in {bestie.bestie_name}'s life.
+              </p>
+            </div>
+          )}
           <p className="text-base text-muted-foreground leading-relaxed">
             {bestie.description}
           </p>
@@ -147,7 +205,7 @@ export const FeaturedBestieDisplay = () => {
             />
           )}
           
-          {bestie.available_for_sponsorship && !bestie.is_fully_funded && userRole !== "bestie" && (
+          {bestie.available_for_sponsorship && !bestie.is_fully_funded && userRole !== "bestie" && !isSponsoring && (
             <Button 
               onClick={() => navigate(`/sponsor-bestie?bestie=${bestie.id}`)}
               className="mt-4 bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all"
