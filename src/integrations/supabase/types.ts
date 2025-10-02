@@ -627,7 +627,7 @@ export type Database = {
       }
     }
     Functions: {
-      is_admin_or_owner: {
+      has_admin_access: {
         Args: { _user_id: string }
         Returns: boolean
       }
