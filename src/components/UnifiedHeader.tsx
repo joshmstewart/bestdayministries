@@ -42,6 +42,7 @@ export const UnifiedHeader = () => {
   useEffect(() => {
     if (profile) {
       const effectiveRole = getEffectiveRole(profile.role);
+      // Check for admin-level access (owner role automatically has admin access)
       setIsAdmin(effectiveRole === "admin" || effectiveRole === "owner");
     }
   }, [isImpersonating, profile, getEffectiveRole]);

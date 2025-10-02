@@ -97,6 +97,7 @@ export default function AlbumManagement() {
       .eq("id", user.id)
       .single();
 
+    // Check for admin-level access (owner role automatically has admin access)
     if (!profile || (profile.role !== "admin" && profile.role !== "owner")) {
       toast.error("Access denied. Admin privileges required.");
       navigate("/");

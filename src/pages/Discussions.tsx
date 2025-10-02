@@ -515,6 +515,7 @@ const Discussions = () => {
   };
 
   const canDeleteContent = (authorId: string) => {
+    // Admin-level access (includes owner) or content author can delete
     return profile && (
       ['admin', 'owner'].includes(profile.role) || 
       profile.id === authorId

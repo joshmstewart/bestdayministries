@@ -49,9 +49,10 @@ const Admin = () => {
         .eq("id", user.id)
         .single();
 
-      if (profile?.role !== "admin" && profile?.role !== "owner") {
-        toast({
-          title: "Access Denied",
+    // Check for admin-level access (owner role automatically has admin access)
+    if (profile?.role !== "admin" && profile?.role !== "owner") {
+      toast({
+        title: "Access Denied",
           description: "You don't have permission to access this page.",
           variant: "destructive",
         });

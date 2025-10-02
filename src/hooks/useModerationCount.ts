@@ -25,6 +25,7 @@ export const useModerationCount = () => {
         .eq("id", user.id)
         .single();
 
+      // Check for admin-level access (owner role automatically has admin access)
       const adminStatus = profile?.role === "admin" || profile?.role === "owner";
       setIsAdmin(adminStatus);
 

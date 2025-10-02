@@ -26,7 +26,8 @@ export const useRoleImpersonation = () => {
   };
 
   const getEffectiveRole = (actualRole: UserRole | null): UserRole | null => {
-    // Only allow impersonation if user is actually an admin/owner
+    // Only allow impersonation if user has admin-level access (admin or owner)
+    // Note: Owner role automatically has all admin permissions
     if (actualRole === "admin" || actualRole === "owner") {
       return impersonatedRole || actualRole;
     }

@@ -65,6 +65,7 @@ const ModerationQueue = () => {
       .eq("id", session.user.id)
       .single();
 
+    // Check for admin-level access (owner role automatically has admin access)
     if (!profile || !['admin', 'owner', 'moderator'].includes(profile.role)) {
       toast({
         title: "Access denied",
