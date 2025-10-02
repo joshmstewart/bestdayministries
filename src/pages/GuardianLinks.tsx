@@ -724,11 +724,13 @@ export default function GuardianLinks() {
 
                           {/* Featured Image */}
                           {sponsorship.featured_bestie.image_url && (
-                            <img
-                              src={sponsorship.featured_bestie.image_url}
-                              alt={sponsorship.bestie.display_name}
-                              className="w-full h-48 object-cover rounded-lg"
-                            />
+                            <div className="aspect-video w-full overflow-hidden rounded-lg">
+                              <img
+                                src={sponsorship.featured_bestie.image_url}
+                                alt={sponsorship.bestie.display_name}
+                                className="w-full h-full object-contain bg-muted"
+                              />
+                            </div>
                           )}
 
                           {/* Description */}
