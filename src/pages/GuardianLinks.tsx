@@ -11,11 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Link as LinkIcon, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBestieManager";
 
 interface BestieLink {
   id: string;
@@ -24,6 +25,7 @@ interface BestieLink {
   created_at: string;
   require_post_approval: boolean;
   require_comment_approval: boolean;
+  allow_featured_posts: boolean;
   bestie: {
     display_name: string;
     email: string;
@@ -43,6 +45,8 @@ export default function GuardianLinks() {
   const [relationship, setRelationship] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [featuredBestieDialogOpen, setFeaturedBestieDialogOpen] = useState(false);
+  const [selectedBestieForFeatured, setSelectedBestieForFeatured] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     checkAccess();
@@ -97,6 +101,7 @@ export default function GuardianLinks() {
           created_at,
           require_post_approval,
           require_comment_approval,
+          allow_featured_posts,
           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             display_name,
             email,
@@ -233,7 +238,7 @@ export default function GuardianLinks() {
     }
   };
 
-  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval', currentValue: boolean) => {
+  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts', currentValue: boolean) => {
     try {
       const { error } = await supabase
         .from("caregiver_bestie_links")
@@ -242,9 +247,15 @@ export default function GuardianLinks() {
 
       if (error) throw error;
 
+      const fieldNames = {
+        require_post_approval: 'Post approval',
+        require_comment_approval: 'Comment approval',
+        allow_featured_posts: 'Featured posts'
+      };
+
       toast({
         title: "Settings updated",
-        description: `${field === 'require_post_approval' ? 'Post' : 'Comment'} approval ${!currentValue ? 'enabled' : 'disabled'}`,
+        description: `${fieldNames[field]} ${!currentValue ? 'enabled' : 'disabled'}`,
       });
 
       if (currentUserId) {
@@ -257,6 +268,11 @@ export default function GuardianLinks() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleManageFeaturedPosts = (bestieId: string, bestieName: string) => {
+    setSelectedBestieForFeatured({ id: bestieId, name: bestieName });
+    setFeaturedBestieDialogOpen(true);
   };
 
   if (loading) {
@@ -484,6 +500,30 @@ export default function GuardianLinks() {
                             onCheckedChange={() => handleToggleApproval(link.id, 'require_comment_approval', link.require_comment_approval)}
                           />
                         </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-sm font-medium">
+                              Allow Featured Posts
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Allow creating featured posts for this bestie
+                            </p>
+                          </div>
+                          <Switch
+                            checked={link.allow_featured_posts}
+                            onCheckedChange={() => handleToggleApproval(link.id, 'allow_featured_posts', link.allow_featured_posts)}
+                          />
+                        </div>
+                        {link.allow_featured_posts && (
+                          <Button
+                            variant="outline"
+                            className="w-full gap-2"
+                            onClick={() => handleManageFeaturedPosts(link.bestie_id, link.bestie.display_name)}
+                          >
+                            <Star className="w-4 h-4" />
+                            Manage Featured Posts
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -495,6 +535,15 @@ export default function GuardianLinks() {
       </main>
       
       <Footer />
+
+      {selectedBestieForFeatured && (
+        <GuardianFeaturedBestieManager
+          bestieId={selectedBestieForFeatured.id}
+          bestieName={selectedBestieForFeatured.name}
+          open={featuredBestieDialogOpen}
+          onOpenChange={setFeaturedBestieDialogOpen}
+        />
+      )}
     </div>
   );
 }

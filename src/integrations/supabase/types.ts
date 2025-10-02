@@ -155,6 +155,7 @@ export type Database = {
       }
       caregiver_bestie_links: {
         Row: {
+          allow_featured_posts: boolean
           bestie_id: string
           caregiver_id: string
           created_at: string
@@ -164,6 +165,7 @@ export type Database = {
           require_post_approval: boolean
         }
         Insert: {
+          allow_featured_posts?: boolean
           bestie_id: string
           caregiver_id: string
           created_at?: string
@@ -173,6 +175,7 @@ export type Database = {
           require_post_approval?: boolean
         }
         Update: {
+          allow_featured_posts?: boolean
           bestie_id?: string
           caregiver_id?: string
           created_at?: string
