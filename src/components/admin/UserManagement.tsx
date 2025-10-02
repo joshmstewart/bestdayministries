@@ -298,16 +298,6 @@ export const UserManagement = () => {
   const handleLoginAs = async (email: string, password: string, displayName: string) => {
     setLoggingInAs(email);
     try {
-      // Store current user session info
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (currentSession) {
-        localStorage.setItem('admin_session_backup', JSON.stringify({
-          access_token: currentSession.access_token,
-          refresh_token: currentSession.refresh_token,
-          user_email: currentSession.user.email,
-        }));
-      }
-
       // Sign out current user
       await supabase.auth.signOut();
       

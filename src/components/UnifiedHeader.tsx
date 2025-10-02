@@ -121,47 +121,18 @@ export const UnifiedHeader = () => {
   };
 
   const handleReturnToAdmin = async () => {
-    try {
-      const backupStr = localStorage.getItem('admin_session_backup');
-      
-      if (!backupStr) {
-        // No backup found, just log out normally so user can log back in
-        await supabase.auth.signOut();
-        toast({
-          title: "Logged out",
-          description: "Please log back in with your admin account",
-        });
-        navigate("/auth");
-        return;
-      }
-
-      const backup = JSON.parse(backupStr);
-      
-      // Restore admin session directly (this will replace the current session)
-      const { error } = await supabase.auth.setSession({
-        access_token: backup.access_token,
-        refresh_token: backup.refresh_token,
-      });
-
-      if (error) throw error;
-
-      // Clear the backup
-      localStorage.removeItem('admin_session_backup');
-
-      toast({
-        title: "Returned to admin account",
-        description: `Welcome back to ${backup.user_email}`,
-      });
-
-      // Redirect to admin
-      window.location.href = "/admin";
-    } catch (error: any) {
-      toast({
-        title: "Error returning to admin",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    // Clear any stored backup
+    localStorage.removeItem('admin_session_backup');
+    
+    // Log out and redirect to login
+    await supabase.auth.signOut();
+    
+    toast({
+      title: "Logged out of test account",
+      description: "Please log back in with your admin account",
+    });
+    
+    navigate("/auth");
   };
 
   const handleLogout = async () => {
