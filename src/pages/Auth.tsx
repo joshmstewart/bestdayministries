@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import joyHouseLogo from "@/assets/joy-house-logo-full.png";
+import { useQuery } from "@tanstack/react-query";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -23,6 +24,31 @@ const Auth = () => {
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Fetch the logo from database
+  const { data: logoData } = useQuery({
+    queryKey: ['app-logo'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('app_settings_public')
+        .select('setting_value')
+        .eq('setting_key', 'logo_url')
+        .maybeSingle();
+      
+      if (data?.setting_value) {
+        try {
+          return typeof data.setting_value === 'string' 
+            ? JSON.parse(data.setting_value) 
+            : data.setting_value;
+        } catch {
+          return data.setting_value;
+        }
+      }
+      return null;
+    }
+  });
+
+  const logoUrl = logoData || joyHouseLogo;
 
   useEffect(() => {
     // Check if user is already logged in
@@ -130,9 +156,9 @@ const Auth = () => {
         <CardContent className="p-8 space-y-6">
           <div className="text-center space-y-4">
             <img 
-              src={joyHouseLogo} 
+              src={logoUrl} 
               alt="Best Day Ever Ministries" 
-              className="h-16 mx-auto"
+              className="h-16 mx-auto object-contain"
             />
             <div>
               <h1 className="text-3xl font-black text-foreground mb-2">
