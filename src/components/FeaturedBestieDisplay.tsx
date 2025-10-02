@@ -8,6 +8,7 @@ import { TextToSpeech } from "./TextToSpeech";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
 import { FundingProgressBar } from "./FundingProgressBar";
+import type { UserRole } from "@/hooks/useRoleImpersonation";
 
 interface FeaturedBestie {
   id: string;
@@ -33,10 +34,27 @@ export const FeaturedBestieDisplay = () => {
   const [bestie, setBestie] = useState<FeaturedBestie | null>(null);
   const [fundingProgress, setFundingProgress] = useState<FundingProgress | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     loadCurrentBestie();
+    loadUserRole();
   }, []);
+
+  const loadUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      
+      if (profile) {
+        setUserRole(profile.role);
+      }
+    }
+  };
 
   const loadCurrentBestie = async () => {
     try {
@@ -129,7 +147,7 @@ export const FeaturedBestieDisplay = () => {
             />
           )}
           
-          {bestie.available_for_sponsorship && !bestie.is_fully_funded && (
+          {bestie.available_for_sponsorship && !bestie.is_fully_funded && userRole !== "bestie" && (
             <Button 
               onClick={() => navigate(`/sponsor-bestie?bestie=${bestie.id}`)}
               className="mt-4 bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all"
