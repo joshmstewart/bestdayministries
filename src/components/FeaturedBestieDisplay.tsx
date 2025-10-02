@@ -214,7 +214,7 @@ export const FeaturedBestieDisplay = () => {
           {bestie.available_for_sponsorship && !bestie.is_fully_funded && userRole !== "bestie" && !isSponsoring && (
             <Button 
               onClick={() => navigate(`/sponsor-bestie?bestie=${bestie.id}`)}
-              className="mt-4 bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all"
+              className="mt-4 bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all"
               size="lg"
             >
               <HandHeart className="w-5 h-5 mr-2" />

@@ -50,7 +50,7 @@ const About = () => {
                   <p className="text-lg text-muted-foreground leading-relaxed">
                     Watch our documentary to learn the inspiring story of how Best Day Ever Ministries came to be and the lives we're touching every day.
                   </p>
-                  <Button size="lg" className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
+                  <Button size="lg" className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
                     <Film className="mr-2 w-5 h-5" />
                     Watch Documentary
                   </Button>

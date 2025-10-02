@@ -254,7 +254,7 @@ export const UnifiedHeader = () => {
                 </Button>
                 <Button 
                   onClick={() => navigate("/auth")}
-                  className="bg-gradient-to-r from-primary via-accent to-secondary border-0 font-semibold"
+                  className="bg-gradient-warm border-0 font-semibold"
                 >
                   Sign Up
                 </Button>

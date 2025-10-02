@@ -68,7 +68,7 @@ const JoyRocks = () => {
               </div>
             </div>
 
-            <Button size="lg" className="group shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0 text-lg px-8 py-6">
+            <Button size="lg" className="group shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0 text-lg px-8 py-6">
               Learn More About Joy Rocks
               <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>

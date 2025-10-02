@@ -77,7 +77,7 @@ const Donate = () => {
                     </p>
                     <Button 
                       size="lg" 
-                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
+                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
                     >
                       Donate Now
                     </Button>
@@ -102,7 +102,7 @@ const Donate = () => {
                     </p>
                     <Button 
                       size="lg" 
-                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
+                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
                     >
                       Join the Club
                     </Button>
@@ -125,7 +125,7 @@ const Donate = () => {
                     </p>
                     <Button 
                       size="lg" 
-                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
+                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
                       onClick={() => window.location.href = '/sponsor-bestie'}
                     >
                       Sponsor Now

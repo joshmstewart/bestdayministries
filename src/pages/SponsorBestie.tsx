@@ -326,7 +326,7 @@ const SponsorBestie = () => {
                   </div>
 
                   {/* Submit Button */}
-                  <Button onClick={handleSponsorship} disabled={loading || !selectedBestie || !email || !amount} size="lg" className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0">
+                  <Button onClick={handleSponsorship} disabled={loading || !selectedBestie || !email || !amount} size="lg" className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
                     {loading ? "Processing..." : `Sponsor with $${amount} ${frequency === "monthly" ? "/month" : ""}`}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
