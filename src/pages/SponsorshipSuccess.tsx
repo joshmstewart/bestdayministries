@@ -1,21 +1,51 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Heart, Home } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const SponsorshipSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const sessionId = searchParams.get("session_id");
+  const [verifying, setVerifying] = useState(true);
+  const [sponsorshipDetails, setSponsorshipDetails] = useState<{
+    amount: string;
+    frequency: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!sessionId) {
       navigate("/sponsor-bestie");
+      return;
     }
+    verifyPayment();
   }, [sessionId, navigate]);
+
+  const verifyPayment = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-sponsorship-payment', {
+        body: { session_id: sessionId }
+      });
+
+      if (error) throw error;
+
+      setSponsorshipDetails({
+        amount: data.amount,
+        frequency: data.frequency,
+      });
+      toast.success('Sponsorship confirmed!');
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      toast.error('Failed to verify payment. Please contact support.');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -23,29 +53,48 @@ const SponsorshipSuccess = () => {
       <main className="flex-1 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full border-2 shadow-2xl">
           <CardContent className="p-12 text-center space-y-6">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto animate-bounce-slow">
-              <CheckCircle2 className="w-16 h-16 text-primary" />
-            </div>
+            {verifying ? (
+              <>
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto animate-pulse">
+                  <Heart className="w-16 h-16 text-primary" />
+                </div>
+                <div className="space-y-3">
+                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                    Confirming Your Sponsorship...
+                  </h1>
+                  <p className="text-xl text-muted-foreground">
+                    Please wait while we process your payment
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto animate-bounce-slow">
+                  <CheckCircle2 className="w-16 h-16 text-primary" />
+                </div>
 
-            <div className="space-y-3">
-              <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                Thank You!
-              </h1>
-              <p className="text-xl text-muted-foreground">
-                Your sponsorship has been confirmed
-              </p>
-            </div>
+                <div className="space-y-3">
+                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                    Thank You!
+                  </h1>
+                  <p className="text-xl text-muted-foreground">
+                    Your {sponsorshipDetails?.frequency === 'monthly' ? 'monthly' : 'one-time'} sponsorship 
+                    of ${sponsorshipDetails?.amount} has been confirmed
+                  </p>
+                </div>
 
-            <div className="bg-gradient-card p-6 rounded-xl border-2 space-y-3">
-              <div className="flex items-center justify-center gap-2 text-primary">
-                <Heart className="w-6 h-6 fill-primary" />
-                <span className="font-bold text-lg">You're making a difference!</span>
-              </div>
-              <p className="text-muted-foreground">
-                Your generosity directly supports a Bestie's journey of growth, creativity, and community engagement. 
-                You'll receive a confirmation email with all the details shortly.
-              </p>
-            </div>
+                <div className="bg-gradient-card p-6 rounded-xl border-2 space-y-3">
+                  <div className="flex items-center justify-center gap-2 text-primary">
+                    <Heart className="w-6 h-6 fill-primary" />
+                    <span className="font-bold text-lg">You're making a difference!</span>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Your generosity directly supports a Bestie's journey of growth, creativity, and community engagement. 
+                    You'll receive a confirmation email with all the details shortly.
+                  </p>
+                </div>
+              </>
+            )}
 
             <div className="pt-6 space-y-3">
               <Button

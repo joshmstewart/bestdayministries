@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Heart, Sparkles, Users, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useNavigate } from "react-router-dom";
 
 interface Bestie {
   id: string;
@@ -24,16 +25,35 @@ const sponsorshipSchema = z.object({
 });
 
 const SponsorBestie = () => {
+  const navigate = useNavigate();
   const [besties, setBesties] = useState<Bestie[]>([]);
   const [selectedBestie, setSelectedBestie] = useState<string>("");
   const [frequency, setFrequency] = useState<"one-time" | "monthly">("monthly");
   const [amount, setAmount] = useState<string>("25");
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     loadBesties();
+    checkAuthAndLoadEmail();
   }, []);
+
+  const checkAuthAndLoadEmail = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setIsLoggedIn(true);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+      
+      if (profile?.email) {
+        setEmail(profile.email);
+      }
+    }
+  };
 
   const loadBesties = async () => {
     const { data, error } = await supabase
@@ -217,8 +237,19 @@ const SponsorBestie = () => {
                   {/* Email Input */}
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Your Email</Label>
-                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" className="text-base" />
-                    <p className="text-xs text-muted-foreground">We'll send your sponsorship receipt and updates to this email</p>
+                    <Input 
+                      type="email" 
+                      value={email} 
+                      onChange={(e) => setEmail(e.target.value)} 
+                      placeholder="your@email.com" 
+                      className="text-base"
+                      disabled={isLoggedIn}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {isLoggedIn 
+                        ? "Using your account email" 
+                        : "We'll send your sponsorship receipt and updates to this email"}
+                    </p>
                   </div>
 
                   {/* Submit Button */}
