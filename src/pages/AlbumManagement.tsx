@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info } from "lucide-react";
+import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import AudioRecorder from "@/components/AudioRecorder";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +23,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Album {
   id: string;
@@ -78,6 +86,9 @@ export default function AlbumManagement() {
   const [cropImageIndex, setCropImageIndex] = useState<number | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [cropExistingImage, setCropExistingImage] = useState<AlbumImage | null>(null);
+  const [editingCaption, setEditingCaption] = useState<AlbumImage | null>(null);
+  const [showCaptionDialog, setShowCaptionDialog] = useState(false);
+  const [newCaption, setNewCaption] = useState("");
 
   useEffect(() => {
     checkAdminAccess();
@@ -432,6 +443,34 @@ export default function AlbumManagement() {
     }
   };
 
+  const handleEditCaption = (image: AlbumImage) => {
+    setEditingCaption(image);
+    setNewCaption(image.caption || "");
+    setShowCaptionDialog(true);
+  };
+
+  const handleSaveCaption = async () => {
+    if (!editingCaption) return;
+
+    try {
+      const { error } = await supabase
+        .from("album_images")
+        .update({ caption: newCaption || null })
+        .eq("id", editingCaption.id);
+
+      if (error) throw error;
+
+      toast.success("Caption updated successfully");
+      setShowCaptionDialog(false);
+      setEditingCaption(null);
+      setNewCaption("");
+      loadAlbums();
+    } catch (error: any) {
+      console.error("Error updating caption:", error);
+      toast.error(error.message || "Failed to update caption");
+    }
+  };
+
   if (loading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -776,7 +815,21 @@ export default function AlbumManagement() {
                               alt={image.caption || "Album image"}
                               className="w-full h-16 object-cover rounded"
                             />
+                            {image.caption && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] p-0.5 truncate">
+                                {image.caption}
+                              </div>
+                            )}
                             <div className="absolute top-0 right-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="w-5 h-5"
+                                onClick={() => handleEditCaption(image)}
+                                title="Edit caption"
+                              >
+                                <MessageSquare className="w-3 h-3" />
+                              </Button>
                               <Button
                                 variant="secondary"
                                 size="icon"
@@ -823,6 +876,46 @@ export default function AlbumManagement() {
         title="Crop Album Image"
         description="Adjust the crop area to match how this image will appear in the album (4:3 aspect ratio)"
       />
+
+      <Dialog open={showCaptionDialog} onOpenChange={setShowCaptionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Image Caption</DialogTitle>
+            <DialogDescription>
+              Update the caption for this album image
+            </DialogDescription>
+          </DialogHeader>
+          {editingCaption && (
+            <div className="space-y-4">
+              <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                <img
+                  src={editingCaption.image_url}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="caption">Caption</Label>
+                <Textarea
+                  id="caption"
+                  value={newCaption}
+                  onChange={(e) => setNewCaption(e.target.value)}
+                  placeholder="Enter a caption for this image..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCaptionDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveCaption}>
+              Save Caption
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
