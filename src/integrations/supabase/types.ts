@@ -1049,6 +1049,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_sponsorship: {
+        Args: { _sponsorship_id: string; _user_id: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           _endpoint: string
