@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart } from "lucide-react";
+import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
@@ -73,6 +73,9 @@ export default function GuardianLinks() {
   const [isSearching, setIsSearching] = useState(false);
   const [featuredBestieDialogOpen, setFeaturedBestieDialogOpen] = useState(false);
   const [selectedBestieForFeatured, setSelectedBestieForFeatured] = useState<{ id: string; name: string } | null>(null);
+  const [changingAmountFor, setChangingAmountFor] = useState<string | null>(null);
+  const [newAmount, setNewAmount] = useState<string>("");
+  const [isUpdatingAmount, setIsUpdatingAmount] = useState(false);
 
   useEffect(() => {
     checkAccess();
@@ -390,6 +393,64 @@ export default function GuardianLinks() {
     setFeaturedBestieDialogOpen(true);
   };
 
+  const handleUpdateAmount = async () => {
+    if (!changingAmountFor || !newAmount || !currentUserId) {
+      toast({
+        title: "Invalid input",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const amount = parseFloat(newAmount);
+    if (isNaN(amount) || amount < 10) {
+      toast({
+        title: "Invalid amount",
+        description: "Minimum sponsorship amount is $10",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingAmount(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { error } = await supabase.functions.invoke('update-sponsorship', {
+        body: {
+          sponsorship_id: changingAmountFor,
+          new_amount: amount,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Sponsorship amount updated. Changes will take effect next billing cycle.",
+      });
+
+      setChangingAmountFor(null);
+      setNewAmount("");
+      
+      // Reload sponsorships
+      if (currentUserId) {
+        await loadSponsorships(currentUserId);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error updating sponsorship",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingAmount(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -659,7 +720,15 @@ export default function GuardianLinks() {
 
           {/* Sponsored Besties Section - For all roles */}
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Sponsored Besties</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Sponsored Besties</h2>
+              {sponsorships.length > 0 && (
+                <Button onClick={() => navigate("/sponsor-bestie")} variant="outline">
+                  <Heart className="w-4 h-4 mr-2" />
+                  Sponsor Another Bestie
+                </Button>
+              )}
+            </div>
             {sponsorships.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
@@ -693,9 +762,24 @@ export default function GuardianLinks() {
                     <CardContent className="space-y-6">
                       {/* Sponsorship Details */}
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="font-medium">Amount:</span>
-                          <span className="text-lg font-bold text-primary">${sponsorship.amount}{sponsorship.frequency === 'monthly' ? '/month' : ''}</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span className="font-medium">Amount:</span>
+                            <span className="text-lg font-bold text-primary">${sponsorship.amount}{sponsorship.frequency === 'monthly' ? '/month' : ''}</span>
+                          </div>
+                          {sponsorship.frequency === 'monthly' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setChangingAmountFor(sponsorship.id);
+                                setNewAmount(sponsorship.amount.toString());
+                              }}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Change Amount
+                            </Button>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">Type:</span>
@@ -766,6 +850,52 @@ export default function GuardianLinks() {
           onOpenChange={setFeaturedBestieDialogOpen}
         />
       )}
+
+      {/* Change Amount Dialog */}
+      <Dialog open={changingAmountFor !== null} onOpenChange={(open) => !open && setChangingAmountFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Sponsorship Amount</DialogTitle>
+            <DialogDescription>
+              Update your monthly sponsorship amount. Changes will take effect at the start of your next billing cycle.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-amount">New Monthly Amount ($)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="new-amount"
+                  type="number"
+                  min="10"
+                  step="1"
+                  value={newAmount}
+                  onChange={(e) => setNewAmount(e.target.value)}
+                  placeholder="25"
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Minimum: $10</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangingAmountFor(null)} disabled={isUpdatingAmount}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateAmount} disabled={isUpdatingAmount}>
+              {isUpdatingAmount ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Amount"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
