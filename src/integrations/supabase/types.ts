@@ -512,6 +512,7 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string
+          email: string | null
           id: string
           role: Database["public"]["Enums"]["user_role"]
           tts_enabled: boolean
@@ -525,6 +526,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name: string
+          email?: string | null
           id: string
           role: Database["public"]["Enums"]["user_role"]
           tts_enabled?: boolean
@@ -538,6 +540,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string
+          email?: string | null
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           tts_enabled?: boolean

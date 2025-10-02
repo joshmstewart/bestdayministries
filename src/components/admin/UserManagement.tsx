@@ -38,37 +38,13 @@ export const UserManagement = () => {
 
   const loadUsers = async () => {
     try {
-      // First get profiles
-      const { data: profiles, error: profileError } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("id, display_name, role, created_at")
+        .select("id, display_name, role, created_at, email")
         .order("created_at", { ascending: false });
 
-      if (profileError) throw profileError;
-
-      // Then get user emails from auth.users via admin API
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("No active session");
-
-      // Get emails by fetching user data
-      const usersWithEmails = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          try {
-            const { data: { user } } = await supabase.auth.admin.getUserById(profile.id);
-            return {
-              ...profile,
-              email: user?.email || 'Unknown'
-            };
-          } catch {
-            return {
-              ...profile,
-              email: 'Unknown'
-            };
-          }
-        })
-      );
-
-      setUsers(usersWithEmails);
+      if (error) throw error;
+      setUsers(data || []);
     } catch (error: any) {
       toast({
         title: "Error loading users",
@@ -144,11 +120,9 @@ export const UserManagement = () => {
 
   const handleDeleteUser = async (userId: string, displayName: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("No active session");
-
-      // Delete user via admin API
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      const { error } = await supabase.functions.invoke("delete-user", {
+        body: { userId },
+      });
 
       if (error) throw error;
 
