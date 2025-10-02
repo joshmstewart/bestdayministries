@@ -993,7 +993,13 @@ export default function GuardianLinks() {
 
                       {sponsorship.featured_bestie && (
                         <div className="space-y-4 pt-4 border-t">
-                          <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
+                            <TextToSpeech 
+                              text={`${sponsorship.bestie.display_name}. ${sponsorship.featured_bestie.description}`} 
+                              size="icon" 
+                            />
+                          </div>
                           
                           <div 
                             className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer"
@@ -1024,12 +1030,9 @@ export default function GuardianLinks() {
                             )}
                           </div>
                           
-                          <div className="flex items-start gap-2">
-                            <p className="text-base text-muted-foreground flex-1">
-                              {sponsorship.featured_bestie.description}
-                            </p>
-                            <TextToSpeech text={sponsorship.featured_bestie.description} size="icon" />
-                          </div>
+                          <p className="text-base text-muted-foreground">
+                            {sponsorship.featured_bestie.description}
+                          </p>
 
                           {sponsorship.featured_bestie.monthly_goal > 0 && (
                             <FundingProgressBar
@@ -1070,7 +1073,15 @@ export default function GuardianLinks() {
                     <CardContent className="space-y-6">
                       {sponsorship.featured_bestie && (
                         <div className="space-y-4">
-                          <div 
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
+                            <TextToSpeech 
+                              text={`${sponsorship.bestie.display_name}. ${sponsorship.featured_bestie.description}`} 
+                              size="icon" 
+                            />
+                          </div>
+                          
+                          <div
                             className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer"
                             onClick={() => sponsorship.featured_bestie?.voice_note_url && handlePlayAudio(sponsorship.id, sponsorship.featured_bestie.voice_note_url)}
                           >
@@ -1099,12 +1110,9 @@ export default function GuardianLinks() {
                             )}
                           </div>
                           
-                          <div className="flex items-start gap-2">
-                            <p className="text-base text-muted-foreground flex-1">
-                              {sponsorship.featured_bestie.description}
-                            </p>
-                            <TextToSpeech text={sponsorship.featured_bestie.description} size="icon" />
-                          </div>
+                          <p className="text-base text-muted-foreground">
+                            {sponsorship.featured_bestie.description}
+                          </p>
 
                           {sponsorship.featured_bestie.monthly_goal > 0 && (
                             <FundingProgressBar
