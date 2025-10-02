@@ -15,6 +15,7 @@ import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
 import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
+import HomepageOrderManager from "@/components/admin/HomepageOrderManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -174,6 +175,7 @@ const Admin = () => {
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="featured">Featured Besties</TabsTrigger>
+            <TabsTrigger value="homepage">Homepage</TabsTrigger>
             <TabsTrigger value="moderation" className="relative">
               Moderation
               {moderationCount > 0 && (
@@ -246,6 +248,10 @@ const Admin = () => {
 
           <TabsContent value="featured">
             <FeaturedBestieManager />
+          </TabsContent>
+
+          <TabsContent value="homepage">
+            <HomepageOrderManager />
           </TabsContent>
 
           <TabsContent value="moderation" className="space-y-4">
