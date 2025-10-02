@@ -33,6 +33,7 @@ interface Comment {
   created_at: string;
   author_id: string;
   audio_url?: string | null;
+  approval_status?: string;
   author?: Profile;
 }
 
@@ -44,6 +45,7 @@ interface Post {
   author_id: string;
   image_url?: string | null;
   visible_to_roles?: string[];
+  approval_status?: string;
   author?: Profile;
   comments?: Comment[];
 }
@@ -315,6 +317,20 @@ const Discussions = () => {
       // Always include admin and owner roles
       const finalVisibleRoles = [...new Set([...visibleToRoles, 'admin', 'owner'])] as any;
 
+      // Check if guardian approval is required
+      let approvalStatus = 'approved';
+      if (profile?.role === 'bestie') {
+        const { data: guardianLinks } = await supabase
+          .from('caregiver_bestie_links')
+          .select('require_post_approval')
+          .eq('bestie_id', user?.id);
+        
+        // If any guardian requires approval, set status to pending
+        if (guardianLinks?.some(link => link.require_post_approval)) {
+          approvalStatus = 'pending_approval';
+        }
+      }
+
       const { error } = await supabase
         .from("discussion_posts")
         .insert({
@@ -325,6 +341,7 @@ const Discussions = () => {
           visible_to_roles: finalVisibleRoles,
           is_moderated: textIsApproved && !imageModerationNotes,
           moderation_notes: finalModerationNotes,
+          approval_status: approvalStatus,
         });
 
       if (error) {
@@ -337,7 +354,12 @@ const Discussions = () => {
         return;
       }
 
-      if (textIsApproved && !imageModerationNotes) {
+      if (approvalStatus === 'pending_approval') {
+        toast({ 
+          title: "Post pending approval",
+          description: "Your guardian will review this post before it's published.",
+        });
+      } else if (textIsApproved && !imageModerationNotes) {
         toast({ title: "Post created successfully!" });
       } else {
         toast({ 
@@ -425,6 +447,20 @@ const Discussions = () => {
         moderationNotes = isApproved ? null : `${severity} severity: ${reason}`;
       }
 
+      // Check if guardian approval is required
+      let approvalStatus = 'approved';
+      if (profile?.role === 'bestie') {
+        const { data: guardianLinks } = await supabase
+          .from('caregiver_bestie_links')
+          .select('require_comment_approval')
+          .eq('bestie_id', user?.id);
+        
+        // If any guardian requires approval, set status to pending
+        if (guardianLinks?.some(link => link.require_comment_approval)) {
+          approvalStatus = 'pending_approval';
+        }
+      }
+
       const { error } = await supabase
         .from("discussion_comments")
         .insert({
@@ -434,6 +470,7 @@ const Discussions = () => {
           author_id: user?.id,
           is_moderated: isApproved,
           moderation_notes: moderationNotes,
+          approval_status: approvalStatus,
         });
 
       if (error) {
@@ -445,7 +482,12 @@ const Discussions = () => {
         return;
       }
 
-      if (isApproved) {
+      if (approvalStatus === 'pending_approval') {
+        toast({ 
+          title: "Comment pending approval",
+          description: "Your guardian will review this comment before it's published.",
+        });
+      } else if (isApproved) {
         toast({ title: audioUrl ? "Audio comment added!" : "Comment added!" });
       } else {
         toast({ 
@@ -757,6 +799,16 @@ const Discussions = () => {
                             <span className="text-xs text-muted-foreground">
                               {new Date(post.created_at).toLocaleDateString()}
                             </span>
+                            {post.approval_status === 'pending_approval' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30">
+                                Pending Approval
+                              </span>
+                            )}
+                            {post.approval_status === 'rejected' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/30">
+                                Rejected
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -814,7 +866,17 @@ const Discussions = () => {
                                   </span>
                                    <span className="text-xs text-muted-foreground">
                                     {new Date(comment.created_at).toLocaleDateString()}
-                                  </span>
+                                   </span>
+                                   {comment.approval_status === 'pending_approval' && (
+                                     <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30">
+                                       Pending Approval
+                                     </span>
+                                   )}
+                                   {comment.approval_status === 'rejected' && (
+                                     <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/30">
+                                       Rejected
+                                     </span>
+                                   )}
                                 </div>
                                 {comment.content && <p className="text-sm">{comment.content}</p>}
                                 {comment.audio_url && (

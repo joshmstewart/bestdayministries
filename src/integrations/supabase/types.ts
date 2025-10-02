@@ -200,6 +200,9 @@ export type Database = {
       }
       discussion_comments: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           audio_url: string | null
           author_id: string
           content: string
@@ -210,6 +213,9 @@ export type Database = {
           post_id: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           audio_url?: string | null
           author_id: string
           content: string
@@ -220,6 +226,9 @@ export type Database = {
           post_id: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           audio_url?: string | null
           author_id?: string
           content?: string
@@ -248,6 +257,9 @@ export type Database = {
       }
       discussion_posts: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           author_id: string
           category: string | null
           content: string
@@ -261,6 +273,9 @@ export type Database = {
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           author_id: string
           category?: string | null
           content: string
@@ -274,6 +289,9 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           author_id?: string
           category?: string | null
           content?: string
@@ -638,6 +656,10 @@ export type Database = {
     Functions: {
       has_admin_access: {
         Args: { _user_id: string }
+        Returns: boolean
+      }
+      is_guardian_of: {
+        Args: { _bestie_id: string; _guardian_id: string }
         Returns: boolean
       }
       is_owner: {
