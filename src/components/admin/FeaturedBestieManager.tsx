@@ -35,11 +35,13 @@ interface FeaturedBestie {
 export const FeaturedBestieManager = () => {
   const { toast } = useToast();
   const [featuredBesties, setFeaturedBesties] = useState<FeaturedBestie[]>([]);
+  const [bestieAccounts, setBestieAccounts] = useState<{ id: string; display_name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // Form state
+  const [linkedBestieId, setLinkedBestieId] = useState<string>("");
   const [bestieName, setBestieName] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>();
@@ -60,7 +62,23 @@ export const FeaturedBestieManager = () => {
 
   useEffect(() => {
     loadData();
+    loadBestieAccounts();
   }, []);
+
+  const loadBestieAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles_public")
+        .select("id, display_name")
+        .eq("role", "bestie")
+        .order("display_name");
+
+      if (error) throw error;
+      setBestieAccounts(data || []);
+    } catch (error: any) {
+      console.error("Error loading bestie accounts:", error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -181,6 +199,7 @@ export const FeaturedBestieManager = () => {
       }
 
       const data: any = {
+        bestie_id: linkedBestieId || null,
         bestie_name: bestieName,
         description,
         start_date: `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`,
@@ -239,6 +258,7 @@ export const FeaturedBestieManager = () => {
 
   const handleEdit = (bestie: FeaturedBestie) => {
     setEditingId(bestie.id);
+    setLinkedBestieId(bestie.bestie_id || "");
     setBestieName(bestie.bestie_name);
     setDescription(bestie.description);
     // Parse dates at noon local time to avoid timezone shifts
@@ -332,6 +352,7 @@ export const FeaturedBestieManager = () => {
 
   const resetForm = () => {
     setEditingId(null);
+    setLinkedBestieId("");
     setBestieName("");
     setDescription("");
     setStartDate(undefined);
@@ -394,6 +415,26 @@ export const FeaturedBestieManager = () => {
             </DialogHeader>
             
             <div className="space-y-4 pb-4">
+              <div className="space-y-2">
+                <Label htmlFor="linked-bestie">Link to Bestie Account (Optional)</Label>
+                <Select value={linkedBestieId} onValueChange={setLinkedBestieId}>
+                  <SelectTrigger className="bg-background z-50">
+                    <SelectValue placeholder="Select a bestie account..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="">None - No account linked</SelectItem>
+                    {bestieAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Link this featured bestie to an actual bestie user account
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="bestie-name">Bestie Name *</Label>
                 <Input
@@ -754,6 +795,12 @@ export const FeaturedBestieManager = () => {
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {bestie.description}
               </p>
+              {bestie.bestie_id && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                  <Heart className="w-3 h-3" />
+                  Linked to account
+                </div>
+              )}
               {bestie.voice_note_url && (
                 <audio controls className="w-full">
                   <source src={bestie.voice_note_url} type="audio/mpeg" />
