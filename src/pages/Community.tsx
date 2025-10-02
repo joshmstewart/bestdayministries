@@ -284,7 +284,7 @@ const Community = () => {
                         <div className="flex items-start gap-2">
                           <h3 className="font-semibold text-base flex-1">{event.title}</h3>
                           <div onClick={(e) => e.stopPropagation()}>
-                            <TextToSpeech text={`${event.title}. ${event.description}. Date: ${new Date(event.event_date).toLocaleDateString()}${event.location ? `. Location: ${event.location}` : ''}`} />
+                            <TextToSpeech text={`Title: ${event.title}... ${event.description}... Date: ${new Date(event.event_date).toLocaleDateString()}${event.location ? `... Location: ${event.location}` : ''}`} />
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
