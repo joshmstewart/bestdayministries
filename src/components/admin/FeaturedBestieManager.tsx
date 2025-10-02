@@ -417,12 +417,12 @@ export const FeaturedBestieManager = () => {
             <div className="space-y-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="linked-bestie">Link to Bestie Account (Optional)</Label>
-                <Select value={linkedBestieId} onValueChange={setLinkedBestieId}>
+                <Select value={linkedBestieId || "none"} onValueChange={(value) => setLinkedBestieId(value === "none" ? "" : value)}>
                   <SelectTrigger className="bg-background z-50">
                     <SelectValue placeholder="Select a bestie account..." />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
-                    <SelectItem value="">None - No account linked</SelectItem>
+                    <SelectItem value="none">None - No account linked</SelectItem>
                     {bestieAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
                         {account.display_name}
