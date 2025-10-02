@@ -1,10 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input validation schema
+const updateRoleSchema = z.object({
+  userId: z.string().uuid("Invalid user ID"),
+  newRole: z.enum(['admin', 'owner', 'caregiver', 'bestie', 'supporter']),
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -27,14 +34,20 @@ serve(async (req) => {
     // Verify the request is from an authenticated admin/owner
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
-      throw new Error("Unauthorized");
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Check if user has admin-level access using user_roles table
@@ -45,15 +58,27 @@ serve(async (req) => {
       .single();
 
     if (roleError || !currentUserRole || !["admin", "owner"].includes(currentUserRole.role)) {
-      throw new Error("Insufficient permissions");
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Get the user ID and new role from the request body
-    const { userId, newRole } = await req.json();
-
-    if (!userId || !newRole) {
-      throw new Error("User ID and new role are required");
+    // Parse and validate request body
+    const body = await req.json();
+    const validation = updateRoleSchema.safeParse(body);
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Validation failed', 
+          details: validation.error.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    const { userId, newRole } = validation.data;
 
     // Check the target user's current role from user_roles table
     const { data: targetUserRole, error: targetRoleError } = await supabaseClient
@@ -63,7 +88,10 @@ serve(async (req) => {
       .single();
 
     if (targetRoleError) {
-      throw new Error("Target user not found");
+      return new Response(
+        JSON.stringify({ error: 'Target user not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Admins can only change roles for non-admin users (caregiver, bestie, supporter)
@@ -71,7 +99,10 @@ serve(async (req) => {
     const adminLevelRoles = ["admin", "owner"];
     if (adminLevelRoles.includes(targetUserRole.role) || adminLevelRoles.includes(newRole)) {
       if (currentUserRole.role !== "owner") {
-        throw new Error("Only owners can modify admin-level roles");
+        return new Response(
+          JSON.stringify({ error: 'Only owners can modify admin-level roles' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
@@ -110,12 +141,11 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in update-user-role function:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Internal server error' }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        status: 500,
       }
     );
   }

@@ -1,9 +1,23 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const createUserSchema = z.object({
+  email: z.string().trim().email("Invalid email address").max(255),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password too long")
+    .regex(/[A-Z]/, "Password must contain an uppercase letter")
+    .regex(/[a-z]/, "Password must contain a lowercase letter")
+    .regex(/[0-9]/, "Password must contain a number"),
+  displayName: z.string().trim().min(1).max(100),
+  role: z.enum(['admin', 'owner', 'caregiver', 'bestie', 'supporter']),
+});
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -24,11 +38,18 @@ Deno.serve(async (req) => {
     );
 
     // Verify the requesting user is an owner/admin using user_roles table
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user: requestingUser } } = await supabaseAdmin.auth.getUser(token);
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (!requestingUser) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !requestingUser) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -49,8 +70,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse request body
-    const { email, password, displayName, role } = await req.json();
+    // Parse and validate request body
+    const body = await req.json();
+    
+    const validation = createUserSchema.safeParse(body);
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Validation failed', 
+          details: validation.error.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { email, password, displayName, role } = validation.data;
 
     console.log('Creating user:', { email, displayName, role });
 
@@ -60,15 +94,15 @@ Deno.serve(async (req) => {
       password,
       email_confirm: true,
       user_metadata: {
-        display_name: displayName || 'New Member',
-        role: role || 'supporter',
+        display_name: displayName,
+        role: role,
       },
     });
 
     if (createError) {
       console.error('Error creating user:', createError);
       return new Response(
-        JSON.stringify({ error: createError.message }),
+        JSON.stringify({ error: 'Failed to create user' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -85,9 +119,8 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in create-user function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

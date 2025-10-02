@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 import { formatFriendCode, generateRandomFriendCode } from "@/lib/friendCodeEmojis";
+import { profileSchema, validateInput } from "@/lib/validation";
 import grandpaWerthersPattern from "@/assets/voice-patterns/grandpa-werthers.png";
 import johnnyDynamitePattern from "@/assets/voice-patterns/johnny-dynamite.png";
 import batmanPattern from "@/assets/voice-patterns/batman.png";
@@ -173,10 +174,17 @@ const ProfileSettings = () => {
   const handleSave = async () => {
     if (!user || !profile) return;
 
-    if (!displayName.trim()) {
+    // Validate input
+    const validation = validateInput(profileSchema, {
+      displayName: displayName,
+      bio: bio,
+      avatarNumber: selectedAvatar,
+    });
+
+    if (!validation.success) {
       toast({
-        title: "Display name required",
-        description: "Please enter a display name",
+        title: "Validation error",
+        description: validation.errors?.[0] || "Please check your input",
         variant: "destructive",
       });
       return;
@@ -188,8 +196,8 @@ const ProfileSettings = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
-          display_name: displayName.trim(),
-          bio: bio.trim() || null,
+          display_name: validation.data!.displayName.trim(),
+          bio: validation.data!.bio?.trim() || null,
           avatar_number: selectedAvatar,
           tts_voice: selectedVoice,
           tts_enabled: ttsEnabled,

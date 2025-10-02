@@ -18,6 +18,7 @@ import AudioRecorder from "@/components/AudioRecorder";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import { discussionPostSchema, commentSchema, validateInput } from "@/lib/validation";
 
 interface Profile {
   id: string;
@@ -216,10 +217,17 @@ const Discussions = () => {
   };
 
   const handleCreatePost = async () => {
-    if (!newPost.title || !newPost.content) {
+    // Validate input first
+    const validation = validateInput(discussionPostSchema, {
+      title: newPost.title,
+      content: newPost.content,
+      imageUrl: imagePreview || '',
+    });
+
+    if (!validation.success) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in both title and content",
+        title: "Validation error",
+        description: validation.errors?.[0] || "Please check your input",
         variant: "destructive",
       });
       return;
@@ -231,7 +239,7 @@ const Discussions = () => {
       // Moderate text content
       const { data: textModeration, error: textModerationError } = await supabase.functions.invoke('moderate-content', {
         body: { 
-          content: `${newPost.title}\n\n${newPost.content}`,
+          content: `${validation.data!.title}\n\n${validation.data!.content}`,
           contentType: 'post'
         }
       });
@@ -392,6 +400,24 @@ const Discussions = () => {
     
     // Must have either text or audio
     if (!content?.trim() && !audioBlob) return;
+
+    // Validate text content if provided
+    if (content?.trim()) {
+      const validation = validateInput(commentSchema, {
+        content: content,
+        postId: postId,
+        audioUrl: '',
+      });
+
+      if (!validation.success) {
+        toast({
+          title: "Validation error",
+          description: validation.errors?.[0] || "Please check your input",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     try {
       let audioUrl: string | null = null;
