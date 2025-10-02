@@ -64,7 +64,7 @@ const Donate = () => {
               </div>
 
               {/* Donation Options */}
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 <Card className="border-2 bg-card hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <CardContent className="p-8 space-y-4 relative">
@@ -85,7 +85,6 @@ const Donate = () => {
                 </Card>
 
                 <Card className="border-2 bg-card hover:border-secondary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden relative">
-                  {/* Popular badge */}
                   <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-white text-xs font-bold px-3 py-1 rounded-full z-10">
                     ⭐ POPULAR
                   </div>
@@ -111,6 +110,26 @@ const Donate = () => {
                       <Sparkles className="w-4 h-4" />
                       Get 10% off all online purchases!
                     </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 bg-card hover:border-accent/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-8 space-y-4 relative">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <Heart className="w-8 h-8 text-accent fill-accent" />
+                    </div>
+                    <h3 className="text-2xl font-black">Sponsor a Bestie</h3>
+                    <p className="text-muted-foreground">
+                      Directly support a community member's journey with a personalized sponsorship
+                    </p>
+                    <Button 
+                      size="lg" 
+                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
+                      onClick={() => window.location.href = '/sponsor-bestie'}
+                    >
+                      Sponsor Now
+                    </Button>
                   </CardContent>
                 </Card>
               </div>

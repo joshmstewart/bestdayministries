@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.update-user-role]
 verify_jwt = true
+
+[functions.create-sponsorship-checkout]
+verify_jwt = false

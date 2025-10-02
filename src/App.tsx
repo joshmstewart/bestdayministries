@@ -17,6 +17,8 @@ import AboutPage from "./pages/AboutPage";
 import JoyRocksPage from "./pages/JoyRocksPage";
 import GalleryPage from "./pages/GalleryPage";
 import DonatePage from "./pages/DonatePage";
+import SponsorBestie from "./pages/SponsorBestie";
+import SponsorshipSuccess from "./pages/SponsorshipSuccess";
 import Discussions from "./pages/Discussions";
 import ModerationQueue from "./pages/ModerationQueue";
 import ProfileSettings from "./pages/ProfileSettings";
@@ -50,6 +52,8 @@ const App = () => {
             <Route path="/joy-rocks" element={<JoyRocksPage />} />
             <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/donate" element={<DonatePage />} />
+            <Route path="/sponsor-bestie" element={<SponsorBestie />} />
+            <Route path="/sponsorship-success" element={<SponsorshipSuccess />} />
             <Route path="/discussions" element={<Discussions />} />
             <Route path="/moderation" element={<ModerationQueue />} />
             <Route path="/profile" element={<ProfileSettings />} />
