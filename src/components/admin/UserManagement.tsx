@@ -7,14 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Loader2 } from "lucide-react";
+import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound } from "lucide-react";
 
 interface Profile {
   id: string;
   display_name: string;
   role: string;
   created_at: string;
+  email?: string;
 }
 
 export const UserManagement = () => {
@@ -36,13 +38,37 @@ export const UserManagement = () => {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await supabase
+      // First get profiles
+      const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("id, display_name, role, created_at")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profileError) throw profileError;
+
+      // Then get user emails from auth.users via admin API
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+
+      // Get emails by fetching user data
+      const usersWithEmails = await Promise.all(
+        (profiles || []).map(async (profile) => {
+          try {
+            const { data: { user } } = await supabase.auth.admin.getUserById(profile.id);
+            return {
+              ...profile,
+              email: user?.email || 'Unknown'
+            };
+          } catch {
+            return {
+              ...profile,
+              email: 'Unknown'
+            };
+          }
+        })
+      );
+
+      setUsers(usersWithEmails);
     } catch (error: any) {
       toast({
         title: "Error loading users",
@@ -92,6 +118,52 @@ export const UserManagement = () => {
       });
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleSendPasswordReset = async (email: string, displayName: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password reset sent",
+        description: `A password reset email has been sent to ${displayName}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error sending password reset",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, displayName: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+
+      // Delete user via admin API
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "User deleted",
+        description: `${displayName} has been removed from the community.`,
+      });
+
+      await loadUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting user",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -209,14 +281,22 @@ export const UserManagement = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Display Name</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Joined</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.display_name}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    {user.email}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
                     {user.role === "owner" && <Shield className="w-3 h-3 inline mr-1" />}
@@ -225,6 +305,48 @@ export const UserManagement = () => {
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {new Date(user.created_at).toLocaleDateString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSendPasswordReset(user.email || '', user.display_name)}
+                      disabled={!user.email || user.email === 'Unknown'}
+                      title="Send password reset email"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          title="Delete user"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete User Account?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete {user.display_name}'s account? This action cannot be undone and will permanently remove all of their data.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteUser(user.id, user.display_name)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete Account
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
