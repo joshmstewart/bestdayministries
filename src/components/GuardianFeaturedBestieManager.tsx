@@ -6,12 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Loader2, Upload, Star } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 interface FeaturedBestie {
   id: string;
@@ -49,8 +46,6 @@ export const GuardianFeaturedBestieManager = ({
 
   // Form state
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
   const [availableForSponsorship, setAvailableForSponsorship] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [voiceNoteFile, setVoiceNoteFile] = useState<File | null>(null);
@@ -115,7 +110,7 @@ export const GuardianFeaturedBestieManager = ({
   };
 
   const handleSubmit = async () => {
-    if (!description.trim() || !startDate || !endDate) {
+    if (!description.trim()) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
@@ -155,8 +150,6 @@ export const GuardianFeaturedBestieManager = ({
         bestie_id: bestieId,
         bestie_name: bestieName,
         description: description.trim(),
-        start_date: format(startDate, "yyyy-MM-dd"),
-        end_date: format(endDate, "yyyy-MM-dd"),
         available_for_sponsorship: availableForSponsorship,
         image_url: imageUrl,
         voice_note_url: voiceNoteUrl,
@@ -204,8 +197,6 @@ export const GuardianFeaturedBestieManager = ({
   const handleEdit = (post: FeaturedBestie) => {
     setEditingId(post.id);
     setDescription(post.description);
-    setStartDate(new Date(post.start_date + "T12:00:00"));
-    setEndDate(new Date(post.end_date + "T12:00:00"));
     setAvailableForSponsorship(post.available_for_sponsorship);
     setImagePreview(post.image_url || "");
   };
@@ -237,8 +228,6 @@ export const GuardianFeaturedBestieManager = ({
   const resetForm = () => {
     setEditingId(null);
     setDescription("");
-    setStartDate(undefined);
-    setEndDate(undefined);
     setAvailableForSponsorship(true);
     setImageFile(null);
     setVoiceNoteFile(null);
@@ -254,7 +243,7 @@ export const GuardianFeaturedBestieManager = ({
             Featured Posts for {bestieName}
           </DialogTitle>
           <DialogDescription>
-            Create and manage featured posts for this bestie. All posts require admin approval before being published.
+            Create and manage featured posts for this bestie. All posts require admin approval and date assignment before being published.
           </DialogDescription>
         </DialogHeader>
 
@@ -273,58 +262,6 @@ export const GuardianFeaturedBestieManager = ({
                 placeholder="Write a description..."
                 rows={4}
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Date *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "PPP") : "Pick date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label>End Date *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "PPP") : "Pick date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
             </div>
 
             <div className="flex items-center justify-between">
