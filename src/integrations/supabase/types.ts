@@ -589,6 +589,7 @@ export type Database = {
       }
       featured_besties: {
         Row: {
+          available_for_sponsorship: boolean
           bestie_id: string | null
           bestie_name: string
           created_at: string
@@ -601,6 +602,7 @@ export type Database = {
           voice_note_url: string | null
         }
         Insert: {
+          available_for_sponsorship?: boolean
           bestie_id?: string | null
           bestie_name: string
           created_at?: string
@@ -613,6 +615,7 @@ export type Database = {
           voice_note_url?: string | null
         }
         Update: {
+          available_for_sponsorship?: boolean
           bestie_id?: string | null
           bestie_name?: string
           created_at?: string

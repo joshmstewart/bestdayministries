@@ -28,6 +28,7 @@ interface FeaturedBestie {
   start_date: string;
   end_date: string;
   is_active: boolean;
+  available_for_sponsorship: boolean;
 }
 
 export const FeaturedBestieManager = () => {
@@ -43,6 +44,7 @@ export const FeaturedBestieManager = () => {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [isActive, setIsActive] = useState(true);
+  const [availableForSponsorship, setAvailableForSponsorship] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -182,6 +184,7 @@ export const FeaturedBestieManager = () => {
         start_date: `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`,
         end_date: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`,
         is_active: isActive,
+        available_for_sponsorship: availableForSponsorship,
       };
 
       if (imageFile) {
@@ -239,6 +242,7 @@ export const FeaturedBestieManager = () => {
     setStartDate(new Date(bestie.start_date + 'T12:00:00'));
     setEndDate(new Date(bestie.end_date + 'T12:00:00'));
     setIsActive(bestie.is_active);
+    setAvailableForSponsorship(bestie.available_for_sponsorship);
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
     setDialogOpen(true);
@@ -284,6 +288,25 @@ export const FeaturedBestieManager = () => {
     }
   };
 
+  const toggleSponsorshipAvailability = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("featured_besties")
+        .update({ available_for_sponsorship: !currentStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+      toast({ title: `Sponsorship ${!currentStatus ? "enabled" : "disabled"}` });
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: "Error updating sponsorship availability",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetForm = () => {
     setEditingId(null);
     setBestieName("");
@@ -291,6 +314,7 @@ export const FeaturedBestieManager = () => {
     setStartDate(undefined);
     setEndDate(undefined);
     setIsActive(true);
+    setAvailableForSponsorship(true);
     setImageFile(null);
     setAudioFile(null);
     setAudioBlob(null);
@@ -605,6 +629,20 @@ export const FeaturedBestieManager = () => {
                 This bestie will only appear publicly when both Active is ON and today is within their featured date range
               </p>
 
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="sponsorship"
+                  checked={availableForSponsorship}
+                  onCheckedChange={setAvailableForSponsorship}
+                />
+                <Label htmlFor="sponsorship">
+                  Available for Sponsorship
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When enabled, this bestie will appear as an option on the sponsorship page
+              </p>
+
               <div className="flex gap-2 pt-6 border-t mt-4">
                 <Button
                   type="button"
@@ -647,6 +685,11 @@ export const FeaturedBestieManager = () => {
                 ACTIVE
               </div>
             )}
+            {bestie.available_for_sponsorship && (
+              <div className="absolute top-2 left-2 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
+                💝 SPONSOR
+              </div>
+            )}
             <CardHeader className="pb-3">
               <div className="aspect-video relative overflow-hidden rounded-lg mb-2">
                 <img
@@ -672,28 +715,38 @@ export const FeaturedBestieManager = () => {
                   <source src={bestie.voice_note_url} type="audio/mpeg" />
                 </audio>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleActive(bestie.id, bestie.is_active)}
+                    className="flex-1"
+                  >
+                    {bestie.is_active ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(bestie)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(bestie.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
                 <Button
-                  variant="outline"
+                  variant={bestie.available_for_sponsorship ? "secondary" : "outline"}
                   size="sm"
-                  onClick={() => toggleActive(bestie.id, bestie.is_active)}
-                  className="flex-1"
+                  onClick={() => toggleSponsorshipAvailability(bestie.id, bestie.available_for_sponsorship)}
+                  className="w-full"
                 >
-                  {bestie.is_active ? "Deactivate" : "Activate"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(bestie)}
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(bestie.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
+                  {bestie.available_for_sponsorship ? "💝 Sponsorship Enabled" : "Enable Sponsorship"}
                 </Button>
               </div>
             </CardContent>
