@@ -39,7 +39,7 @@ interface SortableItemProps {
   isLocked?: boolean;
 }
 
-const LockedItem = ({ section }: { section: HomepageSection }) => {
+const LockedItem = ({ section, onEdit }: { section: HomepageSection; onEdit: (section: HomepageSection) => void }) => {
   return (
     <div className="flex items-center gap-3 p-4 bg-muted/50 border-2 border-primary/20 rounded-lg">
       <div className="cursor-not-allowed">
@@ -53,6 +53,15 @@ const LockedItem = ({ section }: { section: HomepageSection }) => {
         </p>
         <p className="text-sm text-muted-foreground">{section.section_key}</p>
       </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => onEdit(section)}
+        title="Edit content"
+      >
+        <Pencil className="w-4 h-4" />
+      </Button>
 
       <div className="text-sm text-muted-foreground">Always visible</div>
     </div>
@@ -76,7 +85,7 @@ const SortableItem = ({ section, onToggleVisibility, onEdit, isLocked }: Sortabl
   };
 
   if (isLocked) {
-    return <LockedItem section={section} />;
+    return <LockedItem section={section} onEdit={onEdit} />;
   }
 
   return (
