@@ -21,6 +21,7 @@ import Discussions from "./pages/Discussions";
 import ModerationQueue from "./pages/ModerationQueue";
 import ProfileSettings from "./pages/ProfileSettings";
 import GuardianLinks from "./pages/GuardianLinks";
+import GuardianApprovals from "./pages/GuardianApprovals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => {
             <Route path="/moderation" element={<ModerationQueue />} />
             <Route path="/profile" element={<ProfileSettings />} />
             <Route path="/guardian-links" element={<GuardianLinks />} />
+            <Route path="/guardian-approvals" element={<GuardianApprovals />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

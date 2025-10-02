@@ -1,0 +1,547 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, CheckCircle, XCircle, MessageSquare, FileText } from "lucide-react";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
+interface PendingPost {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+  image_url?: string | null;
+  author: {
+    display_name: string;
+    email: string;
+    avatar_number: number;
+  };
+}
+
+interface PendingComment {
+  id: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+  audio_url?: string | null;
+  post_id: string;
+  author: {
+    display_name: string;
+    email: string;
+    avatar_number: number;
+  };
+  post: {
+    title: string;
+  };
+}
+
+export default function GuardianApprovals() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [pendingPosts, setPendingPosts] = useState<PendingPost[]>([]);
+  const [pendingComments, setPendingComments] = useState<PendingComment[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkAccess();
+  }, []);
+
+  const checkAccess = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile || profile.role !== "caregiver") {
+        toast({
+          title: "Access denied",
+          description: "Only guardians can access this page",
+          variant: "destructive",
+        });
+        navigate("/community");
+        return;
+      }
+
+      setCurrentUserId(user.id);
+      await loadPendingContent(user.id);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPendingContent = async (userId: string) => {
+    try {
+      // Get linked besties
+      const { data: links } = await supabase
+        .from("caregiver_bestie_links")
+        .select("bestie_id")
+        .eq("caregiver_id", userId);
+
+      if (!links || links.length === 0) {
+        setPendingPosts([]);
+        setPendingComments([]);
+        return;
+      }
+
+      const bestieIds = links.map(l => l.bestie_id);
+
+      // Load pending posts
+      const { data: postsData, error: postsError } = await supabase
+        .from("discussion_posts")
+        .select(`
+          id,
+          title,
+          content,
+          created_at,
+          author_id,
+          image_url,
+          author:profiles!discussion_posts_author_id_fkey(
+            display_name,
+            email,
+            avatar_number
+          )
+        `)
+        .eq("approval_status", "pending_approval")
+        .in("author_id", bestieIds)
+        .order("created_at", { ascending: false });
+
+      if (postsError) throw postsError;
+
+      // Load pending comments
+      const { data: commentsData, error: commentsError } = await supabase
+        .from("discussion_comments")
+        .select(`
+          id,
+          content,
+          created_at,
+          author_id,
+          audio_url,
+          post_id,
+          author:profiles!discussion_comments_author_id_fkey(
+            display_name,
+            email,
+            avatar_number
+          ),
+          post:discussion_posts!discussion_comments_post_id_fkey(
+            title
+          )
+        `)
+        .eq("approval_status", "pending_approval")
+        .in("author_id", bestieIds)
+        .order("created_at", { ascending: false });
+
+      if (commentsError) throw commentsError;
+
+      setPendingPosts((postsData || []).map(p => ({
+        ...p,
+        author: Array.isArray(p.author) ? p.author[0] : p.author
+      })) as PendingPost[]);
+
+      setPendingComments((commentsData || []).map(c => ({
+        ...c,
+        author: Array.isArray(c.author) ? c.author[0] : c.author,
+        post: Array.isArray(c.post) ? c.post[0] : c.post
+      })) as PendingComment[]);
+    } catch (error: any) {
+      toast({
+        title: "Error loading content",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApprovePost = async (postId: string) => {
+    if (!currentUserId) return;
+
+    try {
+      const { error } = await supabase
+        .from("discussion_posts")
+        .update({
+          approval_status: "approved",
+          approved_by: currentUserId,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", postId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Post approved",
+        description: "The post is now visible to everyone",
+      });
+
+      await loadPendingContent(currentUserId);
+    } catch (error: any) {
+      toast({
+        title: "Error approving post",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectPost = async (postId: string) => {
+    if (!currentUserId) return;
+
+    try {
+      const { error } = await supabase
+        .from("discussion_posts")
+        .update({
+          approval_status: "rejected",
+          approved_by: currentUserId,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", postId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Post rejected",
+        description: "The post will not be published",
+      });
+
+      await loadPendingContent(currentUserId);
+    } catch (error: any) {
+      toast({
+        title: "Error rejecting post",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleApproveComment = async (commentId: string) => {
+    if (!currentUserId) return;
+
+    try {
+      const { error } = await supabase
+        .from("discussion_comments")
+        .update({
+          approval_status: "approved",
+          approved_by: currentUserId,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", commentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment approved",
+        description: "The comment is now visible to everyone",
+      });
+
+      await loadPendingContent(currentUserId);
+    } catch (error: any) {
+      toast({
+        title: "Error approving comment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectComment = async (commentId: string) => {
+    if (!currentUserId) return;
+
+    try {
+      const { error } = await supabase
+        .from("discussion_comments")
+        .update({
+          approval_status: "rejected",
+          approved_by: currentUserId,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", commentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment rejected",
+        description: "The comment will not be published",
+      });
+
+      await loadPendingContent(currentUserId);
+    } catch (error: any) {
+      toast({
+        title: "Error rejecting comment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <UnifiedHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Pending Approvals</h1>
+            <p className="text-muted-foreground mt-2">
+              Review and approve content from your linked besties
+            </p>
+          </div>
+
+          <Tabs defaultValue="posts" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="posts" className="gap-2">
+                <FileText className="w-4 h-4" />
+                Posts
+                {pendingPosts.length > 0 && (
+                  <Badge variant="secondary">{pendingPosts.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="comments" className="gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Comments
+                {pendingComments.length > 0 && (
+                  <Badge variant="secondary">{pendingComments.length}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="posts" className="space-y-4">
+              {pendingPosts.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <FileText className="w-12 h-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No pending posts</h3>
+                    <p className="text-muted-foreground text-center">
+                      All posts from your linked besties have been reviewed
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                pendingPosts.map((post) => (
+                  <Card key={post.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <AvatarDisplay
+                            avatarNumber={post.author.avatar_number}
+                            displayName={post.author.display_name}
+                            size="md"
+                          />
+                          <div>
+                            <CardTitle className="text-lg">{post.title}</CardTitle>
+                            <CardDescription>
+                              by {post.author.display_name} • {new Date(post.created_at).toLocaleString()}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <Badge>Pending</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="whitespace-pre-wrap">{post.content}</p>
+                      
+                      {post.image_url && (
+                        <img
+                          src={post.image_url}
+                          alt="Post attachment"
+                          className="rounded-lg max-w-full h-auto"
+                        />
+                      )}
+
+                      <div className="flex gap-2 pt-4">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button className="gap-2 flex-1" variant="default">
+                              <CheckCircle className="w-4 h-4" />
+                              Approve
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Approve Post?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This post will be published and visible to all community members.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleApprovePost(post.id)}>
+                                Approve Post
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button className="gap-2 flex-1" variant="outline">
+                              <XCircle className="w-4 h-4" />
+                              Reject
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Reject Post?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This post will not be published. The author will still be able to see it as rejected.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleRejectPost(post.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Reject Post
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="comments" className="space-y-4">
+              {pendingComments.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <MessageSquare className="w-12 h-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No pending comments</h3>
+                    <p className="text-muted-foreground text-center">
+                      All comments from your linked besties have been reviewed
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                pendingComments.map((comment) => (
+                  <Card key={comment.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <AvatarDisplay
+                            avatarNumber={comment.author.avatar_number}
+                            displayName={comment.author.display_name}
+                            size="md"
+                          />
+                          <div>
+                            <CardTitle className="text-lg">
+                              Comment on "{comment.post.title}"
+                            </CardTitle>
+                            <CardDescription>
+                              by {comment.author.display_name} • {new Date(comment.created_at).toLocaleString()}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <Badge>Pending</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {comment.content && (
+                        <p className="whitespace-pre-wrap">{comment.content}</p>
+                      )}
+                      
+                      {comment.audio_url && (
+                        <div className="bg-muted p-3 rounded-lg">
+                          <audio controls src={comment.audio_url} className="w-full" />
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-4">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button className="gap-2 flex-1" variant="default">
+                              <CheckCircle className="w-4 h-4" />
+                              Approve
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Approve Comment?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This comment will be published and visible to all community members.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleApproveComment(comment.id)}>
+                                Approve Comment
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button className="gap-2 flex-1" variant="outline">
+                              <XCircle className="w-4 h-4" />
+                              Reject
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Reject Comment?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This comment will not be published. The author will still be able to see it as rejected.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleRejectComment(comment.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Reject Comment
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

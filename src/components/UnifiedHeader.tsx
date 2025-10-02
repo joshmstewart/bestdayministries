@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Shield, Users } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
@@ -166,14 +166,24 @@ export const UnifiedHeader = () => {
                   <span className="hidden sm:inline font-semibold">Profile</span>
                 </Button>
                 {profile?.role === "caregiver" && (
-                  <Button 
-                    onClick={() => navigate("/guardian-links")}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span className="hidden sm:inline font-semibold">My Besties</span>
-                  </Button>
+                  <>
+                    <Button 
+                      onClick={() => navigate("/guardian-links")}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      <Users className="w-4 h-4" />
+                      <span className="hidden sm:inline font-semibold">My Besties</span>
+                    </Button>
+                    <Button 
+                      onClick={() => navigate("/guardian-approvals")}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="hidden sm:inline font-semibold">Approvals</span>
+                    </Button>
+                  </>
                 )}
                 {isAdmin && (
                   <Button 
