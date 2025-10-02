@@ -498,6 +498,26 @@ export default function AlbumManagement() {
     }
   };
 
+  const handleSetCover = async (imageUrl: string) => {
+    if (!editingAlbum) return;
+
+    try {
+      const { error } = await supabase
+        .from("albums")
+        .update({ cover_image_url: imageUrl })
+        .eq("id", editingAlbum.id);
+
+      if (error) throw error;
+
+      toast.success("Cover image updated");
+      setEditingAlbum({ ...editingAlbum, cover_image_url: imageUrl });
+      loadAlbums();
+    } catch (error: any) {
+      console.error("Error setting cover:", error);
+      toast.error("Failed to set cover image");
+    }
+  };
+
   if (loading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -724,7 +744,22 @@ export default function AlbumManagement() {
                                 alt={image.caption || "Album image"} 
                                 className="w-full h-32 object-cover rounded-lg" 
                               />
+                              {editingAlbum.cover_image_url === image.image_url && (
+                                <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold">
+                                  Cover
+                                </div>
+                              )}
                               <div className="absolute top-2 right-2 flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleSetCover(image.image_url)}
+                                  title="Set as cover"
+                                >
+                                  <Images className="w-3 h-3" />
+                                </Button>
                                 <Button
                                   type="button"
                                   variant="secondary"
