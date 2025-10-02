@@ -35,14 +35,14 @@ export const useAppManifest = () => {
         // Update document title
         document.title = appName;
 
-        // Update or create manifest link
-        let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-        if (!manifestLink) {
-          manifestLink = document.createElement('link');
-          manifestLink.rel = 'manifest';
-          document.head.appendChild(manifestLink);
-        }
+        // Remove any existing manifest links to avoid conflicts
+        const existingManifests = document.querySelectorAll('link[rel="manifest"]');
+        existingManifests.forEach(link => link.remove());
 
+        // Create new manifest link
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        
         // Create dynamic manifest
         const manifest = {
           name: appName,
@@ -56,35 +56,49 @@ export const useAppManifest = () => {
           icons: iconUrl ? [
             {
               src: iconUrl,
-              sizes: '512x512',
+              sizes: '192x192',
               type: 'image/png',
               purpose: 'any maskable'
             },
             {
               src: iconUrl,
-              sizes: '192x192',
+              sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
             }
-          ] : []
+          ] : [
+            {
+              src: '/icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any maskable'
+            },
+            {
+              src: '/icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable'
+            }
+          ]
         };
 
-        // Convert manifest to data URL
+        // Convert manifest to data URL with cache-busting timestamp
         const manifestJson = JSON.stringify(manifest);
         const manifestBlob = new Blob([manifestJson], { type: 'application/json' });
         const manifestUrl = URL.createObjectURL(manifestBlob);
         manifestLink.href = manifestUrl;
+        
+        // Add to head
+        document.head.appendChild(manifestLink);
 
-        // Update apple-touch-icon
+        // Update or create apple-touch-icon
         let appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-        if (iconUrl) {
-          if (!appleTouchIcon) {
-            appleTouchIcon = document.createElement('link');
-            appleTouchIcon.rel = 'apple-touch-icon';
-            document.head.appendChild(appleTouchIcon);
-          }
-          appleTouchIcon.href = iconUrl;
+        if (!appleTouchIcon) {
+          appleTouchIcon = document.createElement('link');
+          appleTouchIcon.rel = 'apple-touch-icon';
+          document.head.appendChild(appleTouchIcon);
         }
+        appleTouchIcon.href = iconUrl || '/icon-512.png';
 
         // Update theme-color meta tag
         let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
