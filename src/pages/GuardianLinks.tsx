@@ -928,7 +928,7 @@ export default function GuardianLinks() {
                               onClick={() => handleShareClick(sponsorship.id)}
                             >
                               <Share2 className="w-4 h-4 mr-1" />
-                              Share
+                              Share With Besties
                             </Button>
                           )}
                         </div>
