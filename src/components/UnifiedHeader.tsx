@@ -19,6 +19,7 @@ export const UnifiedHeader = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isTestAccount, setIsTestAccount] = useState(false);
+  const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
   const { count: moderationCount } = useModerationCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
@@ -118,6 +119,17 @@ export const UnifiedHeader = () => {
     // Check if this is a test account
     const testEmails = ["testbestie@example.com", "testguardian@example.com", "testsupporter@example.com"];
     setIsTestAccount(testEmails.includes(data?.email || ""));
+
+    // Check if bestie has shared sponsorships
+    if (data?.role === "bestie") {
+      const { data: shares } = await supabase
+        .from("sponsorship_shares")
+        .select("id")
+        .eq("bestie_id", userId)
+        .limit(1);
+      
+      setHasSharedSponsorships((shares?.length ?? 0) > 0);
+    }
   };
 
   const handleReturnToAdmin = async () => {
@@ -185,7 +197,7 @@ export const UnifiedHeader = () => {
                   />
                   <span className="hidden sm:inline font-semibold">Profile</span>
                 </Button>
-                {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner") && (
+                {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
                   <Button 
                     onClick={() => navigate("/guardian-links")}
                     variant="outline"
