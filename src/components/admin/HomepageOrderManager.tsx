@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { GripVertical, Eye, EyeOff } from "lucide-react";
+import { GripVertical, Eye, EyeOff, Lock } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -33,9 +33,30 @@ interface HomepageSection {
 interface SortableItemProps {
   section: HomepageSection;
   onToggleVisibility: (id: string, visible: boolean) => void;
+  isLocked?: boolean;
 }
 
-const SortableItem = ({ section, onToggleVisibility }: SortableItemProps) => {
+const LockedItem = ({ section }: { section: HomepageSection }) => {
+  return (
+    <div className="flex items-center gap-3 p-4 bg-muted/50 border-2 border-primary/20 rounded-lg">
+      <div className="cursor-not-allowed">
+        <Lock className="w-5 h-5 text-primary" />
+      </div>
+      
+      <div className="flex-1">
+        <p className="font-medium flex items-center gap-2">
+          {section.section_name}
+          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Locked</span>
+        </p>
+        <p className="text-sm text-muted-foreground">{section.section_key}</p>
+      </div>
+
+      <div className="text-sm text-muted-foreground">Always visible</div>
+    </div>
+  );
+};
+
+const SortableItem = ({ section, onToggleVisibility, isLocked }: SortableItemProps) => {
   const {
     attributes,
     listeners,
@@ -43,13 +64,17 @@ const SortableItem = ({ section, onToggleVisibility }: SortableItemProps) => {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: section.id });
+  } = useSortable({ id: section.id, disabled: isLocked });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  if (isLocked) {
+    return <LockedItem section={section} />;
+  }
 
   return (
     <div
@@ -138,6 +163,17 @@ const HomepageOrderManager = () => {
   };
 
   const handleToggleVisibility = async (id: string, visible: boolean) => {
+    // Prevent toggling hero section
+    const section = sections.find(s => s.id === id);
+    if (section?.section_key === 'hero') {
+      toast({
+        title: "Cannot modify hero",
+        description: "The hero banner is locked and cannot be hidden",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from("homepage_sections")
@@ -210,6 +246,7 @@ const HomepageOrderManager = () => {
         <CardTitle>Homepage Section Order</CardTitle>
         <CardDescription>
           Drag sections to reorder them. Click the eye icon to show/hide sections.
+          The hero banner is locked in place and always visible.
           Changes are saved when you click "Save Order".
         </CardDescription>
       </CardHeader>
@@ -229,6 +266,7 @@ const HomepageOrderManager = () => {
                   key={section.id}
                   section={section}
                   onToggleVisibility={handleToggleVisibility}
+                  isLocked={section.section_key === 'hero'}
                 />
               ))}
             </div>
