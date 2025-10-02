@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus } from "lucide-react";
+import { Loader2, Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
@@ -91,6 +91,8 @@ export default function GuardianLinks() {
   const [selectedBesties, setSelectedBesties] = useState<Set<string>>(new Set());
   const [existingShares, setExistingShares] = useState<Map<string, Set<string>>>(new Map());
   const [isSavingShares, setIsSavingShares] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   useEffect(() => {
     checkAccess();
@@ -482,6 +484,45 @@ export default function GuardianLinks() {
   const handleManageFeaturedPosts = (bestieId: string, bestieName: string) => {
     setSelectedBestieForFeatured({ id: bestieId, name: bestieName });
     setFeaturedBestieDialogOpen(true);
+  };
+
+  const handlePlayAudio = (sponsorshipId: string, audioUrl: string) => {
+    const audio = audioRefs.current.get(sponsorshipId);
+    
+    if (playingAudio === sponsorshipId && audio) {
+      // Pause the current audio
+      audio.pause();
+      setPlayingAudio(null);
+    } else {
+      // Stop any currently playing audio
+      if (playingAudio) {
+        const currentAudio = audioRefs.current.get(playingAudio);
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
+      }
+      
+      // Play or create new audio
+      let audioElement = audio;
+      if (!audioElement) {
+        audioElement = new Audio(audioUrl);
+        audioElement.addEventListener('ended', () => {
+          setPlayingAudio(null);
+        });
+        audioRefs.current.set(sponsorshipId, audioElement);
+      }
+      
+      audioElement.play().catch(error => {
+        console.error('Error playing audio:', error);
+        toast({
+          title: "Error",
+          description: "Could not play audio",
+          variant: "destructive",
+        });
+      });
+      setPlayingAudio(sponsorshipId);
+    }
   };
 
   const handleUpdateAmount = async () => {
@@ -952,23 +993,38 @@ export default function GuardianLinks() {
                         <div className="space-y-4 pt-4 border-t">
                           <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
                           
-                          <div className="aspect-video w-full overflow-hidden rounded-lg">
+                          <div 
+                            className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer"
+                            onClick={() => sponsorship.featured_bestie?.voice_note_url && handlePlayAudio(sponsorship.id, sponsorship.featured_bestie.voice_note_url)}
+                          >
                             <img 
                               src={sponsorship.featured_bestie.image_url}
                               alt={sponsorship.bestie.display_name}
                               className="w-full h-full object-contain bg-muted"
                             />
+                            {sponsorship.featured_bestie.voice_note_url && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                                <Button
+                                  size="lg"
+                                  className="h-16 w-16 rounded-full bg-white/90 hover:bg-white text-primary hover:scale-110 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePlayAudio(sponsorship.id, sponsorship.featured_bestie!.voice_note_url!);
+                                  }}
+                                >
+                                  {playingAudio === sponsorship.id ? (
+                                    <Pause className="w-8 h-8" />
+                                  ) : (
+                                    <Play className="w-8 h-8 ml-1" />
+                                  )}
+                                </Button>
+                              </div>
+                            )}
                           </div>
                           
                           <p className="text-base text-muted-foreground">
                             {sponsorship.featured_bestie.description}
                           </p>
-
-                          {sponsorship.featured_bestie.voice_note_url && (
-                            <div className="space-y-2">
-                              <AudioPlayer src={sponsorship.featured_bestie.voice_note_url} />
-                            </div>
-                          )}
 
                           {sponsorship.featured_bestie.monthly_goal > 0 && (
                             <FundingProgressBar
@@ -1009,23 +1065,38 @@ export default function GuardianLinks() {
                     <CardContent className="space-y-6">
                       {sponsorship.featured_bestie && (
                         <div className="space-y-4">
-                          <div className="aspect-video w-full overflow-hidden rounded-lg">
+                          <div 
+                            className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer"
+                            onClick={() => sponsorship.featured_bestie?.voice_note_url && handlePlayAudio(sponsorship.id, sponsorship.featured_bestie.voice_note_url)}
+                          >
                             <img 
                               src={sponsorship.featured_bestie.image_url}
                               alt={sponsorship.bestie.display_name}
                               className="w-full h-full object-contain bg-muted"
                             />
+                            {sponsorship.featured_bestie.voice_note_url && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                                <Button
+                                  size="lg"
+                                  className="h-16 w-16 rounded-full bg-white/90 hover:bg-white text-primary hover:scale-110 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePlayAudio(sponsorship.id, sponsorship.featured_bestie!.voice_note_url!);
+                                  }}
+                                >
+                                  {playingAudio === sponsorship.id ? (
+                                    <Pause className="w-8 h-8" />
+                                  ) : (
+                                    <Play className="w-8 h-8 ml-1" />
+                                  )}
+                                </Button>
+                              </div>
+                            )}
                           </div>
                           
                           <p className="text-base text-muted-foreground">
                             {sponsorship.featured_bestie.description}
                           </p>
-
-                          {sponsorship.featured_bestie.voice_note_url && (
-                            <div className="space-y-2">
-                              <AudioPlayer src={sponsorship.featured_bestie.voice_note_url} />
-                            </div>
-                          )}
 
                           {sponsorship.featured_bestie.monthly_goal > 0 && (
                             <FundingProgressBar
