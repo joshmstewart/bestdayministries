@@ -66,30 +66,19 @@ export default function GuardianLinks() {
   const [selectedBestieForFeatured, setSelectedBestieForFeatured] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
-    // Set up auth state listener to handle session changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        navigate("/auth");
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || session) {
-        checkAccess();
-      }
-    });
-
-    // Initial check
     checkAccess();
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
   const checkAccess = async () => {
     try {
+      console.log("[GuardianLinks] checkAccess started");
       const { data: { session } } = await supabase.auth.getSession();
+      console.log("[GuardianLinks] Session:", session?.user?.id || "no session");
       
       if (!session?.user) {
-        setLoading(false);
-        return; // Don't navigate here, let the auth listener handle it
+        console.log("[GuardianLinks] No session, redirecting to /auth");
+        navigate("/auth");
+        return;
       }
 
       const user = session.user;
@@ -100,8 +89,11 @@ export default function GuardianLinks() {
         .eq("id", user.id)
         .single();
 
+      console.log("[GuardianLinks] Profile role:", profile?.role || "no profile");
+
       // Allow caregivers, supporters, admins, and owners
       if (!profile || (profile.role !== "caregiver" && profile.role !== "supporter" && profile.role !== "admin" && profile.role !== "owner")) {
+        console.log("[GuardianLinks] Access denied, redirecting to /community");
         toast({
           title: "Access denied",
           description: "You don't have permission to access this page",
@@ -111,6 +103,7 @@ export default function GuardianLinks() {
         return;
       }
 
+      console.log("[GuardianLinks] Access granted, loading data");
       setUserRole(profile.role);
       setCurrentUserId(user.id);
       
@@ -125,6 +118,7 @@ export default function GuardianLinks() {
       console.log("About to load sponsorships for user:", user.id);
       await loadSponsorships(user.id);
     } catch (error: any) {
+      console.error("[GuardianLinks] Error in checkAccess:", error);
       toast({
         title: "Error",
         description: error.message,
