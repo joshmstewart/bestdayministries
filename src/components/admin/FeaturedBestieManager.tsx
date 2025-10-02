@@ -29,6 +29,7 @@ interface FeaturedBestie {
   end_date: string;
   is_active: boolean;
   available_for_sponsorship: boolean;
+  is_fully_funded: boolean;
 }
 
 export const FeaturedBestieManager = () => {
@@ -45,6 +46,7 @@ export const FeaturedBestieManager = () => {
   const [endDate, setEndDate] = useState<Date>();
   const [isActive, setIsActive] = useState(true);
   const [availableForSponsorship, setAvailableForSponsorship] = useState(true);
+  const [isFullyFunded, setIsFullyFunded] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -185,6 +187,7 @@ export const FeaturedBestieManager = () => {
         end_date: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`,
         is_active: isActive,
         available_for_sponsorship: availableForSponsorship,
+        is_fully_funded: isFullyFunded,
       };
 
       if (imageFile) {
@@ -243,6 +246,7 @@ export const FeaturedBestieManager = () => {
     setEndDate(new Date(bestie.end_date + 'T12:00:00'));
     setIsActive(bestie.is_active);
     setAvailableForSponsorship(bestie.available_for_sponsorship);
+    setIsFullyFunded(bestie.is_fully_funded);
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
     setDialogOpen(true);
@@ -307,6 +311,25 @@ export const FeaturedBestieManager = () => {
     }
   };
 
+  const toggleFullyFunded = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("featured_besties")
+        .update({ is_fully_funded: !currentStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+      toast({ title: `Marked as ${!currentStatus ? "fully funded" : "accepting sponsors"}` });
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: "Error updating funding status",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetForm = () => {
     setEditingId(null);
     setBestieName("");
@@ -315,6 +338,7 @@ export const FeaturedBestieManager = () => {
     setEndDate(undefined);
     setIsActive(true);
     setAvailableForSponsorship(true);
+    setIsFullyFunded(false);
     setImageFile(null);
     setAudioFile(null);
     setAudioBlob(null);
@@ -640,7 +664,22 @@ export const FeaturedBestieManager = () => {
                 </Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                When enabled, this bestie will appear as an option on the sponsorship page
+                When enabled, this bestie is eligible for sponsorships
+              </p>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="fully-funded"
+                  checked={isFullyFunded}
+                  onCheckedChange={setIsFullyFunded}
+                  disabled={!availableForSponsorship}
+                />
+                <Label htmlFor="fully-funded" className={!availableForSponsorship ? "text-muted-foreground" : ""}>
+                  Fully Funded
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When enabled, this bestie won't appear on the sponsorship page (already has enough sponsors)
               </p>
 
               <div className="flex gap-2 pt-6 border-t mt-4">
@@ -685,9 +724,14 @@ export const FeaturedBestieManager = () => {
                 ACTIVE
               </div>
             )}
-            {bestie.available_for_sponsorship && (
+            {bestie.available_for_sponsorship && !bestie.is_fully_funded && (
               <div className="absolute top-2 left-2 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
                 💝 SPONSOR
+              </div>
+            )}
+            {bestie.is_fully_funded && (
+              <div className="absolute top-12 left-2 bg-accent text-accent-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
+                ✓ FUNDED
               </div>
             )}
             <CardHeader className="pb-3">
@@ -745,9 +789,20 @@ export const FeaturedBestieManager = () => {
                   size="sm"
                   onClick={() => toggleSponsorshipAvailability(bestie.id, bestie.available_for_sponsorship)}
                   className="w-full"
+                  disabled={bestie.is_fully_funded}
                 >
                   {bestie.available_for_sponsorship ? "💝 Sponsorship Enabled" : "Enable Sponsorship"}
                 </Button>
+                {bestie.available_for_sponsorship && (
+                  <Button
+                    variant={bestie.is_fully_funded ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => toggleFullyFunded(bestie.id, bestie.is_fully_funded)}
+                    className="w-full"
+                  >
+                    {bestie.is_fully_funded ? "✓ Fully Funded" : "Mark as Fully Funded"}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
