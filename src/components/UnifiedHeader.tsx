@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Shield, Users, CheckCircle } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
@@ -18,6 +18,7 @@ export const UnifiedHeader = () => {
   const [profile, setProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isTestAccount, setIsTestAccount] = useState(false);
   const { count: moderationCount } = useModerationCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
@@ -113,6 +114,54 @@ export const UnifiedHeader = () => {
 
     setProfile(data);
     setIsAdmin(data?.role === "admin" || data?.role === "owner");
+    
+    // Check if this is a test account
+    const testEmails = ["testbestie@example.com", "testguardian@example.com", "testsupporter@example.com"];
+    setIsTestAccount(testEmails.includes(data?.email || ""));
+  };
+
+  const handleReturnToAdmin = async () => {
+    try {
+      const backupStr = localStorage.getItem('admin_session_backup');
+      if (!backupStr) {
+        toast({
+          title: "No previous session",
+          description: "Cannot find the previous admin session",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const backup = JSON.parse(backupStr);
+      
+      // Sign out current test account
+      await supabase.auth.signOut();
+
+      // Restore admin session
+      const { error } = await supabase.auth.setSession({
+        access_token: backup.access_token,
+        refresh_token: backup.refresh_token,
+      });
+
+      if (error) throw error;
+
+      // Clear the backup
+      localStorage.removeItem('admin_session_backup');
+
+      toast({
+        title: "Returned to admin account",
+        description: `Welcome back to ${backup.user_email}`,
+      });
+
+      // Redirect to admin
+      window.location.href = "/admin";
+    } catch (error: any) {
+      toast({
+        title: "Error returning to admin",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleLogout = async () => {
@@ -204,11 +253,20 @@ export const UnifiedHeader = () => {
                 )}
                 <Button 
                   variant="outline" 
-                  onClick={handleLogout}
+                  onClick={isTestAccount ? handleReturnToAdmin : handleLogout}
                   className="gap-2"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline font-semibold">Logout</span>
+                  {isTestAccount ? (
+                    <>
+                      <ArrowLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline font-semibold">Return to Admin</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="w-4 h-4" />
+                      <span className="hidden sm:inline font-semibold">Logout</span>
+                    </>
+                  )}
                 </Button>
               </>
             ) : (
