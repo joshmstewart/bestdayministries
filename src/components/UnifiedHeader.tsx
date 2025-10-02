@@ -123,12 +123,15 @@ export const UnifiedHeader = () => {
   const handleReturnToAdmin = async () => {
     try {
       const backupStr = localStorage.getItem('admin_session_backup');
+      
       if (!backupStr) {
+        // No backup found, just log out normally so user can log back in
+        await supabase.auth.signOut();
         toast({
-          title: "No previous session",
-          description: "Cannot find the previous admin session",
-          variant: "destructive",
+          title: "Logged out",
+          description: "Please log back in with your admin account",
         });
+        navigate("/auth");
         return;
       }
 
