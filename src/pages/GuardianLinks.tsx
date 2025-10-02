@@ -66,17 +66,33 @@ export default function GuardianLinks() {
   const [selectedBestieForFeatured, setSelectedBestieForFeatured] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
+    // Set up auth state listener to handle session changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        navigate("/auth");
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || session) {
+        checkAccess();
+      }
+    });
+
+    // Initial check
     checkAccess();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkAccess = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!user) {
-        navigate("/auth");
-        return;
+      if (!session?.user) {
+        setLoading(false);
+        return; // Don't navigate here, let the auth listener handle it
       }
+
+      const user = session.user;
 
       const { data: profile } = await supabase
         .from("profiles")
