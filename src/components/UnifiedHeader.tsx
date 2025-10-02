@@ -224,20 +224,11 @@ export const UnifiedHeader = () => {
                 )}
                 <Button 
                   variant="outline" 
-                  onClick={isTestAccount ? handleReturnToAdmin : handleLogout}
+                  onClick={handleLogout}
                   className="gap-2"
                 >
-                  {isTestAccount ? (
-                    <>
-                      <ArrowLeft className="w-4 h-4" />
-                      <span className="hidden sm:inline font-semibold">Return to Admin</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogOut className="w-4 h-4" />
-                      <span className="hidden sm:inline font-semibold">Logout</span>
-                    </>
-                  )}
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline font-semibold">Logout</span>
                 </Button>
               </>
             ) : (
