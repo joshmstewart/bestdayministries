@@ -80,6 +80,13 @@ export const TextToSpeech = ({
       const audioUrl = URL.createObjectURL(audioBlob);
       const newAudio = new Audio(audioUrl);
 
+      // Wait for audio to be ready before playing
+      await new Promise<void>((resolve, reject) => {
+        newAudio.oncanplaythrough = () => resolve();
+        newAudio.onerror = () => reject(new Error('Failed to load audio'));
+        newAudio.load();
+      });
+
       newAudio.onended = () => {
         setIsPlaying(false);
         URL.revokeObjectURL(audioUrl);
@@ -96,8 +103,8 @@ export const TextToSpeech = ({
       };
 
       setAudio(newAudio);
-      await newAudio.play();
       setIsPlaying(true);
+      await newAudio.play();
 
     } catch (error) {
       console.error('Text-to-speech error:', error);
