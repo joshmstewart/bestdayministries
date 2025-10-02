@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { GripVertical, Eye, EyeOff, Lock } from "lucide-react";
+import { GripVertical, Eye, EyeOff, Lock, Pencil } from "lucide-react";
+import SectionContentDialog from "./SectionContentDialog";
 import {
   DndContext,
   closestCenter,
@@ -28,11 +29,13 @@ interface HomepageSection {
   section_name: string;
   display_order: number;
   is_visible: boolean;
+  content: Record<string, any>;
 }
 
 interface SortableItemProps {
   section: HomepageSection;
   onToggleVisibility: (id: string, visible: boolean) => void;
+  onEdit: (section: HomepageSection) => void;
   isLocked?: boolean;
 }
 
@@ -56,7 +59,7 @@ const LockedItem = ({ section }: { section: HomepageSection }) => {
   );
 };
 
-const SortableItem = ({ section, onToggleVisibility, isLocked }: SortableItemProps) => {
+const SortableItem = ({ section, onToggleVisibility, onEdit, isLocked }: SortableItemProps) => {
   const {
     attributes,
     listeners,
@@ -97,17 +100,28 @@ const SortableItem = ({ section, onToggleVisibility, isLocked }: SortableItemPro
         <p className="text-sm text-muted-foreground">{section.section_key}</p>
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onToggleVisibility(section.id, !section.is_visible)}
-      >
-        {section.is_visible ? (
-          <Eye className="w-4 h-4" />
-        ) : (
-          <EyeOff className="w-4 h-4" />
-        )}
-      </Button>
+      <div className="flex gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onEdit(section)}
+          title="Edit content"
+        >
+          <Pencil className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onToggleVisibility(section.id, !section.is_visible)}
+          title={section.is_visible ? "Hide section" : "Show section"}
+        >
+          {section.is_visible ? (
+            <Eye className="w-4 h-4" />
+          ) : (
+            <EyeOff className="w-4 h-4" />
+          )}
+        </Button>
+      </div>
     </div>
   );
 };
@@ -116,6 +130,7 @@ const HomepageOrderManager = () => {
   const [sections, setSections] = useState<HomepageSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingSection, setEditingSection] = useState<HomepageSection | null>(null);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -137,7 +152,10 @@ const HomepageOrderManager = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      setSections(data || []);
+      setSections((data || []).map(section => ({
+        ...section,
+        content: (section.content as Record<string, any>) || {}
+      })));
     } catch (error) {
       console.error("Error fetching sections:", error);
       toast({
@@ -266,6 +284,7 @@ const HomepageOrderManager = () => {
                   key={section.id}
                   section={section}
                   onToggleVisibility={handleToggleVisibility}
+                  onEdit={setEditingSection}
                   isLocked={section.section_key === 'hero'}
                 />
               ))}
@@ -281,6 +300,15 @@ const HomepageOrderManager = () => {
           {saving ? "Saving..." : "Save Order"}
         </Button>
       </CardContent>
+
+      {editingSection && (
+        <SectionContentDialog
+          open={!!editingSection}
+          onOpenChange={(open) => !open && setEditingSection(null)}
+          section={editingSection}
+          onSave={fetchSections}
+        />
+      )}
     </Card>
   );
 };
