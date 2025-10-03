@@ -1,7 +1,15 @@
 /**
  * Centralized list of internal pages for the application.
- * Update this list when adding new pages to automatically make them available
- * in all admin dropdowns (Navigation Bar, Footer Links, Quick Links, etc.)
+ * 
+ * ⚠️ IMPORTANT: When adding a new route to App.tsx, you MUST add it here!
+ * 
+ * This list is used in all admin dropdowns:
+ * - Navigation Bar Manager
+ * - Footer Links Manager  
+ * - Quick Links Manager
+ * - Featured Items Manager
+ * 
+ * Adding pages here makes them immediately available across all admin interfaces.
  */
 
 export interface InternalPage {
