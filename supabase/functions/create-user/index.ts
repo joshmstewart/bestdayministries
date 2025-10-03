@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
     const { email, password, displayName, role } = validation.data;
 
     console.log('Creating user:', { email, displayName, role });
+    console.log('Role is vendor:', role === 'vendor');
 
     // Create the user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
     if (createError) {
       console.error('Error creating user:', createError);
       return new Response(
-        JSON.stringify({ error: 'Failed to create user' }),
+        JSON.stringify({ error: 'Failed to create user', details: createError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -129,6 +130,7 @@ Deno.serve(async (req) => {
     
     // If the role is vendor, also create a vendor record with approved status
     if (role === 'vendor') {
+      console.log('Creating vendor record for user:', newUser.user.id);
       const { error: vendorError } = await supabaseAdmin
         .from('vendors')
         .insert({
@@ -140,6 +142,8 @@ Deno.serve(async (req) => {
       if (vendorError) {
         console.error('Error creating vendor record:', vendorError);
         // Don't fail the entire operation, just log it
+      } else {
+        console.log('Vendor record created successfully');
       }
     }
     
