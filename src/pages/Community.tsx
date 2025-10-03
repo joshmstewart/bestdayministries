@@ -408,10 +408,22 @@ const Community = () => {
             {quickLinks.map((link, index) => {
               const iconName = typeof link.icon === 'string' ? link.icon : 'Link';
               const IconComponent = (Icons as any)[iconName] || Icons.Link;
+              
+              // Check if href is external or internal
+              const isExternal = link.href.startsWith('http://') || link.href.startsWith('https://');
+              
+              const handleClick = () => {
+                if (isExternal) {
+                  window.open(link.href, '_blank', 'noopener,noreferrer');
+                } else {
+                  navigate(link.href);
+                }
+              };
+              
               return (
                 <button
                   key={link.id || index}
-                  onClick={() => navigate(link.href)}
+                  onClick={handleClick}
                   className="group"
                 >
                   <div className={`p-6 rounded-2xl border-2 border-border hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm bg-gradient-to-br ${link.color}`}>

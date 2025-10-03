@@ -146,7 +146,7 @@ export function ImageCropDialog({
           )}
         </DialogHeader>
 
-        <div className="flex-1 relative min-h-[400px] bg-black rounded-lg overflow-hidden">
+        <div className="flex-1 relative min-h-[400px] max-h-[450px] bg-black rounded-lg overflow-hidden">
           <Cropper
             image={imageUrl}
             crop={crop}
