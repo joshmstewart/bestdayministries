@@ -933,6 +933,63 @@ export type Database = {
         }
         Relationships: []
       }
+      sponsor_besties: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          aspect_ratio: string
+          bestie_id: string | null
+          bestie_name: string
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          image_url: string
+          is_active: boolean | null
+          is_fully_funded: boolean | null
+          monthly_goal: number | null
+          updated_at: string
+          voice_note_url: string | null
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          aspect_ratio?: string
+          bestie_id?: string | null
+          bestie_name: string
+          created_at?: string
+          created_by: string
+          description: string
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          is_fully_funded?: boolean | null
+          monthly_goal?: number | null
+          updated_at?: string
+          voice_note_url?: string | null
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          aspect_ratio?: string
+          bestie_id?: string | null
+          bestie_name?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          is_fully_funded?: boolean | null
+          monthly_goal?: number | null
+          updated_at?: string
+          voice_note_url?: string | null
+        }
+        Relationships: []
+      }
       sponsorship_shares: {
         Row: {
           bestie_id: string
@@ -1151,6 +1208,18 @@ export type Database = {
             referencedColumns: ["avatar_number"]
           },
         ]
+      }
+      sponsor_bestie_funding_progress: {
+        Row: {
+          bestie_id: string | null
+          bestie_name: string | null
+          current_monthly_pledges: number | null
+          funding_percentage: number | null
+          monthly_goal: number | null
+          remaining_needed: number | null
+          sponsor_bestie_id: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {

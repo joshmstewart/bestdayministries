@@ -18,12 +18,11 @@ interface SponsorBestie {
   voice_note_url: string | null;
   aspect_ratio: string;
   monthly_goal: number | null;
-  available_for_sponsorship: boolean;
   is_fully_funded: boolean;
 }
 
 interface FundingProgress {
-  featured_bestie_id: string;
+  sponsor_bestie_id: string;
   current_monthly_pledges: number;
   monthly_goal: number;
   funding_percentage: number;
@@ -77,12 +76,11 @@ export const SponsorBestieDisplay = () => {
 
   const loadCurrentBesties = async () => {
     try {
-      // Fetch all besties available for sponsorship
+      // Fetch all besties available for sponsorship from sponsor_besties table
       const { data: bestiesData, error: bestiesError } = await supabase
-        .from('featured_besties')
+        .from('sponsor_besties')
         .select('*')
         .eq('is_active', true)
-        .eq('available_for_sponsorship', true)
         .eq('approval_status', 'approved')
         .order('created_at', { ascending: false });
 
@@ -105,14 +103,14 @@ export const SponsorBestieDisplay = () => {
         const bestiesWithGoals = randomized.filter(b => b.monthly_goal && b.monthly_goal > 0);
         if (bestiesWithGoals.length > 0) {
           const { data: progressData } = await supabase
-            .from('bestie_funding_progress')
+            .from('sponsor_bestie_funding_progress')
             .select('*')
-            .in('featured_bestie_id', bestiesWithGoals.map(b => b.id));
+            .in('sponsor_bestie_id', bestiesWithGoals.map(b => b.id));
 
           if (progressData) {
             const progressMap: Record<string, FundingProgress> = {};
             progressData.forEach(p => {
-              progressMap[p.featured_bestie_id] = p;
+              progressMap[p.sponsor_bestie_id] = p;
             });
             setFundingProgress(progressMap);
           }
@@ -145,7 +143,7 @@ export const SponsorBestieDisplay = () => {
     const progress = fundingProgress[bestie.id];
     const isSponsoring = bestie.bestie_id ? sponsoringBesties.has(bestie.bestie_id) : false;
     const isFullyFunded = bestie.is_fully_funded || (progress?.funding_percentage >= 100);
-    const showSponsorButton = bestie.available_for_sponsorship && !isFullyFunded;
+    const showSponsorButton = !isFullyFunded;
 
     return (
       <Card key={bestie.id} className="border-2 hover:border-primary/50 transition-all overflow-hidden">

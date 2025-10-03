@@ -10,6 +10,7 @@ import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft } from "lucide
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
+import { SponsorBestieManager } from "@/components/admin/SponsorBestieManager";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
@@ -197,6 +198,7 @@ const Admin = () => {
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="featured">Besties</TabsTrigger>
+            <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="homepage">Homepage</TabsTrigger>
             <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
@@ -262,6 +264,10 @@ const Admin = () => {
 
           <TabsContent value="featured">
             <FeaturedBestieManager />
+          </TabsContent>
+
+          <TabsContent value="sponsorships">
+            <SponsorBestieManager />
           </TabsContent>
 
           <TabsContent value="featured-item">
