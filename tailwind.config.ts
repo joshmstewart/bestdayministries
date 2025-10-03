@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['Roca', 'system-ui', 'sans-serif'],
         handwriting: ['Seth', 'cursive'],
+        script: ['Dancing Script', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",

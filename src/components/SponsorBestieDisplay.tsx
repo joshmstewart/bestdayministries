@@ -155,101 +155,101 @@ export const SponsorBestieDisplay = () => {
     const isFullyFunded = bestie.is_fully_funded || (progress?.funding_percentage >= 100);
     const showSponsorButton = !isFullyFunded;
 
+    // Parse aspect ratio
+    const getAspectRatio = (ratio: string): number => {
+      const [w, h] = ratio.split(':').map(Number);
+      if (w && h) return w / h;
+      // Fallback mappings
+      if (ratio === 'landscape') return 16 / 9;
+      if (ratio === 'portrait') return 9 / 16;
+      if (ratio === 'square') return 1;
+      return 9 / 16; // default
+    };
+
     return (
       <Card key={bestie.id} className="border-2 hover:border-primary/50 transition-all overflow-hidden">
         <CardContent className="p-0">
-          <div className="relative">
-            <AspectRatio ratio={bestie.aspect_ratio === 'landscape' ? 16/9 : bestie.aspect_ratio === 'square' ? 1 : 3/4}>
-              <img
-                src={bestie.image_url}
-                alt={bestie.bestie_name}
-                className="object-cover w-full h-full"
-              />
-            </AspectRatio>
-            <div className="absolute top-4 left-4">
-              <div className="bg-gradient-to-r from-primary via-accent to-secondary px-4 py-1.5 rounded-full shadow-lg">
-                <span className="text-white font-bold text-sm">Available for Sponsorship</span>
+          <div className="grid md:grid-cols-2 gap-0">
+            {/* Left side - Image */}
+            <div className="relative">
+              <AspectRatio ratio={getAspectRatio(bestie.aspect_ratio)}>
+                <img
+                  src={bestie.image_url}
+                  alt={bestie.bestie_name}
+                  className="object-cover w-full h-full"
+                />
+              </AspectRatio>
+              <div className="absolute top-4 left-4">
+                <div className="bg-gradient-to-r from-primary via-accent to-secondary px-4 py-1.5 rounded-full shadow-lg">
+                  <span className="text-white font-bold text-sm">Available for Sponsorship</span>
+                </div>
               </div>
+              {isSponsoring && (
+                <div className="absolute top-4 right-4">
+                  <div className="bg-green-500 px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
+                    <Heart className="w-4 h-4 text-white fill-white" />
+                    <span className="text-white font-semibold text-xs">You're Sponsoring!</span>
+                  </div>
+                </div>
+              )}
             </div>
-            {isSponsoring && (
-              <div className="absolute top-4 right-4">
-                <div className="bg-green-500 px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
-                  <Heart className="w-4 h-4 text-white fill-white" />
-                  <span className="text-white font-semibold text-xs">You're Sponsoring!</span>
+
+            {/* Right side - Content */}
+            <div className="p-6 space-y-4 flex flex-col justify-center">
+              {bestie.text_sections && bestie.text_sections.length > 0 ? (
+                bestie.text_sections.map((section, index) => (
+                  <div key={index} className="space-y-2">
+                    {section.header && (
+                      <h3 className="font-script text-4xl font-bold text-primary leading-tight">
+                        {section.header}
+                      </h3>
+                    )}
+                    {section.text && (
+                      <p className="font-script text-lg text-foreground/80 leading-relaxed">
+                        {section.text}
+                      </p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  <p>No content available</p>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
 
-          <div className="p-6 space-y-4">
-            {bestie.text_sections && bestie.text_sections.length > 0 ? (
-              bestie.text_sections.map((section, index) => (
-                <div key={index} className="space-y-2">
-                  {section.header && (
-                    <h3 
-                      className="font-black leading-tight"
-                      style={{
-                        fontFamily: 'serif',
-                        color: '#D4A574',
-                        fontSize: '2rem'
-                      }}
-                    >
-                      {section.header}
-                    </h3>
-                  )}
-                  {section.text && (
-                    <p 
-                      className="leading-relaxed"
-                      style={{
-                        fontFamily: 'sans-serif',
-                        color: '#000000',
-                        fontSize: '1rem'
-                      }}
-                    >
-                      {section.text}
-                    </p>
-                  )}
+              {bestie.voice_note_url && (
+                <div className="pt-2">
+                  <AudioPlayer src={bestie.voice_note_url} />
                 </div>
-              ))
-            ) : (
-              // Fallback for entries without sections
-              <div className="text-center text-muted-foreground">
-                <p>No content available</p>
-              </div>
-            )}
+              )}
 
-            {bestie.voice_note_url && (
-              <div className="pt-2">
-                <AudioPlayer src={bestie.voice_note_url} />
-              </div>
-            )}
+              {progress && bestie.monthly_goal && (
+                <FundingProgressBar
+                  currentAmount={progress.current_monthly_pledges}
+                  goalAmount={bestie.monthly_goal}
+                  className="mt-4"
+                />
+              )}
 
-            {progress && bestie.monthly_goal && (
-              <FundingProgressBar
-                currentAmount={progress.current_monthly_pledges}
-                goalAmount={bestie.monthly_goal}
-                className="mt-4"
-              />
-            )}
+              {showSponsorButton && (
+                <Button
+                  onClick={() => handleSponsorClick(bestie.id)}
+                  className="w-full bg-gradient-to-r from-primary via-accent to-secondary hover:opacity-90 transition-opacity text-white font-bold py-6 text-lg"
+                  size="lg"
+                >
+                  <Heart className="w-5 h-5 mr-2" />
+                  Sponsor This Bestie
+                </Button>
+              )}
 
-            {showSponsorButton && (
-              <Button
-                onClick={() => handleSponsorClick(bestie.id)}
-                className="w-full bg-gradient-to-r from-primary via-accent to-secondary hover:opacity-90 transition-opacity text-white font-bold py-6 text-lg"
-                size="lg"
-              >
-                <Heart className="w-5 h-5 mr-2" />
-                Sponsor This Bestie
-              </Button>
-            )}
-
-            {isFullyFunded && (
-              <div className="text-center py-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-green-600 dark:text-green-400 font-semibold">
-                  ✓ Fully Funded! Thank you to all sponsors!
-                </p>
-              </div>
-            )}
+              {isFullyFunded && (
+                <div className="text-center py-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <p className="text-green-600 dark:text-green-400 font-semibold">
+                    ✓ Fully Funded! Thank you to all sponsors!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
