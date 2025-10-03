@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ export const FeaturedItem = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const autoAdvanceRef = useRef(false);
 
   useEffect(() => {
     checkAuth();
@@ -46,11 +47,20 @@ export const FeaturedItem = () => {
     if (items.length <= 1 || isPaused) return;
 
     const interval = setInterval(() => {
+      autoAdvanceRef.current = true;
       setCurrentIndex((prev) => (prev + 1) % items.length);
     }, 10000); // Rotate every 10 seconds
 
     return () => clearInterval(interval);
   }, [items.length, isPaused]);
+
+  // Pause autoplay when user manually changes slides
+  useEffect(() => {
+    if (!autoAdvanceRef.current && currentIndex !== 0) {
+      setIsPaused(true);
+    }
+    autoAdvanceRef.current = false;
+  }, [currentIndex]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
