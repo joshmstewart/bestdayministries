@@ -9,7 +9,6 @@ import { EventDetailDialog } from "@/components/EventDetailDialog";
 import { LocationLink } from "@/components/LocationLink";
 import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
 import { cn } from "@/lib/utils";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface EventDate {
   id: string;
@@ -189,20 +188,22 @@ export default function PublicEvents() {
                   }}
                 >
                   {event.image_url && (
-                    <AspectRatio 
-                      ratio={(() => {
-                        const ratio = event.aspect_ratio || '9:16';
-                        const [w, h] = ratio.split(':').map(Number);
-                        return w / h;
-                      })()} 
+                    <div 
                       className="w-full overflow-hidden"
+                      style={{
+                        aspectRatio: (() => {
+                          const ratio = event.aspect_ratio || '9:16';
+                          const [w, h] = ratio.split(':').map(Number);
+                          return `${w} / ${h}`;
+                        })()
+                      }}
                     >
                       <img
                         src={event.image_url}
                         alt={event.title}
                         className="w-full h-full object-cover"
                       />
-                    </AspectRatio>
+                    </div>
                   )}
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
