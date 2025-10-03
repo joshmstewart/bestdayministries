@@ -325,31 +325,33 @@ export const UnifiedHeader = () => {
           </div>
 
           {/* Navigation Bar - Absolutely positioned to overlay */}
-          <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-b border-border/30 py-2 transition-all duration-300 z-50 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
-            <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
-              {navLinks.map((link) => (
-                <li key={link.id}>
-                  {link.href.startsWith('http') ? (
-                    <a 
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <Link 
-                      to={link.href} 
-                      className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                    >
-                      {link.label}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </nav>
+          {user && (
+            <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-b border-border/30 py-2 transition-all duration-300 z-50 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+              <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
+                {navLinks.map((link) => (
+                  <li key={link.id}>
+                    {link.href.startsWith('http') ? (
+                      <a 
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link 
+                        to={link.href} 
+                        className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
         </div>
       </div>
     </header>
