@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Key, Loader2 } from "lucide-react";
+import { Key } from "lucide-react";
 
 export const PasswordChangeDialog = () => {
   const { toast } = useToast();
@@ -111,7 +111,7 @@ export const PasswordChangeDialog = () => {
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <div className="w-4 h-4 mr-2 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
                   Updating...
                 </>
               ) : (

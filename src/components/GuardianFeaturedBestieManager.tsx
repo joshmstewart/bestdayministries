@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { format } from "date-fns";
 
 interface FeaturedBestie {
@@ -310,7 +310,7 @@ export const GuardianFeaturedBestieManager = ({
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <div className="w-4 h-4 mr-2 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
                     Uploading...
                   </>
                 ) : editingId ? (

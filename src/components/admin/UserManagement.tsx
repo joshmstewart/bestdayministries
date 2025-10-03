@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn } from "lucide-react";
+import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn } from "lucide-react";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 
 interface Profile {
@@ -340,7 +340,7 @@ export const UserManagement = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
       </div>
     );
   }
@@ -403,7 +403,7 @@ export const UserManagement = () => {
                   >
                     {loggingInAs === account.email ? (
                       <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <div className="w-3 h-3 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
                         Logging in...
                       </>
                     ) : (
@@ -425,7 +425,7 @@ export const UserManagement = () => {
           >
             {creatingTestAccounts ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
                 Creating Test Accounts...
               </>
             ) : (
@@ -523,7 +523,7 @@ export const UserManagement = () => {
                 <Button type="submit" disabled={creating}>
                   {creating ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <div className="w-4 h-4 mr-2 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
                       Creating...
                     </>
                   ) : (

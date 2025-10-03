@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Loader2 } from "lucide-react";
+import { Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -150,7 +150,7 @@ export const TextToSpeech = ({
       className="shrink-0 bg-primary hover:bg-primary/90"
     >
       {isLoading ? (
-        <Loader2 className="w-5 h-5 animate-spin" />
+        <div className="w-5 h-5 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
       ) : isPlaying ? (
         <Pause className="w-5 h-5" />
       ) : (

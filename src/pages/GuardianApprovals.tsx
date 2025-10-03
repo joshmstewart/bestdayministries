@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, MessageSquare, FileText } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, FileText } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -300,7 +300,7 @@ export default function GuardianApprovals() {
       <div className="min-h-screen flex flex-col">
         <UnifiedHeader />
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
         </div>
         <Footer />
       </div>

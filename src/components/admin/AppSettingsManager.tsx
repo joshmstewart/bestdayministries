@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, Settings } from "lucide-react";
+import { Upload, Settings } from "lucide-react";
 
 export const AppSettingsManager = () => {
   const { toast } = useToast();
@@ -156,7 +156,7 @@ export const AppSettingsManager = () => {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
         </CardContent>
       </Card>
     );
@@ -204,7 +204,7 @@ export const AppSettingsManager = () => {
             />
             <Button disabled={uploading} size="icon" variant="outline">
               {uploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
               ) : (
                 <Upload className="w-4 h-4" />
               )}
@@ -242,7 +242,7 @@ export const AppSettingsManager = () => {
             />
             <Button disabled={uploading} size="icon" variant="outline">
               {uploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
               ) : (
                 <Upload className="w-4 h-4" />
               )}
@@ -271,7 +271,7 @@ export const AppSettingsManager = () => {
             />
             <Button onClick={handleAppNameUpdate} disabled={uploading}>
               {uploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
               ) : (
                 "Update"
               )}
