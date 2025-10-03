@@ -3,11 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, ImageIcon } from "lucide-react";
 import Footer from "@/components/Footer";
-import ImageCarousel from "@/components/ImageCarousel";
-import AudioPlayer from "@/components/AudioPlayer";
+import ImageLightbox from "@/components/ImageLightbox";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 
 interface Album {
@@ -26,7 +24,9 @@ const GalleryPage = () => {
   const navigate = useNavigate();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<{ image_url: string; caption?: string | null }[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     loadAlbums();
@@ -57,6 +57,22 @@ const GalleryPage = () => {
       setAlbums(albumsWithImages);
     }
     setLoading(false);
+  };
+
+  const openAlbumLightbox = (album: Album) => {
+    if (album.images.length > 0) {
+      setLightboxImages(album.images);
+      setLightboxIndex(0);
+      setLightboxOpen(true);
+    }
+  };
+
+  const goToPreviousLightbox = () => {
+    setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+  };
+
+  const goToNextLightbox = () => {
+    setLightboxIndex((prev) => (prev + 1) % lightboxImages.length);
   };
 
   if (loading) {
@@ -94,7 +110,7 @@ const GalleryPage = () => {
                   <Card
                     key={album.id}
                     className="group cursor-pointer overflow-hidden border-2 hover:border-primary/50 transition-all hover:shadow-lg"
-                    onClick={() => setSelectedAlbum(album)}
+                    onClick={() => openAlbumLightbox(album)}
                   >
                     <div className="aspect-square relative bg-muted">
                       {coverImage ? (
@@ -134,45 +150,14 @@ const GalleryPage = () => {
             </div>
           )}
 
-          <Dialog open={!!selectedAlbum} onOpenChange={(open) => !open && setSelectedAlbum(null)}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              {selectedAlbum && (
-                <>
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl">{selectedAlbum.title}</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    {selectedAlbum.description && (
-                      <p className="text-muted-foreground">{selectedAlbum.description}</p>
-                    )}
-                    {selectedAlbum.event && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        <span>{selectedAlbum.event.title}</span>
-                        <span>•</span>
-                        <span>{new Date(selectedAlbum.event.event_date).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                    
-                    {selectedAlbum.audio_url && (
-                      <AudioPlayer src={selectedAlbum.audio_url} />
-                    )}
-                    
-                    {selectedAlbum.images.length > 0 && (
-                      <ImageCarousel
-                        images={selectedAlbum.images}
-                        autoPlay={false}
-                      />
-                    )}
-                    
-                    <p className="text-xs text-muted-foreground text-right">
-                      Updated {new Date(selectedAlbum.updated_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </>
-              )}
-            </DialogContent>
-          </Dialog>
+          <ImageLightbox
+            images={lightboxImages}
+            currentIndex={lightboxIndex}
+            isOpen={lightboxOpen}
+            onClose={() => setLightboxOpen(false)}
+            onPrevious={goToPreviousLightbox}
+            onNext={goToNextLightbox}
+          />
         </div>
       </main>
       <Footer />
