@@ -83,7 +83,10 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
   };
 
   const total = cartItems?.reduce((sum, item) => {
-    return sum + (parseFloat(item.product.price) * item.quantity);
+    const price = typeof item.product.price === 'string' 
+      ? parseFloat(item.product.price) 
+      : item.product.price;
+    return sum + (price * item.quantity);
   }, 0) || 0;
 
   return (
@@ -120,7 +123,9 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
                         {item.product.name}
                       </h4>
                       <p className="text-sm text-primary font-bold">
-                        ${parseFloat(item.product.price).toFixed(2)}
+                        ${(typeof item.product.price === 'string' 
+                          ? parseFloat(item.product.price) 
+                          : item.product.price).toFixed(2)}
                       </p>
                       <div className="flex items-center gap-2">
                         <Button

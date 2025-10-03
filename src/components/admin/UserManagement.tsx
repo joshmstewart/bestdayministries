@@ -45,6 +45,7 @@ export const UserManagement = () => {
     { email: "testbestie@example.com", password: "TestBestie123!", displayName: "Test Bestie", role: "bestie" },
     { email: "testguardian@example.com", password: "TestGuardian123!", displayName: "Test Guardian", role: "caregiver" },
     { email: "testsupporter@example.com", password: "TestSupporter123!", displayName: "Test Supporter", role: "supporter" },
+    { email: "testvendor@example.com", password: "TestVendor123!", displayName: "Test Vendor", role: "vendor" },
   ];
 
   useEffect(() => {

@@ -16,7 +16,7 @@ const createUserSchema = z.object({
     .regex(/[a-z]/, "Password must contain a lowercase letter")
     .regex(/[0-9]/, "Password must contain a number"),
   displayName: z.string().trim().min(1).max(100),
-  role: z.enum(['admin', 'owner', 'caregiver', 'bestie', 'supporter']),
+  role: z.enum(['admin', 'owner', 'caregiver', 'bestie', 'supporter', 'vendor']),
 });
 
 Deno.serve(async (req) => {
@@ -126,6 +126,22 @@ Deno.serve(async (req) => {
     // Note: The trigger handle_new_user() will automatically:
     // 1. Create profile entry
     // 2. Insert role into user_roles table
+    
+    // If the role is vendor, also create a vendor record with approved status
+    if (role === 'vendor') {
+      const { error: vendorError } = await supabaseAdmin
+        .from('vendors')
+        .insert({
+          user_id: newUser.user.id,
+          business_name: `${displayName}'s Store`,
+          status: 'approved'
+        });
+
+      if (vendorError) {
+        console.error('Error creating vendor record:', vendorError);
+        // Don't fail the entire operation, just log it
+      }
+    }
     
     console.log('User created successfully:', newUser.user.id);
 
