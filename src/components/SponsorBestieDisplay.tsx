@@ -8,6 +8,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { FundingProgressBar } from "@/components/FundingProgressBar";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useNavigate } from "react-router-dom";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface TextSection {
   header: string;
@@ -200,9 +201,17 @@ export const SponsorBestieDisplay = () => {
                 bestie.text_sections.map((section, index) => (
                   <div key={index} className="space-y-2">
                     {section.header && (
-                      <h3 className="font-script text-4xl font-bold text-primary leading-tight">
-                        {section.header}
-                      </h3>
+                      <div className={index === 0 ? "flex items-start justify-between gap-2" : ""}>
+                        <h3 className="font-script text-4xl font-bold text-primary leading-tight">
+                          {section.header}
+                        </h3>
+                        {index === 0 && (
+                          <TextToSpeech 
+                            text={`${section.header}. ${section.text}`} 
+                            size="default"
+                          />
+                        )}
+                      </div>
                     )}
                     {section.text && (
                       <p className="font-script text-lg text-foreground/80 leading-relaxed">
