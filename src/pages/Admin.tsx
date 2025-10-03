@@ -17,6 +17,7 @@ import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
 import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import HomepageOrderManager from "@/components/admin/HomepageOrderManager";
+import CommunityOrderManager from "@/components/admin/CommunityOrderManager";
 import { FeaturedItemManager } from "@/components/admin/FeaturedItemManager";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import { FamilyOrganizationsManager } from "@/components/admin/FamilyOrganizationsManager";
@@ -281,6 +282,7 @@ const Admin = () => {
                 <Tabs defaultValue="homepage" className="space-y-4">
                   <TabsList>
                     <TabsTrigger value="homepage">Homepage</TabsTrigger>
+                    <TabsTrigger value="community">Community</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
                     <TabsTrigger value="footer">Footer</TabsTrigger>
                     <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
@@ -288,6 +290,10 @@ const Admin = () => {
 
                   <TabsContent value="homepage">
                     <HomepageOrderManager />
+                  </TabsContent>
+
+                  <TabsContent value="community">
+                    <CommunityOrderManager />
                   </TabsContent>
 
                   <TabsContent value="family-orgs">

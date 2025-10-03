@@ -257,6 +257,39 @@ export type Database = {
         }
         Relationships: []
       }
+      community_sections: {
+        Row: {
+          content: Json | null
+          created_at: string
+          display_order: number
+          id: string
+          is_visible: boolean
+          section_key: string
+          section_name: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          display_order: number
+          id?: string
+          is_visible?: boolean
+          section_key: string
+          section_name: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_visible?: boolean
+          section_key?: string
+          section_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       discussion_comments: {
         Row: {
           approval_status: string

@@ -27,6 +27,7 @@ const Community = () => {
   const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [quickLinks, setQuickLinks] = useState<any[]>([]);
+  const [sectionOrder, setSectionOrder] = useState<Array<{key: string, visible: boolean}>>([]);
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
   const [effectiveRole, setEffectiveRole] = useState<UserRole | null>(null);
 
@@ -69,8 +70,38 @@ const Community = () => {
 
     setUser(session.user);
     await fetchProfile(session.user.id);
+    await loadSectionOrder();
     await loadLatestContent();
     setLoading(false);
+  };
+
+  const loadSectionOrder = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("community_sections")
+        .select("section_key, is_visible")
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      
+      if (data) {
+        setSectionOrder(data.map(s => ({ key: s.section_key, visible: s.is_visible })));
+      }
+    } catch (error) {
+      console.error("Error loading section order:", error);
+      // Use default order if database fetch fails
+      setSectionOrder([
+        { key: 'welcome', visible: true },
+        { key: 'featured_item', visible: true },
+        { key: 'featured_bestie', visible: true },
+        { key: 'sponsor_bestie', visible: true },
+        { key: 'latest_discussion', visible: true },
+        { key: 'upcoming_events', visible: true },
+        { key: 'latest_album', visible: true },
+        { key: 'our_family', visible: true },
+        { key: 'quick_links', visible: true },
+      ]);
+    }
   };
 
   const loadLatestContent = async () => {
@@ -228,50 +259,63 @@ const Community = () => {
           </div>
         )}
         <div className="max-w-6xl mx-auto space-y-12">
-          {/* Welcome Section */}
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-black text-foreground">
-              Welcome to Your{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                Best Day Ministries
-              </span>{" "}
-              Community
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Connect, share, and grow with our amazing community
-            </p>
-          </div>
+          {sectionOrder.map(({ key, visible }) => {
+            if (!visible) return null;
 
-          {/* Featured Item */}
-          <FeaturedItem />
-
-          {/* Featured Bestie */}
-          <FeaturedBestieDisplay />
-
-          {/* Sponsor a Bestie */}
-          <SponsorBestieDisplay />
-
-          {/* Latest Activity Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Latest Discussion */}
-            <Card className="border-2 hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    <CardTitle className="text-xl">Latest Discussion</CardTitle>
+            switch (key) {
+              case 'welcome':
+                return (
+                  <div key={key} className="text-center space-y-4">
+                    <h1 className="text-4xl md:text-5xl font-black text-foreground">
+                      Welcome to Your{" "}
+                      <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                        Best Day Ministries
+                      </span>{" "}
+                      Community
+                    </h1>
+                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                      Connect, share, and grow with our amazing community
+                    </p>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => navigate("/discussions")}
-                    className="gap-1"
-                  >
-                    View All <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
+                );
+
+              case 'featured_item':
+                return <FeaturedItem key={key} />;
+
+              case 'featured_bestie':
+                return <FeaturedBestieDisplay key={key} />;
+
+              case 'sponsor_bestie':
+                return <SponsorBestieDisplay key={key} />;
+
+              case 'latest_discussion':
+              case 'upcoming_events':
+                // Render these together in a grid
+                if (key === 'latest_discussion') {
+                  const showDiscussion = sectionOrder.find(s => s.key === 'latest_discussion')?.visible;
+                  const showEvents = sectionOrder.find(s => s.key === 'upcoming_events')?.visible;
+                  
+                  return (
+                    <div key="latest_activity" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {showDiscussion && (
+                        <Card className="border-2 hover:border-primary/50 transition-colors">
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-5 h-5 text-primary" />
+                                <CardTitle className="text-xl">Latest Discussion</CardTitle>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => navigate("/discussions")}
+                                className="gap-1"
+                              >
+                                View All <ArrowRight className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
                 {latestDiscussion ? (
                   <div 
                     className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
@@ -302,28 +346,29 @@ const Community = () => {
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No discussions yet. Be the first!</p>
                 )}
-              </CardContent>
-            </Card>
+                          </CardContent>
+                        </Card>
+                      )}
 
-            {/* Upcoming Events */}
-            <Card className="border-2 hover:border-primary/50 transition-colors">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-secondary" />
-                    <CardTitle className="text-xl">Upcoming Events</CardTitle>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => navigate("/events")}
-                    className="gap-1"
-                  >
-                    View All <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
+                      {showEvents && (
+                        <Card className="border-2 hover:border-primary/50 transition-colors">
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-secondary" />
+                                <CardTitle className="text-xl">Upcoming Events</CardTitle>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => navigate("/events")}
+                                className="gap-1"
+                              >
+                                View All <ArrowRight className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
                 {upcomingEvents.length > 0 ? (
                   <div className="space-y-4">
                     {(() => {
@@ -432,18 +477,23 @@ const Community = () => {
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No upcoming events</p>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  );
+                }
+                return null; // Skip upcoming_events as it's rendered with latest_discussion
 
-          {/* Latest Album */}
-          <LatestAlbum />
+              case 'latest_album':
+                return <LatestAlbum key={key} />;
 
-          {/* Our Family Section */}
-          <OurFamily />
+              case 'our_family':
+                return <OurFamily key={key} />;
 
-          {/* Quick Links Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              case 'quick_links':
+                return (
+                  <div key={key} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {quickLinks.map((link, index) => {
               const iconName = typeof link.icon === 'string' ? link.icon : 'Link';
               const IconComponent = (Icons as any)[iconName] || Icons.Link;
@@ -471,8 +521,14 @@ const Community = () => {
                   </div>
                 </button>
               );
-            })}
-          </div>
+                    })}
+                  </div>
+                );
+
+              default:
+                return null;
+            }
+          })}
         </div>
       </main>
       
