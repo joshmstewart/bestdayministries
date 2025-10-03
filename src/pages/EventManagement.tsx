@@ -82,6 +82,7 @@ export default function EventManagement() {
   const [additionalDates, setAdditionalDates] = useState<Date[]>([]);
   const [showAdditionalDatePicker, setShowAdditionalDatePicker] = useState(false);
   const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
+  const [aspectRatio, setAspectRatio] = useState<'landscape' | 'portrait'>('portrait');
 
   useEffect(() => {
     checkAdminAccess();
@@ -209,6 +210,7 @@ export default function EventManagement() {
     setRecurrenceEndDate(undefined);
     setAdditionalDates([]);
     setShowAdditionalDatePicker(false);
+    setAspectRatio('portrait');
     setEditingEvent(null);
     setShowForm(false);
   };
@@ -292,6 +294,7 @@ export default function EventManagement() {
         recurrence_type: isRecurring ? recurrenceType : null,
         recurrence_interval: isRecurring ? recurrenceInterval : null,
         recurrence_end_date: isRecurring && recurrenceEndDate ? format(recurrenceEndDate, "yyyy-MM-dd") : null,
+        aspect_ratio: aspectRatio,
         created_by: user.id,
       };
 
@@ -375,6 +378,7 @@ export default function EventManagement() {
     if (event.recurrence_end_date) {
       setRecurrenceEndDate(new Date(event.recurrence_end_date));
     }
+    setAspectRatio((event as any).aspect_ratio || 'portrait');
     setImagePreview(event.image_url);
     
     // Load additional dates
@@ -672,23 +676,46 @@ export default function EventManagement() {
 
                 <div className="space-y-2">
                   <Label>Event Image</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                      id="image-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById("image-upload")?.click()}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {selectedImage ? "Change Image" : "Upload Image"}
-                    </Button>
-                    {selectedImage && <span className="text-sm">{selectedImage.name}</span>}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-4">
+                      <Label className="text-sm">Aspect Ratio:</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={aspectRatio === 'landscape' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setAspectRatio('landscape')}
+                        >
+                          Landscape (16:9)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={aspectRatio === 'portrait' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setAspectRatio('portrait')}
+                        >
+                          Vertical (9:16)
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById("image-upload")?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {selectedImage ? "Change Image" : "Upload Image"}
+                      </Button>
+                      {selectedImage && <span className="text-sm">{selectedImage.name}</span>}
+                    </div>
                   </div>
                   {imagePreview && (
                     <div className="relative inline-block">
@@ -938,7 +965,10 @@ export default function EventManagement() {
                     !event.is_active && "opacity-50 border-dashed"
                   )}>
                     {event.image_url && (
-                      <div className="w-full aspect-[9/16] overflow-hidden rounded-t-lg">
+                      <div className={cn(
+                        "w-full overflow-hidden rounded-t-lg",
+                        (event as any).aspect_ratio === 'landscape' ? "aspect-[16/9]" : "aspect-[9/16]"
+                      )}>
                         <img
                           src={event.image_url}
                           alt={event.title}
@@ -1076,9 +1106,9 @@ export default function EventManagement() {
           onOpenChange={setShowCropDialog}
           imageUrl={rawImageUrl || imagePreview || ""}
           onCropComplete={handleCroppedImage}
-          aspectRatio={9 / 16}
+          aspectRatio={aspectRatio === 'landscape' ? 16 / 9 : 9 / 16}
           title="Crop Event Image"
-          description="Adjust the crop area for the event image (vertical 9:16 aspect ratio)"
+          description={`Adjust the crop area for the event image (${aspectRatio === 'landscape' ? '16:9 landscape' : '9:16 vertical'} aspect ratio)`}
         />
       )}
     </div>

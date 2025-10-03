@@ -35,6 +35,7 @@ interface Event {
   recurrence_type: string | null;
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
+  aspect_ratio?: 'landscape' | 'portrait';
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -90,7 +91,7 @@ export default function EventsPage() {
         return event.visible_to_roles?.includes(userRole);
       });
       
-      setEvents(filteredEvents);
+      setEvents(filteredEvents as Event[]);
     }
     setLoading(false);
   };
@@ -193,11 +194,16 @@ export default function EventsPage() {
                           }}
                         >
                           {event.image_url && (
-                            <img
-                              src={event.image_url}
-                              alt={event.title}
-                              className="w-full h-48 object-cover"
-                            />
+                            <div className={cn(
+                              "w-full overflow-hidden",
+                              event.aspect_ratio === 'landscape' ? "aspect-[16/9]" : "aspect-[9/16]"
+                            )}>
+                              <img
+                                src={event.image_url}
+                                alt={event.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
                           )}
                           <CardContent className="p-6 space-y-4">
                             <div className="flex items-center gap-2">
@@ -289,11 +295,16 @@ export default function EventsPage() {
                           }}
                         >
                           {event.image_url && (
-                            <img
-                              src={event.image_url}
-                              alt={event.title}
-                              className="w-full h-48 object-cover grayscale"
-                            />
+                            <div className={cn(
+                              "w-full overflow-hidden",
+                              event.aspect_ratio === 'landscape' ? "aspect-[16/9]" : "aspect-[9/16]"
+                            )}>
+                              <img
+                                src={event.image_url}
+                                alt={event.title}
+                                className="w-full h-full object-cover grayscale"
+                              />
+                            </div>
                           )}
                           <CardContent className="p-6 space-y-4">
                             <div>

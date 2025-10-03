@@ -464,6 +464,7 @@ export type Database = {
       }
       events: {
         Row: {
+          aspect_ratio: string
           audio_url: string | null
           created_at: string
           created_by: string
@@ -485,6 +486,7 @@ export type Database = {
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
+          aspect_ratio?: string
           audio_url?: string | null
           created_at?: string
           created_by: string
@@ -506,6 +508,7 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
+          aspect_ratio?: string
           audio_url?: string | null
           created_at?: string
           created_by?: string
