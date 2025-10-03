@@ -18,16 +18,6 @@ import { Switch } from "@/components/ui/switch";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 import { formatFriendCode, generateRandomFriendCode } from "@/lib/friendCodeEmojis";
 import { profileSchema, validateInput } from "@/lib/validation";
-import grandpaWerthersPattern from "@/assets/voice-patterns/grandpa-werthers.png";
-import johnnyDynamitePattern from "@/assets/voice-patterns/johnny-dynamite.png";
-import batmanPattern from "@/assets/voice-patterns/batman.png";
-import cherryTwinklePattern from "@/assets/voice-patterns/cherry-twinkle.png";
-import creaturePattern from "@/assets/voice-patterns/creature.png";
-import marshalPattern from "@/assets/voice-patterns/marshal.png";
-import austinPattern from "@/assets/voice-patterns/austin.png";
-import jerryBPattern from "@/assets/voice-patterns/jerry-b.png";
-import maverickPattern from "@/assets/voice-patterns/maverick.png";
-import grandmaMuffinPattern from "@/assets/voice-patterns/grandma-muffin.png";
 
 interface Profile {
   id: string;
@@ -227,91 +217,21 @@ const ProfileSettings = () => {
 
   const voiceOptions = [
     // Default ElevenLabs Voices
-    { 
-      value: "Aria", 
-      label: "Aria", 
-      description: "Warm and expressive",
-      pattern: cherryTwinklePattern
-    },
-    { 
-      value: "Roger", 
-      label: "Roger", 
-      description: "Confident and clear",
-      pattern: austinPattern
-    },
-    { 
-      value: "Sarah", 
-      label: "Sarah", 
-      description: "Natural and friendly",
-      pattern: grandmaMuffinPattern
-    },
-    { 
-      value: "Laura", 
-      label: "Laura", 
-      description: "Professional and warm",
-      pattern: cherryTwinklePattern
-    },
+    { value: "Aria", label: "Aria", description: "Warm and expressive" },
+    { value: "Roger", label: "Roger", description: "Confident and clear" },
+    { value: "Sarah", label: "Sarah", description: "Natural and friendly" },
+    { value: "Laura", label: "Laura", description: "Professional and warm" },
     // Custom Uploaded Voices
-    { 
-      value: "Austin", 
-      label: "Austin", 
-      description: "Custom voice",
-      pattern: austinPattern
-    },
-    { 
-      value: "Batman", 
-      label: "Batman", 
-      description: "Custom voice",
-      pattern: batmanPattern
-    },
-    { 
-      value: "Cherry Twinkle", 
-      label: "Cherry Twinkle", 
-      description: "Custom voice",
-      pattern: cherryTwinklePattern
-    },
-    { 
-      value: "Creature", 
-      label: "Creature", 
-      description: "Custom voice",
-      pattern: creaturePattern
-    },
-    { 
-      value: "Grandma Muffin", 
-      label: "Grandma Muffin", 
-      description: "Custom voice",
-      pattern: grandmaMuffinPattern
-    },
-    { 
-      value: "Grandpa Werthers", 
-      label: "Grandpa Werthers", 
-      description: "Custom voice",
-      pattern: grandpaWerthersPattern
-    },
-    { 
-      value: "Jerry B", 
-      label: "Jerry B", 
-      description: "Custom voice",
-      pattern: jerryBPattern
-    },
-    { 
-      value: "Johnny Dynamite", 
-      label: "Johnny Dynamite", 
-      description: "Custom voice",
-      pattern: johnnyDynamitePattern
-    },
-    { 
-      value: "Marshal", 
-      label: "Marshal", 
-      description: "Custom voice",
-      pattern: marshalPattern
-    },
-    { 
-      value: "Maverick", 
-      label: "Maverick", 
-      description: "Custom voice",
-      pattern: maverickPattern
-    },
+    { value: "Austin", label: "Austin", description: "Custom voice" },
+    { value: "Batman", label: "Batman", description: "Custom voice" },
+    { value: "Cherry Twinkle", label: "Cherry Twinkle", description: "Custom voice" },
+    { value: "Creature", label: "Creature", description: "Custom voice" },
+    { value: "Grandma Muffin", label: "Grandma Muffin", description: "Custom voice" },
+    { value: "Grandpa Werthers", label: "Grandpa Werthers", description: "Custom voice" },
+    { value: "Jerry B", label: "Jerry B", description: "Custom voice" },
+    { value: "Johnny Dynamite", label: "Johnny Dynamite", description: "Custom voice" },
+    { value: "Marshal", label: "Marshal", description: "Custom voice" },
+    { value: "Maverick", label: "Maverick", description: "Custom voice" },
   ];
 
   const testVoice = async () => {
@@ -540,30 +460,22 @@ const ProfileSettings = () => {
                   {ttsEnabled && (
                     <div className="space-y-3 pt-4 border-t">
                       <Label>Voice Selection</Label>
-                      <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a voice" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {voiceOptions.map((voice) => (
-                            <SelectItem key={voice.value} value={voice.value}>
-                              <div className="flex items-center gap-3">
-                                <img 
-                                  src={voice.pattern} 
-                                  alt={voice.label}
-                                  className="w-8 h-8 rounded"
-                                />
-                                <div>
-                                  <div className="font-medium">{voice.label}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {voice.description}
-                                  </div>
-                                </div>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="grid grid-cols-2 gap-2">
+                        {voiceOptions.map((voice) => (
+                          <Button
+                            key={voice.value}
+                            type="button"
+                            variant={selectedVoice === voice.value ? "default" : "outline"}
+                            className="h-auto flex-col items-start p-3 text-left"
+                            onClick={() => setSelectedVoice(voice.value)}
+                          >
+                            <div className="font-medium text-sm">{voice.label}</div>
+                            <div className="text-xs opacity-70">
+                              {voice.description}
+                            </div>
+                          </Button>
+                        ))}
+                      </div>
                       <Button
                         type="button"
                         variant="outline"
