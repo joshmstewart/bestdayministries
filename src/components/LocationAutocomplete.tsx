@@ -142,9 +142,11 @@ export function LocationAutocomplete({
         />
         <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
       </div>
-      <p className="text-xs text-muted-foreground">
-        Start typing to search for a location
-      </p>
+      {!value && (
+        <p className="text-xs text-muted-foreground">
+          Start typing to search for a location
+        </p>
+      )}
     </div>
   );
 }

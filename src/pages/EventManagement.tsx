@@ -440,7 +440,14 @@ export default function EventManagement() {
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold">Event Management</h1>
-            <Button onClick={() => setShowForm(!showForm)}>
+            <Button onClick={() => {
+              if (showForm) {
+                resetForm();
+              } else {
+                resetForm(); // Reset form to ensure it's empty
+                setShowForm(true);
+              }
+            }}>
               {showForm ? "Cancel" : "Add New Event"}
             </Button>
           </div>
@@ -931,11 +938,13 @@ export default function EventManagement() {
                     !event.is_active && "opacity-50 border-dashed"
                   )}>
                     {event.image_url && (
-                      <img
-                        src={event.image_url}
-                        alt={event.title}
-                        className="w-full h-48 object-cover rounded-t-lg"
-                      />
+                      <div className="w-full aspect-[9/16] overflow-hidden rounded-t-lg">
+                        <img
+                          src={event.image_url}
+                          alt={event.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     )}
                     <CardContent className="p-4 space-y-2">
                       <div className="flex justify-between items-start">
@@ -1067,9 +1076,9 @@ export default function EventManagement() {
           onOpenChange={setShowCropDialog}
           imageUrl={rawImageUrl || imagePreview || ""}
           onCropComplete={handleCroppedImage}
-          aspectRatio={16 / 9}
+          aspectRatio={9 / 16}
           title="Crop Event Image"
-          description="Adjust the crop area to match how the image will appear in event cards (16:9 aspect ratio)"
+          description="Adjust the crop area for the event image (vertical 9:16 aspect ratio)"
         />
       )}
     </div>
