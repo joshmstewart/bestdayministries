@@ -181,7 +181,7 @@ export const SponsorBestieDisplay = () => {
                 style={{ maxHeight: '450px' }}
               />
               <div className="absolute top-4 left-4">
-                <div className="bg-gradient-to-r from-primary via-accent to-secondary px-4 py-1.5 rounded-full shadow-lg">
+                <div className="bg-gradient-warm px-4 py-1.5 rounded-full shadow-lg">
                   <span className="text-white font-bold text-sm">Available for Sponsorship</span>
                 </div>
               </div>
@@ -244,7 +244,7 @@ export const SponsorBestieDisplay = () => {
               {showSponsorButton && (
                 <Button
                   onClick={() => handleSponsorClick(bestie.id)}
-                  className="w-full bg-gradient-to-r from-primary via-accent to-secondary hover:opacity-90 transition-opacity text-white font-bold py-6 text-lg"
+                  className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all text-white font-bold py-6 text-lg"
                   size="lg"
                 >
                   <Heart className="w-5 h-5 mr-2" />

@@ -207,7 +207,7 @@ export const FeaturedBestieDisplay = () => {
               Bestie of the Month
             </div>
             {isSponsoring && (
-              <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm shadow-glow animate-pulse">
+              <div className="absolute top-4 right-4 bg-gradient-warm text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm shadow-glow animate-pulse">
                 <Heart className="w-4 h-4 fill-current" />
                 You're Sponsoring!
               </div>
@@ -309,7 +309,7 @@ export const FeaturedBestieDisplay = () => {
                         Bestie of the Month
                       </div>
                       {isSponsoring && (
-                        <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm shadow-glow animate-pulse">
+                        <div className="absolute top-4 right-4 bg-gradient-warm text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm shadow-glow animate-pulse">
                           <Heart className="w-4 h-4 fill-current" />
                           You're Sponsoring!
                         </div>
