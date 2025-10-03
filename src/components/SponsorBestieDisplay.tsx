@@ -173,14 +173,13 @@ export const SponsorBestieDisplay = () => {
         <CardContent className="p-0">
           <div className="grid md:grid-cols-2 gap-0">
             {/* Left side - Image */}
-            <div className="relative max-h-[450px] overflow-hidden">
-              <AspectRatio ratio={getAspectRatio(bestie.aspect_ratio)}>
-                <img
-                  src={bestie.image_url}
-                  alt={bestie.bestie_name}
-                  className="object-cover w-full h-full"
-                />
-              </AspectRatio>
+            <div className="relative overflow-hidden flex items-center justify-center bg-muted" style={{ maxHeight: '450px' }}>
+              <img
+                src={bestie.image_url}
+                alt={bestie.bestie_name}
+                className="object-contain w-full h-full"
+                style={{ maxHeight: '450px' }}
+              />
               <div className="absolute top-4 left-4">
                 <div className="bg-gradient-to-r from-primary via-accent to-secondary px-4 py-1.5 rounded-full shadow-lg">
                   <span className="text-white font-bold text-sm">Available for Sponsorship</span>
