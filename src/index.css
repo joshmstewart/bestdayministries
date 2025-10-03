@@ -90,7 +90,7 @@ All colors MUST be HSL.
 /* Seth Handwriting Font - Use Sparingly */
 @font-face {
   font-family: 'Seth';
-  src: url('/fonts/Sethregular-Regular.ttf') format('truetype');
+  src: url('/fonts/Sethshandwriting-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
