@@ -349,13 +349,6 @@ export const UnifiedHeader = () => {
                     )}
                   </li>
                 ))}
-                {profile && (
-                  <li className="ml-auto mr-4">
-                    <Badge variant="secondary" className="font-['Roca'] capitalize">
-                      {profile.role}
-                    </Badge>
-                  </li>
-                )}
               </ul>
             </nav>
           )}
