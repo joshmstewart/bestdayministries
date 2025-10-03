@@ -666,10 +666,12 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          is_public: boolean
           link_text: string | null
           link_url: string
           title: string
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           created_at?: string
@@ -679,10 +681,12 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_public?: boolean
           link_text?: string | null
           link_url: string
           title: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           created_at?: string
@@ -692,10 +696,12 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_public?: boolean
           link_text?: string | null
           link_url?: string
           title?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: []
       }

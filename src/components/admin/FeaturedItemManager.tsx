@@ -6,8 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Pencil, Trash2, Eye, EyeOff, Upload, X } from "lucide-react";
+import { Pencil, Trash2, Eye, EyeOff, Upload, X, Info } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 
 interface FeaturedItem {
@@ -19,6 +22,8 @@ interface FeaturedItem {
   link_text: string;
   is_active: boolean;
   display_order: number;
+  is_public: boolean;
+  visible_to_roles: string[];
 }
 
 export const FeaturedItemManager = () => {
@@ -41,6 +46,8 @@ export const FeaturedItemManager = () => {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isPublic, setIsPublic] = useState(true);
+  const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
 
   useEffect(() => {
     loadItems();
@@ -206,12 +213,17 @@ export const FeaturedItemManager = () => {
         imageUrl = publicUrl;
       }
 
+      // Ensure admin and owner are always included
+      const finalVisibleRoles = [...new Set([...visibleToRoles, 'admin', 'owner'])] as any;
+
       const itemData = {
         ...formData,
         link_url: linkType === "sponsorship" ? "/sponsor-bestie" : formData.link_url,
         image_url: imageUrl,
         created_by: user.id,
         is_active: true,
+        is_public: isPublic,
+        visible_to_roles: finalVisibleRoles,
       };
 
       if (editingId) {
@@ -266,6 +278,9 @@ export const FeaturedItemManager = () => {
       display_order: item.display_order,
     });
     
+    setIsPublic(item.is_public ?? true);
+    setVisibleToRoles(item.visible_to_roles?.filter(r => !['admin', 'owner'].includes(r)) || ['caregiver', 'bestie', 'supporter']);
+    
     if (item.image_url) {
       setImagePreview(item.image_url);
     }
@@ -318,6 +333,8 @@ export const FeaturedItemManager = () => {
     });
     setImageFile(null);
     setImagePreview("");
+    setIsPublic(true);
+    setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -515,6 +532,84 @@ export const FeaturedItemManager = () => {
               />
             </div>
 
+            <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg bg-muted/30">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isPublic"
+                  checked={isPublic}
+                  onCheckedChange={setIsPublic}
+                />
+                <Label htmlFor="isPublic" className="cursor-pointer font-medium">
+                  {isPublic ? "Public Item" : "Private Item"}
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p><strong>Public:</strong> Visible on homepage</p>
+                      <p className="mt-1"><strong>Private:</strong> Only visible when logged in</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+
+            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+              <Label>Visible To (Admin & Owner always included)</Label>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="role-caregiver"
+                    checked={visibleToRoles.includes('caregiver')}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setVisibleToRoles([...visibleToRoles, 'caregiver']);
+                      } else {
+                        setVisibleToRoles(visibleToRoles.filter(r => r !== 'caregiver'));
+                      }
+                    }}
+                  />
+                  <label htmlFor="role-caregiver" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Guardians
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="role-bestie"
+                    checked={visibleToRoles.includes('bestie')}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setVisibleToRoles([...visibleToRoles, 'bestie']);
+                      } else {
+                        setVisibleToRoles(visibleToRoles.filter(r => r !== 'bestie'));
+                      }
+                    }}
+                  />
+                  <label htmlFor="role-bestie" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Besties
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="role-supporter"
+                    checked={visibleToRoles.includes('supporter')}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setVisibleToRoles([...visibleToRoles, 'supporter']);
+                      } else {
+                        setVisibleToRoles(visibleToRoles.filter(r => r !== 'supporter'));
+                      }
+                    }}
+                  />
+                  <label htmlFor="role-supporter" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Supporters
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <div className="flex gap-2">
               <Button type="submit" disabled={uploading}>
                 {uploading ? "Uploading..." : editingId ? "Update" : "Create"} Featured Item
@@ -551,15 +646,29 @@ export const FeaturedItemManager = () => {
                     <p className="text-xs text-muted-foreground mt-2">
                       Link: {item.link_url} | Order: {item.display_order}
                     </p>
-                    <span
-                      className={`text-xs px-2 py-1 rounded inline-block mt-2 ${
-                        item.is_active
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {item.is_active ? "Active" : "Inactive"}
-                    </span>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span
+                        className={`text-xs px-2 py-1 rounded inline-block ${
+                          item.is_active
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {item.is_active ? "Active" : "Inactive"}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-1 rounded inline-block ${
+                          item.is_public
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-orange-100 text-orange-800"
+                        }`}
+                      >
+                        {item.is_public ? "Public" : "Private"}
+                      </span>
+                      <span className="text-xs px-2 py-1 rounded inline-block bg-purple-100 text-purple-800">
+                        Roles: {item.visible_to_roles?.filter(r => !['admin', 'owner'].includes(r)).join(', ') || 'None'}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex gap-2 ml-4">
                     <Button

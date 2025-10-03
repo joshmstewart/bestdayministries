@@ -12,6 +12,8 @@ interface FeaturedItemData {
   image_url: string | null;
   link_url: string;
   link_text: string;
+  is_public: boolean;
+  visible_to_roles: string[];
 }
 
 export const FeaturedItem = () => {
@@ -19,10 +21,18 @@ export const FeaturedItem = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [resolvedUrl, setResolvedUrl] = useState<string>("");
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    loadFeaturedItems();
+    checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (userRole !== null) {
+      loadFeaturedItems();
+    }
+  }, [userRole]);
 
   useEffect(() => {
     if (items.length > 0) {
@@ -40,13 +50,42 @@ export const FeaturedItem = () => {
     return () => clearInterval(interval);
   }, [items.length]);
 
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setIsAuthenticated(!!user);
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      
+      setUserRole(profile?.role || null);
+    } else {
+      setUserRole(null);
+    }
+  };
+
   const loadFeaturedItems = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("featured_items")
         .select("*")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
+
+      // Filter by visibility based on auth status and role
+      if (!isAuthenticated) {
+        // Only show public items to non-authenticated users
+        query = query.eq("is_public", true);
+      } else if (userRole && !['admin', 'owner'].includes(userRole)) {
+        // Authenticated users see items visible to their role
+        query = query.contains("visible_to_roles", [userRole]);
+      }
+      // Admin and owner see everything
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setItems(data || []);
