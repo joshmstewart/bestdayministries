@@ -93,38 +93,63 @@ const Community = () => {
         setLatestDiscussion(discussions);
       }
 
-      // Fetch upcoming event dates (up to 3) with role-based filtering
-      const { data: eventDates } = await supabase
-        .from("event_dates")
+      // Fetch upcoming events with role-based filtering
+      const { data: events } = await supabase
+        .from("events")
         .select(`
           *,
-          events:event_id (*)
+          event_dates(id, event_date)
         `)
-        .gte("event_date", new Date().toISOString())
+        .eq("is_public", true)
+        .eq("is_active", true)
         .order("event_date", { ascending: true });
 
-      if (eventDates) {
+      if (events) {
         console.log('Community - User role:', effectiveRole);
-        console.log('Community - Total event dates fetched:', eventDates.length);
+        console.log('Community - Total events fetched:', events.length);
         
-        // Filter event dates based on effective user role and take first 3
-        const filteredEventDates = eventDates
-          .filter(eventDate => {
-            const event = eventDate.events;
-            if (!event) return false;
-            const isVisible = event.visible_to_roles?.includes(effectiveRole);
-            console.log(`Community - Event "${event.title}" on ${eventDate.event_date} - Visible to roles:`, event.visible_to_roles, 'User role:', effectiveRole, 'Is visible:', isVisible);
-            return isVisible;
-          })
-          .slice(0, 3)
-          .map(eventDate => ({
-            ...eventDate.events,
-            event_date: eventDate.event_date, // Override with the specific date
-            event_date_id: eventDate.id
-          }));
+        // Filter events based on effective user role
+        const filteredEvents = events.filter(event => {
+          const isVisible = event.visible_to_roles?.includes(effectiveRole);
+          console.log(`Community - Event "${event.title}" - Visible to roles:`, event.visible_to_roles, 'User role:', effectiveRole, 'Is visible:', isVisible);
+          return isVisible;
+        });
+
+        // Collect all upcoming dates from filtered events
+        const upcomingEventCards: any[] = [];
+        const now = new Date();
+
+        filteredEvents.forEach(event => {
+          // Collect all dates for this event
+          const allDates = [new Date(event.event_date)];
+          if (event.event_dates) {
+            allDates.push(...event.event_dates.map((d: any) => new Date(d.event_date)));
+          }
+          
+          // Sort dates
+          allDates.sort((a, b) => a.getTime() - b.getTime());
+          
+          // Add upcoming dates to the list
+          allDates.forEach(date => {
+            const isUpcoming = date >= now;
+            const shouldShow = event.expires_after_date ? isUpcoming : true;
+            
+            if (shouldShow && isUpcoming) {
+              upcomingEventCards.push({
+                ...event,
+                event_date: date.toISOString(),
+                displayDate: date
+              });
+            }
+          });
+        });
+
+        // Sort by date and take first 3
+        upcomingEventCards.sort((a, b) => a.displayDate.getTime() - b.displayDate.getTime());
+        const topThree = upcomingEventCards.slice(0, 3);
         
-        console.log('Community - Filtered event dates count:', filteredEventDates.length);
-        setUpcomingEvents(filteredEventDates);
+        console.log('Community - Upcoming events count:', topThree.length);
+        setUpcomingEvents(topThree);
       }
 
       // Fetch quick links from database
