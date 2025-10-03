@@ -224,15 +224,6 @@ export const UnifiedHeader = () => {
               ) : (
                 <div className="h-[85px] w-[140px] my-1.5 mx-1" />
               )}
-              {user && profile && (
-                <>
-                  <Separator orientation="vertical" className="h-16 mx-2" />
-                  <div className="hidden sm:block">
-                    <div className="text-xs text-muted-foreground">Welcome back,</div>
-                    <div className="font-bold text-foreground text-lg">{profile?.display_name}</div>
-                  </div>
-                </>
-              )}
             </div>
             
             <div className="flex items-center gap-2">
@@ -349,6 +340,16 @@ export const UnifiedHeader = () => {
                     )}
                   </li>
                 ))}
+                
+                {profile && (
+                  <li className="ml-4 pl-4 border-l border-border/30">
+                    <div className="text-xs text-muted-foreground">Welcome back,</div>
+                    <div className="font-bold text-foreground">{profile.display_name}</div>
+                    {profile.role && (
+                      <div className="text-xs text-muted-foreground capitalize">{profile.role}</div>
+                    )}
+                  </li>
+                )}
               </ul>
             </nav>
           )}
