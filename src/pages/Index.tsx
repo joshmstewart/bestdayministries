@@ -43,6 +43,11 @@ const Index = () => {
   // Component mapping
   const componentMap: Record<string, React.ReactNode> = {
     hero: <Hero />,
+    featured_items: (
+      <div className="container mx-auto px-4 pt-8">
+        <FeaturedItem />
+      </div>
+    ),
     featured_bestie: (
       <section className="container mx-auto px-4 py-16">
         <FeaturedBestieDisplay />
@@ -75,9 +80,6 @@ const Index = () => {
     <div className="min-h-screen">
       <UnifiedHeader />
       <main>
-        <div className="container mx-auto px-4 pt-8">
-          <FeaturedItem />
-        </div>
         {sections
           .filter((section) => section.is_visible)
           .map((section) => (
