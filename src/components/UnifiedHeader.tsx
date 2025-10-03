@@ -33,11 +33,11 @@ export const UnifiedHeader = () => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // Show nav if near top (within 300px) or scrolling up
-      if (currentScrollY < 300 || currentScrollY < lastScrollY) {
+      // Show nav if near top (within 150px) or scrolling up
+      if (currentScrollY < 150 || currentScrollY < lastScrollY) {
         setShowNav(true);
       } else {
-        // Hide nav when scrolling down and past 300px
+        // Hide nav when scrolling down and past 150px
         setShowNav(false);
       }
       
