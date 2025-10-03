@@ -255,12 +255,20 @@ export const FamilyOrganizationsManager = () => {
               <Label htmlFor="color">Color Gradient</Label>
               <Select value={formData.color} onValueChange={(value) => setFormData({ ...formData, color: value })}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-6 rounded bg-gradient-to-r ${formData.color}`} />
+                      <span>{gradientColors.find(c => c.value === formData.color)?.label}</span>
+                    </div>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {gradientColors.map((color) => (
                     <SelectItem key={color.value} value={color.value}>
-                      {color.label}
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-6 rounded bg-gradient-to-r ${color.value}`} />
+                        <span>{color.label}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
