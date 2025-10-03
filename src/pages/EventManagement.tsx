@@ -82,8 +82,7 @@ export default function EventManagement() {
   const [additionalDates, setAdditionalDates] = useState<Date[]>([]);
   const [showAdditionalDatePicker, setShowAdditionalDatePicker] = useState(false);
   const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
-  const [aspectRatio, setAspectRatio] = useState<string>('9:16');
-  const [cropAspectRatio, setCropAspectRatio] = useState(9 / 16);
+  const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
 
   useEffect(() => {
     checkAdminAccess();
@@ -211,8 +210,7 @@ export default function EventManagement() {
     setRecurrenceEndDate(undefined);
     setAdditionalDates([]);
     setShowAdditionalDatePicker(false);
-    setAspectRatio('9:16');
-    setCropAspectRatio(9 / 16);
+    setAspectRatioKey('9:16');
     setEditingEvent(null);
     setShowForm(false);
   };
@@ -296,7 +294,7 @@ export default function EventManagement() {
         recurrence_type: isRecurring ? recurrenceType : null,
         recurrence_interval: isRecurring ? recurrenceInterval : null,
         recurrence_end_date: isRecurring && recurrenceEndDate ? format(recurrenceEndDate, "yyyy-MM-dd") : null,
-        aspect_ratio: aspectRatio,
+        aspect_ratio: aspectRatioKey,
         created_by: user.id,
       };
 
@@ -384,10 +382,7 @@ export default function EventManagement() {
     } else {
       setRecurrenceEndDate(null);
     }
-    const ratio = (event as any).aspect_ratio || '9:16';
-    setAspectRatio(ratio);
-    const [w, h] = ratio.split(':').map(Number);
-    setCropAspectRatio(w / h);
+    setAspectRatioKey((event as any).aspect_ratio || '9:16');
     setImagePreview(event.image_url);
     setSelectedImage(null);
     setRawImageUrl(null);
@@ -697,24 +692,17 @@ export default function EventManagement() {
                     <div className="flex items-center gap-4">
                       <Label className="text-sm">Aspect Ratio:</Label>
                       <div className="flex flex-wrap gap-2">
-                        {['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'].map((ratio) => {
-                          const [w, h] = ratio.split(':').map(Number);
-                          const ratioValue = w / h;
-                          return (
-                            <Button
-                              key={ratio}
-                              type="button"
-                              variant={aspectRatio === ratio ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => {
-                                setAspectRatio(ratio);
-                                setCropAspectRatio(ratioValue);
-                              }}
-                            >
-                              {ratio}
-                            </Button>
-                          );
-                        })}
+                        {['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'].map((ratio) => (
+                          <Button
+                            key={ratio}
+                            type="button"
+                            variant={aspectRatioKey === ratio ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setAspectRatioKey(ratio)}
+                          >
+                            {ratio}
+                          </Button>
+                        ))}
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -1128,29 +1116,11 @@ export default function EventManagement() {
           onOpenChange={setShowCropDialog}
           imageUrl={rawImageUrl || imagePreview || ""}
           onCropComplete={handleCroppedImage}
-          aspectRatio={cropAspectRatio}
           title="Crop Event Image"
           description="Adjust the crop area and try different aspect ratios"
           allowAspectRatioChange={true}
-          onAspectRatioChange={(ratio) => {
-            setCropAspectRatio(ratio);
-            // Update the aspect ratio string based on the numeric ratio
-            const ratioMap: Record<string, string> = {
-              '1': '1:1',
-              [String(16/9)]: '16:9',
-              [String(9/16)]: '9:16',
-              [String(4/3)]: '4:3',
-              [String(3/4)]: '3:4',
-              [String(3/2)]: '3:2',
-              [String(2/3)]: '2:3',
-            };
-            const matchedRatio = Object.entries(ratioMap).find(([key]) => 
-              Math.abs(parseFloat(key) - ratio) < 0.01
-            );
-            if (matchedRatio) {
-              setAspectRatio(matchedRatio[1]);
-            }
-          }}
+          selectedRatioKey={aspectRatioKey as any}
+          onAspectRatioKeyChange={(key) => setAspectRatioKey(key)}
         />
       )}
     </div>

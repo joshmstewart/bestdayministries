@@ -65,8 +65,7 @@ export const FeaturedBestieManager = () => {
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [aspectRatio, setAspectRatio] = useState<string>('9:16');
-  const [cropAspectRatio, setCropAspectRatio] = useState(9 / 16);
+  const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
 
   useEffect(() => {
     loadData();
@@ -244,7 +243,7 @@ export const FeaturedBestieManager = () => {
         is_fully_funded: autoFullyFunded,
         approval_status: 'approved', // Admin posts are auto-approved
         monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
-        aspect_ratio: aspectRatio,
+        aspect_ratio: aspectRatioKey,
       };
 
       if (imageFile) {
@@ -308,11 +307,7 @@ export const FeaturedBestieManager = () => {
     setMonthlyGoal(bestie.monthly_goal ? bestie.monthly_goal.toString() : "");
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
-    const ratio = bestie.aspect_ratio || '9:16';
-    setAspectRatio(ratio);
-    // Convert ratio string to number for cropper
-    const [w, h] = ratio.split(':').map(Number);
-    setCropAspectRatio(w / h);
+    setAspectRatioKey(bestie.aspect_ratio || '9:16');
     setDialogOpen(true);
   };
 
@@ -462,8 +457,7 @@ export const FeaturedBestieManager = () => {
     setRawImageUrl(null);
     setImagePreview(null);
     setShowCropDialog(false);
-    setAspectRatio('9:16');
-    setCropAspectRatio(9 / 16);
+    setAspectRatioKey('9:16');
   };
 
   const handleCroppedImage = (blob: Blob) => {
@@ -614,24 +608,17 @@ export const FeaturedBestieManager = () => {
               <div className="space-y-2">
                 <Label>Image Aspect Ratio</Label>
                 <div className="flex flex-wrap gap-2">
-                  {['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'].map((ratio) => {
-                    const [w, h] = ratio.split(':').map(Number);
-                    const ratioValue = w / h;
-                    return (
-                      <Button
-                        key={ratio}
-                        type="button"
-                        variant={aspectRatio === ratio ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => {
-                          setAspectRatio(ratio);
-                          setCropAspectRatio(ratioValue);
-                        }}
-                      >
-                        {ratio}
-                      </Button>
-                    );
-                  })}
+                  {['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'].map((ratio) => (
+                    <Button
+                      key={ratio}
+                      type="button"
+                      variant={aspectRatioKey === ratio ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setAspectRatioKey(ratio)}
+                    >
+                      {ratio}
+                    </Button>
+                  ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   You can also change the aspect ratio while cropping
@@ -1049,29 +1036,11 @@ export const FeaturedBestieManager = () => {
           onOpenChange={setShowCropDialog}
           imageUrl={rawImageUrl || imagePreview || ""}
           onCropComplete={handleCroppedImage}
-          aspectRatio={cropAspectRatio}
           title="Crop Bestie Image"
           description="Adjust the crop area and try different aspect ratios"
           allowAspectRatioChange={true}
-          onAspectRatioChange={(ratio) => {
-            setCropAspectRatio(ratio);
-            // Update the aspect ratio string based on the numeric ratio
-            const ratioMap: Record<string, string> = {
-              '1': '1:1',
-              [String(16/9)]: '16:9',
-              [String(9/16)]: '9:16',
-              [String(4/3)]: '4:3',
-              [String(3/4)]: '3:4',
-              [String(3/2)]: '3:2',
-              [String(2/3)]: '2:3',
-            };
-            const matchedRatio = Object.entries(ratioMap).find(([key]) => 
-              Math.abs(parseFloat(key) - ratio) < 0.01
-            );
-            if (matchedRatio) {
-              setAspectRatio(matchedRatio[1]);
-            }
-          }}
+          selectedRatioKey={aspectRatioKey as any}
+          onAspectRatioKeyChange={(key) => setAspectRatioKey(key)}
         />
       )}
     </div>
