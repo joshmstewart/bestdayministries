@@ -446,7 +446,7 @@ export const UserManagement = () => {
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
                 <DialogDescription>
-                  Add a new member to the Best Day Ever Ministries community
+                  Add a new member to the Best Day Ministries community
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">

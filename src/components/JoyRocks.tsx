@@ -21,7 +21,7 @@ const JoyRocks = () => {
               <div className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white/50">
                 <img
                   src={joyRocksImage}
-                  alt="Best Day Ever Ministries Rocks - Painted rocks with positive messages"
+                  alt="Best Day Ministries Rocks - Painted rocks with positive messages"
                   className="w-full h-auto object-cover"
                 />
               </div>
@@ -56,7 +56,7 @@ const JoyRocks = () => {
             
             <div className="space-y-4 text-lg text-muted-foreground leading-relaxed">
               <p>
-                Inspired by Bill Stewart's love for the Best Day Ever Ministries mission, <strong className="text-foreground font-bold">Best Day Ever Ministries Rocks</strong> creates a fun and engaging activity that brings people together to promote positivity and joy.
+                Inspired by Bill Stewart&apos;s love for the Best Day Ministries mission, <strong className="text-foreground font-bold">Best Day Ministries Rocks</strong> creates a fun and engaging activity that brings people together to promote positivity and joy.
               </p>
               <p>
                 Through rock painting, we provide a creative outlet for all! Once decorated, rocks can be gifted or placed in public areas for others to find. The new owner can keep it as a reminder of kindness, or hide it for someone else to discover.

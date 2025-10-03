@@ -84,7 +84,7 @@ const Footer = () => {
             {logoUrl ? (
               <img 
                 src={logoUrl} 
-                alt="Best Day Ever Ministries" 
+                alt="Best Day Ministries" 
                 className="h-24 w-auto"
               />
             ) : (
@@ -119,10 +119,10 @@ const Footer = () => {
 
         <div className="pt-8 border-t border-border text-center text-muted-foreground">
           <p className="flex items-center justify-center gap-2">
-            Made with <Heart className="w-4 h-4 text-primary fill-primary" /> by Best Day Ever Ministries Community
+            Made with <Heart className="w-4 h-4 text-primary fill-primary" /> by Best Day Ministries Community
           </p>
           <p className="mt-2 text-sm">
-            © {new Date().getFullYear()} Best Day Ever Ministries Community. All rights reserved.
+            © {new Date().getFullYear()} Best Day Ministries Community. All rights reserved.
           </p>
         </div>
       </div>

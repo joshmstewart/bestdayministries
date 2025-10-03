@@ -89,7 +89,7 @@ const Auth = () => {
         if (error) throw error;
 
         toast({
-          title: "Welcome to Best Day Ever Ministries!",
+          title: "Welcome to Best Day Ministries!",
           description: "Your account has been created successfully.",
         });
       } else {
@@ -157,7 +157,7 @@ const Auth = () => {
           <div className="text-center space-y-4">
             <img 
               src={logoUrl} 
-              alt="Best Day Ever Ministries" 
+              alt="Best Day Ministries" 
               className="h-16 mx-auto object-contain"
             />
             <div>
@@ -169,7 +169,7 @@ const Auth = () => {
                   ? "Enter your email to receive a password reset link"
                   : isSignUp 
                     ? "Create your account to connect with our community" 
-                    : "Sign in to access your Best Day Ever Ministries community"}
+                    : "Sign in to access your Best Day Ministries community"}
               </p>
             </div>
           </div>

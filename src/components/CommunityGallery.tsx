@@ -21,8 +21,8 @@ const CommunityGallery = () => {
     },
     {
       src: foundersTeam,
-      alt: "Best Day Ever Ministries founders and team",
-      caption: "The heart behind Best Day Ever Ministries",
+      alt: "Best Day Ministries founders and team",
+      caption: "The heart behind Best Day Ministries",
       size: "medium"
     },
     {
@@ -52,7 +52,7 @@ const CommunityGallery = () => {
             <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Action</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            See the joy, creativity, and growth happening every day at Best Day Ever Ministries
+            See the joy, creativity, and growth happening every day at Best Day Ministries
           </p>
         </div>
 

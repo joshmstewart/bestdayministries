@@ -26,10 +26,10 @@ const About = () => {
             </h2>
             <div className="max-w-3xl mx-auto space-y-4 text-lg text-muted-foreground">
               <p>
-                Best Day Ever Ministries was born from the heart and creativity of <strong className="text-foreground font-bold">Seth Truitt</strong>, a 33-year-old with Down Syndrome who lives in his own home (the Best Day Ever Ministries house) on the back acre of his parent's property.
+                Best Day Ministries was born from the heart and creativity of <strong className="text-foreground font-bold">Seth Truitt</strong>, a 33-year-old with Down Syndrome who lives in his own home (the Best Day Ministries house) on the back acre of his parent&apos;s property.
               </p>
               <p>
-                Seth creates beautiful artwork to share with the world, and this inspired his family to create Best Day Ever Ministries—a community where adults with special needs can showcase their unique talents and creativity while building confidence, independence, and JOY!
+                Seth creates beautiful artwork to share with the world, and this inspired his family to create Best Day Ministries—a community where adults with special needs can showcase their unique talents and creativity while building confidence, independence, and JOY!
               </p>
             </div>
           </div>
@@ -48,7 +48,7 @@ const About = () => {
                     </h3>
                   </div>
                   <p className="text-lg text-muted-foreground leading-relaxed">
-                    Watch our documentary to learn the inspiring story of how Best Day Ever Ministries came to be and the lives we're touching every day.
+                    Watch our documentary to learn the inspiring story of how Best Day Ministries came to be and the lives we&apos;re touching every day.
                   </p>
                   <Button size="lg" className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
                     <Film className="mr-2 w-5 h-5" />
@@ -58,7 +58,7 @@ const About = () => {
                 <div className="relative overflow-hidden min-h-[300px]">
                   <img 
                     src={teamWithFounder}
-                    alt="Best Day Ever Ministries team with founder and community members"
+                    alt="Best Day Ministries team with founder and community members"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 to-transparent" />
@@ -78,7 +78,7 @@ const About = () => {
                     className="w-64 h-auto mb-6"
                   />
                   <p className="text-lg leading-relaxed" style={{ color: 'hsl(13 33% 36%)' }}>
-                    The founders of Best Day Ever Ministries have opened a partner company, <strong>best day ever! coffee + crepes</strong> in Longmont, Colorado.
+                    The founders of Best Day Ministries have opened a partner company, <strong>best day ever! coffee + crepes</strong> in Longmont, Colorado.
                   </p>
                   <p className="text-lg leading-relaxed" style={{ color: 'hsl(13 33% 36%)' }}>
                     Come in for delicious crepes, coffee, and ice cream while supporting our mission!
@@ -114,7 +114,7 @@ const About = () => {
                 <div className="relative overflow-hidden min-h-[400px] order-1 md:order-2">
                   <img 
                     src={bdeOutdoorEvent}
-                    alt="Best Day Ever outdoor event with Best Day Ever Ministries partnership"
+                    alt="Best Day Ever outdoor event with Best Day Ministries partnership"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[hsl(13,33%,36%)]/30 to-transparent" />

@@ -11,7 +11,7 @@ const familyOrganizations = [
     color: "from-amber-500/20 to-orange-500/20",
   },
   {
-    name: "Best Day Ever Ministries",
+    name: "Best Day Ministries",
     description: "Our main ministry empowering adults with special needs through creativity, community, and connection.",
     url: "#about",
     icon: Heart,
@@ -31,7 +31,7 @@ const OurFamily = () => {
             Our Family of Organizations
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Best Day Ever Ministries is part of a vibrant family of organizations, 
+            Best Day Ministries is part of a vibrant family of organizations, 
             each dedicated to building community and spreading joy.
           </p>
         </div>
