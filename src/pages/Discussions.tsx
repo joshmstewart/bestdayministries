@@ -71,6 +71,7 @@ const Discussions = () => {
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+  const [expandedComments, setExpandedComments] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     checkUser();
@@ -872,7 +873,16 @@ const Discussions = () => {
                       </h4>
 
                       {/* Comments List */}
-                      {post.comments?.map((comment) => (
+                      {(() => {
+                        const INITIAL_COMMENTS = 3;
+                        const comments = post.comments || [];
+                        const isExpanded = expandedComments[post.id];
+                        const visibleComments = isExpanded ? comments : comments.slice(0, INITIAL_COMMENTS);
+                        const hasMore = comments.length > INITIAL_COMMENTS;
+
+                        return (
+                          <>
+                            {visibleComments.map((comment) => (
                         <div key={comment.id} className="bg-muted/50 rounded-lg p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-2 flex-1">
@@ -922,7 +932,28 @@ const Discussions = () => {
                             )}
                           </div>
                         </div>
-                      ))}
+                            ))}
+
+                            {/* Show More/Less Button */}
+                            {hasMore && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setExpandedComments({ 
+                                  ...expandedComments, 
+                                  [post.id]: !isExpanded 
+                                })}
+                                className="w-full text-sm text-muted-foreground hover:text-foreground"
+                              >
+                                {isExpanded 
+                                  ? 'Show less' 
+                                  : `Show all ${comments.length} comments`
+                                }
+                              </Button>
+                            )}
+                          </>
+                        );
+                      })()}
 
                       {/* Add Comment */}
                       <div className="space-y-3">
