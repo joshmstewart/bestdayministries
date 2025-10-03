@@ -345,11 +345,22 @@ const Community = () => {
                           onClick={() => navigate("/events")}
                         >
                           {event.image_url && (
-                            <img
-                              src={event.image_url}
-                              alt={event.title}
-                              className="w-full h-40 object-cover rounded-lg"
-                            />
+                            <div 
+                              className="w-full overflow-hidden rounded-lg"
+                              style={{
+                                aspectRatio: (() => {
+                                  const ratio = event.aspect_ratio || '9:16';
+                                  const [w, h] = ratio.split(':').map(Number);
+                                  return `${w} / ${h}`;
+                                })()
+                              }}
+                            >
+                              <img
+                                src={event.image_url}
+                                alt={event.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
                           )}
                           <div className="flex items-start gap-2">
                             <h3 className="font-semibold text-base flex-1">{event.title}</h3>
