@@ -61,6 +61,10 @@ export const TextToSpeech = ({
 
       // Use passed voice prop or user's preferred voice
       const selectedVoice = voice || userVoice;
+      
+      console.log('TTS - Sending text to API:', text);
+      console.log('TTS - Text length:', text.length);
+      console.log('TTS - Voice:', selectedVoice);
 
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { text, voice: selectedVoice }

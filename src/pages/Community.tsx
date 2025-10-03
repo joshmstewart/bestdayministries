@@ -268,25 +268,37 @@ const Community = () => {
               <CardContent>
                 {upcomingEvents.length > 0 ? (
                   <div className="space-y-4">
-                    {upcomingEvents.map((event) => (
-                      <div 
-                        key={event.id}
-                        className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors border-b last:border-0"
-                        onClick={() => navigate("/events")}
-                      >
-                        {event.image_url && (
-                          <img
-                            src={event.image_url}
-                            alt={event.title}
-                            className="w-full h-40 object-cover rounded-lg"
-                          />
-                        )}
-                        <div className="flex items-start gap-2">
-                          <h3 className="font-semibold text-base flex-1">{event.title}</h3>
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <TextToSpeech text={`${event.title}, ${event.description}, scheduled for ${new Date(event.event_date).toLocaleDateString()}${event.location ? `, at ${event.location}` : ''}`} />
+                    {upcomingEvents.map((event) => {
+                      // Prepare clean text string for TTS
+                      const eventDate = new Date(event.event_date).toLocaleDateString();
+                      const ttsText = [
+                        event.title,
+                        event.description,
+                        `Scheduled for ${eventDate}`,
+                        event.location ? `At ${event.location}` : ''
+                      ].filter(Boolean).join('. ');
+                      
+                      console.log('Event TTS text:', ttsText);
+                      
+                      return (
+                        <div 
+                          key={event.id}
+                          className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors border-b last:border-0"
+                          onClick={() => navigate("/events")}
+                        >
+                          {event.image_url && (
+                            <img
+                              src={event.image_url}
+                              alt={event.title}
+                              className="w-full h-40 object-cover rounded-lg"
+                            />
+                          )}
+                          <div className="flex items-start gap-2">
+                            <h3 className="font-semibold text-base flex-1">{event.title}</h3>
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <TextToSpeech text={ttsText} />
+                            </div>
                           </div>
-                        </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
@@ -317,7 +329,8 @@ const Community = () => {
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No upcoming events</p>
