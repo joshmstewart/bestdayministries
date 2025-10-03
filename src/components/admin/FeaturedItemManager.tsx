@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Pencil, Trash2, Eye, EyeOff, Upload, X } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
@@ -32,6 +33,10 @@ export const FeaturedItemManager = () => {
     link_text: "Learn More",
     display_order: 0,
   });
+  const [linkType, setLinkType] = useState<string>("custom");
+  const [events, setEvents] = useState<any[]>([]);
+  const [albums, setAlbums] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -39,6 +44,7 @@ export const FeaturedItemManager = () => {
 
   useEffect(() => {
     loadItems();
+    loadLinkOptions();
   }, []);
 
   const loadItems = async () => {
@@ -55,6 +61,22 @@ export const FeaturedItemManager = () => {
       toast.error("Failed to load featured items");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLinkOptions = async () => {
+    try {
+      const [eventsData, albumsData, postsData] = await Promise.all([
+        supabase.from("events").select("id, title").order("event_date", { ascending: false }),
+        supabase.from("albums").select("id, title").eq("is_active", true).order("created_at", { ascending: false }),
+        supabase.from("discussion_posts").select("id, title").eq("approval_status", "approved").order("created_at", { ascending: false })
+      ]);
+
+      if (eventsData.data) setEvents(eventsData.data);
+      if (albumsData.data) setAlbums(albumsData.data);
+      if (postsData.data) setPosts(postsData.data);
+    } catch (error) {
+      console.error("Error loading link options:", error);
     }
   };
 
@@ -88,6 +110,14 @@ export const FeaturedItemManager = () => {
       return;
     }
 
+    // Validate link based on type
+    if (linkType === "sponsorship") {
+      setFormData({ ...formData, link_url: "/sponsor-bestie" });
+    } else if (linkType !== "custom" && !formData.link_url.includes(":")) {
+      toast.error(`Please select a ${linkType}`);
+      return;
+    }
+
     setUploading(true);
     
     try {
@@ -116,6 +146,7 @@ export const FeaturedItemManager = () => {
 
       const itemData = {
         ...formData,
+        link_url: linkType === "sponsorship" ? "/sponsor-bestie" : formData.link_url,
         image_url: imageUrl,
         created_by: user.id,
         is_active: true,
@@ -150,6 +181,20 @@ export const FeaturedItemManager = () => {
 
   const handleEdit = (item: FeaturedItem) => {
     setEditingId(item.id);
+    
+    // Determine link type from stored link_url
+    if (item.link_url.startsWith("event:")) {
+      setLinkType("event");
+    } else if (item.link_url.startsWith("album:")) {
+      setLinkType("album");
+    } else if (item.link_url.startsWith("post:")) {
+      setLinkType("post");
+    } else if (item.link_url === "/sponsor-bestie") {
+      setLinkType("sponsorship");
+    } else {
+      setLinkType("custom");
+    }
+    
     setFormData({
       title: item.title,
       description: item.description,
@@ -158,7 +203,7 @@ export const FeaturedItemManager = () => {
       link_text: item.link_text,
       display_order: item.display_order,
     });
-    // Show existing image preview if available
+    
     if (item.image_url) {
       setImagePreview(item.image_url);
     }
@@ -200,6 +245,7 @@ export const FeaturedItemManager = () => {
 
   const resetForm = () => {
     setEditingId(null);
+    setLinkType("custom");
     setFormData({
       title: "",
       description: "",
@@ -292,14 +338,101 @@ export const FeaturedItemManager = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Link URL</label>
-              <Input
-                value={formData.link_url}
-                onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
-                required
-                placeholder="https://... or /events"
-              />
+              <Label>Link Type</Label>
+              <Select value={linkType} onValueChange={setLinkType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                  <SelectItem value="event">Event</SelectItem>
+                  <SelectItem value="album">Album</SelectItem>
+                  <SelectItem value="post">Post</SelectItem>
+                  <SelectItem value="sponsorship">Sponsorship Page</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {linkType === "custom" && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Link URL</label>
+                <Input
+                  value={formData.link_url}
+                  onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
+                  required
+                  placeholder="https://... or /events"
+                />
+              </div>
+            )}
+
+            {linkType === "event" && (
+              <div>
+                <Label>Select Event</Label>
+                <Select
+                  value={formData.link_url.replace("event:", "")}
+                  onValueChange={(value) => setFormData({ ...formData, link_url: `event:${value}` })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {linkType === "album" && (
+              <div>
+                <Label>Select Album</Label>
+                <Select
+                  value={formData.link_url.replace("album:", "")}
+                  onValueChange={(value) => setFormData({ ...formData, link_url: `album:${value}` })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an album" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {albums.map((album) => (
+                      <SelectItem key={album.id} value={album.id}>
+                        {album.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {linkType === "post" && (
+              <div>
+                <Label>Select Post</Label>
+                <Select
+                  value={formData.link_url.replace("post:", "")}
+                  onValueChange={(value) => setFormData({ ...formData, link_url: `post:${value}` })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a post" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {posts.map((post) => (
+                      <SelectItem key={post.id} value={post.id}>
+                        {post.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {linkType === "sponsorship" && (
+              <div className="text-sm text-muted-foreground">
+                Will link to: /sponsor-bestie
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium mb-1">Button Text</label>

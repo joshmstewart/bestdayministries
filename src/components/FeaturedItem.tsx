@@ -17,10 +17,17 @@ interface FeaturedItemData {
 export const FeaturedItem = () => {
   const [item, setItem] = useState<FeaturedItemData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resolvedUrl, setResolvedUrl] = useState<string>("");
 
   useEffect(() => {
     loadFeaturedItem();
   }, []);
+
+  useEffect(() => {
+    if (item) {
+      resolveUrl();
+    }
+  }, [item]);
 
   const loadFeaturedItem = async () => {
     try {
@@ -41,11 +48,25 @@ export const FeaturedItem = () => {
     }
   };
 
+  const resolveUrl = () => {
+    if (!item) return;
+
+    if (item.link_url.startsWith("event:")) {
+      setResolvedUrl(`/events`);
+    } else if (item.link_url.startsWith("album:")) {
+      setResolvedUrl(`/gallery`);
+    } else if (item.link_url.startsWith("post:")) {
+      setResolvedUrl(`/discussions`);
+    } else {
+      setResolvedUrl(item.link_url);
+    }
+  };
+
   if (loading || !item) {
     return null;
   }
 
-  const isExternalLink = item.link_url.startsWith("http");
+  const isExternalLink = resolvedUrl.startsWith("http");
 
   return (
     <Card className="mb-8 overflow-hidden border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
@@ -66,7 +87,7 @@ export const FeaturedItem = () => {
             {isExternalLink ? (
               <Button asChild>
                 <a
-                  href={item.link_url}
+                  href={resolvedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2"
@@ -77,7 +98,7 @@ export const FeaturedItem = () => {
               </Button>
             ) : (
               <Button asChild>
-                <Link to={item.link_url}>{item.link_text}</Link>
+                <Link to={resolvedUrl}>{item.link_text}</Link>
               </Button>
             )}
           </div>
