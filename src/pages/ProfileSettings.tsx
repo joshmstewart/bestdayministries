@@ -291,7 +291,7 @@ const ProfileSettings = () => {
         <div className="max-w-2xl mx-auto space-y-8">
           <div>
             <h1 className="text-4xl font-black text-foreground">
-              Profile <span className="bg-gradient-text bg-clip-text text-transparent">Settings</span>
+              Profile <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Settings</span>
             </h1>
             <p className="text-muted-foreground mt-2">
               Customize your profile and avatar

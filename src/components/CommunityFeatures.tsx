@@ -68,7 +68,7 @@ const CommunityFeatures = () => {
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-foreground">
             Everything You Need to{" "}
-            <span className="bg-gradient-text bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
               Connect
             </span>
           </h2>

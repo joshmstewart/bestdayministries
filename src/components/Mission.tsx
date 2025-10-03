@@ -69,7 +69,7 @@ const Mission = () => {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-3">
-                      <div className="text-5xl font-black bg-gradient-text bg-clip-text text-transparent">4.8%</div>
+                      <div className="text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">4.8%</div>
                       <Award className="w-6 h-6 text-primary" />
                     </div>
                     <p className="text-muted-foreground">
@@ -81,7 +81,7 @@ const Mission = () => {
                   
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-3">
-                      <div className="text-5xl font-black bg-gradient-text bg-clip-text text-transparent">78.7%</div>
+                      <div className="text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">78.7%</div>
                       <Award className="w-6 h-6 text-secondary" />
                     </div>
                     <p className="text-muted-foreground">

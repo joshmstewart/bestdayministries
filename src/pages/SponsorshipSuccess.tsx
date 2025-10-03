@@ -59,7 +59,7 @@ const SponsorshipSuccess = () => {
                   <Heart className="w-16 h-16 text-primary" />
                 </div>
                 <div className="space-y-3">
-                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-text bg-clip-text text-transparent">
+                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                     Confirming Your Sponsorship...
                   </h1>
                   <p className="text-xl text-muted-foreground">
@@ -74,7 +74,7 @@ const SponsorshipSuccess = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-text bg-clip-text text-transparent">
+                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                     Thank You!
                   </h1>
                   <p className="text-xl text-muted-foreground">

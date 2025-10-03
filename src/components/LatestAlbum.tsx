@@ -91,7 +91,7 @@ export default function LatestAlbum() {
           </div>
           <h2 className="text-3xl md:text-5xl font-black text-foreground">
             Recent{" "}
-            <span className="bg-gradient-text bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Memories
             </span>
           </h2>

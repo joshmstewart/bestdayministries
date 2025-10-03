@@ -208,7 +208,7 @@ const ModerationQueue = () => {
           <div>
             <h1 className="text-4xl font-black text-foreground flex items-center gap-3">
               <Shield className="w-10 h-10" />
-              Content <span className="bg-gradient-text bg-clip-text text-transparent">Moderation</span>
+              Content <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Moderation</span>
             </h1>
             <p className="text-muted-foreground mt-2">
               Review flagged content and maintain community standards

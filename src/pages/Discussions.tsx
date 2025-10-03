@@ -623,7 +623,7 @@ const Discussions = () => {
           <div className="flex items-center gap-4 mb-8">
             <div className="flex-1">
               <h1 className="text-4xl font-black text-foreground">
-                Community <span className="bg-gradient-text bg-clip-text text-transparent">Discussions</span>
+                Community <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Discussions</span>
               </h1>
               <p className="text-muted-foreground mt-2">
                 Share updates, stories, and connect with the community

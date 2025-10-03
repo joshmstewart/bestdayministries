@@ -49,7 +49,7 @@ const OurFamily = () => {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-12 space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold bg-gradient-text bg-clip-text text-transparent">
+          <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
             Our Family of Organizations
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
