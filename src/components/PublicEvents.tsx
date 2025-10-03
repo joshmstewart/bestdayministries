@@ -175,7 +175,36 @@ export default function PublicEvents() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingEventCards.slice(0, 6).map((card) => {
+            {(() => {
+              // Filter events based on cumulative height
+              const MAX_HEIGHT = 1200; // pixels
+              const CARD_PADDING = 48; // CardContent p-6 = 24px top + 24px bottom
+              const SPACING = 24; // gap-6 = 24px
+              const TEXT_HEIGHT = 180; // Approximate height for title, description, date, location, audio
+              
+              let cumulativeHeight = 0;
+              const eventsToShow = [];
+              
+              for (const card of upcomingEventCards) {
+                const { event } = card;
+                
+                // Calculate image height based on aspect ratio
+                const ratio = event.aspect_ratio || '9:16';
+                const [w, h] = ratio.split(':').map(Number);
+                const cardWidth = 380; // Approximate card width in grid
+                const imageHeight = (cardWidth * h) / w;
+                
+                const eventHeight = imageHeight + TEXT_HEIGHT + CARD_PADDING + (eventsToShow.length > 0 ? SPACING : 0);
+                
+                if (cumulativeHeight + eventHeight > MAX_HEIGHT && eventsToShow.length > 0) {
+                  break; // Don't add this event, would exceed height
+                }
+                
+                eventsToShow.push(card);
+                cumulativeHeight += eventHeight;
+              }
+              
+              return eventsToShow.map((card) => {
               const { event, displayDate, allDates } = card;
               return (
                 <Card 
@@ -244,7 +273,8 @@ export default function PublicEvents() {
                   </CardContent>
                 </Card>
               );
-            })}
+            });
+            })()}
           </div>
         </div>
       </section>

@@ -328,7 +328,7 @@ const Community = () => {
                   <div className="space-y-4">
                     {(() => {
                       // Filter events based on cumulative height
-                      const MAX_HEIGHT = 800; // pixels
+                      const MAX_HEIGHT = 1200; // pixels
                       const CARD_PADDING = 24; // p-3 = 12px top + 12px bottom
                       const SPACING = 16; // space-y-4 = 16px
                       const TEXT_HEIGHT = 120; // Approximate height for title, description, date, location
