@@ -89,6 +89,9 @@ export const TextToSpeech = ({
       console.log('TTS - Created audio URL:', audioUrl);
       
       const newAudio = new Audio(audioUrl);
+      
+      // Force starting position to 0
+      newAudio.currentTime = 0;
 
       newAudio.onended = () => {
         console.log('TTS - Audio ended');
@@ -107,13 +110,24 @@ export const TextToSpeech = ({
         });
       };
 
-      // Wait for audio to load enough to play
+      // Monitor actual playback position
       newAudio.addEventListener('loadedmetadata', () => {
         console.log('TTS - Audio metadata loaded, duration:', newAudio.duration);
+        newAudio.currentTime = 0; // Force to start again
       });
 
       newAudio.addEventListener('canplay', () => {
-        console.log('TTS - Audio can play');
+        console.log('TTS - Audio can play, currentTime:', newAudio.currentTime);
+        newAudio.currentTime = 0; // Force to start once more
+      });
+      
+      newAudio.addEventListener('playing', () => {
+        console.log('TTS - Audio actually playing now, currentTime:', newAudio.currentTime);
+      });
+      
+      newAudio.addEventListener('timeupdate', function onTimeUpdate() {
+        console.log('TTS - First timeupdate, currentTime:', newAudio.currentTime);
+        newAudio.removeEventListener('timeupdate', onTimeUpdate);
       });
 
       setAudio(newAudio);
@@ -122,7 +136,7 @@ export const TextToSpeech = ({
       try {
         console.log('TTS - Starting playback...');
         await newAudio.play();
-        console.log('TTS - Playback started successfully');
+        console.log('TTS - Playback started successfully, currentTime after play:', newAudio.currentTime);
         setIsPlaying(true);
       } catch (playError) {
         console.error('TTS - Failed to play audio:', playError);
