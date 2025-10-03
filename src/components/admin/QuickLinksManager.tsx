@@ -32,6 +32,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import * as Icons from "lucide-react";
+import { INTERNAL_PAGES } from "@/lib/internalPages";
 
 const availableIcons = [
   "Heart", "Gift", "Users", "Coffee", "Home", "Church", "Calendar", "Award",
@@ -129,6 +130,7 @@ export default function QuickLinksManager() {
     color: "from-primary/20 to-secondary/5",
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [isCustomUrl, setIsCustomUrl] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -196,6 +198,7 @@ export default function QuickLinksManager() {
 
       setFormData({ id: "", label: "", href: "", icon: "Link", color: "from-primary/20 to-secondary/5" });
       setIsEditing(false);
+      setIsCustomUrl(false);
       loadLinks();
     } catch (error: any) {
       toast.error(error.message);
@@ -205,6 +208,8 @@ export default function QuickLinksManager() {
 
   const handleEdit = (link: QuickLink) => {
     console.log("Edit button clicked for link:", link);
+    const isPredefined = INTERNAL_PAGES.some(p => p.value === link.href);
+    setIsCustomUrl(!isPredefined);
     setFormData({
       id: link.id,
       label: link.label,
@@ -328,14 +333,41 @@ export default function QuickLinksManager() {
               />
             </div>
             <div>
-              <Label htmlFor="href">Link (href)</Label>
-              <Input
-                id="href"
-                value={formData.href}
-                onChange={(e) => setFormData({ ...formData, href: e.target.value })}
-                placeholder="/sponsor"
-                required
-              />
+              <Label htmlFor="href">Link URL</Label>
+              <Select 
+                value={isCustomUrl ? "custom" : formData.href} 
+                onValueChange={(value) => {
+                  if (value === "custom") {
+                    setIsCustomUrl(true);
+                    setFormData({ ...formData, href: "" });
+                  } else {
+                    setIsCustomUrl(false);
+                    setFormData({ ...formData, href: value });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a page" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INTERNAL_PAGES.map((page) => (
+                    <SelectItem key={page.value} value={page.value}>
+                      {page.label}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                </SelectContent>
+              </Select>
+              {isCustomUrl && (
+                <Input
+                  id="href"
+                  value={formData.href}
+                  onChange={(e) => setFormData({ ...formData, href: e.target.value })}
+                  placeholder="/custom-path or https://example.com"
+                  className="mt-2"
+                  required
+                />
+              )}
             </div>
           </div>
 
@@ -387,6 +419,7 @@ export default function QuickLinksManager() {
                 onClick={() => {
                   setFormData({ id: "", label: "", href: "", icon: "Link", color: "from-primary/20 to-secondary/5" });
                   setIsEditing(false);
+                  setIsCustomUrl(false);
                 }}
               >
                 Cancel

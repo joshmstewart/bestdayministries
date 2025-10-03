@@ -23,6 +23,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { INTERNAL_PAGES } from "@/lib/internalPages";
 
 interface FooterSection {
   id: string;
@@ -253,19 +254,6 @@ export const FooterLinksManager = () => {
     href: "",
   });
   const [isCustomUrl, setIsCustomUrl] = useState(false);
-
-  const predefinedPages = [
-    { label: "Home", value: "/" },
-    { label: "Community", value: "/community" },
-    { label: "About", value: "/about" },
-    { label: "Events", value: "/events" },
-    { label: "Discussions", value: "/discussions" },
-    { label: "Gallery", value: "/gallery" },
-    { label: "Donate", value: "/donate" },
-    { label: "Joy Rocks Coffee", value: "/joy-rocks" },
-    { label: "Sponsor a Bestie", value: "/sponsor-bestie" },
-    { label: "Custom URL", value: "custom" },
-  ];
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -565,11 +553,12 @@ export const FooterLinksManager = () => {
                 }}
               >
                 <option value="">Select a page</option>
-                {predefinedPages.map((page) => (
+                {INTERNAL_PAGES.map((page) => (
                   <option key={page.value} value={page.value}>
                     {page.label}
                   </option>
                 ))}
+                <option value="custom">Custom URL</option>
               </select>
               {isCustomUrl && (
                 <Input
@@ -624,7 +613,7 @@ export const FooterLinksManager = () => {
                     onEditLink={(l) => {
                       setEditingLinkId(l.id);
                       // Check if the href matches any predefined page
-                      const isPredefined = predefinedPages.some(p => p.value === l.href && p.value !== "custom");
+                      const isPredefined = INTERNAL_PAGES.some(p => p.value === l.href);
                       setIsCustomUrl(!isPredefined);
                       setLinkFormData({ section_id: l.section_id, label: l.label, href: l.href });
                       window.scrollTo({ top: 0, behavior: 'smooth' });

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { INTERNAL_PAGES } from "@/lib/internalPages";
 
 interface NavigationLink {
   id: string;
@@ -25,19 +26,6 @@ interface NavigationLink {
   display_order: number;
   is_active: boolean;
 }
-
-const INTERNAL_PAGES = [
-  { value: "/", label: "Home" },
-  { value: "/community", label: "Community" },
-  { value: "/discussions", label: "Discussions" },
-  { value: "/events", label: "Events" },
-  { value: "/gallery", label: "Albums" },
-  { value: "/sponsor-bestie", label: "Sponsor a Bestie" },
-  { value: "/about", label: "About/Resources" },
-  { value: "/auth", label: "Login/Signup" },
-  { value: "/donate", label: "Donate" },
-  { value: "/joy-rocks", label: "Joy Rocks" },
-];
 
 function SortableLink({
   link,
