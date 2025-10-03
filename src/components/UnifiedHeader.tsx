@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -161,30 +161,31 @@ export const UnifiedHeader = () => {
   return (
     <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
       <div className="container mx-auto px-4 py-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt="Best Day Ever Coffee + Crepes" 
-                className="h-[85px] w-auto cursor-pointer my-1.5 mx-1 rounded-lg"
-                onClick={() => navigate(user ? "/community" : "/")}
-              />
-            ) : (
-              <div className="h-[85px] w-[140px] my-1.5 mx-1" />
-            )}
-            {user && profile && (
-              <>
-                <Separator orientation="vertical" className="h-16 mx-2" />
-                <div className="hidden sm:block">
-                  <div className="text-xs text-muted-foreground">Welcome back,</div>
-                  <div className="font-bold text-foreground text-lg">{profile?.display_name}</div>
-                </div>
-              </>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Best Day Ever Coffee + Crepes" 
+                  className="h-[85px] w-auto cursor-pointer my-1.5 mx-1 rounded-lg"
+                  onClick={() => navigate(user ? "/community" : "/")}
+                />
+              ) : (
+                <div className="h-[85px] w-[140px] my-1.5 mx-1" />
+              )}
+              {user && profile && (
+                <>
+                  <Separator orientation="vertical" className="h-16 mx-2" />
+                  <div className="hidden sm:block">
+                    <div className="text-xs text-muted-foreground">Welcome back,</div>
+                    <div className="font-bold text-foreground text-lg">{profile?.display_name}</div>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
             {user && profile ? (
               <>
                 <Button 
@@ -270,7 +271,62 @@ export const UnifiedHeader = () => {
                 </Button>
               </>
             )}
+            </div>
           </div>
+
+          {/* Navigation Bar */}
+          <nav className="border-t border-border/30 py-2">
+            <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
+              <li>
+                <Link 
+                  to="/" 
+                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                >
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/community" 
+                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                >
+                  Posts
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/events" 
+                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                >
+                  Events
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/gallery" 
+                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                >
+                  Albums
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/sponsor-bestie" 
+                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                >
+                  Sponsor
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/about" 
+                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                >
+                  Resources
+                </Link>
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
     </header>
