@@ -215,13 +215,14 @@ const ProfileSettings = () => {
     }
   };
 
-  const voiceOptions = [
-    // Default ElevenLabs Voices
+  const standardVoices = [
     { value: "Aria", label: "Aria", description: "Warm and expressive" },
     { value: "Roger", label: "Roger", description: "Confident and clear" },
     { value: "Sarah", label: "Sarah", description: "Natural and friendly" },
     { value: "Laura", label: "Laura", description: "Professional and warm" },
-    // Custom Uploaded Voices
+  ];
+
+  const funVoices = [
     { value: "Austin", label: "Austin", description: "Custom voice" },
     { value: "Batman", label: "Batman", description: "Custom voice" },
     { value: "Cherry Twinkle", label: "Cherry Twinkle", description: "Custom voice" },
@@ -234,12 +235,10 @@ const ProfileSettings = () => {
     { value: "Maverick", label: "Maverick", description: "Custom voice" },
   ];
 
-  const testVoice = async () => {
-    if (!selectedVoice) return;
-
+  const testVoice = async (voiceId: string) => {
     try {
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
         {
           method: "POST",
           headers: {
@@ -458,33 +457,74 @@ const ProfileSettings = () => {
                   </div>
 
                   {ttsEnabled && (
-                    <div className="space-y-3 pt-4 border-t">
-                      <Label>Voice Selection</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {voiceOptions.map((voice) => (
-                          <Button
-                            key={voice.value}
-                            type="button"
-                            variant={selectedVoice === voice.value ? "default" : "outline"}
-                            className="h-auto flex-col items-start p-3 text-left"
-                            onClick={() => setSelectedVoice(voice.value)}
-                          >
-                            <div className="font-medium text-sm">{voice.label}</div>
-                            <div className="text-xs opacity-70">
-                              {voice.description}
+                    <div className="space-y-4 pt-4 border-t">
+                      {/* Standard Voices */}
+                      <div className="space-y-2">
+                        <Label className="text-base">Standard Voices</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {standardVoices.map((voice) => (
+                            <div key={voice.value} className="relative">
+                              <Button
+                                type="button"
+                                variant={selectedVoice === voice.value ? "default" : "outline"}
+                                className="h-auto w-full flex-col items-start p-3 text-left pr-10"
+                                onClick={() => setSelectedVoice(voice.value)}
+                              >
+                                <div className="font-medium text-sm">{voice.label}</div>
+                                <div className="text-xs opacity-70">
+                                  {voice.description}
+                                </div>
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  testVoice(voice.value);
+                                }}
+                              >
+                                <Volume2 className="w-4 h-4" />
+                              </Button>
                             </div>
-                          </Button>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full gap-2"
-                        onClick={testVoice}
-                      >
-                        <Volume2 className="w-4 h-4" />
-                        Test Voice
-                      </Button>
+
+                      {/* Fun Voices */}
+                      <div className="space-y-2">
+                        <Label className="text-base">Fun Voices</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {funVoices.map((voice) => (
+                            <div key={voice.value} className="relative">
+                              <Button
+                                type="button"
+                                variant={selectedVoice === voice.value ? "default" : "outline"}
+                                className="h-auto w-full flex-col items-start p-3 text-left pr-10"
+                                onClick={() => setSelectedVoice(voice.value)}
+                              >
+                                <div className="font-medium text-sm">{voice.label}</div>
+                                <div className="text-xs opacity-70">
+                                  {voice.description}
+                                </div>
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  testVoice(voice.value);
+                                }}
+                              >
+                                <Volume2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
