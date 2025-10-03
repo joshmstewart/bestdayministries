@@ -627,10 +627,27 @@ export const FeaturedBestieManager = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="image">Image {!editingId && "*"} (JPEG, PNG, WEBP, GIF - max 5MB)</Label>
-                {editingId && currentImageUrl && (
+                {editingId && currentImageUrl && !imagePreview && (
                   <div className="mb-2">
                     <p className="text-xs text-muted-foreground mb-1">Current image:</p>
-                    <img src={currentImageUrl} alt="Current" className="w-32 h-32 object-cover rounded border" />
+                    <div className="relative inline-block">
+                      <img src={currentImageUrl} alt="Current" className="w-32 h-32 object-cover rounded border" />
+                      <div className="absolute top-1 right-1">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => {
+                            setRawImageUrl(currentImageUrl);
+                            setShowCropDialog(true);
+                          }}
+                          title="Re-crop and change aspect ratio"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {imagePreview && (
