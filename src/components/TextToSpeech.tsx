@@ -76,20 +76,28 @@ export const TextToSpeech = ({
         throw new Error('No audio content received');
       }
 
+      console.log('TTS - Received audio content, length:', data.audioContent.length);
+
       // Create audio element from base64
       const audioBlob = new Blob(
         [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
         { type: 'audio/mpeg' }
       );
+      console.log('TTS - Created audio blob, size:', audioBlob.size);
+      
       const audioUrl = URL.createObjectURL(audioBlob);
+      console.log('TTS - Created audio URL:', audioUrl);
+      
       const newAudio = new Audio(audioUrl);
 
       newAudio.onended = () => {
+        console.log('TTS - Audio ended');
         setIsPlaying(false);
         URL.revokeObjectURL(audioUrl);
       };
 
-      newAudio.onerror = () => {
+      newAudio.onerror = (e) => {
+        console.error('TTS - Audio error:', e);
         setIsPlaying(false);
         URL.revokeObjectURL(audioUrl);
         toast({
@@ -99,14 +107,25 @@ export const TextToSpeech = ({
         });
       };
 
+      // Wait for audio to load enough to play
+      newAudio.addEventListener('loadedmetadata', () => {
+        console.log('TTS - Audio metadata loaded, duration:', newAudio.duration);
+      });
+
+      newAudio.addEventListener('canplay', () => {
+        console.log('TTS - Audio can play');
+      });
+
       setAudio(newAudio);
       
       // Start playback immediately
       try {
+        console.log('TTS - Starting playback...');
         await newAudio.play();
+        console.log('TTS - Playback started successfully');
         setIsPlaying(true);
       } catch (playError) {
-        console.error('Failed to play audio:', playError);
+        console.error('TTS - Failed to play audio:', playError);
         toast({
           title: "Playback Error",
           description: "Failed to start audio playback",
