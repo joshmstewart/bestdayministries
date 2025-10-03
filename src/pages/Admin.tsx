@@ -200,11 +200,8 @@ const Admin = () => {
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
-            <TabsTrigger value="homepage">Homepage</TabsTrigger>
-            <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
-                <TabsTrigger value="footer">Footer</TabsTrigger>
-                <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
-                <TabsTrigger value="moderation" className="relative">
+            <TabsTrigger value="format-pages">Format Pages</TabsTrigger>
+            <TabsTrigger value="moderation" className="relative">
               Moderation
               {moderationCount > 0 && (
                 <Badge 
@@ -274,20 +271,39 @@ const Admin = () => {
             <FeaturedItemManager />
           </TabsContent>
 
-          <TabsContent value="homepage">
-            <HomepageOrderManager />
-          </TabsContent>
+          <TabsContent value="format-pages">
+            <Card>
+              <CardHeader>
+                <CardTitle>Format Pages</CardTitle>
+                <CardDescription>Manage homepage sections, family organizations, footer links, and quick links</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="homepage" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="homepage">Homepage</TabsTrigger>
+                    <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
+                    <TabsTrigger value="footer">Footer</TabsTrigger>
+                    <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
+                  </TabsList>
 
-          <TabsContent value="family-orgs">
-            <FamilyOrganizationsManager />
-          </TabsContent>
+                  <TabsContent value="homepage">
+                    <HomepageOrderManager />
+                  </TabsContent>
 
-          <TabsContent value="footer">
-            <FooterLinksManager />
-          </TabsContent>
+                  <TabsContent value="family-orgs">
+                    <FamilyOrganizationsManager />
+                  </TabsContent>
 
-          <TabsContent value="quick-links">
-            <QuickLinksManager />
+                  <TabsContent value="footer">
+                    <FooterLinksManager />
+                  </TabsContent>
+
+                  <TabsContent value="quick-links">
+                    <QuickLinksManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="moderation" className="space-y-4">
