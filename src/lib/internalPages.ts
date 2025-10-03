@@ -27,6 +27,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/about", label: "About/Resources" },
   { value: "/donate", label: "Donate" },
   { value: "/joy-rocks", label: "Joy Rocks Coffee" },
+  { value: "/marketplace", label: "Marketplace" },
   { value: "/auth", label: "Login/Signup" },
   { value: "/profile", label: "Profile" },
   { value: "/guardian-links", label: "My Besties" },

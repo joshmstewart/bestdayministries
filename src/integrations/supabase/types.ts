@@ -916,6 +916,168 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          fulfillment_status: Database["public"]["Enums"]["fulfillment_status"]
+          id: string
+          order_id: string
+          price_at_purchase: number
+          product_id: string
+          quantity: number
+          shipped_at: string | null
+          tracking_number: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
+          id?: string
+          order_id: string
+          price_at_purchase: number
+          product_id: string
+          quantity: number
+          shipped_at?: string | null
+          tracking_number?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
+          id?: string
+          order_id?: string
+          price_at_purchase?: number
+          product_id?: string
+          quantity?: number
+          shipped_at?: string | null
+          tracking_number?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          billing_address: Json | null
+          created_at: string
+          customer_id: string
+          id: string
+          notes: string | null
+          shipping_address: Json
+          status: Database["public"]["Enums"]["order_status"]
+          stripe_payment_intent_id: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          billing_address?: Json | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          notes?: string | null
+          shipping_address: Json
+          status?: Database["public"]["Enums"]["order_status"]
+          stripe_payment_intent_id?: string | null
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          billing_address?: Json | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          shipping_address?: Json
+          status?: Database["public"]["Enums"]["order_status"]
+          stripe_payment_intent_id?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          images: string[] | null
+          inventory_count: number
+          is_active: boolean
+          is_printify: boolean
+          name: string
+          price: number
+          printify_product_id: string | null
+          tags: string[] | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          inventory_count?: number
+          is_active?: boolean
+          is_printify?: boolean
+          name: string
+          price: number
+          printify_product_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          inventory_count?: number
+          is_active?: boolean
+          is_printify?: boolean
+          name?: string
+          price?: number
+          printify_product_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           audio_notifications_enabled: boolean | null
@@ -995,6 +1157,41 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      shopping_cart: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_cart_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sponsor_besties: {
         Row: {
@@ -1199,6 +1396,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vendors: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          business_name: string
+          commission_percentage: number
+          created_at: string
+          description: string | null
+          id: string
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["vendor_status"]
+          stripe_connect_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          business_name: string
+          commission_percentage?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["vendor_status"]
+          stripe_connect_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          business_name?: string
+          commission_percentage?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["vendor_status"]
+          stripe_connect_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       app_settings_public: {
@@ -1322,7 +1564,27 @@ export type Database = {
     }
     Enums: {
       avatar_category: "humans" | "animals" | "monsters" | "shapes"
-      user_role: "bestie" | "caregiver" | "supporter" | "admin" | "owner"
+      fulfillment_status:
+        | "pending"
+        | "processing"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
+      order_status:
+        | "pending"
+        | "processing"
+        | "shipped"
+        | "completed"
+        | "cancelled"
+        | "refunded"
+      user_role:
+        | "bestie"
+        | "caregiver"
+        | "supporter"
+        | "admin"
+        | "owner"
+        | "vendor"
+      vendor_status: "pending" | "approved" | "rejected" | "suspended"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1451,7 +1713,30 @@ export const Constants = {
   public: {
     Enums: {
       avatar_category: ["humans", "animals", "monsters", "shapes"],
-      user_role: ["bestie", "caregiver", "supporter", "admin", "owner"],
+      fulfillment_status: [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      order_status: [
+        "pending",
+        "processing",
+        "shipped",
+        "completed",
+        "cancelled",
+        "refunded",
+      ],
+      user_role: [
+        "bestie",
+        "caregiver",
+        "supporter",
+        "admin",
+        "owner",
+        "vendor",
+      ],
+      vendor_status: ["pending", "approved", "rejected", "suspended"],
     },
   },
 } as const
