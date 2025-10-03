@@ -201,6 +201,30 @@ export const FeaturedBestieManager = () => {
         }
       }
 
+      // Check if funding goal is met
+      let autoFullyFunded = isFullyFunded;
+      if (linkedBestieId && monthlyGoal && parseFloat(monthlyGoal) > 0 && availableForSponsorship) {
+        const { data: sponsorships } = await supabase
+          .from("sponsorships")
+          .select("amount")
+          .eq("bestie_id", linkedBestieId)
+          .eq("status", "active");
+
+        if (sponsorships) {
+          const currentPledges = sponsorships.reduce((sum, s) => sum + (s.amount || 0), 0);
+          const goal = parseFloat(monthlyGoal);
+          if (currentPledges >= goal) {
+            autoFullyFunded = true;
+            if (!isFullyFunded) {
+              toast({
+                title: "Funding goal reached!",
+                description: "This bestie has been automatically marked as fully funded.",
+              });
+            }
+          }
+        }
+      }
+
       const data: any = {
         bestie_id: linkedBestieId || null,
         bestie_name: bestieName,
@@ -209,7 +233,7 @@ export const FeaturedBestieManager = () => {
         end_date: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`,
         is_active: isActive,
         available_for_sponsorship: availableForSponsorship,
-        is_fully_funded: isFullyFunded,
+        is_fully_funded: autoFullyFunded,
         approval_status: 'approved', // Admin posts are auto-approved
         monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
       };
