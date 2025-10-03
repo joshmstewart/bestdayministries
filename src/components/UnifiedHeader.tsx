@@ -28,8 +28,8 @@ export const UnifiedHeader = () => {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      // Show nav if cursor is within 100px of top
-      if (e.clientY < 100) {
+      // Show nav if cursor is within 300px of top
+      if (e.clientY < 300) {
         setShowNav(true);
       } else {
         setShowNav(false);
