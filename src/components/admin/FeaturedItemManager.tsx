@@ -84,7 +84,13 @@ export const FeaturedItemManager = () => {
     setLinkType(type);
     
     if (type === "sponsorship") {
-      setFormData({ ...formData, link_url: "/sponsor-bestie" });
+      setFormData({ 
+        ...formData, 
+        title: "Sponsor a Bestie",
+        description: "Make a lasting impact by sponsoring one of our besties. Your support helps create unforgettable experiences and lasting memories.",
+        link_url: "/sponsor-bestie",
+        link_text: "Become a Sponsor"
+      });
       return;
     }
     
