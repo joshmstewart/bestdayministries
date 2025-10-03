@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Shield, Loader2, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn } from "lucide-react";
+import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 
 interface Profile {
   id: string;
@@ -21,11 +22,13 @@ interface Profile {
 
 export const UserManagement = () => {
   const { toast } = useToast();
+  const { getEffectiveRole } = useRoleImpersonation();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [effectiveRole, setEffectiveRole] = useState<UserRole | null>(null);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState("");
@@ -48,6 +51,14 @@ export const UserManagement = () => {
     loadCurrentUser();
     loadUsers();
   }, []);
+
+  // Calculate effective role whenever current role changes
+  useEffect(() => {
+    if (currentUserRole) {
+      const effective = getEffectiveRole(currentUserRole as UserRole);
+      setEffectiveRole(effective);
+    }
+  }, [currentUserRole, getEffectiveRole]);
 
   const loadCurrentUser = async () => {
     try {
@@ -204,17 +215,17 @@ export const UserManagement = () => {
   };
 
   const canEditUserRole = (userRole: string) => {
-    // Owners can edit any role
-    if (currentUserRole === "owner") return true;
+    // Use effective role (with impersonation) instead of actual role
+    if (effectiveRole === "owner") return true;
     // Admins can only edit non-admin roles
-    return currentUserRole === "admin" && !["admin", "owner"].includes(userRole);
+    return effectiveRole === "admin" && !["admin", "owner", "moderator"].includes(userRole);
   };
 
   const canDeleteUser = (userRole: string) => {
-    // Owners can delete anyone
-    if (currentUserRole === "owner") return true;
+    // Use effective role (with impersonation) instead of actual role
+    if (effectiveRole === "owner") return true;
     // Admins can only delete non-admin users
-    return currentUserRole === "admin" && !["admin", "owner"].includes(userRole);
+    return effectiveRole === "admin" && !["admin", "owner", "moderator"].includes(userRole);
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -489,7 +500,7 @@ export const UserManagement = () => {
                       <SelectItem value="supporter">Supporter</SelectItem>
                       <SelectItem value="bestie">Bestie</SelectItem>
                       <SelectItem value="caregiver">Caregiver</SelectItem>
-                      {currentUserRole === "owner" && (
+                      {effectiveRole === "owner" && (
                         <>
                           <SelectItem value="moderator">Moderator</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
@@ -498,7 +509,7 @@ export const UserManagement = () => {
                       )}
                     </SelectContent>
                   </Select>
-                  {currentUserRole === "admin" && (
+                  {effectiveRole === "admin" && (
                     <p className="text-xs text-muted-foreground">
                       As an admin, you can only create non-admin users. Contact an owner to create admin accounts.
                     </p>
