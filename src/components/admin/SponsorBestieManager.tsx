@@ -29,6 +29,10 @@ interface SponsorBestie {
   approved_by: string | null;
   monthly_goal: number | null;
   aspect_ratio: string;
+  heading_font: string;
+  heading_color: string;
+  body_font: string;
+  body_color: string;
 }
 
 export const SponsorBestieManager = () => {
@@ -57,6 +61,10 @@ export const SponsorBestieManager = () => {
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
+  const [headingFont, setHeadingFont] = useState<string>('serif');
+  const [headingColor, setHeadingColor] = useState<string>('#D4A574');
+  const [bodyFont, setBodyFont] = useState<string>('sans-serif');
+  const [bodyColor, setBodyColor] = useState<string>('#000000');
 
   useEffect(() => {
     loadData();
@@ -186,6 +194,10 @@ export const SponsorBestieManager = () => {
         approval_status: 'approved',
         monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
         aspect_ratio: aspectRatioKey,
+        heading_font: headingFont,
+        heading_color: headingColor,
+        body_font: bodyFont,
+        body_color: bodyColor,
       };
 
       if (imageFile) {
@@ -241,6 +253,10 @@ export const SponsorBestieManager = () => {
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
     setAspectRatioKey(bestie.aspect_ratio || '9:16');
+    setHeadingFont(bestie.heading_font || 'serif');
+    setHeadingColor(bestie.heading_color || '#D4A574');
+    setBodyFont(bestie.body_font || 'sans-serif');
+    setBodyColor(bestie.body_color || '#000000');
     setDialogOpen(true);
   };
 
@@ -321,6 +337,10 @@ export const SponsorBestieManager = () => {
     setImagePreview(null);
     setShowCropDialog(false);
     setAspectRatioKey('9:16');
+    setHeadingFont('serif');
+    setHeadingColor('#D4A574');
+    setBodyFont('sans-serif');
+    setBodyColor('#000000');
   };
 
   const handleCroppedImage = (blob: Blob) => {
@@ -575,6 +595,87 @@ export const SponsorBestieManager = () => {
                     )}
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-semibold text-sm">Text Styling</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="heading-font">Heading Font</Label>
+                    <Select value={headingFont} onValueChange={setHeadingFont}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="serif">Serif</SelectItem>
+                        <SelectItem value="sans-serif">Sans Serif</SelectItem>
+                        <SelectItem value="monospace">Monospace</SelectItem>
+                        <SelectItem value="cursive">Cursive</SelectItem>
+                        <SelectItem value="fantasy">Fantasy</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="heading-color">Heading Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="heading-color"
+                        type="color"
+                        value={headingColor}
+                        onChange={(e) => setHeadingColor(e.target.value)}
+                        className="w-16 h-10 p-1 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={headingColor}
+                        onChange={(e) => setHeadingColor(e.target.value)}
+                        placeholder="#D4A574"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="body-font">Body Font</Label>
+                    <Select value={bodyFont} onValueChange={setBodyFont}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="serif">Serif</SelectItem>
+                        <SelectItem value="sans-serif">Sans Serif</SelectItem>
+                        <SelectItem value="monospace">Monospace</SelectItem>
+                        <SelectItem value="cursive">Cursive</SelectItem>
+                        <SelectItem value="fantasy">Fantasy</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="body-color">Body Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="body-color"
+                        type="color"
+                        value={bodyColor}
+                        onChange={(e) => setBodyColor(e.target.value)}
+                        className="w-16 h-10 p-1 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={bodyColor}
+                        onChange={(e) => setBodyColor(e.target.value)}
+                        placeholder="#000000"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Heading will automatically be displayed larger (2rem) than body text (1rem)
+                </p>
               </div>
 
               <div className="space-y-2">

@@ -19,6 +19,10 @@ interface SponsorBestie {
   aspect_ratio: string;
   monthly_goal: number | null;
   is_fully_funded: boolean;
+  heading_font: string;
+  heading_color: string;
+  body_font: string;
+  body_color: string;
 }
 
 interface FundingProgress {
@@ -172,9 +176,27 @@ export const SponsorBestieDisplay = () => {
           </div>
 
           <div className="p-6 space-y-4">
-            <h3 className="text-2xl font-black text-foreground">{bestie.bestie_name}</h3>
+            <h3 
+              className="font-black leading-tight"
+              style={{
+                fontFamily: bestie.heading_font,
+                color: bestie.heading_color,
+                fontSize: '2rem'
+              }}
+            >
+              {bestie.bestie_name}
+            </h3>
             
-            <p className="text-muted-foreground leading-relaxed">{bestie.description}</p>
+            <p 
+              className="leading-relaxed"
+              style={{
+                fontFamily: bestie.body_font,
+                color: bestie.body_color,
+                fontSize: '1rem'
+              }}
+            >
+              {bestie.description}
+            </p>
 
             {bestie.voice_note_url && (
               <div className="pt-2">
