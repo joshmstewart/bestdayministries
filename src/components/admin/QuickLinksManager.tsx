@@ -204,6 +204,7 @@ export default function QuickLinksManager() {
   };
 
   const handleEdit = (link: QuickLink) => {
+    console.log("Edit button clicked for link:", link);
     setFormData({
       id: link.id,
       label: link.label,
@@ -212,6 +213,17 @@ export default function QuickLinksManager() {
       color: link.color,
     });
     setIsEditing(true);
+    console.log("Form data set to:", {
+      id: link.id,
+      label: link.label,
+      href: link.href,
+      icon: link.icon,
+      color: link.color,
+    });
+    console.log("isEditing set to:", true);
+    
+    // Scroll to the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
