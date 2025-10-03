@@ -39,6 +39,8 @@ Deno.serve(async (req) => {
 
     // Verify the requesting user is an owner/admin using user_roles table
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
@@ -47,11 +49,16 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    console.log('Token length:', token.length);
+    
     const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    console.log('Auth error:', authError);
+    console.log('Requesting user:', requestingUser?.id);
 
     if (authError || !requestingUser) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', details: authError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -73,15 +80,18 @@ Deno.serve(async (req) => {
     }
 
     // Check role from user_roles table
-    const { data: userRole } = await supabaseAdmin
+    const { data: userRole, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', requestingUser.id)
       .single();
 
+    console.log('User role query error:', roleError);
+    console.log('User role:', userRole?.role);
+
     if (!['owner', 'admin'].includes(userRole?.role || '')) {
       return new Response(
-        JSON.stringify({ error: 'Only owners and admins can create users' }),
+        JSON.stringify({ error: 'Only owners and admins can create users', role: userRole?.role }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

@@ -247,6 +247,18 @@ export const UserManagement = () => {
     let successCount = 0;
     const errors: string[] = [];
 
+    // Get the current user's session token
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to create test accounts",
+        variant: "destructive",
+      });
+      setCreatingTestAccounts(false);
+      return;
+    }
+
     for (const account of testAccounts) {
       try {
         const { data, error } = await supabase.functions.invoke("create-user", {
