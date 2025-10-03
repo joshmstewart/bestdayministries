@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Pause, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface FeaturedItemData {
@@ -23,6 +23,7 @@ export const FeaturedItem = () => {
   const [resolvedUrl, setResolvedUrl] = useState<string>("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -41,14 +42,14 @@ export const FeaturedItem = () => {
   }, [items, currentIndex]);
 
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (items.length <= 1 || isPaused) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % items.length);
     }, 10000); // Rotate every 10 seconds
 
     return () => clearInterval(interval);
-  }, [items.length]);
+  }, [items.length, isPaused]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -155,19 +156,34 @@ export const FeaturedItem = () => {
         </div>
 
         {items.length > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
-            {items.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentIndex
-                    ? "w-8 bg-primary"
-                    : "w-2 bg-primary/30 hover:bg-primary/50"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsPaused(!isPaused)}
+              className="h-8 w-8"
+              aria-label={isPaused ? "Play slideshow" : "Pause slideshow"}
+            >
+              {isPaused ? (
+                <Play className="h-4 w-4" />
+              ) : (
+                <Pause className="h-4 w-4" />
+              )}
+            </Button>
+            <div className="flex gap-2">
+              {items.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentIndex(index)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    index === currentIndex
+                      ? "w-8 bg-primary"
+                      : "w-2 bg-primary/30 hover:bg-primary/50"
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
