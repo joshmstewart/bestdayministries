@@ -156,7 +156,7 @@ export const FeaturedItem = () => {
         </div>
 
         {items.length > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-6">
+          <div className="flex justify-center items-center gap-4 mt-3">
             <Button
               variant="ghost"
               size="icon"
