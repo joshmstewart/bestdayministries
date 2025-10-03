@@ -10,17 +10,14 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import { useNavigate } from "react-router-dom";
 
 interface TextSection {
-  type: 'heading' | 'text';
-  content: string;
-  font: string;
-  color: string;
+  header: string;
+  text: string;
 }
 
 interface SponsorBestie {
   id: string;
   bestie_id: string | null;
   bestie_name: string;
-  description: string;
   image_url: string;
   voice_note_url: string | null;
   aspect_ratio: string;
@@ -187,42 +184,38 @@ export const SponsorBestieDisplay = () => {
           <div className="p-6 space-y-4">
             {bestie.text_sections && bestie.text_sections.length > 0 ? (
               bestie.text_sections.map((section, index) => (
-                <div key={index}>
-                  {section.type === 'heading' ? (
+                <div key={index} className="space-y-2">
+                  {section.header && (
                     <h3 
                       className="font-black leading-tight"
                       style={{
-                        fontFamily: section.font,
-                        color: section.color,
+                        fontFamily: 'serif',
+                        color: '#D4A574',
                         fontSize: '2rem'
                       }}
                     >
-                      {section.content}
+                      {section.header}
                     </h3>
-                  ) : (
+                  )}
+                  {section.text && (
                     <p 
                       className="leading-relaxed"
                       style={{
-                        fontFamily: section.font,
-                        color: section.color,
+                        fontFamily: 'sans-serif',
+                        color: '#000000',
                         fontSize: '1rem'
                       }}
                     >
-                      {section.content}
+                      {section.text}
                     </p>
                   )}
                 </div>
               ))
             ) : (
-              // Fallback for older entries
-              <>
-                <h3 className="text-2xl font-black leading-tight text-foreground">
-                  {bestie.bestie_name}
-                </h3>
-                <p className="leading-relaxed text-muted-foreground">
-                  {bestie.description}
-                </p>
-              </>
+              // Fallback for entries without sections
+              <div className="text-center text-muted-foreground">
+                <p>No content available</p>
+              </div>
             )}
 
             {bestie.voice_note_url && (

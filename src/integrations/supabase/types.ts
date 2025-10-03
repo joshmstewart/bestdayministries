@@ -941,13 +941,8 @@ export type Database = {
           aspect_ratio: string
           bestie_id: string | null
           bestie_name: string
-          body_color: string | null
-          body_font: string | null
           created_at: string
           created_by: string
-          description: string
-          heading_color: string | null
-          heading_font: string | null
           id: string
           image_url: string
           is_active: boolean | null
@@ -964,13 +959,8 @@ export type Database = {
           aspect_ratio?: string
           bestie_id?: string | null
           bestie_name: string
-          body_color?: string | null
-          body_font?: string | null
           created_at?: string
           created_by: string
-          description: string
-          heading_color?: string | null
-          heading_font?: string | null
           id?: string
           image_url: string
           is_active?: boolean | null
@@ -987,13 +977,8 @@ export type Database = {
           aspect_ratio?: string
           bestie_id?: string | null
           bestie_name?: string
-          body_color?: string | null
-          body_font?: string | null
           created_at?: string
           created_by?: string
-          description?: string
-          heading_color?: string | null
-          heading_font?: string | null
           id?: string
           image_url?: string
           is_active?: boolean | null

@@ -16,10 +16,8 @@ import AudioRecorder from "../AudioRecorder";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface TextSection {
-  type: 'heading' | 'text';
-  content: string;
-  font: string;
-  color: string;
+  header: string;
+  text: string;
 }
 
 interface SponsorBestie {
@@ -28,7 +26,6 @@ interface SponsorBestie {
   bestie_name: string;
   image_url: string;
   voice_note_url: string | null;
-  description: string;
   is_active: boolean;
   is_fully_funded: boolean;
   approval_status: string;
@@ -50,7 +47,6 @@ export const SponsorBestieManager = () => {
   // Form state
   const [linkedBestieId, setLinkedBestieId] = useState<string>("");
   const [bestieName, setBestieName] = useState("");
-  const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [isFullyFunded, setIsFullyFunded] = useState(false);
   const [monthlyGoal, setMonthlyGoal] = useState<string>("");
@@ -66,7 +62,7 @@ export const SponsorBestieManager = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
   const [textSections, setTextSections] = useState<TextSection[]>([
-    { type: 'heading', content: '', font: 'serif', color: '#D4A574' }
+    { header: '', text: '' }
   ]);
 
   useEffect(() => {
@@ -136,10 +132,19 @@ export const SponsorBestieManager = () => {
   };
 
   const handleSubmit = async () => {
-    if (!bestieName || !description) {
+    if (!bestieName) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all required fields (name and description)",
+        description: "Please fill in the bestie name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (textSections.length === 0 || textSections.every(s => !s.header && !s.text)) {
+      toast({
+        title: "Missing content",
+        description: "Please add at least one section with header or text",
         variant: "destructive",
       });
       return;
@@ -199,13 +204,12 @@ export const SponsorBestieManager = () => {
       const data: any = {
         bestie_id: linkedBestieId || null,
         bestie_name: bestieName,
-        description,
         is_active: isActive,
         is_fully_funded: autoFullyFunded,
         approval_status: 'approved',
         monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
         aspect_ratio: aspectRatioKey,
-        text_sections: textSections,
+        text_sections: textSections.filter(s => s.header || s.text), // Only save non-empty sections
       };
 
       if (imageFile) {
@@ -254,7 +258,6 @@ export const SponsorBestieManager = () => {
     setEditingId(bestie.id);
     setLinkedBestieId(bestie.bestie_id || "");
     setBestieName(bestie.bestie_name);
-    setDescription(bestie.description);
     setIsActive(bestie.is_active);
     setIsFullyFunded(bestie.is_fully_funded);
     setMonthlyGoal(bestie.monthly_goal ? bestie.monthly_goal.toString() : "");
@@ -262,7 +265,7 @@ export const SponsorBestieManager = () => {
     setCurrentAudioUrl(bestie.voice_note_url);
     setAspectRatioKey(bestie.aspect_ratio || '9:16');
     setTextSections(bestie.text_sections && bestie.text_sections.length > 0 ? bestie.text_sections : [
-      { type: 'heading', content: '', font: 'serif', color: '#D4A574' }
+      { header: '', text: '' }
     ]);
     setDialogOpen(true);
   };
@@ -330,7 +333,6 @@ export const SponsorBestieManager = () => {
     setEditingId(null);
     setLinkedBestieId("");
     setBestieName("");
-    setDescription("");
     setIsActive(true);
     setIsFullyFunded(false);
     setMonthlyGoal("");
@@ -344,7 +346,7 @@ export const SponsorBestieManager = () => {
     setImagePreview(null);
     setShowCropDialog(false);
     setAspectRatioKey('9:16');
-    setTextSections([{ type: 'heading', content: '', font: 'serif', color: '#D4A574' }]);
+    setTextSections([{ header: '', text: '' }]);
   };
 
   const handleCroppedImage = (blob: Blob) => {
@@ -414,17 +416,6 @@ export const SponsorBestieManager = () => {
                   value={bestieName}
                   onChange={(e) => setBestieName(e.target.value)}
                   placeholder="Enter the bestie's name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Tell us about this amazing person..."
-                  rows={4}
                 />
               </div>
 
@@ -603,17 +594,21 @@ export const SponsorBestieManager = () => {
 
               <div className="space-y-4 border-t pt-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm">Text Sections</h4>
+                  <h4 className="font-semibold text-sm">Content Sections</h4>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setTextSections([...textSections, { type: 'text', content: '', font: 'sans-serif', color: '#000000' }])}
+                    onClick={() => setTextSections([...textSections, { header: '', text: '' }])}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Section
                   </Button>
                 </div>
+                
+                <p className="text-sm text-muted-foreground">
+                  Each section has a header and text. Headers will be displayed in gold serif (2rem), text in black sans-serif (1rem).
+                </p>
                 
                 <div className="space-y-4">
                   {textSections.map((section, index) => (
@@ -636,97 +631,35 @@ export const SponsorBestieManager = () => {
                         </div>
                         
                         <div className="space-y-2">
-                          <Label>Type</Label>
-                          <Select 
-                            value={section.type} 
-                            onValueChange={(value: 'heading' | 'text') => {
-                              const newSections = [...textSections];
-                              newSections[index].type = value;
-                              setTextSections(newSections);
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="heading">Heading</SelectItem>
-                              <SelectItem value="text">Text</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>Content</Label>
-                          <Textarea
-                            value={section.content}
+                          <Label>Header (Gold, Large)</Label>
+                          <Input
+                            value={section.header}
                             onChange={(e) => {
                               const newSections = [...textSections];
-                              newSections[index].content = e.target.value;
+                              newSections[index].header = e.target.value;
                               setTextSections(newSections);
                             }}
-                            placeholder={section.type === 'heading' ? 'Enter heading text...' : 'Enter body text...'}
-                            rows={section.type === 'heading' ? 2 : 3}
+                            placeholder="e.g., Meet Sarah"
                           />
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-2">
-                            <Label>Font</Label>
-                            <Select 
-                              value={section.font} 
-                              onValueChange={(value) => {
-                                const newSections = [...textSections];
-                                newSections[index].font = value;
-                                setTextSections(newSections);
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="serif">Serif</SelectItem>
-                                <SelectItem value="sans-serif">Sans Serif</SelectItem>
-                                <SelectItem value="monospace">Monospace</SelectItem>
-                                <SelectItem value="cursive">Cursive</SelectItem>
-                                <SelectItem value="fantasy">Fantasy</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label>Color</Label>
-                            <div className="flex gap-2">
-                              <Input
-                                type="color"
-                                value={section.color}
-                                onChange={(e) => {
-                                  const newSections = [...textSections];
-                                  newSections[index].color = e.target.value;
-                                  setTextSections(newSections);
-                                }}
-                                className="w-16 h-10 p-1 cursor-pointer"
-                              />
-                              <Input
-                                type="text"
-                                value={section.color}
-                                onChange={(e) => {
-                                  const newSections = [...textSections];
-                                  newSections[index].color = e.target.value;
-                                  setTextSections(newSections);
-                                }}
-                                placeholder="#000000"
-                                className="flex-1"
-                              />
-                            </div>
-                          </div>
+                        <div className="space-y-2">
+                          <Label>Text (Black, Normal)</Label>
+                          <Textarea
+                            value={section.text}
+                            onChange={(e) => {
+                              const newSections = [...textSections];
+                              newSections[index].text = e.target.value;
+                              setTextSections(newSections);
+                            }}
+                            placeholder="e.g., Sarah loves dancing and making new friends..."
+                            rows={3}
+                          />
                         </div>
                       </div>
                     </Card>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Headings will automatically be displayed larger (2rem) than text (1rem)
-                </p>
               </div>
 
               <div className="space-y-2">
@@ -830,9 +763,16 @@ export const SponsorBestieManager = () => {
               )}
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {bestie.description}
-              </p>
+              {bestie.text_sections && bestie.text_sections.length > 0 && (
+                <div className="text-sm text-muted-foreground space-y-1">
+                  {bestie.text_sections.map((section, idx) => (
+                    <div key={idx}>
+                      {section.header && <p className="font-semibold line-clamp-1">{section.header}</p>}
+                      {section.text && <p className="line-clamp-2">{section.text}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
               {bestie.voice_note_url && (
                 <audio controls className="w-full">
                   <source src={bestie.voice_note_url} type="audio/mpeg" />
