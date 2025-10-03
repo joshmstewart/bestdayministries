@@ -311,7 +311,7 @@ export const UnifiedHeader = () => {
 
           {/* Navigation Bar - Absolutely positioned to overlay */}
           {user && (
-            <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-b border-border/30 py-2 transition-all duration-300 z-50 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+            <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/30 py-2 transition-all duration-300 z-50 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
               <div className="container mx-auto px-4 flex items-center justify-between">
                 <div className="flex-1" />
                 <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
@@ -339,9 +339,9 @@ export const UnifiedHeader = () => {
                 </ul>
                 <div className="flex-1 flex justify-end">
                   {profile && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
-                      <UserCircle2 className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold text-primary capitalize">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
+                      <UserCircle2 className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-semibold text-primary capitalize">
                         {profile.role}
                       </span>
                     </div>
