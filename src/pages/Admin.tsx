@@ -17,6 +17,7 @@ import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import HomepageOrderManager from "@/components/admin/HomepageOrderManager";
 import { FeaturedItemManager } from "@/components/admin/FeaturedItemManager";
+import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [actualRole, setActualRole] = useState<UserRole | null>(null);
+  const { getEffectiveRole, impersonatedRole } = useRoleImpersonation();
   const { count: moderationCount } = useModerationCount();
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -35,6 +38,15 @@ const Admin = () => {
   useEffect(() => {
     checkAdminAccess();
   }, []);
+
+  // Update effective permissions when impersonation changes
+  useEffect(() => {
+    if (actualRole) {
+      const effectiveRole = getEffectiveRole(actualRole);
+      setIsAdmin(effectiveRole === "admin" || effectiveRole === "owner");
+      setIsOwner(effectiveRole === "owner");
+    }
+  }, [actualRole, impersonatedRole, getEffectiveRole]);
 
   const checkAdminAccess = async () => {
     try {
@@ -62,8 +74,11 @@ const Admin = () => {
         return;
       }
 
-      setIsAdmin(true);
-      setIsOwner(profile?.role === "owner");
+      // Store actual role and calculate effective role with impersonation
+      setActualRole(profile?.role as UserRole);
+      const effectiveRole = getEffectiveRole(profile?.role as UserRole);
+      setIsAdmin(effectiveRole === "admin" || effectiveRole === "owner");
+      setIsOwner(effectiveRole === "owner");
       await loadStats();
     } catch (error: any) {
       toast({
