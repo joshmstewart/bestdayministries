@@ -8,6 +8,7 @@ import Donate from "@/components/Donate";
 import About from "@/components/About";
 import Footer from "@/components/Footer";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
+import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
 import PublicEvents from "@/components/PublicEvents";
 import OurFamily from "@/components/OurFamily";
@@ -51,6 +52,11 @@ const Index = () => {
     featured_bestie: (
       <section className="container mx-auto px-4 py-16">
         <FeaturedBestieDisplay />
+      </section>
+    ),
+    sponsor_bestie: (
+      <section className="container mx-auto px-4 py-16">
+        <SponsorBestieDisplay />
       </section>
     ),
     mission: <Mission />,

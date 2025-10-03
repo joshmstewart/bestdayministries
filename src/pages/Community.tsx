@@ -8,6 +8,7 @@ import { Heart, Calendar, Users, MessageSquare, Gift, Sparkles, ArrowRight } fro
 import * as Icons from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
+import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
@@ -201,7 +202,7 @@ const Community = () => {
   }
 
   const defaultQuickLinks = [
-    { label: "Sponsor a Bestie", href: "/sponsor", icon: "Gift", color: "from-primary/20 to-secondary/5" },
+    { label: "Sponsor a Bestie", href: "/sponsor-bestie", icon: "Gift", color: "from-primary/20 to-secondary/5" },
     { label: "About Best Day Ministries", href: "/about", icon: "Users", color: "from-secondary/20 to-accent/5" },
     { label: "Joy Rocks Coffee", href: "/joy-rocks", icon: "Sparkles", color: "from-accent/20 to-primary/5" },
     { label: "Support Us", href: "/donate", icon: "Gift", color: "from-secondary/20 to-primary/5" },
@@ -246,6 +247,9 @@ const Community = () => {
 
           {/* Featured Bestie */}
           <FeaturedBestieDisplay />
+
+          {/* Sponsor a Bestie */}
+          <SponsorBestieDisplay />
 
           {/* Latest Activity Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
