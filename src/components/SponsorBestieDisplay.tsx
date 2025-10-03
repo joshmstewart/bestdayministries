@@ -228,7 +228,7 @@ export const SponsorBestieDisplay = () => {
                   <div key={index} className="space-y-0.5">
                     {section.header && (
                       <div className={index === 0 ? "flex items-start justify-between gap-2" : ""}>
-                        <h3 className="font-sans text-2xl font-bold text-primary leading-tight">
+                        <h3 className="font-script text-2xl font-bold text-primary leading-tight">
                           {section.header}
                         </h3>
                         {index === 0 && (
