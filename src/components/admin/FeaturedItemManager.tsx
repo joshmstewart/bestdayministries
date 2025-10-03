@@ -466,8 +466,15 @@ export const FeaturedItemManager = () => {
             </div>
 
             <div>
-              <Label>Image</Label>
+              <Label>Image *</Label>
               <div className="space-y-3 mt-2">
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
                 {imagePreview ? (
                   <div className="relative">
                     <img
@@ -475,15 +482,24 @@ export const FeaturedItemManager = () => {
                       alt="Preview"
                       className="w-full h-48 object-cover rounded-lg"
                     />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-2 right-2"
-                      onClick={removeImage}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Change Image
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={removeImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="border-2 border-dashed rounded-lg p-8 text-center">
@@ -498,13 +514,6 @@ export const FeaturedItemManager = () => {
                     >
                       Select Image
                     </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                    />
                   </div>
                 )}
               </div>

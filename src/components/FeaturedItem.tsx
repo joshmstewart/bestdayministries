@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Pause, Play } from "lucide-react";
 import { Link } from "react-router-dom";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface FeaturedItemData {
   id: string;
@@ -132,7 +133,10 @@ export const FeaturedItem = () => {
               </div>
             )}
             <div className="flex-1 text-center md:text-left">
-              <h2 className="text-2xl font-bold mb-3">{currentItem.title}</h2>
+              <div className="flex items-start gap-2 mb-3">
+                <h2 className="text-2xl font-bold flex-1">{currentItem.title}</h2>
+                <TextToSpeech text={`${currentItem.title}. ${currentItem.description}`} />
+              </div>
               <p className="text-muted-foreground mb-4">{currentItem.description}</p>
               {isExternalLink ? (
                 <Button asChild>

@@ -19,7 +19,7 @@ export const ImpersonationBanner = () => {
   };
 
   return (
-    <div className="bg-orange-500 text-white py-2 px-4 flex items-center justify-center gap-4 sticky top-0 z-50 shadow-lg">
+    <div className="bg-[#FF8C42] text-white py-2 px-4 flex items-center justify-center gap-4 sticky top-0 z-[60] shadow-lg">
       <Eye className="w-5 h-5" />
       <span className="font-semibold">
         Admin Mode: Viewing as {roleLabels[impersonatedRole || ""]}
@@ -28,7 +28,7 @@ export const ImpersonationBanner = () => {
         variant="ghost"
         size="sm"
         onClick={handleStopImpersonation}
-        className="text-white hover:bg-orange-600 hover:text-white"
+        className="text-white hover:bg-[#FF7C32] hover:text-white"
       >
         <X className="w-4 h-4 mr-1" />
         Exit Impersonation
