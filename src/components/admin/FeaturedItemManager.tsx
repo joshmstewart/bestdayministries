@@ -284,6 +284,9 @@ export const FeaturedItemManager = () => {
     if (item.image_url) {
       setImagePreview(item.image_url);
     }
+
+    // Scroll to the top to show the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
