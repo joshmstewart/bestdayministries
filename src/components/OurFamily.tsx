@@ -1,25 +1,47 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Coffee, Heart } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import * as Icons from "lucide-react";
 
-const familyOrganizations = [
-  {
-    name: "Best Day Ever Coffee + Crepes",
-    description: "A community-centered coffee shop where everyone belongs. Delicious food and drinks served with love.",
-    url: "https://bestdayevercoffeeandcrepes.com",
-    icon: Coffee,
-    color: "from-amber-500/20 to-orange-500/20",
-  },
-  {
-    name: "Best Day Ministries",
-    description: "Our main ministry empowering adults with special needs through creativity, community, and connection.",
-    url: "#about",
-    icon: Heart,
-    color: "from-primary/20 to-primary-variant/20",
-  },
-];
+interface FamilyOrg {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  icon: string;
+  color: string;
+  button_text: string;
+}
 
 const OurFamily = () => {
+  const [orgs, setOrgs] = useState<FamilyOrg[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadOrgs();
+  }, []);
+
+  const loadOrgs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("family_organizations")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      setOrgs(data || []);
+    } catch (error) {
+      console.error("Error loading organizations:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || orgs.length === 0) return null;
+
   return (
     <section className="py-20 bg-gradient-to-b from-background to-muted/30 relative overflow-hidden">
       {/* Decorative elements */}
@@ -37,28 +59,28 @@ const OurFamily = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {familyOrganizations.map((org, index) => {
-            const IconComponent = org.icon;
+          {orgs.map((org) => {
+            const IconComponent = Icons[org.icon as keyof typeof Icons] as any;
             return (
               <Card
-                key={index}
-                className="group p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 hover:border-primary/50 bg-gradient-to-br from-card to-muted/30"
+                key={org.id}
+                className="group p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 hover:border-primary/50 bg-gradient-to-br from-card to-muted/30 flex flex-col"
               >
-                <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${org.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                  <IconComponent className="w-8 h-8 text-primary" />
+                <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${org.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
+                  {IconComponent && <IconComponent className="w-8 h-8 text-primary" />}
                 </div>
                 
                 <h3 className="text-2xl font-bold mb-3 text-foreground">
                   {org.name}
                 </h3>
                 
-                <p className="text-muted-foreground mb-6 leading-relaxed">
+                <p className="text-muted-foreground mb-6 leading-relaxed flex-grow">
                   {org.description}
                 </p>
                 
                 <Button
                   variant="outline"
-                  className="group/btn w-full"
+                  className="group/btn w-full min-h-[44px]"
                   onClick={() => {
                     if (org.url.startsWith('http')) {
                       window.open(org.url, '_blank', 'noopener,noreferrer');
@@ -68,7 +90,7 @@ const OurFamily = () => {
                     }
                   }}
                 >
-                  <span>Visit {org.name.includes('Coffee') ? 'Website' : 'Section'}</span>
+                  <span>{org.button_text}</span>
                   <ExternalLink className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
                 </Button>
               </Card>

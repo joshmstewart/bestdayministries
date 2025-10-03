@@ -501,6 +501,51 @@ export type Database = {
           },
         ]
       }
+      family_organizations: {
+        Row: {
+          button_text: string
+          color: string
+          created_at: string
+          created_by: string
+          description: string
+          display_order: number
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          button_text?: string
+          color?: string
+          created_at?: string
+          created_by: string
+          description: string
+          display_order?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          button_text?: string
+          color?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       featured_bestie_hearts: {
         Row: {
           created_at: string
@@ -656,6 +701,71 @@ export type Database = {
           title?: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Relationships: []
+      }
+      footer_links: {
+        Row: {
+          created_at: string
+          display_order: number
+          href: string
+          id: string
+          is_active: boolean
+          label: string
+          section_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          href: string
+          id?: string
+          is_active?: boolean
+          label: string
+          section_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          href?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "footer_links_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "footer_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      footer_sections: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
