@@ -224,15 +224,6 @@ export const UnifiedHeader = () => {
               ) : (
                 <div className="h-[85px] w-[140px] my-1.5 mx-1" />
               )}
-              {user && profile && (
-                <>
-                  <Separator orientation="vertical" className="h-16 mx-2" />
-                  <div className="hidden sm:block">
-                    <div className="text-xs text-muted-foreground">Welcome back,</div>
-                    <div className="font-bold text-foreground text-lg">{profile?.display_name}</div>
-                  </div>
-                </>
-              )}
             </div>
             
             <div className="flex items-center gap-2">
@@ -327,29 +318,39 @@ export const UnifiedHeader = () => {
           {/* Navigation Bar - Absolutely positioned to overlay */}
           {user && (
             <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-b border-border/30 py-2 transition-all duration-300 z-50 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
-              <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
-                {navLinks.map((link) => (
-                  <li key={link.id}>
-                    {link.href.startsWith('http') ? (
-                      <a 
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                      >
-                        {link.label}
-                      </a>
-                    ) : (
-                      <Link 
-                        to={link.href} 
-                        className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                      >
-                        {link.label}
-                      </Link>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <div className="container mx-auto px-4 flex items-center justify-between">
+                <div className="flex-1" />
+                <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
+                  {navLinks.map((link) => (
+                    <li key={link.id}>
+                      {link.href.startsWith('http') ? (
+                        <a 
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                        >
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link 
+                          to={link.href} 
+                          className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                        >
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex-1 flex justify-end">
+                  {profile && (
+                    <Badge variant="secondary" className="capitalize">
+                      {profile.role}
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </nav>
           )}
         </div>
