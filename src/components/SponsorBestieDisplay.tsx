@@ -196,13 +196,13 @@ export const SponsorBestieDisplay = () => {
             </div>
 
             {/* Right side - Content */}
-            <div className="p-6 space-y-4 flex flex-col justify-center">
+            <div className="p-6 space-y-2 flex flex-col justify-center">
               {bestie.text_sections && bestie.text_sections.length > 0 ? (
                 bestie.text_sections.map((section, index) => (
-                  <div key={index} className="space-y-2">
+                  <div key={index} className="space-y-1">
                     {section.header && (
                       <div className={index === 0 ? "flex items-start justify-between gap-2" : ""}>
-                        <h3 className="font-script text-4xl font-bold text-primary leading-tight">
+                        <h3 className="font-script text-2xl font-bold text-primary leading-tight">
                           {section.header}
                         </h3>
                         {index === 0 && (
@@ -215,7 +215,7 @@ export const SponsorBestieDisplay = () => {
                       </div>
                     )}
                     {section.text && (
-                      <p className="font-script text-lg text-foreground/80 leading-relaxed whitespace-pre-line">
+                      <p className="font-script text-base text-foreground/80 leading-relaxed whitespace-pre-line">
                         {section.text}
                       </p>
                     )}
