@@ -11,6 +11,7 @@ import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
@@ -366,6 +367,8 @@ const Community = () => {
           </div>
         </div>
       </main>
+      
+      <Footer />
     </div>
   );
 };
