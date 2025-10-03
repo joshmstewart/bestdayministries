@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, HandHeart, Play, Pause } from "lucide-react";
@@ -50,6 +50,7 @@ export const FeaturedBestieDisplay = () => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const autoScrollRef = useRef(false);
 
   useEffect(() => {
     loadUserRole();
@@ -64,11 +65,18 @@ export const FeaturedBestieDisplay = () => {
 
     carouselApi.on("select", () => {
       setCurrent(carouselApi.selectedScrollSnap());
+      
+      // If this wasn't an auto-scroll, pause the autoplay
+      if (!autoScrollRef.current) {
+        setIsPlaying(false);
+      }
+      autoScrollRef.current = false;
     });
 
     // Auto-advance carousel
     const intervalId = setInterval(() => {
       if (isPlaying && besties.length > 1) {
+        autoScrollRef.current = true;
         carouselApi.scrollNext();
       }
     }, 5000);

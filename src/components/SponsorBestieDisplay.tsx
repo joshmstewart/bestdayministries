@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
@@ -45,6 +45,7 @@ export const SponsorBestieDisplay = () => {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [api, setApi] = useState<any>();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const autoScrollRef = useRef(false);
 
   useEffect(() => {
     loadUserRole();
@@ -57,6 +58,12 @@ export const SponsorBestieDisplay = () => {
     // Update current slide when carousel changes
     const onSelect = () => {
       setCurrentSlide(api.selectedScrollSnap());
+      
+      // If this wasn't an auto-scroll, pause the autoplay
+      if (!autoScrollRef.current) {
+        setIsPlaying(false);
+      }
+      autoScrollRef.current = false;
     };
 
     api.on('select', onSelect);
@@ -73,6 +80,7 @@ export const SponsorBestieDisplay = () => {
     if (!api || !isPlaying || isAudioPlaying) return;
 
     const intervalId = setInterval(() => {
+      autoScrollRef.current = true;
       api.scrollNext();
     }, 7000);
 
