@@ -113,7 +113,26 @@ export const FeaturedItem = () => {
     }
   };
 
-  if (loading || items.length === 0) return null;
+  if (loading) {
+    return (
+      <Card className="mb-8 overflow-hidden border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-6 items-center">
+            <div className="w-full md:w-5/12 flex-shrink-0">
+              <div className="w-full h-56 md:h-64 bg-muted/50 rounded-lg animate-pulse" />
+            </div>
+            <div className="flex-1 space-y-4 w-full">
+              <div className="h-8 bg-muted/50 rounded animate-pulse w-3/4" />
+              <div className="h-20 bg-muted/50 rounded animate-pulse" />
+              <div className="h-10 bg-muted/50 rounded animate-pulse w-32" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (items.length === 0) return null;
 
   const currentItem = items[currentIndex];
   const isExternalLink = resolvedUrl.startsWith("http");
