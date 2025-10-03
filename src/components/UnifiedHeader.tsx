@@ -175,7 +175,7 @@ export const UnifiedHeader = () => {
 
   return (
     <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
-      <div className="container mx-auto px-4 py-0">
+      <div className="container mx-auto px-4 py-0 relative">
         <div className="flex flex-col">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -289,8 +289,8 @@ export const UnifiedHeader = () => {
             </div>
           </div>
 
-          {/* Navigation Bar */}
-          <nav className={`border-t border-border/30 py-2 transition-all duration-300 overflow-hidden ${showNav ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 py-0'}`}>
+          {/* Navigation Bar - Absolutely positioned to overlay */}
+          <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-b border-border/30 py-2 transition-all duration-300 z-50 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
             <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
               <li>
                 <Link 
