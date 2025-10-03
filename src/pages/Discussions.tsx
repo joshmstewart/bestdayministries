@@ -621,7 +621,7 @@ const Discussions = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       <UnifiedHeader />
       
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 pt-16 pb-12">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">

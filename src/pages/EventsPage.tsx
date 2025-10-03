@@ -159,7 +159,7 @@ export default function EventsPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
-      <main className="flex-1 container mx-auto px-4 py-12">
+      <main className="flex-1 container mx-auto px-4 pt-16 pb-12">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-black text-foreground">
