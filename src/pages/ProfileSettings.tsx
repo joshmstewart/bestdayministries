@@ -223,16 +223,16 @@ const ProfileSettings = () => {
   ];
 
   const funVoices = [
-    { value: "Austin", label: "Austin", description: "Custom voice" },
-    { value: "Batman", label: "Batman", description: "Custom voice" },
-    { value: "Cherry Twinkle", label: "Cherry Twinkle", description: "Custom voice" },
-    { value: "Creature", label: "Creature", description: "Custom voice" },
-    { value: "Grandma Muffin", label: "Grandma Muffin", description: "Custom voice" },
-    { value: "Grandpa Werthers", label: "Grandpa Werthers", description: "Custom voice" },
-    { value: "Jerry B", label: "Jerry B", description: "Custom voice" },
-    { value: "Johnny Dynamite", label: "Johnny Dynamite", description: "Custom voice" },
-    { value: "Marshal", label: "Marshal", description: "Custom voice" },
-    { value: "Maverick", label: "Maverick", description: "Custom voice" },
+    { value: "austin", label: "Austin", description: "Warm and friendly voice" },
+    { value: "batman", label: "Batman", description: "Deep and mysterious voice" },
+    { value: "cherry-twinkle", label: "Cherry Twinkle", description: "Bright and cheerful voice" },
+    { value: "creature", label: "Creature", description: "Fun and quirky voice" },
+    { value: "grandma-muffin", label: "Grandma Muffin", description: "Sweet and caring voice" },
+    { value: "grandpa-werthers", label: "Grandpa Werthers", description: "Wise and comforting voice" },
+    { value: "jerry-b", label: "Jerry B", description: "Energetic and upbeat voice" },
+    { value: "johnny-dynamite", label: "Johnny Dynamite", description: "Bold and exciting voice" },
+    { value: "marshal", label: "Marshal", description: "Strong and confident voice" },
+    { value: "maverick", label: "Maverick", description: "Cool and adventurous voice" },
   ];
 
   const testVoice = async (voiceId: string) => {
