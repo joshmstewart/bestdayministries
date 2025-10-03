@@ -21,9 +21,24 @@ export const UnifiedHeader = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isTestAccount, setIsTestAccount] = useState(false);
   const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
+  const [showNav, setShowNav] = useState(true);
   const { count: moderationCount } = useModerationCount();
   const { count: approvalsCount } = useGuardianApprovalsCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // Show nav if cursor is within 100px of top
+      if (e.clientY < 100) {
+        setShowNav(true);
+      } else {
+        setShowNav(false);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   useEffect(() => {
     checkUser();
@@ -275,7 +290,7 @@ export const UnifiedHeader = () => {
           </div>
 
           {/* Navigation Bar */}
-          <nav className="border-t border-border/30 py-2">
+          <nav className={`border-t border-border/30 py-2 transition-all duration-300 overflow-hidden ${showNav ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 py-0'}`}>
             <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
               <li>
                 <Link 
