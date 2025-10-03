@@ -3,8 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft } from "lucide-react";
+
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2 } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
@@ -260,12 +260,9 @@ export const UnifiedHeader = () => {
                     <CheckCircle className="w-4 h-4" />
                     <span className="hidden sm:inline font-semibold">Approvals</span>
                     {approvalsCount > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
-                      >
+                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
                         {approvalsCount}
-                      </Badge>
+                      </span>
                     )}
                   </Button>
                 )}
@@ -277,12 +274,9 @@ export const UnifiedHeader = () => {
                     <Shield className="w-4 h-4" />
                     <span className="hidden sm:inline font-semibold">Admin</span>
                     {moderationCount > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
-                      >
+                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
                         {moderationCount}
-                      </Badge>
+                      </span>
                     )}
                   </Button>
                 )}
@@ -345,9 +339,12 @@ export const UnifiedHeader = () => {
                 </ul>
                 <div className="flex-1 flex justify-end">
                   {profile && (
-                    <Badge variant="secondary" className="capitalize">
-                      {profile.role}
-                    </Badge>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
+                      <UserCircle2 className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-primary capitalize">
+                        {profile.role}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
