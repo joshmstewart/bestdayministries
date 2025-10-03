@@ -201,6 +201,18 @@ export const SponsorBestieManager = () => {
         }
       }
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication error",
+          description: "You must be logged in to save sponsor besties",
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
+
       const data: any = {
         bestie_id: linkedBestieId || null,
         bestie_name: bestieName,
@@ -210,6 +222,7 @@ export const SponsorBestieManager = () => {
         monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
         aspect_ratio: aspectRatioKey,
         text_sections: textSections.filter(s => s.header || s.text), // Only save non-empty sections
+        created_by: user.id,
       };
 
       if (imageFile) {
