@@ -7,8 +7,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, Eye, EyeOff, GripVertical } from "lucide-react";
 import * as Icons from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // Common icons for community/organization sites
 const availableIcons = [
@@ -44,6 +61,80 @@ interface FamilyOrg {
   is_active: boolean;
 }
 
+interface SortableOrgProps {
+  org: FamilyOrg;
+  onEdit: (org: FamilyOrg) => void;
+  onDelete: (id: string) => void;
+  onToggleActive: (id: string, isActive: boolean) => void;
+  renderIconPreview: (iconName: string) => JSX.Element | null;
+}
+
+const SortableOrg = ({ org, onEdit, onDelete, onToggleActive, renderIconPreview }: SortableOrgProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: org.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between p-4 border rounded-lg bg-background"
+    >
+      <div className="flex items-center gap-4 flex-1">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${org.color} flex items-center justify-center`}>
+          {renderIconPreview(org.icon)}
+        </div>
+        <div className="flex-1">
+          <h3 className="font-semibold">{org.name}</h3>
+          <p className="text-sm text-muted-foreground">{org.description}</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onToggleActive(org.id, org.is_active)}
+        >
+          {org.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onEdit(org)}
+        >
+          <Pencil className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDelete(org.id)}
+          className="text-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export const FamilyOrganizationsManager = () => {
   const [orgs, setOrgs] = useState<FamilyOrg[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +148,13 @@ export const FamilyOrganizationsManager = () => {
     button_text: "Visit Website",
     display_order: 0,
   });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     loadOrgs();
@@ -161,6 +259,41 @@ export const FamilyOrganizationsManager = () => {
     } catch (error) {
       console.error("Error toggling organization:", error);
       toast.error("Failed to update organization");
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = orgs.findIndex((org) => org.id === active.id);
+    const newIndex = orgs.findIndex((org) => org.id === over.id);
+
+    const newOrgs = arrayMove(orgs, oldIndex, newIndex);
+    setOrgs(newOrgs);
+
+    // Update display_order for all affected items
+    try {
+      const updates = newOrgs.map((org, index) => ({
+        id: org.id,
+        display_order: index,
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("family_organizations")
+          .update({ display_order: update.display_order })
+          .eq("id", update.id);
+
+        if (error) throw error;
+      }
+
+      toast.success("Order updated successfully");
+    } catch (error) {
+      console.error("Error updating order:", error);
+      toast.error("Failed to update order");
+      loadOrgs(); // Reload to restore correct order
     }
   };
 
@@ -285,17 +418,6 @@ export const FamilyOrganizationsManager = () => {
               />
             </div>
 
-            <div>
-              <Label htmlFor="display_order">Display Order</Label>
-              <Input
-                id="display_order"
-                type="number"
-                value={formData.display_order}
-                onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) })}
-                required
-              />
-            </div>
-
             <div className="flex gap-2">
               <Button type="submit">{editingId ? "Update" : "Create"} Organization</Button>
               {editingId && (
@@ -311,50 +433,32 @@ export const FamilyOrganizationsManager = () => {
       <Card>
         <CardHeader>
           <CardTitle>Existing Organizations</CardTitle>
+          <p className="text-sm text-muted-foreground">Drag and drop to reorder</p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {orgs.map((org) => (
-              <div
-                key={org.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${org.color} flex items-center justify-center`}>
-                    {renderIconPreview(org.icon)}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{org.name}</h3>
-                    <p className="text-sm text-muted-foreground">{org.description}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => toggleActive(org.id, org.is_active)}
-                  >
-                    {org.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(org)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(org.id)}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={orgs.map(org => org.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {orgs.map((org) => (
+                  <SortableOrg
+                    key={org.id}
+                    org={org}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onToggleActive={toggleActive}
+                    renderIconPreview={renderIconPreview}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         </CardContent>
       </Card>
     </div>
