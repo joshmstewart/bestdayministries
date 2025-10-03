@@ -44,11 +44,30 @@ export const SponsorBestieDisplay = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [api, setApi] = useState<any>();
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     loadUserRole();
     loadCurrentBesties();
   }, []);
+
+  useEffect(() => {
+    if (!api) return;
+
+    // Update current slide when carousel changes
+    const onSelect = () => {
+      setCurrentSlide(api.selectedScrollSnap());
+    };
+
+    api.on('select', onSelect);
+    
+    // Set initial slide
+    setCurrentSlide(api.selectedScrollSnap());
+
+    return () => {
+      api.off('select', onSelect);
+    };
+  }, [api]);
 
   useEffect(() => {
     if (!api || !isPlaying || isAudioPlaying) return;
@@ -324,7 +343,7 @@ export const SponsorBestieDisplay = () => {
               key={index}
               onClick={() => api?.scrollTo(index)}
               className={`w-2 h-2 rounded-full transition-all ${
-                api?.selectedScrollSnap() === index
+                currentSlide === index
                   ? "bg-primary w-8"
                   : "bg-muted-foreground/30"
               }`}
