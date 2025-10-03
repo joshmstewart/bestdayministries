@@ -35,7 +35,7 @@ export const FeaturedItem = () => {
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, 5000); // Rotate every 5 seconds
+    }, 10000); // Rotate every 10 seconds
 
     return () => clearInterval(interval);
   }, [items.length]);
