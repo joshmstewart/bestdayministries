@@ -489,11 +489,20 @@ export const UserManagement = () => {
                       <SelectItem value="supporter">Supporter</SelectItem>
                       <SelectItem value="bestie">Bestie</SelectItem>
                       <SelectItem value="caregiver">Caregiver</SelectItem>
-                      <SelectItem value="moderator">Moderator</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="owner">Owner</SelectItem>
+                      {currentUserRole === "owner" && (
+                        <>
+                          <SelectItem value="moderator">Moderator</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="owner">Owner</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
+                  {currentUserRole === "admin" && (
+                    <p className="text-xs text-muted-foreground">
+                      As an admin, you can only create non-admin users. Contact an owner to create admin accounts.
+                    </p>
+                  )}
                 </div>
               </div>
               <DialogFooter>

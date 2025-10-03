@@ -208,19 +208,7 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="users">
-            {isOwner ? (
-              <UserManagement />
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>Manage community members and their roles</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Only owners can create and manage users.</p>
-                </CardContent>
-              </Card>
-            )}
+            <UserManagement />
           </TabsContent>
 
           <TabsContent value="events">
