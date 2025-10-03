@@ -173,7 +173,7 @@ export const SponsorBestieDisplay = () => {
         <CardContent className="p-0">
           <div className="grid md:grid-cols-2 gap-0">
             {/* Left side - Image */}
-            <div className="relative max-h-[600px] overflow-hidden">
+            <div className="relative max-h-[450px] overflow-hidden">
               <AspectRatio ratio={getAspectRatio(bestie.aspect_ratio)}>
                 <img
                   src={bestie.image_url}
