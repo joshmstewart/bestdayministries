@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Pause, Play } from "lucide-react";
+import { ExternalLink, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
 
@@ -183,6 +183,15 @@ export const FeaturedItem = () => {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length)}
+              className="h-8 w-8"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsPaused(!isPaused)}
               className="h-8 w-8"
               aria-label={isPaused ? "Play slideshow" : "Pause slideshow"}
@@ -207,6 +216,15 @@ export const FeaturedItem = () => {
                 />
               ))}
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCurrentIndex((prev) => (prev + 1) % items.length)}
+              className="h-8 w-8"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </CardContent>

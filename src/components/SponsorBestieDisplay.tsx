@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, Pause, Play } from "lucide-react";
+import { Heart, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -311,6 +311,14 @@ export const SponsorBestieDisplay = () => {
       </Carousel>
 
       <div className="flex justify-center items-center gap-4 pt-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => api?.scrollPrev()}
+          className="rounded-full h-8 w-8"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
         <div className="flex gap-2">
           {besties.map((_, index) => (
             <button
@@ -331,6 +339,14 @@ export const SponsorBestieDisplay = () => {
           className="rounded-full h-8 w-8"
         >
           {isPlaying && !isAudioPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => api?.scrollNext()}
+          className="rounded-full h-8 w-8"
+        >
+          <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
     </div>
