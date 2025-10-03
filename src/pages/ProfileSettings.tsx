@@ -226,58 +226,90 @@ const ProfileSettings = () => {
   };
 
   const voiceOptions = [
+    // Default ElevenLabs Voices
     { 
       value: "Aria", 
-      label: "Aria (Expressive)", 
-      description: "Warm and friendly",
+      label: "Aria", 
+      description: "Warm and expressive",
       pattern: cherryTwinklePattern
     },
     { 
-      value: "Davis", 
-      label: "Davis (Conversational)", 
-      description: "Natural and clear",
+      value: "Roger", 
+      label: "Roger", 
+      description: "Confident and clear",
       pattern: austinPattern
     },
     { 
-      value: "Guy", 
-      label: "Guy (Newscast)", 
-      description: "Professional and authoritative",
+      value: "Sarah", 
+      label: "Sarah", 
+      description: "Natural and friendly",
+      pattern: grandmaMuffinPattern
+    },
+    { 
+      value: "Laura", 
+      label: "Laura", 
+      description: "Professional and warm",
+      pattern: cherryTwinklePattern
+    },
+    // Custom Uploaded Voices
+    { 
+      value: "Austin", 
+      label: "Austin", 
+      description: "Custom voice",
+      pattern: austinPattern
+    },
+    { 
+      value: "Batman", 
+      label: "Batman", 
+      description: "Custom voice",
+      pattern: batmanPattern
+    },
+    { 
+      value: "Cherry Twinkle", 
+      label: "Cherry Twinkle", 
+      description: "Custom voice",
+      pattern: cherryTwinklePattern
+    },
+    { 
+      value: "Creature", 
+      label: "Creature", 
+      description: "Custom voice",
+      pattern: creaturePattern
+    },
+    { 
+      value: "Grandma Muffin", 
+      label: "Grandma Muffin", 
+      description: "Custom voice",
+      pattern: grandmaMuffinPattern
+    },
+    { 
+      value: "Grandpa Werthers", 
+      label: "Grandpa Werthers", 
+      description: "Custom voice",
+      pattern: grandpaWerthersPattern
+    },
+    { 
+      value: "Jerry B", 
+      label: "Jerry B", 
+      description: "Custom voice",
+      pattern: jerryBPattern
+    },
+    { 
+      value: "Johnny Dynamite", 
+      label: "Johnny Dynamite", 
+      description: "Custom voice",
       pattern: johnnyDynamitePattern
     },
     { 
-      value: "Jane", 
-      label: "Jane (Newscast)", 
-      description: "Clear and professional",
-      pattern: grandmaMuffinPattern
-    },
-    { 
-      value: "Jason", 
-      label: "Jason (Casual)", 
-      description: "Relaxed and friendly",
+      value: "Marshal", 
+      label: "Marshal", 
+      description: "Custom voice",
       pattern: marshalPattern
     },
     { 
-      value: "Jenny", 
-      label: "Jenny (Conversational)", 
-      description: "Warm and engaging",
-      pattern: cherryTwinklePattern
-    },
-    { 
-      value: "Nancy", 
-      label: "Nancy (Friendly)", 
-      description: "Approachable and kind",
-      pattern: grandmaMuffinPattern
-    },
-    { 
-      value: "Sara", 
-      label: "Sara (Conversational)", 
-      description: "Natural and expressive",
-      pattern: cherryTwinklePattern
-    },
-    { 
-      value: "Tony", 
-      label: "Tony (Conversational)", 
-      description: "Confident and clear",
+      value: "Maverick", 
+      label: "Maverick", 
+      description: "Custom voice",
       pattern: maverickPattern
     },
   ];
