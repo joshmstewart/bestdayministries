@@ -269,7 +269,8 @@ export const UserManagement = () => {
           console.error(`Error creating ${account.displayName}:`, error);
           // If account already exists, that's okay
           if (error.message?.includes("already registered") || 
-              error.message?.includes("User already registered")) {
+              error.message?.includes("User already registered") ||
+              error.message?.includes("email address has already been registered")) {
             successCount++;
           } else {
             errors.push(`${account.displayName}: ${error.message}`);
@@ -277,11 +278,15 @@ export const UserManagement = () => {
         } else if (data?.error) {
           console.error(`Error creating ${account.displayName}:`, data.error);
           if (data.error.includes("already registered") || 
-              data.error.includes("User already registered")) {
+              data.error.includes("User already registered") ||
+              data.error.includes("email address has already been registered")) {
             successCount++;
           } else {
             errors.push(`${account.displayName}: ${data.error}`);
           }
+        } else if (data?.details?.includes("already been registered")) {
+          // Handle the specific error message format
+          successCount++;
         } else {
           successCount++;
         }
