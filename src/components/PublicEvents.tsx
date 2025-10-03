@@ -9,6 +9,7 @@ import { EventDetailDialog } from "@/components/EventDetailDialog";
 import { LocationLink } from "@/components/LocationLink";
 import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
 import { cn } from "@/lib/utils";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface EventDate {
   id: string;
@@ -32,7 +33,7 @@ interface Event {
   recurrence_type: string | null;
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
-  aspect_ratio?: 'landscape' | 'portrait';
+  aspect_ratio?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -188,20 +189,20 @@ export default function PublicEvents() {
                   }}
                 >
                   {event.image_url && (
-                    <div className={cn(
-                      "w-full overflow-hidden",
-                      (() => {
-                        const ratio = (event as any).aspect_ratio || '9:16';
+                    <AspectRatio 
+                      ratio={(() => {
+                        const ratio = event.aspect_ratio || '9:16';
                         const [w, h] = ratio.split(':').map(Number);
-                        return `aspect-[${w}/${h}]`;
-                      })()
-                    )}>
+                        return w / h;
+                      })()} 
+                      className="w-full overflow-hidden"
+                    >
                       <img
                         src={event.image_url}
                         alt={event.title}
                         className="w-full h-full object-cover"
                       />
-                    </div>
+                    </AspectRatio>
                   )}
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
