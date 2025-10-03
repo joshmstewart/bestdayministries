@@ -69,7 +69,10 @@ const Index = () => {
       <div className="min-h-screen">
         <UnifiedHeader />
         <main className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
         </main>
         <Footer />
       </div>

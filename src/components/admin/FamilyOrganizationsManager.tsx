@@ -317,7 +317,14 @@ export const FamilyOrganizationsManager = () => {
   };
 
   if (loading) {
-    return <div>Loading organizations...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+          <p className="text-muted-foreground">Loading organizations...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

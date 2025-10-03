@@ -300,7 +300,10 @@ export default function GuardianApprovals() {
       <div className="min-h-screen flex flex-col">
         <UnifiedHeader />
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+            <p className="text-muted-foreground">Loading approvals...</p>
+          </div>
         </div>
         <Footer />
       </div>
