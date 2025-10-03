@@ -22,11 +22,31 @@ export const UnifiedHeader = () => {
   const [isTestAccount, setIsTestAccount] = useState(false);
   const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
   const [showNav, setShowNav] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const { count: moderationCount } = useModerationCount();
   const { count: approvalsCount } = useGuardianApprovalsCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
   useEffect(() => {
+    // Check if device is mobile/touch device
+    const checkMobile = () => {
+      const mobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsMobile(mobile);
+      // Always show nav on mobile
+      if (mobile) {
+        setShowNav(true);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    // Only apply mouse hover behavior on desktop
+    if (isMobile) return;
+
     const handleMouseMove = (e: MouseEvent) => {
       // Show nav if cursor is within 300px of top
       if (e.clientY < 300) {
@@ -38,7 +58,7 @@ export const UnifiedHeader = () => {
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     checkUser();
