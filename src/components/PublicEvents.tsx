@@ -25,6 +25,7 @@ interface Event {
   max_attendees: number | null;
   expires_after_date: boolean;
   is_recurring: boolean;
+  is_active: boolean;
   is_public: boolean;
   visible_to_roles?: string[];
   recurrence_type: string | null;
@@ -73,6 +74,7 @@ export default function PublicEvents() {
         event_dates(id, event_date)
       `)
       .eq("is_public", true)
+      .eq("is_active", true)
       .order("event_date", { ascending: true });
 
     if (error) {

@@ -30,6 +30,7 @@ interface Event {
   max_attendees: number | null;
   expires_after_date: boolean;
   is_recurring: boolean;
+  is_active: boolean;
   visible_to_roles?: string[];
   recurrence_type: string | null;
   recurrence_interval: number | null;
@@ -77,6 +78,7 @@ export default function EventsPage() {
         *,
         event_dates(id, event_date)
       `)
+      .eq("is_active", true)
       .order("event_date", { ascending: true });
 
     if (error) {

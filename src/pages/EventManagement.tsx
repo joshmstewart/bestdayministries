@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info } from "lucide-react";
+import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
@@ -43,6 +43,7 @@ interface Event {
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
   is_public: boolean;
+  is_active: boolean;
   visible_to_roles?: string[];
   created_by: string;
   created_at: string;
@@ -402,6 +403,21 @@ export default function EventManagement() {
       console.error(error);
     } else {
       toast.success("Event deleted successfully");
+      loadEvents();
+    }
+  };
+
+  const handleToggleVisibility = async (eventId: string, isActive: boolean) => {
+    const { error } = await supabase
+      .from("events")
+      .update({ is_active: isActive })
+      .eq("id", eventId);
+
+    if (error) {
+      toast.error("Failed to update event visibility");
+      console.error(error);
+    } else {
+      toast.success(isActive ? "Event is now visible" : "Event is now hidden");
       loadEvents();
     }
   };
@@ -910,7 +926,10 @@ export default function EventManagement() {
                 const isExpired = allDatesPast && event.expires_after_date;
 
                 return (
-                  <Card key={event.id} className={isExpired ? "opacity-60" : ""}>
+                  <Card key={event.id} className={cn(
+                    isExpired && "opacity-60",
+                    !event.is_active && "opacity-50 border-dashed"
+                  )}>
                     {event.image_url && (
                       <img
                         src={event.image_url}
@@ -921,7 +940,14 @@ export default function EventManagement() {
                     <CardContent className="p-4 space-y-2">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{event.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-lg">{event.title}</h3>
+                            {!event.is_active && (
+                              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                                Hidden
+                              </span>
+                            )}
+                          </div>
                           {event.is_recurring && (
                             <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                               Recurring {event.recurrence_type === "custom" ? `every ${event.recurrence_interval}` : event.recurrence_type}
@@ -929,6 +955,18 @@ export default function EventManagement() {
                           )}
                         </div>
                         <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleVisibility(event.id, !event.is_active)}
+                            title={event.is_active ? "Hide event" : "Show event"}
+                          >
+                            {event.is_active ? (
+                              <Eye className="w-4 h-4" />
+                            ) : (
+                              <EyeOff className="w-4 h-4" />
+                            )}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

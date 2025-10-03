@@ -472,6 +472,7 @@ export type Database = {
           expires_after_date: boolean
           id: string
           image_url: string | null
+          is_active: boolean
           is_public: boolean
           is_recurring: boolean
           location: string | null
@@ -492,6 +493,7 @@ export type Database = {
           expires_after_date?: boolean
           id?: string
           image_url?: string | null
+          is_active?: boolean
           is_public?: boolean
           is_recurring?: boolean
           location?: string | null
@@ -512,6 +514,7 @@ export type Database = {
           expires_after_date?: boolean
           id?: string
           image_url?: string | null
+          is_active?: boolean
           is_public?: boolean
           is_recurring?: boolean
           location?: string | null
