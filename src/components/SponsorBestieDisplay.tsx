@@ -42,6 +42,7 @@ export const SponsorBestieDisplay = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sponsoringBesties, setSponsoringBesties] = useState<Set<string>>(new Set());
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [api, setApi] = useState<any>();
 
   useEffect(() => {
@@ -50,14 +51,14 @@ export const SponsorBestieDisplay = () => {
   }, []);
 
   useEffect(() => {
-    if (!api || !isPlaying) return;
+    if (!api || !isPlaying || isAudioPlaying) return;
 
     const intervalId = setInterval(() => {
       api.scrollNext();
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [api, isPlaying]);
+  }, [api, isPlaying, isAudioPlaying]);
 
   const loadUserRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -172,7 +173,7 @@ export const SponsorBestieDisplay = () => {
         <CardContent className="p-0">
           <div className="grid md:grid-cols-2 gap-0">
             {/* Left side - Image */}
-            <div className="relative">
+            <div className="relative max-h-[600px] overflow-hidden">
               <AspectRatio ratio={getAspectRatio(bestie.aspect_ratio)}>
                 <img
                   src={bestie.image_url}
@@ -209,6 +210,7 @@ export const SponsorBestieDisplay = () => {
                           <TextToSpeech 
                             text={`${section.header}. ${section.text}`} 
                             size="default"
+                            onPlayingChange={setIsAudioPlaying}
                           />
                         )}
                       </div>
@@ -290,14 +292,6 @@ export const SponsorBestieDisplay = () => {
             Sponsor a Bestie
           </span>
         </h2>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="rounded-full"
-        >
-          {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-        </Button>
       </div>
 
       <Carousel
@@ -317,18 +311,28 @@ export const SponsorBestieDisplay = () => {
         </CarouselContent>
       </Carousel>
 
-      <div className="flex justify-center gap-2 pt-2">
-        {besties.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => api?.scrollTo(index)}
-            className={`w-2 h-2 rounded-full transition-all ${
-              api?.selectedScrollSnap() === index
-                ? "bg-primary w-8"
-                : "bg-muted-foreground/30"
-            }`}
-          />
-        ))}
+      <div className="flex justify-center items-center gap-4 pt-2">
+        <div className="flex gap-2">
+          {besties.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => api?.scrollTo(index)}
+              className={`w-2 h-2 rounded-full transition-all ${
+                api?.selectedScrollSnap() === index
+                  ? "bg-primary w-8"
+                  : "bg-muted-foreground/30"
+              }`}
+            />
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsPlaying(!isPlaying)}
+          className="rounded-full h-8 w-8"
+        >
+          {isPlaying && !isAudioPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+        </Button>
       </div>
     </div>
   );

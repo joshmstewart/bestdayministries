@@ -8,12 +8,14 @@ interface TextToSpeechProps {
   text: string;
   voice?: string;
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  onPlayingChange?: (isPlaying: boolean) => void;
 }
 
 export const TextToSpeech = ({ 
   text, 
   voice,
-  size = 'icon'
+  size = 'icon',
+  onPlayingChange
 }: TextToSpeechProps) => {
   const { toast } = useToast();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -54,6 +56,7 @@ export const TextToSpeech = ({
         audio.pause();
         audio.currentTime = 0;
         setIsPlaying(false);
+        onPlayingChange?.(false);
         return;
       }
 
@@ -93,6 +96,7 @@ export const TextToSpeech = ({
       newAudio.onended = () => {
         console.log('TTS - Audio ended');
         setIsPlaying(false);
+        onPlayingChange?.(false);
         URL.revokeObjectURL(audioUrl);
       };
 
@@ -115,6 +119,7 @@ export const TextToSpeech = ({
         await newAudio.play();
         console.log('TTS - Playback started successfully, currentTime after play:', newAudio.currentTime);
         setIsPlaying(true);
+        onPlayingChange?.(true);
       } catch (playError) {
         console.error('TTS - Failed to play audio:', playError);
         toast({
