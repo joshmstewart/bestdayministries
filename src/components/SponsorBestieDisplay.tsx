@@ -215,7 +215,7 @@ export const SponsorBestieDisplay = () => {
                       </div>
                     )}
                     {section.text && (
-                      <p className="font-script text-lg text-foreground/80 leading-relaxed">
+                      <p className="font-script text-lg text-foreground/80 leading-relaxed whitespace-pre-line">
                         {section.text}
                       </p>
                     )}
