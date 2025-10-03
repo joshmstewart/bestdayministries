@@ -646,6 +646,7 @@ export type Database = {
           approval_status: string
           approved_at: string | null
           approved_by: string | null
+          aspect_ratio: string
           available_for_sponsorship: boolean
           bestie_id: string | null
           bestie_name: string
@@ -665,6 +666,7 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          aspect_ratio?: string
           available_for_sponsorship?: boolean
           bestie_id?: string | null
           bestie_name: string
@@ -684,6 +686,7 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          aspect_ratio?: string
           available_for_sponsorship?: boolean
           bestie_id?: string | null
           bestie_name?: string

@@ -15,6 +15,8 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { cn } from "@/lib/utils";
 
 interface FeaturedBestie {
   id: string;
@@ -28,6 +30,7 @@ interface FeaturedBestie {
   available_for_sponsorship: boolean;
   is_fully_funded: boolean;
   monthly_goal: number | null;
+  aspect_ratio: string;
 }
 
 interface FundingProgress {
@@ -185,12 +188,14 @@ export const FeaturedBestieDisplay = () => {
       }`}>
         <div className="grid md:grid-cols-2 gap-6 p-6">
           {/* Image Section */}
-          <div className="relative aspect-square md:aspect-auto overflow-hidden rounded-lg">
-            <img
-              src={bestie.image_url}
-              alt={bestie.bestie_name}
-              className="object-cover w-full h-full"
-            />
+          <div className="relative overflow-hidden rounded-lg">
+            <AspectRatio ratio={bestie.aspect_ratio === 'landscape' ? 16 / 9 : 9 / 16}>
+              <img
+                src={bestie.image_url}
+                alt={bestie.bestie_name}
+                className="object-cover w-full h-full"
+              />
+            </AspectRatio>
             <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm">
               <Heart className="w-4 h-4 fill-current" />
               Bestie of the Month
@@ -282,12 +287,14 @@ export const FeaturedBestieDisplay = () => {
                 }`}>
                   <div className="grid md:grid-cols-2 gap-6 p-6">
                     {/* Image Section */}
-                    <div className="relative aspect-square md:aspect-auto overflow-hidden rounded-lg">
-                      <img
-                        src={bestie.image_url}
-                        alt={bestie.bestie_name}
-                        className="object-cover w-full h-full"
-                      />
+                    <div className="relative overflow-hidden rounded-lg">
+                      <AspectRatio ratio={bestie.aspect_ratio === 'landscape' ? 16 / 9 : 9 / 16}>
+                        <img
+                          src={bestie.image_url}
+                          alt={bestie.bestie_name}
+                          className="object-cover w-full h-full"
+                        />
+                      </AspectRatio>
                       <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm">
                         <Heart className="w-4 h-4 fill-current" />
                         Bestie of the Month

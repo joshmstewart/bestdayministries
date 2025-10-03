@@ -34,6 +34,7 @@ interface FeaturedBestie {
   approved_at: string | null;
   approved_by: string | null;
   monthly_goal: number | null;
+  aspect_ratio: string;
 }
 
 export const FeaturedBestieManager = () => {
@@ -64,6 +65,7 @@ export const FeaturedBestieManager = () => {
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<'landscape' | 'portrait'>('portrait');
 
   useEffect(() => {
     loadData();
@@ -236,6 +238,7 @@ export const FeaturedBestieManager = () => {
         is_fully_funded: autoFullyFunded,
         approval_status: 'approved', // Admin posts are auto-approved
         monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
+        aspect_ratio: aspectRatio,
       };
 
       if (imageFile) {
@@ -299,6 +302,7 @@ export const FeaturedBestieManager = () => {
     setMonthlyGoal(bestie.monthly_goal ? bestie.monthly_goal.toString() : "");
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
+    setAspectRatio((bestie.aspect_ratio as 'landscape' | 'portrait') || 'portrait');
     setDialogOpen(true);
   };
 
@@ -448,6 +452,7 @@ export const FeaturedBestieManager = () => {
     setRawImageUrl(null);
     setImagePreview(null);
     setShowCropDialog(false);
+    setAspectRatio('portrait');
   };
 
   const handleCroppedImage = (blob: Blob) => {
@@ -594,6 +599,28 @@ export const FeaturedBestieManager = () => {
               <p className="text-xs text-muted-foreground">
                 Choose specific dates or select the 1st day of a month for both to feature for the whole month
               </p>
+
+              <div className="space-y-2">
+                <Label>Image Aspect Ratio</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={aspectRatio === 'landscape' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setAspectRatio('landscape')}
+                  >
+                    Landscape (16:9)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={aspectRatio === 'portrait' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setAspectRatio('portrait')}
+                  >
+                    Vertical (9:16)
+                  </Button>
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="image">Image {!editingId && "*"} (JPEG, PNG, WEBP, GIF - max 5MB)</Label>
@@ -1006,9 +1033,9 @@ export const FeaturedBestieManager = () => {
           onOpenChange={setShowCropDialog}
           imageUrl={rawImageUrl || imagePreview || ""}
           onCropComplete={handleCroppedImage}
-          aspectRatio={1}
+          aspectRatio={aspectRatio === 'landscape' ? 16 / 9 : 9 / 16}
           title="Crop Bestie Image"
-          description="Adjust the crop area for the featured bestie image (square 1:1 aspect ratio)"
+          description="Adjust the crop area for the featured bestie image"
         />
       )}
     </div>
