@@ -943,7 +943,9 @@ export const FeaturedBestieManager = () => {
                 {bestie.bestie_name}
               </CardTitle>
               <CardDescription>
-                {format(new Date(bestie.start_date + 'T12:00:00'), "MMM d, yyyy")} - {format(new Date(bestie.end_date + 'T12:00:00'), "MMM d, yyyy")}
+                {bestie.start_date && bestie.end_date 
+                  ? `${format(new Date(bestie.start_date + 'T12:00:00'), "MMM d, yyyy")} - ${format(new Date(bestie.end_date + 'T12:00:00'), "MMM d, yyyy")}`
+                  : "No dates set"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
