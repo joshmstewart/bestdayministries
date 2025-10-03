@@ -117,25 +117,21 @@ export const FeaturedBestieDisplay = () => {
       // Get today's date in format YYYY-MM-DD
       const today = format(new Date(), "yyyy-MM-dd");
       
-      // Query for active and approved besties (including those without dates)
+      // Query for besties that have dates set and include today
       const { data, error } = await supabase
         .from("featured_besties")
         .select("*")
         .eq("is_active", true)
-        .eq("approval_status", "approved");
+        .eq("approval_status", "approved")
+        .not("start_date", "is", null)
+        .not("end_date", "is", null)
+        .lte("start_date", today)
+        .gte("end_date", today);
 
       if (error) throw error;
       
-      // Filter to include besties where dates are null OR within the date range
-      const filtered = data?.filter(bestie => {
-        if (!bestie.start_date || !bestie.end_date) {
-          return true; // Include besties without dates
-        }
-        return bestie.start_date <= today && bestie.end_date >= today;
-      }) || [];
-      
       // Randomize the order
-      const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+      const shuffled = data ? [...data].sort(() => Math.random() - 0.5) : [];
       setBesties(shuffled);
 
       // Check sponsorship statuses for all besties
