@@ -63,6 +63,7 @@ export type Database = {
           is_public: boolean
           title: string
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           audio_url?: string | null
@@ -77,6 +78,7 @@ export type Database = {
           is_public?: boolean
           title: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           audio_url?: string | null
@@ -91,6 +93,7 @@ export type Database = {
           is_public?: boolean
           title?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: [
           {

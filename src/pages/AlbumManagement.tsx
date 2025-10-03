@@ -90,6 +90,7 @@ export default function AlbumManagement() {
   const [showCaptionDialog, setShowCaptionDialog] = useState(false);
   const [newCaption, setNewCaption] = useState("");
   const [existingImages, setExistingImages] = useState<AlbumImage[]>([]);
+  const [visibleToRoles, setVisibleToRoles] = useState<Array<'caregiver' | 'bestie' | 'supporter' | 'admin' | 'owner'>>(['caregiver', 'bestie', 'supporter']);
 
   useEffect(() => {
     checkAdminAccess();
@@ -284,6 +285,7 @@ export default function AlbumManagement() {
     setShowAudioRecorder(false);
     setIsPost(false);
     setIsPublic(true);
+    setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
     setEditingAlbum(null);
     setExistingImages([]);
     setShowForm(false);
@@ -332,6 +334,7 @@ export default function AlbumManagement() {
             audio_url: audioUrl,
             is_post: isPost,
             is_public: isPublic,
+            visible_to_roles: visibleToRoles,
           })
           .eq("id", editingAlbum.id);
 
@@ -346,6 +349,7 @@ export default function AlbumManagement() {
             audio_url: audioUrl,
             is_post: isPost,
             is_public: isPublic,
+            visible_to_roles: visibleToRoles,
             created_by: user.id,
           })
           .select()
@@ -417,6 +421,7 @@ export default function AlbumManagement() {
     setShowAudioRecorder(false);
     setIsPost(album.is_post || false);
     setIsPublic(album.is_public ?? true);
+    setVisibleToRoles((album as any).visible_to_roles || ['caregiver', 'bestie', 'supporter']);
     setExistingImages(album.images || []);
     setShowForm(true);
   };
@@ -730,6 +735,60 @@ export default function AlbumManagement() {
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                  </div>
+                </div>
+
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                  <Label>Visible To (Admin & Owner always included)</Label>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-caregiver"
+                        checked={visibleToRoles.includes('caregiver')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'caregiver']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'caregiver'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-caregiver" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Guardians
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-bestie"
+                        checked={visibleToRoles.includes('bestie')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'bestie']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'bestie'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-bestie" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Besties
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="role-supporter"
+                        checked={visibleToRoles.includes('supporter')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setVisibleToRoles([...visibleToRoles, 'supporter']);
+                          } else {
+                            setVisibleToRoles(visibleToRoles.filter(r => r !== 'supporter'));
+                          }
+                        }}
+                      />
+                      <label htmlFor="role-supporter" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Supporters
+                      </label>
+                    </div>
                   </div>
                 </div>
 
