@@ -155,7 +155,7 @@ export const FeaturedBestieManager = () => {
 
     setUploading(true);
     try {
-      // Check for date overlaps with other active besties
+      // Check for date overlaps with other active besties and show warning
       const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
       const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
       
@@ -173,12 +173,10 @@ export const FeaturedBestieManager = () => {
       if (conflicts.length > 0) {
         const conflictNames = conflicts.map(b => b.bestie_name).join(", ");
         toast({
-          title: "Date overlap detected",
-          description: `The selected dates overlap with: ${conflictNames}. Please choose different dates.`,
-          variant: "destructive",
+          title: "Date overlap warning",
+          description: `The selected dates overlap with: ${conflictNames}. Multiple besties will appear in a carousel.`,
+          variant: "default",
         });
-        setUploading(false);
-        return;
       }
 
       let imageUrl = "";
