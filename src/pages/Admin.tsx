@@ -196,7 +196,7 @@ const Admin = () => {
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
-            <TabsTrigger value="featured">Featured Besties</TabsTrigger>
+            <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="homepage">Homepage</TabsTrigger>
             <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
