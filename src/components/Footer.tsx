@@ -2,11 +2,30 @@ import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface FooterSection {
+  id: string;
+  title: string;
+  display_order: number;
+  is_active: boolean;
+}
+
+interface FooterLink {
+  id: string;
+  section_id: string;
+  label: string;
+  href: string;
+  display_order: number;
+  is_active: boolean;
+}
+
 const Footer = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [footerSections, setFooterSections] = useState<FooterSection[]>([]);
+  const [footerLinks, setFooterLinks] = useState<FooterLink[]>([]);
 
   useEffect(() => {
     loadLogo();
+    loadFooterData();
   }, []);
 
   const loadLogo = async () => {
@@ -46,7 +65,29 @@ const Footer = () => {
     }
   };
 
-  const footerLinks = [
+  const loadFooterData = async () => {
+    try {
+      const [sectionsResult, linksResult] = await Promise.all([
+        supabase
+          .from("footer_sections")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("footer_links")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true }),
+      ]);
+
+      if (sectionsResult.data) setFooterSections(sectionsResult.data);
+      if (linksResult.data) setFooterLinks(linksResult.data);
+    } catch (error) {
+      console.error('Error loading footer data:', error);
+    }
+  };
+
+  const defaultFooterLinks = [
     {
       title: "About",
       links: [
@@ -98,23 +139,45 @@ const Footer = () => {
             </p>
           </div>
 
-          {footerLinks.map((section) => (
-            <div key={section.title} className="space-y-4">
-              <h3 className="font-semibold text-foreground">{section.title}</h3>
-              <ul className="space-y-2">
-                {section.links.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {footerSections.length > 0 ? (
+            footerSections.map((section) => (
+              <div key={section.id} className="space-y-4">
+                <h3 className="font-semibold text-foreground">{section.title}</h3>
+                <ul className="space-y-2">
+                  {footerLinks
+                    .filter((link) => link.section_id === section.id)
+                    .map((link) => (
+                      <li key={link.id}>
+                        <a
+                          href={link.href}
+                          className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
+                        >
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))
+          ) : (
+            defaultFooterLinks.map((section) => (
+              <div key={section.title} className="space-y-4">
+                <h3 className="font-semibold text-foreground">{section.title}</h3>
+                <ul className="space-y-2">
+                  {section.links.map((link) => (
+                    <li key={link.label}>
+                      <a
+                        href={link.href}
+                        className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          )}
         </div>
 
         <div className="pt-8 border-t border-border text-center text-muted-foreground">
