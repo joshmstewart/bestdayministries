@@ -924,7 +924,6 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string
-          email: string | null
           friend_code: string | null
           id: string
           role: Database["public"]["Enums"]["user_role"] | null
@@ -939,7 +938,6 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name: string
-          email?: string | null
           friend_code?: string | null
           id: string
           role?: Database["public"]["Enums"]["user_role"] | null
@@ -954,7 +952,6 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string
-          email?: string | null
           friend_code?: string | null
           id?: string
           role?: Database["public"]["Enums"]["user_role"] | null

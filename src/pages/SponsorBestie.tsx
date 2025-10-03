@@ -77,7 +77,7 @@ const SponsorBestie = () => {
       setIsLoggedIn(true);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("email, role")
+        .select("role")
         .eq("id", user.id)
         .single();
       
@@ -88,8 +88,9 @@ const SponsorBestie = () => {
         return;
       }
       
-      if (profile?.email) {
-        setEmail(profile.email);
+      // Get email from auth user object instead of profiles
+      if (user.email) {
+        setEmail(user.email);
       }
     }
   };

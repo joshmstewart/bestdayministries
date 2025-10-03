@@ -81,7 +81,7 @@ export const UserManagement = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, display_name, role, created_at, email")
+        .select("id, display_name, role, created_at")
         .order("created_at", { ascending: false });
 
       if (error) throw error;

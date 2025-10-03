@@ -123,6 +123,85 @@ export const imageCaptionSchema = z.object({
 
 export type ImageCaptionInput = z.infer<typeof imageCaptionSchema>;
 
+// Navigation link validation
+export const navigationLinkSchema = z.object({
+  label: z.string()
+    .trim()
+    .min(1, "Label is required")
+    .max(50, "Label must be less than 50 characters"),
+  href: z.string()
+    .trim()
+    .min(1, "URL is required")
+    .refine(
+      (url) => url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://'),
+      { message: 'URL must start with /, http://, or https://' }
+    ),
+  display_order: z.number().int().min(0),
+  is_active: z.boolean(),
+});
+
+export type NavigationLinkInput = z.infer<typeof navigationLinkSchema>;
+
+// Footer link validation
+export const footerLinkSchema = z.object({
+  label: z.string()
+    .trim()
+    .min(1, "Label is required")
+    .max(100, "Label must be less than 100 characters"),
+  href: z.string()
+    .trim()
+    .min(1, "URL is required")
+    .refine(
+      (url) => url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://'),
+      { message: 'URL must start with /, http://, or https://' }
+    ),
+  section_id: z.string().uuid("Invalid section ID"),
+  display_order: z.number().int().min(0),
+  is_active: z.boolean(),
+});
+
+export type FooterLinkInput = z.infer<typeof footerLinkSchema>;
+
+// Quick link validation
+export const quickLinkSchema = z.object({
+  label: z.string()
+    .trim()
+    .min(1, "Label is required")
+    .max(50, "Label must be less than 50 characters"),
+  href: z.string()
+    .trim()
+    .min(1, "URL is required")
+    .refine(
+      (url) => url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://'),
+      { message: 'URL must start with /, http://, or https://' }
+    ),
+  icon: z.string()
+    .trim()
+    .min(1, "Icon is required")
+    .max(50, "Icon name must be less than 50 characters"),
+  color: z.string()
+    .trim()
+    .min(1, "Color is required")
+    .max(100, "Color must be less than 100 characters"),
+  display_order: z.number().int().min(0),
+  is_active: z.boolean(),
+});
+
+export type QuickLinkInput = z.infer<typeof quickLinkSchema>;
+
+// URL sanitization helper
+export const sanitizeUrl = (url: string): string => {
+  try {
+    const parsed = new URL(url, url.startsWith('/') ? 'http://localhost' : undefined);
+    if (!['http:', 'https:', ''].includes(parsed.protocol)) {
+      throw new Error('Invalid URL protocol');
+    }
+    return url;
+  } catch {
+    throw new Error('Invalid URL format');
+  }
+};
+
 // User creation validation (for edge function)
 export const createUserSchema = z.object({
   email: z.string()

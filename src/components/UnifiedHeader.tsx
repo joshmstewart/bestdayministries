@@ -168,9 +168,8 @@ export const UnifiedHeader = () => {
     setProfile(data);
     setIsAdmin(data?.role === "admin" || data?.role === "owner");
     
-    // Check if this is a test account
-    const testEmails = ["testbestie@example.com", "testguardian@example.com", "testsupporter@example.com"];
-    setIsTestAccount(testEmails.includes(data?.email || ""));
+    // Note: Test account checking removed as email is no longer stored in profiles
+    setIsTestAccount(false);
 
     // Check if bestie has shared sponsorships
     if (data?.role === "bestie") {

@@ -282,7 +282,7 @@ export default function GuardianLinks() {
       const bestieIds = allSponsorships.map(s => s.bestie_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, display_name, email, avatar_number")
+        .select("id, display_name, avatar_number")
         .in("id", bestieIds);
 
       if (profilesError) throw profilesError;
@@ -313,7 +313,6 @@ export default function GuardianLinks() {
             ...sponsorship,
             bestie: {
               display_name: bestie.display_name,
-              email: bestie.email,
               avatar_number: bestie.avatar_number
             },
             featured_bestie: featuredBestie ? {

@@ -9,6 +9,7 @@ import { Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { navigationLinkSchema, validateInput, sanitizeUrl } from "@/lib/validation";
 import {
   Select,
   SelectContent,
@@ -206,11 +207,44 @@ export function NavigationBarManager() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not authenticated");
 
+      // Validate all links before saving
+      for (const link of links) {
+        const validation = validateInput(navigationLinkSchema, {
+          label: link.label,
+          href: link.href,
+          display_order: link.display_order,
+          is_active: link.is_active,
+        });
+        
+        if (!validation.success) {
+          toast({
+            title: "Validation Error",
+            description: validation.errors?.[0] || "Invalid link data",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // Additional URL sanitization check
+        try {
+          sanitizeUrl(link.href);
+        } catch (error: any) {
+          toast({
+            title: "Invalid URL",
+            description: `${link.label}: ${error.message}`,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       // Prepare links for upsert
       const linksToSave = links.map((link) => ({
         id: link.id.startsWith("temp-") ? undefined : link.id,
-        label: link.label,
-        href: link.href,
+        label: link.label.trim(),
+        href: link.href.trim(),
         display_order: link.display_order,
         is_active: link.is_active,
         created_by: userData.user.id,
