@@ -99,9 +99,6 @@ const SponsorBestie = () => {
       .from("featured_besties")
       .select("id, bestie_name, image_url, description, monthly_goal")
       .eq("is_active", true)
-      .eq("approval_status", "approved")
-      .eq("available_for_sponsorship", true)
-      .eq("is_fully_funded", false)
       .order("created_at", { ascending: false });
 
     if (error) {

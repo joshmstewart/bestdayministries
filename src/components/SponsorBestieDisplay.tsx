@@ -83,12 +83,11 @@ export const SponsorBestieDisplay = () => {
 
   const loadCurrentBesties = async () => {
     try {
-      // Fetch all besties available for sponsorship from sponsor_besties table
+      // Fetch all active besties from sponsor_besties table
       const { data: bestiesData, error: bestiesError } = await supabase
         .from('sponsor_besties')
         .select('*')
         .eq('is_active', true)
-        .eq('approval_status', 'approved')
         .order('created_at', { ascending: false });
 
       if (bestiesError) throw bestiesError;
