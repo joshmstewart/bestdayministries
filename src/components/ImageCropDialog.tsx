@@ -1,9 +1,22 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import Cropper from "react-easy-crop";
 import { ZoomIn, ZoomOut } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const ASPECT_RATIOS = {
+  '1:1': 1,
+  '16:9': 16 / 9,
+  '9:16': 9 / 16,
+  '4:3': 4 / 3,
+  '3:4': 3 / 4,
+  '3:2': 3 / 2,
+  '2:3': 2 / 3,
+} as const;
+
+type AspectRatioKey = keyof typeof ASPECT_RATIOS;
 
 interface ImageCropDialogProps {
   open: boolean;
@@ -13,6 +26,8 @@ interface ImageCropDialogProps {
   aspectRatio?: number; // e.g., 16/9, 1/1, 4/3
   title?: string;
   description?: string;
+  allowAspectRatioChange?: boolean;
+  onAspectRatioChange?: (ratio: number) => void;
 }
 
 interface Area {
@@ -30,11 +45,33 @@ export function ImageCropDialog({
   aspectRatio = 16 / 9,
   title = "Crop Image",
   description = "Adjust the crop area to select what will be visible in the final image",
+  allowAspectRatioChange = false,
+  onAspectRatioChange,
 }: ImageCropDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [currentAspectRatio, setCurrentAspectRatio] = useState(aspectRatio);
+
+  useEffect(() => {
+    setCurrentAspectRatio(aspectRatio);
+  }, [aspectRatio]);
+
+  const handleAspectRatioChange = (ratioKey: AspectRatioKey) => {
+    const newRatio = ASPECT_RATIOS[ratioKey];
+    setCurrentAspectRatio(newRatio);
+    if (onAspectRatioChange) {
+      onAspectRatioChange(newRatio);
+    }
+  };
+
+  const getCurrentRatioKey = (): AspectRatioKey => {
+    const entry = Object.entries(ASPECT_RATIOS).find(([_, value]) => 
+      Math.abs(value - currentAspectRatio) < 0.01
+    );
+    return (entry?.[0] as AspectRatioKey) || '16:9';
+  };
 
   const onCropChange = (newCrop: { x: number; y: number }) => {
     setCrop(newCrop);
@@ -124,7 +161,7 @@ export function ImageCropDialog({
             image={imageUrl}
             crop={crop}
             zoom={zoom}
-            aspect={aspectRatio}
+            aspect={currentAspectRatio}
             onCropChange={onCropChange}
             onZoomChange={onZoomChange}
             onCropComplete={onCropCompleteInternal}
@@ -132,6 +169,26 @@ export function ImageCropDialog({
         </div>
 
         <div className="space-y-4">
+          {allowAspectRatioChange && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Aspect Ratio</label>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(ASPECT_RATIOS) as AspectRatioKey[]).map((ratioKey) => (
+                  <Button
+                    key={ratioKey}
+                    type="button"
+                    variant={getCurrentRatioKey() === ratioKey ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleAspectRatioChange(ratioKey)}
+                    className="min-w-[60px]"
+                  >
+                    {ratioKey}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-4">
             <ZoomOut className="w-4 h-4 text-muted-foreground" />
             <Slider

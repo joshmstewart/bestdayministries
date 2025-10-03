@@ -190,7 +190,11 @@ export default function PublicEvents() {
                   {event.image_url && (
                     <div className={cn(
                       "w-full overflow-hidden",
-                      event.aspect_ratio === 'landscape' ? "aspect-[16/9]" : "aspect-[9/16]"
+                      (() => {
+                        const ratio = (event as any).aspect_ratio || '9:16';
+                        const [w, h] = ratio.split(':').map(Number);
+                        return `aspect-[${w}/${h}]`;
+                      })()
                     )}>
                       <img
                         src={event.image_url}

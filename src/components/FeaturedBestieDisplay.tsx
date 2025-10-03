@@ -189,7 +189,10 @@ export const FeaturedBestieDisplay = () => {
         <div className="grid md:grid-cols-2 gap-6 p-6">
           {/* Image Section */}
           <div className="relative overflow-hidden rounded-lg">
-            <AspectRatio ratio={bestie.aspect_ratio === 'landscape' ? 16 / 9 : 9 / 16}>
+            <AspectRatio ratio={(() => {
+              const [w, h] = (bestie.aspect_ratio || '9:16').split(':').map(Number);
+              return w / h;
+            })()}>
               <img
                 src={bestie.image_url}
                 alt={bestie.bestie_name}
@@ -288,7 +291,10 @@ export const FeaturedBestieDisplay = () => {
                   <div className="grid md:grid-cols-2 gap-6 p-6">
                     {/* Image Section */}
                     <div className="relative overflow-hidden rounded-lg">
-                      <AspectRatio ratio={bestie.aspect_ratio === 'landscape' ? 16 / 9 : 9 / 16}>
+                      <AspectRatio ratio={(() => {
+                        const [w, h] = (bestie.aspect_ratio || '9:16').split(':').map(Number);
+                        return w / h;
+                      })()}>
                         <img
                           src={bestie.image_url}
                           alt={bestie.bestie_name}
