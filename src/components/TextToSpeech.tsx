@@ -89,9 +89,6 @@ export const TextToSpeech = ({
       console.log('TTS - Created audio URL:', audioUrl);
       
       const newAudio = new Audio(audioUrl);
-      
-      // Force starting position to 0
-      newAudio.currentTime = 0;
 
       newAudio.onended = () => {
         console.log('TTS - Audio ended');
@@ -109,26 +106,6 @@ export const TextToSpeech = ({
           variant: "destructive",
         });
       };
-
-      // Monitor actual playback position
-      newAudio.addEventListener('loadedmetadata', () => {
-        console.log('TTS - Audio metadata loaded, duration:', newAudio.duration);
-        newAudio.currentTime = 0; // Force to start again
-      });
-
-      newAudio.addEventListener('canplay', () => {
-        console.log('TTS - Audio can play, currentTime:', newAudio.currentTime);
-        newAudio.currentTime = 0; // Force to start once more
-      });
-      
-      newAudio.addEventListener('playing', () => {
-        console.log('TTS - Audio actually playing now, currentTime:', newAudio.currentTime);
-      });
-      
-      newAudio.addEventListener('timeupdate', function onTimeUpdate() {
-        console.log('TTS - First timeupdate, currentTime:', newAudio.currentTime);
-        newAudio.removeEventListener('timeupdate', onTimeUpdate);
-      });
 
       setAudio(newAudio);
       
