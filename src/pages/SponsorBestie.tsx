@@ -17,12 +17,12 @@ interface Bestie {
   id: string;
   bestie_name: string;
   image_url: string;
-  description: string;
+  text_sections: Array<{header: string; text: string}>;
   monthly_goal: number | null;
 }
 
 interface FundingProgress {
-  featured_bestie_id: string;
+  sponsor_bestie_id: string;
   current_monthly_pledges: number;
   monthly_goal: number;
   funding_percentage: number;
@@ -96,8 +96,8 @@ const SponsorBestie = () => {
 
   const loadBesties = async () => {
     const { data, error } = await supabase
-      .from("featured_besties")
-      .select("id, bestie_name, image_url, description, monthly_goal")
+      .from("sponsor_besties")
+      .select("id, bestie_name, image_url, text_sections, monthly_goal")
       .eq("is_active", true)
       .order("created_at", { ascending: false });
 
@@ -106,15 +106,22 @@ const SponsorBestie = () => {
       return;
     }
 
-    setBesties(data || []);
-    if (data && data.length > 0) {
-      setSelectedBestie(data[0].id);
+    // Parse text_sections
+    const parsedBesties = (data || []).map(b => ({
+      ...b,
+      text_sections: Array.isArray(b.text_sections) ? b.text_sections : 
+        (typeof b.text_sections === 'string' ? JSON.parse(b.text_sections) : [])
+    }));
+
+    setBesties(parsedBesties);
+    if (parsedBesties.length > 0) {
+      setSelectedBestie(parsedBesties[0].id);
     }
   };
 
   const loadFundingProgress = async () => {
     const { data, error } = await supabase
-      .from("bestie_funding_progress")
+      .from("sponsor_bestie_funding_progress")
       .select("*");
 
     if (error) {
@@ -125,7 +132,7 @@ const SponsorBestie = () => {
     // Create a map of bestie ID to funding progress
     const progressMap: Record<string, FundingProgress> = {};
     data?.forEach(progress => {
-      progressMap[progress.featured_bestie_id] = progress;
+      progressMap[progress.sponsor_bestie_id] = progress;
     });
     setFundingProgress(progressMap);
   };
@@ -233,7 +240,11 @@ const SponsorBestie = () => {
                                 <Label htmlFor={bestie.id} className="text-lg font-bold cursor-pointer">
                                   {bestie.bestie_name}
                                 </Label>
-                                <p className="text-sm text-muted-foreground mt-1">{bestie.description}</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {bestie.text_sections && bestie.text_sections.length > 0 
+                                    ? bestie.text_sections[0].text 
+                                    : "No description available"}
+                                </p>
                                 
                                 {bestie.monthly_goal && bestie.monthly_goal > 0 && fundingProgress[bestie.id] && (
                                   <div className="mt-3">
