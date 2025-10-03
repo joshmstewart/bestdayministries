@@ -361,6 +361,8 @@ export default function EventManagement() {
   };
 
   const handleEdit = async (event: Event) => {
+    // First, ensure the form is visible and reset to editing mode
+    setShowForm(true);
     setEditingEvent(event);
     setTitle(event.title);
     setDescription(event.description);
@@ -377,9 +379,16 @@ export default function EventManagement() {
     setRecurrenceInterval(event.recurrence_interval || 1);
     if (event.recurrence_end_date) {
       setRecurrenceEndDate(new Date(event.recurrence_end_date));
+    } else {
+      setRecurrenceEndDate(null);
     }
     setAspectRatio((event as any).aspect_ratio || 'portrait');
     setImagePreview(event.image_url);
+    setSelectedImage(null);
+    setRawImageUrl(null);
+    setAudioBlob(null);
+    setSelectedAudio(null);
+    setShowAudioRecorder(false);
     
     // Load additional dates
     const { data: eventDates } = await supabase
@@ -389,9 +398,12 @@ export default function EventManagement() {
     
     if (eventDates) {
       setAdditionalDates(eventDates.map(d => new Date(d.event_date)));
+    } else {
+      setAdditionalDates([]);
     }
     
-    setShowForm(true);
+    // Scroll to the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (eventId: string) => {

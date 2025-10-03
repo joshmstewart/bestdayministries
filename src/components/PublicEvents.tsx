@@ -119,12 +119,20 @@ export default function PublicEvents() {
   }
 
   const upcomingEventCards: EventDateCard[] = [];
+  const now = new Date();
 
   events.forEach(event => {
     const allDates = getAllEventDates(event);
     
     allDates.forEach(date => {
-      if (date >= new Date()) {
+      // Check if this date is upcoming
+      const isUpcoming = date >= now;
+      
+      // If expires_after_date is true, only show if the date hasn't passed
+      // If expires_after_date is false, show the event even if the date has passed
+      const shouldShow = event.expires_after_date ? isUpcoming : true;
+      
+      if (shouldShow && isUpcoming) {
         upcomingEventCards.push({
           event,
           displayDate: date,
