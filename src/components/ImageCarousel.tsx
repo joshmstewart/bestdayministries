@@ -63,7 +63,10 @@ export default function ImageCarousel({
     <div className={`relative group ${className}`}>
       {/* Main Image */}
       <div 
-        className="aspect-video overflow-hidden rounded-lg bg-muted cursor-pointer"
+        className="overflow-hidden rounded-lg bg-muted cursor-pointer"
+        style={{
+          aspectRatio: '16 / 9'
+        }}
         onClick={() => openLightbox(currentIndex)}
       >
         <img
