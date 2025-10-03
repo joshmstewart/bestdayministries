@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Heart, Trash2, Image as ImageIcon, X, Mic, Edit } from "lucide-react";
+import { MessageSquare, Send, Heart, Trash2, Image as ImageIcon, X, Mic, Edit, Search, ArrowUpDown } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -19,6 +19,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { discussionPostSchema, commentSchema, validateInput } from "@/lib/validation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Profile {
   id: string;
@@ -72,6 +73,8 @@ const Discussions = () => {
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
   const [expandedComments, setExpandedComments] = useState<{ [key: string]: boolean }>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
   useEffect(() => {
     checkUser();
@@ -790,18 +793,66 @@ const Discussions = () => {
 
           {/* Posts List */}
           <div className="space-y-6">
-            {posts.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
-                  <p className="text-muted-foreground">
-                    Be the first to start a discussion!
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              posts.map((post) => (
+            {/* Search and Sort Controls */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search discussions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={sortOrder} onValueChange={(value: "newest" | "oldest") => setSortOrder(value)}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(() => {
+              // Filter posts by search query
+              let filteredPosts = posts.filter(post => {
+                const query = searchQuery.toLowerCase();
+                return (
+                  post.title.toLowerCase().includes(query) ||
+                  post.content.toLowerCase().includes(query)
+                );
+              });
+
+              // Sort posts
+              const sortedPosts = [...filteredPosts].sort((a, b) => {
+                const dateA = new Date(a.created_at).getTime();
+                const dateB = new Date(b.created_at).getTime();
+                return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+              });
+
+              if (sortedPosts.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        {searchQuery ? "No posts found" : "No posts yet"}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {searchQuery 
+                          ? "Try a different search term" 
+                          : "Be the first to start a discussion!"
+                        }
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              return sortedPosts.map((post) => (
                 <Card key={post.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
@@ -1051,7 +1102,7 @@ const Discussions = () => {
                   </CardContent>
                 </Card>
               ))
-            )}
+            })()}
           </div>
         </div>
       </main>
