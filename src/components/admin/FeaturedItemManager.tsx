@@ -67,9 +67,9 @@ export const FeaturedItemManager = () => {
   const loadLinkOptions = async () => {
     try {
       const [eventsData, albumsData, postsData] = await Promise.all([
-        supabase.from("events").select("id, title").order("event_date", { ascending: false }),
-        supabase.from("albums").select("id, title").eq("is_active", true).order("created_at", { ascending: false }),
-        supabase.from("discussion_posts").select("id, title").eq("approval_status", "approved").order("created_at", { ascending: false })
+        supabase.from("events").select("id, title, description, image_url").order("event_date", { ascending: false }),
+        supabase.from("albums").select("id, title, description, cover_image_url").eq("is_active", true).order("created_at", { ascending: false }),
+        supabase.from("discussion_posts").select("id, title, content, image_url").eq("approval_status", "approved").order("created_at", { ascending: false })
       ]);
 
       if (eventsData.data) setEvents(eventsData.data);
@@ -77,6 +77,62 @@ export const FeaturedItemManager = () => {
       if (postsData.data) setPosts(postsData.data);
     } catch (error) {
       console.error("Error loading link options:", error);
+    }
+  };
+
+  const handleLinkSelection = (type: string, id?: string) => {
+    setLinkType(type);
+    
+    if (type === "sponsorship") {
+      setFormData({ ...formData, link_url: "/sponsor-bestie" });
+      return;
+    }
+    
+    if (!id) return;
+    
+    // Auto-fill form based on selected item
+    if (type === "event") {
+      const event = events.find(e => e.id === id);
+      if (event) {
+        setFormData({
+          ...formData,
+          title: event.title,
+          description: event.description || "",
+          image_url: event.image_url || "",
+          link_url: `event:${id}`,
+        });
+        if (event.image_url) {
+          setImagePreview(event.image_url);
+        }
+      }
+    } else if (type === "album") {
+      const album = albums.find(a => a.id === id);
+      if (album) {
+        setFormData({
+          ...formData,
+          title: album.title,
+          description: album.description || "",
+          image_url: album.cover_image_url || "",
+          link_url: `album:${id}`,
+        });
+        if (album.cover_image_url) {
+          setImagePreview(album.cover_image_url);
+        }
+      }
+    } else if (type === "post") {
+      const post = posts.find(p => p.id === id);
+      if (post) {
+        setFormData({
+          ...formData,
+          title: post.title,
+          description: post.content?.substring(0, 200) || "",
+          image_url: post.image_url || "",
+          link_url: `post:${id}`,
+        });
+        if (post.image_url) {
+          setImagePreview(post.image_url);
+        }
+      }
     }
   };
 
@@ -274,6 +330,97 @@ export const FeaturedItemManager = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <Label>Link Type</Label>
+              <Select value={linkType} onValueChange={(value) => handleLinkSelection(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                  <SelectItem value="event">Event</SelectItem>
+                  <SelectItem value="album">Album</SelectItem>
+                  <SelectItem value="post">Post</SelectItem>
+                  <SelectItem value="sponsorship">Sponsorship Page</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {linkType === "custom" && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Link URL</label>
+                <Input
+                  value={formData.link_url}
+                  onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
+                  required
+                  placeholder="https://... or /events"
+                />
+              </div>
+            )}
+
+            {linkType === "event" && (
+              <div>
+                <Label>Select Event</Label>
+                <Select
+                  value={formData.link_url.replace("event:", "")}
+                  onValueChange={(value) => handleLinkSelection("event", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {linkType === "album" && (
+              <div>
+                <Label>Select Album</Label>
+                <Select
+                  value={formData.link_url.replace("album:", "")}
+                  onValueChange={(value) => handleLinkSelection("album", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an album" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {albums.map((album) => (
+                      <SelectItem key={album.id} value={album.id}>
+                        {album.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {linkType === "post" && (
+              <div>
+                <Label>Select Post</Label>
+                <Select
+                  value={formData.link_url.replace("post:", "")}
+                  onValueChange={(value) => handleLinkSelection("post", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a post" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {posts.map((post) => (
+                      <SelectItem key={post.id} value={post.id}>
+                        {post.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div>
               <label className="block text-sm font-medium mb-1">Title</label>
               <Input
                 value={formData.title}
@@ -336,97 +483,6 @@ export const FeaturedItemManager = () => {
                 )}
               </div>
             </div>
-
-            <div>
-              <Label>Link Type</Label>
-              <Select value={linkType} onValueChange={setLinkType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Custom URL</SelectItem>
-                  <SelectItem value="event">Event</SelectItem>
-                  <SelectItem value="album">Album</SelectItem>
-                  <SelectItem value="post">Post</SelectItem>
-                  <SelectItem value="sponsorship">Sponsorship Page</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {linkType === "custom" && (
-              <div>
-                <label className="block text-sm font-medium mb-1">Link URL</label>
-                <Input
-                  value={formData.link_url}
-                  onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
-                  required
-                  placeholder="https://... or /events"
-                />
-              </div>
-            )}
-
-            {linkType === "event" && (
-              <div>
-                <Label>Select Event</Label>
-                <Select
-                  value={formData.link_url.replace("event:", "")}
-                  onValueChange={(value) => setFormData({ ...formData, link_url: `event:${value}` })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose an event" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {events.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {linkType === "album" && (
-              <div>
-                <Label>Select Album</Label>
-                <Select
-                  value={formData.link_url.replace("album:", "")}
-                  onValueChange={(value) => setFormData({ ...formData, link_url: `album:${value}` })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose an album" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {albums.map((album) => (
-                      <SelectItem key={album.id} value={album.id}>
-                        {album.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {linkType === "post" && (
-              <div>
-                <Label>Select Post</Label>
-                <Select
-                  value={formData.link_url.replace("post:", "")}
-                  onValueChange={(value) => setFormData({ ...formData, link_url: `post:${value}` })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a post" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {posts.map((post) => (
-                      <SelectItem key={post.id} value={post.id}>
-                        {post.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {linkType === "sponsorship" && (
               <div className="text-sm text-muted-foreground">
