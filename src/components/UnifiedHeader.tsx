@@ -63,7 +63,18 @@ export const UnifiedHeader = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Subscribe to navigation links changes
+    const navSubscription = supabase
+      .channel('navigation_links_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'navigation_links' }, () => {
+        loadNavLinks();
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      navSubscription.unsubscribe();
+    };
   }, []);
 
   // Update admin status when impersonation changes
