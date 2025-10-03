@@ -159,7 +159,7 @@ export default function AlbumManagement() {
     if (data) setEvents(data);
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -174,13 +174,18 @@ export default function AlbumManagement() {
     setSelectedImages(prev => [...prev, ...imageFiles]);
     setImageCaptions(prev => [...prev, ...new Array(imageFiles.length).fill("")]);
 
-    imageFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    // Read all files in order and wait for them to complete
+    const previews = await Promise.all(
+      imageFiles.map(file => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      })
+    );
+    
+    setImagePreviews(prev => [...prev, ...previews]);
 
     // Reset the input so the same files can be selected again if needed
     if (e.target) {
