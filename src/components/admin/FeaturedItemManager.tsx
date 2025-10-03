@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, Eye, EyeOff, Upload, X } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
 
 interface FeaturedItem {
   id: string;
@@ -30,6 +32,10 @@ export const FeaturedItemManager = () => {
     link_text: "Learn More",
     display_order: 0,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadItems();
@@ -52,15 +58,65 @@ export const FeaturedItemManager = () => {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setImageFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!imageFile && !formData.image_url && !editingId) {
+      toast.error("Please upload an image or provide an image URL");
+      return;
+    }
+
+    setUploading(true);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      let imageUrl = formData.image_url;
+
+      // Upload image if file is selected
+      if (imageFile) {
+        const compressedImage = await compressImage(imageFile, 4.5);
+        const fileName = `${user.id}/${Date.now()}_featured_${imageFile.name}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("app-assets")
+          .upload(fileName, compressedImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("app-assets")
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+      }
+
       const itemData = {
         ...formData,
+        image_url: imageUrl,
         created_by: user.id,
         is_active: true,
       };
@@ -87,6 +143,8 @@ export const FeaturedItemManager = () => {
     } catch (error) {
       console.error("Error saving featured item:", error);
       toast.error("Failed to save featured item");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -100,6 +158,10 @@ export const FeaturedItemManager = () => {
       link_text: item.link_text,
       display_order: item.display_order,
     });
+    // Show existing image preview if available
+    if (item.image_url) {
+      setImagePreview(item.image_url);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -146,6 +208,11 @@ export const FeaturedItemManager = () => {
       link_text: "Learn More",
       display_order: 0,
     });
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   if (loading) {
@@ -180,12 +247,48 @@ export const FeaturedItemManager = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Image URL (optional)</label>
-              <Input
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="https://..."
-              />
+              <Label>Image</Label>
+              <div className="space-y-3 mt-2">
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={removeImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Upload an image for the featured item
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Select Image
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
@@ -218,8 +321,8 @@ export const FeaturedItemManager = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit">
-                {editingId ? "Update" : "Create"} Featured Item
+              <Button type="submit" disabled={uploading}>
+                {uploading ? "Uploading..." : editingId ? "Update" : "Create"} Featured Item
               </Button>
               {editingId && (
                 <Button type="button" variant="outline" onClick={resetForm}>
