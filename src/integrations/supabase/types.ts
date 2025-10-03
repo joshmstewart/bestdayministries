@@ -652,13 +652,13 @@ export type Database = {
           bestie_name: string
           created_at: string
           description: string
-          end_date: string
+          end_date: string | null
           id: string
           image_url: string
           is_active: boolean | null
           is_fully_funded: boolean
           monthly_goal: number | null
-          start_date: string
+          start_date: string | null
           updated_at: string
           voice_note_url: string | null
         }
@@ -672,13 +672,13 @@ export type Database = {
           bestie_name: string
           created_at?: string
           description: string
-          end_date?: string
+          end_date?: string | null
           id?: string
           image_url: string
           is_active?: boolean | null
           is_fully_funded?: boolean
           monthly_goal?: number | null
-          start_date?: string
+          start_date?: string | null
           updated_at?: string
           voice_note_url?: string | null
         }
@@ -692,13 +692,13 @@ export type Database = {
           bestie_name?: string
           created_at?: string
           description?: string
-          end_date?: string
+          end_date?: string | null
           id?: string
           image_url?: string
           is_active?: boolean | null
           is_fully_funded?: boolean
           monthly_goal?: number | null
-          start_date?: string
+          start_date?: string | null
           updated_at?: string
           voice_note_url?: string | null
         }

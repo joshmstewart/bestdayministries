@@ -25,8 +25,8 @@ interface FeaturedBestie {
   image_url: string;
   voice_note_url: string | null;
   description: string;
-  start_date: string;
-  end_date: string;
+  start_date: string | null;
+  end_date: string | null;
   available_for_sponsorship: boolean;
   is_fully_funded: boolean;
   monthly_goal: number | null;
@@ -117,13 +117,15 @@ export const FeaturedBestieDisplay = () => {
       // Get today's date in format YYYY-MM-DD
       const today = format(new Date(), "yyyy-MM-dd");
       
+      // Query for besties that are either:
+      // 1. Have no dates (indefinite)
+      // 2. Have dates that include today
       const { data, error } = await supabase
         .from("featured_besties")
         .select("*")
         .eq("is_active", true)
         .eq("approval_status", "approved")
-        .lte("start_date", today)
-        .gte("end_date", today);
+        .or(`start_date.is.null,and(start_date.lte.${today},end_date.gte.${today})`);
 
       if (error) throw error;
       

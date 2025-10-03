@@ -25,8 +25,8 @@ interface FeaturedBestie {
   image_url: string;
   voice_note_url: string | null;
   description: string;
-  start_date: string;
-  end_date: string;
+  start_date: string | null;
+  end_date: string | null;
   is_active: boolean;
   available_for_sponsorship: boolean;
   is_fully_funded: boolean;
@@ -129,10 +129,10 @@ export const FeaturedBestieManager = () => {
   const handleSubmit = async () => {
     console.log("Submit clicked", { bestieName, description, startDate, endDate, imageFile, editingId });
     
-    if (!bestieName || !description || !startDate || !endDate) {
+    if (!bestieName || !description) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all required fields including start and end dates",
+        description: "Please fill in all required fields (name and description)",
         variant: "destructive",
       });
       return;
@@ -147,7 +147,8 @@ export const FeaturedBestieManager = () => {
       return;
     }
 
-    if (endDate < startDate) {
+    // Only validate date range if both dates are provided
+    if (startDate && endDate && endDate < startDate) {
       toast({
         title: "Invalid date range",
         description: "End date must be after or equal to start date",
@@ -158,28 +159,32 @@ export const FeaturedBestieManager = () => {
 
     setUploading(true);
     try {
-      // Check for date overlaps with other active besties and show warning
-      const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
-      const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
-      
-      const { data: overlappingBesties, error: overlapError } = await supabase
-        .from("featured_besties")
-        .select("id, bestie_name, start_date, end_date")
-        .eq("is_active", true)
-        .or(`and(start_date.lte.${endDateStr},end_date.gte.${startDateStr})`);
+      // Check for date overlaps only if dates are provided
+      if (startDate && endDate) {
+        const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+        const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+        
+        const { data: overlappingBesties, error: overlapError } = await supabase
+          .from("featured_besties")
+          .select("id, bestie_name, start_date, end_date")
+          .eq("is_active", true)
+          .not("start_date", "is", null)
+          .not("end_date", "is", null)
+          .or(`and(start_date.lte.${endDateStr},end_date.gte.${startDateStr})`);
 
-      if (overlapError) throw overlapError;
+        if (overlapError) throw overlapError;
 
-      // Filter out the current bestie being edited
-      const conflicts = overlappingBesties?.filter(b => b.id !== editingId) || [];
-      
-      if (conflicts.length > 0) {
-        const conflictNames = conflicts.map(b => b.bestie_name).join(", ");
-        toast({
-          title: "Date overlap warning",
-          description: `The selected dates overlap with: ${conflictNames}. Multiple besties will appear in a carousel.`,
-          variant: "default",
-        });
+        // Filter out the current bestie being edited
+        const conflicts = overlappingBesties?.filter(b => b.id !== editingId) || [];
+        
+        if (conflicts.length > 0) {
+          const conflictNames = conflicts.map(b => b.bestie_name).join(", ");
+          toast({
+            title: "Date overlap warning",
+            description: `The selected dates overlap with: ${conflictNames}. Multiple besties will appear in a carousel.`,
+            variant: "default",
+          });
+        }
       }
 
       let imageUrl = "";
@@ -232,8 +237,8 @@ export const FeaturedBestieManager = () => {
         bestie_id: linkedBestieId || null,
         bestie_name: bestieName,
         description,
-        start_date: `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`,
-        end_date: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`,
+        start_date: startDate ? `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}` : null,
+        end_date: endDate ? `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}` : null,
         is_active: isActive,
         available_for_sponsorship: availableForSponsorship,
         is_fully_funded: autoFullyFunded,
@@ -295,8 +300,8 @@ export const FeaturedBestieManager = () => {
     setBestieName(bestie.bestie_name);
     setDescription(bestie.description);
     // Parse dates at noon local time to avoid timezone shifts
-    setStartDate(new Date(bestie.start_date + 'T12:00:00'));
-    setEndDate(new Date(bestie.end_date + 'T12:00:00'));
+    setStartDate(bestie.start_date ? new Date(bestie.start_date + 'T12:00:00') : undefined);
+    setEndDate(bestie.end_date ? new Date(bestie.end_date + 'T12:00:00') : undefined);
     setIsActive(bestie.is_active);
     setAvailableForSponsorship(bestie.available_for_sponsorship);
     setIsFullyFunded(bestie.is_fully_funded);
@@ -548,7 +553,7 @@ export const FeaturedBestieManager = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Start Date *</Label>
+                  <Label>Start Date (Optional)</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -575,7 +580,7 @@ export const FeaturedBestieManager = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>End Date *</Label>
+                  <Label>End Date (Optional)</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -603,7 +608,7 @@ export const FeaturedBestieManager = () => {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Choose specific dates or select the 1st day of a month for both to feature for the whole month
+                Leave dates empty to feature this bestie indefinitely
               </p>
 
               <div className="space-y-2">
