@@ -326,7 +326,34 @@ const Community = () => {
               <CardContent>
                 {upcomingEvents.length > 0 ? (
                   <div className="space-y-4">
-                    {upcomingEvents.map((event) => {
+                    {(() => {
+                      // Filter events based on cumulative height
+                      const MAX_HEIGHT = 800; // pixels
+                      const CARD_PADDING = 24; // p-3 = 12px top + 12px bottom
+                      const SPACING = 16; // space-y-4 = 16px
+                      const TEXT_HEIGHT = 120; // Approximate height for title, description, date, location
+                      
+                      let cumulativeHeight = 0;
+                      const eventsToShow = [];
+                      
+                      for (const event of upcomingEvents) {
+                        // Calculate image height based on aspect ratio
+                        const ratio = event.aspect_ratio || '9:16';
+                        const [w, h] = ratio.split(':').map(Number);
+                        const cardWidth = 400; // Approximate card width
+                        const imageHeight = (cardWidth * h) / w;
+                        
+                        const eventHeight = imageHeight + TEXT_HEIGHT + CARD_PADDING + (eventsToShow.length > 0 ? SPACING : 0);
+                        
+                        if (cumulativeHeight + eventHeight > MAX_HEIGHT && eventsToShow.length > 0) {
+                          break; // Don't add this event, would exceed height
+                        }
+                        
+                        eventsToShow.push(event);
+                        cumulativeHeight += eventHeight;
+                      }
+                      
+                      return eventsToShow.map((event) => {
                       // Prepare clean text string for TTS
                       const eventDate = new Date(event.event_date).toLocaleDateString();
                       const ttsText = [
@@ -399,7 +426,8 @@ const Community = () => {
                         )}
                       </div>
                       );
-                    })}
+                      });
+                    })()}
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No upcoming events</p>
