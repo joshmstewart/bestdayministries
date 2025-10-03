@@ -218,6 +218,45 @@ export type Database = {
           },
         ]
       }
+      community_quick_links: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string
+          display_order: number
+          href: string
+          icon: string
+          id: string
+          is_active: boolean
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by: string
+          display_order?: number
+          href: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string
+          display_order?: number
+          href?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       discussion_comments: {
         Row: {
           approval_status: string

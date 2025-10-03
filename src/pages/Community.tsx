@@ -5,6 +5,7 @@ import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, Calendar, Users, MessageSquare, Gift, Sparkles, ArrowRight } from "lucide-react";
+import * as Icons from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
@@ -24,6 +25,7 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [quickLinks, setQuickLinks] = useState<any[]>([]);
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
   const [effectiveRole, setEffectiveRole] = useState<UserRole | null>(null);
 
@@ -74,54 +76,76 @@ const Community = () => {
     // Don't load if we don't have an effective role yet
     if (!effectiveRole) return;
     
-    // Fetch latest discussion
-    const { data: discussions } = await supabase
-      .from("discussion_posts")
-      .select(`
-        *,
-        author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
-      `)
-      .eq("is_moderated", true)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+    try {
+      // Fetch latest discussion
+      const { data: discussions } = await supabase
+        .from("discussion_posts")
+        .select(`
+          *,
+          author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
+        `)
+        .eq("is_moderated", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
 
-    if (discussions) {
-      setLatestDiscussion(discussions);
-    }
+      if (discussions) {
+        setLatestDiscussion(discussions);
+      }
 
-    // Fetch upcoming event dates (up to 3) with role-based filtering
-    const { data: eventDates } = await supabase
-      .from("event_dates")
-      .select(`
-        *,
-        events:event_id (*)
-      `)
-      .gte("event_date", new Date().toISOString())
-      .order("event_date", { ascending: true });
+      // Fetch upcoming event dates (up to 3) with role-based filtering
+      const { data: eventDates } = await supabase
+        .from("event_dates")
+        .select(`
+          *,
+          events:event_id (*)
+        `)
+        .gte("event_date", new Date().toISOString())
+        .order("event_date", { ascending: true });
 
-    if (eventDates) {
-      console.log('Community - User role:', effectiveRole);
-      console.log('Community - Total event dates fetched:', eventDates.length);
+      if (eventDates) {
+        console.log('Community - User role:', effectiveRole);
+        console.log('Community - Total event dates fetched:', eventDates.length);
+        
+        // Filter event dates based on effective user role and take first 3
+        const filteredEventDates = eventDates
+          .filter(eventDate => {
+            const event = eventDate.events;
+            if (!event) return false;
+            const isVisible = event.visible_to_roles?.includes(effectiveRole);
+            console.log(`Community - Event "${event.title}" on ${eventDate.event_date} - Visible to roles:`, event.visible_to_roles, 'User role:', effectiveRole, 'Is visible:', isVisible);
+            return isVisible;
+          })
+          .slice(0, 3)
+          .map(eventDate => ({
+            ...eventDate.events,
+            event_date: eventDate.event_date, // Override with the specific date
+            event_date_id: eventDate.id
+          }));
+        
+        console.log('Community - Filtered event dates count:', filteredEventDates.length);
+        setUpcomingEvents(filteredEventDates);
+      }
+
+      // Fetch quick links from database
+      const { data: linksData, error: linksError } = await supabase
+        .from('community_quick_links')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (linksError) throw linksError;
       
-      // Filter event dates based on effective user role and take first 3
-      const filteredEventDates = eventDates
-        .filter(eventDate => {
-          const event = eventDate.events;
-          if (!event) return false;
-          const isVisible = event.visible_to_roles?.includes(effectiveRole);
-          console.log(`Community - Event "${event.title}" on ${eventDate.event_date} - Visible to roles:`, event.visible_to_roles, 'User role:', effectiveRole, 'Is visible:', isVisible);
-          return isVisible;
-        })
-        .slice(0, 3)
-        .map(eventDate => ({
-          ...eventDate.events,
-          event_date: eventDate.event_date, // Override with the specific date
-          event_date_id: eventDate.id
-        }));
-      
-      console.log('Community - Filtered event dates count:', filteredEventDates.length);
-      setUpcomingEvents(filteredEventDates);
+      // Use database links if available, otherwise fallback to default
+      if (linksData && linksData.length > 0) {
+        setQuickLinks(linksData);
+      } else {
+        setQuickLinks(defaultQuickLinks);
+      }
+    } catch (error) {
+      console.error('Error loading content:', error);
+      // Set default quick links on error
+      setQuickLinks(defaultQuickLinks);
     }
   };
 
@@ -151,11 +175,11 @@ const Community = () => {
     );
   }
 
-  const quickLinks = [
-    { icon: Gift, label: "Sponsor a Bestie", href: "/sponsor", color: "from-primary/20 to-secondary/5" },
-    { icon: Users, label: "About Best Day Ministries", href: "/about", color: "from-secondary/20 to-accent/5" },
-    { icon: Sparkles, label: "Joy Rocks Coffee", href: "/joy-rocks", color: "from-accent/20 to-primary/5" },
-    { icon: Gift, label: "Support Us", href: "/donate", color: "from-secondary/20 to-primary/5" },
+  const defaultQuickLinks = [
+    { label: "Sponsor a Bestie", href: "/sponsor", icon: "Gift", color: "from-primary/20 to-secondary/5" },
+    { label: "About Best Day Ministries", href: "/about", icon: "Users", color: "from-secondary/20 to-accent/5" },
+    { label: "Joy Rocks Coffee", href: "/joy-rocks", icon: "Sparkles", color: "from-accent/20 to-primary/5" },
+    { label: "Support Us", href: "/donate", icon: "Gift", color: "from-secondary/20 to-primary/5" },
   ];
 
   return (
@@ -352,18 +376,22 @@ const Community = () => {
 
           {/* Quick Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {quickLinks.map((link, index) => (
-              <button
-                key={index}
-                onClick={() => navigate(link.href)}
-                className="group"
-              >
-                <div className={`p-6 rounded-2xl border-2 border-border hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm bg-gradient-to-br ${link.color}`}>
-                  <link.icon className="w-10 h-10 text-primary mb-4 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-bold text-lg text-foreground">{link.label}</h3>
-                </div>
-              </button>
-            ))}
+            {quickLinks.map((link, index) => {
+              const iconName = typeof link.icon === 'string' ? link.icon : 'Link';
+              const IconComponent = (Icons as any)[iconName] || Icons.Link;
+              return (
+                <button
+                  key={link.id || index}
+                  onClick={() => navigate(link.href)}
+                  className="group"
+                >
+                  <div className={`p-6 rounded-2xl border-2 border-border hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm bg-gradient-to-br ${link.color}`}>
+                    <IconComponent className="w-10 h-10 text-primary mb-4 group-hover:scale-110 transition-transform" />
+                    <h3 className="font-bold text-lg text-foreground">{link.label}</h3>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </main>

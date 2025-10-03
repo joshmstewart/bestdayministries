@@ -20,6 +20,7 @@ import { FeaturedItemManager } from "@/components/admin/FeaturedItemManager";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import { FamilyOrganizationsManager } from "@/components/admin/FamilyOrganizationsManager";
 import { FooterLinksManager } from "@/components/admin/FooterLinksManager";
+import QuickLinksManager from "@/components/admin/QuickLinksManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -199,8 +200,9 @@ const Admin = () => {
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="homepage">Homepage</TabsTrigger>
             <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
-            <TabsTrigger value="footer">Footer</TabsTrigger>
-            <TabsTrigger value="moderation" className="relative">
+                <TabsTrigger value="footer">Footer</TabsTrigger>
+                <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
+                <TabsTrigger value="moderation" className="relative">
               Moderation
               {moderationCount > 0 && (
                 <Badge 
@@ -276,6 +278,10 @@ const Admin = () => {
 
           <TabsContent value="footer">
             <FooterLinksManager />
+          </TabsContent>
+
+          <TabsContent value="quick-links">
+            <QuickLinksManager />
           </TabsContent>
 
           <TabsContent value="moderation" className="space-y-4">
