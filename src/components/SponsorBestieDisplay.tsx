@@ -55,7 +55,7 @@ export const SponsorBestieDisplay = () => {
 
     const intervalId = setInterval(() => {
       api.scrollNext();
-    }, 5000);
+    }, 7000);
 
     return () => clearInterval(intervalId);
   }, [api, isPlaying, isAudioPlaying]);
