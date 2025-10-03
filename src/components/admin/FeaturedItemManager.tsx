@@ -567,7 +567,7 @@ export const FeaturedItemManager = () => {
                       variant="outline"
                       onClick={() => toggleActive(item.id, item.is_active)}
                     >
-                      {item.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </Button>
                     <Button
                       size="sm"
