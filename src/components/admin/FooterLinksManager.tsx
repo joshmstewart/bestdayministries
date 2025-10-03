@@ -252,6 +252,20 @@ export const FooterLinksManager = () => {
     label: "",
     href: "",
   });
+  const [isCustomUrl, setIsCustomUrl] = useState(false);
+
+  const predefinedPages = [
+    { label: "Home", value: "/" },
+    { label: "Community", value: "/community" },
+    { label: "About", value: "/about" },
+    { label: "Events", value: "/events" },
+    { label: "Discussions", value: "/discussions" },
+    { label: "Gallery", value: "/gallery" },
+    { label: "Donate", value: "/donate" },
+    { label: "Joy Rocks Coffee", value: "/joy-rocks" },
+    { label: "Sponsor a Bestie", value: "/sponsor-bestie" },
+    { label: "Custom URL", value: "custom" },
+  ];
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -464,6 +478,7 @@ export const FooterLinksManager = () => {
   const resetLinkForm = () => {
     setEditingLinkId(null);
     setLinkFormData({ section_id: "", label: "", href: "" });
+    setIsCustomUrl(false);
   };
 
   if (loading) {
@@ -534,13 +549,37 @@ export const FooterLinksManager = () => {
             </div>
             <div>
               <Label htmlFor="link-href">Link URL</Label>
-              <Input
-                id="link-href"
-                value={linkFormData.href}
-                onChange={(e) => setLinkFormData({ ...linkFormData, href: e.target.value })}
-                placeholder="https://... or #section"
-                required
-              />
+              <select
+                id="link-page-select"
+                className="w-full p-2 border rounded mb-2"
+                value={isCustomUrl ? "custom" : linkFormData.href}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "custom") {
+                    setIsCustomUrl(true);
+                    setLinkFormData({ ...linkFormData, href: "" });
+                  } else {
+                    setIsCustomUrl(false);
+                    setLinkFormData({ ...linkFormData, href: value });
+                  }
+                }}
+              >
+                <option value="">Select a page</option>
+                {predefinedPages.map((page) => (
+                  <option key={page.value} value={page.value}>
+                    {page.label}
+                  </option>
+                ))}
+              </select>
+              {isCustomUrl && (
+                <Input
+                  id="link-href"
+                  value={linkFormData.href}
+                  onChange={(e) => setLinkFormData({ ...linkFormData, href: e.target.value })}
+                  placeholder="https://example.com or /custom-path"
+                  required
+                />
+              )}
             </div>
             <div className="flex gap-2">
               <Button type="submit">{editingLinkId ? "Update" : "Add"} Link</Button>
@@ -584,6 +623,9 @@ export const FooterLinksManager = () => {
                     onToggleSectionActive={toggleSectionActive}
                     onEditLink={(l) => {
                       setEditingLinkId(l.id);
+                      // Check if the href matches any predefined page
+                      const isPredefined = predefinedPages.some(p => p.value === l.href && p.value !== "custom");
+                      setIsCustomUrl(!isPredefined);
                       setLinkFormData({ section_id: l.section_id, label: l.label, href: l.href });
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
@@ -591,6 +633,7 @@ export const FooterLinksManager = () => {
                     onToggleLinkActive={toggleLinkActive}
                     onAddLink={(sectionId) => {
                       setLinkFormData({ section_id: sectionId, label: "", href: "" });
+                      setIsCustomUrl(false);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     onDragEndLinks={handleDragEndLinks}
