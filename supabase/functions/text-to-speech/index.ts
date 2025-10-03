@@ -28,22 +28,40 @@ serve(async (req) => {
       );
     }
 
-    // Voice ID mapping
+    // Voice ID mapping - supports both kebab-case and title case
     const voiceIds: { [key: string]: string } = {
+      // Standard ElevenLabs voices
       'Aria': '9BWtsMINqrJLrRacOk9x',
       'Roger': 'CwhRBWXzGAHq8TQ4Fs17',
       'Sarah': 'EXAVITQu4vr4xnSDxMaL',
+      'Laura': 'FGY2WhTYpPnrIDTdsKH5',
       'Charlie': 'IKne3meq5aSn9XLyUdCD',
-      'Johnny Dynamite': 'CeNX9CMwmxDxUF5Q2Inm',
-      'Grampa Werthers': 'MKlLqCItoCkvdhrxgtLv',
-      'Batman': '2qkvhTnYa7pn9h0BQAUq',
-      'Cherry Twinkle': 'XJ2fW4ybq7HouelYYGcL',
-      'Creature': 'Z7RrOqZFTyLpIlzCgfsp',
-      'Marshal': 'lE5ZJB6jGeeuvSNxOvs2',
-      'Austin': 'Bj9UqZbhQsanLzgalpEG',
-      'Jerry B.': 'rHWSYoq8UlV0YIBKMryp',
-      'Maverick': 'V33LkP9pVLdcjeB2y5Na',
-      'Grandma Muffin': 'vFLqXa8bgbofGarf6fZh',
+      'George': 'JBFqnCBsd6RMkjVDRZzb',
+      'Callum': 'N2lVS1w4EtoT3dr4eOWO',
+      'River': 'SAz9YHcvj6GT2YYXdXww',
+      'Liam': 'TX3LPaxmHKxFdv7VOQHJ',
+      'Charlotte': 'XB0fDUnXU5powFXDhCwa',
+      'Alice': 'Xb7hH8MSUJpSbSDYk0k2',
+      'Matilda': 'XrExE9yKIg1WjnnlVkGX',
+      'Will': 'bIHbv24MWmeRgasZH58o',
+      'Jessica': 'cgSgspJ2msm6clMCkdW9',
+      'Eric': 'cjVigY5qzO86Huf0OWal',
+      'Chris': 'iP95p4xoKVk53GoZ742B',
+      'Brian': 'nPczCjzI2devNBz1zQrb',
+      'Daniel': 'onwK4e9ZLuTAKqWW03F9',
+      'Lily': 'pFZP5JQG7iQjIQuC4Bku',
+      'Bill': 'pqHfZKP75CvOlQylNhV4',
+      // Custom voices (kebab-case IDs)
+      'austin': 'Bj9UqZbhQsanLzgalpEG',
+      'batman': '2qkvhTnYa7pn9h0BQAUq',
+      'cherry-twinkle': 'XJ2fW4ybq7HouelYYGcL',
+      'creature': 'Z7RrOqZFTyLpIlzCgfsp',
+      'grandma-muffin': 'vFLqXa8bgbofGarf6fZh',
+      'grandpa-werthers': 'MKlLqCItoCkvdhrxgtLv',
+      'jerry-b': 'rHWSYoq8UlV0YIBKMryp',
+      'johnny-dynamite': 'CeNX9CMwmxDxUF5Q2Inm',
+      'marshal': 'lE5ZJB6jGeeuvSNxOvs2',
+      'maverick': 'V33LkP9pVLdcjeB2y5Na',
     };
 
     const voiceId = voiceIds[voice] || voiceIds['Aria'];
