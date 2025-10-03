@@ -28,7 +28,7 @@ interface NavigationLink {
 
 const INTERNAL_PAGES = [
   { value: "/", label: "Home" },
-  { value: "/community", label: "Posts" },
+  { value: "/community", label: "Community" },
   { value: "/events", label: "Events" },
   { value: "/gallery", label: "Albums" },
   { value: "/sponsor-bestie", label: "Sponsor a Bestie" },
