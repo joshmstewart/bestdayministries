@@ -181,7 +181,7 @@ export default function PublicEvents() {
               return (
                 <Card 
                   key={`${event.id}-${displayDate.getTime()}`} 
-                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
+                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                   onClick={() => {
                     setSelectedEvent(event);
                     setSelectedDisplayDate(displayDate);
