@@ -23,6 +23,7 @@ import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import { FamilyOrganizationsManager } from "@/components/admin/FamilyOrganizationsManager";
 import { FooterLinksManager } from "@/components/admin/FooterLinksManager";
 import QuickLinksManager from "@/components/admin/QuickLinksManager";
+import { NavigationBarManager } from "@/components/admin/NavigationBarManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -283,6 +284,7 @@ const Admin = () => {
                   <TabsList>
                     <TabsTrigger value="homepage">Homepage</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
+                    <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
                     <TabsTrigger value="footer">Footer</TabsTrigger>
                     <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
@@ -294,6 +296,10 @@ const Admin = () => {
 
                   <TabsContent value="community">
                     <CommunityOrderManager />
+                  </TabsContent>
+
+                  <TabsContent value="navigation">
+                    <NavigationBarManager />
                   </TabsContent>
 
                   <TabsContent value="family-orgs">

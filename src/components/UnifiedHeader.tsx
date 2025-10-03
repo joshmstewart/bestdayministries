@@ -22,6 +22,7 @@ export const UnifiedHeader = () => {
   const [isTestAccount, setIsTestAccount] = useState(false);
   const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
   const [showNav, setShowNav] = useState(true);
+  const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number }>>([]);
   const { count: moderationCount } = useModerationCount();
   const { count: approvalsCount } = useGuardianApprovalsCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
@@ -50,6 +51,7 @@ export const UnifiedHeader = () => {
   useEffect(() => {
     checkUser();
     loadLogo();
+    loadNavLinks();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
@@ -112,6 +114,21 @@ export const UnifiedHeader = () => {
       }
     } catch (error) {
       console.error('Error loading logo:', error);
+    }
+  };
+
+  const loadNavLinks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("navigation_links")
+        .select("id, label, href, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      setNavLinks(data || []);
+    } catch (error) {
+      console.error('Error loading navigation links:', error);
     }
   };
 
@@ -299,54 +316,27 @@ export const UnifiedHeader = () => {
           {/* Navigation Bar - Absolutely positioned to overlay */}
           <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-b border-border/30 py-2 transition-all duration-300 z-50 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
             <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
-              <li>
-                <Link 
-                  to="/" 
-                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                >
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/community" 
-                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                >
-                  Posts
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/events" 
-                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                >
-                  Events
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/gallery" 
-                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                >
-                  Albums
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/sponsor-bestie" 
-                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                >
-                  Sponsor
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/about" 
-                  className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                >
-                  Resources
-                </Link>
-              </li>
+              {navLinks.map((link) => (
+                <li key={link.id}>
+                  {link.href.startsWith('http') ? (
+                    <a 
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link 
+                      to={link.href} 
+                      className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
             </ul>
           </nav>
         </div>

@@ -883,6 +883,39 @@ export type Database = {
         }
         Relationships: []
       }
+      navigation_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          display_order: number
+          href: string
+          id: string
+          is_active: boolean
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          display_order?: number
+          href: string
+          id?: string
+          is_active?: boolean
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          display_order?: number
+          href?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           audio_notifications_enabled: boolean | null
