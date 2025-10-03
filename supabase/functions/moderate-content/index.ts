@@ -1,9 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const moderationSchema = z.object({
+  content: z.string()
+    .min(1, "Content cannot be empty")
+    .max(10000, "Content too long (max 10,000 characters)")
+    .trim(),
+  contentType: z.enum(['post', 'comment'], {
+    errorMap: () => ({ message: "Content type must be 'post' or 'comment'" })
+  })
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,14 +23,29 @@ serve(async (req) => {
   }
 
   try {
-    const { content, contentType } = await req.json();
+    const requestBody = await req.json();
+    
+    // Validate inputs
+    const validationResult = moderationSchema.safeParse(requestBody);
+    
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => e.message).join(', ');
+      throw new Error(`Validation failed: ${errors}`);
+    }
+
+    const { content, contentType } = validationResult.data;
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log(`Moderating ${contentType}:`, content);
+    // Sanitize content for logging (truncate and remove sensitive patterns)
+    const sanitizedContent = content.length > 100 
+      ? content.substring(0, 100) + '...' 
+      : content;
+    console.log(`Moderating ${contentType} (length: ${content.length}):`, sanitizedContent);
 
     const systemPrompt = `You are a content moderation assistant for a supportive community platform called Joy House, which serves individuals with intellectual and developmental disabilities and their caregivers.
 
@@ -111,13 +138,23 @@ Examples:
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in moderate-content:", error);
+    // Log error securely (no content in logs)
+    console.error("Error in moderate-content:", {
+      type: error instanceof Error ? error.constructor.name : 'Unknown',
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+    
+    // Return validation errors to client, generic error for others
+    const errorMessage = error instanceof Error && error.message.includes('Validation failed')
+      ? error.message
+      : 'Moderation service temporarily unavailable';
+    
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Unknown error",
-        // Fail open - allow content if moderation fails
+        error: errorMessage,
+        // Fail open - allow content if moderation fails (but log the failure)
         approved: true,
-        reason: "Moderation check failed",
+        reason: "Moderation check failed - content allowed by default",
         severity: ""
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

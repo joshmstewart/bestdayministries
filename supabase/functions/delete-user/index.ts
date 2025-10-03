@@ -1,10 +1,16 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const deleteUserSchema = z.object({
+  userId: z.string().uuid("Invalid user ID format")
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -74,12 +80,25 @@ serve(async (req) => {
       );
     }
 
-    // Get the user ID to delete from the request body
-    const { userId } = await req.json();
+    // Get and validate the user ID to delete from the request body
+    const requestBody = await req.json();
     
-    if (!userId) {
+    const validationResult = deleteUserSchema.safeParse(requestBody);
+    
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => e.message).join(', ');
       return new Response(
-        JSON.stringify({ error: 'User ID is required' }),
+        JSON.stringify({ error: `Validation failed: ${errors}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { userId } = validationResult.data;
+    
+    // Prevent self-deletion
+    if (userId === user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Cannot delete your own account via admin function' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -127,9 +146,15 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Error in delete-user function:', error);
+    // Log error securely (no PII)
+    console.error('Error in delete-user function:', {
+      type: error?.constructor?.name || 'Unknown',
+      code: error?.code || 'none'
+    });
+    
+    // Return generic error (don't expose internals)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Failed to delete user. Please try again.' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500

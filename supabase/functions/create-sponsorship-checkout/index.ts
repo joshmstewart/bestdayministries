@@ -1,11 +1,29 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const sponsorshipSchema = z.object({
+  bestie_id: z.string().uuid("Invalid bestie ID format"),
+  amount: z.number()
+    .min(10, "Minimum sponsorship amount is $10")
+    .max(100000, "Maximum sponsorship amount is $100,000")
+    .finite("Amount must be a valid number"),
+  frequency: z.enum(['monthly', 'one-time'], {
+    errorMap: () => ({ message: "Frequency must be 'monthly' or 'one-time'" })
+  }),
+  email: z.string()
+    .email("Invalid email address")
+    .max(255, "Email must be less than 255 characters")
+    .toLowerCase()
+    .trim()
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -29,18 +47,27 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { bestie_id, amount, frequency, email } = await req.json();
+    const requestBody = await req.json();
 
-    console.log('Creating sponsorship checkout:', { bestie_id, amount, frequency, email });
-
-    // Validate inputs
-    if (!bestie_id || !amount || !frequency || !email) {
-      throw new Error('Missing required fields');
+    // Validate inputs with Zod
+    const validationResult = sponsorshipSchema.safeParse(requestBody);
+    
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => e.message).join(', ');
+      console.error('Validation error:', errors);
+      throw new Error(`Validation failed: ${errors}`);
     }
 
-    if (amount < 10) {
-      throw new Error('Minimum sponsorship amount is $10');
-    }
+    const { bestie_id, amount, frequency, email } = validationResult.data;
+
+    // Sanitize for logging (truncate email)
+    const sanitizedEmail = email.substring(0, 3) + '***@' + email.split('@')[1];
+    console.log('Creating sponsorship checkout:', { 
+      bestie_id, 
+      amount, 
+      frequency, 
+      email: sanitizedEmail 
+    });
 
     // Check if user is a bestie (prevent besties from sponsoring)
     const { data: profile } = await supabaseAdmin
@@ -148,9 +175,16 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in create-sponsorship-checkout:', error);
+    // Log error securely (no PII)
+    console.error('Error in create-sponsorship-checkout:', {
+      type: error instanceof Error ? error.constructor.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    });
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    // Return generic error message to client (don't expose internals)
+    const errorMessage = error instanceof Error && error.message.includes('Validation failed')
+      ? error.message
+      : 'Failed to create checkout session. Please try again.';
     
     return new Response(
       JSON.stringify({ error: errorMessage }),
