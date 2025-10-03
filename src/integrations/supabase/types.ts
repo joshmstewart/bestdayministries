@@ -657,6 +657,48 @@ export type Database = {
         }
         Relationships: []
       }
+      featured_items: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link_text: string | null
+          link_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_text?: string | null
+          link_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_text?: string | null
+          link_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       homepage_sections: {
         Row: {
           content: Json | null

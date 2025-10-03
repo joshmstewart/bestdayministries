@@ -11,6 +11,7 @@ import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
 import PublicEvents from "@/components/PublicEvents";
 import OurFamily from "@/components/OurFamily";
+import { FeaturedItem } from "@/components/FeaturedItem";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +75,9 @@ const Index = () => {
     <div className="min-h-screen">
       <UnifiedHeader />
       <main>
+        <div className="container mx-auto px-4 pt-8">
+          <FeaturedItem />
+        </div>
         {sections
           .filter((section) => section.is_visible)
           .map((section) => (

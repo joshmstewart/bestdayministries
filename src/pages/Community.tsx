@@ -13,6 +13,7 @@ import { TextToSpeech } from "@/components/TextToSpeech";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import OurFamily from "@/components/OurFamily";
+import { FeaturedItem } from "@/components/FeaturedItem";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -189,6 +190,9 @@ const Community = () => {
               Connect, share, and grow with our amazing community
             </p>
           </div>
+
+          {/* Featured Item */}
+          <FeaturedItem />
 
           {/* Featured Bestie */}
           <FeaturedBestieDisplay />
