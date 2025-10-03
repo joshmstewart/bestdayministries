@@ -953,6 +953,7 @@ export type Database = {
           is_active: boolean | null
           is_fully_funded: boolean | null
           monthly_goal: number | null
+          text_sections: Json | null
           updated_at: string
           voice_note_url: string | null
         }
@@ -975,6 +976,7 @@ export type Database = {
           is_active?: boolean | null
           is_fully_funded?: boolean | null
           monthly_goal?: number | null
+          text_sections?: Json | null
           updated_at?: string
           voice_note_url?: string | null
         }
@@ -997,6 +999,7 @@ export type Database = {
           is_active?: boolean | null
           is_fully_funded?: boolean | null
           monthly_goal?: number | null
+          text_sections?: Json | null
           updated_at?: string
           voice_note_url?: string | null
         }

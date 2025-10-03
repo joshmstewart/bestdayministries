@@ -15,6 +15,13 @@ import { compressImage, compressAudio } from "@/lib/imageUtils";
 import AudioRecorder from "../AudioRecorder";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 
+interface TextSection {
+  type: 'heading' | 'text';
+  content: string;
+  font: string;
+  color: string;
+}
+
 interface SponsorBestie {
   id: string;
   bestie_id: string | null;
@@ -29,10 +36,7 @@ interface SponsorBestie {
   approved_by: string | null;
   monthly_goal: number | null;
   aspect_ratio: string;
-  heading_font: string;
-  heading_color: string;
-  body_font: string;
-  body_color: string;
+  text_sections: TextSection[];
 }
 
 export const SponsorBestieManager = () => {
@@ -61,10 +65,9 @@ export const SponsorBestieManager = () => {
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
-  const [headingFont, setHeadingFont] = useState<string>('serif');
-  const [headingColor, setHeadingColor] = useState<string>('#D4A574');
-  const [bodyFont, setBodyFont] = useState<string>('sans-serif');
-  const [bodyColor, setBodyColor] = useState<string>('#000000');
+  const [textSections, setTextSections] = useState<TextSection[]>([
+    { type: 'heading', content: '', font: 'serif', color: '#D4A574' }
+  ]);
 
   useEffect(() => {
     loadData();
@@ -94,7 +97,15 @@ export const SponsorBestieManager = () => {
         .order("created_at", { ascending: false });
 
       if (sponsorError) throw sponsorError;
-      setSponsorBesties(sponsor || []);
+      
+      // Parse text_sections from JSON
+      const parsedSponsor = (sponsor || []).map(s => ({
+        ...s,
+        text_sections: Array.isArray(s.text_sections) ? s.text_sections : 
+          (typeof s.text_sections === 'string' ? JSON.parse(s.text_sections) : [])
+      }));
+      
+      setSponsorBesties(parsedSponsor);
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -194,10 +205,7 @@ export const SponsorBestieManager = () => {
         approval_status: 'approved',
         monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
         aspect_ratio: aspectRatioKey,
-        heading_font: headingFont,
-        heading_color: headingColor,
-        body_font: bodyFont,
-        body_color: bodyColor,
+        text_sections: textSections,
       };
 
       if (imageFile) {
@@ -253,10 +261,9 @@ export const SponsorBestieManager = () => {
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
     setAspectRatioKey(bestie.aspect_ratio || '9:16');
-    setHeadingFont(bestie.heading_font || 'serif');
-    setHeadingColor(bestie.heading_color || '#D4A574');
-    setBodyFont(bestie.body_font || 'sans-serif');
-    setBodyColor(bestie.body_color || '#000000');
+    setTextSections(bestie.text_sections && bestie.text_sections.length > 0 ? bestie.text_sections : [
+      { type: 'heading', content: '', font: 'serif', color: '#D4A574' }
+    ]);
     setDialogOpen(true);
   };
 
@@ -337,10 +344,7 @@ export const SponsorBestieManager = () => {
     setImagePreview(null);
     setShowCropDialog(false);
     setAspectRatioKey('9:16');
-    setHeadingFont('serif');
-    setHeadingColor('#D4A574');
-    setBodyFont('sans-serif');
-    setBodyColor('#000000');
+    setTextSections([{ type: 'heading', content: '', font: 'serif', color: '#D4A574' }]);
   };
 
   const handleCroppedImage = (blob: Blob) => {
@@ -598,83 +602,130 @@ export const SponsorBestieManager = () => {
               </div>
 
               <div className="space-y-4 border-t pt-4">
-                <h4 className="font-semibold text-sm">Text Styling</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-sm">Text Sections</h4>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTextSections([...textSections, { type: 'text', content: '', font: 'sans-serif', color: '#000000' }])}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Section
+                  </Button>
+                </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="heading-font">Heading Font</Label>
-                    <Select value={headingFont} onValueChange={setHeadingFont}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="serif">Serif</SelectItem>
-                        <SelectItem value="sans-serif">Sans Serif</SelectItem>
-                        <SelectItem value="monospace">Monospace</SelectItem>
-                        <SelectItem value="cursive">Cursive</SelectItem>
-                        <SelectItem value="fantasy">Fantasy</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="heading-color">Heading Color</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="heading-color"
-                        type="color"
-                        value={headingColor}
-                        onChange={(e) => setHeadingColor(e.target.value)}
-                        className="w-16 h-10 p-1 cursor-pointer"
-                      />
-                      <Input
-                        type="text"
-                        value={headingColor}
-                        onChange={(e) => setHeadingColor(e.target.value)}
-                        placeholder="#D4A574"
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="body-font">Body Font</Label>
-                    <Select value={bodyFont} onValueChange={setBodyFont}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="serif">Serif</SelectItem>
-                        <SelectItem value="sans-serif">Sans Serif</SelectItem>
-                        <SelectItem value="monospace">Monospace</SelectItem>
-                        <SelectItem value="cursive">Cursive</SelectItem>
-                        <SelectItem value="fantasy">Fantasy</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="body-color">Body Color</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="body-color"
-                        type="color"
-                        value={bodyColor}
-                        onChange={(e) => setBodyColor(e.target.value)}
-                        className="w-16 h-10 p-1 cursor-pointer"
-                      />
-                      <Input
-                        type="text"
-                        value={bodyColor}
-                        onChange={(e) => setBodyColor(e.target.value)}
-                        placeholder="#000000"
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
+                <div className="space-y-4">
+                  {textSections.map((section, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold">
+                            Section {index + 1}
+                          </Label>
+                          {textSections.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setTextSections(textSections.filter((_, i) => i !== index))}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Type</Label>
+                          <Select 
+                            value={section.type} 
+                            onValueChange={(value: 'heading' | 'text') => {
+                              const newSections = [...textSections];
+                              newSections[index].type = value;
+                              setTextSections(newSections);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="heading">Heading</SelectItem>
+                              <SelectItem value="text">Text</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Content</Label>
+                          <Textarea
+                            value={section.content}
+                            onChange={(e) => {
+                              const newSections = [...textSections];
+                              newSections[index].content = e.target.value;
+                              setTextSections(newSections);
+                            }}
+                            placeholder={section.type === 'heading' ? 'Enter heading text...' : 'Enter body text...'}
+                            rows={section.type === 'heading' ? 2 : 3}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label>Font</Label>
+                            <Select 
+                              value={section.font} 
+                              onValueChange={(value) => {
+                                const newSections = [...textSections];
+                                newSections[index].font = value;
+                                setTextSections(newSections);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="serif">Serif</SelectItem>
+                                <SelectItem value="sans-serif">Sans Serif</SelectItem>
+                                <SelectItem value="monospace">Monospace</SelectItem>
+                                <SelectItem value="cursive">Cursive</SelectItem>
+                                <SelectItem value="fantasy">Fantasy</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label>Color</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                type="color"
+                                value={section.color}
+                                onChange={(e) => {
+                                  const newSections = [...textSections];
+                                  newSections[index].color = e.target.value;
+                                  setTextSections(newSections);
+                                }}
+                                className="w-16 h-10 p-1 cursor-pointer"
+                              />
+                              <Input
+                                type="text"
+                                value={section.color}
+                                onChange={(e) => {
+                                  const newSections = [...textSections];
+                                  newSections[index].color = e.target.value;
+                                  setTextSections(newSections);
+                                }}
+                                placeholder="#000000"
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Heading will automatically be displayed larger (2rem) than body text (1rem)
+                  Headings will automatically be displayed larger (2rem) than text (1rem)
                 </p>
               </div>
 
@@ -741,6 +792,7 @@ export const SponsorBestieManager = () => {
         onOpenChange={setShowCropDialog}
         imageUrl={rawImageUrl || ""}
         onCropComplete={handleCroppedImage}
+        allowAspectRatioChange={true}
         selectedRatioKey={aspectRatioKey as any}
         onAspectRatioKeyChange={(key) => setAspectRatioKey(key)}
       />

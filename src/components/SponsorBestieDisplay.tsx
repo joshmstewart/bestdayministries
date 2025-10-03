@@ -9,6 +9,13 @@ import { FundingProgressBar } from "@/components/FundingProgressBar";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useNavigate } from "react-router-dom";
 
+interface TextSection {
+  type: 'heading' | 'text';
+  content: string;
+  font: string;
+  color: string;
+}
+
 interface SponsorBestie {
   id: string;
   bestie_id: string | null;
@@ -19,10 +26,7 @@ interface SponsorBestie {
   aspect_ratio: string;
   monthly_goal: number | null;
   is_fully_funded: boolean;
-  heading_font: string;
-  heading_color: string;
-  body_font: string;
-  body_color: string;
+  text_sections: TextSection[];
 }
 
 interface FundingProgress {
@@ -91,8 +95,13 @@ export const SponsorBestieDisplay = () => {
       if (bestiesError) throw bestiesError;
 
       if (bestiesData && bestiesData.length > 0) {
-        // Randomize the order
-        const randomized = [...bestiesData].sort(() => Math.random() - 0.5);
+        // Parse text_sections and randomize the order
+        const parsedBesties = bestiesData.map(b => ({
+          ...b,
+          text_sections: Array.isArray(b.text_sections) ? b.text_sections : 
+            (typeof b.text_sections === 'string' ? JSON.parse(b.text_sections) : [])
+        }));
+        const randomized = [...parsedBesties].sort(() => Math.random() - 0.5);
         setBesties(randomized);
 
         // Check sponsorship statuses if user is logged in
@@ -176,27 +185,45 @@ export const SponsorBestieDisplay = () => {
           </div>
 
           <div className="p-6 space-y-4">
-            <h3 
-              className="font-black leading-tight"
-              style={{
-                fontFamily: bestie.heading_font,
-                color: bestie.heading_color,
-                fontSize: '2rem'
-              }}
-            >
-              {bestie.bestie_name}
-            </h3>
-            
-            <p 
-              className="leading-relaxed"
-              style={{
-                fontFamily: bestie.body_font,
-                color: bestie.body_color,
-                fontSize: '1rem'
-              }}
-            >
-              {bestie.description}
-            </p>
+            {bestie.text_sections && bestie.text_sections.length > 0 ? (
+              bestie.text_sections.map((section, index) => (
+                <div key={index}>
+                  {section.type === 'heading' ? (
+                    <h3 
+                      className="font-black leading-tight"
+                      style={{
+                        fontFamily: section.font,
+                        color: section.color,
+                        fontSize: '2rem'
+                      }}
+                    >
+                      {section.content}
+                    </h3>
+                  ) : (
+                    <p 
+                      className="leading-relaxed"
+                      style={{
+                        fontFamily: section.font,
+                        color: section.color,
+                        fontSize: '1rem'
+                      }}
+                    >
+                      {section.content}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              // Fallback for older entries
+              <>
+                <h3 className="text-2xl font-black leading-tight text-foreground">
+                  {bestie.bestie_name}
+                </h3>
+                <p className="leading-relaxed text-muted-foreground">
+                  {bestie.description}
+                </p>
+              </>
+            )}
 
             {bestie.voice_note_url && (
               <div className="pt-2">
