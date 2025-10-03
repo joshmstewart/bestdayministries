@@ -235,26 +235,25 @@ const ProfileSettings = () => {
     { value: "maverick", label: "Maverick", description: "Cool and adventurous voice" },
   ];
 
-  const testVoice = async (voiceId: string) => {
+  const testVoice = async (voiceName: string) => {
     try {
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "xi-api-key": import.meta.env.VITE_ELEVENLABS_API_KEY || "",
-          },
-          body: JSON.stringify({
-            text: "Hello! This is how I sound. I hope you like my voice!",
-            model_id: "eleven_turbo_v2",
-          }),
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: {
+          text: "Hello! This is how I sound. I hope you like my voice!",
+          voice: voiceName
         }
-      );
+      });
 
-      if (!response.ok) throw new Error("Failed to generate speech");
+      if (error) throw error;
+      if (!data?.audioContent) throw new Error("No audio content received");
 
-      const audioBlob = await response.blob();
+      // Convert base64 to audio blob
+      const binaryString = atob(data.audioContent);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audio.play();
@@ -264,9 +263,10 @@ const ProfileSettings = () => {
         description: "Listen to how this voice sounds",
       });
     } catch (error: any) {
+      console.error('Error testing voice:', error);
       toast({
         title: "Error testing voice",
-        description: error.message,
+        description: error.message || "Failed to generate speech",
         variant: "destructive",
       });
     }
