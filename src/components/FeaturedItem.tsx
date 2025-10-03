@@ -123,11 +123,11 @@ export const FeaturedItem = () => {
         <div key={currentIndex} className="animate-fade-in">
           <div className="flex flex-col md:flex-row gap-6 items-center">
             {currentItem.image_url && (
-              <div className="w-full md:w-1/2 flex-shrink-0">
+              <div className="w-full md:w-5/12 flex-shrink-0">
                 <img
                   src={currentItem.image_url}
                   alt={currentItem.title}
-                  className="w-full h-64 md:h-80 object-cover rounded-lg"
+                  className="w-full h-56 md:h-64 object-cover rounded-lg"
                 />
               </div>
             )}
