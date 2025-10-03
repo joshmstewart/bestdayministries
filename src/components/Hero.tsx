@@ -23,7 +23,7 @@ const Hero = () => {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-[1.1] text-foreground">
               Spreading{" "}
               <span className="relative inline-block">
-                <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                <span className="bg-gradient-text bg-clip-text text-transparent">
                   JOY
                 </span>
                 <svg className="absolute -bottom-1 left-0 w-full" height="8" viewBox="0 0 200 8" fill="none">

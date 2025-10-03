@@ -199,7 +199,7 @@ const SponsorBestie = () => {
               </div>
               <h1 className="text-3xl md:text-4xl font-black text-foreground">
                 Change a{" "}
-                <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                <span className="bg-gradient-text bg-clip-text text-transparent">
                   Life Today
                 </span>
               </h1>

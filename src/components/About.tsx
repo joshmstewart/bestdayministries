@@ -22,7 +22,7 @@ const About = () => {
               <span className="text-sm font-semibold text-primary">Founded with Love</span>
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-foreground">
-              Our <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Story</span>
+              Our <span className="bg-gradient-text bg-clip-text text-transparent">Story</span>
             </h2>
             <div className="max-w-3xl mx-auto space-y-4 text-lg text-muted-foreground">
               <p>

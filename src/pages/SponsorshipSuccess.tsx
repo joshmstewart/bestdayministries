@@ -59,7 +59,7 @@ const SponsorshipSuccess = () => {
                   <Heart className="w-16 h-16 text-primary" />
                 </div>
                 <div className="space-y-3">
-                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-text bg-clip-text text-transparent">
                     Confirming Your Sponsorship...
                   </h1>
                   <p className="text-xl text-muted-foreground">
@@ -74,7 +74,7 @@ const SponsorshipSuccess = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                  <h1 className="text-4xl md:text-5xl font-black bg-gradient-text bg-clip-text text-transparent">
                     Thank You!
                   </h1>
                   <p className="text-xl text-muted-foreground">
@@ -100,7 +100,7 @@ const SponsorshipSuccess = () => {
               <Button
                 onClick={() => navigate("/")}
                 size="lg"
-                className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-to-r from-primary via-accent to-secondary border-0"
+                className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
               >
                 <Home className="w-5 h-5 mr-2" />
                 Return Home

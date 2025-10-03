@@ -232,7 +232,7 @@ const Community = () => {
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-black text-foreground">
               Welcome to Your{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+              <span className="bg-gradient-text bg-clip-text text-transparent">
                 Best Day Ministries
               </span>{" "}
               Community

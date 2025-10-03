@@ -49,7 +49,7 @@ const JoyRocks = () => {
             
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground leading-tight">
               Planting Seeds of{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+              <span className="bg-gradient-text bg-clip-text text-transparent">
                 Love Globally
               </span>
             </h2>

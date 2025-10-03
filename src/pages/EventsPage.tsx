@@ -163,7 +163,7 @@ export default function EventsPage() {
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-black text-foreground">
-              Community <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Events</span>
+              Community <span className="bg-gradient-text bg-clip-text text-transparent">Events</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Join us for exciting events and activities in our community

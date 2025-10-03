@@ -75,7 +75,7 @@ const GalleryPage = () => {
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-black text-foreground">
-              Photo <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Albums</span>
+              Photo <span className="bg-gradient-text bg-clip-text text-transparent">Albums</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Explore our collection of memories and moments

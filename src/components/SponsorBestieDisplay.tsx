@@ -272,7 +272,7 @@ export const SponsorBestieDisplay = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-black text-foreground">
-            <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+            <span className="bg-gradient-text bg-clip-text text-transparent">
               Sponsor a Bestie
             </span>
           </h2>
@@ -287,7 +287,7 @@ export const SponsorBestieDisplay = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black text-foreground">
-          <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+          <span className="bg-gradient-text bg-clip-text text-transparent">
             Sponsor a Bestie
           </span>
         </h2>

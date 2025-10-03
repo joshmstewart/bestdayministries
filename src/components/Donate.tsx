@@ -25,7 +25,7 @@ const Donate = () => {
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-foreground">
               Make a{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+              <span className="bg-gradient-text bg-clip-text text-transparent">
                 Difference
               </span>{" "}
               Today
@@ -42,7 +42,7 @@ const Donate = () => {
                 <div className="flex items-end justify-between flex-wrap gap-4">
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-3">
-                      <div className="text-5xl md:text-6xl font-black bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                      <div className="text-5xl md:text-6xl font-black bg-gradient-text bg-clip-text text-transparent">
                         ${raised.toLocaleString()}
                       </div>
                       <TrendingUp className="w-8 h-8 text-primary animate-float" />
