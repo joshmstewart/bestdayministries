@@ -213,9 +213,9 @@ const SponsorBestie = () => {
             </div>
 
             {/* Main Content */}
-            <div className="grid lg:grid-cols-2 gap-8">
+            <div className="grid lg:grid-cols-2 gap-8 items-start">
               {/* Bestie Selection */}
-              <Card className="border-2 shadow-xl">
+              <Card className="border-2 shadow-xl lg:sticky lg:top-24">
                 <CardContent className="p-8">
                   <h2 className="text-2xl font-black mb-6 flex items-center gap-2">
                     <Users className="w-6 h-6 text-primary" />
@@ -225,7 +225,8 @@ const SponsorBestie = () => {
                   {besties.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">No besties available for sponsorship at this time.</p>
                   ) : (
-                    <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4">
+                    <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4 pr-2">
                       {besties.map((bestie) => (
                         <Card 
                           key={bestie.id} 
@@ -259,7 +260,8 @@ const SponsorBestie = () => {
                           </CardContent>
                         </Card>
                       ))}
-                    </RadioGroup>
+                      </RadioGroup>
+                    </div>
                   )}
                 </CardContent>
               </Card>
