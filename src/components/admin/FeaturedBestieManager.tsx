@@ -608,7 +608,7 @@ export const FeaturedBestieManager = () => {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Leave dates empty to feature this bestie indefinitely
+                Set dates to control when this bestie is featured. Without dates, the bestie will not be displayed.
               </p>
 
               <div className="space-y-2">

@@ -117,15 +117,16 @@ export const FeaturedBestieDisplay = () => {
       // Get today's date in format YYYY-MM-DD
       const today = format(new Date(), "yyyy-MM-dd");
       
-      // Query for besties that are either:
-      // 1. Have no dates (indefinite)
-      // 2. Have dates that include today
+      // Query for besties that have dates set and include today
       const { data, error } = await supabase
         .from("featured_besties")
         .select("*")
         .eq("is_active", true)
         .eq("approval_status", "approved")
-        .or(`start_date.is.null,and(start_date.lte.${today},end_date.gte.${today})`);
+        .not("start_date", "is", null)
+        .not("end_date", "is", null)
+        .lte("start_date", today)
+        .gte("end_date", today);
 
       if (error) throw error;
       
