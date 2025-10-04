@@ -52,15 +52,21 @@ const Auth = () => {
 
   useEffect(() => {
     const checkAndRedirect = async (userId: string) => {
+      console.log('Checking vendor status for user:', userId);
+      
       const { data: vendor, error } = await supabase
         .from('vendors')
         .select('status')
         .eq('user_id', userId)
         .maybeSingle();
       
+      console.log('Vendor query result:', { vendor, error });
+      
       if (!error && vendor) {
+        console.log('Redirecting to vendor dashboard');
         navigate("/vendor-dashboard");
       } else {
+        console.log('Redirecting to community');
         navigate("/community");
       }
     };
