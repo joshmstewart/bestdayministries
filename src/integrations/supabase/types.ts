@@ -218,6 +218,30 @@ export type Database = {
           },
         ]
       }
+      commission_settings: {
+        Row: {
+          commission_percentage: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          commission_percentage?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          commission_percentage?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       community_quick_links: {
         Row: {
           color: string
@@ -986,12 +1010,15 @@ export type Database = {
           fulfillment_status: Database["public"]["Enums"]["fulfillment_status"]
           id: string
           order_id: string
+          platform_fee: number | null
           price_at_purchase: number
           product_id: string
           quantity: number
           shipped_at: string | null
+          stripe_transfer_id: string | null
           tracking_number: string | null
           vendor_id: string | null
+          vendor_payout: number | null
         }
         Insert: {
           created_at?: string
@@ -999,12 +1026,15 @@ export type Database = {
           fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
           id?: string
           order_id: string
+          platform_fee?: number | null
           price_at_purchase: number
           product_id: string
           quantity: number
           shipped_at?: string | null
+          stripe_transfer_id?: string | null
           tracking_number?: string | null
           vendor_id?: string | null
+          vendor_payout?: number | null
         }
         Update: {
           created_at?: string
@@ -1012,12 +1042,15 @@ export type Database = {
           fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
           id?: string
           order_id?: string
+          platform_fee?: number | null
           price_at_purchase?: number
           product_id?: string
           quantity?: number
           shipped_at?: string | null
+          stripe_transfer_id?: string | null
           tracking_number?: string | null
           vendor_id?: string | null
+          vendor_payout?: number | null
         }
         Relationships: [
           {
@@ -1033,6 +1066,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_earnings"
+            referencedColumns: ["vendor_id"]
           },
           {
             foreignKeyName: "order_items_vendor_id_fkey"
@@ -1132,6 +1172,13 @@ export type Database = {
           vendor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_earnings"
+            referencedColumns: ["vendor_id"]
+          },
           {
             foreignKeyName: "products_vendor_id_fkey"
             columns: ["vendor_id"]
@@ -1467,7 +1514,11 @@ export type Database = {
           id: string
           rejection_reason: string | null
           status: Database["public"]["Enums"]["vendor_status"]
+          stripe_account_id: string | null
+          stripe_charges_enabled: boolean | null
           stripe_connect_id: string | null
+          stripe_onboarding_complete: boolean | null
+          stripe_payouts_enabled: boolean | null
           updated_at: string
           user_id: string
         }
@@ -1481,7 +1532,11 @@ export type Database = {
           id?: string
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["vendor_status"]
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean | null
           stripe_connect_id?: string | null
+          stripe_onboarding_complete?: boolean | null
+          stripe_payouts_enabled?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -1495,7 +1550,11 @@ export type Database = {
           id?: string
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["vendor_status"]
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean | null
           stripe_connect_id?: string | null
+          stripe_onboarding_complete?: boolean | null
+          stripe_payouts_enabled?: boolean | null
           updated_at?: string
           user_id?: string
         }
@@ -1611,6 +1670,18 @@ export type Database = {
           monthly_goal: number | null
           remaining_needed: number | null
           sponsor_bestie_id: string | null
+        }
+        Relationships: []
+      }
+      vendor_earnings: {
+        Row: {
+          business_name: string | null
+          total_earnings: number | null
+          total_fees: number | null
+          total_orders: number | null
+          total_sales: number | null
+          user_id: string | null
+          vendor_id: string | null
         }
         Relationships: []
       }

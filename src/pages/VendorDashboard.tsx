@@ -11,6 +11,8 @@ import { Loader2, Store, Package, DollarSign, Clock, XCircle, CheckCircle } from
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
 import { VendorOrderList } from "@/components/vendor/VendorOrderList";
+import { StripeConnectOnboarding } from "@/components/vendor/StripeConnectOnboarding";
+import { VendorEarnings } from "@/components/vendor/VendorEarnings";
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
@@ -317,6 +319,7 @@ const VendorDashboard = () => {
               <TabsList>
                 <TabsTrigger value="products">Products</TabsTrigger>
                 <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="earnings">Earnings</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
               
@@ -333,19 +336,15 @@ const VendorDashboard = () => {
               <TabsContent value="orders">
                 <VendorOrderList vendorId={vendorId!} />
               </TabsContent>
+
+              <TabsContent value="earnings" className="space-y-4">
+                <h2 className="text-2xl font-semibold">Your Earnings</h2>
+                <VendorEarnings vendorId={vendorId!} />
+              </TabsContent>
               
-              <TabsContent value="settings">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Vendor Settings</CardTitle>
-                    <CardDescription>
-                      Manage your vendor profile and preferences
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">Settings coming soon</p>
-                  </CardContent>
-                </Card>
+              <TabsContent value="settings" className="space-y-4">
+                <h2 className="text-2xl font-semibold">Payment Settings</h2>
+                <StripeConnectOnboarding vendorId={vendorId!} />
               </TabsContent>
             </Tabs>
           </div>
