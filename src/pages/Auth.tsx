@@ -52,13 +52,26 @@ const Auth = () => {
 
   useEffect(() => {
     const checkAndRedirect = async (userId: string) => {
-      const { data: vendor, error } = await supabase
+      // Check if user is admin first
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .in('role', ['admin', 'owner']);
+      
+      if (roles && roles.length > 0) {
+        navigate("/admin");
+        return;
+      }
+
+      // Check if user is vendor
+      const { data: vendor } = await supabase
         .from('vendors')
         .select('status')
         .eq('user_id', userId)
         .maybeSingle();
       
-      if (!error && vendor) {
+      if (vendor) {
         navigate("/vendor-dashboard");
       } else {
         navigate("/community");
