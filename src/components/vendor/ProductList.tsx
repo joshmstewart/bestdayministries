@@ -186,9 +186,9 @@ export const ProductList = ({ vendorId }: ProductListProps) => {
                 title={product.is_active ? "Deactivate" : "Activate"}
               >
                 {product.is_active ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
                   <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
                 )}
               </Button>
 
