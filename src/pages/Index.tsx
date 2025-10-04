@@ -16,14 +16,33 @@ import { FeaturedItem } from "@/components/FeaturedItem";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [sections, setSections] = useState<Array<{ section_key: string; is_visible: boolean }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    checkVendorStatus();
     fetchSections();
   }, []);
+
+  const checkVendorStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      const { data: vendor } = await supabase
+        .from('vendors')
+        .select('status')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      
+      if (vendor) {
+        navigate("/vendor-dashboard", { replace: true });
+      }
+    }
+  };
 
   const fetchSections = async () => {
     try {

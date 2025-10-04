@@ -68,6 +68,18 @@ const Community = () => {
       return;
     }
 
+    // Check if user is a vendor - vendors should use vendor dashboard
+    const { data: vendor } = await supabase
+      .from('vendors')
+      .select('status')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    
+    if (vendor) {
+      navigate("/vendor-dashboard", { replace: true });
+      return;
+    }
+
     setUser(session.user);
     await fetchProfile(session.user.id);
     await loadSectionOrder();
