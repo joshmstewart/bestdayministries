@@ -27,11 +27,9 @@ export const FeaturedItem = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [isTtsPlaying, setIsTtsPlaying] = useState(false);
   const autoAdvanceRef = useRef(false);
-  const [carouselInterval, setCarouselInterval] = useState(10000);
 
   useEffect(() => {
     checkAuth();
-    loadCarouselTiming();
   }, []);
 
   useEffect(() => {
@@ -52,10 +50,10 @@ export const FeaturedItem = () => {
     const interval = setInterval(() => {
       autoAdvanceRef.current = true;
       setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, carouselInterval);
+    }, 10000); // Rotate every 10 seconds
 
     return () => clearInterval(interval);
-  }, [items.length, isPaused, isTtsPlaying, carouselInterval]);
+  }, [items.length, isPaused, isTtsPlaying]);
 
   // Pause autoplay when user manually changes slides
   useEffect(() => {
@@ -64,25 +62,6 @@ export const FeaturedItem = () => {
     }
     autoAdvanceRef.current = false;
   }, [currentIndex]);
-
-  const loadCarouselTiming = async () => {
-    try {
-      const { data } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "carousel_timing_featured_item")
-        .maybeSingle();
-
-      if (data?.setting_value) {
-        const value = typeof data.setting_value === 'string' 
-          ? JSON.parse(data.setting_value) 
-          : data.setting_value;
-        setCarouselInterval(value.interval_ms || 10000);
-      }
-    } catch (error) {
-      console.error("Error loading carousel timing:", error);
-    }
-  };
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
