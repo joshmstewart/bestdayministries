@@ -42,17 +42,24 @@ export const VendorOrderList = ({ vendorId }: VendorOrderListProps) => {
       // Fetch order details for these IDs
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          customer:profiles(display_name)
-        `)
+        .select('*')
         .in('id', orderIds);
 
       if (ordersError) throw ordersError;
 
-      // Combine orders with their items
+      // Fetch customer profiles separately
+      const customerIds = [...new Set(ordersData?.map(o => o.customer_id) || [])];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', customerIds);
+
+      const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+      // Combine orders with their items and customer info
       const ordersWithItems = ordersData?.map(order => ({
         ...order,
+        customer: profilesMap.get(order.customer_id),
         items: orderItems?.filter(item => item.order_id === order.id) || []
       })) || [];
 

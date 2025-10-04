@@ -1724,6 +1724,10 @@ export type Database = {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
       }
+      is_vendor_for_order_item: {
+        Args: { _user_id: string; _vendor_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       avatar_category: "humans" | "animals" | "monsters" | "shapes"
