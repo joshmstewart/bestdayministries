@@ -277,7 +277,7 @@ const VendorDashboard = () => {
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
-                    onClick={() => navigate(`/vendor-profile/${vendorId}`)}
+                    onClick={() => navigate(`/vendors/${vendorId}`)}
                   >
                     <Store className="mr-2 h-4 w-4" />
                     View Your Store
