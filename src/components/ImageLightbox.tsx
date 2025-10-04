@@ -28,8 +28,8 @@ export default function ImageLightbox({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`${isMobile ? 'max-w-full max-h-full' : 'max-w-[95vw] max-h-[95vh]'} w-auto h-auto p-0 overflow-hidden`}>
-        <div className="relative w-full h-full flex items-center justify-center bg-black/95">
+      <DialogContent className={`${isMobile ? 'max-w-full h-screen border-0' : 'max-w-[95vw] max-h-[95vh]'} w-auto p-0 overflow-hidden`}>
+        <div className={`relative w-full ${isMobile ? 'h-screen' : 'h-full'} flex items-center justify-center bg-black/95`}>
           {/* Close Button */}
           <Button
             variant="ghost"
@@ -53,11 +53,11 @@ export default function ImageLightbox({
           )}
 
           {/* Main Image */}
-          <div className={`w-full ${isMobile ? 'h-screen pt-12 pb-12 px-2' : 'h-[95vh] p-16'} flex items-center justify-center`}>
+          <div className={`flex items-center justify-center ${isMobile ? 'h-full pt-14 pb-14' : 'w-full h-[95vh] p-16'}`}>
             <img
               src={currentImage.image_url}
               alt={currentImage.caption || `Image ${currentIndex + 1}`}
-              className={isMobile ? "h-full w-auto object-contain" : "max-w-full max-h-full w-auto h-auto object-contain"}
+              className={isMobile ? "max-h-full w-auto object-contain" : "max-w-full max-h-full w-auto h-auto object-contain"}
             />
             
             {/* Caption */}
