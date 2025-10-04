@@ -36,13 +36,13 @@ const VendorDashboard = () => {
         return;
       }
 
-      const { data: vendor } = await supabase
+      const { data: vendor, error } = await supabase
         .from('vendors')
         .select('id, status')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (vendor) {
+      if (!error && vendor) {
         setVendorStatus(vendor.status);
         setVendorId(vendor.id);
         
