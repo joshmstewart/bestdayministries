@@ -46,10 +46,12 @@ export const SponsorBestieDisplay = () => {
   const [api, setApi] = useState<any>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const autoScrollRef = useRef(false);
+  const [carouselInterval, setCarouselInterval] = useState(7000);
 
   useEffect(() => {
     loadUserRole();
     loadCurrentBesties();
+    loadCarouselTiming();
   }, []);
 
   useEffect(() => {
@@ -82,10 +84,29 @@ export const SponsorBestieDisplay = () => {
     const intervalId = setInterval(() => {
       autoScrollRef.current = true;
       api.scrollNext();
-    }, 7000);
+    }, carouselInterval);
 
     return () => clearInterval(intervalId);
-  }, [api, isPlaying, isAudioPlaying]);
+  }, [api, isPlaying, isAudioPlaying, carouselInterval]);
+
+  const loadCarouselTiming = async () => {
+    try {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "carousel_timing_sponsor_bestie")
+        .maybeSingle();
+
+      if (data?.setting_value) {
+        const value = typeof data.setting_value === 'string' 
+          ? JSON.parse(data.setting_value) 
+          : data.setting_value;
+        setCarouselInterval(value.interval_ms || 7000);
+      }
+    } catch (error) {
+      console.error("Error loading carousel timing:", error);
+    }
+  };
 
   const loadUserRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();

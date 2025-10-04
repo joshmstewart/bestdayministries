@@ -15,6 +15,9 @@ export const AppSettingsManager = () => {
     logo_url: "",
     mobile_app_name: "",
     mobile_app_icon_url: "",
+    carousel_timing_featured_item: 10,
+    carousel_timing_featured_bestie: 5,
+    carousel_timing_sponsor_bestie: 7,
   });
 
   useEffect(() => {
@@ -26,7 +29,7 @@ export const AppSettingsManager = () => {
       const { data, error } = await supabase
         .from("app_settings")
         .select("*")
-        .in("setting_key", ["logo_url", "mobile_app_name", "mobile_app_icon_url"]);
+        .in("setting_key", ["logo_url", "mobile_app_name", "mobile_app_icon_url", "carousel_timing_featured_item", "carousel_timing_featured_bestie", "carousel_timing_sponsor_bestie"]);
 
       if (error) throw error;
 
@@ -34,6 +37,9 @@ export const AppSettingsManager = () => {
         logo_url: "",
         mobile_app_name: "Best Day Ministries Community",
         mobile_app_icon_url: "",
+        carousel_timing_featured_item: 10,
+        carousel_timing_featured_bestie: 5,
+        carousel_timing_sponsor_bestie: 7,
       };
       
       data?.forEach((setting) => {
@@ -42,7 +48,13 @@ export const AppSettingsManager = () => {
           const value = typeof setting.setting_value === 'string' 
             ? JSON.parse(setting.setting_value) 
             : setting.setting_value;
-          settingsMap[setting.setting_key] = value;
+          
+          // For carousel timing settings, extract interval_ms value
+          if (setting.setting_key.startsWith('carousel_timing_')) {
+            settingsMap[setting.setting_key] = (value.interval_ms || 5000) / 1000;
+          } else {
+            settingsMap[setting.setting_key] = value;
+          }
         } catch (e) {
           // If JSON parse fails, use the value as-is
           settingsMap[setting.setting_key] = setting.setting_value;
@@ -140,6 +152,54 @@ export const AppSettingsManager = () => {
       toast({
         title: "Success",
         description: "Mobile app name updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCarouselTimingUpdate = async () => {
+    try {
+      setUploading(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Update all three carousel timing settings
+      const updates = [
+        {
+          setting_key: "carousel_timing_featured_item",
+          setting_value: JSON.stringify({ interval_ms: settings.carousel_timing_featured_item * 1000 }),
+          updated_by: user?.id,
+        },
+        {
+          setting_key: "carousel_timing_featured_bestie",
+          setting_value: JSON.stringify({ interval_ms: settings.carousel_timing_featured_bestie * 1000 }),
+          updated_by: user?.id,
+        },
+        {
+          setting_key: "carousel_timing_sponsor_bestie",
+          setting_value: JSON.stringify({ interval_ms: settings.carousel_timing_sponsor_bestie * 1000 }),
+          updated_by: user?.id,
+        },
+      ];
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("app_settings")
+          .upsert(update, { onConflict: 'setting_key' });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Carousel timing updated successfully",
       });
     } catch (error: any) {
       toast({
@@ -277,6 +337,87 @@ export const AppSettingsManager = () => {
               )}
             </Button>
           </div>
+        </div>
+
+        {/* Carousel Timing Settings */}
+        <div className="space-y-4 pt-6 border-t">
+          <h3 className="text-lg font-semibold">Carousel Auto-Advance Timing</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Configure how long each carousel displays before auto-advancing (in seconds)
+          </p>
+          
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="featured-item-timing">Featured Item</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="featured-item-timing"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={settings.carousel_timing_featured_item}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      carousel_timing_featured_item: parseInt(e.target.value) || 10,
+                    }))
+                  }
+                  disabled={uploading}
+                />
+                <span className="text-sm text-muted-foreground">sec</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="featured-bestie-timing">Featured Bestie</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="featured-bestie-timing"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={settings.carousel_timing_featured_bestie}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      carousel_timing_featured_bestie: parseInt(e.target.value) || 5,
+                    }))
+                  }
+                  disabled={uploading}
+                />
+                <span className="text-sm text-muted-foreground">sec</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sponsor-bestie-timing">Sponsor Bestie</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="sponsor-bestie-timing"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={settings.carousel_timing_sponsor_bestie}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      carousel_timing_sponsor_bestie: parseInt(e.target.value) || 7,
+                    }))
+                  }
+                  disabled={uploading}
+                />
+                <span className="text-sm text-muted-foreground">sec</span>
+              </div>
+            </div>
+          </div>
+
+          <Button onClick={handleCarouselTimingUpdate} disabled={uploading}>
+            {uploading ? (
+              <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+            ) : (
+              "Update Timing"
+            )}
+          </Button>
         </div>
 
         {/* Additional Info */}
