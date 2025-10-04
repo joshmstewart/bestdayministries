@@ -4,8 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Heart, Star, Loader2, X } from "lucide-react";
+import { Heart, Star, Loader2, X, Edit } from "lucide-react";
 
 interface LinkedBestie {
   id: string;
@@ -17,6 +20,7 @@ interface LinkedBestie {
   friend_code: string | null;
   status: string;
   is_featured: boolean;
+  bestie_role: string;
 }
 
 interface VendorLinkedBestiesProps {
@@ -28,6 +32,8 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<{ id: string; role: string } | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
     loadLinkedBesties();
@@ -46,7 +52,7 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
       // Get approved requests
       const { data: requests, error: requestsError } = await supabase
         .from('vendor_bestie_requests')
-        .select('id, bestie_id, status')
+        .select('id, bestie_id, status, bestie_role')
         .eq('vendor_id', vendorId)
         .eq('status', 'approved');
 
@@ -77,7 +83,8 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
           avatar_url: profile?.avatar_url,
           friend_code: profile?.friend_code,
           status: req.status,
-          is_featured: vendor?.featured_bestie_id === req.bestie_id
+          is_featured: vendor?.featured_bestie_id === req.bestie_id,
+          bestie_role: req.bestie_role || 'Creator'
         };
       });
 
@@ -180,6 +187,30 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
     } catch (error) {
       console.error('Error cancelling request:', error);
       toast.error("Failed to cancel request");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateRole = async () => {
+    if (!editingRole) return;
+    
+    setActionLoading(editingRole.id);
+    try {
+      const { error } = await supabase
+        .from('vendor_bestie_requests')
+        .update({ bestie_role: editingRole.role })
+        .eq('id', editingRole.id);
+
+      if (error) throw error;
+
+      toast.success("Bestie role updated");
+      setIsEditDialogOpen(false);
+      setEditingRole(null);
+      loadLinkedBesties();
+    } catch (error) {
+      console.error('Error updating role:', error);
+      toast.error("Failed to update role");
     } finally {
       setActionLoading(null);
     }
@@ -291,43 +322,95 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
                         </Badge>
                       )}
                     </div>
+                    <p className="text-sm font-medium text-primary">
+                      {bestie.bestie_role}
+                    </p>
                     {bestie.friend_code && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {bestie.friend_code}
                       </p>
                     )}
                   </div>
 
-                  {bestie.is_featured ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleUnfeature}
-                      disabled={actionLoading === 'unfeature'}
-                    >
-                      {actionLoading === 'unfeature' ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        'Unfeature'
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFeature(bestie.bestie_id)}
-                      disabled={actionLoading === bestie.bestie_id}
-                    >
-                      {actionLoading === bestie.bestie_id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Star className="mr-1 h-3 w-3" />
-                          Feature
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  <div className="flex gap-2">
+                    <Dialog open={isEditDialogOpen && editingRole?.id === bestie.id} onOpenChange={(open) => {
+                      setIsEditDialogOpen(open);
+                      if (!open) setEditingRole(null);
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingRole({ id: bestie.id, role: bestie.bestie_role });
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Bestie Role</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div>
+                            <Label htmlFor="role">Role</Label>
+                            <Input
+                              id="role"
+                              value={editingRole?.role || ''}
+                              onChange={(e) => setEditingRole(prev => 
+                                prev ? { ...prev, role: e.target.value } : null
+                              )}
+                              placeholder="e.g., Creator, Artist, Contributor"
+                            />
+                          </div>
+                          <Button 
+                            onClick={handleUpdateRole}
+                            disabled={!editingRole?.role || actionLoading === editingRole?.id}
+                            className="w-full"
+                          >
+                            {actionLoading === editingRole?.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Save'
+                            )}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    {bestie.is_featured ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleUnfeature}
+                        disabled={actionLoading === 'unfeature'}
+                      >
+                        {actionLoading === 'unfeature' ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Unfeature'
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFeature(bestie.bestie_id)}
+                        disabled={actionLoading === bestie.bestie_id}
+                      >
+                        {actionLoading === bestie.bestie_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Star className="mr-1 h-3 w-3" />
+                            Feature
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

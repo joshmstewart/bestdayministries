@@ -1515,6 +1515,7 @@ export type Database = {
       vendor_bestie_requests: {
         Row: {
           bestie_id: string
+          bestie_role: string | null
           created_at: string
           id: string
           message: string | null
@@ -1527,6 +1528,7 @@ export type Database = {
         }
         Insert: {
           bestie_id: string
+          bestie_role?: string | null
           created_at?: string
           id?: string
           message?: string | null
@@ -1539,6 +1541,7 @@ export type Database = {
         }
         Update: {
           bestie_id?: string
+          bestie_role?: string | null
           created_at?: string
           id?: string
           message?: string | null

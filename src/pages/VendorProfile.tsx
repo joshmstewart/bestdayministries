@@ -27,6 +27,7 @@ interface FeaturedBestie {
   avatar_url: string | null;
   avatar_number: number | null;
   bio: string | null;
+  role: string;
 }
 
 const VendorProfile = () => {
@@ -63,17 +64,30 @@ const VendorProfile = () => {
 
       setVendor(vendorData);
 
-      // If vendor has a featured bestie, fetch their details
+      // If vendor has a featured bestie, fetch their details and role
       let featuredBestieData = null;
       if (vendorData.featured_bestie_id) {
+        // Get bestie profile
         const { data: bestieProfile } = await supabase
           .from('profiles_public')
           .select('id, display_name, avatar_url, avatar_number, bio')
           .eq('id', vendorData.featured_bestie_id)
           .single();
         
+        // Get bestie role from vendor_bestie_requests
+        const { data: linkData } = await supabase
+          .from('vendor_bestie_requests')
+          .select('bestie_role')
+          .eq('vendor_id', id)
+          .eq('bestie_id', vendorData.featured_bestie_id)
+          .eq('status', 'approved')
+          .single();
+        
         if (bestieProfile) {
-          featuredBestieData = bestieProfile;
+          featuredBestieData = {
+            ...bestieProfile,
+            role: linkData?.bestie_role || 'Creator'
+          };
         }
       }
       setFeaturedBestie(featuredBestieData);
@@ -270,11 +284,11 @@ const VendorProfile = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-heading text-xl font-bold">
-                          Supporting {featuredBestie.display_name}
+                          {featuredBestie.display_name}
                         </h3>
                         <Badge variant="secondary" className="gap-1">
                           <Star className="h-3 w-3 fill-current" />
-                          Featured Bestie
+                          {featuredBestie.role}
                         </Badge>
                       </div>
                       {featuredBestie.bio && (
@@ -283,7 +297,7 @@ const VendorProfile = () => {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-2">
-                        This vendor proudly supports our community member
+                        This {featuredBestie.role.toLowerCase()} is proudly supported by {vendor.business_name}
                       </p>
                     </div>
                   </div>

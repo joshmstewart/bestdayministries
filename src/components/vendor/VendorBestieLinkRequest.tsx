@@ -9,6 +9,15 @@ import { toast } from "sonner";
 import { Loader2, Heart } from "lucide-react";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 
+const BESTIE_ROLES = [
+  "Creator",
+  "Artist", 
+  "Designer",
+  "Maker",
+  "Contributor",
+  "Partner"
+];
+
 interface VendorBestieLinkRequestProps {
   vendorId: string;
 }
@@ -18,6 +27,7 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
   const [emoji2, setEmoji2] = useState("");
   const [emoji3, setEmoji3] = useState("");
   const [message, setMessage] = useState("");
+  const [bestieRole, setBestieRole] = useState("Creator");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,7 +68,8 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
           vendor_id: vendorId,
           bestie_id: profile.id,
           message: message.trim() || null,
-          status: 'pending'
+          status: 'pending',
+          bestie_role: bestieRole
         });
 
       if (requestError) {
@@ -76,6 +87,7 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
       setEmoji2("");
       setEmoji3("");
       setMessage("");
+      setBestieRole("Creator");
     } catch (error) {
       console.error('Error creating link request:', error);
       toast.error("Failed to send link request");
@@ -157,6 +169,25 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
                 <p className="text-5xl tracking-wider">{emoji1}{emoji2}{emoji3}</p>
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bestie-role">Bestie's Role</Label>
+            <Select value={bestieRole} onValueChange={setBestieRole} disabled={loading}>
+              <SelectTrigger id="bestie-role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BESTIE_ROLES.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              What role does this bestie have with your business?
+            </p>
           </div>
 
           <div className="space-y-2">
