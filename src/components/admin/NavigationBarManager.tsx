@@ -253,15 +253,24 @@ export function NavigationBarManager() {
       }));
 
       // Delete temp IDs and upsert
-      const upsertPromises = linksToSave.map(async (link) => {
-        if (link.id) {
-          return supabase.from("navigation_links").update(link).eq("id", link.id);
-        } else {
-          return supabase.from("navigation_links").insert([link]);
-        }
-      });
+      const results = await Promise.all(
+        linksToSave.map(async (link) => {
+          if (link.id) {
+            const { error } = await supabase.from("navigation_links").update(link).eq("id", link.id);
+            return { error, type: 'update', link };
+          } else {
+            const { error } = await supabase.from("navigation_links").insert([link]);
+            return { error, type: 'insert', link };
+          }
+        })
+      );
 
-      await Promise.all(upsertPromises);
+      // Check for errors
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) {
+        console.error("Save errors:", errors);
+        throw new Error(`Failed to save ${errors.length} link(s): ${errors[0].error.message}`);
+      }
 
       toast({
         title: "Navigation saved",
