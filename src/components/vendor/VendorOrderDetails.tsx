@@ -44,17 +44,22 @@ export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDet
       // Get order details
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          customer:profiles(display_name, id)
-        `)
+        .select('*')
         .eq('id', orderId)
         .single();
 
       if (orderError) throw orderError;
 
+      // Get customer profile
+      const { data: customerProfile } = await supabase
+        .from('profiles')
+        .select('display_name, id')
+        .eq('id', orderData.customer_id)
+        .single();
+
       setOrder({
         ...orderData,
+        customer: customerProfile,
         items: orderItems
       });
     } catch (error) {
