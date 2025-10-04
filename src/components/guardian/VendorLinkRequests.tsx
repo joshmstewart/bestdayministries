@@ -61,12 +61,11 @@ export const VendorLinkRequests = () => {
           message,
           requested_at,
           status,
-          vendor:vendors (
+          vendors!inner (
             business_name,
-            description,
-            logo_url
+            description
           ),
-          bestie:profiles!vendor_bestie_requests_bestie_id_fkey (
+          profiles!inner (
             display_name
           )
         `)
@@ -76,7 +75,25 @@ export const VendorLinkRequests = () => {
 
       if (error) throw error;
 
-      setRequests(data as any || []);
+      // Transform the data to match our interface
+      const transformedData = data?.map((item: any) => ({
+        id: item.id,
+        vendor_id: item.vendor_id,
+        bestie_id: item.bestie_id,
+        message: item.message,
+        requested_at: item.requested_at,
+        status: item.status,
+        vendor: {
+          business_name: item.vendors?.business_name || 'Unknown Vendor',
+          description: item.vendors?.description || null,
+          logo_url: null
+        },
+        bestie: {
+          display_name: item.profiles?.display_name || 'Bestie'
+        }
+      })) || [];
+
+      setRequests(transformedData);
     } catch (error) {
       console.error('Error loading vendor link requests:', error);
       toast.error("Failed to load vendor link requests");
@@ -192,17 +209,9 @@ export const VendorLinkRequests = () => {
                 <div className="space-y-4">
                   {/* Vendor Info */}
                   <div className="flex items-start gap-4">
-                    {request.vendor.logo_url ? (
-                      <img 
-                        src={request.vendor.logo_url}
-                        alt={request.vendor.business_name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Store className="h-6 w-6 text-primary" />
-                      </div>
-                    )}
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Store className="h-6 w-6 text-primary" />
+                    </div>
                     
                     <div className="flex-1">
                       <h4 className="font-semibold text-lg">
