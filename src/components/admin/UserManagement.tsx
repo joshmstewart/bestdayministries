@@ -557,7 +557,7 @@ export const UserManagement = () => {
                     <SelectContent>
                       <SelectItem value="supporter">Supporter</SelectItem>
                       <SelectItem value="bestie">Bestie</SelectItem>
-                      <SelectItem value="caregiver">Caregiver</SelectItem>
+                      <SelectItem value="caregiver">Guardian</SelectItem>
                       {effectiveRole === "owner" && (
                         <>
                           <SelectItem value="moderator">Moderator</SelectItem>
@@ -741,7 +741,7 @@ export const UserManagement = () => {
                 <SelectContent>
                   <SelectItem value="supporter">Supporter</SelectItem>
                   <SelectItem value="bestie">Bestie</SelectItem>
-                  <SelectItem value="caregiver">Caregiver</SelectItem>
+                  <SelectItem value="caregiver">Guardian</SelectItem>
                   {currentUserRole === "owner" && (
                     <>
                       <SelectItem value="moderator">Moderator</SelectItem>

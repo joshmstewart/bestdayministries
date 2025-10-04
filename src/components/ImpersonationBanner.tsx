@@ -8,7 +8,7 @@ export const ImpersonationBanner = () => {
   if (!isImpersonating) return null;
 
   const roleLabels: Record<string, string> = {
-    caregiver: "Guardian/Caregiver",
+    caregiver: "Guardian",
     bestie: "Bestie",
     supporter: "Supporter",
   };

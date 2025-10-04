@@ -32,7 +32,7 @@ export const RoleImpersonator = () => {
 
   // Base roles available to all admins/owners
   const baseRoles: { value: UserRole; label: string }[] = [
-    { value: "caregiver", label: "Guardian/Caregiver" },
+    { value: "caregiver", label: "Guardian" },
     { value: "bestie", label: "Bestie" },
     { value: "supporter", label: "Supporter" },
   ];

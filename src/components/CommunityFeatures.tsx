@@ -30,7 +30,7 @@ const CommunityFeatures = () => {
     {
       icon: Link2,
       title: "Family Connections",
-      description: "Caregivers can link to their Besties' accounts to stay connected and provide support when needed",
+      description: "Guardians can link to their Besties' accounts to stay connected and provide support when needed",
       gradient: "from-secondary/20 to-accent/5"
     },
     {
@@ -42,7 +42,7 @@ const CommunityFeatures = () => {
     {
       icon: Users,
       title: "Mutual Support Network",
-      description: "Caregivers and supporters connect with each other for advice, encouragement, and shared experiences",
+      description: "Guardians and supporters connect with each other for advice, encouragement, and shared experiences",
       gradient: "from-primary/20 to-accent/5"
     },
     {
@@ -73,7 +73,7 @@ const CommunityFeatures = () => {
             </span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Our online platform brings together Besties, Caregivers, and Supporters in one joyful community
+            Our online platform brings together Besties, Guardians, and Supporters in one joyful community
           </p>
         </div>
 

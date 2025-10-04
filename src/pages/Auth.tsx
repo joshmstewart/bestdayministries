@@ -269,7 +269,7 @@ const Auth = () => {
                       <SelectItem value="caregiver">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-secondary" />
-                          <span>Caregiver (Parent/Guardian)</span>
+                          <span>Guardian</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="supporter">
