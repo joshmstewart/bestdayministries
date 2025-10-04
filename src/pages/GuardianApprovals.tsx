@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, MessageSquare, FileText } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { VendorLinkRequests } from "@/components/guardian/VendorLinkRequests";
+import { SponsorLinkRequests } from "@/components/guardian/SponsorLinkRequests";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface PendingPost {
@@ -49,6 +50,7 @@ export default function GuardianApprovals() {
   const [pendingPosts, setPendingPosts] = useState<PendingPost[]>([]);
   const [pendingComments, setPendingComments] = useState<PendingComment[]>([]);
   const [pendingVendorLinks, setPendingVendorLinks] = useState(0);
+  const [pendingSponsorLinks, setPendingSponsorLinks] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -172,8 +174,17 @@ export default function GuardianApprovals() {
         .select('*', { count: 'exact', head: true })
         .in('bestie_id', bestieIds)
         .eq('status', 'pending');
-
+      
       setPendingVendorLinks(vendorCount || 0);
+
+      // Load pending sponsor link requests count
+      const { count: sponsorCount } = await supabase
+        .from('sponsor_bestie_requests')
+        .select('*', { count: 'exact', head: true })
+        .in('bestie_id', bestieIds)
+        .eq('status', 'pending');
+      
+      setPendingSponsorLinks(sponsorCount || 0);
     } catch (error: any) {
       toast({
         title: "Error loading content",
@@ -332,7 +343,7 @@ export default function GuardianApprovals() {
           </div>
 
           <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="posts" className="gap-2">
                 <FileText className="w-4 h-4" />
                 Posts
@@ -351,6 +362,12 @@ export default function GuardianApprovals() {
                 Vendor Links
                 {pendingVendorLinks > 0 && (
                   <Badge variant="destructive" className="ml-1">{pendingVendorLinks}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="sponsors" className="gap-2">
+                Sponsor Links
+                {pendingSponsorLinks > 0 && (
+                  <Badge variant="destructive" className="ml-1">{pendingSponsorLinks}</Badge>
                 )}
               </TabsTrigger>
             </TabsList>
@@ -557,6 +574,10 @@ export default function GuardianApprovals() {
 
             <TabsContent value="vendors">
               <VendorLinkRequests onRequestsChange={() => currentUserId && loadPendingContent(currentUserId)} />
+            </TabsContent>
+
+            <TabsContent value="sponsors">
+              {currentUserId && <SponsorLinkRequests guardianId={currentUserId} />}
             </TabsContent>
           </Tabs>
         </div>

@@ -167,6 +167,8 @@ export type Database = {
           require_comment_approval: boolean
           require_post_approval: boolean
           require_vendor_asset_approval: boolean
+          show_sponsor_link_on_bestie: boolean
+          show_sponsor_link_on_guardian: boolean
           show_vendor_link_on_bestie: boolean
           show_vendor_link_on_guardian: boolean
         }
@@ -180,6 +182,8 @@ export type Database = {
           require_comment_approval?: boolean
           require_post_approval?: boolean
           require_vendor_asset_approval?: boolean
+          show_sponsor_link_on_bestie?: boolean
+          show_sponsor_link_on_guardian?: boolean
           show_vendor_link_on_bestie?: boolean
           show_vendor_link_on_guardian?: boolean
         }
@@ -193,6 +197,8 @@ export type Database = {
           require_comment_approval?: boolean
           require_post_approval?: boolean
           require_vendor_asset_approval?: boolean
+          show_sponsor_link_on_bestie?: boolean
+          show_sponsor_link_on_guardian?: boolean
           show_vendor_link_on_bestie?: boolean
           show_vendor_link_on_guardian?: boolean
         }
@@ -1311,6 +1317,63 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sponsor_bestie_requests: {
+        Row: {
+          bestie_id: string
+          created_at: string
+          id: string
+          message: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sponsor_bestie_id: string | null
+          sponsor_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bestie_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sponsor_bestie_id?: string | null
+          sponsor_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bestie_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sponsor_bestie_id?: string | null
+          sponsor_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_bestie_requests_sponsor_bestie_id_fkey"
+            columns: ["sponsor_bestie_id"]
+            isOneToOne: false
+            referencedRelation: "sponsor_bestie_funding_progress"
+            referencedColumns: ["sponsor_bestie_id"]
+          },
+          {
+            foreignKeyName: "sponsor_bestie_requests_sponsor_bestie_id_fkey"
+            columns: ["sponsor_bestie_id"]
+            isOneToOne: false
+            referencedRelation: "sponsor_besties"
             referencedColumns: ["id"]
           },
         ]
