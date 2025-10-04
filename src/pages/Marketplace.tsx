@@ -3,7 +3,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Store } from "lucide-react";
+import { ShoppingCart, Store, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -48,7 +48,7 @@ const Marketplace = () => {
                 Shop handmade items from our community and official Best Day Ever merch
               </p>
               
-              <div className="flex gap-4 justify-center">
+              <div className="flex gap-4 justify-center flex-wrap">
                 <Button 
                   size="lg"
                   onClick={() => setCartOpen(true)}
@@ -61,6 +61,15 @@ const Marketplace = () => {
                       {cartCount}
                     </span>
                   )}
+                </Button>
+                
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  onClick={() => navigate('/orders')}
+                >
+                  <Package className="mr-2 h-5 w-5" />
+                  Order History
                 </Button>
                 
                 <Button 
