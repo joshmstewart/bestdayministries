@@ -106,7 +106,7 @@ export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps)
   return (
     <div
       ref={containerRef}
-      className={cn("relative group bg-black rounded-lg overflow-hidden", className)}
+      className={cn("relative group bg-black rounded-lg overflow-hidden max-h-[600px]", className)}
       style={{ aspectRatio: aspectRatio.toString() }}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(isPlaying ? false : true)}
@@ -115,7 +115,7 @@ export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps)
         ref={videoRef}
         src={src}
         poster={poster}
-        className="w-full h-full object-contain"
+        className="w-full h-full"
         onClick={togglePlay}
       />
 
