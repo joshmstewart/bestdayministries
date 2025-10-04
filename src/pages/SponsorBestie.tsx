@@ -262,9 +262,14 @@ const SponsorBestie = () => {
 
       if (error) throw error;
 
-      // Redirect to Stripe checkout
+      // Open Stripe checkout in new tab
       if (data.url) {
-        window.location.href = data.url;
+        const checkoutWindow = window.open(data.url, '_blank');
+        if (!checkoutWindow) {
+          toast.error("Please allow pop-ups to complete checkout");
+        } else {
+          toast.success("Opening checkout in new tab...");
+        }
       }
     } catch (error) {
       console.error("Error creating sponsorship:", error);
