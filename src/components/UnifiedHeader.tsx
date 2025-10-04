@@ -56,15 +56,16 @@ export const UnifiedHeader = () => {
     loadLogo();
     loadNavLinks();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
+        setAuthLoading(false);
       } else {
         setProfile(null);
         setIsAdmin(false);
+        setAuthLoading(false);
       }
-      setAuthLoading(false);
     });
 
     // Subscribe to navigation links changes
@@ -154,8 +155,10 @@ export const UnifiedHeader = () => {
     if (session?.user) {
       setUser(session.user);
       await fetchProfile(session.user.id);
+      setAuthLoading(false);
+    } else {
+      setAuthLoading(false);
     }
-    setAuthLoading(false);
   };
 
   const fetchProfile = async (userId: string) => {
@@ -249,87 +252,89 @@ export const UnifiedHeader = () => {
             </div>
             
             <div className="flex items-center gap-2">
-            {!authLoading && (
+            {authLoading ? (
               <>
-                {user && profile ? (
-                  <>
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => navigate("/profile")}
-                      className="gap-2 hover:bg-muted"
-                    >
-                      <AvatarDisplay 
-                        avatarNumber={profile?.avatar_number} 
-                        displayName={profile?.display_name}
-                        size="md"
-                      />
-                      <span className="hidden sm:inline font-semibold">Profile</span>
-                    </Button>
-                    {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
-                      <Button 
-                        onClick={() => navigate("/guardian-links")}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Users className="w-4 h-4" />
-                        <span className="hidden sm:inline font-semibold">My Besties</span>
-                      </Button>
-                    )}
-                    {profile?.role === "caregiver" && (
-                      <Button 
-                        onClick={() => navigate("/guardian-approvals")}
-                        variant="outline"
-                        className="gap-2 relative"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="hidden sm:inline font-semibold">Approvals</span>
-                        {approvalsCount > 0 && (
-                          <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                            {approvalsCount}
-                          </span>
-                        )}
-                      </Button>
-                    )}
-                    {isAdmin && (
-                      <Button 
-                        onClick={() => navigate("/admin")}
-                        className="gap-2 bg-[#FF8C42] hover:bg-[#FF8C42]/90 text-white border-0 relative"
-                      >
-                        <Shield className="w-4 h-4" />
-                        <span className="hidden sm:inline font-semibold">Admin</span>
-                        {(moderationCount > 0 || pendingVendorsCount > 0) && (
-                          <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                            {moderationCount + pendingVendorsCount}
-                          </span>
-                        )}
-                      </Button>
-                    )}
-                    <Button 
-                      variant="outline" 
-                      onClick={handleLogout}
-                      className="gap-2"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="hidden sm:inline font-semibold">Logout</span>
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => navigate("/auth")}
-                      className="font-semibold"
-                    >
-                      Login
-                    </Button>
-                    <Button 
-                      onClick={() => navigate("/auth")}
-                      className="bg-gradient-warm border-0 font-semibold"
-                    >
-                      Sign Up
-                    </Button>
-                  </>
+                {/* Loading skeleton for buttons */}
+                <div className="h-10 w-24 bg-muted/50 rounded-md animate-pulse" />
+                <div className="h-10 w-24 bg-muted/50 rounded-md animate-pulse" />
+              </>
+            ) : user && profile ? (
+              <>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate("/profile")}
+                  className="gap-2 hover:bg-muted"
+                >
+                  <AvatarDisplay 
+                    avatarNumber={profile?.avatar_number} 
+                    displayName={profile?.display_name}
+                    size="md"
+                  />
+                  <span className="hidden sm:inline font-semibold">Profile</span>
+                </Button>
+                {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
+                  <Button 
+                    onClick={() => navigate("/guardian-links")}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="hidden sm:inline font-semibold">My Besties</span>
+                  </Button>
                 )}
+                {profile?.role === "caregiver" && (
+                  <Button 
+                    onClick={() => navigate("/guardian-approvals")}
+                    variant="outline"
+                    className="gap-2 relative"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="hidden sm:inline font-semibold">Approvals</span>
+                    {approvalsCount > 0 && (
+                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                        {approvalsCount}
+                      </span>
+                    )}
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button 
+                    onClick={() => navigate("/admin")}
+                    className="gap-2 bg-[#FF8C42] hover:bg-[#FF8C42]/90 text-white border-0 relative"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="hidden sm:inline font-semibold">Admin</span>
+                    {(moderationCount > 0 || pendingVendorsCount > 0) && (
+                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                        {moderationCount + pendingVendorsCount}
+                      </span>
+                    )}
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  onClick={handleLogout}
+                  className="gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline font-semibold">Logout</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate("/auth")}
+                  className="font-semibold"
+                >
+                  Login
+                </Button>
+                <Button 
+                  onClick={() => navigate("/auth")}
+                  className="bg-gradient-warm border-0 font-semibold"
+                >
+                  Sign Up
+                </Button>
               </>
             )}
             </div>
