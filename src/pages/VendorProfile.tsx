@@ -187,7 +187,8 @@ const VendorProfile = () => {
 
         {/* Vendor Info Section */}
         <div className="container mx-auto px-4">
-          <div className="relative -mt-8 mb-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="relative -mt-8 mb-6">
             <div className="bg-background rounded-lg shadow-lg p-6 border">
               <div className="flex flex-col md:flex-row gap-6 items-start">
                 {/* Logo */}
@@ -321,11 +322,11 @@ const VendorProfile = () => {
             </div>
           )}
 
-          {/* Products Section */}
-          <div className="pb-12">
-            <h2 className="font-heading text-2xl font-bold mb-6">
-              Products from {vendor.business_name}
-            </h2>
+            {/* Products Section */}
+            <div className="pb-12">
+              <h2 className="font-heading text-2xl font-bold mb-6">
+                Products from {vendor.business_name}
+              </h2>
             
             {products.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -340,6 +341,7 @@ const VendorProfile = () => {
                 </p>
               </div>
             )}
+            </div>
           </div>
         </div>
       </main>
