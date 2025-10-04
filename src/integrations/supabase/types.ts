@@ -1512,6 +1512,63 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_bestie_assets: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          asset_title: string | null
+          asset_type: string
+          asset_url: string
+          bestie_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_title?: string | null
+          asset_type: string
+          asset_url: string
+          bestie_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_title?: string | null
+          asset_type?: string
+          asset_url?: string
+          bestie_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_bestie_assets_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_earnings"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "vendor_bestie_assets_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_bestie_requests: {
         Row: {
           bestie_id: string

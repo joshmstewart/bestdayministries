@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Heart, Star, Loader2, X, Edit } from "lucide-react";
+import { Heart, Star, Loader2, X, Edit, Image } from "lucide-react";
+import { VendorBestieAssetSelector } from "./VendorBestieAssetSelector";
 
 interface LinkedBestie {
   id: string;
@@ -21,6 +22,7 @@ interface LinkedBestie {
   status: string;
   is_featured: boolean;
   bestie_role: string;
+  require_vendor_asset_approval: boolean;
 }
 
 interface VendorLinkedBestiesProps {
@@ -34,6 +36,7 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<{ id: string; role: string } | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedBestieForAssets, setSelectedBestieForAssets] = useState<LinkedBestie | null>(null);
 
   useEffect(() => {
     loadLinkedBesties();
@@ -49,10 +52,15 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
         .eq('id', vendorId)
         .single();
 
-      // Get approved requests
+      // Get approved requests with guardian settings
       const { data: requests, error: requestsError } = await supabase
         .from('vendor_bestie_requests')
-        .select('id, bestie_id, status, bestie_role')
+        .select(`
+          id, 
+          bestie_id, 
+          status, 
+          bestie_role
+        `)
         .eq('vendor_id', vendorId)
         .eq('status', 'approved');
 
@@ -72,8 +80,15 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
 
       if (profilesError) throw profilesError;
 
+      // Get guardian settings for asset approval
+      const { data: guardianSettings } = await supabase
+        .from('caregiver_bestie_links')
+        .select('bestie_id, require_vendor_asset_approval')
+        .in('bestie_id', bestieIds);
+
       const linkedBesties = requests.map(req => {
         const profile = profiles?.find(p => p.id === req.bestie_id);
+        const settings = guardianSettings?.find(s => s.bestie_id === req.bestie_id);
         return {
           id: req.id,
           request_id: req.id,
@@ -84,7 +99,8 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
           friend_code: profile?.friend_code,
           status: req.status,
           is_featured: vendor?.featured_bestie_id === req.bestie_id,
-          bestie_role: req.bestie_role || 'Creator'
+          bestie_role: req.bestie_role || 'Creator',
+          require_vendor_asset_approval: settings?.require_vendor_asset_approval || false
         };
       });
 
@@ -333,6 +349,15 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
                   </div>
 
                   <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedBestieForAssets(bestie)}
+                      title="Select assets to feature"
+                    >
+                      <Image className="h-4 w-4" />
+                    </Button>
+
                     <Dialog open={isEditDialogOpen && editingRole?.id === bestie.id} onOpenChange={(open) => {
                       setIsEditDialogOpen(open);
                       if (!open) setEditingRole(null);
@@ -426,6 +451,18 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Asset Selector Dialog */}
+      {selectedBestieForAssets && (
+        <VendorBestieAssetSelector
+          vendorId={vendorId}
+          bestieId={selectedBestieForAssets.bestie_id}
+          bestieName={selectedBestieForAssets.display_name}
+          requiresApproval={selectedBestieForAssets.require_vendor_asset_approval}
+          isOpen={!!selectedBestieForAssets}
+          onClose={() => setSelectedBestieForAssets(null)}
+        />
+      )}
     </div>
   );
 };

@@ -35,6 +35,7 @@ const VendorProfile = () => {
   const navigate = useNavigate();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [featuredBestie, setFeaturedBestie] = useState<FeaturedBestie | null>(null);
+  const [bestieAssets, setBestieAssets] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,6 +92,18 @@ const VendorProfile = () => {
         }
       }
       setFeaturedBestie(featuredBestieData);
+
+      // Fetch approved bestie assets
+      const { data: assetsData } = await supabase
+        .from("vendor_bestie_assets")
+        .select("*")
+        .eq("vendor_id", id)
+        .eq("approval_status", "approved")
+        .order("created_at", { ascending: false });
+
+      if (assetsData) {
+        setBestieAssets(assetsData);
+      }
 
       // Fetch vendor's active products
       const { data: productsData, error: productsError } = await supabase
@@ -260,6 +273,35 @@ const VendorProfile = () => {
               </div>
             </div>
           </div>
+
+          {/* Bestie Assets Gallery */}
+          {bestieAssets.length > 0 && (
+            <div className="pb-8">
+              <h2 className="font-heading text-2xl font-bold mb-4">Featured Content</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {bestieAssets.map((asset) => (
+                  <div key={asset.id} className="relative group">
+                    {asset.asset_type === 'image' ? (
+                      <img
+                        src={asset.asset_url}
+                        alt={asset.asset_title || 'Featured content'}
+                        className="w-full aspect-square object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full aspect-square bg-muted rounded-lg flex items-center justify-center">
+                        {asset.asset_type === 'voice_note' ? '🎤' : '🎥'}
+                      </div>
+                    )}
+                    {asset.asset_title && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 rounded-b-lg">
+                        <p className="text-sm truncate">{asset.asset_title}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Featured Bestie Section */}
           {featuredBestie && (
