@@ -32,7 +32,6 @@ interface BestieLink {
   allow_featured_posts: boolean;
   bestie: {
     display_name: string;
-    email: string;
     avatar_number: number;
   };
 }
@@ -55,7 +54,6 @@ interface Sponsorship {
   shared_by?: string;
   bestie: {
     display_name: string;
-    email: string;
     avatar_number: number;
   };
   featured_bestie?: {
@@ -164,7 +162,6 @@ export default function GuardianLinks() {
           allow_featured_posts,
           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             display_name,
-            email,
             avatar_number
           )
         `)
@@ -828,7 +825,7 @@ export default function GuardianLinks() {
                             />
                             <div>
                               <CardTitle>{link.bestie.display_name}</CardTitle>
-                              <CardDescription>{link.bestie.email}</CardDescription>
+                              <CardDescription>{link.relationship}</CardDescription>
                             </div>
                           </div>
                           <AlertDialog>
