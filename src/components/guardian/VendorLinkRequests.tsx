@@ -60,14 +60,7 @@ export const VendorLinkRequests = () => {
           bestie_id,
           message,
           requested_at,
-          status,
-          vendors!inner (
-            business_name,
-            description
-          ),
-          profiles!inner (
-            display_name
-          )
+          status
         `)
         .in('bestie_id', bestieIds)
         .eq('status', 'pending')
@@ -75,8 +68,31 @@ export const VendorLinkRequests = () => {
 
       if (error) throw error;
 
+      if (!data || data.length === 0) {
+        setRequests([]);
+        return;
+      }
+
+      // Fetch vendor and bestie details separately
+      const vendorIds = [...new Set(data.map(r => r.vendor_id))];
+      const bestieIdsFromRequests = [...new Set(data.map(r => r.bestie_id))];
+
+      const [vendorsResponse, bestiesResponse] = await Promise.all([
+        supabase
+          .from('vendors')
+          .select('id, business_name, description')
+          .in('id', vendorIds),
+        supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', bestieIdsFromRequests)
+      ]);
+
+      const vendorsMap = new Map(vendorsResponse.data?.map(v => [v.id, v]) || []);
+      const bestiesMap = new Map(bestiesResponse.data?.map(b => [b.id, b]) || []);
+
       // Transform the data to match our interface
-      const transformedData = data?.map((item: any) => ({
+      const transformedData = data.map((item: any) => ({
         id: item.id,
         vendor_id: item.vendor_id,
         bestie_id: item.bestie_id,
@@ -84,14 +100,14 @@ export const VendorLinkRequests = () => {
         requested_at: item.requested_at,
         status: item.status,
         vendor: {
-          business_name: item.vendors?.business_name || 'Unknown Vendor',
-          description: item.vendors?.description || null,
+          business_name: vendorsMap.get(item.vendor_id)?.business_name || 'Unknown Vendor',
+          description: vendorsMap.get(item.vendor_id)?.description || null,
           logo_url: null
         },
         bestie: {
-          display_name: item.profiles?.display_name || 'Bestie'
+          display_name: bestiesMap.get(item.bestie_id)?.display_name || 'Bestie'
         }
-      })) || [];
+      }));
 
       setRequests(transformedData);
     } catch (error) {
