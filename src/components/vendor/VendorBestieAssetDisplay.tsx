@@ -64,7 +64,7 @@ export const VendorBestieAssetDisplay = ({ assets }: VendorBestieAssetDisplayPro
               )}
               <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm">
                 <Heart className="w-4 h-4 fill-current" />
-                Featured Bestie
+                Bestie of the Month
               </div>
             </div>
 
