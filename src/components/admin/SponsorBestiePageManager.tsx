@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -12,19 +13,28 @@ interface SponsorPageSettings {
   badge_text: string;
   main_heading: string;
   description: string;
+  featured_video_id?: string;
+}
+
+interface Video {
+  id: string;
+  title: string;
 }
 
 export const SponsorBestiePageManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [settings, setSettings] = useState<SponsorPageSettings>({
     badge_text: "Sponsor a Bestie",
     main_heading: "Change a Life Today",
-    description: "Sponsor a Bestie and directly support their journey of growth, creativity, and community engagement"
+    description: "Sponsor a Bestie and directly support their journey of growth, creativity, and community engagement",
+    featured_video_id: ""
   });
 
   useEffect(() => {
     loadSettings();
+    loadVideos();
   }, []);
 
   const loadSettings = async () => {
@@ -47,6 +57,21 @@ export const SponsorBestiePageManager = () => {
       console.error("Error loading settings:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadVideos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("videos")
+        .select("id, title")
+        .eq("is_active", true)
+        .order("title", { ascending: true });
+
+      if (error) throw error;
+      setVideos(data || []);
+    } catch (error) {
+      console.error("Error loading videos:", error);
     }
   };
 
@@ -136,7 +161,30 @@ export const SponsorBestiePageManager = () => {
           </p>
         </div>
 
-        <Button 
+        <div className="space-y-2">
+          <Label htmlFor="video">Featured Video</Label>
+          <Select
+            value={settings.featured_video_id || "none"}
+            onValueChange={(value) => setSettings({ ...settings, featured_video_id: value === "none" ? "" : value })}
+          >
+            <SelectTrigger id="video">
+              <SelectValue placeholder="Select a video (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No video</SelectItem>
+              {videos.map((video) => (
+                <SelectItem key={video.id} value={video.id}>
+                  {video.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Choose a video to display below the description (optional)
+          </p>
+        </div>
+
+        <Button
           onClick={handleSave} 
           disabled={saving}
           className="w-full"
