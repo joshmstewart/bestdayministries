@@ -1036,7 +1036,7 @@ export default function GuardianLinks() {
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
                                 <Label className="text-sm font-medium">
-                                  Show Vendor Store Link on Guardian Profile
+                                  Show Vendor Store Link on Your Profile
                                 </Label>
                                 <p className="text-sm text-muted-foreground">
                                   Display link to vendor store when you post or comment
