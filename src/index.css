@@ -270,4 +270,32 @@ All colors MUST be HSL.
   .transition-bounce {
     transition: var(--transition-bounce);
   }
+  
+  /* Persistent scrollbar for bestie selector */
+  .bestie-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+  }
+  
+  .bestie-scroll-container::-webkit-scrollbar {
+    width: 12px;
+  }
+  
+  .bestie-scroll-container::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 10px;
+  }
+  
+  .bestie-scroll-container::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.5);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  
+  .bestie-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.7);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
 }
