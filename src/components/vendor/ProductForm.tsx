@@ -61,7 +61,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
       const compressed = await compressImage(image);
       const fileExt = image.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${vendorId}/${fileName}`;
+      const filePath = `products/${vendorId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('app-assets')
