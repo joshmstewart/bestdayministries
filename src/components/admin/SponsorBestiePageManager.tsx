@@ -25,7 +25,6 @@ export const SponsorBestiePageManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
-  const [carouselTiming, setCarouselTiming] = useState<number>(7);
   const [settings, setSettings] = useState<SponsorPageSettings>({
     badge_text: "Sponsor a Bestie",
     main_heading: "Change a Life Today",
@@ -36,7 +35,6 @@ export const SponsorBestiePageManager = () => {
   useEffect(() => {
     loadSettings();
     loadVideos();
-    loadCarouselTiming();
   }, []);
 
   const loadSettings = async () => {
@@ -74,45 +72,6 @@ export const SponsorBestiePageManager = () => {
       setVideos(data || []);
     } catch (error) {
       console.error("Error loading videos:", error);
-    }
-  };
-
-  const loadCarouselTiming = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "carousel_timing_sponsor_bestie")
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data?.setting_value) {
-        setCarouselTiming(Number(data.setting_value) || 7);
-      }
-    } catch (error) {
-      console.error("Error loading carousel timing:", error);
-    }
-  };
-
-  const saveCarouselTiming = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { error } = await supabase
-        .from("app_settings")
-        .upsert({
-          setting_key: "carousel_timing_sponsor_bestie",
-          setting_value: carouselTiming,
-          updated_by: user.id,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'setting_key' });
-
-      if (error) throw error;
-      toast.success("Carousel timing updated successfully");
-    } catch (error: any) {
-      console.error("Error saving carousel timing:", error);
-      toast.error(error.message || "Failed to update carousel timing");
     }
   };
 
@@ -222,27 +181,6 @@ export const SponsorBestiePageManager = () => {
           </Select>
           <p className="text-xs text-muted-foreground">
             Choose a video to display below the description (optional)
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="carousel-timing">Carousel Auto-Advance Time (seconds)</Label>
-          <div className="flex gap-2">
-            <Input
-              id="carousel-timing"
-              type="number"
-              min="3"
-              max="30"
-              value={carouselTiming}
-              onChange={(e) => setCarouselTiming(Number(e.target.value))}
-              className="flex-1"
-            />
-            <Button onClick={saveCarouselTiming} variant="outline">
-              Save Timing
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            How many seconds before automatically advancing to the next sponsor bestie
           </p>
         </div>
 
