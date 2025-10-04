@@ -7,11 +7,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Sparkles, Users, ArrowRight } from "lucide-react";
+import { Heart, Sparkles, Users, ArrowRight, Play } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FundingProgressBar } from "@/components/FundingProgressBar";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 interface Bestie {
   id: string;
@@ -28,6 +29,15 @@ interface FundingProgress {
   funding_percentage: number;
 }
 
+interface Video {
+  id: string;
+  title: string;
+  description: string | null;
+  video_url: string;
+  thumbnail_url: string | null;
+  category: string | null;
+}
+
 const sponsorshipSchema = z.object({
   amount: z.number().min(10, "Minimum sponsorship is $10"),
   email: z.string().email("Invalid email address"),
@@ -37,6 +47,7 @@ const SponsorBestie = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [besties, setBesties] = useState<Bestie[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [fundingProgress, setFundingProgress] = useState<Record<string, FundingProgress>>({});
   const [selectedBestie, setSelectedBestie] = useState<string>("");
   const [frequency, setFrequency] = useState<"one-time" | "monthly">("monthly");
@@ -54,6 +65,7 @@ const SponsorBestie = () => {
     loadBesties();
     checkAuthAndLoadEmail();
     loadPageContent();
+    loadVideos();
   }, []);
 
   const loadPageContent = async () => {
@@ -158,6 +170,22 @@ const SponsorBestie = () => {
       progressMap[progress.sponsor_bestie_id] = progress;
     });
     setFundingProgress(progressMap);
+  };
+
+  const loadVideos = async () => {
+    const { data, error } = await supabase
+      .from("videos")
+      .select("id, title, description, video_url, thumbnail_url, category")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .limit(3);
+
+    if (error) {
+      console.error("Error loading videos:", error);
+      return;
+    }
+
+    setVideos(data || []);
   };
 
   const handleSponsorship = async () => {
@@ -374,6 +402,38 @@ const SponsorBestie = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Videos Section */}
+            {videos.length > 0 && (
+              <Card className="border-2 shadow-xl mt-8">
+                <CardContent className="p-8">
+                  <h3 className="text-2xl font-black mb-6 flex items-center gap-2">
+                    <Play className="w-6 h-6 text-primary" />
+                    See Our Impact in Action
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {videos.map((video) => (
+                      <div key={video.id} className="space-y-3">
+                        <VideoPlayer
+                          src={video.video_url}
+                          poster={video.thumbnail_url || undefined}
+                          title={video.title}
+                          className="aspect-video rounded-lg"
+                        />
+                        <div>
+                          <h4 className="font-semibold">{video.title}</h4>
+                          {video.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {video.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Impact Info */}
             <Card className="border-2 shadow-xl mt-8 bg-gradient-card">
