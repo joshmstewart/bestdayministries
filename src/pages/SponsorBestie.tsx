@@ -13,7 +13,6 @@ import { z } from "zod";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FundingProgressBar } from "@/components/FundingProgressBar";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Bestie {
   id: string;
@@ -297,8 +296,8 @@ const SponsorBestie = () => {
                   {besties.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">No besties available for sponsorship at this time.</p>
                   ) : (
-                    <ScrollArea className="pr-2" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4">
+                    <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4 pr-2">
                       {besties.map((bestie) => (
                         <Card 
                           key={bestie.id} 
@@ -333,7 +332,7 @@ const SponsorBestie = () => {
                         </Card>
                       ))}
                       </RadioGroup>
-                    </ScrollArea>
+                    </div>
                   )}
                 </CardContent>
               </Card>
