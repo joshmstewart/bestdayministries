@@ -106,19 +106,32 @@ const Discussions = () => {
   };
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
+    // Fetch profile data
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
       return;
     }
 
-    setProfile(data);
-    setCanCreatePosts(['caregiver', 'admin', 'owner'].includes(data?.role));
+    // Fetch role from user_roles table (security requirement)
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const profile = {
+      ...profileData,
+      role: roleData?.role || "supporter"
+    };
+
+    setProfile(profile);
+    setCanCreatePosts(['caregiver', 'admin', 'owner'].includes(profile.role));
   };
 
   const loadPosts = async () => {
@@ -126,10 +139,10 @@ const Discussions = () => {
       .from("discussion_posts")
       .select(`
         *,
-        author:profiles!discussion_posts_author_id_fkey(id, display_name, role, avatar_number)
+        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role, avatar_number)
       `)
       .eq("is_moderated", true)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false});
 
     if (postsError) {
       console.error("Error loading posts:", postsError);
@@ -148,7 +161,7 @@ const Discussions = () => {
           .from("discussion_comments")
           .select(`
             *,
-            author:profiles!discussion_comments_author_id_fkey(id, display_name, role, avatar_number)
+            author:profiles_public!discussion_comments_author_id_fkey(id, display_name, role, avatar_number)
           `)
           .eq("post_id", post.id)
           .eq("is_moderated", true)

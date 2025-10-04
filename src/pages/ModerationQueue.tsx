@@ -59,14 +59,15 @@ const ModerationQueue = () => {
       return;
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
+    // Fetch role from user_roles table (security requirement)
+    const { data: roleData } = await supabase
+      .from("user_roles")
       .select("role")
-      .eq("id", session.user.id)
-      .single();
+      .eq("user_id", session.user.id)
+      .maybeSingle();
 
     // Check for admin-level access (owner role automatically has admin access)
-    if (!profile || !['admin', 'owner', 'moderator'].includes(profile.role)) {
+    if (!roleData || !['admin', 'owner', 'moderator'].includes(roleData.role)) {
       toast({
         title: "Access denied",
         description: "You don't have permission to view this page",
@@ -86,7 +87,7 @@ const ModerationQueue = () => {
       .from("discussion_posts")
       .select(`
         *,
-        author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
+        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role)
       `)
       .eq("is_moderated", false)
       .order("created_at", { ascending: false });
@@ -95,7 +96,7 @@ const ModerationQueue = () => {
       .from("discussion_comments")
       .select(`
         *,
-        author:profiles!discussion_comments_author_id_fkey(id, display_name, role),
+        author:profiles_public!discussion_comments_author_id_fkey(id, display_name, role),
         post:discussion_posts!discussion_comments_post_id_fkey(title)
       `)
       .eq("is_moderated", false)

@@ -64,13 +64,14 @@ export default function GuardianApprovals() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
+      // Fetch role from user_roles table (security requirement)
+      const { data: roleData } = await supabase
+        .from("user_roles")
         .select("role")
-        .eq("id", user.id)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (!profile || profile.role !== "caregiver") {
+      if (!roleData || roleData.role !== "caregiver") {
         toast({
           title: "Access denied",
           description: "Only guardians can access this page",

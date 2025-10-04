@@ -1480,6 +1480,7 @@ export type Database = {
           bio: string | null
           created_at: string | null
           display_name: string | null
+          friend_code: string | null
           id: string | null
           role: Database["public"]["Enums"]["user_role"] | null
         }

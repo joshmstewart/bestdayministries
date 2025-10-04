@@ -110,14 +110,15 @@ export default function GuardianLinks() {
 
       const user = session.user;
 
-      const { data: profile } = await supabase
-        .from("profiles")
+      // Fetch role from user_roles table (security requirement)
+      const { data: roleData } = await supabase
+        .from("user_roles")
         .select("role")
-        .eq("id", user.id)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       // Allow caregivers, supporters, besties, admins, and owners
-      if (!profile || !['caregiver', 'supporter', 'bestie', 'admin', 'owner'].includes(profile.role)) {
+      if (!roleData || !['caregiver', 'supporter', 'bestie', 'admin', 'owner'].includes(roleData.role)) {
         toast({
           title: "Access denied",
           description: "You don't have permission to access this page",
@@ -127,11 +128,11 @@ export default function GuardianLinks() {
         return;
       }
 
-      setUserRole(profile.role);
+      setUserRole(roleData.role);
       setCurrentUserId(user.id);
       
       // Only caregivers have guardian links
-      if (profile.role === "caregiver") {
+      if (roleData.role === "caregiver") {
         await loadLinks(user.id);
         await loadLinkedBesties(user.id);
       }
@@ -352,9 +353,10 @@ export default function GuardianLinks() {
     try {
       const friendCode = `${emoji1}${emoji2}${emoji3}`;
       
+      // Search using profiles_public view which includes role
       const { data: bestie, error } = await supabase
-        .from("profiles")
-        .select("*")
+        .from("profiles_public")
+        .select("id, display_name, role, avatar_number, friend_code, bio")
         .eq("role", "bestie")
         .eq("friend_code", friendCode)
         .maybeSingle();

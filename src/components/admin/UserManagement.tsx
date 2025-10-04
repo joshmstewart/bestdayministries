@@ -66,13 +66,14 @@ export const UserManagement = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from("profiles")
+      // Fetch role from user_roles table (security requirement)
+      const { data: roleData } = await supabase
+        .from("user_roles")
         .select("role")
-        .eq("id", user.id)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      setCurrentUserRole(profile?.role || null);
+      setCurrentUserRole(roleData?.role || null);
     } catch (error: any) {
       console.error("Error loading current user:", error);
     }
@@ -80,13 +81,25 @@ export const UserManagement = () => {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, display_name, role, created_at")
+        .select("id, display_name, created_at")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+
+      // Fetch roles for all users
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+
+      // Merge roles with profiles
+      const usersWithRoles = (profiles || []).map(profile => ({
+        ...profile,
+        role: rolesData?.find(r => r.user_id === profile.id)?.role || "supporter"
+      }));
+
+      setUsers(usersWithRoles);
     } catch (error: any) {
       toast({
         title: "Error loading users",

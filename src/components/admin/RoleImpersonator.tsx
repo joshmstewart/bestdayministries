@@ -20,13 +20,14 @@ export const RoleImpersonator = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: profile } = await supabase
-      .from("profiles")
+    // Fetch role from user_roles table (security requirement)
+    const { data: roleData } = await supabase
+      .from("user_roles")
       .select("role")
-      .eq("id", user.id)
-      .single();
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    setIsOwner(profile?.role === "owner");
+    setIsOwner(roleData?.role === "owner");
   };
 
   // Base roles available to all admins/owners

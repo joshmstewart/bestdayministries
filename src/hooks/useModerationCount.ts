@@ -19,14 +19,15 @@ export const useModerationCount = () => {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
+      // Fetch role from user_roles table (security requirement)
+      const { data: roleData } = await supabase
+        .from("user_roles")
         .select("role")
-        .eq("id", user.id)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       // Check for admin-level access (owner role automatically has admin access)
-      const adminStatus = profile?.role === "admin" || profile?.role === "owner";
+      const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
       setIsAdmin(adminStatus);
 
       if (adminStatus) {

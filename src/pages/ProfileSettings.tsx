@@ -127,34 +127,47 @@ const ProfileSettings = () => {
   };
 
   const loadProfile = async (userId: string) => {
-    const { data, error } = await supabase
+    // Fetch profile data
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (error) {
-      console.error("Error loading profile:", error);
+    if (profileError) {
+      console.error("Error loading profile:", profileError);
       toast({
         title: "Error loading profile",
-        description: error.message,
+        description: profileError.message,
         variant: "destructive",
       });
       return;
     }
 
-    setProfile(data);
-    setDisplayName(data.display_name || "");
-    setBio(data.bio || "");
-    setSelectedVoice(data.tts_voice || "Aria");
-    setTtsEnabled(data.tts_enabled ?? true);
+    // Fetch role from user_roles table (security requirement)
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const profile = {
+      ...profileData,
+      role: roleData?.role || "supporter"
+    };
+
+    setProfile(profile);
+    setDisplayName(profile.display_name || "");
+    setBio(profile.bio || "");
+    setSelectedVoice(profile.tts_voice || "Aria");
+    setTtsEnabled(profile.tts_enabled ?? true);
     
     // Set avatar number directly from the database
-    if (data.avatar_number) {
-      setSelectedAvatar(data.avatar_number);
-    } else if (data.avatar_url) {
+    if (profile.avatar_number) {
+      setSelectedAvatar(profile.avatar_number);
+    } else if (profile.avatar_url) {
       // Fallback for old avatar_url format
-      const avatarNum = parseInt(data.avatar_url.replace("avatar-", ""));
+      const avatarNum = parseInt(profile.avatar_url.replace("avatar-", ""));
       if (!isNaN(avatarNum)) {
         setSelectedAvatar(avatarNum);
       }

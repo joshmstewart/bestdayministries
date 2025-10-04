@@ -63,14 +63,15 @@ const Admin = () => {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
+      // Fetch role from user_roles table (security requirement)
+      const { data: roleData } = await supabase
+        .from("user_roles")
         .select("role")
-        .eq("id", user.id)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
 
     // Check for admin-level access (owner role automatically has admin access)
-    if (profile?.role !== "admin" && profile?.role !== "owner") {
+    if (roleData?.role !== "admin" && roleData?.role !== "owner") {
       toast({
         title: "Access Denied",
           description: "You don't have permission to access this page.",
@@ -81,8 +82,8 @@ const Admin = () => {
       }
 
       // Store actual role and calculate effective role with impersonation
-      setActualRole(profile?.role as UserRole);
-      const effectiveRole = getEffectiveRole(profile?.role as UserRole);
+      setActualRole(roleData?.role as UserRole);
+      const effectiveRole = getEffectiveRole(roleData?.role as UserRole);
       setIsAdmin(effectiveRole === "admin" || effectiveRole === "owner");
       setIsOwner(effectiveRole === "owner");
       await loadStats();

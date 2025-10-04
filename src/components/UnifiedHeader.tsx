@@ -180,7 +180,7 @@ export const UnifiedHeader = () => {
     // Combine profile with actual role from user_roles
     const profile = {
       ...profileData,
-      role: roleData?.role || profileData?.role || "supporter"
+      role: roleData?.role || "supporter"
     };
 
     setProfile(profile);
