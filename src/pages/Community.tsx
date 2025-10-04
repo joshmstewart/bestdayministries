@@ -140,7 +140,7 @@ const Community = () => {
         .from("discussion_posts")
         .select(`
           *,
-          author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
+          author:profiles!discussion_posts_author_id_fkey(id, display_name)
         `)
         .eq("approval_status", "approved")
         .order("created_at", { ascending: false })
