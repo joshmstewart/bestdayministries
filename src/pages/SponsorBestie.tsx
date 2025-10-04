@@ -269,16 +269,12 @@ const SponsorBestie = () => {
             {/* Featured Video Section */}
             {featuredVideo && (
               <div className="mb-8 max-w-4xl mx-auto">
-                <Card className="border-2 shadow-xl overflow-hidden">
-                  <CardContent className="p-0">
-                    <VideoPlayer
-                      src={featuredVideo.video_url}
-                      poster={featuredVideo.thumbnail_url || undefined}
-                      title={featuredVideo.title}
-                      className="w-full"
-                    />
-                  </CardContent>
-                </Card>
+                <VideoPlayer
+                  src={featuredVideo.video_url}
+                  poster={featuredVideo.thumbnail_url || undefined}
+                  title={featuredVideo.title}
+                  className="w-full"
+                />
                 {featuredVideo.description && (
                   <p className="text-center text-sm text-muted-foreground mt-3">
                     {featuredVideo.description}
