@@ -2,22 +2,41 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-  apiVersion: "2025-08-27.basil",
-});
-
-const endpointSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+// Note: Webhooks will receive events from the mode they were created in
+// Configure separate webhook endpoints in Stripe for test and live modes
+const stripeTestKey = Deno.env.get('STRIPE_SECRET_KEY_TEST') || "";
+const stripeLiveKey = Deno.env.get('STRIPE_SECRET_KEY_LIVE') || "";
+const testWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET_TEST");
+const liveWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET_LIVE");
 
 serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
 
-  if (!signature || !endpointSecret) {
-    return new Response("Missing signature or webhook secret", { status: 400 });
+  if (!signature) {
+    return new Response("Missing signature", { status: 400 });
   }
 
   try {
     const body = await req.text();
-    const event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
+    
+    // Try to construct event with test key first, then live
+    // Only one will succeed based on which mode created the webhook event
+    let event;
+    let stripe;
+    
+    try {
+      if (testWebhookSecret) {
+        stripe = new Stripe(stripeTestKey, { apiVersion: "2025-08-27.basil" });
+        event = stripe.webhooks.constructEvent(body, signature, testWebhookSecret);
+      }
+    } catch (e) {
+      // If test fails, try live
+      if (!liveWebhookSecret) {
+        throw new Error('No valid webhook secret found');
+      }
+      stripe = new Stripe(stripeLiveKey, { apiVersion: "2025-08-27.basil" });
+      event = stripe.webhooks.constructEvent(body, signature, liveWebhookSecret);
+    }
 
     console.log(`Received event: ${event.type}`);
 

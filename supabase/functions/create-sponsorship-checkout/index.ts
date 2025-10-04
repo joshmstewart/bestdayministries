@@ -32,20 +32,31 @@ serve(async (req) => {
   }
 
   try {
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-    if (!stripeKey) {
-      throw new Error('Stripe secret key not configured');
-    }
-
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: '2025-08-27.basil',
-    });
-
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
+
+    // Get Stripe mode from app_settings
+    const { data: modeSetting } = await supabaseAdmin
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'stripe_mode')
+      .single();
+    
+    const mode = modeSetting?.setting_value || 'test';
+    const stripeKey = mode === 'live' 
+      ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
+      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+    
+    if (!stripeKey) {
+      throw new Error(`Stripe ${mode} secret key not configured`);
+    }
+
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: '2025-08-27.basil',
+    });
 
     const requestBody = await req.json();
 

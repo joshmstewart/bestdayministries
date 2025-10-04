@@ -40,12 +40,29 @@ serve(async (req) => {
       throw new Error("Vendor account not found");
     }
 
+    // Get Stripe mode from app_settings
+    const { data: modeSetting } = await supabaseClient
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'stripe_mode')
+      .single();
+    
+    const mode = modeSetting?.setting_value || 'test';
+    const stripeKey = mode === 'live' 
+      ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
+      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+    
+    if (!stripeKey) {
+      throw new Error(`Stripe ${mode} secret key not configured`);
+    }
+
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: "2025-08-27.basil",
+    });
+
     // If vendor already has a Stripe account, return account status
     if (vendor.stripe_account_id) {
       console.log("Vendor already has Stripe account:", vendor.stripe_account_id);
-      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-        apiVersion: "2025-08-27.basil",
-      });
 
       const account = await stripe.accounts.retrieve(vendor.stripe_account_id);
       
@@ -61,10 +78,6 @@ serve(async (req) => {
     }
 
     // Create new Stripe Connect Express account
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
-
     const account = await stripe.accounts.create({
       type: "express",
       email: user.email,

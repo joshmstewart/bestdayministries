@@ -48,8 +48,24 @@ serve(async (req) => {
       );
     }
 
+    // Get Stripe mode from app_settings
+    const { data: modeSetting } = await supabaseClient
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'stripe_mode')
+      .single();
+    
+    const mode = modeSetting?.setting_value || 'test';
+    const stripeKey = mode === 'live' 
+      ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
+      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+    
+    if (!stripeKey) {
+      throw new Error(`Stripe ${mode} secret key not configured`);
+    }
+
     // Check Stripe account status
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
