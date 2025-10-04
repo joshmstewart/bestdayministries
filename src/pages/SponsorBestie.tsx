@@ -296,7 +296,7 @@ const SponsorBestie = () => {
                   {besties.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">No besties available for sponsorship at this time.</p>
                   ) : (
-                    <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+                    <div className="overflow-y-scroll" style={{ maxHeight: 'calc(100vh - 400px)', scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
                       <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4 pr-2">
                       {besties.map((bestie) => (
                         <Card 
