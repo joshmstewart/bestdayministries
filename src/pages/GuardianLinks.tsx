@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -1018,7 +1018,12 @@ export default function GuardianLinks() {
                               <div className="space-y-2">
                                 {vendorLinks.get(link.bestie_id)!.map((vendorLink) => (
                                   <div key={vendorLink.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                    <span className="text-sm font-medium">{vendorLink.vendor.business_name}</span>
+                                    <Link 
+                                      to={`/vendor-profile/${vendorLink.vendor_id}`}
+                                      className="text-sm font-medium text-primary hover:underline"
+                                    >
+                                      {vendorLink.vendor.business_name}
+                                    </Link>
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
