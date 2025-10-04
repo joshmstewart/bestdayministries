@@ -20,6 +20,7 @@ const VendorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [vendorStatus, setVendorStatus] = useState<'none' | 'pending' | 'approved' | 'rejected' | 'suspended'>('none');
   const [vendorId, setVendorId] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState<string>('');
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalSales: 0,
@@ -41,13 +42,14 @@ const VendorDashboard = () => {
 
       const { data: vendor, error } = await supabase
         .from('vendors')
-        .select('id, status')
+        .select('id, status, business_name')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (!error && vendor) {
         setVendorStatus(vendor.status);
         setVendorId(vendor.id);
+        setBusinessName(vendor.business_name || 'My Shop');
         
         if (vendor.status === 'approved') {
           loadStats(vendor.id);
@@ -259,17 +261,20 @@ const VendorDashboard = () => {
 
         {vendorStatus === 'approved' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <h1 className="text-4xl font-heading font-bold">Vendor Dashboard</h1>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
-                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">Approved</span>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground uppercase tracking-wide">Vendor Account</p>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-4xl font-heading font-bold">{businessName}</h1>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">Approved</span>
+                  </div>
                 </div>
+                <Button onClick={() => navigate('/marketplace')}>
+                  View Marketplace
+                </Button>
               </div>
-              <Button onClick={() => navigate('/marketplace')}>
-                View Marketplace
-              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
