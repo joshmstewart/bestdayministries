@@ -184,11 +184,12 @@ export const ProductList = ({ vendorId }: ProductListProps) => {
                 size="icon"
                 onClick={() => toggleProductStatus(product.id, product.is_active)}
                 title={product.is_active ? "Deactivate" : "Activate"}
+                className={product.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
               >
                 {product.is_active ? (
-                  <Eye className="h-4 w-4 text-green-600" />
+                  <Eye className="h-4 w-4 text-green-700" />
                 ) : (
-                  <EyeOff className="h-4 w-4 text-red-600" />
+                  <EyeOff className="h-4 w-4 text-red-700" />
                 )}
               </Button>
 
