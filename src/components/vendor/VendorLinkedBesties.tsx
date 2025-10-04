@@ -43,36 +43,43 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
         .eq('id', vendorId)
         .single();
 
-      // Get approved requests with bestie details
-      const { data, error } = await supabase
+      // Get approved requests
+      const { data: requests, error: requestsError } = await supabase
         .from('vendor_bestie_requests')
-        .select(`
-          id,
-          bestie_id,
-          status,
-          profiles:bestie_id (
-            display_name,
-            avatar_number,
-            avatar_url,
-            friend_code
-          )
-        `)
+        .select('id, bestie_id, status')
         .eq('vendor_id', vendorId)
         .eq('status', 'approved');
 
-      if (error) throw error;
+      if (requestsError) throw requestsError;
+      if (!requests || requests.length === 0) {
+        setBesties([]);
+        setLoading(false);
+        return;
+      }
 
-      const linkedBesties = data?.map(req => ({
-        id: req.id,
-        request_id: req.id,
-        bestie_id: req.bestie_id,
-        display_name: (req.profiles as any)?.display_name || 'Bestie',
-        avatar_number: (req.profiles as any)?.avatar_number,
-        avatar_url: (req.profiles as any)?.avatar_url,
-        friend_code: (req.profiles as any)?.friend_code,
-        status: req.status,
-        is_featured: vendor?.featured_bestie_id === req.bestie_id
-      })) || [];
+      // Get bestie profiles separately
+      const bestieIds = requests.map(r => r.bestie_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_number, avatar_url, friend_code')
+        .in('id', bestieIds);
+
+      if (profilesError) throw profilesError;
+
+      const linkedBesties = requests.map(req => {
+        const profile = profiles?.find(p => p.id === req.bestie_id);
+        return {
+          id: req.id,
+          request_id: req.id,
+          bestie_id: req.bestie_id,
+          display_name: profile?.display_name || 'Bestie',
+          avatar_number: profile?.avatar_number,
+          avatar_url: profile?.avatar_url,
+          friend_code: profile?.friend_code,
+          status: req.status,
+          is_featured: vendor?.featured_bestie_id === req.bestie_id
+        };
+      });
 
       setBesties(linkedBesties);
     } catch (error) {
@@ -85,25 +92,34 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
 
   const loadPendingRequests = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: requests, error: requestsError } = await supabase
         .from('vendor_bestie_requests')
-        .select(`
-          id,
-          bestie_id,
-          status,
-          message,
-          requested_at,
-          profiles:bestie_id (
-            display_name,
-            friend_code
-          )
-        `)
+        .select('id, bestie_id, status, message, requested_at')
         .eq('vendor_id', vendorId)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
 
-      if (error) throw error;
-      setPendingRequests(data || []);
+      if (requestsError) throw requestsError;
+      if (!requests || requests.length === 0) {
+        setPendingRequests([]);
+        return;
+      }
+
+      // Get bestie profiles separately
+      const bestieIds = requests.map(r => r.bestie_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name, friend_code')
+        .in('id', bestieIds);
+
+      if (profilesError) throw profilesError;
+
+      const pendingWithProfiles = requests.map(req => ({
+        ...req,
+        profiles: profiles?.find(p => p.id === req.bestie_id)
+      }));
+
+      setPendingRequests(pendingWithProfiles);
     } catch (error) {
       console.error('Error loading pending requests:', error);
     }
