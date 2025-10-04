@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn } from "lucide-react";
+import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 
 interface Profile {
@@ -18,6 +18,8 @@ interface Profile {
   role: string;
   created_at: string;
   email?: string;
+  vendor_status?: 'pending' | 'approved' | 'rejected' | 'suspended' | null;
+  business_name?: string;
 }
 
 export const UserManagement = () => {
@@ -93,10 +95,17 @@ export const UserManagement = () => {
         .from("user_roles")
         .select("user_id, role");
 
-      // Merge roles with profiles
+      // Fetch vendor info for all users
+      const { data: vendorsData } = await supabase
+        .from("vendors")
+        .select("user_id, status, business_name");
+
+      // Merge roles and vendor status with profiles
       const usersWithRoles = (profiles || []).map(profile => ({
         ...profile,
-        role: rolesData?.find(r => r.user_id === profile.id)?.role || "supporter"
+        role: rolesData?.find(r => r.user_id === profile.id)?.role || "supporter",
+        vendor_status: vendorsData?.find(v => v.user_id === profile.id)?.status || null,
+        business_name: vendorsData?.find(v => v.user_id === profile.id)?.business_name || undefined
       }));
 
       setUsers(usersWithRoles);
@@ -591,6 +600,7 @@ export const UserManagement = () => {
               <TableHead>Display Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Vendor Status</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -610,6 +620,44 @@ export const UserManagement = () => {
                     {user.role === "owner" && <Shield className="w-3 h-3 inline mr-1" />}
                     {user.role}
                   </span>
+                </TableCell>
+                <TableCell>
+                  {user.vendor_status ? (
+                    <div className="flex items-center gap-2">
+                      {user.vendor_status === 'pending' && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Pending
+                        </span>
+                      )}
+                      {user.vendor_status === 'approved' && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Approved
+                        </span>
+                      )}
+                      {user.vendor_status === 'rejected' && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          Rejected
+                        </span>
+                      )}
+                      {user.vendor_status === 'suspended' && (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          Suspended
+                        </span>
+                      )}
+                      {user.business_name && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Store className="w-3 h-3" />
+                          {user.business_name}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {new Date(user.created_at).toLocaleDateString()}

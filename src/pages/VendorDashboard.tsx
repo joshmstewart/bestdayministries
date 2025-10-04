@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Store, Package, DollarSign } from "lucide-react";
+import { Loader2, Store, Package, DollarSign, Clock, XCircle, CheckCircle } from "lucide-react";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
 
@@ -188,32 +188,88 @@ const VendorDashboard = () => {
 
         {vendorStatus === 'pending' && (
           <div className="max-w-2xl mx-auto">
-            <Card>
+            <Card className="border-yellow-500/50 bg-yellow-500/5">
               <CardHeader>
-                <CardTitle>Application Pending</CardTitle>
-                <CardDescription>
-                  Thank you for applying! We're reviewing your application and will notify you soon.
-                </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-yellow-500/10 rounded-full">
+                    <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-yellow-600 dark:text-yellow-400">Vendor Application Pending</CardTitle>
+                    <CardDescription>
+                      Your application is being reviewed by our admin team
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Thank you for applying to become a vendor! Our team is reviewing your application and will notify you once a decision has been made.
+                  </p>
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                    <p className="text-sm font-semibold">What happens next?</p>
+                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                      <li>Admin reviews your application</li>
+                      <li>You'll receive an email notification</li>
+                      <li>Once approved, you can start adding products</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           </div>
         )}
 
         {vendorStatus === 'rejected' && (
           <div className="max-w-2xl mx-auto">
-            <Card>
+            <Card className="border-red-500/50 bg-red-500/5">
               <CardHeader>
-                <CardTitle>Application Status</CardTitle>
-                <CardDescription>
-                  Unfortunately, your application was not approved at this time. Please contact support for more information.
-                </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-red-500/10 rounded-full">
+                    <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-red-600 dark:text-red-400">Application Not Approved</CardTitle>
+                    <CardDescription>
+                      Your vendor application was not approved at this time
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Unfortunately, your application was not approved. This could be due to various reasons such as incomplete information or not meeting our vendor requirements.
+                  </p>
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <p className="text-sm font-semibold mb-2">Need help?</p>
+                    <p className="text-sm text-muted-foreground">
+                      Please contact our support team for more information about your application status and how you can reapply.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           </div>
         )}
 
         {vendorStatus === 'approved' && (
           <div className="space-y-6">
+            <Card className="border-green-500/50 bg-green-500/5">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-500/10 rounded-full">
+                    <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-green-600 dark:text-green-400">Vendor Approved</p>
+                    <p className="text-sm text-muted-foreground">You can now manage your products and sales</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="flex justify-between items-center">
               <h1 className="text-4xl font-heading font-bold">Vendor Dashboard</h1>
               <Button onClick={() => navigate('/marketplace')}>
