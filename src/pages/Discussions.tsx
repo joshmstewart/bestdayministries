@@ -20,6 +20,7 @@ import { TextToSpeech } from "@/components/TextToSpeech";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { discussionPostSchema, commentSchema, validateInput } from "@/lib/validation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
 
 interface Profile {
   id: string;
@@ -880,13 +881,16 @@ const Discussions = () => {
                             <CardTitle className="text-2xl">{post.title}</CardTitle>
                             <TextToSpeech text={`${post.title}. ${post.content}`} />
                           </div>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span className="text-sm font-medium text-foreground">
                               {post.author?.display_name || "Unknown"}
                             </span>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(post.author?.role || "")}`}>
                               {post.author?.role}
                             </span>
+                            {post.author_id && post.author?.role === 'bestie' && (
+                              <VendorStoreLinkBadge bestieId={post.author_id} variant="badge" />
+                            )}
                             <span className="text-xs text-muted-foreground">
                               {new Date(post.created_at).toLocaleDateString()}
                             </span>
@@ -964,6 +968,9 @@ const Discussions = () => {
                                   <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
                                     {comment.author?.role}
                                   </span>
+                                  {comment.author_id && comment.author?.role === 'bestie' && (
+                                    <VendorStoreLinkBadge bestieId={comment.author_id} variant="badge" />
+                                  )}
                                    <span className="text-xs text-muted-foreground">
                                     {new Date(comment.created_at).toLocaleDateString()}
                                    </span>

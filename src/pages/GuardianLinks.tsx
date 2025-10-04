@@ -31,6 +31,7 @@ interface BestieLink {
   require_comment_approval: boolean;
   allow_featured_posts: boolean;
   require_vendor_asset_approval: boolean;
+  show_vendor_link: boolean;
   bestie: {
     display_name: string;
     avatar_number: number;
@@ -174,6 +175,7 @@ export default function GuardianLinks() {
           require_comment_approval,
           allow_featured_posts,
           require_vendor_asset_approval,
+          show_vendor_link,
           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             display_name,
             avatar_number
@@ -540,7 +542,7 @@ export default function GuardianLinks() {
     }
   };
 
-  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts' | 'require_vendor_asset_approval', currentValue: boolean) => {
+  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts' | 'require_vendor_asset_approval' | 'show_vendor_link', currentValue: boolean) => {
     try {
       const { error } = await supabase
         .from("caregiver_bestie_links")
@@ -553,7 +555,8 @@ export default function GuardianLinks() {
         require_post_approval: 'Post approval',
         require_comment_approval: 'Comment approval',
         allow_featured_posts: 'Featured posts',
-        require_vendor_asset_approval: 'Vendor asset approval'
+        require_vendor_asset_approval: 'Vendor asset approval',
+        show_vendor_link: 'Vendor store link visibility'
       };
 
       toast({
@@ -1011,6 +1014,20 @@ export default function GuardianLinks() {
                               <Switch
                                 checked={link.require_vendor_asset_approval}
                                 onCheckedChange={() => handleToggleApproval(link.id, 'require_vendor_asset_approval', link.require_vendor_asset_approval)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">
+                                  Show Vendor Store Link
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Display link to vendor store on bestie's profile across the site
+                                </p>
+                              </div>
+                              <Switch
+                                checked={link.show_vendor_link}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link', link.show_vendor_link)}
                               />
                             </div>
                             {link.allow_featured_posts && (

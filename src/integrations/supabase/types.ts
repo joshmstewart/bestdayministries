@@ -167,6 +167,7 @@ export type Database = {
           require_comment_approval: boolean
           require_post_approval: boolean
           require_vendor_asset_approval: boolean
+          show_vendor_link: boolean
         }
         Insert: {
           allow_featured_posts?: boolean
@@ -178,6 +179,7 @@ export type Database = {
           require_comment_approval?: boolean
           require_post_approval?: boolean
           require_vendor_asset_approval?: boolean
+          show_vendor_link?: boolean
         }
         Update: {
           allow_featured_posts?: boolean
@@ -189,6 +191,7 @@ export type Database = {
           require_comment_approval?: boolean
           require_post_approval?: boolean
           require_vendor_asset_approval?: boolean
+          show_vendor_link?: boolean
         }
         Relationships: [
           {
