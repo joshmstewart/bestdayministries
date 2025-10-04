@@ -275,7 +275,7 @@ const SponsorBestie = () => {
                       src={featuredVideo.video_url}
                       poster={featuredVideo.thumbnail_url || undefined}
                       title={featuredVideo.title}
-                      className="w-full max-w-2xl mx-auto"
+                      className="w-full"
                     />
                   </CardContent>
                 </Card>
