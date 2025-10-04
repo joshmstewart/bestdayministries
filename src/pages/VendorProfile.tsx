@@ -94,7 +94,7 @@ const VendorProfile = () => {
       }
       setFeaturedBestie(featuredBestieData);
 
-      // Fetch approved bestie assets
+      // Fetch approved bestie assets with full details
       const { data: assetsData } = await supabase
         .from("vendor_bestie_assets")
         .select("*")
@@ -103,7 +103,37 @@ const VendorProfile = () => {
         .order("created_at", { ascending: false });
 
       if (assetsData) {
-        setBestieAssets(assetsData);
+        // For each asset, get bestie info and try to find matching featured_bestie data
+        const enrichedAssets = await Promise.all(
+          assetsData.map(async (asset) => {
+            // Get bestie profile info
+            const { data: profile } = await supabase
+              .from("profiles_public")
+              .select("display_name")
+              .eq("id", asset.bestie_id)
+              .maybeSingle();
+
+            // Try to find the featured bestie entry that matches this asset URL
+            const { data: featuredBestie } = await supabase
+              .from("featured_besties")
+              .select("description, aspect_ratio, bestie_name, voice_note_url")
+              .or(`image_url.eq.${asset.asset_url},voice_note_url.eq.${asset.asset_url}`)
+              .eq("approval_status", "approved")
+              .maybeSingle();
+
+            return {
+              id: asset.id,
+              bestie_name: featuredBestie?.bestie_name || profile?.display_name || "Bestie",
+              description: featuredBestie?.description || asset.asset_title || "",
+              asset_type: asset.asset_type,
+              asset_url: asset.asset_url,
+              aspect_ratio: featuredBestie?.aspect_ratio || "9:16"
+            };
+          })
+        );
+        
+        console.log("Enriched assets:", enrichedAssets);
+        setBestieAssets(enrichedAssets);
       }
 
       // Fetch vendor's active products
