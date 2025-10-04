@@ -10,6 +10,10 @@ import { ArrowLeft, Globe, Instagram, Facebook, Store, Heart, Star } from "lucid
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import AudioPlayer from "@/components/AudioPlayer";
+import { VideoPlayer } from "@/components/VideoPlayer";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface Vendor {
   id: string;
@@ -276,30 +280,70 @@ const VendorProfile = () => {
 
           {/* Bestie Assets Gallery */}
           {bestieAssets.length > 0 && (
-            <div className="pb-8">
-              <h2 className="font-heading text-2xl font-bold mb-4">Featured Content</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {bestieAssets.map((asset) => (
-                  <div key={asset.id} className="relative group">
-                    {asset.asset_type === 'image' ? (
-                      <img
-                        src={asset.asset_url}
-                        alt={asset.asset_title || 'Featured content'}
-                        className="w-full aspect-square object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-full aspect-square bg-muted rounded-lg flex items-center justify-center">
-                        {asset.asset_type === 'voice_note' ? '🎤' : '🎥'}
+            <div className="pb-8 space-y-6">
+              <h2 className="font-heading text-2xl font-bold">Featured Content</h2>
+              {bestieAssets.map((asset) => (
+                <Card key={asset.id} className="border-2 border-primary/20 shadow-warm overflow-hidden">
+                  <div className="grid md:grid-cols-2 gap-6 p-6">
+                    {/* Asset Display Section */}
+                    <div className="relative overflow-hidden rounded-lg">
+                      {asset.asset_type === 'image' && asset.asset_url && (
+                        <AspectRatio ratio={(() => {
+                          const ratio = asset.aspect_ratio || '9:16';
+                          const [w, h] = ratio.split(':').map(Number);
+                          return w / h;
+                        })()}>
+                          <img
+                            src={asset.asset_url}
+                            alt={asset.bestie_name || 'Bestie content'}
+                            className="object-cover w-full h-full"
+                          />
+                        </AspectRatio>
+                      )}
+                      {asset.asset_type === 'video' && asset.asset_url && (
+                        <VideoPlayer
+                          src={asset.asset_url}
+                          poster={asset.asset_url}
+                          className="rounded-lg"
+                        />
+                      )}
+                      {asset.asset_type === 'voice_note' && asset.asset_url && (
+                        <div className="flex items-center justify-center min-h-[200px] bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 rounded-lg p-6">
+                          <AudioPlayer src={asset.asset_url} />
+                        </div>
+                      )}
+                      {asset.bestie_name && (
+                        <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 text-sm">
+                          <Heart className="w-4 h-4 fill-current" />
+                          Featured Bestie
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="flex flex-col justify-center space-y-4">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-3xl font-black text-foreground flex-1">
+                          {asset.bestie_name}
+                        </h3>
+                        {asset.description && (
+                          <TextToSpeech text={`${asset.bestie_name}. ${asset.description}`} />
+                        )}
                       </div>
-                    )}
-                    {asset.asset_title && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 rounded-b-lg">
-                        <p className="text-sm truncate">{asset.asset_title}</p>
-                      </div>
-                    )}
+                      {asset.description && (
+                        <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {asset.description}
+                        </p>
+                      )}
+                      {asset.asset_type === 'voice_note' && asset.asset_url && (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">Listen to their voice note:</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
+                </Card>
+              ))}
             </div>
           )}
 
