@@ -21,7 +21,6 @@ import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { discussionPostSchema, commentSchema, validateInput } from "@/lib/validation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
-import { SponsorPageLinkBadge } from "@/components/SponsorPageLinkBadge";
 
 interface Profile {
   id: string;
@@ -963,10 +962,7 @@ const Discussions = () => {
                                     {comment.author?.role === "caregiver" ? "Guardian" : comment.author?.role}
                                   </span>
                                   {comment.author_id && (comment.author?.role === 'bestie' || comment.author?.role === 'caregiver') && (
-                                    <>
-                                      <VendorStoreLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
-                                      <SponsorPageLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
-                                    </>
+                                    <VendorStoreLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
                                   )}
                                    <span className="text-xs text-muted-foreground">
                                     {new Date(comment.created_at).toLocaleDateString()}

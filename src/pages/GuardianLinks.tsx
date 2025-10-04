@@ -21,7 +21,6 @@ import { FundingProgressBar } from "@/components/FundingProgressBar";
 import AudioPlayer from "@/components/AudioPlayer";
 import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBestieManager";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { SponsorBestieLinkRequest } from "@/components/sponsor/SponsorBestieLinkRequest";
 
 interface BestieLink {
   id: string;
@@ -1116,7 +1115,7 @@ export default function GuardianLinks() {
           )}
 
           {/* Sponsored Besties Section */}
-          {(userRole === "supporter" || ownSponsorships.length > 0) && (
+          {ownSponsorships.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">My Sponsorships</h2>
@@ -1125,15 +1124,8 @@ export default function GuardianLinks() {
                   Sponsor Another Bestie
                 </Button>
               </div>
-
-              {/* Link to Bestie Card - Only for supporters */}
-              {userRole === "supporter" && currentUserId && (
-                <SponsorBestieLinkRequest sponsorId={currentUserId} />
-              )}
-
-              {ownSponsorships.length > 0 && (
-                <div className="grid gap-4">
-                  {ownSponsorships.map((sponsorship) => (
+              <div className="grid gap-4">
+                {ownSponsorships.map((sponsorship) => (
                   <Card key={sponsorship.id}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -1240,11 +1232,10 @@ export default function GuardianLinks() {
                           )}
                         </div>
                       )}
-                     </CardContent>
-                   </Card>
-                 ))}
-               </div>
-              )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
 
