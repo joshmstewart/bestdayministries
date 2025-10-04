@@ -51,23 +51,30 @@ const Auth = () => {
   const logoUrl = logoData || joyHouseLogo;
 
   useEffect(() => {
+    console.log('Auth page mounted, setting up redirect logic');
+    
     const checkAndRedirect = async (userId: string) => {
-      console.log('Checking vendor status for user:', userId);
+      console.log('🔍 Starting checkAndRedirect for user:', userId);
       
-      const { data: vendor, error } = await supabase
-        .from('vendors')
-        .select('status')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      console.log('Vendor query result:', { vendor, error });
-      
-      if (!error && vendor) {
-        console.log('Redirecting to vendor dashboard');
-        navigate("/vendor-dashboard");
-      } else {
-        console.log('Redirecting to community');
-        navigate("/community");
+      try {
+        const { data: vendor, error } = await supabase
+          .from('vendors')
+          .select('status')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        console.log('📊 Vendor query completed:', { vendor, error, hasVendor: !!vendor });
+        
+        if (!error && vendor) {
+          console.log('✅ Vendor found! Redirecting to /vendor-dashboard');
+          navigate("/vendor-dashboard", { replace: true });
+        } else {
+          console.log('❌ No vendor found. Redirecting to /community');
+          navigate("/community", { replace: true });
+        }
+      } catch (err) {
+        console.error('💥 Error in checkAndRedirect:', err);
+        navigate("/community", { replace: true });
       }
     };
 
