@@ -169,20 +169,30 @@ const SponsorBestie = () => {
         (typeof b.text_sections === 'string' ? JSON.parse(b.text_sections) : [])
     }));
 
-    // If no specific bestie is pre-selected, randomize the order
-    const finalBesties = preSelectedBestieId 
-      ? parsedBesties 
-      : parsedBesties.sort(() => Math.random() - 0.5);
+    // If a specific bestie is pre-selected, move it to the front
+    let finalBesties;
+    if (preSelectedBestieId) {
+      const selectedIndex = parsedBesties.findIndex(b => b.id === preSelectedBestieId);
+      if (selectedIndex !== -1) {
+        // Move selected bestie to front, keep rest in order
+        finalBesties = [
+          parsedBesties[selectedIndex],
+          ...parsedBesties.slice(0, selectedIndex),
+          ...parsedBesties.slice(selectedIndex + 1)
+        ];
+      } else {
+        finalBesties = parsedBesties;
+      }
+    } else {
+      // No pre-selection, randomize the order
+      finalBesties = parsedBesties.sort(() => Math.random() - 0.5);
+    }
 
     setBesties(finalBesties);
     
-    // Pre-select the specific bestie if provided, otherwise select the first one
+    // Pre-select the first bestie (which will be the pre-selected one if provided)
     if (finalBesties.length > 0) {
-      if (preSelectedBestieId && finalBesties.find(b => b.id === preSelectedBestieId)) {
-        setSelectedBestie(preSelectedBestieId);
-      } else {
-        setSelectedBestie(finalBesties[0].id);
-      }
+      setSelectedBestie(finalBesties[0].id);
     }
   };
 
