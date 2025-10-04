@@ -155,6 +155,17 @@ const Discussions = () => {
       return;
     }
 
+    // Debug logging for posts
+    if (postsData && postsData.length > 0) {
+      console.log("Discussions - Posts data:", postsData.map(p => ({
+        id: p.id,
+        author_id: p.author_id,
+        author_name: p.author?.display_name,
+        author_role: p.author?.role,
+        title: p.title
+      })));
+    }
+
     // Load comments for each post
     const postsWithComments = await Promise.all(
       (postsData || []).map(async (post) => {
@@ -167,6 +178,17 @@ const Discussions = () => {
           .eq("post_id", post.id)
           .eq("is_moderated", true)
           .order("created_at", { ascending: true });
+
+        // Debug logging for comments
+        if (commentsData && commentsData.length > 0) {
+          console.log("Discussions - Comments data:", commentsData.map(c => ({
+            id: c.id,
+            author_id: c.author_id,
+            author_name: c.author?.display_name,
+            author_role: c.author?.role,
+            content_preview: c.content?.substring(0, 30)
+          })));
+        }
 
         return { ...post, comments: commentsData || [] };
       })

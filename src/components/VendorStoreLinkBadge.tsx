@@ -22,12 +22,16 @@ export const VendorStoreLinkBadge = ({
   const [showLink, setShowLink] = useState(false);
 
   useEffect(() => {
+    console.log("VendorStoreLinkBadge - Props:", { userId, userRole, variant });
     checkVendorLink();
   }, [userId, userRole]);
 
   const checkVendorLink = async () => {
     try {
+      console.log("VendorStoreLinkBadge - checkVendorLink called with:", { userId, userRole });
+      
       if (userRole === 'bestie') {
+        console.log("VendorStoreLinkBadge - Checking bestie vendor link");
         // For besties: Check if they have an approved vendor link AND guardian allows showing it
         const { data: guardianLinks } = await supabase
           .from("caregiver_bestie_links")
@@ -35,8 +39,11 @@ export const VendorStoreLinkBadge = ({
           .eq("bestie_id", userId)
           .maybeSingle();
 
+        console.log("VendorStoreLinkBadge - Guardian links:", guardianLinks);
+
         // If guardian has disabled the link, don't show it
         if (guardianLinks && !guardianLinks.show_vendor_link_on_bestie) {
+          console.log("VendorStoreLinkBadge - Guardian disabled link, not showing");
           return;
         }
 
@@ -56,14 +63,20 @@ export const VendorStoreLinkBadge = ({
           .eq("vendor.status", "approved")
           .maybeSingle();
 
+        console.log("VendorStoreLinkBadge - Vendor request:", vendorRequest);
+
         if (vendorRequest && vendorRequest.vendor) {
           setVendorLink({
             vendorId: vendorRequest.vendor.id,
             businessName: vendorRequest.vendor.business_name
           });
           setShowLink(true);
+          console.log("VendorStoreLinkBadge - Showing vendor link for bestie");
+        } else {
+          console.log("VendorStoreLinkBadge - No vendor link found for bestie");
         }
       } else if (userRole === 'caregiver') {
+        console.log("VendorStoreLinkBadge - Checking guardian vendor link");
         // For guardians: Show vendor links for their linked besties (if enabled)
         const { data: bestieLinks } = await supabase
           .from("caregiver_bestie_links")
@@ -71,7 +84,10 @@ export const VendorStoreLinkBadge = ({
           .eq("caregiver_id", userId)
           .eq("show_vendor_link_on_guardian", true);
 
+        console.log("VendorStoreLinkBadge - Bestie links:", bestieLinks);
+
         if (!bestieLinks || bestieLinks.length === 0) {
+          console.log("VendorStoreLinkBadge - No bestie links found for guardian");
           return;
         }
 
@@ -93,13 +109,20 @@ export const VendorStoreLinkBadge = ({
           .eq("vendor.status", "approved")
           .limit(1); // Show first available vendor link
 
+        console.log("VendorStoreLinkBadge - Vendor requests:", vendorRequests);
+
         if (vendorRequests && vendorRequests.length > 0 && vendorRequests[0].vendor) {
           setVendorLink({
             vendorId: vendorRequests[0].vendor.id,
             businessName: vendorRequests[0].vendor.business_name
           });
           setShowLink(true);
+          console.log("VendorStoreLinkBadge - Showing vendor link for guardian");
+        } else {
+          console.log("VendorStoreLinkBadge - No vendor requests found for guardian");
         }
+      } else {
+        console.log("VendorStoreLinkBadge - Role is not bestie or caregiver:", userRole);
       }
     } catch (error) {
       console.error("Error checking vendor link:", error);
