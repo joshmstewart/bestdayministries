@@ -29,6 +29,7 @@ import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageMa
 import { VendorManagement } from "@/components/admin/VendorManagement";
 import { ContactFormManager } from "@/components/admin/ContactFormManager";
 import { VideoManager } from "@/components/admin/VideoManager";
+import { SponsorPageOrderManager } from "@/components/admin/SponsorPageOrderManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -299,6 +300,7 @@ const Admin = () => {
                   <TabsList>
                     <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
                     <TabsTrigger value="page-content">Sponsor Page Content</TabsTrigger>
+                    <TabsTrigger value="page-order">Sponsor Page Order</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="sponsorships">
@@ -307,6 +309,10 @@ const Admin = () => {
 
                   <TabsContent value="page-content">
                     <SponsorBestiePageManager />
+                  </TabsContent>
+
+                  <TabsContent value="page-order">
+                    <SponsorPageOrderManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>

@@ -13,6 +13,8 @@ import { z } from "zod";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FundingProgressBar } from "@/components/FundingProgressBar";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Bestie {
   id: string;
@@ -60,11 +62,13 @@ const SponsorBestie = () => {
     description: "Sponsor a Bestie and directly support their journey of growth, creativity, and community engagement",
     featured_video_id: ""
   });
+  const [sections, setSections] = useState<Array<{ section_key: string; is_visible: boolean; display_order: number }>>([]);
 
   useEffect(() => {
     loadBesties();
     checkAuthAndLoadEmail();
     loadPageContent();
+    loadSections();
   }, []);
 
   const loadPageContent = async () => {
@@ -84,6 +88,18 @@ const SponsorBestie = () => {
       if (parsed.featured_video_id) {
         loadFeaturedVideo(parsed.featured_video_id);
       }
+    }
+  };
+
+  const loadSections = async () => {
+    const { data } = await supabase
+      .from("sponsor_page_sections")
+      .select("section_key, is_visible, display_order")
+      .eq("is_visible", true)
+      .order("display_order", { ascending: true });
+    
+    if (data) {
+      setSections(data);
     }
   };
 
@@ -238,55 +254,55 @@ const SponsorBestie = () => {
 
   const presetAmounts = ["10", "25", "50", "100"];
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <UnifiedHeader />
-      <main className="flex-1 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute inset-0 opacity-40">
-          <div className="absolute top-40 left-20 w-96 h-96 bg-secondary/30 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-20 right-20 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }} />
-        </div>
-
-        <div className="container mx-auto px-4 py-16 relative z-10">
-          <div className="max-w-5xl mx-auto">
-            {/* Header */}
-            <div className="text-center mb-8 space-y-3 animate-fade-in">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-2">
-                <Heart className="w-3 h-3 text-primary" />
-                <span className="text-xs font-semibold text-primary">{pageContent.badge_text}</span>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-black text-foreground">
-                <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                  {pageContent.main_heading}
-                </span>
-              </h1>
-              <p className="text-base text-muted-foreground max-w-2xl mx-auto whitespace-pre-line">
-                {pageContent.description}
-              </p>
+  const renderSection = (sectionKey: string) => {
+    switch (sectionKey) {
+      case 'header':
+        return (
+          <div className="text-center mb-8 space-y-3 animate-fade-in" key="header">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-2">
+              <Heart className="w-3 h-3 text-primary" />
+              <span className="text-xs font-semibold text-primary">{pageContent.badge_text}</span>
             </div>
-
-            {/* Featured Video Section */}
-            {featuredVideo && (
-              <div className="mb-8 max-w-4xl mx-auto">
-                <VideoPlayer
-                  src={featuredVideo.video_url}
-                  poster={featuredVideo.thumbnail_url || undefined}
-                  title={featuredVideo.title}
-                  className="w-full"
-                />
-                {featuredVideo.description && (
-                  <p className="text-center text-sm text-muted-foreground mt-3">
-                    {featuredVideo.description}
-                  </p>
-                )}
-              </div>
+            <h1 className="text-3xl md:text-4xl font-black text-foreground">
+              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                {pageContent.main_heading}
+              </span>
+            </h1>
+            <p className="text-base text-muted-foreground max-w-2xl mx-auto whitespace-pre-line">
+              {pageContent.description}
+            </p>
+          </div>
+        );
+      
+      case 'featured_video':
+        return featuredVideo ? (
+          <div className="mb-8 max-w-4xl mx-auto" key="featured_video">
+            <VideoPlayer
+              src={featuredVideo.video_url}
+              poster={featuredVideo.thumbnail_url || undefined}
+              title={featuredVideo.title}
+              className="w-full"
+            />
+            {featuredVideo.description && (
+              <p className="text-center text-sm text-muted-foreground mt-3">
+                {featuredVideo.description}
+              </p>
             )}
-
-            {/* Main Content */}
-            <div className="grid lg:grid-cols-2 gap-8 items-start">
-              {/* Bestie Selection */}
-              <Card className="border-2 shadow-xl lg:sticky lg:top-24">
+          </div>
+        ) : null;
+      
+      case 'sponsor_carousel':
+        return (
+          <div className="mb-8" key="sponsor_carousel">
+            <SponsorBestieDisplay />
+          </div>
+        );
+      
+      case 'selection_form':
+        return (
+          <div className="grid lg:grid-cols-2 gap-8 items-start" key="selection_form">
+            {/* Bestie Selection */}
+            <Card className="border-2 shadow-xl lg:sticky lg:top-24">
                 <CardContent className="p-8">
                   <h2 className="text-2xl font-black mb-6 flex items-center gap-2">
                     <Users className="w-6 h-6 text-primary" />
@@ -296,11 +312,8 @@ const SponsorBestie = () => {
                   {besties.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">No besties available for sponsorship at this time.</p>
                   ) : (
-                    <div 
-                      className="bestie-scroll-container overflow-y-scroll" 
-                      style={{ maxHeight: 'calc(100vh - 400px)', paddingRight: '20px' }}
-                    >
-                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4" style={{ marginRight: '4px' }}>
+                    <ScrollArea className="h-[calc(100vh-400px)]">
+                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4 pr-4">
                       {besties.map((bestie) => (
                         <Card 
                           key={bestie.id} 
@@ -335,12 +348,13 @@ const SponsorBestie = () => {
                         </Card>
                       ))}
                       </RadioGroup>
-                    </div>
+                    </ScrollArea>
                   )}
                 </CardContent>
               </Card>
 
               {/* Sponsorship Options */}
+
               <Card className="border-2 shadow-xl">
                 <CardContent className="p-8 space-y-6">
                   <h2 className="text-2xl font-black flex items-center gap-2">
@@ -426,9 +440,11 @@ const SponsorBestie = () => {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Impact Info */}
-            <Card className="border-2 shadow-xl mt-8 bg-gradient-card">
+        );
+      
+      case 'impact_info':
+        return (
+          <Card className="border-2 shadow-xl mt-8 bg-gradient-card" key="impact_info">
               <CardContent className="p-8">
                 <h3 className="text-2xl font-black mb-6 text-center">Your Sponsorship Impact</h3>
                 <div className="grid md:grid-cols-3 gap-6">
@@ -456,6 +472,26 @@ const SponsorBestie = () => {
                 </div>
               </CardContent>
             </Card>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
+      <main className="flex-1 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 opacity-40">
+          <div className="absolute top-40 left-20 w-96 h-96 bg-secondary/30 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-20 right-20 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }} />
+        </div>
+
+        <div className="container mx-auto px-4 py-16 relative z-10">
+          <div className="max-w-5xl mx-auto">
+            {sections.map((section) => renderSection(section.section_key))}
           </div>
         </div>
       </main>
