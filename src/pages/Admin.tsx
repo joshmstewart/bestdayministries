@@ -295,18 +295,18 @@ const Admin = () => {
                 <CardDescription>Manage sponsor page content and active sponsorships</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="page-content" className="space-y-4">
+                <Tabs defaultValue="sponsorships" className="space-y-4">
                   <TabsList>
-                    <TabsTrigger value="page-content">Sponsor Page Content</TabsTrigger>
                     <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
+                    <TabsTrigger value="page-content">Sponsor Page Content</TabsTrigger>
                   </TabsList>
-
-                  <TabsContent value="page-content">
-                    <SponsorBestiePageManager />
-                  </TabsContent>
 
                   <TabsContent value="sponsorships">
                     <SponsorBestieManager />
+                  </TabsContent>
+
+                  <TabsContent value="page-content">
+                    <SponsorBestiePageManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
