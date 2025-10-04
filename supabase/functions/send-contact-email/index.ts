@@ -15,6 +15,16 @@ interface ContactEmailRequest {
   message: string;
 }
 
+// Security: Escape HTML entities to prevent XSS in email rendering
+const escapeHtml = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,13 +40,13 @@ const handler = async (req: Request): Promise<Response> => {
       from: "Best Day Ministries <marla@joyhousestore.com>",
       to: [recipientEmail],
       reply_to: email,
-      subject: subject || `New Contact Form Message from ${name}`,
+      subject: subject || `New Contact Form Message from ${escapeHtml(name)}`,
       html: `
         <h2>New Contact Form Submission</h2>
-        <p><strong>From:</strong> ${name} (${email})</p>
-        ${subject ? `<p><strong>Subject:</strong> ${subject}</p>` : ''}
+        <p><strong>From:</strong> ${escapeHtml(name)} (${escapeHtml(email)})</p>
+        ${subject ? `<p><strong>Subject:</strong> ${escapeHtml(subject)}</p>` : ''}
         <p><strong>Message:</strong></p>
-        <p>${message.replace(/\n/g, '<br>')}</p>
+        <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
         <hr>
         <p><em>This message was sent via the Best Day Ministries contact form.</em></p>
       `,

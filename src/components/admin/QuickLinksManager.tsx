@@ -33,6 +33,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import * as Icons from "lucide-react";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
+import { validateInput, quickLinkSchema, type QuickLinkInput } from "@/lib/validation";
 
 const availableIcons = [
   "Heart", "Gift", "Users", "Coffee", "Home", "Church", "Calendar", "Award",
@@ -167,13 +168,25 @@ export default function QuickLinksManager() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Security: Validate and sanitize quick link data
+      const validation = validateInput(quickLinkSchema, {
+        label: formData.label,
+        href: formData.href,
+        icon: formData.icon
+      });
+      
+      if (!validation.success) {
+        toast.error(`Validation failed: ${validation.errors?.join(', ')}`);
+        return;
+      }
+
       if (isEditing) {
         const { error } = await supabase
           .from("community_quick_links")
           .update({
-            label: formData.label,
-            href: formData.href,
-            icon: formData.icon,
+            label: validation.data!.label,
+            href: validation.data!.href,
+            icon: validation.data!.icon,
             color: formData.color,
           })
           .eq("id", formData.id);
@@ -184,9 +197,9 @@ export default function QuickLinksManager() {
         const { error } = await supabase
           .from("community_quick_links")
           .insert({
-            label: formData.label,
-            href: formData.href,
-            icon: formData.icon,
+            label: validation.data!.label,
+            href: validation.data!.href,
+            icon: validation.data!.icon,
             color: formData.color,
             display_order: links.length,
             created_by: user.id,
