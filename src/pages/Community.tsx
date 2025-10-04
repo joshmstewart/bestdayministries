@@ -53,12 +53,12 @@ const Community = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Reload content when impersonation changes
+  // Reload content when impersonation changes or when user/profile/effectiveRole are set
   useEffect(() => {
     if (user && profile && effectiveRole !== null) {
       loadLatestContent();
     }
-  }, [effectiveRole]); // Changed from isImpersonating to effectiveRole
+  }, [user, profile, effectiveRole]); // Include all dependencies
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
