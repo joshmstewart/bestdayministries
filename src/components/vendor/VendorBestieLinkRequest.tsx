@@ -1,30 +1,34 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Heart } from "lucide-react";
+import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 
 interface VendorBestieLinkRequestProps {
   vendorId: string;
 }
 
 export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestProps) => {
-  const [friendCode, setFriendCode] = useState("");
+  const [emoji1, setEmoji1] = useState("");
+  const [emoji2, setEmoji2] = useState("");
+  const [emoji3, setEmoji3] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!friendCode.trim()) {
-      toast.error("Please enter a friend code");
+    if (!emoji1 || !emoji2 || !emoji3) {
+      toast.error("Please select all 3 emojis");
       return;
     }
 
+    const friendCode = `${emoji1}${emoji2}${emoji3}`;
     setLoading(true);
 
     try {
@@ -33,7 +37,7 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
         .from('profiles_public')
         .select('id, display_name, role')
         .eq('friend_code', friendCode)
-        .single();
+        .maybeSingle();
 
       if (profileError || !profile) {
         toast.error("Friend code not found");
@@ -68,7 +72,9 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
       }
 
       toast.success(`Link request sent to ${profile.display_name}'s guardian!`);
-      setFriendCode("");
+      setEmoji1("");
+      setEmoji2("");
+      setEmoji3("");
       setMessage("");
     } catch (error) {
       console.error('Error creating link request:', error);
@@ -93,18 +99,64 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="friendCode">Friend Code *</Label>
-            <Input
-              id="friendCode"
-              value={friendCode}
-              onChange={(e) => setFriendCode(e.target.value)}
-              placeholder="Enter bestie's emoji friend code"
-              required
-              disabled={loading}
-            />
-            <p className="text-xs text-muted-foreground">
-              Ask the bestie or their guardian for their friend code
+            <Label>Friend Code *</Label>
+            <p className="text-sm text-muted-foreground mb-3">
+              Select the bestie's 3-emoji friend code
             </p>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label className="text-xs">First Emoji</Label>
+                <Select value={emoji1} onValueChange={setEmoji1} disabled={loading}>
+                  <SelectTrigger className="h-20 text-4xl">
+                    <SelectValue placeholder="?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FRIEND_CODE_EMOJIS.map((item) => (
+                      <SelectItem key={`1-${item.emoji}`} value={item.emoji} className="text-3xl">
+                        {item.emoji}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Second Emoji</Label>
+                <Select value={emoji2} onValueChange={setEmoji2} disabled={loading}>
+                  <SelectTrigger className="h-20 text-4xl">
+                    <SelectValue placeholder="?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FRIEND_CODE_EMOJIS.map((item) => (
+                      <SelectItem key={`2-${item.emoji}`} value={item.emoji} className="text-3xl">
+                        {item.emoji}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Third Emoji</Label>
+                <Select value={emoji3} onValueChange={setEmoji3} disabled={loading}>
+                  <SelectTrigger className="h-20 text-4xl">
+                    <SelectValue placeholder="?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FRIEND_CODE_EMOJIS.map((item) => (
+                      <SelectItem key={`3-${item.emoji}`} value={item.emoji} className="text-3xl">
+                        {item.emoji}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {emoji1 && emoji2 && emoji3 && (
+              <div className="text-center p-4 bg-muted rounded-lg mt-4">
+                <p className="text-xs text-muted-foreground mb-2">Friend Code Preview:</p>
+                <p className="text-5xl tracking-wider">{emoji1}{emoji2}{emoji3}</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
