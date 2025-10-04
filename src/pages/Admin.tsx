@@ -16,6 +16,7 @@ import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
 import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
+import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
 import HomepageOrderManager from "@/components/admin/HomepageOrderManager";
 import CommunityOrderManager from "@/components/admin/CommunityOrderManager";
 import { FeaturedItemManager } from "@/components/admin/FeaturedItemManager";
@@ -36,6 +37,7 @@ const Admin = () => {
   const [actualRole, setActualRole] = useState<UserRole | null>(null);
   const { getEffectiveRole, impersonatedRole } = useRoleImpersonation();
   const { count: moderationCount } = useModerationCount();
+  const { count: pendingVendorsCount } = usePendingVendorsCount();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
@@ -205,7 +207,17 @@ const Admin = () => {
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
-            <TabsTrigger value="vendors">Vendors</TabsTrigger>
+            <TabsTrigger value="vendors" className="relative">
+              Vendors
+              {pendingVendorsCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
+                >
+                  {pendingVendorsCount}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="format-pages">Format Pages</TabsTrigger>
             <TabsTrigger value="moderation" className="relative">
               Moderation
