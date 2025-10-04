@@ -234,18 +234,34 @@ const Community = () => {
   };
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
       return;
     }
 
-    setProfile(data);
+    // Fetch user role from user_roles table
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .single();
+
+    console.log('Community - Fetched role:', roleData?.role);
+    
+    // Combine profile with role
+    const profileWithRole = {
+      ...profileData,
+      role: roleData?.role || 'supporter'
+    };
+    
+    console.log('Community - Profile with role:', profileWithRole);
+    setProfile(profileWithRole);
   };
 
   if (loading) {
