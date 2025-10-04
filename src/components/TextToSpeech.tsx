@@ -23,7 +23,6 @@ export const TextToSpeech = ({
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [userVoice, setUserVoice] = useState<string>('Aria');
   const [ttsEnabled, setTtsEnabled] = useState(true);
-  const [voiceLoaded, setVoiceLoaded] = useState(false);
 
   useEffect(() => {
     const loadUserVoice = async () => {
@@ -42,7 +41,6 @@ export const TextToSpeech = ({
           setTtsEnabled(profile.tts_enabled);
         }
       }
-      setVoiceLoaded(true);
     };
     
     loadUserVoice();
@@ -51,11 +49,6 @@ export const TextToSpeech = ({
   const handlePlay = async (e: React.MouseEvent) => {
     // Prevent the click from bubbling up to parent elements
     e.stopPropagation();
-    
-    // Wait for voice to load before playing
-    if (!voiceLoaded) {
-      return;
-    }
     
     try {
       if (isPlaying && audio) {
@@ -157,7 +150,7 @@ export const TextToSpeech = ({
     <Button
       size={size}
       onClick={handlePlay}
-      disabled={isLoading || !voiceLoaded}
+      disabled={isLoading}
       title={isPlaying ? "Stop reading" : "Read aloud"}
       className="shrink-0 bg-primary hover:bg-primary/90"
     >

@@ -224,49 +224,29 @@ export const SponsorBestieDisplay = () => {
             {/* Right side - Content */}
             <div className="p-6 space-y-1 flex flex-col justify-center">
               {bestie.text_sections && bestie.text_sections.length > 0 ? (
-                <>
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="flex-1">
-                      {bestie.text_sections[0]?.header && (
-                        <h3 className="font-script text-2xl font-bold text-primary leading-tight">
-                          {bestie.text_sections[0].header}
-                        </h3>
-                      )}
-                    </div>
-                    <TextToSpeech 
-                      text={bestie.text_sections
-                        .map(section => {
-                          const parts = [];
-                          if (section.header) parts.push(section.header);
-                          if (section.text) parts.push(section.text);
-                          return parts.join('. ');
-                        })
-                        .filter(Boolean)
-                        .join('. ')} 
-                      size="default"
-                      onPlayingChange={setIsAudioPlaying}
-                    />
-                  </div>
-                  {bestie.text_sections[0]?.text && (
-                    <p className="font-script text-base text-foreground/80 leading-relaxed whitespace-pre-line mb-2">
-                      {bestie.text_sections[0].text}
-                    </p>
-                  )}
-                  {bestie.text_sections.slice(1).map((section, index) => (
-                    <div key={index + 1} className="space-y-0.5">
-                      {section.header && (
+                bestie.text_sections.map((section, index) => (
+                  <div key={index} className="space-y-0.5">
+                    {section.header && (
+                      <div className={index === 0 ? "flex items-start justify-between gap-2" : ""}>
                         <h3 className="font-script text-2xl font-bold text-primary leading-tight">
                           {section.header}
                         </h3>
-                      )}
-                      {section.text && (
-                        <p className="font-script text-base text-foreground/80 leading-relaxed whitespace-pre-line">
-                          {section.text}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </>
+                        {index === 0 && (
+                          <TextToSpeech 
+                            text={`${section.header}. ${section.text}`} 
+                            size="default"
+                            onPlayingChange={setIsAudioPlaying}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {section.text && (
+                      <p className="font-script text-base text-foreground/80 leading-relaxed whitespace-pre-line">
+                        {section.text}
+                      </p>
+                    )}
+                  </div>
+                ))
               ) : (
                 <div className="text-center text-muted-foreground">
                   <p>No content available</p>

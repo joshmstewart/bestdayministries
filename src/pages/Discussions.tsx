@@ -21,7 +21,6 @@ import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { discussionPostSchema, commentSchema, validateInput } from "@/lib/validation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
-import { SponsorPageLinkBadge } from "@/components/SponsorPageLinkBadge";
 
 interface Profile {
   id: string;
@@ -883,10 +882,7 @@ const Discussions = () => {
                               {post.author?.role === "caregiver" ? "Guardian" : post.author?.role}
                             </span>
                             {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
-                              <>
-                                <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
-                                <SponsorPageLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
-                              </>
+                              <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
                             )}
                             <span className="text-xs text-muted-foreground">
                               {new Date(post.created_at).toLocaleDateString()}
@@ -966,10 +962,7 @@ const Discussions = () => {
                                     {comment.author?.role === "caregiver" ? "Guardian" : comment.author?.role}
                                   </span>
                                   {comment.author_id && (comment.author?.role === 'bestie' || comment.author?.role === 'caregiver') && (
-                                    <>
-                                      <VendorStoreLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
-                                      <SponsorPageLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
-                                    </>
+                                    <VendorStoreLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
                                   )}
                                    <span className="text-xs text-muted-foreground">
                                     {new Date(comment.created_at).toLocaleDateString()}

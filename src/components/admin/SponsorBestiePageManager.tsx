@@ -89,7 +89,7 @@ export const SponsorBestiePageManager = () => {
           setting_value: settings as any,
           updated_by: user.id,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'setting_key' });
+        });
 
       if (error) throw error;
 

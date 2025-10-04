@@ -34,9 +34,7 @@ const Community = () => {
   // Update effective role whenever profile or impersonation changes
   useEffect(() => {
     if (profile) {
-      const role = getEffectiveRole(profile.role);
-      console.log('Community - Setting effectiveRole:', role);
-      setEffectiveRole(role);
+      setEffectiveRole(getEffectiveRole(profile.role));
     }
   }, [profile, isImpersonating, getEffectiveRole]);
 
@@ -55,18 +53,12 @@ const Community = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Reload content when impersonation changes or when user/profile/effectiveRole are set
+  // Reload content when impersonation changes
   useEffect(() => {
-    console.log('Community - Content loading useEffect triggered', { 
-      hasUser: !!user, 
-      hasProfile: !!profile, 
-      effectiveRole 
-    });
     if (user && profile && effectiveRole !== null) {
-      console.log('Community - Calling loadLatestContent');
       loadLatestContent();
     }
-  }, [user, profile, effectiveRole]); // Include all dependencies
+  }, [effectiveRole]); // Changed from isImpersonating to effectiveRole
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -128,20 +120,17 @@ const Community = () => {
 
   const loadLatestContent = async () => {
     // Don't load if we don't have an effective role yet
-    if (!effectiveRole) {
-      console.log('Community - loadLatestContent returning early, no effectiveRole');
-      return;
-    }
+    if (!effectiveRole) return;
     
-    console.log('Community - loadLatestContent running with role:', effectiveRole);
     try {
       // Fetch latest discussion
       const { data: discussions } = await supabase
         .from("discussion_posts")
         .select(`
           *,
-          author:profiles!discussion_posts_author_id_fkey(id, display_name)
+          author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
         `)
+        .eq("is_moderated", true)
         .eq("approval_status", "approved")
         .order("created_at", { ascending: false })
         .limit(1)
@@ -233,34 +222,18 @@ const Community = () => {
   };
 
   const fetchProfile = async (userId: string) => {
-    const { data: profileData, error: profileError } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
+    if (error) {
+      console.error("Error fetching profile:", error);
       return;
     }
 
-    // Fetch user role from user_roles table
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
-
-    console.log('Community - Fetched role:', roleData?.role);
-    
-    // Combine profile with role
-    const profileWithRole = {
-      ...profileData,
-      role: roleData?.role || 'supporter'
-    };
-    
-    console.log('Community - Profile with role:', profileWithRole);
-    setProfile(profileWithRole);
+    setProfile(data);
   };
 
   if (loading) {

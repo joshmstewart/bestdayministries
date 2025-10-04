@@ -70,26 +70,14 @@ serve(async (req) => {
     });
 
     // Check if user is a bestie (prevent besties from sponsoring)
-    // Query auth.users with service role to find user by email
-    const { data: authUsers } = await supabaseAdmin
-      .from('auth.users')
-      .select('id')
-      .eq('email', email)
-      .limit(1);
-    
-    if (authUsers && authUsers.length > 0) {
-      const userId = authUsers[0].id;
-      
-      // Check role from user_roles table
-      const { data: userRole } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("email", email)
+      .maybeSingle();
 
-      if (userRole && userRole.role === 'bestie') {
-        throw new Error('Besties cannot sponsor other besties at this time');
-      }
+    if (profile && profile.role === 'bestie') {
+      throw new Error('Besties cannot sponsor other besties at this time');
     }
 
     // Convert amount to cents for Stripe
@@ -158,16 +146,25 @@ serve(async (req) => {
 
     console.log('Checkout session created:', session.id);
 
-    // For one-time payments, create the sponsorship record immediately if user exists
-    if (frequency === 'one-time' && authUsers && authUsers.length > 0) {
-      await supabaseAdmin.from("sponsorships").insert({
-        sponsor_id: authUsers[0].id,
-        bestie_id: bestie_id,
-        amount: amount,
-        frequency: 'one-time',
-        status: 'pending',
-        started_at: new Date().toISOString(),
-      });
+    // For one-time payments, create the sponsorship record immediately
+    if (frequency === 'one-time') {
+      // Get user by email
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (profile) {
+        await supabaseAdmin.from("sponsorships").insert({
+          sponsor_id: profile.id,
+          bestie_id: bestie_id,
+          amount: amount,
+          frequency: 'one-time',
+          status: 'pending',
+          started_at: new Date().toISOString(),
+        });
+      }
     }
 
     return new Response(

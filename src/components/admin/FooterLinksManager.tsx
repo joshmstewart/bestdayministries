@@ -24,7 +24,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
-import { validateInput, footerLinkSchema, type FooterLinkInput } from "@/lib/validation";
 
 interface FooterSection {
   id: string;
@@ -323,20 +322,10 @@ export const FooterLinksManager = () => {
     e.preventDefault();
 
     try {
-      // Security: Validate and sanitize link data
-      const validation = validateInput(footerLinkSchema, linkFormData);
-      if (!validation.success) {
-        toast.error(`Validation failed: ${validation.errors?.join(', ')}`);
-        return;
-      }
-
       if (editingLinkId) {
         const { error } = await supabase
           .from("footer_links")
-          .update({ 
-            label: validation.data!.label!, 
-            href: validation.data!.href! 
-          })
+          .update({ label: linkFormData.label, href: linkFormData.href })
           .eq("id", editingLinkId);
 
         if (error) throw error;
@@ -345,12 +334,7 @@ export const FooterLinksManager = () => {
         const sectionLinks = links.filter(l => l.section_id === linkFormData.section_id);
         const { error } = await supabase
           .from("footer_links")
-          .insert([{ 
-            label: validation.data!.label!, 
-            href: validation.data!.href!,
-            section_id: linkFormData.section_id, 
-            display_order: sectionLinks.length 
-          }]);
+          .insert([{ ...linkFormData, display_order: sectionLinks.length }]);
 
         if (error) throw error;
         toast.success("Link created successfully");
