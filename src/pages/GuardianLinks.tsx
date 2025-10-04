@@ -30,6 +30,7 @@ interface BestieLink {
   require_post_approval: boolean;
   require_comment_approval: boolean;
   allow_featured_posts: boolean;
+  require_vendor_asset_approval: boolean;
   bestie: {
     display_name: string;
     avatar_number: number;
@@ -172,6 +173,7 @@ export default function GuardianLinks() {
           require_post_approval,
           require_comment_approval,
           allow_featured_posts,
+          require_vendor_asset_approval,
           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             display_name,
             avatar_number
@@ -538,7 +540,7 @@ export default function GuardianLinks() {
     }
   };
 
-  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts', currentValue: boolean) => {
+  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts' | 'require_vendor_asset_approval', currentValue: boolean) => {
     try {
       const { error } = await supabase
         .from("caregiver_bestie_links")
@@ -550,7 +552,8 @@ export default function GuardianLinks() {
       const fieldNames = {
         require_post_approval: 'Post approval',
         require_comment_approval: 'Comment approval',
-        allow_featured_posts: 'Featured posts'
+        allow_featured_posts: 'Featured posts',
+        require_vendor_asset_approval: 'Vendor asset approval'
       };
 
       toast({
@@ -994,6 +997,20 @@ export default function GuardianLinks() {
                               <Switch
                                 checked={link.allow_featured_posts}
                                 onCheckedChange={() => handleToggleApproval(link.id, 'allow_featured_posts', link.allow_featured_posts)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">
+                                  Require Vendor Asset Approval
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Vendors need approval before using bestie's photos, videos, or other assets
+                                </p>
+                              </div>
+                              <Switch
+                                checked={link.require_vendor_asset_approval}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'require_vendor_asset_approval', link.require_vendor_asset_approval)}
                               />
                             </div>
                             {link.allow_featured_posts && (

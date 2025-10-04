@@ -166,6 +166,7 @@ export type Database = {
           relationship: string
           require_comment_approval: boolean
           require_post_approval: boolean
+          require_vendor_asset_approval: boolean
         }
         Insert: {
           allow_featured_posts?: boolean
@@ -176,6 +177,7 @@ export type Database = {
           relationship: string
           require_comment_approval?: boolean
           require_post_approval?: boolean
+          require_vendor_asset_approval?: boolean
         }
         Update: {
           allow_featured_posts?: boolean
@@ -186,6 +188,7 @@ export type Database = {
           relationship?: string
           require_comment_approval?: boolean
           require_post_approval?: boolean
+          require_vendor_asset_approval?: boolean
         }
         Relationships: [
           {
