@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Store, Package, DollarSign, Clock, XCircle, CheckCircle } from "lucide-react";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
+import { VendorOrderList } from "@/components/vendor/VendorOrderList";
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
@@ -330,13 +331,7 @@ const VendorDashboard = () => {
               </TabsContent>
               
               <TabsContent value="orders">
-                <Card>
-                  <CardContent className="py-12">
-                    <div className="text-center text-muted-foreground">
-                      <p>No orders yet</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <VendorOrderList vendorId={vendorId!} />
               </TabsContent>
               
               <TabsContent value="settings">
