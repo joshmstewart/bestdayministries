@@ -47,17 +47,19 @@ serve(async (req) => {
           break;
         }
 
-        // Find the user by email
-        const { data: profile } = await supabaseAdmin
-          .from("profiles")
-          .select("id")
-          .eq("email", customerEmail)
-          .maybeSingle();
-
-        if (!profile) {
-          console.log("Profile not found for email:", customerEmail);
+        // Find the user by email from auth.users using service role
+        const { data: authUsers } = await supabaseAdmin
+          .from('auth.users')
+          .select('id')
+          .eq('email', customerEmail)
+          .limit(1);
+        
+        if (!authUsers || authUsers.length === 0) {
+          console.log("User not found for email:", customerEmail);
           break;
         }
+
+        const userId = authUsers[0].id;
 
         // Determine the new status
         const newStatus = subscription.status === "active" ? "active" : "cancelled";
@@ -73,13 +75,13 @@ serve(async (req) => {
               status: newStatus,
               ended_at: newStatus === "cancelled" ? new Date().toISOString() : null,
             })
-            .eq("sponsor_id", profile.id)
+            .eq("sponsor_id", userId)
             .eq("bestie_id", bestieId);
 
           if (updateError) {
             console.error("Error updating sponsorship:", updateError);
           } else {
-            console.log(`Updated sponsorship for user ${profile.id}, bestie ${bestieId} to status: ${newStatus}`);
+            console.log(`Updated sponsorship for user ${userId}, bestie ${bestieId} to status: ${newStatus}`);
           }
         } else {
           // Update all sponsorships for this user (fallback if metadata not available)
@@ -89,12 +91,12 @@ serve(async (req) => {
               status: newStatus,
               ended_at: newStatus === "cancelled" ? new Date().toISOString() : null,
             })
-            .eq("sponsor_id", profile.id);
+            .eq("sponsor_id", userId);
 
           if (updateError) {
             console.error("Error updating sponsorships:", updateError);
           } else {
-            console.log(`Updated all sponsorships for user ${profile.id} to status: ${newStatus}`);
+            console.log(`Updated all sponsorships for user ${userId} to status: ${newStatus}`);
           }
         }
         break;
@@ -114,17 +116,19 @@ serve(async (req) => {
             break;
           }
 
-          // Find the user by email
-          const { data: profile } = await supabaseAdmin
-            .from("profiles")
-            .select("id")
-            .eq("email", customerEmail)
-            .maybeSingle();
-
-          if (!profile) {
-            console.log("Profile not found for email:", customerEmail);
+          // Find the user by email from auth.users using service role
+          const { data: authUsers } = await supabaseAdmin
+            .from('auth.users')
+            .select('id')
+            .eq('email', customerEmail)
+            .limit(1);
+          
+          if (!authUsers || authUsers.length === 0) {
+            console.log("User not found for email:", customerEmail);
             break;
           }
+
+          const userId = authUsers[0].id;
 
           // Get bestie_id from metadata
           const bestieId = session.metadata?.bestie_id;
@@ -141,7 +145,7 @@ serve(async (req) => {
           const { error: upsertError } = await supabaseAdmin
             .from("sponsorships")
             .upsert({
-              sponsor_id: profile.id,
+              sponsor_id: userId,
               bestie_id: bestieId,
               amount: amount,
               frequency: frequency,
@@ -154,7 +158,7 @@ serve(async (req) => {
           if (upsertError) {
             console.error("Error creating sponsorship:", upsertError);
           } else {
-            console.log(`Created/updated sponsorship for user ${profile.id}, bestie ${bestieId}`);
+            console.log(`Created/updated sponsorship for user ${userId}, bestie ${bestieId}`);
           }
         }
         break;
