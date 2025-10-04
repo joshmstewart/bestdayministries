@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause } from "lucide-react";
+import { Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause, Store, X } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,16 @@ interface LinkedBestie {
   id: string;
   display_name: string;
   avatar_number: number;
+}
+
+interface VendorLink {
+  id: string;
+  vendor_id: string;
+  bestie_id: string;
+  status: string;
+  vendor: {
+    business_name: string;
+  };
 }
 
 interface Sponsorship {
@@ -92,6 +102,7 @@ export default function GuardianLinks() {
   const [isSavingShares, setIsSavingShares] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const [vendorLinks, setVendorLinks] = useState<Map<string, VendorLink[]>>(new Map());
 
   useEffect(() => {
     checkAccess();
@@ -133,6 +144,7 @@ export default function GuardianLinks() {
       if (roleData.role === "caregiver") {
         await loadLinks(user.id);
         await loadLinkedBesties(user.id);
+        await loadVendorLinks(user.id);
       }
       
       // Load sponsorships for all roles
@@ -208,6 +220,57 @@ export default function GuardianLinks() {
       }
     } catch (error: any) {
       console.error("Error loading linked besties:", error);
+    }
+  };
+
+  const loadVendorLinks = async (userId: string) => {
+    try {
+      // First get all bestie IDs linked to this guardian
+      const { data: linksData, error: linksError } = await supabase
+        .from("caregiver_bestie_links")
+        .select("bestie_id")
+        .eq("caregiver_id", userId);
+
+      if (linksError) throw linksError;
+      if (!linksData || linksData.length === 0) return;
+
+      const bestieIds = linksData.map(link => link.bestie_id);
+
+      // Get all approved vendor links for these besties
+      const { data: vendorLinksData, error: vendorError } = await supabase
+        .from("vendor_bestie_requests")
+        .select(`
+          id,
+          vendor_id,
+          bestie_id,
+          status,
+          vendor:vendors!vendor_bestie_requests_vendor_id_fkey(
+            business_name
+          )
+        `)
+        .in("bestie_id", bestieIds)
+        .eq("status", "approved");
+
+      if (vendorError) throw vendorError;
+
+      // Group vendor links by bestie_id
+      const vendorLinksMap = new Map<string, VendorLink[]>();
+      (vendorLinksData || []).forEach((link: any) => {
+        const vendorLink: VendorLink = {
+          id: link.id,
+          vendor_id: link.vendor_id,
+          bestie_id: link.bestie_id,
+          status: link.status,
+          vendor: Array.isArray(link.vendor) ? link.vendor[0] : link.vendor
+        };
+        
+        const existing = vendorLinksMap.get(link.bestie_id) || [];
+        vendorLinksMap.set(link.bestie_id, [...existing, vendorLink]);
+      });
+
+      setVendorLinks(vendorLinksMap);
+    } catch (error: any) {
+      console.error("Error loading vendor links:", error);
     }
   };
 
@@ -439,9 +502,36 @@ export default function GuardianLinks() {
 
       await loadLinks(currentUserId);
       await loadLinkedBesties(currentUserId);
+      await loadVendorLinks(currentUserId);
     } catch (error: any) {
       toast({
         title: "Error removing link",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveVendorLink = async (vendorLinkId: string, bestieName: string, vendorName: string) => {
+    if (!currentUserId) return;
+
+    try {
+      const { error } = await supabase
+        .from("vendor_bestie_requests")
+        .delete()
+        .eq("id", vendorLinkId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Vendor link removed",
+        description: `${vendorName} has been unlinked from ${bestieName}`,
+      });
+
+      await loadVendorLinks(currentUserId);
+    } catch (error: any) {
+      toast({
+        title: "Error removing vendor link",
         description: error.message,
         variant: "destructive",
       });
@@ -917,6 +1007,48 @@ export default function GuardianLinks() {
                               </Button>
                             )}
                           </div>
+
+                          {/* Linked Vendors Section */}
+                          {vendorLinks.get(link.bestie_id) && vendorLinks.get(link.bestie_id)!.length > 0 && (
+                            <div className="pt-4 border-t space-y-2">
+                              <Label className="text-sm font-medium flex items-center gap-2">
+                                <Store className="w-4 h-4" />
+                                Linked Vendors
+                              </Label>
+                              <div className="space-y-2">
+                                {vendorLinks.get(link.bestie_id)!.map((vendorLink) => (
+                                  <div key={vendorLink.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                    <span className="text-sm font-medium">{vendorLink.vendor.business_name}</span>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                          <X className="w-4 h-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Remove Vendor Link?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to remove the link between {link.bestie.display_name} and {vendorLink.vendor.business_name}? 
+                                            The vendor will no longer be able to feature this bestie on their profile.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => handleRemoveVendorLink(vendorLink.id, link.bestie.display_name, vendorLink.vendor.business_name)}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          >
+                                            Remove Link
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
