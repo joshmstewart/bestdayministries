@@ -51,16 +51,30 @@ const Auth = () => {
   const logoUrl = logoData || joyHouseLogo;
 
   useEffect(() => {
+    const checkAndRedirect = async (userId: string) => {
+      const { data: vendor } = await supabase
+        .from('vendors')
+        .select('status')
+        .eq('user_id', userId)
+        .single();
+      
+      if (vendor) {
+        navigate("/vendor-dashboard");
+      } else {
+        navigate("/community");
+      }
+    };
+
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate("/community");
+      if (session?.user) {
+        setTimeout(() => checkAndRedirect(session.user.id), 0);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/community");
+      if (session?.user) {
+        setTimeout(() => checkAndRedirect(session.user.id), 0);
       }
     });
 
