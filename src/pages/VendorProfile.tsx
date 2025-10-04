@@ -286,10 +286,6 @@ const VendorProfile = () => {
                         <h3 className="font-heading text-xl font-bold">
                           {featuredBestie.display_name}
                         </h3>
-                        <Badge variant="secondary" className="gap-1">
-                          <Star className="h-3 w-3 fill-current" />
-                          {featuredBestie.role}
-                        </Badge>
                       </div>
                       {featuredBestie.bio && (
                         <p className="text-muted-foreground text-sm mb-2">
