@@ -27,6 +27,7 @@ import QuickLinksManager from "@/components/admin/QuickLinksManager";
 import { NavigationBarManager } from "@/components/admin/NavigationBarManager";
 import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
 import { VendorManagement } from "@/components/admin/VendorManagement";
+import { ContactFormManager } from "@/components/admin/ContactFormManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -391,6 +392,7 @@ const Admin = () => {
             <div className="space-y-6">
               <RoleImpersonator />
               <AppSettingsManager />
+              <ContactFormManager />
             </div>
           </TabsContent>
         </Tabs>

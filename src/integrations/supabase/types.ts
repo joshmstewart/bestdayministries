@@ -290,6 +290,69 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_form_settings: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_enabled: boolean
+          recipient_email: string
+          success_message: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_enabled?: boolean
+          recipient_email: string
+          success_message?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_enabled?: boolean
+          recipient_email?: string
+          success_message?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contact_form_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          status?: string
+          subject?: string | null
+        }
+        Relationships: []
+      }
       discussion_comments: {
         Row: {
           approval_status: string

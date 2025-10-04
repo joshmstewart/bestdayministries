@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ContactForm } from "@/components/ContactForm";
 
 interface FooterSection {
   id: string;
@@ -118,8 +119,10 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-card border-t border-border">
-      <div className="container mx-auto px-4 py-12">
+    <>
+      <ContactForm />
+      <footer className="bg-card border-t border-border">
+        <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div className="space-y-4">
             {logoUrl ? (
@@ -189,7 +192,8 @@ const Footer = () => {
           </p>
         </div>
       </div>
-    </footer>
+      </footer>
+    </>
   );
 };
 
