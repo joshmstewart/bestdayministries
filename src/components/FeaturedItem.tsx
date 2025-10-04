@@ -25,6 +25,7 @@ export const FeaturedItem = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isTtsPlaying, setIsTtsPlaying] = useState(false);
   const autoAdvanceRef = useRef(false);
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export const FeaturedItem = () => {
   }, [items, currentIndex]);
 
   useEffect(() => {
-    if (items.length <= 1 || isPaused) return;
+    if (items.length <= 1 || isPaused || isTtsPlaying) return;
 
     const interval = setInterval(() => {
       autoAdvanceRef.current = true;
@@ -52,7 +53,7 @@ export const FeaturedItem = () => {
     }, 10000); // Rotate every 10 seconds
 
     return () => clearInterval(interval);
-  }, [items.length, isPaused]);
+  }, [items.length, isPaused, isTtsPlaying]);
 
   // Pause autoplay when user manually changes slides
   useEffect(() => {
@@ -165,7 +166,10 @@ export const FeaturedItem = () => {
             <div className="flex-1 text-center md:text-left">
               <div className="flex items-start gap-2 mb-3">
                 <h2 className="text-2xl font-bold flex-1">{currentItem.title}</h2>
-                <TextToSpeech text={`${currentItem.title}. ${currentItem.description}`} />
+                <TextToSpeech 
+                  text={`${currentItem.title}. ${currentItem.description}`} 
+                  onPlayingChange={setIsTtsPlaying}
+                />
               </div>
               <p className="text-muted-foreground mb-4">{currentItem.description}</p>
               {isExternalLink ? (

@@ -50,6 +50,7 @@ export const FeaturedBestieDisplay = () => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isTtsPlaying, setIsTtsPlaying] = useState(false);
   const autoScrollRef = useRef(false);
 
   useEffect(() => {
@@ -75,14 +76,14 @@ export const FeaturedBestieDisplay = () => {
 
     // Auto-advance carousel
     const intervalId = setInterval(() => {
-      if (isPlaying && besties.length > 1) {
+      if (isPlaying && !isTtsPlaying && besties.length > 1) {
         autoScrollRef.current = true;
         carouselApi.scrollNext();
       }
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [carouselApi, isPlaying, besties.length]);
+  }, [carouselApi, isPlaying, isTtsPlaying, besties.length]);
 
   const loadUserRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -234,7 +235,10 @@ export const FeaturedBestieDisplay = () => {
                   </span>
                 )}
               </h2>
-              <TextToSpeech text={`${bestie.bestie_name}. ${bestie.description}`} />
+              <TextToSpeech 
+                text={`${bestie.bestie_name}. ${bestie.description}`} 
+                onPlayingChange={setIsTtsPlaying}
+              />
             </div>
             {isSponsoring && (
               <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 border border-primary/20 rounded-lg p-3">
@@ -336,7 +340,10 @@ export const FeaturedBestieDisplay = () => {
                             </span>
                           )}
                         </h2>
-                        <TextToSpeech text={`${bestie.bestie_name}. ${bestie.description}`} />
+                        <TextToSpeech 
+                          text={`${bestie.bestie_name}. ${bestie.description}`} 
+                          onPlayingChange={setIsTtsPlaying}
+                        />
                       </div>
                       {isSponsoring && (
                         <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 border border-primary/20 rounded-lg p-3">
