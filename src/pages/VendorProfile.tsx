@@ -292,12 +292,14 @@ const VendorProfile = () => {
                         </Badge>
                       </div>
                       {featuredBestie.bio && (
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-muted-foreground text-sm mb-2">
                           {featuredBestie.bio}
                         </p>
                       )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        This {featuredBestie.role.toLowerCase()} is proudly supported by {vendor.business_name}
+                      <p className="text-sm text-muted-foreground font-medium">
+                        {featuredBestie.role === 'Maker' 
+                          ? `${featuredBestie.display_name} handcrafts each item in this store with care` 
+                          : `${vendor.business_name} is proud to support ${featuredBestie.display_name} through this store`}
                       </p>
                     </div>
                   </div>

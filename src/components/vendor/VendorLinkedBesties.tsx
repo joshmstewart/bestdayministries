@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Heart, Star, Loader2, X, Edit } from "lucide-react";
 
@@ -356,14 +356,23 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
                         <div className="space-y-4 pt-4">
                           <div>
                             <Label htmlFor="role">Role</Label>
-                            <Input
-                              id="role"
-                              value={editingRole?.role || ''}
-                              onChange={(e) => setEditingRole(prev => 
-                                prev ? { ...prev, role: e.target.value } : null
+                            <Select 
+                              value={editingRole?.role || 'Maker'} 
+                              onValueChange={(value) => setEditingRole(prev => 
+                                prev ? { ...prev, role: value } : null
                               )}
-                              placeholder="e.g., Creator, Artist, Contributor"
-                            />
+                            >
+                              <SelectTrigger id="role">
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Maker">Maker</SelectItem>
+                                <SelectItem value="Beneficiary">Beneficiary</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Is this bestie the maker of your products, or the beneficiary of your store?
+                            </p>
                           </div>
                           <Button 
                             onClick={handleUpdateRole}

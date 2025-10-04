@@ -10,12 +10,8 @@ import { Loader2, Heart } from "lucide-react";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 
 const BESTIE_ROLES = [
-  "Creator",
-  "Artist", 
-  "Designer",
-  "Maker",
-  "Contributor",
-  "Partner"
+  { value: "Maker", label: "Maker" },
+  { value: "Beneficiary", label: "Beneficiary" }
 ];
 
 interface VendorBestieLinkRequestProps {
@@ -27,7 +23,7 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
   const [emoji2, setEmoji2] = useState("");
   const [emoji3, setEmoji3] = useState("");
   const [message, setMessage] = useState("");
-  const [bestieRole, setBestieRole] = useState("Creator");
+  const [bestieRole, setBestieRole] = useState("Maker");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,7 +83,7 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
       setEmoji2("");
       setEmoji3("");
       setMessage("");
-      setBestieRole("Creator");
+      setBestieRole("Maker");
     } catch (error) {
       console.error('Error creating link request:', error);
       toast.error("Failed to send link request");
@@ -179,14 +175,14 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
               </SelectTrigger>
               <SelectContent>
                 {BESTIE_ROLES.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role}
+                  <SelectItem key={role.value} value={role.value}>
+                    {role.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              What role does this bestie have with your business?
+              Is this bestie the maker of your products, or the beneficiary of your store?
             </p>
           </div>
 
