@@ -53,11 +53,11 @@ export default function ImageLightbox({
           )}
 
           {/* Main Image */}
-          <div className={`w-full ${isMobile ? 'h-screen pt-14 pb-16 px-2' : 'h-[95vh] p-16'} flex items-center justify-center`}>
+          <div className={`w-full ${isMobile ? 'h-screen pt-12 pb-12 px-2' : 'h-[95vh] p-16'} flex items-center justify-center`}>
             <img
               src={currentImage.image_url}
               alt={currentImage.caption || `Image ${currentIndex + 1}`}
-              className="max-w-full max-h-full w-auto h-auto object-contain"
+              className={isMobile ? "h-full w-auto object-contain" : "max-w-full max-h-full w-auto h-auto object-contain"}
             />
             
             {/* Caption */}
