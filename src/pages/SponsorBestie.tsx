@@ -312,7 +312,7 @@ const SponsorBestie = () => {
                                 <Label htmlFor={bestie.id} className="text-lg font-bold cursor-pointer">
                                   {bestie.bestie_name}
                                 </Label>
-                                <p className="text-sm text-muted-foreground mt-1">
+                                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
                                   {bestie.text_sections && bestie.text_sections.length > 0 
                                     ? bestie.text_sections[0].text 
                                     : "No description available"}
