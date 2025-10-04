@@ -27,12 +27,11 @@ export const getRandomEmoji = () => {
 };
 
 export const generateRandomFriendCode = () => {
-  // Generate 4 random emojis (duplicates allowed) - 160,000 possible combinations
+  // Generate 3 random emojis (duplicates allowed) - 8,000 possible combinations
   const emoji1 = getRandomEmoji();
   const emoji2 = getRandomEmoji();
   const emoji3 = getRandomEmoji();
-  const emoji4 = getRandomEmoji();
-  return `${emoji1}${emoji2}${emoji3}${emoji4}`;
+  return `${emoji1}${emoji2}${emoji3}`;
 };
 
 export const formatFriendCode = (friendCode: string | null) => {
