@@ -150,62 +150,69 @@ export const UnifiedHeader = () => {
 
 
   const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      setUser(session.user);
-      await fetchProfile(session.user.id);
-      setAuthLoading(false);
-    } else {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
+      }
+    } catch (error) {
+      console.error("Error checking user:", error);
+    } finally {
       setAuthLoading(false);
     }
   };
 
   const fetchProfile = async (userId: string) => {
-    // Fetch profile data
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      // Fetch profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
-      return;
-    }
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        return;
+      }
 
-    // Fetch actual role from user_roles table (security requirement)
-    const { data: roleData, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
+      // Fetch actual role from user_roles table (security requirement)
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .single();
 
-    if (roleError && roleError.code !== 'PGRST116') {
-      console.error("Error fetching role:", roleError);
-    }
+      if (roleError && roleError.code !== 'PGRST116') {
+        console.error("Error fetching role:", roleError);
+      }
 
-    // Combine profile with actual role from user_roles
-    const profile = {
-      ...profileData,
-      role: roleData?.role || "supporter"
-    };
+      // Combine profile with actual role from user_roles
+      const profile = {
+        ...profileData,
+        role: roleData?.role || "supporter"
+      };
 
-    setProfile(profile);
-    setIsAdmin(profile.role === "admin" || profile.role === "owner");
-    
-    // Note: Test account checking removed as email is no longer stored in profiles
-    setIsTestAccount(false);
-
-    // Check if bestie has shared sponsorships
-    if (profile.role === "bestie") {
-      const { data: shares } = await supabase
-        .from("sponsorship_shares")
-        .select("id")
-        .eq("bestie_id", userId)
-        .limit(1);
+      setProfile(profile);
+      setIsAdmin(profile.role === "admin" || profile.role === "owner");
       
-      setHasSharedSponsorships((shares?.length ?? 0) > 0);
+      // Note: Test account checking removed as email is no longer stored in profiles
+      setIsTestAccount(false);
+
+      // Check if bestie has shared sponsorships
+      if (profile.role === "bestie") {
+        const { data: shares } = await supabase
+          .from("sponsorship_shares")
+          .select("id")
+          .eq("bestie_id", userId)
+          .limit(1);
+        
+        setHasSharedSponsorships((shares?.length ?? 0) > 0);
+      }
+    } catch (error) {
+      console.error("Error in fetchProfile:", error);
     }
   };
 
