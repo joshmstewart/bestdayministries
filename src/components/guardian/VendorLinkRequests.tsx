@@ -217,7 +217,6 @@ export const VendorLinkRequests = ({ onRequestsChange }: VendorLinkRequestsProps
         <CardTitle className="flex items-center gap-2">
           <Store className="h-5 w-5" />
           Vendor Link Requests
-          <Badge variant="secondary">{requests.length}</Badge>
         </CardTitle>
         <CardDescription>
           Vendors requesting to link their store to your bestie's profile
