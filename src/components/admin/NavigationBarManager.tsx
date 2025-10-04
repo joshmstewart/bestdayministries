@@ -242,25 +242,30 @@ export function NavigationBarManager() {
         }
       }
 
-      // Prepare links for upsert
-      const linksToSave = links.map((link) => ({
-        id: link.id.startsWith("temp-") ? undefined : link.id,
-        label: link.label.trim(),
-        href: link.href.trim(),
-        display_order: link.display_order,
-        is_active: link.is_active,
-        created_by: userData.user.id,
-      }));
-
-      // Delete temp IDs and upsert
+      // Separate existing links from new links
       const results = await Promise.all(
-        linksToSave.map(async (link) => {
-          if (link.id) {
-            const { error } = await supabase.from("navigation_links").update(link).eq("id", link.id);
-            return { error, type: 'update', link };
-          } else {
-            const { error } = await supabase.from("navigation_links").insert([link]);
+        links.map(async (link) => {
+          const isNew = link.id.startsWith("temp-");
+          
+          if (isNew) {
+            // For new links, don't include id field at all
+            const { error } = await supabase.from("navigation_links").insert([{
+              label: link.label.trim(),
+              href: link.href.trim(),
+              display_order: link.display_order,
+              is_active: link.is_active,
+              created_by: userData.user.id,
+            }]);
             return { error, type: 'insert', link };
+          } else {
+            // For existing links, include id for update
+            const { error } = await supabase.from("navigation_links").update({
+              label: link.label.trim(),
+              href: link.href.trim(),
+              display_order: link.display_order,
+              is_active: link.is_active,
+            }).eq("id", link.id);
+            return { error, type: 'update', link };
           }
         })
       );
