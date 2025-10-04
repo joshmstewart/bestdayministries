@@ -167,7 +167,8 @@ export type Database = {
           require_comment_approval: boolean
           require_post_approval: boolean
           require_vendor_asset_approval: boolean
-          show_vendor_link: boolean
+          show_vendor_link_on_bestie: boolean
+          show_vendor_link_on_guardian: boolean
         }
         Insert: {
           allow_featured_posts?: boolean
@@ -179,7 +180,8 @@ export type Database = {
           require_comment_approval?: boolean
           require_post_approval?: boolean
           require_vendor_asset_approval?: boolean
-          show_vendor_link?: boolean
+          show_vendor_link_on_bestie?: boolean
+          show_vendor_link_on_guardian?: boolean
         }
         Update: {
           allow_featured_posts?: boolean
@@ -191,7 +193,8 @@ export type Database = {
           require_comment_approval?: boolean
           require_post_approval?: boolean
           require_vendor_asset_approval?: boolean
-          show_vendor_link?: boolean
+          show_vendor_link_on_bestie?: boolean
+          show_vendor_link_on_guardian?: boolean
         }
         Relationships: [
           {

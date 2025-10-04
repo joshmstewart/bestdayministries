@@ -31,12 +31,12 @@ export const VendorStoreLinkBadge = ({
         // For besties: Check if they have an approved vendor link AND guardian allows showing it
         const { data: guardianLinks } = await supabase
           .from("caregiver_bestie_links")
-          .select("show_vendor_link")
+          .select("show_vendor_link_on_bestie")
           .eq("bestie_id", userId)
           .maybeSingle();
 
         // If guardian has disabled the link, don't show it
-        if (guardianLinks && !guardianLinks.show_vendor_link) {
+        if (guardianLinks && !guardianLinks.show_vendor_link_on_bestie) {
           return;
         }
 
@@ -67,9 +67,9 @@ export const VendorStoreLinkBadge = ({
         // For guardians: Show vendor links for their linked besties (if enabled)
         const { data: bestieLinks } = await supabase
           .from("caregiver_bestie_links")
-          .select("bestie_id, show_vendor_link")
+          .select("bestie_id, show_vendor_link_on_guardian")
           .eq("caregiver_id", userId)
-          .eq("show_vendor_link", true);
+          .eq("show_vendor_link_on_guardian", true);
 
         if (!bestieLinks || bestieLinks.length === 0) {
           return;

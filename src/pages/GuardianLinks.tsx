@@ -31,7 +31,8 @@ interface BestieLink {
   require_comment_approval: boolean;
   allow_featured_posts: boolean;
   require_vendor_asset_approval: boolean;
-  show_vendor_link: boolean;
+  show_vendor_link_on_bestie: boolean;
+  show_vendor_link_on_guardian: boolean;
   bestie: {
     display_name: string;
     avatar_number: number;
@@ -175,7 +176,8 @@ export default function GuardianLinks() {
           require_comment_approval,
           allow_featured_posts,
           require_vendor_asset_approval,
-          show_vendor_link,
+          show_vendor_link_on_bestie,
+          show_vendor_link_on_guardian,
           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             display_name,
             avatar_number
@@ -542,7 +544,7 @@ export default function GuardianLinks() {
     }
   };
 
-  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts' | 'require_vendor_asset_approval' | 'show_vendor_link', currentValue: boolean) => {
+  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts' | 'require_vendor_asset_approval' | 'show_vendor_link_on_bestie' | 'show_vendor_link_on_guardian', currentValue: boolean) => {
     try {
       const { error } = await supabase
         .from("caregiver_bestie_links")
@@ -556,7 +558,8 @@ export default function GuardianLinks() {
         require_comment_approval: 'Comment approval',
         allow_featured_posts: 'Featured posts',
         require_vendor_asset_approval: 'Vendor asset approval',
-        show_vendor_link: 'Vendor store link visibility'
+        show_vendor_link_on_bestie: 'Vendor store link on bestie profile',
+        show_vendor_link_on_guardian: 'Vendor store link on guardian profile'
       };
 
       toast({
@@ -1019,15 +1022,29 @@ export default function GuardianLinks() {
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
                                 <Label className="text-sm font-medium">
-                                  Show Vendor Store Link
+                                  Show Vendor Store Link on Bestie Profile
                                 </Label>
                                 <p className="text-sm text-muted-foreground">
-                                  Display link to vendor store on bestie's profile across the site
+                                  Display link to vendor store when bestie posts or comments
                                 </p>
                               </div>
                               <Switch
-                                checked={link.show_vendor_link}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link', link.show_vendor_link)}
+                                checked={link.show_vendor_link_on_bestie}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_bestie', link.show_vendor_link_on_bestie)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">
+                                  Show Vendor Store Link on Guardian Profile
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Display link to vendor store when you post or comment
+                                </p>
+                              </div>
+                              <Switch
+                                checked={link.show_vendor_link_on_guardian}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_guardian', link.show_vendor_link_on_guardian)}
                               />
                             </div>
                             {link.allow_featured_posts && (
