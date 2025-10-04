@@ -15,6 +15,7 @@ import { FundingProgressBar } from "@/components/FundingProgressBar";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
 
 interface Bestie {
   id: string;
@@ -56,6 +57,7 @@ const SponsorBestie = () => {
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [pageContent, setPageContent] = useState({
     badge_text: "Sponsor a Bestie",
     main_heading: "Change a Life Today",
@@ -135,6 +137,11 @@ const SponsorBestie = () => {
         .select("role")
         .eq("user_id", user.id)
         .maybeSingle();
+      
+      // Store role for admin UI
+      if (roleData?.role) {
+        setUserRole(roleData.role);
+      }
       
       // Block besties from sponsoring
       if (roleData?.role === "bestie") {
@@ -518,6 +525,13 @@ const SponsorBestie = () => {
 
         <div className="container mx-auto px-4 py-16 relative z-10">
           <div className="max-w-5xl mx-auto">
+            {/* Admin-only Stripe mode switcher */}
+            {(userRole === 'admin' || userRole === 'owner') && (
+              <div className="mb-8">
+                <StripeModeSwitcher />
+              </div>
+            )}
+            
             {sections.map((section) => renderSection(section.section_key))}
           </div>
         </div>
