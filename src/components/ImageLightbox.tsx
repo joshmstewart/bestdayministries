@@ -44,8 +44,11 @@ export default function ImageLightbox({
         <Button
           variant="ghost"
           size="icon"
-          className={`absolute ${isMobile ? 'left-2' : 'left-4'} top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white`}
-          onClick={onPrevious}
+          className={`absolute ${isMobile ? 'left-2' : 'left-4'} top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white ${isMobile ? 'w-12 h-12' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPrevious();
+          }}
         >
           <ChevronLeft className={isMobile ? "w-6 h-6" : "w-8 h-8"} />
         </Button>
@@ -72,8 +75,11 @@ export default function ImageLightbox({
         <Button
           variant="ghost"
           size="icon"
-          className={`absolute ${isMobile ? 'right-2' : 'right-4'} top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white`}
-          onClick={onNext}
+          className={`absolute ${isMobile ? 'right-2' : 'right-4'} top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white ${isMobile ? 'w-12 h-12' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onNext();
+          }}
         >
           <ChevronRight className={isMobile ? "w-6 h-6" : "w-8 h-8"} />
         </Button>
@@ -90,7 +96,7 @@ export default function ImageLightbox({
 
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={onClose}>
+      <Drawer open={isOpen} onOpenChange={onClose} dismissible={false}>
         <DrawerContent className="h-screen border-0 rounded-none">
           {imageContent}
         </DrawerContent>
