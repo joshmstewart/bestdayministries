@@ -176,24 +176,33 @@ export const VendorManagement = () => {
   };
 
   const loadOrders = async () => {
-    const { data, error } = await supabase
+    // Fetch orders first
+    const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
-      .select(`
-        id,
-        created_at,
-        status,
-        total_amount,
-        customer_id,
-        order_items (
-          fulfillment_status,
-          vendor_id
-        )
-      `)
+      .select("id, created_at, status, total_amount, customer_id")
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (error) throw error;
-    setOrders(data || []);
+    if (ordersError) throw ordersError;
+
+    // Then fetch order items separately to avoid RLS recursion
+    if (ordersData && ordersData.length > 0) {
+      const orderIds = ordersData.map(o => o.id);
+      const { data: itemsData } = await supabase
+        .from("order_items")
+        .select("order_id, fulfillment_status, vendor_id")
+        .in("order_id", orderIds);
+
+      // Merge the data
+      const ordersWithItems = ordersData.map(order => ({
+        ...order,
+        order_items: itemsData?.filter(item => item.order_id === order.id) || []
+      }));
+
+      setOrders(ordersWithItems as any);
+    } else {
+      setOrders([]);
+    }
   };
 
   const updateVendorStatus = async (vendorId: string, newStatus: "approved" | "pending" | "rejected" | "suspended") => {
