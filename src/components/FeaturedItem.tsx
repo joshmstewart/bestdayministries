@@ -47,12 +47,35 @@ export const FeaturedItem = () => {
   useEffect(() => {
     if (items.length <= 1 || isPaused || isTtsPlaying) return;
 
-    const interval = setInterval(() => {
-      autoAdvanceRef.current = true;
-      setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, 10000); // Rotate every 10 seconds
+    const loadTimingAndStartCarousel = async () => {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "carousel_timing_featured_item")
+          .maybeSingle();
 
-    return () => clearInterval(interval);
+        const timing = data?.setting_value ? Number(data.setting_value) * 1000 : 10000;
+
+        const interval = setInterval(() => {
+          autoAdvanceRef.current = true;
+          setCurrentIndex((prev) => (prev + 1) % items.length);
+        }, timing);
+
+        return () => clearInterval(interval);
+      } catch (error) {
+        console.error("Error loading carousel timing:", error);
+        // Fallback to 10 seconds
+        const interval = setInterval(() => {
+          autoAdvanceRef.current = true;
+          setCurrentIndex((prev) => (prev + 1) % items.length);
+        }, 10000);
+
+        return () => clearInterval(interval);
+      }
+    };
+
+    loadTimingAndStartCarousel();
   }, [items.length, isPaused, isTtsPlaying]);
 
   // Pause autoplay when user manually changes slides

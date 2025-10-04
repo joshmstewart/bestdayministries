@@ -74,15 +74,40 @@ export const FeaturedBestieDisplay = () => {
       autoScrollRef.current = false;
     });
 
-    // Auto-advance carousel
-    const intervalId = setInterval(() => {
-      if (isPlaying && !isTtsPlaying && besties.length > 1) {
-        autoScrollRef.current = true;
-        carouselApi.scrollNext();
-      }
-    }, 5000);
+    // Auto-advance carousel with timing from database
+    const loadTimingAndStartCarousel = async () => {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "carousel_timing_featured_bestie")
+          .maybeSingle();
 
-    return () => clearInterval(intervalId);
+        const timing = data?.setting_value ? Number(data.setting_value) * 1000 : 5000;
+
+        const intervalId = setInterval(() => {
+          if (isPlaying && !isTtsPlaying && besties.length > 1) {
+            autoScrollRef.current = true;
+            carouselApi.scrollNext();
+          }
+        }, timing);
+
+        return () => clearInterval(intervalId);
+      } catch (error) {
+        console.error("Error loading carousel timing:", error);
+        // Fallback to 5 seconds
+        const intervalId = setInterval(() => {
+          if (isPlaying && !isTtsPlaying && besties.length > 1) {
+            autoScrollRef.current = true;
+            carouselApi.scrollNext();
+          }
+        }, 5000);
+
+        return () => clearInterval(intervalId);
+      }
+    };
+
+    loadTimingAndStartCarousel();
   }, [carouselApi, isPlaying, isTtsPlaying, besties.length]);
 
   const loadUserRole = async () => {
