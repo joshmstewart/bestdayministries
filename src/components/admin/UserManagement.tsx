@@ -344,12 +344,30 @@ export const UserManagement = () => {
       await supabase.auth.signOut();
       
       // Sign in as test user
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // Check if user is a vendor
+      if (data.user) {
+        const { data: vendor } = await supabase
+          .from('vendors')
+          .select('status')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+        
+        if (vendor) {
+          toast({
+            title: "Logged in successfully",
+            description: `You are now logged in as ${displayName} (Vendor)`,
+          });
+          window.location.href = "/vendor-dashboard";
+          return;
+        }
+      }
 
       toast({
         title: "Logged in successfully",
