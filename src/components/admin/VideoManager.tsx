@@ -323,7 +323,7 @@ export const VideoManager = () => {
                 src={video.video_url}
                 poster={video.thumbnail_url || undefined}
                 title={video.title}
-                className="h-48"
+                className="w-full"
               />
               <div>
                 <h3 className="font-semibold">{video.title}</h3>

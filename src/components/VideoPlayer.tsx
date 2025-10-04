@@ -13,19 +13,27 @@ interface VideoPlayerProps {
 
 export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [aspectRatio, setAspectRatio] = useState<number>(16 / 9);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-    const handleLoadedMetadata = () => setDuration(video.duration);
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration);
+      // Calculate and set aspect ratio from video dimensions
+      if (video.videoWidth && video.videoHeight) {
+        setAspectRatio(video.videoWidth / video.videoHeight);
+      }
+    };
     const handleEnded = () => setIsPlaying(false);
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
@@ -97,7 +105,9 @@ export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps)
 
   return (
     <div
+      ref={containerRef}
       className={cn("relative group bg-black rounded-lg overflow-hidden", className)}
+      style={{ aspectRatio: aspectRatio.toString() }}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(isPlaying ? false : true)}
     >

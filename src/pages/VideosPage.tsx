@@ -155,7 +155,7 @@ const VideosPage = () => {
               <VideoPlayer
                 src={selectedVideo.video_url}
                 poster={selectedVideo.thumbnail_url || undefined}
-                className="w-full aspect-video"
+                className="w-full"
               />
             </div>
           )}
