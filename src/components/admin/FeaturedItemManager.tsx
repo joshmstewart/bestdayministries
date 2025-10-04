@@ -687,8 +687,10 @@ export const FeaturedItemManager = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => toggleActive(item.id, item.is_active)}
+                      title={item.is_active ? "Deactivate" : "Activate"}
+                      className={item.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
                     >
-                      {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      {item.is_active ? <Eye className="h-4 w-4 text-green-700" /> : <EyeOff className="h-4 w-4 text-red-700" />}
                     </Button>
                     <Button
                       size="sm"

@@ -1006,15 +1006,16 @@ export default function EventManagement() {
                         </div>
                         <div className="flex gap-1">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
                             onClick={() => handleToggleVisibility(event.id, !event.is_active)}
                             title={event.is_active ? "Hide event" : "Show event"}
+                            className={event.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
                           >
                             {event.is_active ? (
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-4 h-4 text-green-700" />
                             ) : (
-                              <EyeOff className="w-4 h-4" />
+                              <EyeOff className="w-4 h-4 text-red-700" />
                             )}
                           </Button>
                           <Button

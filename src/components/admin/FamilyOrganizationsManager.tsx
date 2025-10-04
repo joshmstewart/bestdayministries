@@ -109,11 +109,13 @@ const SortableOrg = ({ org, onEdit, onDelete, onToggleActive, renderIconPreview 
       </div>
       <div className="flex gap-2">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => onToggleActive(org.id, org.is_active)}
+          title={org.is_active ? "Deactivate" : "Activate"}
+          className={org.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
         >
-          {org.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          {org.is_active ? <Eye className="w-4 h-4 text-green-700" /> : <EyeOff className="w-4 h-4 text-red-700" />}
         </Button>
         <Button
           variant="ghost"

@@ -107,11 +107,13 @@ const SortableSection = ({
         </div>
         <div className="flex gap-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={() => onToggleSectionActive(section.id, section.is_active)}
+            title={section.is_active ? "Deactivate" : "Activate"}
+            className={section.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
           >
-            {section.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            {section.is_active ? <Eye className="w-4 h-4 text-green-700" /> : <EyeOff className="w-4 h-4 text-red-700" />}
           </Button>
           <Button
             variant="ghost"
@@ -211,12 +213,13 @@ const SortableLink = ({ link, onEdit, onDelete, onToggleActive }: SortableLinkPr
       </div>
       <div className="flex gap-1">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className={`h-8 w-8 ${link.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}`}
           onClick={() => onToggleActive(link.id, link.is_active)}
+          title={link.is_active ? "Deactivate" : "Activate"}
         >
-          {link.is_active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+          {link.is_active ? <Eye className="w-3 h-3 text-green-700" /> : <EyeOff className="w-3 h-3 text-red-700" />}
         </Button>
         <Button
           variant="ghost"

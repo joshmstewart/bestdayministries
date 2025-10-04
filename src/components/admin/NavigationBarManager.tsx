@@ -113,11 +113,13 @@ function SortableLink({
             checked={link.is_active}
             onCheckedChange={(checked) => onUpdate(link.id, { is_active: checked })}
           />
-          {link.is_active ? (
-            <Eye className="h-4 w-4 text-green-600" />
-          ) : (
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
-          )}
+          <div className={`p-1.5 rounded ${link.is_active ? "bg-green-100" : "bg-red-100"}`}>
+            {link.is_active ? (
+              <Eye className="h-4 w-4 text-green-700" />
+            ) : (
+              <EyeOff className="h-4 w-4 text-red-700" />
+            )}
+          </div>
         </div>
         <Button variant="ghost" size="icon" onClick={() => onDelete(link.id)}>
           <Trash2 className="h-4 w-4" />

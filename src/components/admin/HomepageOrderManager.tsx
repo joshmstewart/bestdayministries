@@ -119,15 +119,16 @@ const SortableItem = ({ section, onToggleVisibility, onEdit, isLocked }: Sortabl
           <Pencil className="w-4 h-4" />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => onToggleVisibility(section.id, !section.is_visible)}
           title={section.is_visible ? "Hide section" : "Show section"}
+          className={section.is_visible ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
         >
           {section.is_visible ? (
-            <Eye className="w-4 h-4" />
+            <Eye className="w-4 h-4 text-green-700" />
           ) : (
-            <EyeOff className="w-4 h-4" />
+            <EyeOff className="w-4 h-4 text-red-700" />
           )}
         </Button>
       </div>
