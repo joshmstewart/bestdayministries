@@ -5,28 +5,38 @@ export const useAppManifest = () => {
   useEffect(() => {
     const updateManifest = async () => {
       try {
-        // Fetch app settings
-        const { data } = await supabase
+        console.log('useAppManifest - Starting...');
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Manifest fetch timeout')), 3000)
+        );
+        
+        // Fetch app settings with timeout
+        const fetchPromise = supabase
           .from('app_settings')
           .select('setting_key, setting_value')
           .in('setting_key', ['mobile_app_name', 'mobile_app_icon_url']);
 
-        if (!data) return;
+        const { data } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        console.log('useAppManifest - Data received:', data);
+
+        if (!data) {
+          console.log('useAppManifest - No data, using defaults');
+          return;
+        }
 
         let appName = 'Joy House Community';
         let iconUrl = '';
 
-        data.forEach((setting) => {
+        data.forEach((setting: any) => {
           try {
             const value = typeof setting.setting_value === 'string'
               ? JSON.parse(setting.setting_value)
               : setting.setting_value;
 
-            console.log('Setting:', setting.setting_key, 'Raw value:', setting.setting_value, 'Parsed value:', value);
-
             if (setting.setting_key === 'mobile_app_name') {
               appName = value;
-              console.log('App name set to:', appName);
             } else if (setting.setting_key === 'mobile_app_icon_url') {
               iconUrl = value;
             }
@@ -131,7 +141,9 @@ export const useAppManifest = () => {
         appleCapableMeta.content = 'yes';
 
       } catch (error) {
-        console.error('Error updating manifest:', error);
+        console.error('useAppManifest - Error:', error);
+        // Set default title even if fetch fails
+        document.title = 'Joy House Community';
       }
     };
 
