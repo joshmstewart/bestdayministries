@@ -8,8 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Heart, Star, Loader2, X, Edit, Image } from "lucide-react";
-import { VendorBestieAssetSelector } from "./VendorBestieAssetSelector";
+import { Heart, Star, Loader2, X, Edit } from "lucide-react";
 
 interface LinkedBestie {
   id: string;
@@ -36,7 +35,6 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<{ id: string; role: string } | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedBestieForAssets, setSelectedBestieForAssets] = useState<LinkedBestie | null>(null);
 
   useEffect(() => {
     loadLinkedBesties();
@@ -349,15 +347,6 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedBestieForAssets(bestie)}
-                      title="Select assets to feature"
-                    >
-                      <Image className="h-4 w-4" />
-                    </Button>
-
                     <Dialog open={isEditDialogOpen && editingRole?.id === bestie.id} onOpenChange={(open) => {
                       setIsEditDialogOpen(open);
                       if (!open) setEditingRole(null);
@@ -451,18 +440,6 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
           )}
         </CardContent>
       </Card>
-
-      {/* Asset Selector Dialog */}
-      {selectedBestieForAssets && (
-        <VendorBestieAssetSelector
-          vendorId={vendorId}
-          bestieId={selectedBestieForAssets.bestie_id}
-          bestieName={selectedBestieForAssets.display_name}
-          requiresApproval={selectedBestieForAssets.require_vendor_asset_approval}
-          isOpen={!!selectedBestieForAssets}
-          onClose={() => setSelectedBestieForAssets(null)}
-        />
-      )}
     </div>
   );
 };
