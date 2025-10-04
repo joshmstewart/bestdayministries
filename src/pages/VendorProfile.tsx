@@ -301,14 +301,20 @@ const VendorProfile = () => {
                         </AspectRatio>
                       )}
                       {asset.asset_type === 'video' && asset.asset_url && (
-                        <VideoPlayer
-                          src={asset.asset_url}
-                          poster={asset.asset_url}
-                          className="rounded-lg"
-                        />
+                        <AspectRatio ratio={(() => {
+                          const ratio = asset.aspect_ratio || '9:16';
+                          const [w, h] = ratio.split(':').map(Number);
+                          return w / h;
+                        })()}>
+                          <VideoPlayer
+                            src={asset.asset_url}
+                            poster={asset.asset_url}
+                            className="rounded-lg"
+                          />
+                        </AspectRatio>
                       )}
                       {asset.asset_type === 'voice_note' && asset.asset_url && (
-                        <div className="flex items-center justify-center min-h-[200px] bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 rounded-lg p-6">
+                        <div className="flex items-center justify-center min-h-[200px] bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 rounded-lg">
                           <AudioPlayer src={asset.asset_url} />
                         </div>
                       )}
@@ -323,21 +329,19 @@ const VendorProfile = () => {
                     {/* Content Section */}
                     <div className="flex flex-col justify-center space-y-4">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-3xl font-black text-foreground flex-1">
+                        <h2 className="text-3xl font-black text-foreground flex-1">
                           {asset.bestie_name}
-                        </h3>
+                        </h2>
                         {asset.description && (
                           <TextToSpeech text={`${asset.bestie_name}. ${asset.description}`} />
                         )}
                       </div>
-                      {asset.description && (
-                        <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                          {asset.description}
-                        </p>
-                      )}
+                      <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                        {asset.description}
+                      </p>
                       {asset.asset_type === 'voice_note' && asset.asset_url && (
                         <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">Listen to their voice note:</p>
+                          <AudioPlayer src={asset.asset_url} />
                         </div>
                       )}
                     </div>
