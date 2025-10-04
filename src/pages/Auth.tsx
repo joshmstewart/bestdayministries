@@ -51,47 +51,66 @@ const Auth = () => {
   const logoUrl = logoData || joyHouseLogo;
 
   useEffect(() => {
-    console.log('Auth page mounted, setting up redirect logic');
+    console.log('🎬 Auth page mounted, setting up redirect logic');
     
     const checkAndRedirect = async (userId: string) => {
       console.log('🔍 Starting checkAndRedirect for user:', userId);
+      console.log('⏰ Timestamp:', new Date().toISOString());
       
       try {
+        console.log('📡 About to query vendors table...');
         const { data: vendor, error } = await supabase
           .from('vendors')
-          .select('status')
+          .select('*')
           .eq('user_id', userId)
           .maybeSingle();
         
-        console.log('📊 Vendor query completed:', { vendor, error, hasVendor: !!vendor });
+        console.log('📊 Vendor query completed:', { 
+          vendor, 
+          error, 
+          hasVendor: !!vendor,
+          vendorStatus: vendor?.status 
+        });
         
         if (!error && vendor) {
-          console.log('✅ Vendor found! Redirecting to /vendor-dashboard');
+          console.log('✅ Vendor found with status:', vendor.status);
+          console.log('🚀 Navigating to /vendor-dashboard');
           navigate("/vendor-dashboard", { replace: true });
         } else {
-          console.log('❌ No vendor found. Redirecting to /community');
+          console.log('❌ No vendor found or error occurred');
+          if (error) console.error('Query error:', error);
+          console.log('🚀 Navigating to /community');
           navigate("/community", { replace: true });
         }
       } catch (err) {
-        console.error('💥 Error in checkAndRedirect:', err);
+        console.error('💥 Exception in checkAndRedirect:', err);
         navigate("/community", { replace: true });
       }
     };
 
     // Check if user is already logged in
+    console.log('🔄 Checking for existing session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setTimeout(() => checkAndRedirect(session.user.id), 0);
+        console.log('👤 Found existing session for user:', session.user.id);
+        checkAndRedirect(session.user.id);
+      } else {
+        console.log('❎ No existing session found');
       }
     });
 
+    console.log('👂 Setting up auth state change listener...');
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔔 Auth state changed:', event, session?.user?.id);
       if (session?.user) {
-        setTimeout(() => checkAndRedirect(session.user.id), 0);
+        checkAndRedirect(session.user.id);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('🧹 Cleaning up auth listener');
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
