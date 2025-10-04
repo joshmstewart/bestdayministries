@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Globe, Instagram, Facebook, Store } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Globe, Instagram, Facebook, Store, Heart, Star } from "lucide-react";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -16,12 +18,22 @@ interface Vendor {
   logo_url: string | null;
   banner_image_url: string | null;
   social_links: any;
+  featured_bestie_id: string | null;
+}
+
+interface FeaturedBestie {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  avatar_number: number | null;
+  bio: string | null;
 }
 
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [featuredBestie, setFeaturedBestie] = useState<FeaturedBestie | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,6 +62,21 @@ const VendorProfile = () => {
       }
 
       setVendor(vendorData);
+
+      // If vendor has a featured bestie, fetch their details
+      let featuredBestieData = null;
+      if (vendorData.featured_bestie_id) {
+        const { data: bestieProfile } = await supabase
+          .from('profiles_public')
+          .select('id, display_name, avatar_url, avatar_number, bio')
+          .eq('id', vendorData.featured_bestie_id)
+          .single();
+        
+        if (bestieProfile) {
+          featuredBestieData = bestieProfile;
+        }
+      }
+      setFeaturedBestie(featuredBestieData);
 
       // Fetch vendor's active products
       const { data: productsData, error: productsError } = await supabase
@@ -219,6 +246,51 @@ const VendorProfile = () => {
               </div>
             </div>
           </div>
+
+          {/* Featured Bestie Section */}
+          {featuredBestie && (
+            <div className="pb-8">
+              <Card className="border-2 border-primary/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-3xl overflow-hidden">
+                        {featuredBestie.avatar_url ? (
+                          <img 
+                            src={featuredBestie.avatar_url} 
+                            alt={featuredBestie.display_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{featuredBestie.display_name.slice(0, 2).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <Heart className="absolute -top-1 -right-1 h-6 w-6 text-primary fill-current" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-heading text-xl font-bold">
+                          Supporting {featuredBestie.display_name}
+                        </h3>
+                        <Badge variant="secondary" className="gap-1">
+                          <Star className="h-3 w-3 fill-current" />
+                          Featured Bestie
+                        </Badge>
+                      </div>
+                      {featuredBestie.bio && (
+                        <p className="text-muted-foreground text-sm">
+                          {featuredBestie.bio}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        This vendor proudly supports our community member
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Products Section */}
           <div className="pb-12">

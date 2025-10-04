@@ -14,6 +14,8 @@ import { VendorOrderList } from "@/components/vendor/VendorOrderList";
 import { StripeConnectOnboarding } from "@/components/vendor/StripeConnectOnboarding";
 import { VendorEarnings } from "@/components/vendor/VendorEarnings";
 import { VendorProfileSettings } from "@/components/vendor/VendorProfileSettings";
+import { VendorBestieLinkRequest } from "@/components/vendor/VendorBestieLinkRequest";
+import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
@@ -347,8 +349,16 @@ const VendorDashboard = () => {
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-4">
-                <h2 className="text-2xl font-semibold">Store Settings</h2>
+                <h2 className="text-2xl font-semibold mb-6">Store Settings</h2>
                 <VendorProfileSettings vendorId={vendorId!} />
+                
+                <div className="mt-8">
+                  <h3 className="text-xl font-semibold mb-4">Link to Besties</h3>
+                  <div className="space-y-6">
+                    <VendorBestieLinkRequest vendorId={vendorId!} />
+                    <VendorLinkedBesties vendorId={vendorId!} />
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
           </div>

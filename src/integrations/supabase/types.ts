@@ -1509,6 +1509,60 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_bestie_requests: {
+        Row: {
+          bestie_id: string
+          created_at: string
+          id: string
+          message: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          bestie_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          bestie_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_bestie_requests_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_earnings"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "vendor_bestie_requests_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           approved_at: string | null
@@ -1518,6 +1572,7 @@ export type Database = {
           commission_percentage: number
           created_at: string
           description: string | null
+          featured_bestie_id: string | null
           id: string
           logo_url: string | null
           rejection_reason: string | null
@@ -1539,6 +1594,7 @@ export type Database = {
           commission_percentage?: number
           created_at?: string
           description?: string | null
+          featured_bestie_id?: string | null
           id?: string
           logo_url?: string | null
           rejection_reason?: string | null
@@ -1560,6 +1616,7 @@ export type Database = {
           commission_percentage?: number
           created_at?: string
           description?: string | null
+          featured_bestie_id?: string | null
           id?: string
           logo_url?: string | null
           rejection_reason?: string | null

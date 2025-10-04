@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, MessageSquare, FileText } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { VendorLinkRequests } from "@/components/guardian/VendorLinkRequests";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface PendingPost {
@@ -325,7 +326,7 @@ export default function GuardianApprovals() {
           </div>
 
           <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="posts" className="gap-2">
                 <FileText className="w-4 h-4" />
                 Posts
@@ -339,6 +340,9 @@ export default function GuardianApprovals() {
                 {pendingComments.length > 0 && (
                   <Badge variant="secondary">{pendingComments.length}</Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="vendors" className="gap-2">
+                Vendor Links
               </TabsTrigger>
             </TabsList>
 
@@ -540,6 +544,10 @@ export default function GuardianApprovals() {
                   </Card>
                 ))
               )}
+            </TabsContent>
+
+            <TabsContent value="vendors">
+              <VendorLinkRequests />
             </TabsContent>
           </Tabs>
         </div>
