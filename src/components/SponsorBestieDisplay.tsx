@@ -235,7 +235,13 @@ export const SponsorBestieDisplay = () => {
                     </div>
                     <TextToSpeech 
                       text={bestie.text_sections
-                        .map(section => `${section.header}. ${section.text}`)
+                        .map(section => {
+                          const parts = [];
+                          if (section.header) parts.push(section.header);
+                          if (section.text) parts.push(section.text);
+                          return parts.join('. ');
+                        })
+                        .filter(Boolean)
                         .join('. ')} 
                       size="default"
                       onPlayingChange={setIsAudioPlaying}
