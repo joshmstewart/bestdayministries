@@ -65,7 +65,8 @@ const SponsorBestie = () => {
   const [sections, setSections] = useState<Array<{ section_key: string; is_visible: boolean; display_order: number }>>([]);
 
   useEffect(() => {
-    loadBesties();
+    const bestieId = searchParams.get('bestieId');
+    loadBesties(bestieId);
     checkAuthAndLoadEmail();
     loadPageContent();
     loadSections();
@@ -105,7 +106,7 @@ const SponsorBestie = () => {
 
   useEffect(() => {
     // Check if there's a bestie ID in the URL
-    const bestieId = searchParams.get('bestie');
+    const bestieId = searchParams.get('bestieId');
     if (bestieId && besties.length > 0) {
       const bestieExists = besties.find(b => b.id === bestieId);
       if (bestieExists) {
@@ -149,7 +150,7 @@ const SponsorBestie = () => {
     }
   };
 
-  const loadBesties = async () => {
+  const loadBesties = async (preSelectedBestieId?: string | null) => {
     const { data, error } = await supabase
       .from("sponsor_besties")
       .select("id, bestie_name, image_url, text_sections, monthly_goal")
@@ -168,9 +169,20 @@ const SponsorBestie = () => {
         (typeof b.text_sections === 'string' ? JSON.parse(b.text_sections) : [])
     }));
 
-    setBesties(parsedBesties);
-    if (parsedBesties.length > 0) {
-      setSelectedBestie(parsedBesties[0].id);
+    // If no specific bestie is pre-selected, randomize the order
+    const finalBesties = preSelectedBestieId 
+      ? parsedBesties 
+      : parsedBesties.sort(() => Math.random() - 0.5);
+
+    setBesties(finalBesties);
+    
+    // Pre-select the specific bestie if provided, otherwise select the first one
+    if (finalBesties.length > 0) {
+      if (preSelectedBestieId && finalBesties.find(b => b.id === preSelectedBestieId)) {
+        setSelectedBestie(preSelectedBestieId);
+      } else {
+        setSelectedBestie(finalBesties[0].id);
+      }
     }
   };
 
