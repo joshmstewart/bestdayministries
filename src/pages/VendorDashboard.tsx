@@ -264,7 +264,7 @@ const VendorDashboard = () => {
 
         {vendorStatus === 'approved' && (
           <div className="space-y-6">
-            <div className="space-y-2">
+              <div className="space-y-2">
               <p className="text-sm text-muted-foreground uppercase tracking-wide">Vendor Account</p>
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -274,9 +274,18 @@ const VendorDashboard = () => {
                     <span className="text-sm font-medium text-green-600 dark:text-green-400">Approved</span>
                   </div>
                 </div>
-                <Button onClick={() => navigate('/marketplace')}>
-                  View Marketplace
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate(`/vendor-profile/${vendorId}`)}
+                  >
+                    <Store className="mr-2 h-4 w-4" />
+                    View Your Store
+                  </Button>
+                  <Button onClick={() => navigate('/marketplace')}>
+                    View Marketplace
+                  </Button>
+                </div>
               </div>
             </div>
 
