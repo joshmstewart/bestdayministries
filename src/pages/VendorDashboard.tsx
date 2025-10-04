@@ -259,22 +259,14 @@ const VendorDashboard = () => {
 
         {vendorStatus === 'approved' && (
           <div className="space-y-6">
-            <Card className="border-green-500/50 bg-green-500/5">
-              <CardContent className="py-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-500/10 rounded-full">
-                    <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-green-600 dark:text-green-400">Vendor Approved</p>
-                    <p className="text-sm text-muted-foreground">You can now manage your products and sales</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             <div className="flex justify-between items-center">
-              <h1 className="text-4xl font-heading font-bold">Vendor Dashboard</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-heading font-bold">Vendor Dashboard</h1>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <span className="text-sm font-medium text-green-600 dark:text-green-400">Approved</span>
+                </div>
+              </div>
               <Button onClick={() => navigate('/marketplace')}>
                 View Marketplace
               </Button>
