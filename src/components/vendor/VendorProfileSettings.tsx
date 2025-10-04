@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Upload, Loader2 } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import { VendorBestieAssetManager } from "./VendorBestieAssetManager";
 
 interface VendorProfileSettingsProps {
   vendorId: string;
@@ -223,6 +224,18 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Bestie Content</CardTitle>
+          <CardDescription>
+            Select assets from your linked Besties to feature on your store page
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <VendorBestieAssetManager vendorId={vendorId} />
         </CardContent>
       </Card>
 

@@ -16,7 +16,6 @@ import { VendorEarnings } from "@/components/vendor/VendorEarnings";
 import { VendorProfileSettings } from "@/components/vendor/VendorProfileSettings";
 import { VendorBestieLinkRequest } from "@/components/vendor/VendorBestieLinkRequest";
 import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
-import { VendorBestieAssetManager } from "@/components/vendor/VendorBestieAssetManager";
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
@@ -370,11 +369,6 @@ const VendorDashboard = () => {
                     <VendorBestieLinkRequest vendorId={vendorId!} />
                     <VendorLinkedBesties vendorId={vendorId!} />
                   </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-semibold mb-4">Bestie Content</h3>
-                  <VendorBestieAssetManager vendorId={vendorId!} />
                 </div>
               </TabsContent>
             </Tabs>
