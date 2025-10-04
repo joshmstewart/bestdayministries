@@ -200,9 +200,14 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
                   className="flex items-center justify-between p-3 border rounded-lg"
                 >
                   <div className="flex-1">
-                    <p className="font-medium">
-                      {(request.profiles as any)?.display_name || 'Bestie'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">
+                        {(request.profiles as any)?.display_name || 'Bestie'}
+                      </p>
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                        Pending Approval
+                      </Badge>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       Friend Code: {(request.profiles as any)?.friend_code}
                     </p>
@@ -260,6 +265,9 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{bestie.display_name}</p>
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                        Approved
+                      </Badge>
                       {bestie.is_featured && (
                         <Badge variant="secondary" className="gap-1">
                           <Star className="h-3 w-3 fill-current" />
