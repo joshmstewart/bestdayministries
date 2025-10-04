@@ -154,25 +154,43 @@ export const UnifiedHeader = () => {
   };
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
+    // Fetch profile data
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
       return;
     }
 
-    setProfile(data);
-    setIsAdmin(data?.role === "admin" || data?.role === "owner");
+    // Fetch actual role from user_roles table (security requirement)
+    const { data: roleData, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .single();
+
+    if (roleError && roleError.code !== 'PGRST116') {
+      console.error("Error fetching role:", roleError);
+    }
+
+    // Combine profile with actual role from user_roles
+    const profile = {
+      ...profileData,
+      role: roleData?.role || profileData?.role || "supporter"
+    };
+
+    setProfile(profile);
+    setIsAdmin(profile.role === "admin" || profile.role === "owner");
     
     // Note: Test account checking removed as email is no longer stored in profiles
     setIsTestAccount(false);
 
     // Check if bestie has shared sponsorships
-    if (data?.role === "bestie") {
+    if (profile.role === "bestie") {
       const { data: shares } = await supabase
         .from("sponsorship_shares")
         .select("id")
