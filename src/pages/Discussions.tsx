@@ -609,15 +609,8 @@ const Discussions = () => {
   };
 
   const getRoleBadgeColor = (role: string) => {
-    const colors: { [key: string]: string } = {
-      owner: "bg-purple-500 text-white",
-      admin: "bg-red-500 text-white",
-      moderator: "bg-orange-500 text-white",
-      caregiver: "bg-blue-500 text-white",
-      bestie: "bg-pink-500 text-white",
-      supporter: "bg-green-500 text-white",
-    };
-    return colors[role] || "bg-gray-500 text-white";
+    // Use consistent outlined style matching the nav bar
+    return "text-xs px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 text-primary font-semibold capitalize";
   };
 
   if (loading) {
@@ -885,8 +878,8 @@ const Discussions = () => {
                             <span className="text-sm font-medium text-foreground">
                               {post.author?.display_name || "Unknown"}
                             </span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(post.author?.role || "")}`}>
-                              {post.author?.role}
+                            <span className={getRoleBadgeColor(post.author?.role || "")}>
+                              {post.author?.role === "caregiver" ? "Guardian" : post.author?.role}
                             </span>
                             {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
                               <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
@@ -965,8 +958,8 @@ const Discussions = () => {
                                   {comment.content && (
                                     <TextToSpeech text={comment.content} size="sm" />
                                   )}
-                                  <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
-                                    {comment.author?.role}
+                                  <span className={getRoleBadgeColor(comment.author?.role || "")}>
+                                    {comment.author?.role === "caregiver" ? "Guardian" : comment.author?.role}
                                   </span>
                                   {comment.author_id && (comment.author?.role === 'bestie' || comment.author?.role === 'caregiver') && (
                                     <VendorStoreLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
