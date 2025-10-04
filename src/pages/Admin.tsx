@@ -25,6 +25,7 @@ import { FooterLinksManager } from "@/components/admin/FooterLinksManager";
 import QuickLinksManager from "@/components/admin/QuickLinksManager";
 import { NavigationBarManager } from "@/components/admin/NavigationBarManager";
 import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
+import { VendorManagement } from "@/components/admin/VendorManagement";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -204,6 +205,7 @@ const Admin = () => {
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
+            <TabsTrigger value="vendors">Vendors</TabsTrigger>
             <TabsTrigger value="format-pages">Format Pages</TabsTrigger>
             <TabsTrigger value="moderation" className="relative">
               Moderation
@@ -274,6 +276,10 @@ const Admin = () => {
 
           <TabsContent value="featured-item">
             <FeaturedItemManager />
+          </TabsContent>
+
+          <TabsContent value="vendors">
+            <VendorManagement />
           </TabsContent>
 
           <TabsContent value="format-pages">
