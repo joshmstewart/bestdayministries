@@ -288,9 +288,29 @@ const Admin = () => {
             <FeaturedBestieManager />
           </TabsContent>
 
-          <TabsContent value="sponsorships" className="space-y-6">
-            <SponsorBestiePageManager />
-            <SponsorBestieManager />
+          <TabsContent value="sponsorships">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sponsorships</CardTitle>
+                <CardDescription>Manage sponsor page content and active sponsorships</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="page-content" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="page-content">Sponsor Page Content</TabsTrigger>
+                    <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="page-content">
+                    <SponsorBestiePageManager />
+                  </TabsContent>
+
+                  <TabsContent value="sponsorships">
+                    <SponsorBestieManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="featured-item">
