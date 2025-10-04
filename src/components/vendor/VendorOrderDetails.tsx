@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ArrowLeft, Package, MapPin, Truck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, ArrowLeft, Package, MapPin, Truck, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
@@ -19,6 +20,7 @@ export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDet
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedCarriers, setSelectedCarriers] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -74,37 +76,43 @@ export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDet
     }
   };
 
-  const updateFulfillment = async (itemId: string, status: string, trackingNumber?: string) => {
+  const updateFulfillment = async (itemId: string, status: string, trackingNumber?: string, carrier?: string) => {
     try {
       setUpdating(itemId);
 
-      const updateData: any = {
-        fulfillment_status: status
-      };
+      if (status === 'shipped' && trackingNumber && carrier) {
+        // Submit to AfterShip for automated tracking
+        const { data, error: functionError } = await supabase.functions.invoke('submit-tracking', {
+          body: {
+            orderItemId: itemId,
+            trackingNumber,
+            carrier
+          }
+        });
 
-      if (trackingNumber) {
-        updateData.tracking_number = trackingNumber;
+        if (functionError) throw functionError;
+
+        toast({
+          title: "Success",
+          description: "Tracking submitted! Status will auto-update when delivered.",
+        });
+      } else if (status === 'delivered') {
+        // Manual mark as delivered
+        const { error } = await supabase
+          .from('order_items')
+          .update({
+            fulfillment_status: 'delivered',
+            delivered_at: new Date().toISOString()
+          })
+          .eq('id', itemId);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Order marked as delivered"
+        });
       }
-
-      if (status === 'shipped' && !order.items.find((i: any) => i.id === itemId).shipped_at) {
-        updateData.shipped_at = new Date().toISOString();
-      }
-
-      if (status === 'delivered' && !order.items.find((i: any) => i.id === itemId).delivered_at) {
-        updateData.delivered_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from('order_items')
-        .update(updateData)
-        .eq('id', itemId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Fulfillment status updated"
-      });
 
       loadOrderDetails();
     } catch (error) {
@@ -230,50 +238,96 @@ export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDet
                         </div>
                       </div>
 
-                      {/* Tracking Number */}
+                      {/* Tracking Info */}
                       {(item.fulfillment_status === 'shipped' || item.fulfillment_status === 'delivered') && (
-                        <div>
-                          <Label>Tracking Number</Label>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {item.tracking_number || 'Not provided'}
-                          </p>
+                        <div className="space-y-2">
+                          {item.tracking_url && (
+                            <div>
+                              <Label>Tracking Link</Label>
+                              <a 
+                                href={item.tracking_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline flex items-center gap-1 mt-1"
+                              >
+                                Track Package <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+                          {item.tracking_number && (
+                            <div>
+                              <Label>Tracking Number</Label>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {item.tracking_number} ({item.carrier?.toUpperCase() || 'N/A'})
+                              </p>
+                            </div>
+                          )}
                           {item.shipped_at && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground">
                               Shipped {formatDistanceToNow(new Date(item.shipped_at), { addSuffix: true })}
+                            </p>
+                          )}
+                          {item.delivered_at && (
+                            <p className="text-xs text-muted-foreground">
+                              Delivered {formatDistanceToNow(new Date(item.delivered_at), { addSuffix: true })}
                             </p>
                           )}
                         </div>
                       )}
 
-                      {/* Actions */}
+                      {/* Ship Item Form */}
                       {item.fulfillment_status === 'pending' && (
-                        <div className="space-y-2">
-                          <Label htmlFor={`tracking-${item.id}`}>Tracking Number (optional)</Label>
-                          <div className="flex gap-2">
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor={`carrier-${item.id}`}>Carrier *</Label>
+                            <Select
+                              value={selectedCarriers[item.id] || ""}
+                              onValueChange={(value) => setSelectedCarriers(prev => ({ ...prev, [item.id]: value }))}
+                            >
+                              <SelectTrigger id={`carrier-${item.id}`}>
+                                <SelectValue placeholder="Select carrier" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="usps">USPS</SelectItem>
+                                <SelectItem value="ups">UPS</SelectItem>
+                                <SelectItem value="fedex">FedEx</SelectItem>
+                                <SelectItem value="dhl">DHL</SelectItem>
+                                <SelectItem value="amazon">Amazon Logistics</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor={`tracking-${item.id}`}>Tracking Number *</Label>
                             <Input
                               id={`tracking-${item.id}`}
                               placeholder="Enter tracking number"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  updateFulfillment(
-                                    item.id,
-                                    'shipped',
-                                    (e.target as HTMLInputElement).value
-                                  );
-                                }
-                              }}
                             />
-                            <Button
-                              onClick={(e) => {
-                                const input = document.getElementById(`tracking-${item.id}`) as HTMLInputElement;
-                                updateFulfillment(item.id, 'shipped', input?.value);
-                              }}
-                              disabled={updating === item.id}
-                            >
-                              {updating === item.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                              Mark as Shipped
-                            </Button>
                           </div>
+
+                          <Button
+                            onClick={() => {
+                              const carrier = selectedCarriers[item.id];
+                              const trackingInput = document.getElementById(`tracking-${item.id}`) as HTMLInputElement;
+                              const tracking = trackingInput?.value;
+                              
+                              if (!carrier || !tracking) {
+                                toast({
+                                  title: "Missing Information",
+                                  description: "Please select a carrier and enter a tracking number",
+                                  variant: "destructive"
+                                });
+                                return;
+                              }
+                              
+                              updateFulfillment(item.id, 'shipped', tracking, carrier);
+                            }}
+                            disabled={updating === item.id}
+                            className="w-full"
+                          >
+                            {updating === item.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Mark as Shipped & Submit Tracking
+                          </Button>
                         </div>
                       )}
 

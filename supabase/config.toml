@@ -32,3 +32,9 @@ verify_jwt = true
 
 [functions.check-stripe-connect-status]
 verify_jwt = true
+
+[functions.submit-tracking]
+verify_jwt = true
+
+[functions.aftership-webhook]
+verify_jwt = false

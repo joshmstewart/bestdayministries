@@ -1005,6 +1005,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          carrier: string | null
           created_at: string
           delivered_at: string | null
           fulfillment_status: Database["public"]["Enums"]["fulfillment_status"]
@@ -1017,10 +1018,12 @@ export type Database = {
           shipped_at: string | null
           stripe_transfer_id: string | null
           tracking_number: string | null
+          tracking_url: string | null
           vendor_id: string | null
           vendor_payout: number | null
         }
         Insert: {
+          carrier?: string | null
           created_at?: string
           delivered_at?: string | null
           fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
@@ -1033,10 +1036,12 @@ export type Database = {
           shipped_at?: string | null
           stripe_transfer_id?: string | null
           tracking_number?: string | null
+          tracking_url?: string | null
           vendor_id?: string | null
           vendor_payout?: number | null
         }
         Update: {
+          carrier?: string | null
           created_at?: string
           delivered_at?: string | null
           fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
@@ -1049,6 +1054,7 @@ export type Database = {
           shipped_at?: string | null
           stripe_transfer_id?: string | null
           tracking_number?: string | null
+          tracking_url?: string | null
           vendor_id?: string | null
           vendor_payout?: number | null
         }
