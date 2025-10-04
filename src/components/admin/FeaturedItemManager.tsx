@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -48,13 +48,10 @@ export const FeaturedItemManager = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPublic, setIsPublic] = useState(true);
   const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
-  const [carouselTiming, setCarouselTiming] = useState<number>(10);
-  const [savingTiming, setSavingTiming] = useState(false);
 
   useEffect(() => {
     loadItems();
     loadLinkOptions();
-    loadCarouselTiming();
   }, []);
 
   const loadItems = async () => {
@@ -87,48 +84,6 @@ export const FeaturedItemManager = () => {
       if (postsData.data) setPosts(postsData.data);
     } catch (error) {
       console.error("Error loading link options:", error);
-    }
-  };
-
-  const loadCarouselTiming = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "carousel_timing_featured_item")
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data?.setting_value) {
-        setCarouselTiming(Number(data.setting_value) || 10);
-      }
-    } catch (error) {
-      console.error("Error loading carousel timing:", error);
-    }
-  };
-
-  const saveCarouselTiming = async () => {
-    try {
-      setSavingTiming(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { error } = await supabase
-        .from("app_settings")
-        .upsert({
-          setting_key: "carousel_timing_featured_item",
-          setting_value: carouselTiming,
-          updated_by: user.id,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'setting_key' });
-
-      if (error) throw error;
-      toast.success("Carousel timing updated successfully");
-    } catch (error: any) {
-      console.error("Error saving carousel timing:", error);
-      toast.error(error.message || "Failed to update carousel timing");
-    } finally {
-      setSavingTiming(false);
     }
   };
 
@@ -756,33 +711,6 @@ export const FeaturedItemManager = () => {
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Carousel Settings</CardTitle>
-          <CardDescription>Configure how fast the carousel rotates</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="carousel-timing">Auto-advance interval (seconds)</Label>
-            <Input
-              id="carousel-timing"
-              type="number"
-              min="1"
-              max="60"
-              value={carouselTiming}
-              onChange={(e) => setCarouselTiming(Number(e.target.value))}
-              placeholder="10"
-            />
-            <p className="text-xs text-muted-foreground">
-              How many seconds before the carousel advances to the next item (1-60)
-            </p>
-          </div>
-          <Button onClick={saveCarouselTiming} disabled={savingTiming}>
-            {savingTiming ? "Saving..." : "Save Timing"}
-          </Button>
         </CardContent>
       </Card>
     </div>

@@ -66,13 +66,10 @@ export const FeaturedBestieManager = () => {
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
-  const [carouselTiming, setCarouselTiming] = useState<number>(5);
-  const [savingTiming, setSavingTiming] = useState(false);
 
   useEffect(() => {
     loadData();
     loadBestieAccounts();
-    loadCarouselTiming();
   }, []);
 
   const loadBestieAccounts = async () => {
@@ -107,52 +104,6 @@ export const FeaturedBestieManager = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadCarouselTiming = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "carousel_timing_featured_bestie")
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data?.setting_value) {
-        setCarouselTiming(Number(data.setting_value) || 5);
-      }
-    } catch (error) {
-      console.error("Error loading carousel timing:", error);
-    }
-  };
-
-  const saveCarouselTiming = async () => {
-    try {
-      setSavingTiming(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { error } = await supabase
-        .from("app_settings")
-        .upsert({
-          setting_key: "carousel_timing_featured_bestie",
-          setting_value: carouselTiming,
-          updated_by: user.id,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'setting_key' });
-
-      if (error) throw error;
-      toast({ title: "Carousel timing updated successfully" });
-    } catch (error: any) {
-      console.error("Error saving carousel timing:", error);
-      toast({
-        title: "Error saving carousel timing",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setSavingTiming(false);
     }
   };
 
@@ -1111,33 +1062,6 @@ export const FeaturedBestieManager = () => {
           onAspectRatioKeyChange={(key) => setAspectRatioKey(key)}
         />
       )}
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Carousel Settings</CardTitle>
-          <CardDescription>Configure how fast the featured bestie carousel rotates</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="carousel-timing">Auto-advance interval (seconds)</Label>
-            <Input
-              id="carousel-timing"
-              type="number"
-              min="1"
-              max="60"
-              value={carouselTiming}
-              onChange={(e) => setCarouselTiming(Number(e.target.value))}
-              placeholder="5"
-            />
-            <p className="text-xs text-muted-foreground">
-              How many seconds before the carousel advances to the next bestie (1-60)
-            </p>
-          </div>
-          <Button onClick={saveCarouselTiming} disabled={savingTiming}>
-            {savingTiming ? "Saving..." : "Save Timing"}
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 };

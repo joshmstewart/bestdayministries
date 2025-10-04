@@ -31,13 +31,10 @@ export const SponsorBestiePageManager = () => {
     description: "Sponsor a Bestie and directly support their journey of growth, creativity, and community engagement",
     featured_video_id: ""
   });
-  const [carouselTiming, setCarouselTiming] = useState<number>(7);
-  const [savingTiming, setSavingTiming] = useState(false);
 
   useEffect(() => {
     loadSettings();
     loadVideos();
-    loadCarouselTiming();
   }, []);
 
   const loadSettings = async () => {
@@ -75,48 +72,6 @@ export const SponsorBestiePageManager = () => {
       setVideos(data || []);
     } catch (error) {
       console.error("Error loading videos:", error);
-    }
-  };
-
-  const loadCarouselTiming = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "carousel_timing_sponsor_bestie")
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data?.setting_value) {
-        setCarouselTiming(Number(data.setting_value) || 7);
-      }
-    } catch (error) {
-      console.error("Error loading carousel timing:", error);
-    }
-  };
-
-  const saveCarouselTiming = async () => {
-    try {
-      setSavingTiming(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { error } = await supabase
-        .from("app_settings")
-        .upsert({
-          setting_key: "carousel_timing_sponsor_bestie",
-          setting_value: carouselTiming,
-          updated_by: user.id,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'setting_key' });
-
-      if (error) throw error;
-      toast.success("Carousel timing updated successfully");
-    } catch (error: any) {
-      console.error("Error saving carousel timing:", error);
-      toast.error(error.message || "Failed to update carousel timing");
-    } finally {
-      setSavingTiming(false);
     }
   };
 
