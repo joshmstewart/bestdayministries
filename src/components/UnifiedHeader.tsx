@@ -56,15 +56,19 @@ export const UnifiedHeader = () => {
     loadLogo();
     loadNavLinks();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // CRITICAL: Keep this callback synchronous to avoid deadlocks
       setUser(session?.user ?? null);
+      setAuthLoading(false);
+      
+      // Defer Supabase calls to prevent deadlock
       if (session?.user) {
-        await fetchProfile(session.user.id);
-        setAuthLoading(false);
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+        }, 0);
       } else {
         setProfile(null);
         setIsAdmin(false);
-        setAuthLoading(false);
       }
     });
 
