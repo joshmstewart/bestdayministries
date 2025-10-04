@@ -34,7 +34,8 @@ fetchProfile → profiles_public (NOT profiles) → sets effectiveRole → trigg
 1. Collect all dates (primary + `event_dates`)
 2. Filter: `date >= now` AND `(!expires_after_date OR isUpcoming)`
 3. Sort chronologically, limit to 3
-4. Height-limit: max 1200px cumulative (uses aspect ratio calculation)
+4. Height-limit: MAX_HEIGHT=1200px, CARD_PADDING=24px, SPACING=16px, TEXT_HEIGHT=120px
+   - Calculates: `imageHeight (from aspect ratio) + TEXT_HEIGHT + CARD_PADDING + SPACING`
 
 ## Visual Structure
 
@@ -56,8 +57,9 @@ fetchProfile → profiles_public (NOT profiles) → sets effectiveRole → trigg
 **Event Card:**
 - Border: `border-b` between events, `last:border-0`
 - Icon: `Calendar` (text-secondary)
-- Image: Dynamic aspect ratio from `event.aspect_ratio` field
-- Location: Clickable link → Google Maps (opens new tab)
+- Image: Dynamic aspect ratio from `event.aspect_ratio` field (default: '9:16')
+- Location: Clickable link → Google Maps (`noopener,noreferrer`), hover: primary w/ underline
+- Audio: `<AudioPlayer>` if `event.audio_url` exists (propagation stopped)
 - TTS: Right of title, reads: `title + description + "Scheduled for [date]" + "At [location]"`
 
 ## Key Interactions
@@ -78,8 +80,9 @@ fetchProfile → profiles_public (NOT profiles) → sets effectiveRole → trigg
 2. **Discussion:** Filter only `is_moderated = true` (no approval_status)
 3. **Events:** Client-side role filter after DB fetch
 4. **Height:** Events limited to 1200px cumulative (aspect ratio aware)
-5. **Propagation:** Stop on TTS/location clicks
-6. **Empty States:** Show when no content ("No discussions yet...", "No upcoming events...")
+5. **Propagation:** Stop on TTS/location/audio clicks
+6. **Visibility:** Check `community_sections` table for section visibility
+7. **Empty States:** Show when no content ("No discussions yet...", "No upcoming events...")
 
 ## Color Tokens
 - Discussion icon: `text-primary`
