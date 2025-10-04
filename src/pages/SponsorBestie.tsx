@@ -297,10 +297,10 @@ const SponsorBestie = () => {
                     <p className="text-muted-foreground text-center py-8">No besties available for sponsorship at this time.</p>
                   ) : (
                     <div 
-                      className="bestie-scroll-container overflow-y-scroll pr-4" 
-                      style={{ maxHeight: 'calc(100vh - 400px)' }}
+                      className="bestie-scroll-container overflow-y-scroll" 
+                      style={{ maxHeight: 'calc(100vh - 400px)', paddingRight: '20px' }}
                     >
-                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4 pr-1">
+                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4" style={{ marginRight: '4px' }}>
                       {besties.map((bestie) => (
                         <Card 
                           key={bestie.id} 
