@@ -24,7 +24,11 @@ interface VendorLinkRequest {
   };
 }
 
-export const VendorLinkRequests = () => {
+interface VendorLinkRequestsProps {
+  onRequestsChange?: () => void;
+}
+
+export const VendorLinkRequests = ({ onRequestsChange }: VendorLinkRequestsProps) => {
   const [requests, setRequests] = useState<VendorLinkRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -137,6 +141,7 @@ export const VendorLinkRequests = () => {
 
       toast.success("Vendor link approved!");
       loadRequests();
+      onRequestsChange?.();
     } catch (error) {
       console.error('Error approving request:', error);
       toast.error("Failed to approve request");
@@ -164,6 +169,7 @@ export const VendorLinkRequests = () => {
 
       toast.success("Vendor link rejected");
       loadRequests();
+      onRequestsChange?.();
     } catch (error) {
       console.error('Error rejecting request:', error);
       toast.error("Failed to reject request");

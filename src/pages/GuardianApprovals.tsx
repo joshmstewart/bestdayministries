@@ -50,6 +50,7 @@ export default function GuardianApprovals() {
   const [loading, setLoading] = useState(true);
   const [pendingPosts, setPendingPosts] = useState<PendingPost[]>([]);
   const [pendingComments, setPendingComments] = useState<PendingComment[]>([]);
+  const [pendingVendorLinks, setPendingVendorLinks] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -168,6 +169,15 @@ export default function GuardianApprovals() {
         author: Array.isArray(c.author) ? c.author[0] : c.author,
         post: Array.isArray(c.post) ? c.post[0] : c.post
       })) as PendingComment[]);
+
+      // Load pending vendor link requests count
+      const { count: vendorCount } = await supabase
+        .from('vendor_bestie_requests')
+        .select('*', { count: 'exact', head: true })
+        .in('bestie_id', bestieIds)
+        .eq('status', 'pending');
+
+      setPendingVendorLinks(vendorCount || 0);
     } catch (error: any) {
       toast({
         title: "Error loading content",
@@ -331,18 +341,21 @@ export default function GuardianApprovals() {
                 <FileText className="w-4 h-4" />
                 Posts
                 {pendingPosts.length > 0 && (
-                  <Badge variant="secondary">{pendingPosts.length}</Badge>
+                  <Badge variant="destructive" className="ml-1">{pendingPosts.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="comments" className="gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Comments
                 {pendingComments.length > 0 && (
-                  <Badge variant="secondary">{pendingComments.length}</Badge>
+                  <Badge variant="destructive" className="ml-1">{pendingComments.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="vendors" className="gap-2">
                 Vendor Links
+                {pendingVendorLinks > 0 && (
+                  <Badge variant="destructive" className="ml-1">{pendingVendorLinks}</Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -547,7 +560,7 @@ export default function GuardianApprovals() {
             </TabsContent>
 
             <TabsContent value="vendors">
-              <VendorLinkRequests />
+              <VendorLinkRequests onRequestsChange={() => currentUserId && loadPendingContent(currentUserId)} />
             </TabsContent>
           </Tabs>
         </div>
