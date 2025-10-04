@@ -80,10 +80,9 @@ supabase
   .from("discussion_posts")
   .select(`
     *,
-    author:profiles!discussion_posts_author_id_fkey(id, display_name)
+    author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role)
   `)
   .eq("is_moderated", true)
-  .eq("approval_status", "approved")
   .order("created_at", { ascending: false })
   .limit(1)
   .maybeSingle()
@@ -91,13 +90,13 @@ supabase
 
 **Query Rules:**
 1. **Table:** `discussion_posts`
-2. **Join:** Fetches author profile (id, display_name only - NOT role)
-3. **Filter:** Only posts with `is_moderated = true` AND `approval_status = "approved"`
+2. **Join:** Fetches author profile from `profiles_public` view (id, display_name, role)
+3. **Filter:** Only posts with `is_moderated = true`
 4. **Sort:** Most recent first (`created_at DESC`)
 5. **Limit:** 1 post only
 6. **Result:** Uses `maybeSingle()` - returns null if no posts exist
 
-**CRITICAL:** The query filters by BOTH `is_moderated` AND `approval_status` - both must be true/"approved".
+**CRITICAL:** The query does NOT filter by `approval_status` - only by `is_moderated`. This matches the behavior of the main Discussions page.
 
 ### Text-to-Speech Integration
 
@@ -557,8 +556,9 @@ The component logs key steps:
 ## CRITICAL RULES TO MAINTAIN
 
 ### 1. Discussion Query
-- **MUST** filter by BOTH `is_moderated = true` AND `approval_status = 'approved'`
-- **MUST NOT** include `role` in the profiles join (role is in separate table)
+- **MUST** filter ONLY by `is_moderated = true` (NOT by `approval_status`)
+- **MUST** use `profiles_public` view for author join (includes role)
+- **MUST** match the behavior of the main Discussions page
 
 ### 2. Events Role Filtering
 - **MUST** happen client-side after database fetch

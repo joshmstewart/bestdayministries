@@ -140,10 +140,9 @@ const Community = () => {
         .from("discussion_posts")
         .select(`
           *,
-          author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
+          author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role)
         `)
         .eq("is_moderated", true)
-        .eq("approval_status", "approved")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
