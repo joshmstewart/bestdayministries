@@ -54,61 +54,39 @@ const Auth = () => {
     console.log('🎬 Auth page mounted, setting up redirect logic');
     
     const checkAndRedirect = async (userId: string) => {
-      console.log('🔍 Starting checkAndRedirect for user:', userId);
-      console.log('⏰ Timestamp:', new Date().toISOString());
-      
       try {
-        console.log('📡 About to query vendors table...');
+        // First check if user is a vendor
         const { data: vendor, error } = await supabase
           .from('vendors')
           .select('*')
           .eq('user_id', userId)
           .maybeSingle();
         
-        console.log('📊 Vendor query completed:', { 
-          vendor, 
-          error, 
-          hasVendor: !!vendor,
-          vendorStatus: vendor?.status 
-        });
-        
         if (!error && vendor) {
-          console.log('✅ Vendor found with status:', vendor.status);
-          console.log('🚀 Navigating to /vendor-dashboard');
           navigate("/vendor-dashboard", { replace: true });
         } else {
-          console.log('❌ No vendor found or error occurred');
-          if (error) console.error('Query error:', error);
-          console.log('🚀 Navigating to /community');
           navigate("/community", { replace: true });
         }
       } catch (err) {
-        console.error('💥 Exception in checkAndRedirect:', err);
+        console.error('Error in checkAndRedirect:', err);
         navigate("/community", { replace: true });
       }
     };
 
     // Check if user is already logged in
-    console.log('🔄 Checking for existing session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        console.log('👤 Found existing session for user:', session.user.id);
         checkAndRedirect(session.user.id);
-      } else {
-        console.log('❎ No existing session found');
       }
     });
 
-    console.log('👂 Setting up auth state change listener...');
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔔 Auth state changed:', event, session?.user?.id);
       if (session?.user) {
         checkAndRedirect(session.user.id);
       }
     });
 
     return () => {
-      console.log('🧹 Cleaning up auth listener');
       subscription.unsubscribe();
     };
   }, [navigate]);
@@ -146,28 +124,8 @@ const Auth = () => {
 
         if (error) throw error;
 
-        // Immediately check vendor status after successful login
-        if (data.user) {
-          console.log('✅ Login successful! Checking vendor status for:', data.user.id);
-          
-          const { data: vendor, error: vendorError } = await supabase
-            .from('vendors')
-            .select('status')
-            .eq('user_id', data.user.id)
-            .maybeSingle();
-          
-          console.log('🏪 Vendor check result:', { vendor, vendorError });
-          
-          if (!vendorError && vendor) {
-            console.log('🎉 Vendor found! Redirecting to dashboard...');
-            navigate("/vendor-dashboard");
-            toast({
-              title: "Welcome back!",
-              description: "Redirecting to your vendor dashboard...",
-            });
-            return; // Exit early to prevent further processing
-          }
-        }
+        // Vendor status check will be handled by auth state listener
+        // which will redirect appropriately
 
         toast({
           title: "Welcome back!",

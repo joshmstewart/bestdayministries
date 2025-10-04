@@ -68,7 +68,7 @@ const Community = () => {
       return;
     }
 
-    // Check if user is a vendor - vendors should use vendor dashboard
+    // Check if user is a vendor FIRST before loading any data
     const { data: vendor } = await supabase
       .from('vendors')
       .select('status')
@@ -76,10 +76,12 @@ const Community = () => {
       .maybeSingle();
     
     if (vendor) {
+      // Vendor user - redirect immediately without loading community data
       navigate("/vendor-dashboard", { replace: true });
       return;
     }
 
+    // Not a vendor - proceed with normal community page loading
     setUser(session.user);
     await fetchProfile(session.user.id);
     await loadSectionOrder();
