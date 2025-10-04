@@ -1088,7 +1088,6 @@ export type Database = {
           display_name: string
           friend_code: string | null
           id: string
-          role: Database["public"]["Enums"]["user_role"] | null
           tts_enabled: boolean
           tts_voice: string | null
           updated_at: string
@@ -1102,7 +1101,6 @@ export type Database = {
           display_name: string
           friend_code?: string | null
           id: string
-          role?: Database["public"]["Enums"]["user_role"] | null
           tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
@@ -1116,7 +1114,6 @@ export type Database = {
           display_name?: string
           friend_code?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["user_role"] | null
           tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
@@ -1485,24 +1482,6 @@ export type Database = {
           display_name: string | null
           id: string | null
           role: Database["public"]["Enums"]["user_role"] | null
-        }
-        Insert: {
-          avatar_number?: number | null
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          id?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-        }
-        Update: {
-          avatar_number?: number | null
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          id?: string | null
-          role?: Database["public"]["Enums"]["user_role"] | null
         }
         Relationships: [
           {
