@@ -34,7 +34,9 @@ const Community = () => {
   // Update effective role whenever profile or impersonation changes
   useEffect(() => {
     if (profile) {
-      setEffectiveRole(getEffectiveRole(profile.role));
+      const role = getEffectiveRole(profile.role);
+      console.log('Community - Setting effectiveRole:', role);
+      setEffectiveRole(role);
     }
   }, [profile, isImpersonating, getEffectiveRole]);
 
@@ -53,12 +55,18 @@ const Community = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Reload content when impersonation changes
+  // Reload content when impersonation changes or when user/profile/effectiveRole are set
   useEffect(() => {
+    console.log('Community - Content loading useEffect triggered', { 
+      hasUser: !!user, 
+      hasProfile: !!profile, 
+      effectiveRole 
+    });
     if (user && profile && effectiveRole !== null) {
+      console.log('Community - Calling loadLatestContent');
       loadLatestContent();
     }
-  }, [effectiveRole]); // Changed from isImpersonating to effectiveRole
+  }, [user, profile, effectiveRole]); // Include all dependencies
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -120,8 +128,12 @@ const Community = () => {
 
   const loadLatestContent = async () => {
     // Don't load if we don't have an effective role yet
-    if (!effectiveRole) return;
+    if (!effectiveRole) {
+      console.log('Community - loadLatestContent returning early, no effectiveRole');
+      return;
+    }
     
+    console.log('Community - loadLatestContent running with role:', effectiveRole);
     try {
       // Fetch latest discussion
       const { data: discussions } = await supabase
