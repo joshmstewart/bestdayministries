@@ -296,8 +296,30 @@ const SponsorBestie = () => {
                   {besties.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">No besties available for sponsorship at this time.</p>
                   ) : (
-                    <div className="overflow-y-scroll" style={{ maxHeight: 'calc(100vh - 400px)', scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
-                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4 pr-2">
+                    <div 
+                      className="overflow-y-scroll pr-2" 
+                      style={{ 
+                        maxHeight: 'calc(100vh - 400px)',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'hsl(var(--border)) transparent'
+                      }}
+                    >
+                      <style>{`
+                        .overflow-y-scroll::-webkit-scrollbar {
+                          width: 10px;
+                        }
+                        .overflow-y-scroll::-webkit-scrollbar-track {
+                          background: transparent;
+                        }
+                        .overflow-y-scroll::-webkit-scrollbar-thumb {
+                          background: hsl(var(--border));
+                          border-radius: 5px;
+                        }
+                        .overflow-y-scroll::-webkit-scrollbar-thumb:hover {
+                          background: hsl(var(--border) / 0.8);
+                        }
+                      `}</style>
+                      <RadioGroup value={selectedBestie} onValueChange={setSelectedBestie} className="space-y-4">
                       {besties.map((bestie) => (
                         <Card 
                           key={bestie.id} 
