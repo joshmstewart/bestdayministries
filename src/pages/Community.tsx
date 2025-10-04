@@ -85,7 +85,7 @@ const Community = () => {
     setUser(session.user);
     await fetchProfile(session.user.id);
     await loadSectionOrder();
-    await loadLatestContent();
+    // Don't call loadLatestContent here - let the effectiveRole useEffect handle it
     setLoading(false);
   };
 
@@ -131,9 +131,10 @@ const Community = () => {
           author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
         `)
         .eq("is_moderated", true)
+        .eq("approval_status", "approved")
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (discussions) {
         setLatestDiscussion(discussions);
