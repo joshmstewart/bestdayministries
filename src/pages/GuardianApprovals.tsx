@@ -22,7 +22,6 @@ interface PendingPost {
   image_url?: string | null;
   author: {
     display_name: string;
-    email: string;
     avatar_number: number;
   };
 }
@@ -36,7 +35,6 @@ interface PendingComment {
   post_id: string;
   author: {
     display_name: string;
-    email: string;
     avatar_number: number;
   };
   post: {
@@ -124,7 +122,6 @@ export default function GuardianApprovals() {
           image_url,
           author:profiles!discussion_posts_author_id_fkey(
             display_name,
-            email,
             avatar_number
           )
         `)
@@ -146,7 +143,6 @@ export default function GuardianApprovals() {
           post_id,
           author:profiles!discussion_comments_author_id_fkey(
             display_name,
-            email,
             avatar_number
           ),
           post:discussion_posts!discussion_comments_post_id_fkey(
