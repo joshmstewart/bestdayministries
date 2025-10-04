@@ -28,6 +28,7 @@ import { NavigationBarManager } from "@/components/admin/NavigationBarManager";
 import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
 import { VendorManagement } from "@/components/admin/VendorManagement";
 import { ContactFormManager } from "@/components/admin/ContactFormManager";
+import { VideoManager } from "@/components/admin/VideoManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -205,6 +206,7 @@ const Admin = () => {
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
+            <TabsTrigger value="videos">Videos</TabsTrigger>
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
@@ -276,6 +278,10 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="videos">
+            <VideoManager />
           </TabsContent>
 
           <TabsContent value="featured">
