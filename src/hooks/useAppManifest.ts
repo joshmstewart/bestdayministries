@@ -5,26 +5,13 @@ export const useAppManifest = () => {
   useEffect(() => {
     const updateManifest = async () => {
       try {
-        console.log('useAppManifest - Starting...');
-        
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Manifest fetch timeout')), 3000)
-        );
-        
-        // Fetch app settings with timeout
-        const fetchPromise = supabase
+        // Fetch app settings
+        const { data } = await supabase
           .from('app_settings')
           .select('setting_key, setting_value')
           .in('setting_key', ['mobile_app_name', 'mobile_app_icon_url']);
 
-        const { data } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-        console.log('useAppManifest - Data received:', data);
-
-        if (!data) {
-          console.log('useAppManifest - No data, using defaults');
-          return;
-        }
+        if (!data) return;
 
         let appName = 'Joy House Community';
         let iconUrl = '';
@@ -141,9 +128,7 @@ export const useAppManifest = () => {
         appleCapableMeta.content = 'yes';
 
       } catch (error) {
-        console.error('useAppManifest - Error:', error);
-        // Set default title even if fetch fails
-        document.title = 'Joy House Community';
+        console.error('Error updating manifest:', error);
       }
     };
 
