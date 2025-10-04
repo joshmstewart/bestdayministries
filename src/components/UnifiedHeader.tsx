@@ -59,16 +59,18 @@ export const UnifiedHeader = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // CRITICAL: Keep this callback synchronous to avoid deadlocks
       setUser(session?.user ?? null);
-      setAuthLoading(false);
       
-      // Defer Supabase calls to prevent deadlock
       if (session?.user) {
+        // Defer profile fetch but keep loading state until it completes
         setTimeout(() => {
-          fetchProfile(session.user.id);
+          fetchProfile(session.user.id).finally(() => {
+            setAuthLoading(false);
+          });
         }, 0);
       } else {
         setProfile(null);
         setIsAdmin(false);
+        setAuthLoading(false);
       }
     });
 
