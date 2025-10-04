@@ -234,7 +234,7 @@ const Community = () => {
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("*")
       .eq("id", userId)
       .single();

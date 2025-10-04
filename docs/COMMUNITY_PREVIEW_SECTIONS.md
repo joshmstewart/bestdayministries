@@ -560,7 +560,12 @@ The component logs key steps:
 - **MUST** use `profiles_public` view for author join (includes role)
 - **MUST** match the behavior of the main Discussions page
 
-### 2. Events Role Filtering
+### 2. Profile Loading (CRITICAL)
+- **MUST** fetch from `profiles_public` view (NOT `profiles` table)
+- **WHY:** `profiles` table doesn't include role; `profiles_public` view includes role from `user_roles` table
+- **RESULT:** Without role, `effectiveRole` stays undefined → early return → no content loads
+
+### 3. Events Role Filtering
 - **MUST** happen client-side after database fetch
 - **MUST** check `visible_to_roles` array includes user's `effectiveRole`
 - **MUST** process all dates (primary + recurring) before filtering
