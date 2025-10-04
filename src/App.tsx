@@ -28,6 +28,7 @@ import GuardianApprovals from "./pages/GuardianApprovals";
 import Marketplace from "./pages/Marketplace";
 import VendorDashboard from "./pages/VendorDashboard";
 import VendorAuth from "./pages/VendorAuth";
+import VendorProfile from "./pages/VendorProfile";
 import OrderHistory from "./pages/OrderHistory";
 import NotFound from "./pages/NotFound";
 
@@ -67,6 +68,7 @@ const App = () => {
             <Route path="/guardian-links" element={<GuardianLinks />} />
             <Route path="/guardian-approvals" element={<GuardianApprovals />} />
             <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/vendors/:id" element={<VendorProfile />} />
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />
             <Route path="/orders" element={<OrderHistory />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

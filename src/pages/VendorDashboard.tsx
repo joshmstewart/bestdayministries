@@ -13,6 +13,7 @@ import { ProductList } from "@/components/vendor/ProductList";
 import { VendorOrderList } from "@/components/vendor/VendorOrderList";
 import { StripeConnectOnboarding } from "@/components/vendor/StripeConnectOnboarding";
 import { VendorEarnings } from "@/components/vendor/VendorEarnings";
+import { VendorProfileSettings } from "@/components/vendor/VendorProfileSettings";
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
@@ -313,10 +314,11 @@ const VendorDashboard = () => {
             </div>
 
             <Tabs defaultValue="products" className="w-full">
-              <TabsList>
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="products">Products</TabsTrigger>
                 <TabsTrigger value="orders">Orders</TabsTrigger>
                 <TabsTrigger value="earnings">Earnings</TabsTrigger>
+                <TabsTrigger value="payments">Payments</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
               
@@ -339,9 +341,14 @@ const VendorDashboard = () => {
                 <VendorEarnings vendorId={vendorId!} />
               </TabsContent>
               
-              <TabsContent value="settings" className="space-y-4">
+              <TabsContent value="payments" className="space-y-4">
                 <h2 className="text-2xl font-semibold">Payment Settings</h2>
                 <StripeConnectOnboarding vendorId={vendorId!} />
+              </TabsContent>
+
+              <TabsContent value="settings" className="space-y-4">
+                <h2 className="text-2xl font-semibold">Store Settings</h2>
+                <VendorProfileSettings vendorId={vendorId!} />
               </TabsContent>
             </Tabs>
           </div>

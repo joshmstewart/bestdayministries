@@ -1513,12 +1513,15 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          banner_image_url: string | null
           business_name: string
           commission_percentage: number
           created_at: string
           description: string | null
           id: string
+          logo_url: string | null
           rejection_reason: string | null
+          social_links: Json | null
           status: Database["public"]["Enums"]["vendor_status"]
           stripe_account_id: string | null
           stripe_charges_enabled: boolean | null
@@ -1531,12 +1534,15 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          banner_image_url?: string | null
           business_name: string
           commission_percentage?: number
           created_at?: string
           description?: string | null
           id?: string
+          logo_url?: string | null
           rejection_reason?: string | null
+          social_links?: Json | null
           status?: Database["public"]["Enums"]["vendor_status"]
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
@@ -1549,12 +1555,15 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          banner_image_url?: string | null
           business_name?: string
           commission_percentage?: number
           created_at?: string
           description?: string | null
           id?: string
+          logo_url?: string | null
           rejection_reason?: string | null
+          social_links?: Json | null
           status?: Database["public"]["Enums"]["vendor_status"]
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null

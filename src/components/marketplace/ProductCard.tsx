@@ -1,10 +1,11 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Package } from "lucide-react";
+import { ShoppingCart, Package, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
   product: any;
@@ -13,6 +14,7 @@ interface ProductCardProps {
 export const ProductCard = ({ product }: ProductCardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const addToCart = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -81,9 +83,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         </h3>
 
         {product.vendor && (
-          <p className="text-sm text-muted-foreground mb-2">
+          <button
+            onClick={() => navigate(`/vendors/${product.vendor_id}`)}
+            className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 mb-2 group"
+          >
+            <Store className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
             by {product.vendor.business_name}
-          </p>
+          </button>
         )}
 
         <p className="text-2xl font-bold text-primary">
