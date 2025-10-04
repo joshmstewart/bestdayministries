@@ -888,8 +888,8 @@ const Discussions = () => {
                             <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(post.author?.role || "")}`}>
                               {post.author?.role}
                             </span>
-                            {post.author_id && post.author?.role === 'bestie' && (
-                              <VendorStoreLinkBadge bestieId={post.author_id} variant="badge" />
+                            {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
+                              <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
                             )}
                             <span className="text-xs text-muted-foreground">
                               {new Date(post.created_at).toLocaleDateString()}
@@ -968,8 +968,8 @@ const Discussions = () => {
                                   <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(comment.author?.role || "")}`}>
                                     {comment.author?.role}
                                   </span>
-                                  {comment.author_id && comment.author?.role === 'bestie' && (
-                                    <VendorStoreLinkBadge bestieId={comment.author_id} variant="badge" />
+                                  {comment.author_id && (comment.author?.role === 'bestie' || comment.author?.role === 'caregiver') && (
+                                    <VendorStoreLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
                                   )}
                                    <span className="text-xs text-muted-foreground">
                                     {new Date(comment.created_at).toLocaleDateString()}
