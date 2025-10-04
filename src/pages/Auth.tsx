@@ -139,12 +139,35 @@ const Auth = () => {
           description: "Your account has been created successfully.",
         });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (error) throw error;
+
+        // Immediately check vendor status after successful login
+        if (data.user) {
+          console.log('✅ Login successful! Checking vendor status for:', data.user.id);
+          
+          const { data: vendor, error: vendorError } = await supabase
+            .from('vendors')
+            .select('status')
+            .eq('user_id', data.user.id)
+            .maybeSingle();
+          
+          console.log('🏪 Vendor check result:', { vendor, vendorError });
+          
+          if (!vendorError && vendor) {
+            console.log('🎉 Vendor found! Redirecting to dashboard...');
+            navigate("/vendor-dashboard");
+            toast({
+              title: "Welcome back!",
+              description: "Redirecting to your vendor dashboard...",
+            });
+            return; // Exit early to prevent further processing
+          }
+        }
 
         toast({
           title: "Welcome back!",
