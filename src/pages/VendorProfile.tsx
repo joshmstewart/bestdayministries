@@ -151,14 +151,14 @@ const VendorProfile = () => {
       <main className="flex-1">
         {/* Banner Section */}
         <div 
-          className="h-64 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 relative"
+          className="h-32 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 relative"
           style={vendor.banner_image_url ? {
             backgroundImage: `url(${vendor.banner_image_url})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           } : {}}
         >
-          <div className="container mx-auto px-4 h-full flex items-end pb-8">
+          <div className="container mx-auto px-4 h-full flex items-center">
             <Button
               variant="outline"
               size="sm"
@@ -173,8 +173,8 @@ const VendorProfile = () => {
 
         {/* Vendor Info Section */}
         <div className="container mx-auto px-4">
-          <div className="relative -mt-12 mb-8">
-            <div className="bg-background rounded-lg shadow-lg p-8 border">
+          <div className="relative -mt-8 mb-6">
+            <div className="bg-background rounded-lg shadow-lg p-6 border">
               <div className="flex flex-col md:flex-row gap-6 items-start">
                 {/* Logo */}
                 <div className="flex-shrink-0">
