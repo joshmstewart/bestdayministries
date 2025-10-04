@@ -142,7 +142,6 @@ const Community = () => {
           *,
           author:profiles!discussion_posts_author_id_fkey(id, display_name, role)
         `)
-        .eq("is_moderated", true)
         .eq("approval_status", "approved")
         .order("created_at", { ascending: false })
         .limit(1)
