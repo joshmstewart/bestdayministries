@@ -44,11 +44,32 @@ const SponsorBestie = () => {
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [pageContent, setPageContent] = useState({
+    badge_text: "Sponsor a Bestie",
+    main_heading: "Change a Life Today",
+    description: "Sponsor a Bestie and directly support their journey of growth, creativity, and community engagement"
+  });
 
   useEffect(() => {
     loadBesties();
     checkAuthAndLoadEmail();
+    loadPageContent();
   }, []);
+
+  const loadPageContent = async () => {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "sponsor_page_content")
+      .maybeSingle();
+
+    if (!error && data?.setting_value) {
+      const parsed = typeof data.setting_value === 'string' 
+        ? JSON.parse(data.setting_value) 
+        : data.setting_value;
+      setPageContent(parsed);
+    }
+  };
 
   useEffect(() => {
     // Check if there's a bestie ID in the URL
@@ -201,16 +222,15 @@ const SponsorBestie = () => {
             <div className="text-center mb-8 space-y-3 animate-fade-in">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-2">
                 <Heart className="w-3 h-3 text-primary" />
-                <span className="text-xs font-semibold text-primary">Sponsor a Bestie</span>
+                <span className="text-xs font-semibold text-primary">{pageContent.badge_text}</span>
               </div>
               <h1 className="text-3xl md:text-4xl font-black text-foreground">
-                Change a{" "}
                 <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                  Life Today
+                  {pageContent.main_heading}
                 </span>
               </h1>
               <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-                Sponsor a Bestie and directly support their journey of growth, creativity, and community engagement
+                {pageContent.description}
               </p>
             </div>
 

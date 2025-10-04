@@ -24,6 +24,7 @@ import { FamilyOrganizationsManager } from "@/components/admin/FamilyOrganizatio
 import { FooterLinksManager } from "@/components/admin/FooterLinksManager";
 import QuickLinksManager from "@/components/admin/QuickLinksManager";
 import { NavigationBarManager } from "@/components/admin/NavigationBarManager";
+import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -266,7 +267,8 @@ const Admin = () => {
             <FeaturedBestieManager />
           </TabsContent>
 
-          <TabsContent value="sponsorships">
+          <TabsContent value="sponsorships" className="space-y-6">
+            <SponsorBestiePageManager />
             <SponsorBestieManager />
           </TabsContent>
 
