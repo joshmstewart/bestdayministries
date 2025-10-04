@@ -46,16 +46,48 @@ const Index = () => {
 
   const fetchSections = async () => {
     try {
+      console.log("Index - Fetching homepage sections...");
       const { data, error } = await supabase
         .from("homepage_sections")
         .select("section_key, is_visible")
         .order("display_order", { ascending: true });
 
+      console.log("Index - Sections data:", data);
+      console.log("Index - Sections error:", error);
+
       if (error) throw error;
-      setSections(data || []);
+      
+      // If no sections found, use default order
+      if (!data || data.length === 0) {
+        console.log("Index - No sections found, using default order");
+        setSections([
+          { section_key: 'hero', is_visible: true },
+          { section_key: 'featured_items', is_visible: true },
+          { section_key: 'featured_bestie', is_visible: true },
+          { section_key: 'sponsor_bestie', is_visible: true },
+          { section_key: 'mission', is_visible: true },
+          { section_key: 'community_features', is_visible: true },
+          { section_key: 'our_family', is_visible: true },
+          { section_key: 'latest_album', is_visible: true },
+          { section_key: 'public_events', is_visible: true },
+          { section_key: 'community_gallery', is_visible: true },
+          { section_key: 'joy_rocks', is_visible: true },
+          { section_key: 'donate', is_visible: true },
+          { section_key: 'about', is_visible: true },
+        ]);
+      } else {
+        setSections(data);
+      }
     } catch (error) {
       console.error("Error fetching sections:", error);
+      // Use default sections on error
+      setSections([
+        { section_key: 'hero', is_visible: true },
+        { section_key: 'mission', is_visible: true },
+        { section_key: 'about', is_visible: true },
+      ]);
     } finally {
+      console.log("Index - Setting loading to false");
       setLoading(false);
     }
   };
