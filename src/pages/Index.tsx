@@ -24,23 +24,52 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkVendorStatus();
-    fetchSections();
+    const initializePage = async () => {
+      console.log("Index - Initializing page...");
+      
+      // Set a safety timeout
+      const timeoutId = setTimeout(() => {
+        console.log("Index - Safety timeout triggered, forcing page load");
+        setLoading(false);
+      }, 3000);
+      
+      try {
+        await Promise.all([
+          checkVendorStatus(),
+          fetchSections()
+        ]);
+      } catch (error) {
+        console.error("Index - Error during initialization:", error);
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    };
+    
+    initializePage();
   }, []);
 
   const checkVendorStatus = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      const { data: vendor } = await supabase
-        .from('vendors')
-        .select('status')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
+    try {
+      console.log("Index - Checking vendor status...");
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log("Index - Session:", session, "Error:", sessionError);
       
-      if (vendor) {
-        navigate("/vendor-dashboard", { replace: true });
+      if (session?.user) {
+        const { data: vendor, error: vendorError } = await supabase
+          .from('vendors')
+          .select('status')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        console.log("Index - Vendor data:", vendor, "Error:", vendorError);
+        
+        if (vendor) {
+          console.log("Index - User is vendor, redirecting...");
+          navigate("/vendor-dashboard", { replace: true });
+        }
       }
+    } catch (error) {
+      console.error("Index - Error checking vendor status:", error);
     }
   };
 
