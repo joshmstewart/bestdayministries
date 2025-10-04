@@ -261,7 +261,7 @@ const SponsorBestie = () => {
                   {pageContent.main_heading}
                 </span>
               </h1>
-              <p className="text-base text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-base text-muted-foreground max-w-2xl mx-auto whitespace-pre-line">
                 {pageContent.description}
               </p>
             </div>
