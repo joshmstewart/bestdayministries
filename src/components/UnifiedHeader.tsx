@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2 } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, ShoppingBag } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
@@ -259,6 +259,14 @@ export const UnifiedHeader = () => {
                     size="md"
                   />
                   <span className="hidden sm:inline font-semibold">Profile</span>
+                </Button>
+                <Button 
+                  onClick={() => navigate("/orders")}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span className="hidden sm:inline font-semibold">Orders</span>
                 </Button>
                 {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
                   <Button 
