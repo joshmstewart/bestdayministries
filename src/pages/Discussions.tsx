@@ -883,7 +883,10 @@ const Discussions = () => {
                               {post.author?.role === "caregiver" ? "Guardian" : post.author?.role}
                             </span>
                             {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
-                              <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
+                              <>
+                                <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
+                                <SponsorPageLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
+                              </>
                             )}
                             <span className="text-xs text-muted-foreground">
                               {new Date(post.created_at).toLocaleDateString()}
