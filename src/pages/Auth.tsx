@@ -52,13 +52,13 @@ const Auth = () => {
 
   useEffect(() => {
     const checkAndRedirect = async (userId: string) => {
-      const { data: vendor } = await supabase
+      const { data: vendor, error } = await supabase
         .from('vendors')
         .select('status')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       
-      if (vendor) {
+      if (!error && vendor) {
         navigate("/vendor-dashboard");
       } else {
         navigate("/community");
