@@ -8,12 +8,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Store, Package, DollarSign } from "lucide-react";
+import { ProductForm } from "@/components/vendor/ProductForm";
+import { ProductList } from "@/components/vendor/ProductList";
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [vendorStatus, setVendorStatus] = useState<'none' | 'pending' | 'approved' | 'rejected' | 'suspended'>('none');
+  const [vendorId, setVendorId] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalSales: 0,
+    pendingOrders: 0
+  });
 
   useEffect(() => {
     checkVendorStatus();
@@ -30,12 +38,17 @@ const VendorDashboard = () => {
 
       const { data: vendor } = await supabase
         .from('vendors')
-        .select('status')
+        .select('id, status')
         .eq('user_id', user.id)
         .single();
 
       if (vendor) {
         setVendorStatus(vendor.status);
+        setVendorId(vendor.id);
+        
+        if (vendor.status === 'approved') {
+          loadStats(vendor.id);
+        }
       } else {
         setVendorStatus('none');
       }
@@ -43,6 +56,47 @@ const VendorDashboard = () => {
       console.error('Error checking vendor status:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStats = async (vendorId: string) => {
+    try {
+      // Load product count
+      const { count: productCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId)
+        .eq('is_active', true);
+
+      // Load pending orders count
+      const { count: orderCount } = await supabase
+        .from('order_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId)
+        .eq('fulfillment_status', 'pending');
+
+      // Load total sales (this month)
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: salesData } = await supabase
+        .from('order_items')
+        .select('price_at_purchase, quantity')
+        .eq('vendor_id', vendorId)
+        .gte('created_at', startOfMonth.toISOString());
+
+      const totalSales = salesData?.reduce((sum, item) => 
+        sum + (item.price_at_purchase * item.quantity), 0
+      ) || 0;
+
+      setStats({
+        totalProducts: productCount || 0,
+        totalSales,
+        pendingOrders: orderCount || 0
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
     }
   };
 
@@ -174,7 +228,7 @@ const VendorDashboard = () => {
                   <Package className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">0</div>
+                  <div className="text-2xl font-bold">{stats.totalProducts}</div>
                   <p className="text-xs text-muted-foreground">Active listings</p>
                 </CardContent>
               </Card>
@@ -185,7 +239,7 @@ const VendorDashboard = () => {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">$0.00</div>
+                  <div className="text-2xl font-bold">${stats.totalSales.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">This month</p>
                 </CardContent>
               </Card>
@@ -196,7 +250,7 @@ const VendorDashboard = () => {
                   <Package className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">0</div>
+                  <div className="text-2xl font-bold">{stats.pendingOrders}</div>
                   <p className="text-xs text-muted-foreground">Awaiting shipment</p>
                 </CardContent>
               </Card>
@@ -212,16 +266,11 @@ const VendorDashboard = () => {
               <TabsContent value="products" className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-semibold">Your Products</h2>
-                  <Button>Add Product</Button>
+                  {vendorId && (
+                    <ProductForm vendorId={vendorId} onSuccess={() => loadStats(vendorId)} />
+                  )}
                 </div>
-                <Card>
-                  <CardContent className="py-12">
-                    <div className="text-center text-muted-foreground">
-                      <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No products yet. Add your first product to get started!</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                {vendorId && <ProductList vendorId={vendorId} />}
               </TabsContent>
               
               <TabsContent value="orders">
