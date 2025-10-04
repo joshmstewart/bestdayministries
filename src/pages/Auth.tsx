@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, Users, Sparkles } from "lucide-react";
+import { Heart, Users, Sparkles, Store } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
@@ -386,9 +386,18 @@ const Auth = () => {
             </div>
           )}
 
-          <div className="pt-4 border-t border-border">
+          <div className="pt-4 border-t border-border space-y-2">
             <Button
               variant="outline"
+              className="w-full"
+              onClick={() => navigate("/auth/vendor")}
+            >
+              <Store className="w-4 h-4 mr-2" />
+              Vendor Login/Signup
+            </Button>
+            
+            <Button
+              variant="ghost"
               className="w-full"
               onClick={() => navigate("/")}
             >

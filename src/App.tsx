@@ -26,6 +26,7 @@ import GuardianLinks from "./pages/GuardianLinks";
 import GuardianApprovals from "./pages/GuardianApprovals";
 import Marketplace from "./pages/Marketplace";
 import VendorDashboard from "./pages/VendorDashboard";
+import VendorAuth from "./pages/VendorAuth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/vendor" element={<VendorAuth />} />
             <Route path="/community" element={<Community />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/avatars" element={<AvatarManagement />} />
