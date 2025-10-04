@@ -27,7 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
     const recipientEmail = Deno.env.get("CONTACT_RECIPIENT_EMAIL") || "contact@bestdayministries.org";
 
     const emailResponse = await resend.emails.send({
-      from: "Best Day Ministries <contact@bestdayministries.org>",
+      from: "Best Day Ministries <marla@joyhousestore.com>",
       to: [recipientEmail],
       reply_to: email,
       subject: subject || `New Contact Form Message from ${name}`,
