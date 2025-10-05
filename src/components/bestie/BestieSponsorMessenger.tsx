@@ -43,26 +43,6 @@ export const BestieSponsorMessenger = () => {
   useEffect(() => {
     loadPermissions();
     loadMessages();
-
-    // Set up realtime subscription for message status updates
-    const channel = supabase
-      .channel('bestie-messages')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'sponsor_messages',
-        },
-        () => {
-          loadMessages();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const loadPermissions = async () => {
@@ -262,14 +242,10 @@ export const BestieSponsorMessenger = () => {
           Pending Approval
         </Badge>;
       case 'approved':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Approved - Sending Soon
-        </Badge>;
       case 'sent':
         return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
           <CheckCircle className="w-3 h-3 mr-1" />
-          Sent
+          Approved - Delivered
         </Badge>;
       case 'rejected':
         return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
