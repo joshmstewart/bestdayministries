@@ -43,6 +43,26 @@ export const BestieSponsorMessenger = () => {
   useEffect(() => {
     loadPermissions();
     loadMessages();
+
+    // Set up realtime subscription for message status updates
+    const channel = supabase
+      .channel('bestie-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sponsor_messages',
+        },
+        () => {
+          loadMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadPermissions = async () => {
