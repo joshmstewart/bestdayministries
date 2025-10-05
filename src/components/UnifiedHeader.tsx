@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2 } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
@@ -293,6 +293,16 @@ export const UnifiedHeader = () => {
                   >
                     <Users className="w-4 h-4" />
                     <span className="hidden sm:inline font-semibold">My Besties</span>
+                  </Button>
+                )}
+                {profile?.role === "bestie" && (
+                  <Button 
+                    onClick={() => navigate("/bestie-messages")}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span className="hidden sm:inline font-semibold">Messages</span>
                   </Button>
                 )}
                 {profile?.role === "caregiver" && (
