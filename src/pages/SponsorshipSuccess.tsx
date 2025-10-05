@@ -28,14 +28,8 @@ const SponsorshipSuccess = () => {
 
   const verifyPayment = async () => {
     try {
-      // Get auth session if available
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const { data, error } = await supabase.functions.invoke('verify-sponsorship-payment', {
-        body: { session_id: sessionId },
-        headers: session ? {
-          Authorization: `Bearer ${session.access_token}`
-        } : undefined
+        body: { session_id: sessionId }
       });
 
       if (error) throw error;
