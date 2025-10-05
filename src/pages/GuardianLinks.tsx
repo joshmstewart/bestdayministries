@@ -63,6 +63,7 @@ interface Sponsorship {
   status: string;
   started_at: string;
   ended_at: string | null;
+  stripe_subscription_id?: string | null;
   is_shared?: boolean;
   shared_by?: string;
   bestie: {
@@ -1195,24 +1196,31 @@ export default function GuardianLinks() {
               <div className="grid gap-4">
                 {ownSponsorships.map((sponsorship) => (
                   <Card key={sponsorship.id}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <AvatarDisplay
-                            avatarNumber={sponsorship.bestie.avatar_number}
-                            displayName={sponsorship.bestie.display_name}
-                            size="lg"
-                          />
-                          <div className="flex items-center gap-2 flex-1">
-                            <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
-                            {sponsorship.featured_bestie && (
-                              <TextToSpeech 
-                                text={`${sponsorship.bestie.display_name}. ${sponsorship.featured_bestie.description}`} 
-                                size="icon" 
-                              />
-                            )}
-                          </div>
-                        </div>
+                     <CardHeader>
+                       <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-4 flex-1">
+                           <AvatarDisplay
+                             avatarNumber={sponsorship.bestie.avatar_number}
+                             displayName={sponsorship.bestie.display_name}
+                             size="lg"
+                           />
+                           <div className="flex items-center gap-2 flex-1">
+                             <div className="flex items-center gap-2">
+                               <CardTitle>{sponsorship.bestie.display_name}</CardTitle>
+                               {sponsorship.stripe_subscription_id?.startsWith('sub_') && (
+                                 <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full border border-yellow-300 dark:border-yellow-700">
+                                   Test Mode
+                                 </span>
+                               )}
+                             </div>
+                             {sponsorship.featured_bestie && (
+                               <TextToSpeech 
+                                 text={`${sponsorship.bestie.display_name}. ${sponsorship.featured_bestie.description}`} 
+                                 size="icon" 
+                               />
+                             )}
+                           </div>
+                         </div>
                         <div className="flex gap-2">
                           {sponsorship.frequency === 'monthly' && (
                             <>
