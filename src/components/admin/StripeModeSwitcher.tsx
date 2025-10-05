@@ -102,6 +102,9 @@ export const StripeModeSwitcher = () => {
                 <Badge variant={isLiveMode ? "destructive" : "default"}>
                   {currentMode.toUpperCase()}
                 </Badge>
+                <Badge variant="outline" className="text-xs">
+                  Admin Only
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 {isLiveMode 
