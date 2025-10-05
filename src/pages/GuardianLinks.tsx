@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause, Store, X } from "lucide-react";
+import { Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause, Store, X, Settings } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
@@ -1215,17 +1215,42 @@ export default function GuardianLinks() {
                         </div>
                         <div className="flex gap-2">
                           {sponsorship.frequency === 'monthly' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setChangingAmountFor(sponsorship.id);
-                                setNewAmount(sponsorship.amount.toString());
-                              }}
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              Change Amount
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setChangingAmountFor(sponsorship.id);
+                                  setNewAmount(sponsorship.amount.toString());
+                                }}
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                Change Amount
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const { data, error } = await supabase.functions.invoke('manage-sponsorship');
+                                    
+                                    if (error) throw error;
+                                    if (data?.url) {
+                                      window.open(data.url, '_blank');
+                                    }
+                                  } catch (error: any) {
+                                    toast({
+                                      title: "Error",
+                                      description: error.message || "Could not open customer portal",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                <Settings className="w-4 h-4 mr-1" />
+                                Manage
+                              </Button>
+                            </>
                           )}
                           {linkedBesties.length > 0 && (
                             <Button

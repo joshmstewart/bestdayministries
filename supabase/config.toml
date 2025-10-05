@@ -38,3 +38,6 @@ verify_jwt = true
 
 [functions.aftership-webhook]
 verify_jwt = false
+
+[functions.manage-sponsorship]
+verify_jwt = true
