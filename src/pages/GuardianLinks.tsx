@@ -38,6 +38,8 @@ interface BestieLink {
   require_vendor_asset_approval: boolean;
   show_vendor_link_on_bestie: boolean;
   show_vendor_link_on_guardian: boolean;
+  allow_sponsor_messages: boolean;
+  require_message_approval: boolean;
   bestie: {
     display_name: string;
     avatar_number: number;
@@ -191,6 +193,8 @@ export default function GuardianLinks() {
           require_vendor_asset_approval,
           show_vendor_link_on_bestie,
           show_vendor_link_on_guardian,
+          allow_sponsor_messages,
+          require_message_approval,
           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             display_name,
             avatar_number
@@ -640,7 +644,7 @@ export default function GuardianLinks() {
     }
   };
 
-  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts' | 'require_vendor_asset_approval' | 'show_vendor_link_on_bestie' | 'show_vendor_link_on_guardian', currentValue: boolean) => {
+  const handleToggleApproval = async (linkId: string, field: 'require_post_approval' | 'require_comment_approval' | 'allow_featured_posts' | 'require_vendor_asset_approval' | 'show_vendor_link_on_bestie' | 'show_vendor_link_on_guardian' | 'allow_sponsor_messages' | 'require_message_approval', currentValue: boolean) => {
     try {
       const { error } = await supabase
         .from("caregiver_bestie_links")
@@ -650,12 +654,14 @@ export default function GuardianLinks() {
       if (error) throw error;
 
       const fieldNames = {
-        require_post_approval: 'Post approval',
-        require_comment_approval: 'Comment approval',
-        allow_featured_posts: 'Featured posts',
-        require_vendor_asset_approval: 'Vendor asset approval',
-        show_vendor_link_on_bestie: 'Vendor store link on bestie profile',
-        show_vendor_link_on_guardian: 'Vendor store link on guardian profile'
+        require_post_approval: "Post Approval",
+        require_comment_approval: "Comment Approval",
+        allow_featured_posts: "Featured Posts",
+        require_vendor_asset_approval: "Vendor Asset Approval",
+        show_vendor_link_on_bestie: "Vendor Link on Bestie Profile",
+        show_vendor_link_on_guardian: "Vendor Link on Your Profile",
+        allow_sponsor_messages: "Sponsor Messages",
+        require_message_approval: "Message Approval",
       };
 
       toast({
@@ -663,9 +669,7 @@ export default function GuardianLinks() {
         description: `${fieldNames[field]} ${!currentValue ? 'enabled' : 'disabled'}`,
       });
 
-      if (currentUserId) {
-        await loadLinks(currentUserId);
-      }
+      await loadLinks(currentUserId!);
     } catch (error: any) {
       toast({
         title: "Error updating settings",
@@ -1146,6 +1150,34 @@ export default function GuardianLinks() {
                               <Switch
                                 checked={link.show_vendor_link_on_guardian}
                                 onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_guardian', link.show_vendor_link_on_guardian)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">
+                                  Allow Sponsor Messages
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Allow bestie to send messages to their sponsors
+                                </p>
+                              </div>
+                              <Switch
+                                checked={link.allow_sponsor_messages}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'allow_sponsor_messages', link.allow_sponsor_messages)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">
+                                  Require Message Approval
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Review and approve messages before they're sent to sponsors
+                                </p>
+                              </div>
+                              <Switch
+                                checked={link.require_message_approval}
+                                onCheckedChange={() => handleToggleApproval(link.id, 'require_message_approval', link.require_message_approval)}
                               />
                             </div>
                             {link.allow_featured_posts && (

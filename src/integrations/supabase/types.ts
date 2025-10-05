@@ -159,12 +159,14 @@ export type Database = {
       caregiver_bestie_links: {
         Row: {
           allow_featured_posts: boolean
+          allow_sponsor_messages: boolean
           bestie_id: string
           caregiver_id: string
           created_at: string
           id: string
           relationship: string
           require_comment_approval: boolean
+          require_message_approval: boolean
           require_post_approval: boolean
           require_vendor_asset_approval: boolean
           show_sponsor_link_on_bestie: boolean
@@ -174,12 +176,14 @@ export type Database = {
         }
         Insert: {
           allow_featured_posts?: boolean
+          allow_sponsor_messages?: boolean
           bestie_id: string
           caregiver_id: string
           created_at?: string
           id?: string
           relationship: string
           require_comment_approval?: boolean
+          require_message_approval?: boolean
           require_post_approval?: boolean
           require_vendor_asset_approval?: boolean
           show_sponsor_link_on_bestie?: boolean
@@ -189,12 +193,14 @@ export type Database = {
         }
         Update: {
           allow_featured_posts?: boolean
+          allow_sponsor_messages?: boolean
           bestie_id?: string
           caregiver_id?: string
           created_at?: string
           id?: string
           relationship?: string
           require_comment_approval?: boolean
+          require_message_approval?: boolean
           require_post_approval?: boolean
           require_vendor_asset_approval?: boolean
           show_sponsor_link_on_bestie?: boolean
@@ -1442,6 +1448,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sponsor_messages: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          bestie_id: string
+          created_at: string
+          id: string
+          message: string
+          rejection_reason: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["message_status"]
+          subject: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          bestie_id: string
+          created_at?: string
+          id?: string
+          message: string
+          rejection_reason?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+          subject: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          bestie_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          rejection_reason?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status"]
+          subject?: string
+        }
+        Relationships: []
+      }
       sponsor_page_sections: {
         Row: {
           content: Json | null
@@ -2024,6 +2069,7 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+      message_status: "pending_approval" | "approved" | "rejected" | "sent"
       order_status:
         | "pending"
         | "processing"
@@ -2174,6 +2220,7 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
+      message_status: ["pending_approval", "approved", "rejected", "sent"],
       order_status: [
         "pending",
         "processing",

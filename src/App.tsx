@@ -26,6 +26,7 @@ import ModerationQueue from "./pages/ModerationQueue";
 import ProfileSettings from "./pages/ProfileSettings";
 import GuardianLinks from "./pages/GuardianLinks";
 import GuardianApprovals from "./pages/GuardianApprovals";
+import BestieMessages from "./pages/BestieMessages";
 import Marketplace from "./pages/Marketplace";
 import VendorDashboard from "./pages/VendorDashboard";
 import VendorAuth from "./pages/VendorAuth";
@@ -69,6 +70,7 @@ const App = () => {
             <Route path="/profile" element={<ProfileSettings />} />
             <Route path="/guardian-links" element={<GuardianLinks />} />
             <Route path="/guardian-approvals" element={<GuardianApprovals />} />
+            <Route path="/bestie-messages" element={<BestieMessages />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/vendors/:id" element={<VendorProfile />} />
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />

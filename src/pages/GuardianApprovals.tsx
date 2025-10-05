@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, MessageSquare, FileText } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, FileText, Mail } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { VendorLinkRequests } from "@/components/guardian/VendorLinkRequests";
+import { BestieSponsorMessages } from "@/components/guardian/BestieSponsorMessages";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface PendingPost {
@@ -332,7 +333,7 @@ export default function GuardianApprovals() {
           </div>
 
           <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="posts" className="gap-2">
                 <FileText className="w-4 h-4" />
                 Posts
@@ -352,6 +353,10 @@ export default function GuardianApprovals() {
                 {pendingVendorLinks > 0 && (
                   <Badge variant="destructive" className="ml-1">{pendingVendorLinks}</Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="gap-2">
+                <Mail className="w-4 h-4" />
+                Messages
               </TabsTrigger>
             </TabsList>
 
@@ -557,6 +562,10 @@ export default function GuardianApprovals() {
 
             <TabsContent value="vendors">
               <VendorLinkRequests onRequestsChange={() => currentUserId && loadPendingContent(currentUserId)} />
+            </TabsContent>
+
+            <TabsContent value="messages">
+              <BestieSponsorMessages />
             </TabsContent>
           </Tabs>
         </div>
