@@ -3,6 +3,9 @@ import { Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ContactForm } from "@/components/ContactForm";
 
+// Build timestamp for admin visibility
+const BUILD_TIMESTAMP = new Date().toISOString();
+
 interface FooterSection {
   id: string;
   title: string;
@@ -23,10 +26,12 @@ const Footer = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [footerSections, setFooterSections] = useState<FooterSection[]>([]);
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadLogo();
     loadFooterData();
+    checkAdminStatus();
   }, []);
 
   const loadLogo = async () => {
@@ -85,6 +90,23 @@ const Footer = () => {
       if (linksResult.data) setFooterLinks(linksResult.data);
     } catch (error) {
       console.error('Error loading footer data:', error);
+    }
+  };
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      setIsAdmin(roleData?.role === 'admin' || roleData?.role === 'owner');
+    } catch (error) {
+      console.error('Error checking admin status:', error);
     }
   };
 
@@ -190,6 +212,11 @@ const Footer = () => {
           <p className="mt-2 text-sm">
             © {new Date().getFullYear()} Best Day Ministries Community. All rights reserved.
           </p>
+          {isAdmin && (
+            <p className="mt-4 text-xs text-muted-foreground/70">
+              Last updated: {new Date(BUILD_TIMESTAMP).toLocaleString()}
+            </p>
+          )}
         </div>
       </div>
       </footer>

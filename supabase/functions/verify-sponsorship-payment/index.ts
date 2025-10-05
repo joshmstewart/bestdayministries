@@ -111,7 +111,7 @@ serve(async (req) => {
       .from('sponsorships')
       .insert({
         sponsor_id: user.id,
-        bestie_id: session.metadata.bestie_id,
+        sponsor_bestie_id: session.metadata.bestie_id, // This is actually sponsor_bestie.id
         amount: parseFloat(session.metadata.amount),
         frequency: session.metadata.frequency,
         status: 'active',

@@ -83,10 +83,10 @@ serve(async (req) => {
         // Determine the new status
         const newStatus = subscription.status === "active" ? "active" : "cancelled";
 
-        // Get the bestie_id from subscription metadata if available
-        const bestieId = subscription.metadata?.bestie_id;
+        // Get the sponsor_bestie_id from subscription metadata if available
+        const sponsorBestieId = subscription.metadata?.bestie_id;
 
-        if (bestieId) {
+        if (sponsorBestieId) {
           // Update the specific sponsorship
           const { error: updateError } = await supabaseAdmin
             .from("sponsorships")
@@ -95,12 +95,12 @@ serve(async (req) => {
               ended_at: newStatus === "cancelled" ? new Date().toISOString() : null,
             })
             .eq("sponsor_id", user.id)
-            .eq("bestie_id", bestieId);
+            .eq("sponsor_bestie_id", sponsorBestieId);
 
           if (updateError) {
             console.error("Error updating sponsorship:", updateError);
           } else {
-            console.log(`Updated sponsorship for user ${user.id}, bestie ${bestieId} to status: ${newStatus}`);
+            console.log(`Updated sponsorship for user ${user.id}, sponsor_bestie ${sponsorBestieId} to status: ${newStatus}`);
           }
         } else {
           // Update all sponsorships for this user (fallback if metadata not available)
@@ -145,40 +145,40 @@ serve(async (req) => {
 
           const user = authData.users.find(u => u.email === customerEmail);
           if (!user) {
-            console.log("User not found for email:", customerEmail);
-            break;
-          }
+          console.log("User not found for email:", customerEmail);
+          break;
+        }
 
-          // Get bestie_id from metadata
-          const bestieId = session.metadata?.bestie_id;
-          if (!bestieId) {
-            console.log("No bestie_id in session metadata");
-            break;
-          }
+        // Get sponsor_bestie_id from metadata
+        const sponsorBestieId = session.metadata?.bestie_id;
+        if (!sponsorBestieId) {
+          console.log("No bestie_id in session metadata");
+          break;
+        }
 
           // Calculate amount (Stripe amounts are in cents)
           const amount = session.amount_total ? session.amount_total / 100 : 0;
           const frequency = subscription.items.data[0]?.price.recurring?.interval === "month" ? "monthly" : "yearly";
 
-          // Create or update sponsorship record
-          const { error: upsertError } = await supabaseAdmin
-            .from("sponsorships")
-            .upsert({
-              sponsor_id: user.id,
-              bestie_id: bestieId,
-              amount: amount,
-              frequency: frequency,
-              status: "active",
-              started_at: new Date().toISOString(),
-            }, {
-              onConflict: "sponsor_id,bestie_id",
-            });
+        // Create or update sponsorship record
+        const { error: upsertError } = await supabaseAdmin
+          .from("sponsorships")
+          .upsert({
+            sponsor_id: user.id,
+            sponsor_bestie_id: sponsorBestieId,
+            amount: amount,
+            frequency: frequency,
+            status: "active",
+            started_at: new Date().toISOString(),
+          }, {
+            onConflict: "sponsor_id,sponsor_bestie_id",
+          });
 
-          if (upsertError) {
-            console.error("Error creating sponsorship:", upsertError);
-          } else {
-            console.log(`Created/updated sponsorship for user ${user.id}, bestie ${bestieId}`);
-          }
+        if (upsertError) {
+          console.error("Error creating sponsorship:", upsertError);
+        } else {
+          console.log(`Created/updated sponsorship for user ${user.id}, sponsor_bestie ${sponsorBestieId}`);
+        }
         }
         break;
       }
