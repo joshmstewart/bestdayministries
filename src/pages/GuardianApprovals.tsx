@@ -50,6 +50,7 @@ export default function GuardianApprovals() {
   const [pendingPosts, setPendingPosts] = useState<PendingPost[]>([]);
   const [pendingComments, setPendingComments] = useState<PendingComment[]>([]);
   const [pendingVendorLinks, setPendingVendorLinks] = useState(0);
+  const [pendingMessages, setPendingMessages] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -175,6 +176,15 @@ export default function GuardianApprovals() {
         .eq('status', 'pending');
 
       setPendingVendorLinks(vendorCount || 0);
+
+      // Load pending sponsor messages count
+      const { count: messagesCount } = await supabase
+        .from('sponsor_messages')
+        .select('*', { count: 'exact', head: true })
+        .in('bestie_id', bestieIds)
+        .eq('status', 'pending_approval');
+
+      setPendingMessages(messagesCount || 0);
     } catch (error: any) {
       toast({
         title: "Error loading content",
@@ -357,6 +367,9 @@ export default function GuardianApprovals() {
               <TabsTrigger value="messages" className="gap-2">
                 <Mail className="w-4 h-4" />
                 Messages
+                {pendingMessages > 0 && (
+                  <Badge variant="destructive" className="ml-1">{pendingMessages}</Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 

@@ -46,7 +46,7 @@ export const useGuardianApprovalsCount = () => {
       // Get all linked besties for this guardian
       const { data: links, error: linksError } = await supabase
         .from("caregiver_bestie_links")
-        .select("bestie_id, require_post_approval, require_comment_approval")
+        .select("bestie_id, require_post_approval, require_comment_approval, require_message_approval")
         .eq("caregiver_id", userId);
 
       if (linksError) throw linksError;
@@ -91,6 +91,22 @@ export const useGuardianApprovalsCount = () => {
         totalCount += commentsCount || 0;
       }
 
+      // Count pending sponsor messages for besties where message approval is required
+      const bestiesRequiringMessageApproval = links
+        .filter(link => link.require_message_approval)
+        .map(link => link.bestie_id);
+
+      if (bestiesRequiringMessageApproval.length > 0) {
+        const { count: messagesCount, error: messagesError } = await supabase
+          .from("sponsor_messages")
+          .select("*", { count: "exact", head: true })
+          .in("bestie_id", bestiesRequiringMessageApproval)
+          .eq("status", "pending_approval");
+
+        if (messagesError) throw messagesError;
+        totalCount += messagesCount || 0;
+      }
+
       setCount(totalCount);
     } catch (error) {
       console.error("Error fetching approvals count:", error);
@@ -133,6 +149,22 @@ export const useGuardianApprovalsCount = () => {
       )
       .subscribe();
 
+    // Set up realtime subscription for sponsor messages
+    const messagesChannel = supabase
+      .channel('guardian-messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sponsor_messages'
+        },
+        () => {
+          fetchApprovalsCount(userId);
+        }
+      )
+      .subscribe();
+
     // Set up realtime subscription for link changes
     const linksChannel = supabase
       .channel('guardian-links-changes')
@@ -154,6 +186,7 @@ export const useGuardianApprovalsCount = () => {
     return () => {
       supabase.removeChannel(postsChannel);
       supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(messagesChannel);
       supabase.removeChannel(linksChannel);
     };
   };
