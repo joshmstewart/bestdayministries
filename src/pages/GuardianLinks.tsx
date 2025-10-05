@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -1287,6 +1288,22 @@ export default function GuardianLinks() {
                           <span className="capitalize">{sponsorship.frequency}</span>
                           <span className="mx-2">•</span>
                           <span>Started {new Date(sponsorship.started_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium">Status:</span>
+                          {sponsorship.ended_at && new Date(sponsorship.ended_at) > new Date() ? (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                              Cancels on {new Date(sponsorship.ended_at).toLocaleDateString()}
+                            </Badge>
+                          ) : sponsorship.status === 'active' ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
+                              Cancelled {sponsorship.ended_at ? `on ${new Date(sponsorship.ended_at).toLocaleDateString()}` : ''}
+                            </Badge>
+                          )}
                         </div>
                       </div>
 

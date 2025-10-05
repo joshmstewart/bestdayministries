@@ -80,8 +80,24 @@ serve(async (req) => {
           break;
         }
 
-        // Determine the new status
-        const newStatus = subscription.status === "active" ? "active" : "cancelled";
+        // Determine the new status based on subscription state
+        let newStatus: string;
+        let endDate: string | null = null;
+        
+        if (subscription.status === "active" && subscription.cancel_at_period_end) {
+          // Subscription is active but scheduled to cancel
+          newStatus = "active";
+          endDate = subscription.cancel_at ? new Date(subscription.cancel_at * 1000).toISOString() : null;
+          console.log(`Subscription scheduled to cancel at period end: ${endDate}`);
+        } else if (subscription.status === "active") {
+          // Subscription is fully active
+          newStatus = "active";
+          endDate = null;
+        } else {
+          // Subscription is cancelled or in other terminal state
+          newStatus = "cancelled";
+          endDate = new Date().toISOString();
+        }
 
         // Get the sponsor_bestie_id from subscription metadata if available
         const sponsorBestieId = subscription.metadata?.bestie_id;
@@ -92,7 +108,7 @@ serve(async (req) => {
             .from("sponsorships")
             .update({
               status: newStatus,
-              ended_at: newStatus === "cancelled" ? new Date().toISOString() : null,
+              ended_at: endDate,
             })
             .eq("sponsor_id", user.id)
             .eq("sponsor_bestie_id", sponsorBestieId);
@@ -100,7 +116,7 @@ serve(async (req) => {
           if (updateError) {
             console.error("Error updating sponsorship:", updateError);
           } else {
-            console.log(`Updated sponsorship for user ${user.id}, sponsor_bestie ${sponsorBestieId} to status: ${newStatus}`);
+            console.log(`Updated sponsorship for user ${user.id}, sponsor_bestie ${sponsorBestieId} to status: ${newStatus}, end date: ${endDate}`);
           }
         } else {
           // Update all sponsorships for this user (fallback if metadata not available)
@@ -108,14 +124,14 @@ serve(async (req) => {
             .from("sponsorships")
             .update({
               status: newStatus,
-              ended_at: newStatus === "cancelled" ? new Date().toISOString() : null,
+              ended_at: endDate,
             })
             .eq("sponsor_id", user.id);
 
           if (updateError) {
             console.error("Error updating sponsorships:", updateError);
           } else {
-            console.log(`Updated all sponsorships for user ${user.id} to status: ${newStatus}`);
+            console.log(`Updated all sponsorships for user ${user.id} to status: ${newStatus}, end date: ${endDate}`);
           }
         }
         break;
