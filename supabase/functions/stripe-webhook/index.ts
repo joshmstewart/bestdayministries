@@ -23,11 +23,13 @@ serve(async (req) => {
     // Only one will succeed based on which mode created the webhook event
     let event;
     let stripe;
+    let stripeMode = 'test'; // Track which mode we're in
     
     try {
       if (testWebhookSecret) {
         stripe = new Stripe(stripeTestKey, { apiVersion: "2025-08-27.basil" });
         event = await stripe.webhooks.constructEventAsync(body, signature, testWebhookSecret);
+        stripeMode = 'test';
       }
     } catch (e) {
       // If test fails, try live
@@ -36,6 +38,7 @@ serve(async (req) => {
       }
       stripe = new Stripe(stripeLiveKey, { apiVersion: "2025-08-27.basil" });
       event = await stripe.webhooks.constructEventAsync(body, signature, liveWebhookSecret);
+      stripeMode = 'live';
     }
 
     console.log(`Received event: ${event.type}`);
@@ -186,6 +189,7 @@ serve(async (req) => {
             frequency: frequency,
             status: "active",
             started_at: new Date().toISOString(),
+            stripe_mode: stripeMode,
           }, {
             onConflict: "sponsor_id,sponsor_bestie_id",
           });

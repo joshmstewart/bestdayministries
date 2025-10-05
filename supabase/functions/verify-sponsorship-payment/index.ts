@@ -117,6 +117,7 @@ serve(async (req) => {
         status: 'active',
         started_at: new Date().toISOString(),
         stripe_subscription_id: stripeReferenceId || null,
+        stripe_mode: mode,
       })
       .select()
       .single();

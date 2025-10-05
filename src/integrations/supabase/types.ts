@@ -1539,6 +1539,7 @@ export type Database = {
           sponsor_id: string
           started_at: string
           status: string | null
+          stripe_mode: string | null
           stripe_subscription_id: string | null
         }
         Insert: {
@@ -1551,6 +1552,7 @@ export type Database = {
           sponsor_id: string
           started_at?: string
           status?: string | null
+          stripe_mode?: string | null
           stripe_subscription_id?: string | null
         }
         Update: {
@@ -1563,6 +1565,7 @@ export type Database = {
           sponsor_id?: string
           started_at?: string
           status?: string | null
+          stripe_mode?: string | null
           stripe_subscription_id?: string | null
         }
         Relationships: [

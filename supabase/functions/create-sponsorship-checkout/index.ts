@@ -174,6 +174,7 @@ serve(async (req) => {
           frequency: 'one-time',
           status: 'pending',
           started_at: new Date().toISOString(),
+          stripe_mode: mode,
         });
       }
     }
