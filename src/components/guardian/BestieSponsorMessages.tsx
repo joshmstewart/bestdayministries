@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, CheckCircle, XCircle, Send, Clock } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import AudioPlayer from "@/components/AudioPlayer";
 
 interface SponsorMessage {
   id: string;
@@ -17,6 +18,8 @@ interface SponsorMessage {
   status: string;
   created_at: string;
   sent_at: string | null;
+  audio_url: string | null;
+  from_guardian: boolean;
   bestie: {
     display_name: string;
   };
@@ -187,7 +190,19 @@ export const BestieSponsorMessages = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm whitespace-pre-line">{msg.message}</p>
+              {msg.audio_url ? (
+                <div>
+                  <Label className="mb-2 block">Audio Message</Label>
+                  <AudioPlayer src={msg.audio_url} />
+                </div>
+              ) : (
+                <p className="text-sm whitespace-pre-line">{msg.message}</p>
+              )}
+              {msg.from_guardian && (
+                <Badge variant="secondary" className="mt-2">
+                  Sent by Guardian
+                </Badge>
+              )}
             </div>
 
             <div className="flex gap-2">

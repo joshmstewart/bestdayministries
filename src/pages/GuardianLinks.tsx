@@ -24,6 +24,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBestieManager";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
+import { GuardianSponsorMessenger } from "@/components/guardian/GuardianSponsorMessenger";
 
 // Build timestamp for admin visibility
 const BUILD_TIMESTAMP = new Date().toISOString();
@@ -1286,6 +1287,14 @@ export default function GuardianLinks() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Send Messages to Sponsors Section - Only for caregivers */}
+          {userRole === "caregiver" && links.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">Send Messages to Sponsors</h2>
+              <GuardianSponsorMessenger />
             </div>
           )}
 

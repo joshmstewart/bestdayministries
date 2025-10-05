@@ -1452,36 +1452,45 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          audio_url: string | null
           bestie_id: string
           created_at: string
+          from_guardian: boolean | null
           id: string
           message: string
           rejection_reason: string | null
           sent_at: string | null
+          sent_by: string | null
           status: Database["public"]["Enums"]["message_status"]
           subject: string
         }
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          audio_url?: string | null
           bestie_id: string
           created_at?: string
+          from_guardian?: boolean | null
           id?: string
           message: string
           rejection_reason?: string | null
           sent_at?: string | null
+          sent_by?: string | null
           status?: Database["public"]["Enums"]["message_status"]
           subject: string
         }
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          audio_url?: string | null
           bestie_id?: string
           created_at?: string
+          from_guardian?: boolean | null
           id?: string
           message?: string
           rejection_reason?: string | null
           sent_at?: string | null
+          sent_by?: string | null
           status?: Database["public"]["Enums"]["message_status"]
           subject?: string
         }

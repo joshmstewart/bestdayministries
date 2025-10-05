@@ -7,7 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Send, MessageSquare, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Send, MessageSquare, Clock, CheckCircle, XCircle, Upload, Mic } from "lucide-react";
+import AudioRecorder from "@/components/AudioRecorder";
+import AudioPlayer from "@/components/AudioPlayer";
+import { compressImage } from "@/lib/imageUtils";
 
 interface SponsorMessage {
   id: string;
@@ -17,6 +20,8 @@ interface SponsorMessage {
   created_at: string;
   sent_at: string | null;
   rejection_reason: string | null;
+  audio_url: string | null;
+  from_guardian: boolean;
 }
 
 export const BestieSponsorMessenger = () => {
@@ -29,6 +34,10 @@ export const BestieSponsorMessenger = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<SponsorMessage[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<'text' | 'audio'>('text');
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadPermissions();
@@ -79,11 +88,102 @@ export const BestieSponsorMessenger = () => {
     }
   };
 
+  const handleAudioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an audio file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileName = `${userId}/${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('app-assets')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(fileName);
+
+      setUploadedAudioUrl(publicUrl);
+      toast({
+        title: "Audio uploaded",
+        description: "Your audio message is ready to send",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRecordingComplete = async (blob: Blob) => {
+    setUploading(true);
+    try {
+      const fileName = `${userId}/${Date.now()}_recording.webm`;
+      const { data, error } = await supabase.storage
+        .from('app-assets')
+        .upload(fileName, blob);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(fileName);
+
+      setUploadedAudioUrl(publicUrl);
+      setAudioBlob(null); // Clear the blob after successful upload
+      toast({
+        title: "Recording saved",
+        description: "Your audio message is ready to send",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!subject.trim() || !message.trim()) {
+    if (!subject.trim()) {
       toast({
         title: "Missing information",
-        description: "Please enter both subject and message",
+        description: "Please enter a subject",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (messageType === 'text' && !message.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please enter a message",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (messageType === 'audio' && !uploadedAudioUrl) {
+      toast({
+        title: "Missing information",
+        description: "Please record or upload an audio message",
         variant: "destructive",
       });
       return;
@@ -97,8 +197,11 @@ export const BestieSponsorMessenger = () => {
         .from("sponsor_messages")
         .insert({
           bestie_id: userId,
+          sent_by: userId,
+          from_guardian: false,
           subject: subject.trim(),
-          message: message.trim(),
+          message: messageType === 'text' ? message.trim() : '',
+          audio_url: messageType === 'audio' ? uploadedAudioUrl : null,
           status,
         });
 
@@ -113,13 +216,10 @@ export const BestieSponsorMessenger = () => {
 
       setSubject("");
       setMessage("");
+      setMessageType('text');
+      setUploadedAudioUrl(null);
+      setAudioBlob(null);
       await loadMessages();
-
-      // If no approval needed, trigger sending immediately
-      if (!requiresApproval) {
-        // The edge function will be called automatically or via webhook
-        // For now, we'll let the admin/guardian manually trigger it
-      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -200,23 +300,107 @@ export const BestieSponsorMessenger = () => {
               maxLength={100}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="message">Message</Label>
-            <Textarea
-              id="message"
-              placeholder="Write your message to your sponsors..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={6}
-              maxLength={1000}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {message.length}/1000 characters
-            </p>
+
+          {/* Message Type Toggle */}
+          <div className="flex gap-2 border-b pb-2">
+            <Button
+              type="button"
+              variant={messageType === 'text' ? 'default' : 'outline'}
+              onClick={() => setMessageType('text')}
+              className="flex-1"
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Text Message
+            </Button>
+            <Button
+              type="button"
+              variant={messageType === 'audio' ? 'default' : 'outline'}
+              onClick={() => setMessageType('audio')}
+              className="flex-1"
+            >
+              <Mic className="w-4 h-4 mr-2" />
+              Audio Message
+            </Button>
           </div>
+
+          {/* Text Message Input */}
+          {messageType === 'text' && (
+            <div className="space-y-2">
+              <Label htmlFor="message">Message</Label>
+              <Textarea
+                id="message"
+                placeholder="Write your message to your sponsors..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={6}
+                maxLength={1000}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {message.length}/1000 characters
+              </p>
+            </div>
+          )}
+
+          {/* Audio Message Input */}
+          {messageType === 'audio' && (
+            <div className="space-y-4">
+              <div>
+                <Label>Record Audio</Label>
+                <div className="mt-2">
+                  <AudioRecorder
+                    onRecordingComplete={handleRecordingComplete}
+                    onRecordingCancel={() => setUploadedAudioUrl(null)}
+                  />
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+
+              <div>
+                <Label>Upload Audio File</Label>
+                <div className="mt-2">
+                  <Input
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleAudioUpload}
+                    disabled={uploading}
+                  />
+                </div>
+              </div>
+
+              {uploadedAudioUrl && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <Label className="mb-2 block">Preview</Label>
+                  <AudioPlayer src={uploadedAudioUrl} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUploadedAudioUrl(null)}
+                    className="mt-2"
+                  >
+                    Remove Audio
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           <Button
             onClick={handleSendMessage}
-            disabled={sending || !subject.trim() || !message.trim()}
+            disabled={
+              sending || 
+              !subject.trim() || 
+              (messageType === 'text' && !message.trim()) ||
+              (messageType === 'audio' && !uploadedAudioUrl)
+            }
             className="w-full"
           >
             <Send className="w-4 h-4 mr-2" />
@@ -238,7 +422,18 @@ export const BestieSponsorMessenger = () => {
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h4 className="font-semibold">{msg.subject}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{msg.message}</p>
+                      {msg.audio_url ? (
+                        <div className="mt-2">
+                          <AudioPlayer src={msg.audio_url} />
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground mt-1">{msg.message}</p>
+                      )}
+                      {msg.from_guardian && (
+                        <Badge variant="secondary" className="mt-2">
+                          Sent by Guardian
+                        </Badge>
+                      )}
                     </div>
                     {getStatusBadge(msg.status)}
                   </div>
