@@ -66,15 +66,17 @@ serve(async (req) => {
           break;
         }
 
-        // Find the user by email
-        const { data: profile } = await supabaseAdmin
-          .from("profiles")
-          .select("id")
-          .eq("email", customerEmail)
-          .maybeSingle();
+        // Find the user by email in auth.users
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+        
+        if (authError) {
+          console.error("Error fetching users:", authError);
+          break;
+        }
 
-        if (!profile) {
-          console.log("Profile not found for email:", customerEmail);
+        const user = authData.users.find(u => u.email === customerEmail);
+        if (!user) {
+          console.log("User not found for email:", customerEmail);
           break;
         }
 
@@ -92,13 +94,13 @@ serve(async (req) => {
               status: newStatus,
               ended_at: newStatus === "cancelled" ? new Date().toISOString() : null,
             })
-            .eq("sponsor_id", profile.id)
+            .eq("sponsor_id", user.id)
             .eq("bestie_id", bestieId);
 
           if (updateError) {
             console.error("Error updating sponsorship:", updateError);
           } else {
-            console.log(`Updated sponsorship for user ${profile.id}, bestie ${bestieId} to status: ${newStatus}`);
+            console.log(`Updated sponsorship for user ${user.id}, bestie ${bestieId} to status: ${newStatus}`);
           }
         } else {
           // Update all sponsorships for this user (fallback if metadata not available)
@@ -108,12 +110,12 @@ serve(async (req) => {
               status: newStatus,
               ended_at: newStatus === "cancelled" ? new Date().toISOString() : null,
             })
-            .eq("sponsor_id", profile.id);
+            .eq("sponsor_id", user.id);
 
           if (updateError) {
             console.error("Error updating sponsorships:", updateError);
           } else {
-            console.log(`Updated all sponsorships for user ${profile.id} to status: ${newStatus}`);
+            console.log(`Updated all sponsorships for user ${user.id} to status: ${newStatus}`);
           }
         }
         break;
@@ -133,15 +135,17 @@ serve(async (req) => {
             break;
           }
 
-          // Find the user by email
-          const { data: profile } = await supabaseAdmin
-            .from("profiles")
-            .select("id")
-            .eq("email", customerEmail)
-            .maybeSingle();
+          // Find the user by email in auth.users
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+          
+          if (authError) {
+            console.error("Error fetching users:", authError);
+            break;
+          }
 
-          if (!profile) {
-            console.log("Profile not found for email:", customerEmail);
+          const user = authData.users.find(u => u.email === customerEmail);
+          if (!user) {
+            console.log("User not found for email:", customerEmail);
             break;
           }
 
@@ -160,7 +164,7 @@ serve(async (req) => {
           const { error: upsertError } = await supabaseAdmin
             .from("sponsorships")
             .upsert({
-              sponsor_id: profile.id,
+              sponsor_id: user.id,
               bestie_id: bestieId,
               amount: amount,
               frequency: frequency,
@@ -173,7 +177,7 @@ serve(async (req) => {
           if (upsertError) {
             console.error("Error creating sponsorship:", upsertError);
           } else {
-            console.log(`Created/updated sponsorship for user ${profile.id}, bestie ${bestieId}`);
+            console.log(`Created/updated sponsorship for user ${user.id}, bestie ${bestieId}`);
           }
         }
         break;
