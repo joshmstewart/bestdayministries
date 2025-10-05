@@ -7,11 +7,9 @@ export const useGuardianApprovalsCount = () => {
   const [isGuardian, setIsGuardian] = useState(false);
 
   useEffect(() => {
-    checkGuardianStatus();
-  }, []);
+    let cleanup: (() => void) | undefined;
 
-  const checkGuardianStatus = async () => {
-    try {
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -30,16 +28,20 @@ export const useGuardianApprovalsCount = () => {
       setIsGuardian(guardianStatus);
 
       if (guardianStatus) {
-        fetchApprovalsCount(user.id);
-        setupRealtimeSubscriptions(user.id);
+        await fetchApprovalsCount(user.id);
+        cleanup = setupRealtimeSubscriptions(user.id);
       } else {
         setLoading(false);
       }
-    } catch (error) {
-      console.error("Error checking guardian status:", error);
-      setLoading(false);
-    }
-  };
+    };
+
+    init();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, []);
+
 
   const fetchApprovalsCount = async (userId: string) => {
     try {
