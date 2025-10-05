@@ -80,19 +80,43 @@ serve(async (req) => {
       );
     }
 
-    // Create or update sponsorship record
+    // Check if sponsorship already exists for this Stripe session
+    const stripeReferenceId = session.subscription || session.payment_intent;
+    if (stripeReferenceId) {
+      const { data: existingSponsorship } = await supabaseAdmin
+        .from('sponsorships')
+        .select('id, amount, frequency')
+        .eq('stripe_subscription_id', stripeReferenceId)
+        .maybeSingle();
+
+      if (existingSponsorship) {
+        console.log('Sponsorship already exists for this session:', existingSponsorship.id);
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            sponsorship_id: existingSponsorship.id,
+            amount: existingSponsorship.amount,
+            frequency: existingSponsorship.frequency,
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      }
+    }
+
+    // Create new sponsorship record
     const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
       .from('sponsorships')
-      .upsert({
+      .insert({
         sponsor_id: user.id,
         bestie_id: session.metadata.bestie_id,
         amount: parseFloat(session.metadata.amount),
         frequency: session.metadata.frequency,
         status: 'active',
         started_at: new Date().toISOString(),
-        stripe_subscription_id: session.subscription || null,
-      }, {
-        onConflict: 'sponsor_id,bestie_id',
+        stripe_subscription_id: stripeReferenceId || null,
       })
       .select()
       .single();
