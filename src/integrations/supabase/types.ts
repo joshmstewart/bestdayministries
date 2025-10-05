@@ -1457,8 +1457,11 @@ export type Database = {
           created_at: string
           from_guardian: boolean | null
           id: string
+          image_url: string | null
           is_read: boolean
           message: string
+          moderation_result: Json | null
+          moderation_severity: string | null
           rejection_reason: string | null
           sent_at: string | null
           sent_by: string | null
@@ -1473,8 +1476,11 @@ export type Database = {
           created_at?: string
           from_guardian?: boolean | null
           id?: string
+          image_url?: string | null
           is_read?: boolean
           message: string
+          moderation_result?: Json | null
+          moderation_severity?: string | null
           rejection_reason?: string | null
           sent_at?: string | null
           sent_by?: string | null
@@ -1489,8 +1495,11 @@ export type Database = {
           created_at?: string
           from_guardian?: boolean | null
           id?: string
+          image_url?: string | null
           is_read?: boolean
           message?: string
+          moderation_result?: Json | null
+          moderation_severity?: string | null
           rejection_reason?: string | null
           sent_at?: string | null
           sent_by?: string | null
@@ -2081,7 +2090,12 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
-      message_status: "pending_approval" | "approved" | "rejected" | "sent"
+      message_status:
+        | "pending_approval"
+        | "approved"
+        | "rejected"
+        | "sent"
+        | "pending_moderation"
       order_status:
         | "pending"
         | "processing"
@@ -2232,7 +2246,13 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
-      message_status: ["pending_approval", "approved", "rejected", "sent"],
+      message_status: [
+        "pending_approval",
+        "approved",
+        "rejected",
+        "sent",
+        "pending_moderation",
+      ],
       order_status: [
         "pending",
         "processing",

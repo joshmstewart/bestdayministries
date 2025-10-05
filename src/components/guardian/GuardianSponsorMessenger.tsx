@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Send, MessageSquare, Mic, Upload } from "lucide-react";
+import { Send, MessageSquare, Mic, Upload, Image, X } from "lucide-react";
 import AudioRecorder from "@/components/AudioRecorder";
 import AudioPlayer from "@/components/AudioPlayer";
+import { compressImage } from "@/lib/imageUtils";
 
 interface LinkedBestie {
   id: string;
@@ -27,9 +28,11 @@ export const GuardianSponsorMessenger = () => {
   const [messageFrom, setMessageFrom] = useState<'bestie' | 'guardian'>('bestie');
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<'text' | 'audio'>('text');
+  const [messageType, setMessageType] = useState<'text' | 'audio' | 'image'>('text');
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [moderating, setModerating] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -77,6 +80,80 @@ export const GuardianSponsorMessenger = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    setModerating(true);
+    try {
+      // Compress image
+      const compressedBlob = await compressImage(file);
+      
+      // Upload to storage
+      const fileName = `sponsor-messages/${userId}/${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('app-assets')
+        .upload(fileName, compressedBlob);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(fileName);
+
+      // Moderate image using AI
+      toast({
+        title: "Checking image...",
+        description: "AI is reviewing the image for appropriate content",
+      });
+
+      const { data: moderationResult, error: moderationError } = await supabase.functions.invoke(
+        'moderate-image',
+        {
+          body: { imageUrl: publicUrl }
+        }
+      );
+
+      if (moderationError) throw moderationError;
+
+      if (!moderationResult.approved) {
+        toast({
+          title: "Image flagged for review",
+          description: `This image has been flagged and will be reviewed by an admin before sending. Reason: ${moderationResult.reason}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Image approved",
+          description: "Your image passed content review",
+        });
+      }
+
+      setUploadedImageUrl(publicUrl);
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      // Clean up on error
+      setUploadedImageUrl(null);
+    } finally {
+      setUploading(false);
+      setModerating(false);
     }
   };
 
@@ -189,8 +266,40 @@ export const GuardianSponsorMessenger = () => {
       return;
     }
 
+    if (messageType === 'image' && !uploadedImageUrl) {
+      toast({
+        title: "Missing information",
+        description: "Please upload an image",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSending(true);
     try {
+      // Check if image was already moderated
+      let messageStatus = 'approved';
+      let moderationResult = null;
+      let moderationSeverity = null;
+
+      if (messageType === 'image' && uploadedImageUrl) {
+        // Re-check moderation result
+        const { data: modResult, error: modError } = await supabase.functions.invoke(
+          'moderate-image',
+          {
+            body: { imageUrl: uploadedImageUrl }
+          }
+        );
+
+        if (modError) throw modError;
+
+        if (!modResult.approved) {
+          messageStatus = 'pending_moderation';
+          moderationResult = modResult;
+          moderationSeverity = modResult.severity;
+        }
+      }
+
       const { error } = await supabase
         .from("sponsor_messages")
         .insert({
@@ -198,17 +307,28 @@ export const GuardianSponsorMessenger = () => {
           sent_by: userId,
           from_guardian: messageFrom === 'guardian',
           subject: subject.trim(),
-          message: messageType === 'text' ? message.trim() : '',
+          message: messageType === 'text' ? message.trim() : (messageType === 'image' ? '' : ''),
           audio_url: messageType === 'audio' ? uploadedAudioUrl : null,
-          status: 'approved', // Guardians don't need approval
-        });
+          image_url: messageType === 'image' ? uploadedImageUrl : null,
+          moderation_result: moderationResult as any,
+          moderation_severity: moderationSeverity,
+          status: messageStatus as any,
+        } as any);
 
       if (error) throw error;
 
-      toast({
-        title: "Message sent!",
-        description: `Your message will be sent to ${linkedBesties.find(b => b.id === selectedBestieId)?.display_name}'s sponsors`,
-      });
+      if (messageStatus === 'pending_moderation') {
+        toast({
+          title: "Message sent for review",
+          description: "Your message with image will be reviewed by an admin before being sent to sponsors",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Message sent!",
+          description: `Your message will be sent to ${linkedBesties.find(b => b.id === selectedBestieId)?.display_name}'s sponsors`,
+        });
+      }
 
       setSelectedBestieId("");
       setMessageFrom('bestie');
@@ -216,6 +336,7 @@ export const GuardianSponsorMessenger = () => {
       setMessage("");
       setMessageType('text');
       setUploadedAudioUrl(null);
+      setUploadedImageUrl(null);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -314,7 +435,7 @@ export const GuardianSponsorMessenger = () => {
                 className="flex-1"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
-                Text Message
+                Text
               </Button>
               <Button
                 type="button"
@@ -323,7 +444,16 @@ export const GuardianSponsorMessenger = () => {
                 className="flex-1"
               >
                 <Mic className="w-4 h-4 mr-2" />
-                Audio Message
+                Audio
+              </Button>
+              <Button
+                type="button"
+                variant={messageType === 'image' ? 'default' : 'outline'}
+                onClick={() => setMessageType('image')}
+                className="flex-1"
+              >
+                <Image className="w-4 h-4 mr-2" />
+                Image
               </Button>
             </div>
 
@@ -397,18 +527,65 @@ export const GuardianSponsorMessenger = () => {
               </div>
             )}
 
+            {/* Image Message Input */}
+            {messageType === 'image' && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Upload Image</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Images will be automatically checked by AI for appropriate content
+                  </p>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploading || moderating}
+                  />
+                  {moderating && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      AI is reviewing your image...
+                    </p>
+                  )}
+                </div>
+
+                {uploadedImageUrl && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <Label className="mb-2 block">Preview</Label>
+                    <div className="relative">
+                      <img
+                        src={uploadedImageUrl}
+                        alt="Upload preview"
+                        className="w-full h-auto max-h-96 object-contain rounded"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => setUploadedImageUrl(null)}
+                        className="absolute top-2 right-2"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <Button
               onClick={handleSendMessage}
               disabled={
                 sending || 
+                moderating ||
                 !subject.trim() || 
                 (messageType === 'text' && !message.trim()) ||
-                (messageType === 'audio' && !uploadedAudioUrl)
+                (messageType === 'audio' && !uploadedAudioUrl) ||
+                (messageType === 'image' && !uploadedImageUrl)
               }
               className="w-full"
             >
               <Send className="w-4 h-4 mr-2" />
-              {sending ? "Sending..." : "Send Message"}
+              {sending ? "Sending..." : moderating ? "Reviewing image..." : "Send Message"}
             </Button>
           </>
         )}

@@ -12,6 +12,7 @@ interface SponsorMessage {
   subject: string;
   message: string;
   audio_url: string | null;
+  image_url: string | null;
   sent_at: string | null;
   created_at: string;
   is_read: boolean;
@@ -57,7 +58,7 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
       // Fetch only approved/sent messages
       const { data, error } = await supabase
         .from("sponsor_messages")
-        .select("id, subject, message, audio_url, sent_at, created_at, is_read")
+        .select("id, subject, message, audio_url, image_url, sent_at, created_at, is_read")
         .eq("bestie_id", bestieId)
         .in("status", ["approved", "sent"])
         .order("created_at", { ascending: false });
@@ -159,6 +160,20 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <div className="text-xs text-muted-foreground mb-2">Audio Message:</div>
                     <AudioPlayer src={msg.audio_url} />
+                  </div>
+                ) : msg.image_url ? (
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-2">Image Message:</div>
+                    <img
+                      src={msg.image_url}
+                      alt={msg.subject}
+                      className="w-full max-w-md h-auto rounded"
+                    />
+                    {msg.message && (
+                      <p className="text-sm text-foreground/80 mt-3 whitespace-pre-line">
+                        {msg.message}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-foreground/80 whitespace-pre-line bg-muted/30 p-3 rounded-lg">

@@ -17,6 +17,7 @@ import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
 import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
+import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
 import HomepageOrderManager from "@/components/admin/HomepageOrderManager";
 import CommunityOrderManager from "@/components/admin/CommunityOrderManager";
 import { FeaturedItemManager } from "@/components/admin/FeaturedItemManager";
@@ -30,6 +31,7 @@ import { VendorManagement } from "@/components/admin/VendorManagement";
 import { ContactFormManager } from "@/components/admin/ContactFormManager";
 import { VideoManager } from "@/components/admin/VideoManager";
 import { SponsorPageOrderManager } from "@/components/admin/SponsorPageOrderManager";
+import { MessageModerationQueue } from "@/components/admin/MessageModerationQueue";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -41,6 +43,7 @@ const Admin = () => {
   const { getEffectiveRole, impersonatedRole } = useRoleImpersonation();
   const { count: moderationCount } = useModerationCount();
   const { count: pendingVendorsCount } = usePendingVendorsCount();
+  const { count: messageModerationCount } = useMessageModerationCount();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
@@ -225,12 +228,12 @@ const Admin = () => {
             <TabsTrigger value="format-pages">Format Pages</TabsTrigger>
             <TabsTrigger value="moderation" className="relative">
               Moderation
-              {moderationCount > 0 && (
+              {(moderationCount + messageModerationCount) > 0 && (
                 <Badge 
                   variant="destructive" 
                   className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
                 >
-                  {moderationCount}
+                  {moderationCount + messageModerationCount}
                 </Badge>
               )}
             </TabsTrigger>
@@ -373,6 +376,8 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="moderation" className="space-y-4">
+            <MessageModerationQueue />
+
             <Card>
               <CardHeader>
                 <CardTitle>Content Moderation</CardTitle>

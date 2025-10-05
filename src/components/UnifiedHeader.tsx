@@ -12,6 +12,7 @@ import { useGuardianApprovalsCount } from "@/hooks/useGuardianApprovalsCount";
 import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
 import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
 import { useSponsorUnreadCount } from "@/hooks/useSponsorUnreadCount";
+import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
 import { Separator } from "@/components/ui/separator";
 
 export const UnifiedHeader = () => {
@@ -30,6 +31,7 @@ export const UnifiedHeader = () => {
   const { count: approvalsCount } = useGuardianApprovalsCount();
   const { count: pendingVendorsCount } = usePendingVendorsCount();
   const { count: sponsorUnreadCount } = useSponsorUnreadCount();
+  const { count: messageModerationCount } = useMessageModerationCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
   useEffect(() => {
@@ -334,9 +336,9 @@ export const UnifiedHeader = () => {
                   >
                     <Shield className="w-4 h-4" />
                     <span className="hidden sm:inline font-semibold">Admin</span>
-                    {(moderationCount > 0 || pendingVendorsCount > 0) && (
+                    {(moderationCount > 0 || pendingVendorsCount > 0 || messageModerationCount > 0) && (
                       <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                        {moderationCount + pendingVendorsCount}
+                        {moderationCount + pendingVendorsCount + messageModerationCount}
                       </span>
                     )}
                   </Button>
