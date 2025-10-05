@@ -22,6 +22,9 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBestieManager";
 import { TextToSpeech } from "@/components/TextToSpeech";
 
+// Build timestamp for admin visibility
+const BUILD_TIMESTAMP = new Date().toISOString();
+
 interface BestieLink {
   id: string;
   bestie_id: string;
@@ -1444,6 +1447,15 @@ export default function GuardianLinks() {
           )}
         </div>
       </main>
+
+      {/* Admin-only build timestamp */}
+      {(userRole === 'admin' || userRole === 'owner') && (
+        <div className="container mx-auto px-4 pb-4">
+          <div className="text-center text-xs text-muted-foreground">
+            Last updated: {new Date(BUILD_TIMESTAMP).toLocaleString()}
+          </div>
+        </div>
+      )}
 
       <Footer />
 
