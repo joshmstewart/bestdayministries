@@ -1373,6 +1373,13 @@ export type Database = {
             foreignKeyName: "sponsor_bestie_requests_sponsor_bestie_id_fkey"
             columns: ["sponsor_bestie_id"]
             isOneToOne: false
+            referencedRelation: "sponsor_bestie_funding_progress_by_mode"
+            referencedColumns: ["sponsor_bestie_id"]
+          },
+          {
+            foreignKeyName: "sponsor_bestie_requests_sponsor_bestie_id_fkey"
+            columns: ["sponsor_bestie_id"]
+            isOneToOne: false
             referencedRelation: "sponsor_besties"
             referencedColumns: ["id"]
           },
@@ -1588,6 +1595,13 @@ export type Database = {
             columns: ["sponsor_bestie_id"]
             isOneToOne: false
             referencedRelation: "sponsor_bestie_funding_progress"
+            referencedColumns: ["sponsor_bestie_id"]
+          },
+          {
+            foreignKeyName: "sponsorships_sponsor_bestie_id_fkey"
+            columns: ["sponsor_bestie_id"]
+            isOneToOne: false
+            referencedRelation: "sponsor_bestie_funding_progress_by_mode"
             referencedColumns: ["sponsor_bestie_id"]
           },
           {
@@ -1930,6 +1944,19 @@ export type Database = {
           monthly_goal: number | null
           remaining_needed: number | null
           sponsor_bestie_id: string | null
+        }
+        Relationships: []
+      }
+      sponsor_bestie_funding_progress_by_mode: {
+        Row: {
+          bestie_id: string | null
+          bestie_name: string | null
+          current_monthly_pledges: number | null
+          funding_percentage: number | null
+          monthly_goal: number | null
+          remaining_needed: number | null
+          sponsor_bestie_id: string | null
+          stripe_mode: string | null
         }
         Relationships: []
       }
