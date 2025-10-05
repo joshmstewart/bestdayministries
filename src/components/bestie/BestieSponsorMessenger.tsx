@@ -34,10 +34,11 @@ export const BestieSponsorMessenger = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<SponsorMessage[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-  const [messageType, setMessageType] = useState<'text' | 'audio'>('text');
+  const [messageType, setMessageType] = useState<'text' | 'audio'>('audio');
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showSubject, setShowSubject] = useState(false);
 
   useEffect(() => {
     loadPermissions();
@@ -162,7 +163,8 @@ export const BestieSponsorMessenger = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!subject.trim()) {
+    // Subject is only required for text messages
+    if (messageType === 'text' && !subject.trim()) {
       toast({
         title: "Missing information",
         description: "Please enter a subject",
@@ -199,7 +201,7 @@ export const BestieSponsorMessenger = () => {
           bestie_id: userId,
           sent_by: userId,
           from_guardian: false,
-          subject: subject.trim(),
+          subject: subject.trim() || (messageType === 'audio' ? 'Audio Message' : ''),
           message: messageType === 'text' ? message.trim() : '',
           audio_url: messageType === 'audio' ? uploadedAudioUrl : null,
           status,
@@ -216,9 +218,10 @@ export const BestieSponsorMessenger = () => {
 
       setSubject("");
       setMessage("");
-      setMessageType('text');
+      setMessageType('audio');
       setUploadedAudioUrl(null);
       setAudioBlob(null);
+      setShowSubject(false);
       await loadMessages();
     } catch (error: any) {
       toast({
@@ -290,16 +293,54 @@ export const BestieSponsorMessenger = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
-            <Input
-              id="subject"
-              placeholder="Thank you for your support!"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              maxLength={100}
-            />
-          </div>
+          {/* Subject field - only shown for text messages or when explicitly requested for audio */}
+          {messageType === 'text' ? (
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input
+                id="subject"
+                placeholder="Thank you for your support!"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+          ) : showSubject ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="subject">Subject (Optional)</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowSubject(false);
+                    setSubject("");
+                  }}
+                  className="h-auto p-1 text-xs"
+                >
+                  Remove
+                </Button>
+              </div>
+              <Input
+                id="subject"
+                placeholder="Optional subject..."
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSubject(true)}
+              className="w-full"
+            >
+              + Add Subject (Optional)
+            </Button>
+          )}
 
           {/* Message Type Toggle */}
           <div className="flex gap-2 border-b pb-2">
@@ -397,8 +438,7 @@ export const BestieSponsorMessenger = () => {
             onClick={handleSendMessage}
             disabled={
               sending || 
-              !subject.trim() || 
-              (messageType === 'text' && !message.trim()) ||
+              (messageType === 'text' && (!subject.trim() || !message.trim())) ||
               (messageType === 'audio' && !uploadedAudioUrl)
             }
             className="w-full"
