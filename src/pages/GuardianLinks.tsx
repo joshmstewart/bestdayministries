@@ -25,6 +25,7 @@ import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBest
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
 import { GuardianSponsorMessenger } from "@/components/guardian/GuardianSponsorMessenger";
+import { SponsorMessageInbox } from "@/components/sponsor/SponsorMessageInbox";
 
 // Build timestamp for admin visibility
 const BUILD_TIMESTAMP = new Date().toISOString();
@@ -1582,6 +1583,14 @@ export default function GuardianLinks() {
                           </div>
                         </div>
                       )}
+
+                      {/* Messages from Bestie */}
+                      <div className="pt-4 border-t">
+                        <SponsorMessageInbox 
+                          bestieId={sponsorship.bestie_id}
+                          bestieName={sponsorship.bestie.display_name}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

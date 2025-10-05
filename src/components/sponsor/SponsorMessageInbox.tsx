@@ -1,0 +1,144 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MessageSquare, Mail } from "lucide-react";
+import AudioPlayer from "@/components/AudioPlayer";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+interface SponsorMessage {
+  id: string;
+  subject: string;
+  message: string;
+  audio_url: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
+interface SponsorMessageInboxProps {
+  bestieId: string;
+  bestieName: string;
+}
+
+export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInboxProps) => {
+  const [messages, setMessages] = useState<SponsorMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadMessages();
+    
+    // Set up realtime subscription for new messages
+    const channel = supabase
+      .channel(`sponsor-messages-${bestieId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sponsor_messages',
+          filter: `bestie_id=eq.${bestieId}`
+        },
+        () => {
+          loadMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [bestieId]);
+
+  const loadMessages = async () => {
+    try {
+      // Fetch only approved/sent messages
+      const { data, error } = await supabase
+        .from("sponsor_messages")
+        .select("id, subject, message, audio_url, sent_at, created_at")
+        .eq("bestie_id", bestieId)
+        .in("status", ["approved", "sent"])
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error("Error loading messages:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="animate-pulse text-sm text-muted-foreground">
+        Loading messages...
+      </div>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground text-center py-4">
+        <Mail className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+        No messages yet from {bestieName}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquare className="w-4 h-4 text-primary" />
+        <h4 className="font-semibold">Messages from {bestieName}</h4>
+        <Badge variant="secondary" className="ml-auto">
+          {messages.length} {messages.length === 1 ? 'message' : 'messages'}
+        </Badge>
+      </div>
+
+      <Accordion type="single" collapsible className="w-full">
+        {messages.map((msg, index) => (
+          <AccordionItem key={msg.id} value={msg.id}>
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3 text-left w-full">
+                <div className="flex-1">
+                  <div className="font-medium">{msg.subject}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {new Date(msg.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+                {index === 0 && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                    Latest
+                  </Badge>
+                )}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="pt-2 pb-1 space-y-3">
+                {msg.audio_url ? (
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-2">Audio Message:</div>
+                    <AudioPlayer src={msg.audio_url} />
+                  </div>
+                ) : (
+                  <p className="text-sm text-foreground/80 whitespace-pre-line bg-muted/30 p-3 rounded-lg">
+                    {msg.message}
+                  </p>
+                )}
+                {msg.sent_at && (
+                  <div className="text-xs text-muted-foreground">
+                    Sent: {new Date(msg.sent_at).toLocaleString()}
+                  </div>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </div>
+  );
+};
