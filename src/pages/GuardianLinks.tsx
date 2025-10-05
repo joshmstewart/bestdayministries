@@ -1487,6 +1487,14 @@ export default function GuardianLinks() {
                           </div>
                         </div>
                       )}
+
+                      {/* Messages from Bestie */}
+                      <div className="pt-4 border-t">
+                        <SponsorMessageInbox
+                          bestieId={sponsorship.bestie_id}
+                          bestieName={sponsorship.bestie.display_name}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
