@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, CheckCircle, XCircle, Send, Clock } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, Send, Clock, Edit, Image as ImageIcon } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AudioPlayer from "@/components/AudioPlayer";
+import { compressImage } from "@/lib/imageUtils";
 
 interface SponsorMessage {
   id: string;
@@ -19,6 +22,7 @@ interface SponsorMessage {
   created_at: string;
   sent_at: string | null;
   audio_url: string | null;
+  image_url: string | null;
   from_guardian: boolean;
   bestie: {
     display_name: string;
@@ -35,6 +39,11 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editedSubject, setEditedSubject] = useState("");
+  const [editedMessage, setEditedMessage] = useState("");
+  const [editedImage, setEditedImage] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadPendingMessages();
@@ -174,6 +183,100 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
     }
   };
 
+  const startEditing = (msg: SponsorMessage) => {
+    setEditingId(msg.id);
+    setEditedSubject(msg.subject);
+    setEditedMessage(msg.message || "");
+    setEditedImage(null);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEditedImage(file);
+  };
+
+  const handleEditAndApprove = async (messageId: string) => {
+    try {
+      setUploadingImage(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let imageUrl = null;
+
+      // Upload image if one was selected
+      if (editedImage) {
+        const compressedImage = await compressImage(editedImage);
+        const fileExt = editedImage.name.split(".").pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("app-assets")
+          .upload(filePath, compressedImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("app-assets")
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
+      }
+
+      // Update message with edits
+      const updateData: any = {
+        subject: editedSubject.trim(),
+        message: editedMessage.trim(),
+        status: 'approved',
+        approved_by: user.id,
+        approved_at: new Date().toISOString(),
+        from_guardian: true,
+      };
+
+      if (imageUrl) {
+        updateData.image_url = imageUrl;
+      }
+
+      const { error } = await supabase
+        .from("sponsor_messages")
+        .update(updateData)
+        .eq("id", messageId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Message updated and approved",
+        description: "The message will be sent to sponsors shortly",
+      });
+
+      setEditingId(null);
+      setEditedSubject("");
+      setEditedMessage("");
+      setEditedImage(null);
+      await loadPendingMessages();
+      onMessagesChange?.();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (loading) {
     return <div className="animate-pulse text-muted-foreground">Loading messages...</div>;
   }
@@ -205,7 +308,12 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
+            <div className="p-4 bg-muted rounded-lg space-y-2">
+              {msg.image_url && (
+                <div className="mb-2">
+                  <img src={msg.image_url} alt="Message attachment" className="max-w-full rounded-lg" />
+                </div>
+              )}
               {msg.audio_url ? (
                 <div>
                   <Label className="mb-2 block">Audio Message</Label>
@@ -222,12 +330,84 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
             </div>
 
             <div className="flex gap-2">
+              <Dialog open={editingId === msg.id} onOpenChange={(open) => !open && setEditingId(null)}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => startEditing(msg)}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit & Approve
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Edit Message Before Approving</DialogTitle>
+                    <DialogDescription>
+                      You can modify the subject, message, and add an image before sending to sponsors.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="subject">Subject</Label>
+                      <Input
+                        id="subject"
+                        value={editedSubject}
+                        onChange={(e) => setEditedSubject(e.target.value)}
+                        placeholder="Message subject"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="message">Message</Label>
+                      <Textarea
+                        id="message"
+                        value={editedMessage}
+                        onChange={(e) => setEditedMessage(e.target.value)}
+                        placeholder="Message content"
+                        rows={6}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="image">Add or Replace Image (optional)</Label>
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="cursor-pointer"
+                      />
+                      {editedImage && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Selected: {editedImage.name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditingId(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => handleEditAndApprove(msg.id)}
+                      disabled={!editedSubject.trim() || uploadingImage}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {uploadingImage ? "Uploading..." : "Approve & Send"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
               <Button
                 onClick={() => handleApprove(msg.id)}
                 className="flex-1"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Approve & Send
+                Approve As-Is
               </Button>
               
               <AlertDialog open={rejectingId === msg.id} onOpenChange={(open) => !open && setRejectingId(null)}>
