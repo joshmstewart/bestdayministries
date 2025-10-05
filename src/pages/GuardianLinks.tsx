@@ -60,6 +60,11 @@ interface VendorLink {
   };
 }
 
+interface TextSection {
+  header: string;
+  text: string;
+}
+
 interface Sponsorship {
   id: string;
   bestie_id: string;
@@ -83,6 +88,7 @@ interface Sponsorship {
     voice_note_url: string | null;
     monthly_goal: number;
     current_monthly_pledges: number;
+    text_sections?: TextSection[];
   } | null;
 }
 
@@ -369,7 +375,7 @@ export default function GuardianLinks() {
       if (sponsorBestieIds.length > 0) {
         const { data, error: sponsorBestiesError } = await supabase
           .from("sponsor_besties")
-          .select("id, bestie_id, bestie_name, image_url, voice_note_url, monthly_goal")
+          .select("id, bestie_id, bestie_name, image_url, voice_note_url, monthly_goal, text_sections")
           .in("id", sponsorBestieIds)
           .eq("is_active", true);
 
@@ -434,13 +440,24 @@ export default function GuardianLinks() {
                 f.stripe_mode === sponsorship.stripe_mode
               );
               
+              // Parse text_sections if it's a string
+              let textSections: TextSection[] = [];
+              if (sponsorBestie.text_sections) {
+                textSections = Array.isArray(sponsorBestie.text_sections) 
+                  ? sponsorBestie.text_sections 
+                  : (typeof sponsorBestie.text_sections === 'string' 
+                    ? JSON.parse(sponsorBestie.text_sections) 
+                    : []);
+              }
+              
               featuredBestie = {
                 id: sponsorBestie.id,
                 description: `Supporting ${sponsorBestie.bestie_name}'s programs and activities`,
                 image_url: sponsorBestie.image_url,
                 voice_note_url: sponsorBestie.voice_note_url,
                 monthly_goal: sponsorFunding?.monthly_goal || sponsorBestie.monthly_goal || 0,
-                current_monthly_pledges: sponsorFunding?.current_monthly_pledges || 0
+                current_monthly_pledges: sponsorFunding?.current_monthly_pledges || 0,
+                text_sections: textSections
               };
             }
           } else if (bestie) {
@@ -1319,49 +1336,64 @@ export default function GuardianLinks() {
                       </div>
 
                       {sponsorship.featured_bestie && (
-                        <div className="space-y-4 pt-4 border-t">
-                          <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
-                          
-                          <div 
-                            className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer"
-                            onClick={() => sponsorship.featured_bestie?.voice_note_url && handlePlayAudio(sponsorship.id, sponsorship.featured_bestie.voice_note_url)}
-                          >
-                            <img 
-                              src={sponsorship.featured_bestie.image_url}
-                              alt={sponsorship.bestie.display_name}
-                              className="w-full h-full object-contain bg-muted"
-                            />
-                            {sponsorship.featured_bestie.voice_note_url && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                                <Button
-                                  size="lg"
-                                  className="h-16 w-16 rounded-full bg-white/90 hover:bg-white text-primary hover:scale-110 transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePlayAudio(sponsorship.id, sponsorship.featured_bestie!.voice_note_url!);
-                                  }}
-                                >
-                                  {playingAudio === sponsorship.id ? (
-                                    <Pause className="w-8 h-8" />
-                                  ) : (
-                                    <Play className="w-8 h-8 ml-1" />
-                                  )}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <p className="text-base text-muted-foreground">
-                            {sponsorship.featured_bestie.description}
-                          </p>
+                        <div className="pt-4 border-t">
+                          <div className="grid md:grid-cols-2 gap-6">
+                            {/* Left side - Image */}
+                            <div className="relative overflow-hidden flex items-center justify-center bg-muted rounded-lg" style={{ maxHeight: '450px' }}>
+                              <img
+                                src={sponsorship.featured_bestie.image_url}
+                                alt={sponsorship.bestie.display_name}
+                                className="object-contain w-full h-full"
+                                style={{ maxHeight: '450px' }}
+                              />
+                            </div>
 
-                          {sponsorship.featured_bestie.monthly_goal > 0 && (
-                            <FundingProgressBar
-                              currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
-                              goalAmount={sponsorship.featured_bestie.monthly_goal}
-                              className="mt-4"
-                            />
-                          )}
+                            {/* Right side - Content */}
+                            <div className="space-y-4 flex flex-col justify-center">
+                              {sponsorship.featured_bestie.text_sections && sponsorship.featured_bestie.text_sections.length > 0 ? (
+                                sponsorship.featured_bestie.text_sections.map((section, index) => (
+                                  <div key={index} className="space-y-2">
+                                    {section.header && (
+                                      <div className={index === 0 ? "flex items-start justify-between gap-2" : ""}>
+                                        <h3 className="font-script text-2xl font-bold text-primary leading-tight">
+                                          {section.header}
+                                        </h3>
+                                        {index === 0 && (
+                                          <TextToSpeech 
+                                            text={`${section.header}. ${section.text}`} 
+                                            size="default"
+                                          />
+                                        )}
+                                      </div>
+                                    )}
+                                    {section.text && (
+                                      <p className="font-script text-base text-foreground/80 leading-relaxed whitespace-pre-line">
+                                        {section.text}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-base text-muted-foreground">
+                                  {sponsorship.featured_bestie.description}
+                                </p>
+                              )}
+
+                              {sponsorship.featured_bestie.voice_note_url && (
+                                <div className="pt-2">
+                                  <AudioPlayer src={sponsorship.featured_bestie.voice_note_url} />
+                                </div>
+                              )}
+
+                              {sponsorship.featured_bestie.monthly_goal > 0 && (
+                                <FundingProgressBar
+                                  currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
+                                  goalAmount={sponsorship.featured_bestie.monthly_goal}
+                                  className="mt-4"
+                                />
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </CardContent>
@@ -1399,51 +1431,64 @@ export default function GuardianLinks() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent>
                       {sponsorship.featured_bestie && (
-                        <div className="space-y-4">
-                          <h4 className="font-semibold text-sm text-muted-foreground">Featured Post</h4>
-                          
-                          <div
-                            className="relative aspect-video w-full overflow-hidden rounded-lg group cursor-pointer"
-                            onClick={() => sponsorship.featured_bestie?.voice_note_url && handlePlayAudio(sponsorship.id, sponsorship.featured_bestie.voice_note_url)}
-                          >
-                            <img 
+                        <div className="grid md:grid-cols-2 gap-6">
+                          {/* Left side - Image */}
+                          <div className="relative overflow-hidden flex items-center justify-center bg-muted rounded-lg" style={{ maxHeight: '450px' }}>
+                            <img
                               src={sponsorship.featured_bestie.image_url}
                               alt={sponsorship.bestie.display_name}
-                              className="w-full h-full object-contain bg-muted"
+                              className="object-contain w-full h-full"
+                              style={{ maxHeight: '450px' }}
                             />
-                            {sponsorship.featured_bestie.voice_note_url && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                                <Button
-                                  size="lg"
-                                  className="h-16 w-16 rounded-full bg-white/90 hover:bg-white text-primary hover:scale-110 transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePlayAudio(sponsorship.id, sponsorship.featured_bestie!.voice_note_url!);
-                                  }}
-                                >
-                                  {playingAudio === sponsorship.id ? (
-                                    <Pause className="w-8 h-8" />
-                                  ) : (
-                                    <Play className="w-8 h-8 ml-1" />
+                          </div>
+
+                          {/* Right side - Content */}
+                          <div className="space-y-4 flex flex-col justify-center">
+                            {sponsorship.featured_bestie.text_sections && sponsorship.featured_bestie.text_sections.length > 0 ? (
+                              sponsorship.featured_bestie.text_sections.map((section, index) => (
+                                <div key={index} className="space-y-2">
+                                  {section.header && (
+                                    <div className={index === 0 ? "flex items-start justify-between gap-2" : ""}>
+                                      <h3 className="font-script text-2xl font-bold text-primary leading-tight">
+                                        {section.header}
+                                      </h3>
+                                      {index === 0 && (
+                                        <TextToSpeech 
+                                          text={`${section.header}. ${section.text}`} 
+                                          size="default"
+                                        />
+                                      )}
+                                    </div>
                                   )}
-                                </Button>
+                                  {section.text && (
+                                    <p className="font-script text-base text-foreground/80 leading-relaxed whitespace-pre-line">
+                                      {section.text}
+                                    </p>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-base text-muted-foreground">
+                                {sponsorship.featured_bestie.description}
+                              </p>
+                            )}
+
+                            {sponsorship.featured_bestie.voice_note_url && (
+                              <div className="pt-2">
+                                <AudioPlayer src={sponsorship.featured_bestie.voice_note_url} />
                               </div>
                             )}
-                          </div>
-                          
-                          <p className="text-base text-muted-foreground">
-                            {sponsorship.featured_bestie.description}
-                          </p>
 
-                          {sponsorship.featured_bestie.monthly_goal > 0 && (
-                            <FundingProgressBar
-                              currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
-                              goalAmount={sponsorship.featured_bestie.monthly_goal}
-                              className="mt-4"
-                            />
-                          )}
+                            {sponsorship.featured_bestie.monthly_goal > 0 && (
+                              <FundingProgressBar
+                                currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
+                                goalAmount={sponsorship.featured_bestie.monthly_goal}
+                                className="mt-4"
+                              />
+                            )}
+                          </div>
                         </div>
                       )}
                     </CardContent>
