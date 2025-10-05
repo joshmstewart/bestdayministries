@@ -58,12 +58,29 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
       // Fetch only approved/sent messages
       const { data, error } = await supabase
         .from("sponsor_messages")
-        .select("id, subject, message, audio_url, image_url, sent_at, created_at, is_read")
+        .select("id, subject, message, audio_url, image_url, sent_at, created_at, is_read, status")
         .eq("bestie_id", bestieId)
         .in("status", ["approved", "sent"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
+      // Update any "approved" messages to "sent" since they're now in the sponsor's inbox
+      const approvedMessages = (data || []).filter(msg => msg.status === 'approved');
+      if (approvedMessages.length > 0) {
+        const { error: updateError } = await supabase
+          .from("sponsor_messages")
+          .update({ 
+            status: 'sent',
+            sent_at: new Date().toISOString()
+          })
+          .in("id", approvedMessages.map(m => m.id));
+        
+        if (updateError) {
+          console.error("Error updating message status:", updateError);
+        }
+      }
+      
       setMessages(data || []);
     } catch (error) {
       console.error("Error loading messages:", error);
