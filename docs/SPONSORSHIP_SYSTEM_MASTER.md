@@ -81,8 +81,13 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 - "You're Sponsoring!" badge on active sponsorships
 
 **Actions:**
-- Manage subscription via Stripe portal (future)
+- **Manage Subscription:** "Manage Subscription" button → calls `manage-sponsorship` → opens Stripe billing portal
+  - Cancel subscription (takes effect at period end)
+  - Update payment method
+  - View payment history
+  - Download invoices
 - View/send messages to bestie
+- Funding progress updates automatically when subscription changes
 
 ### 3. SEND MESSAGE TO SPONSORS (Bestie)
 
@@ -228,6 +233,8 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 
 ### Edge Functions
 
+**Location:** `supabase/functions/`
+
 **create-sponsorship-checkout**
 - **Request:** `{bestie_id, amount, frequency, email}`
 - **Flow:**
@@ -251,10 +258,67 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
      - `amount`, `frequency`, `status: 'active'`
      - `stripe_subscription_id` (if monthly)
 
-### Webhooks (Future)
-- `payment_intent.succeeded` → Update status
-- `customer.subscription.deleted` → Cancel sponsorship
-- `customer.subscription.updated` → Update amount
+**manage-sponsorship**
+- **Request:** None (uses auth token)
+- **Flow:**
+  1. Get user's Stripe customer by email
+  2. Create Stripe billing portal session
+  3. Return `{url}` → redirect to Stripe portal
+  4. User can cancel/modify subscriptions
+  5. Webhooks handle status updates automatically
+
+### Webhooks (ACTIVE)
+
+**stripe-webhook** - Handles all Stripe events automatically
+
+**Supported Events:**
+
+1. **customer.subscription.deleted**
+   - Status: 'active' → 'cancelled'
+   - Sets `ended_at` to current timestamp
+   - Updates sponsorship record by `sponsor_id` + `sponsor_bestie_id`
+
+2. **customer.subscription.updated**
+   - Handles three states:
+     - **Scheduled cancellation:** `cancel_at_period_end = true` → Status stays 'active', sets `ended_at` to `cancel_at` date
+     - **Fully active:** `status = active` → Status 'active', clears `ended_at`
+     - **Cancelled:** Any other status → Status 'cancelled', sets `ended_at` to now
+   - Checks subscription metadata for `bestie_id` to target specific sponsorship
+
+3. **checkout.session.completed**
+   - Creates/updates sponsorship record on successful payment
+   - Extracts amount from session (converts cents to dollars)
+   - Sets frequency based on subscription interval (month/year)
+   - Status: 'active', `started_at`: now
+   - Stores `stripe_mode` (test/live)
+
+**Implementation Details:**
+- Dual-mode support (test + live webhooks)
+- Finds user by customer email from auth.users
+- Uses subscription metadata for precise targeting
+- Logs all events for debugging
+
+### Status Flow & Progress Bar Updates
+
+**Sponsorship Statuses:**
+- `active` - Subscription active, counts toward funding
+- `cancelled` - Subscription ended, excluded from funding
+- `paused` - Temporarily inactive (future)
+
+**Funding Progress Recalculation:**
+- View: `sponsor_bestie_funding_progress`
+- Query: `SUM(amount) WHERE status = 'active' AND frequency = 'monthly'`
+- **Automatic updates:** When webhook changes status, view reflects new total immediately
+- Progress bar shows: `(current_monthly_pledges / monthly_goal) * 100`
+- "Fully Funded" when: `funding_percentage >= 100` OR `is_fully_funded = true`
+
+**UI Update Flow:**
+1. User cancels via Stripe portal
+2. Webhook receives `customer.subscription.updated` or `.deleted`
+3. Database updates `sponsorships.status` to 'cancelled'
+4. `sponsor_bestie_funding_progress` view recalculates (excludes cancelled)
+5. Frontend queries view → sees reduced funding percentage
+6. Progress bar updates automatically on next load/realtime update
 
 ---
 
@@ -345,7 +409,10 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 | Aspect ratio buttons don't work | Missing state callback | Add `onAspectRatioKeyChange` |
 | Bestie can't send messages | `allow_sponsor_messages` false | Guardian enables in settings |
 | Funding not calculating | No monthly goal set | Admin sets `monthly_goal` |
-| Stripe checkout fails | Missing secret key | Check `STRIPE_SECRET_KEY` |
+| Stripe checkout fails | Missing secret key | Check `STRIPE_SECRET_KEY_TEST/LIVE` |
+| Progress bar not updating after cancel | Webhook not processing | Check edge function logs |
+| Cancelled sponsorship still counts | Status not updated | Verify webhook received event |
+| Portal button doesn't work | No Stripe customer | User must complete checkout first |
 
 ---
 
@@ -353,7 +420,7 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 
 - [ ] Guardian-initiated messages to sponsors
 - [ ] Sponsor message replies (two-way messaging)
-- [ ] Sponsorship management (upgrade/downgrade/cancel)
+- [x] ~~Sponsorship management (upgrade/downgrade/cancel)~~ ✅ DONE via Stripe portal
 - [ ] Analytics dashboard for sponsorships
 - [ ] Bulk message to all sponsors
 - [ ] Scheduled messages
