@@ -25,7 +25,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.verify-sponsorship-payment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-stripe-connect-account]
 verify_jwt = true

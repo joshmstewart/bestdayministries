@@ -13,12 +13,12 @@ serve(async (req) => {
   }
 
   try {
-    // Get Stripe mode from app_settings
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-    
+
+    // Get Stripe mode from app_settings
     const { data: modeSetting } = await supabaseAdmin
       .from('app_settings')
       .select('setting_value')
@@ -53,34 +53,46 @@ serve(async (req) => {
       throw new Error('Payment not completed');
     }
 
-    // Get user from auth header
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
+    // Get customer email from session
+    const customerEmail = session.customer_details?.email || session.customer_email;
+    if (!customerEmail) {
+      throw new Error('No customer email in session');
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    // Find user by email using auth.admin
+    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+    const user = usersData.users.find(u => u.email?.toLowerCase() === customerEmail.toLowerCase());
     
-    if (userError || !user) {
-      throw new Error("User not authenticated");
+    if (!user) {
+      // For guest checkouts, we can't create a sponsorship without a user ID
+      console.log('User not found for email:', customerEmail);
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'Payment successful. Please create an account to view your sponsorships.',
+          amount: session.metadata.amount,
+          frequency: session.metadata.frequency,
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
     }
 
-    // Create sponsorship record
-    const { data: sponsorship, error: sponsorshipError } = await supabaseClient
+    // Create or update sponsorship record
+    const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
       .from('sponsorships')
-      .insert({
+      .upsert({
         sponsor_id: user.id,
         bestie_id: session.metadata.bestie_id,
         amount: parseFloat(session.metadata.amount),
         frequency: session.metadata.frequency,
         status: 'active',
         started_at: new Date().toISOString(),
+        stripe_subscription_id: session.subscription || null,
+      }, {
+        onConflict: 'sponsor_id,bestie_id',
       })
       .select()
       .single();
