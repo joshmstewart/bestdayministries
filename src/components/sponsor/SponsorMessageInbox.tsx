@@ -173,27 +173,29 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
             </AccordionTrigger>
             <AccordionContent>
               <div className="pt-2 pb-1 space-y-3">
-                {msg.audio_url ? (
+                {msg.audio_url && (
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <div className="text-xs text-muted-foreground mb-2">Audio Message:</div>
                     <AudioPlayer src={msg.audio_url} />
                   </div>
-                ) : msg.image_url ? (
+                )}
+                {msg.image_url && (
                   <div className="bg-muted/50 p-3 rounded-lg">
-                    <div className="text-xs text-muted-foreground mb-2">Image Message:</div>
+                    <div className="text-xs text-muted-foreground mb-2">Image:</div>
                     <img
                       src={msg.image_url}
                       alt={msg.subject}
                       className="w-full max-w-md h-auto rounded"
                     />
-                    {msg.message && (
-                      <p className="text-sm text-foreground/80 mt-3 whitespace-pre-line">
-                        {msg.message}
-                      </p>
-                    )}
                   </div>
-                ) : (
+                )}
+                {msg.message && !msg.audio_url && (
                   <p className="text-sm text-foreground/80 whitespace-pre-line bg-muted/30 p-3 rounded-lg">
+                    {msg.message}
+                  </p>
+                )}
+                {msg.message && msg.image_url && (
+                  <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line">
                     {msg.message}
                   </p>
                 )}
