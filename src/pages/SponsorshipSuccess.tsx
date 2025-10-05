@@ -4,7 +4,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Heart, Home } from "lucide-react";
+import { CheckCircle2, Heart, Home, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,6 +17,7 @@ const SponsorshipSuccess = () => {
     amount: string;
     frequency: string;
   } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -32,7 +33,10 @@ const SponsorshipSuccess = () => {
         body: { session_id: sessionId }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Verification error:', error);
+        throw error;
+      }
 
       setSponsorshipDetails({
         amount: data.amount,
@@ -41,9 +45,19 @@ const SponsorshipSuccess = () => {
       toast.success('Sponsorship confirmed!');
     } catch (error) {
       console.error('Error verifying payment:', error);
-      toast.error('Failed to verify payment. Please contact support.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to verify payment: ${errorMessage}. Please contact support with your session ID.`);
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const copySessionId = async () => {
+    if (sessionId) {
+      await navigator.clipboard.writeText(sessionId);
+      setCopied(true);
+      toast.success('Session ID copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -115,9 +129,26 @@ const SponsorshipSuccess = () => {
               </Button>
             </div>
 
-            <p className="text-sm text-muted-foreground pt-4">
-              Session ID: {sessionId?.slice(0, 20)}...
-            </p>
+            <div className="pt-4 space-y-2">
+              <p className="text-xs text-muted-foreground font-semibold">Session ID</p>
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
+                <code className="text-xs flex-1 overflow-x-auto whitespace-nowrap">
+                  {sessionId}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copySessionId}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </main>
