@@ -27,7 +27,7 @@ serve(async (req) => {
     try {
       if (testWebhookSecret) {
         stripe = new Stripe(stripeTestKey, { apiVersion: "2025-08-27.basil" });
-        event = stripe.webhooks.constructEvent(body, signature, testWebhookSecret);
+        event = await stripe.webhooks.constructEventAsync(body, signature, testWebhookSecret);
       }
     } catch (e) {
       // If test fails, try live
@@ -35,7 +35,7 @@ serve(async (req) => {
         throw new Error('No valid webhook secret found');
       }
       stripe = new Stripe(stripeLiveKey, { apiVersion: "2025-08-27.basil" });
-      event = stripe.webhooks.constructEvent(body, signature, liveWebhookSecret);
+      event = await stripe.webhooks.constructEventAsync(body, signature, liveWebhookSecret);
     }
 
     console.log(`Received event: ${event.type}`);
