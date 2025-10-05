@@ -1531,7 +1531,7 @@ export type Database = {
       sponsorships: {
         Row: {
           amount: number | null
-          bestie_id: string
+          bestie_id: string | null
           ended_at: string | null
           frequency: string | null
           id: string
@@ -1542,7 +1542,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
-          bestie_id: string
+          bestie_id?: string | null
           ended_at?: string | null
           frequency?: string | null
           id?: string
@@ -1553,7 +1553,7 @@ export type Database = {
         }
         Update: {
           amount?: number | null
-          bestie_id?: string
+          bestie_id?: string | null
           ended_at?: string | null
           frequency?: string | null
           id?: string
