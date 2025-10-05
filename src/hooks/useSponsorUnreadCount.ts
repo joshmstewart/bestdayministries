@@ -7,7 +7,8 @@ export const useSponsorUnreadCount = () => {
 
   useEffect(() => {
     fetchUnreadCount();
-    setupRealtimeSubscription();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
   }, []);
 
   const fetchUnreadCount = async () => {
