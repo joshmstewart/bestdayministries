@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, CheckCircle, XCircle, Send, Clock, Edit, Image as ImageIcon } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, Send, Clock, Edit, Image as ImageIcon, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AudioPlayer from "@/components/AudioPlayer";
-import { compressImage } from "@/lib/imageUtils";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface SponsorMessage {
   id: string;
@@ -42,8 +42,11 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
   const [editedMessage, setEditedMessage] = useState("");
-  const [editedImage, setEditedImage] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     loadPendingMessages();
@@ -187,10 +190,12 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
     setEditingId(msg.id);
     setEditedSubject(msg.subject);
     setEditedMessage(msg.message || "");
-    setEditedImage(null);
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
+    setCroppedImageBlob(null);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -203,7 +208,22 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
       return;
     }
 
-    setEditedImage(file);
+    setSelectedImageFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviewUrl(previewUrl);
+    setCropDialogOpen(true);
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    setCroppedImageBlob(croppedBlob);
+    const croppedUrl = URL.createObjectURL(croppedBlob);
+    setImagePreviewUrl(croppedUrl);
+  };
+
+  const removeImage = () => {
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
+    setCroppedImageBlob(null);
   };
 
   const handleEditAndApprove = async (messageId: string) => {
@@ -214,16 +234,14 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
 
       let imageUrl = null;
 
-      // Upload image if one was selected
-      if (editedImage) {
-        const compressedImage = await compressImage(editedImage);
-        const fileExt = editedImage.name.split(".").pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // Upload image if one was cropped
+      if (croppedImageBlob) {
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
         const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("app-assets")
-          .upload(filePath, compressedImage);
+          .upload(filePath, croppedImageBlob);
 
         if (uploadError) throw uploadError;
 
@@ -263,7 +281,9 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
       setEditingId(null);
       setEditedSubject("");
       setEditedMessage("");
-      setEditedImage(null);
+      setSelectedImageFile(null);
+      setImagePreviewUrl(null);
+      setCroppedImageBlob(null);
       await loadPendingMessages();
       onMessagesChange?.();
     } catch (error: any) {
@@ -370,17 +390,42 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
                     </div>
                     <div>
                       <Label htmlFor="image">Add or Replace Image (optional)</Label>
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="cursor-pointer"
-                      />
-                      {editedImage && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Selected: {editedImage.name}
-                        </p>
+                      {imagePreviewUrl ? (
+                        <div className="space-y-2">
+                          <div className="relative inline-block">
+                            <img
+                              src={imagePreviewUrl}
+                              alt="Preview"
+                              className="max-w-full max-h-48 rounded-lg border"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2"
+                              onClick={removeImage}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => imagePreviewUrl && setCropDialogOpen(true)}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Recrop Image
+                          </Button>
+                        </div>
+                      ) : (
+                        <Input
+                          id="image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="cursor-pointer"
+                        />
                       )}
                     </div>
                   </div>
@@ -457,6 +502,21 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
           </CardContent>
         </Card>
       ))}
+
+      {/* Image Crop Dialog */}
+      {selectedImageFile && imagePreviewUrl && (
+        <ImageCropDialog
+          open={cropDialogOpen}
+          onOpenChange={setCropDialogOpen}
+          imageUrl={imagePreviewUrl}
+          onCropComplete={handleCropComplete}
+          aspectRatio={16 / 9}
+          allowAspectRatioChange={true}
+          selectedRatioKey="16:9"
+          title="Crop Message Image"
+          description="Adjust the crop area for the message image"
+        />
+      )}
     </div>
   );
 };
