@@ -47,6 +47,7 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
+  const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('16:9');
 
   useEffect(() => {
     loadPendingMessages();
@@ -510,9 +511,9 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
           onOpenChange={setCropDialogOpen}
           imageUrl={imagePreviewUrl}
           onCropComplete={handleCropComplete}
-          aspectRatio={16 / 9}
           allowAspectRatioChange={true}
-          selectedRatioKey="16:9"
+          selectedRatioKey={aspectRatioKey}
+          onAspectRatioKeyChange={setAspectRatioKey}
           title="Crop Message Image"
           description="Adjust the crop area for the message image"
         />
