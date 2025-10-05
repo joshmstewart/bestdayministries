@@ -121,7 +121,7 @@ export const StripeModeSwitcher = () => {
             variant={isLiveMode ? "outline" : "destructive"}
             size="sm"
           >
-            {switching ? 'Switching...' : `Switch to ${isLiveMode ? 'Live' : 'Test'}`}
+            {switching ? 'Switching...' : `Switch to ${isLiveMode ? 'Test' : 'Live'}`}
           </Button>
         </div>
       </Card>
