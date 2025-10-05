@@ -1535,7 +1535,6 @@ export type Database = {
           ended_at: string | null
           frequency: string | null
           id: string
-          sponsor_bestie_id: string | null
           sponsor_id: string
           started_at: string
           status: string | null
@@ -1547,7 +1546,6 @@ export type Database = {
           ended_at?: string | null
           frequency?: string | null
           id?: string
-          sponsor_bestie_id?: string | null
           sponsor_id: string
           started_at?: string
           status?: string | null
@@ -1559,7 +1557,6 @@ export type Database = {
           ended_at?: string | null
           frequency?: string | null
           id?: string
-          sponsor_bestie_id?: string | null
           sponsor_id?: string
           started_at?: string
           status?: string | null
@@ -1578,20 +1575,6 @@ export type Database = {
             columns: ["bestie_id"]
             isOneToOne: false
             referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sponsorships_sponsor_bestie_id_fkey"
-            columns: ["sponsor_bestie_id"]
-            isOneToOne: false
-            referencedRelation: "sponsor_bestie_funding_progress"
-            referencedColumns: ["sponsor_bestie_id"]
-          },
-          {
-            foreignKeyName: "sponsorships_sponsor_bestie_id_fkey"
-            columns: ["sponsor_bestie_id"]
-            isOneToOne: false
-            referencedRelation: "sponsor_besties"
             referencedColumns: ["id"]
           },
           {

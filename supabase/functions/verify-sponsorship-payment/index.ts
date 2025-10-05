@@ -80,33 +80,19 @@ serve(async (req) => {
       );
     }
 
-    // Look up the sponsor_bestie record to get the actual bestie profile ID
-    const { data: sponsorBestie, error: sponsorBestieError } = await supabaseAdmin
-      .from('sponsor_besties')
-      .select('bestie_id')
-      .eq('id', session.metadata.bestie_id)
-      .maybeSingle();
-
-    if (sponsorBestieError) {
-      console.error('Error fetching sponsor bestie:', sponsorBestieError);
-      throw new Error('Failed to find sponsor bestie record');
-    }
-
     // Create or update sponsorship record
-    // Store both the sponsor_bestie_id and the optional bestie profile ID
     const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
       .from('sponsorships')
       .upsert({
         sponsor_id: user.id,
-        sponsor_bestie_id: session.metadata.bestie_id,
-        bestie_id: sponsorBestie?.bestie_id || null,
+        bestie_id: session.metadata.bestie_id,
         amount: parseFloat(session.metadata.amount),
         frequency: session.metadata.frequency,
         status: 'active',
         started_at: new Date().toISOString(),
         stripe_subscription_id: session.subscription || null,
       }, {
-        onConflict: 'sponsor_id,sponsor_bestie_id',
+        onConflict: 'sponsor_id,bestie_id',
       })
       .select()
       .single();
