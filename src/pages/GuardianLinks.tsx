@@ -1389,6 +1389,13 @@ export default function GuardianLinks() {
                                 <FundingProgressBar
                                   currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
                                   goalAmount={sponsorship.featured_bestie.monthly_goal}
+                                  endingAmount={
+                                    sponsorship.frequency === 'monthly' && 
+                                    sponsorship.ended_at && 
+                                    new Date(sponsorship.ended_at) > new Date()
+                                      ? sponsorship.amount 
+                                      : 0
+                                  }
                                   className="mt-4"
                                 />
                               )}
@@ -1485,6 +1492,7 @@ export default function GuardianLinks() {
                               <FundingProgressBar
                                 currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
                                 goalAmount={sponsorship.featured_bestie.monthly_goal}
+                                endingAmount={0}
                                 className="mt-4"
                               />
                             )}
