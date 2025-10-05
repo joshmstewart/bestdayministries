@@ -25,7 +25,11 @@ interface SponsorMessage {
   };
 }
 
-export const BestieSponsorMessages = () => {
+interface BestieSponsorMessagesProps {
+  onMessagesChange?: () => void;
+}
+
+export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessagesProps) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<SponsorMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +120,7 @@ export const BestieSponsorMessages = () => {
       });
 
       await loadPendingMessages();
+      onMessagesChange?.();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -159,6 +164,7 @@ export const BestieSponsorMessages = () => {
       setRejectingId(null);
       setRejectionReason("");
       await loadPendingMessages();
+      onMessagesChange?.();
     } catch (error: any) {
       toast({
         title: "Error",

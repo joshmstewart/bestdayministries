@@ -578,7 +578,7 @@ export default function GuardianApprovals() {
             </TabsContent>
 
             <TabsContent value="messages">
-              <BestieSponsorMessages />
+              <BestieSponsorMessages onMessagesChange={() => currentUserId && loadPendingContent(currentUserId)} />
             </TabsContent>
           </Tabs>
         </div>
