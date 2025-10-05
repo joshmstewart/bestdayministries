@@ -132,22 +132,24 @@ export const StripeModeSwitcher = () => {
             <AlertDialogTitle>
               Switch to {targetMode.toUpperCase()} Mode?
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p className="font-semibold">
-                {targetMode === 'live' 
-                  ? '⚠️ WARNING: This will enable REAL payment processing'
-                  : 'This will switch back to test mode'
-                }
-              </p>
-              <p>
-                {targetMode === 'live' 
-                  ? 'All sponsorships created after switching will charge REAL money from customers. Make sure you have entered your LIVE Stripe secret key.'
-                  : 'All sponsorships will use test mode. Only test cards (like 4242 4242 4242 4242) will work.'
-                }
-              </p>
-              <p className="text-sm text-muted-foreground">
-                This change affects the entire system. You cannot process test and live payments simultaneously.
-              </p>
+            <AlertDialogDescription>
+              <div className="space-y-2">
+                <div className="font-semibold">
+                  {targetMode === 'live' 
+                    ? '⚠️ WARNING: This will enable REAL payment processing'
+                    : 'This will switch back to test mode'
+                  }
+                </div>
+                <div>
+                  {targetMode === 'live' 
+                    ? 'All sponsorships created after switching will charge REAL money from customers. Make sure you have entered your LIVE Stripe secret key.'
+                    : 'All sponsorships will use test mode. Only test cards (like 4242 4242 4242 4242) will work.'
+                  }
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  This change affects the entire system. You cannot process test and live payments simultaneously.
+                </div>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
