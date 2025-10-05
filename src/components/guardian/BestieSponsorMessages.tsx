@@ -57,19 +57,29 @@ export const BestieSponsorMessages = () => {
       // Get pending messages from linked besties
       const { data, error } = await supabase
         .from("sponsor_messages")
-        .select(`
-          *,
-          bestie:profiles!sponsor_messages_bestie_id_fkey(display_name)
-        `)
+        .select("*")
         .in("bestie_id", bestieIds)
         .eq("status", "pending_approval")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
+      // Fetch bestie names separately
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", bestieIds);
+
+      // Map bestie names to messages
+      const profileMap = new Map(
+        (profiles || []).map(p => [p.id, p.display_name])
+      );
+
       const transformedData = (data || []).map(msg => ({
         ...msg,
-        bestie: Array.isArray(msg.bestie) ? msg.bestie[0] : msg.bestie
+        bestie: {
+          display_name: profileMap.get(msg.bestie_id) || 'Unknown'
+        }
       }));
 
       setMessages(transformedData as SponsorMessage[]);
