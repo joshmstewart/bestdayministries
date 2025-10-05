@@ -282,13 +282,13 @@ export default function GuardianLinks() {
 
   const loadSponsorships = async (userId: string) => {
     try {
-      // Load sponsorships where user is sponsor
+      // Load sponsorships where user is sponsor (using any to bypass type issues)
       const { data: ownSponsorshipsData, error: ownError } = await supabase
         .from("sponsorships")
-        .select("id, bestie_id, amount, frequency, status, started_at, ended_at")
+        .select("*")
         .eq("sponsor_id", userId)
         .eq("status", "active")
-        .order("started_at", { ascending: false });
+        .order("started_at", { ascending: false }) as { data: any[] | null, error: any };
 
       if (ownError) throw ownError;
 
@@ -296,27 +296,19 @@ export default function GuardianLinks() {
       const { data: sharedSponsorshipsData, error: sharedError } = await supabase
         .from("sponsorship_shares")
         .select(`
-          sponsorship:sponsorships(
-            id,
-            bestie_id,
-            amount,
-            frequency,
-            status,
-            started_at,
-            ended_at
-          ),
+          sponsorship:sponsorships(*),
           shared_by
         `)
-        .eq("bestie_id", userId);
+        .eq("bestie_id", userId) as { data: any[] | null, error: any };
 
       if (sharedError) throw sharedError;
 
       // Combine own and shared sponsorships
       const allSponsorships = [
-        ...(ownSponsorshipsData || []).map(s => ({ ...s, is_shared: false })),
+        ...(ownSponsorshipsData || []).map((s: any) => ({ ...s, is_shared: false })),
         ...(sharedSponsorshipsData || [])
-          .filter(s => s.sponsorship && s.sponsorship.status === 'active')
-          .map(s => ({ 
+          .filter((s: any) => s.sponsorship && s.sponsorship.status === 'active')
+          .map((s: any) => ({ 
             ...s.sponsorship, 
             is_shared: true,
             shared_by: s.shared_by 
@@ -333,7 +325,7 @@ export default function GuardianLinks() {
         const { data: sharesData } = await supabase
           .from("sponsorship_shares")
           .select("sponsorship_id, bestie_id")
-          .in("sponsorship_id", ownSponsorshipsData.map(s => s.id));
+          .in("sponsorship_id", ownSponsorshipsData.map((s: any) => s.id));
 
         const sharesMap = new Map<string, Set<string>>();
         (sharesData || []).forEach(share => {
@@ -345,36 +337,119 @@ export default function GuardianLinks() {
         setExistingShares(sharesMap);
       }
 
-      // Get bestie profiles
-      const bestieIds = allSponsorships.map(s => s.bestie_id);
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_number")
-        .in("id", bestieIds);
+      // Get bestie profiles (for sponsorships with bestie_id)
+      const bestieIds = allSponsorships
+        .filter((s: any) => s.bestie_id)
+        .map((s: any) => s.bestie_id);
+      
+      let profilesData: any[] = [];
+      if (bestieIds.length > 0) {
+        const { data, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, display_name, avatar_number")
+          .in("id", bestieIds);
 
-      if (profilesError) throw profilesError;
+        if (profilesError) throw profilesError;
+        profilesData = data || [];
+      }
+
+      // Get sponsor bestie data (for sponsorships with sponsor_bestie_id)
+      const sponsorBestieIds = allSponsorships
+        .filter((s: any) => s.sponsor_bestie_id)
+        .map((s: any) => s.sponsor_bestie_id);
+
+      let sponsorBestiesData: any[] = [];
+      if (sponsorBestieIds.length > 0) {
+        const { data, error: sponsorBestiesError } = await supabase
+          .from("sponsor_besties")
+          .select("id, bestie_id, bestie_name, image_url, voice_note_url, monthly_goal")
+          .in("id", sponsorBestieIds)
+          .eq("is_active", true);
+
+        if (sponsorBestiesError) throw sponsorBestiesError;
+        sponsorBestiesData = data || [];
+      }
 
       // Get featured bestie data and funding progress
-      const { data: featuredBestiesData } = await supabase
-        .from("featured_besties")
-        .select("id, bestie_id, description, image_url, voice_note_url, monthly_goal")
-        .in("bestie_id", bestieIds)
-        .eq("approval_status", "approved")
-        .eq("is_active", true);
+      const allBestieIds = [
+        ...bestieIds,
+        ...(sponsorBestiesData.map(sb => sb.bestie_id).filter(Boolean))
+      ];
 
-      const { data: fundingData } = await supabase
-        .from("bestie_funding_progress")
-        .select("bestie_id, current_monthly_pledges, monthly_goal")
-        .in("bestie_id", bestieIds);
+      let featuredBestiesData: any[] = [];
+      let fundingData: any[] = [];
+      
+      if (allBestieIds.length > 0) {
+        const { data: fbData } = await supabase
+          .from("featured_besties")
+          .select("id, bestie_id, description, image_url, voice_note_url, monthly_goal")
+          .in("bestie_id", allBestieIds)
+          .eq("approval_status", "approved")
+          .eq("is_active", true);
+
+        featuredBestiesData = fbData || [];
+
+        const { data: fData } = await supabase
+          .from("bestie_funding_progress")
+          .select("bestie_id, current_monthly_pledges, monthly_goal")
+          .in("bestie_id", allBestieIds);
+
+        fundingData = fData || [];
+      }
+
+      // Get funding progress for sponsor besties
+      const { data: sponsorFundingData } = await supabase
+        .from("sponsor_bestie_funding_progress")
+        .select("sponsor_bestie_id, current_monthly_pledges, monthly_goal")
+        .in("sponsor_bestie_id", sponsorBestieIds);
 
       // Combine the data
       const transformedData = allSponsorships
-        .map(sponsorship => {
-          const bestie = profilesData?.find(p => p.id === sponsorship.bestie_id);
+        .map((sponsorship: any) => {
+          // Try to find bestie from profiles first
+          let bestie = profilesData?.find(p => p.id === sponsorship.bestie_id);
+          let featuredBestie = null;
+
+          // If no profile bestie, try sponsor_besties table
+          if (!bestie && sponsorship.sponsor_bestie_id) {
+            const sponsorBestie = sponsorBestiesData?.find(sb => sb.id === sponsorship.sponsor_bestie_id);
+            if (sponsorBestie) {
+              // Create a bestie-like object from sponsor_bestie
+              bestie = {
+                display_name: sponsorBestie.bestie_name,
+                avatar_number: 1 // Default avatar for sponsor besties without profile
+              };
+
+              // Use sponsor bestie's own image/voice if available
+              const sponsorFunding = sponsorFundingData?.find(f => f.sponsor_bestie_id === sponsorship.sponsor_bestie_id);
+              
+              featuredBestie = {
+                id: sponsorBestie.id,
+                description: `Supporting ${sponsorBestie.bestie_name}'s programs and activities`,
+                image_url: sponsorBestie.image_url,
+                voice_note_url: sponsorBestie.voice_note_url,
+                monthly_goal: sponsorFunding?.monthly_goal || sponsorBestie.monthly_goal || 0,
+                current_monthly_pledges: sponsorFunding?.current_monthly_pledges || 0
+              };
+            }
+          } else if (bestie) {
+            // Get featured bestie data for profile besties
+            const fb = featuredBestiesData?.find(fb => fb.bestie_id === sponsorship.bestie_id);
+            const f = fundingData?.find(f => f.bestie_id === sponsorship.bestie_id);
+            
+            if (fb) {
+              featuredBestie = {
+                id: fb.id,
+                description: fb.description,
+                image_url: fb.image_url,
+                voice_note_url: fb.voice_note_url,
+                monthly_goal: f?.monthly_goal || fb.monthly_goal || 0,
+                current_monthly_pledges: f?.current_monthly_pledges || 0
+              };
+            }
+          }
+
           if (!bestie) return null;
-          
-          const featuredBestie = featuredBestiesData?.find(fb => fb.bestie_id === sponsorship.bestie_id);
-          const funding = fundingData?.find(f => f.bestie_id === sponsorship.bestie_id);
           
           return {
             ...sponsorship,
@@ -382,14 +457,7 @@ export default function GuardianLinks() {
               display_name: bestie.display_name,
               avatar_number: bestie.avatar_number
             },
-            featured_bestie: featuredBestie ? {
-              id: featuredBestie.id,
-              description: featuredBestie.description,
-              image_url: featuredBestie.image_url,
-              voice_note_url: featuredBestie.voice_note_url,
-              monthly_goal: funding?.monthly_goal || featuredBestie.monthly_goal || 0,
-              current_monthly_pledges: funding?.current_monthly_pledges || 0
-            } : null
+            featured_bestie: featuredBestie
           };
         })
         .filter(s => s !== null) as Sponsorship[];
