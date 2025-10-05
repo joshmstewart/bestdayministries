@@ -11,6 +11,7 @@ import { useModerationCount } from "@/hooks/useModerationCount";
 import { useGuardianApprovalsCount } from "@/hooks/useGuardianApprovalsCount";
 import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
 import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
+import { useSponsorUnreadCount } from "@/hooks/useSponsorUnreadCount";
 import { Separator } from "@/components/ui/separator";
 
 export const UnifiedHeader = () => {
@@ -28,6 +29,7 @@ export const UnifiedHeader = () => {
   const { count: moderationCount } = useModerationCount();
   const { count: approvalsCount } = useGuardianApprovalsCount();
   const { count: pendingVendorsCount } = usePendingVendorsCount();
+  const { count: sponsorUnreadCount } = useSponsorUnreadCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
 
   useEffect(() => {
@@ -289,10 +291,15 @@ export const UnifiedHeader = () => {
                   <Button 
                     onClick={() => navigate("/guardian-links")}
                     variant="outline"
-                    className="gap-2"
+                    className="gap-2 relative"
                   >
                     <Users className="w-4 h-4" />
                     <span className="hidden sm:inline font-semibold">My Besties</span>
+                    {sponsorUnreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                        {sponsorUnreadCount}
+                      </span>
+                    )}
                   </Button>
                 )}
                 {profile?.role === "bestie" && (

@@ -1457,6 +1457,7 @@ export type Database = {
           created_at: string
           from_guardian: boolean | null
           id: string
+          is_read: boolean
           message: string
           rejection_reason: string | null
           sent_at: string | null
@@ -1472,6 +1473,7 @@ export type Database = {
           created_at?: string
           from_guardian?: boolean | null
           id?: string
+          is_read?: boolean
           message: string
           rejection_reason?: string | null
           sent_at?: string | null
@@ -1487,6 +1489,7 @@ export type Database = {
           created_at?: string
           from_guardian?: boolean | null
           id?: string
+          is_read?: boolean
           message?: string
           rejection_reason?: string | null
           sent_at?: string | null

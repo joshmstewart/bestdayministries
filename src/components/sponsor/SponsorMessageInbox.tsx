@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Mail } from "lucide-react";
 import AudioPlayer from "@/components/AudioPlayer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useToast } from "@/hooks/use-toast";
 
 interface SponsorMessage {
   id: string;
@@ -13,6 +14,7 @@ interface SponsorMessage {
   audio_url: string | null;
   sent_at: string | null;
   created_at: string;
+  is_read: boolean;
 }
 
 interface SponsorMessageInboxProps {
@@ -23,6 +25,7 @@ interface SponsorMessageInboxProps {
 export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInboxProps) => {
   const [messages, setMessages] = useState<SponsorMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadMessages();
@@ -54,7 +57,7 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
       // Fetch only approved/sent messages
       const { data, error } = await supabase
         .from("sponsor_messages")
-        .select("id, subject, message, audio_url, sent_at, created_at")
+        .select("id, subject, message, audio_url, sent_at, created_at, is_read")
         .eq("bestie_id", bestieId)
         .in("status", ["approved", "sent"])
         .order("created_at", { ascending: false });
@@ -65,6 +68,26 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
       console.error("Error loading messages:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markAsRead = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from("sponsor_messages")
+        .update({ is_read: true })
+        .eq("id", messageId);
+
+      if (error) throw error;
+
+      // Update local state
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === messageId ? { ...msg, is_read: true } : msg
+        )
+      );
+    } catch (error) {
+      console.error("Error marking message as read:", error);
     }
   };
 
@@ -95,13 +118,26 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
         </Badge>
       </div>
 
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion type="single" collapsible className="w-full" onValueChange={(value) => {
+        // Mark message as read when accordion is opened
+        if (value) {
+          const msg = messages.find(m => m.id === value);
+          if (msg && !msg.is_read) {
+            markAsRead(value);
+          }
+        }
+      }}>
         {messages.map((msg, index) => (
           <AccordionItem key={msg.id} value={msg.id}>
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-3 text-left w-full">
                 <div className="flex-1">
-                  <div className="font-medium">{msg.subject}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium">{msg.subject}</div>
+                    {!msg.is_read && (
+                      <div className="h-2 w-2 rounded-full bg-destructive" title="Unread" />
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {new Date(msg.created_at).toLocaleDateString('en-US', {
                       year: 'numeric',
