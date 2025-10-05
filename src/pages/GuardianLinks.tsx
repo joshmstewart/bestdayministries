@@ -13,8 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause, Store, X, Settings } from "lucide-react";
+import { Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause, Store, X, Settings, MessageSquare, ShoppingBag, FileCheck } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -1067,130 +1068,171 @@ export default function GuardianLinks() {
                             <span>Linked {new Date(link.created_at).toLocaleDateString()}</span>
                           </div>
                           
-                          <div className="space-y-3 pt-3 border-t">
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">
-                                  Require Post Approval
-                                </Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Review and approve posts before they're published
-                                </p>
-                              </div>
-                              <Switch
-                                checked={link.require_post_approval}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'require_post_approval', link.require_post_approval)}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">
-                                  Require Comment Approval
-                                </Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Review and approve comments before they're published
-                                </p>
-                              </div>
-                              <Switch
-                                checked={link.require_comment_approval}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'require_comment_approval', link.require_comment_approval)}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">
-                                  Allow Featured Posts
-                                </Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Allow creating featured posts for this bestie
-                                </p>
-                              </div>
-                              <Switch
-                                checked={link.allow_featured_posts}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'allow_featured_posts', link.allow_featured_posts)}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">
-                                  Require Vendor Asset Approval
-                                </Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Vendors need approval before using bestie's photos, videos, or other assets
-                                </p>
-                              </div>
-                              <Switch
-                                checked={link.require_vendor_asset_approval}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'require_vendor_asset_approval', link.require_vendor_asset_approval)}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">
-                                  Show Vendor Store Link on Bestie Profile
-                                </Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Display link to vendor store when bestie posts or comments
-                                </p>
-                              </div>
-                              <Switch
-                                checked={link.show_vendor_link_on_bestie}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_bestie', link.show_vendor_link_on_bestie)}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">
-                                  Show Vendor Store Link on Your Profile
-                                </Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Display link to vendor store when you post or comment
-                                </p>
-                              </div>
-                              <Switch
-                                checked={link.show_vendor_link_on_guardian}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_guardian', link.show_vendor_link_on_guardian)}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">
-                                  Allow Sponsor Messages
-                                </Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Allow bestie to send messages to their sponsors
-                                </p>
-                              </div>
-                              <Switch
-                                checked={link.allow_sponsor_messages}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'allow_sponsor_messages', link.allow_sponsor_messages)}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">
-                                  Require Message Approval
-                                </Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Review and approve messages before they're sent to sponsors
-                                </p>
-                              </div>
-                              <Switch
-                                checked={link.require_message_approval}
-                                onCheckedChange={() => handleToggleApproval(link.id, 'require_message_approval', link.require_message_approval)}
-                              />
-                            </div>
-                            {link.allow_featured_posts && (
-                              <Button
-                                variant="outline"
-                                className="w-full gap-2"
-                                onClick={() => handleManageFeaturedPosts(link.bestie_id, link.bestie.display_name)}
-                              >
-                                <Star className="w-4 h-4" />
-                                Manage Featured Posts
-                              </Button>
-                            )}
-                          </div>
+                          <Accordion type="multiple" className="w-full pt-3 border-t">
+                            {/* Content Moderation */}
+                            <AccordionItem value="content-moderation">
+                              <AccordionTrigger className="hover:no-underline">
+                                <div className="flex items-center gap-2">
+                                  <MessageSquare className="w-4 h-4" />
+                                  <span className="font-medium">Content Moderation</span>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="space-y-4 pt-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-sm font-medium">
+                                        Require Post Approval
+                                      </Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        Review and approve posts before they're published
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={link.require_post_approval}
+                                      onCheckedChange={() => handleToggleApproval(link.id, 'require_post_approval', link.require_post_approval)}
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-sm font-medium">
+                                        Require Comment Approval
+                                      </Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        Review and approve comments before they're published
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={link.require_comment_approval}
+                                      onCheckedChange={() => handleToggleApproval(link.id, 'require_comment_approval', link.require_comment_approval)}
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-sm font-medium">
+                                        Allow Featured Posts
+                                      </Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        Allow creating featured posts for this bestie
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={link.allow_featured_posts}
+                                      onCheckedChange={() => handleToggleApproval(link.id, 'allow_featured_posts', link.allow_featured_posts)}
+                                    />
+                                  </div>
+                                  {link.allow_featured_posts && (
+                                    <Button
+                                      variant="outline"
+                                      className="w-full gap-2"
+                                      onClick={() => handleManageFeaturedPosts(link.bestie_id, link.bestie.display_name)}
+                                    >
+                                      <Star className="w-4 h-4" />
+                                      Manage Featured Posts
+                                    </Button>
+                                  )}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+
+                            {/* Vendor Relationships */}
+                            <AccordionItem value="vendor-relationships">
+                              <AccordionTrigger className="hover:no-underline">
+                                <div className="flex items-center gap-2">
+                                  <ShoppingBag className="w-4 h-4" />
+                                  <span className="font-medium">Vendor Relationships</span>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="space-y-4 pt-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-sm font-medium">
+                                        Require Vendor Asset Approval
+                                      </Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        Vendors need approval before using bestie's photos, videos, or other assets
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={link.require_vendor_asset_approval}
+                                      onCheckedChange={() => handleToggleApproval(link.id, 'require_vendor_asset_approval', link.require_vendor_asset_approval)}
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-sm font-medium">
+                                        Show Vendor Store Link on Bestie Profile
+                                      </Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        Display link to vendor store when bestie posts or comments
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={link.show_vendor_link_on_bestie}
+                                      onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_bestie', link.show_vendor_link_on_bestie)}
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-sm font-medium">
+                                        Show Vendor Store Link on Your Profile
+                                      </Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        Display link to vendor store when you post or comment
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={link.show_vendor_link_on_guardian}
+                                      onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_guardian', link.show_vendor_link_on_guardian)}
+                                    />
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+
+                            {/* Sponsor Communication */}
+                            <AccordionItem value="sponsor-communication">
+                              <AccordionTrigger className="hover:no-underline">
+                                <div className="flex items-center gap-2">
+                                  <FileCheck className="w-4 h-4" />
+                                  <span className="font-medium">Sponsor Communication</span>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="space-y-4 pt-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-sm font-medium">
+                                        Allow Sponsor Messages
+                                      </Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        Allow bestie to send messages to their sponsors
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={link.allow_sponsor_messages}
+                                      onCheckedChange={() => handleToggleApproval(link.id, 'allow_sponsor_messages', link.allow_sponsor_messages)}
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                      <Label className="text-sm font-medium">
+                                        Require Message Approval
+                                      </Label>
+                                      <p className="text-sm text-muted-foreground">
+                                        Review and approve messages before they're sent to sponsors
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={link.require_message_approval}
+                                      onCheckedChange={() => handleToggleApproval(link.id, 'require_message_approval', link.require_message_approval)}
+                                    />
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
 
                           {/* Linked Vendors Section */}
                           {vendorLinks.get(link.bestie_id) && vendorLinks.get(link.bestie_id)!.length > 0 && (
