@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle } from "lucide-react";
+import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter } from "lucide-react";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 
 interface Profile {
@@ -36,6 +36,9 @@ export const UserManagement = () => {
   const [newRole, setNewRole] = useState("");
   const [creatingTestAccounts, setCreatingTestAccounts] = useState(false);
   const [loggingInAs, setLoggingInAs] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [vendorStatusFilter, setVendorStatusFilter] = useState<string>("all");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -395,6 +398,21 @@ export const UserManagement = () => {
     }
   };
 
+  // Filter users based on search and filters
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = searchTerm === "" || 
+      user.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    
+    const matchesVendorStatus = vendorStatusFilter === "all" || 
+      (vendorStatusFilter === "none" && !user.vendor_status) ||
+      user.vendor_status === vendorStatusFilter;
+    
+    return matchesSearch && matchesRole && matchesVendorStatus;
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -594,6 +612,50 @@ export const UserManagement = () => {
         </Dialog>
       </CardHeader>
       <CardContent>
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[140px]">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="supporter">Supporter</SelectItem>
+                <SelectItem value="bestie">Bestie</SelectItem>
+                <SelectItem value="caregiver">Guardian</SelectItem>
+                <SelectItem value="moderator">Moderator</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="owner">Owner</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={vendorStatusFilter} onValueChange={setVendorStatusFilter}>
+              <SelectTrigger className="w-[160px]">
+                <Store className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Vendor Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Vendors</SelectItem>
+                <SelectItem value="none">Non-Vendors</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -606,7 +668,14 @@ export const UserManagement = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
+            {filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  No users found matching your filters
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredUsers.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.display_name}</TableCell>
                 <TableCell className="text-muted-foreground">
@@ -717,9 +786,12 @@ export const UserManagement = () => {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+            )))}
           </TableBody>
         </Table>
+        <div className="mt-4 text-sm text-muted-foreground">
+          Showing {filteredUsers.length} of {users.length} users
+        </div>
       </CardContent>
 
       {/* Role Edit Dialog */}
