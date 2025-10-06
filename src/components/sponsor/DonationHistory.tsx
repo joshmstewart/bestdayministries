@@ -35,7 +35,12 @@ export const DonationHistory = () => {
   const loadReceipts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) return;
+      if (!user?.email) {
+        console.log('No user email found');
+        return;
+      }
+
+      console.log('Loading receipts for:', user.email);
 
       const { data, error } = await supabase
         .from('sponsorship_receipts')
@@ -44,16 +49,15 @@ export const DonationHistory = () => {
         .order('transaction_date', { ascending: false });
 
       if (error) {
-        // If there's an error (table doesn't exist, RLS issue, etc.), just set empty receipts
-        console.error('Error loading receipts:', error);
+        console.error('Error fetching receipts:', error);
         setReceipts([]);
         return;
       }
       
+      console.log('Receipts loaded:', data?.length || 0);
       setReceipts(data || []);
     } catch (error) {
-      // Silently handle errors - no receipts just means the section won't show
-      console.error('Error loading receipts:', error);
+      console.error('Unexpected error loading receipts:', error);
       setReceipts([]);
     } finally {
       setLoading(false);
@@ -124,10 +128,10 @@ export const DonationHistory = () => {
         description: data.message || `Generated ${data.receiptsGenerated} receipt(s)`,
       });
 
-      // Reload receipts to show the newly generated ones
-      if (data.receiptsGenerated > 0) {
-        await loadReceipts();
-      }
+      // Force reload receipts - clear state first to ensure fresh load
+      setReceipts([]);
+      setLoading(true);
+      await loadReceipts();
     } catch (error: any) {
       console.error('Error generating receipts:', error);
       toast({
