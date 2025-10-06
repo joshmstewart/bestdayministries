@@ -206,6 +206,13 @@ serve(async (req) => {
             .eq('id', sponsorBestieId)
             .single();
 
+          // Get sponsor name from user metadata
+          const { data: profileData } = await supabaseAdmin
+            .from('profiles')
+            .select('display_name')
+            .eq('id', user.id)
+            .single();
+
           if (bestieData) {
             try {
               await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
@@ -216,6 +223,7 @@ serve(async (req) => {
                 },
                 body: JSON.stringify({
                   sponsorEmail: customerEmail,
+                  sponsorName: profileData?.display_name || null,
                   bestieName: bestieData.bestie_name,
                   amount: amount,
                   frequency: frequency,
@@ -229,6 +237,85 @@ serve(async (req) => {
             }
           }
         }
+        }
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        // Handle recurring subscription payments
+        const invoice = event.data.object as Stripe.Invoice;
+        
+        if (!invoice.subscription) {
+          console.log("Invoice not related to a subscription");
+          break;
+        }
+
+        const customerEmail = invoice.customer_email;
+        if (!customerEmail) {
+          console.log("No customer email in invoice");
+          break;
+        }
+
+        // Find the user by email
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+        if (authError) {
+          console.error("Error fetching users:", authError);
+          break;
+        }
+
+        const user = authData.users.find(u => u.email === customerEmail);
+        if (!user) {
+          console.log("User not found for email:", customerEmail);
+          break;
+        }
+
+        // Get subscription details
+        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const sponsorBestieId = subscription.metadata?.bestie_id;
+        
+        if (!sponsorBestieId) {
+          console.log("No bestie_id in subscription metadata");
+          break;
+        }
+
+        // Get bestie data and sponsor name
+        const { data: bestieData } = await supabaseAdmin
+          .from('sponsor_besties')
+          .select('bestie_name')
+          .eq('id', sponsorBestieId)
+          .single();
+
+        const { data: profileData } = await supabaseAdmin
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .single();
+
+        if (bestieData) {
+          const amount = invoice.amount_paid / 100; // Convert cents to dollars
+          const frequency = subscription.items.data[0]?.price.recurring?.interval === "month" ? "monthly" : "yearly";
+
+          try {
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                sponsorEmail: customerEmail,
+                sponsorName: profileData?.display_name || null,
+                bestieName: bestieData.bestie_name,
+                amount: amount,
+                frequency: frequency,
+                transactionId: invoice.id,
+                transactionDate: new Date(invoice.created * 1000).toISOString(),
+              }),
+            });
+            console.log('Receipt email sent for recurring payment');
+          } catch (emailError) {
+            console.error('Failed to send receipt email:', emailError);
+          }
         }
         break;
       }

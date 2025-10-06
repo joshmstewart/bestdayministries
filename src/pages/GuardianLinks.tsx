@@ -26,6 +26,7 @@ import { TextToSpeech } from "@/components/TextToSpeech";
 import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
 import { GuardianSponsorMessenger } from "@/components/guardian/GuardianSponsorMessenger";
 import { SponsorMessageInbox } from "@/components/sponsor/SponsorMessageInbox";
+import { DonationHistory } from "@/components/sponsor/DonationHistory";
 
 // Build timestamp for admin visibility
 const BUILD_TIMESTAMP = new Date().toISOString();
@@ -1628,6 +1629,17 @@ export default function GuardianLinks() {
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Donation History & Tax Receipts Section - For Sponsors */}
+          {(ownSponsorships.length > 0 || userRole === "supporter" || userRole === "caregiver") && (
+            <div className="space-y-4 mt-12">
+              <div className="flex items-center gap-2 mb-6">
+                <FileCheck className="w-6 h-6 text-primary" />
+                <h2 className="text-2xl font-bold">Tax Receipts & Donation History</h2>
+              </div>
+              <DonationHistory />
+            </div>
           )}
         </div>
       </main>

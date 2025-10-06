@@ -1718,6 +1718,62 @@ export type Database = {
         }
         Relationships: []
       }
+      sponsorship_receipts: {
+        Row: {
+          amount: number
+          bestie_name: string
+          created_at: string | null
+          frequency: string
+          id: string
+          receipt_number: string
+          sent_at: string | null
+          sponsor_email: string
+          sponsor_name: string | null
+          sponsorship_id: string | null
+          tax_year: number
+          transaction_date: string
+          transaction_id: string
+        }
+        Insert: {
+          amount: number
+          bestie_name: string
+          created_at?: string | null
+          frequency: string
+          id?: string
+          receipt_number: string
+          sent_at?: string | null
+          sponsor_email: string
+          sponsor_name?: string | null
+          sponsorship_id?: string | null
+          tax_year: number
+          transaction_date: string
+          transaction_id: string
+        }
+        Update: {
+          amount?: number
+          bestie_name?: string
+          created_at?: string | null
+          frequency?: string
+          id?: string
+          receipt_number?: string
+          sent_at?: string | null
+          sponsor_email?: string
+          sponsor_name?: string | null
+          sponsorship_id?: string | null
+          tax_year?: number
+          transaction_date?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsorship_receipts_sponsorship_id_fkey"
+            columns: ["sponsorship_id"]
+            isOneToOne: false
+            referencedRelation: "sponsorships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sponsorship_shares: {
         Row: {
           bestie_id: string
@@ -2203,6 +2259,19 @@ export type Database = {
           remaining_needed: number | null
           sponsor_bestie_id: string | null
           stripe_mode: string | null
+        }
+        Relationships: []
+      }
+      sponsorship_year_end_summary: {
+        Row: {
+          donations: Json[] | null
+          first_donation_date: string | null
+          last_donation_date: string | null
+          sponsor_email: string | null
+          sponsor_name: string | null
+          tax_year: number | null
+          total_amount: number | null
+          total_donations: number | null
         }
         Relationships: []
       }

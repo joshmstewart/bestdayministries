@@ -246,8 +246,36 @@ serve(async (req) => {
 
     console.log('Receipt sent successfully:', emailResponse);
 
-    return new Response(JSON.stringify({ success: true, emailId: emailResponse.data?.id }), {
-      status: 200,
+    // Generate unique receipt number (format: YEAR-XXXXXX)
+    const year = new Date(transactionDate).getFullYear();
+    const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const receiptNumber = `${year}-${randomNum}`;
+
+    // Store receipt in database for history/year-end summaries
+    const { error: insertError } = await supabaseAdmin
+      .from('sponsorship_receipts')
+      .insert({
+        sponsor_email: sponsorEmail,
+        sponsor_name: sponsorName,
+        bestie_name: bestieName,
+        amount,
+        frequency,
+        transaction_id: transactionId,
+        transaction_date: transactionDate,
+        receipt_number: receiptNumber,
+        tax_year: year
+      });
+
+    if (insertError) {
+      console.error('Error storing receipt record:', insertError);
+      // Don't fail the request if receipt tracking fails
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      emailId: emailResponse.data?.id,
+      receiptNumber 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
