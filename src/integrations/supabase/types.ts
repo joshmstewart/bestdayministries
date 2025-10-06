@@ -930,6 +930,7 @@ export type Database = {
           is_public: boolean
           link_text: string | null
           link_url: string
+          original_image_url: string | null
           title: string
           updated_at: string
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
@@ -945,6 +946,7 @@ export type Database = {
           is_public?: boolean
           link_text?: string | null
           link_url: string
+          original_image_url?: string | null
           title: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
@@ -960,6 +962,7 @@ export type Database = {
           is_public?: boolean
           link_text?: string | null
           link_url?: string
+          original_image_url?: string | null
           title?: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null

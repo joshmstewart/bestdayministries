@@ -10,14 +10,16 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Pencil, Trash2, Eye, EyeOff, Upload, X, Info } from "lucide-react";
+import { Pencil, Trash2, Eye, EyeOff, Upload, X, Info, Crop } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface FeaturedItem {
   id: string;
   title: string;
   description: string;
   image_url: string | null;
+  original_image_url: string | null;
   link_url: string;
   link_text: string;
   is_active: boolean;
@@ -48,6 +50,9 @@ export const FeaturedItemManager = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPublic, setIsPublic] = useState(true);
   const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string>("");
+  const [originalImageUrl, setOriginalImageUrl] = useState<string>("");
 
   useEffect(() => {
     loadItems();
@@ -116,6 +121,7 @@ export const FeaturedItemManager = () => {
         });
         if (event.image_url) {
           setImagePreview(event.image_url);
+          setOriginalImageUrl(event.image_url);
         }
       }
     } else if (type === "album") {
@@ -130,6 +136,7 @@ export const FeaturedItemManager = () => {
         });
         if (album.cover_image_url) {
           setImagePreview(album.cover_image_url);
+          setOriginalImageUrl(album.cover_image_url);
         }
       }
     } else if (type === "post") {
@@ -144,6 +151,7 @@ export const FeaturedItemManager = () => {
         });
         if (post.image_url) {
           setImagePreview(post.image_url);
+          setOriginalImageUrl(post.image_url);
         }
       }
     }
@@ -194,6 +202,7 @@ export const FeaturedItemManager = () => {
       if (!user) throw new Error("Not authenticated");
 
       let imageUrl = formData.image_url;
+      let originalUrl = originalImageUrl;
 
       // Upload image if file is selected
       if (imageFile) {
@@ -211,6 +220,10 @@ export const FeaturedItemManager = () => {
           .getPublicUrl(fileName);
 
         imageUrl = publicUrl;
+        // Store original URL for future recropping
+        if (!originalUrl) {
+          originalUrl = publicUrl;
+        }
       }
 
       // Ensure admin and owner are always included
@@ -220,6 +233,7 @@ export const FeaturedItemManager = () => {
         ...formData,
         link_url: linkType === "sponsorship" ? "/sponsor-bestie" : formData.link_url,
         image_url: imageUrl,
+        original_image_url: originalUrl,
         created_by: user.id,
         is_active: true,
         is_public: isPublic,
@@ -284,6 +298,10 @@ export const FeaturedItemManager = () => {
     if (item.image_url) {
       setImagePreview(item.image_url);
     }
+    
+    if (item.original_image_url) {
+      setOriginalImageUrl(item.original_image_url);
+    }
 
     // Scroll to the top to show the form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -336,10 +354,51 @@ export const FeaturedItemManager = () => {
     });
     setImageFile(null);
     setImagePreview("");
+    setOriginalImageUrl("");
     setIsPublic(true);
     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRecrop = () => {
+    if (originalImageUrl) {
+      setImageToCrop(originalImageUrl);
+      setCropDialogOpen(true);
+    }
+  };
+
+  const handleCroppedImage = async (croppedBlob: Blob) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      setUploading(true);
+
+      // Upload the cropped image
+      const fileName = `${user.id}/${Date.now()}_cropped_featured.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(fileName, croppedBlob);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(fileName);
+
+      // Update preview and form data
+      setImagePreview(publicUrl);
+      setFormData({ ...formData, image_url: publicUrl });
+      
+      toast.success("Image cropped successfully");
+    } catch (error) {
+      console.error("Error uploading cropped image:", error);
+      toast.error("Failed to upload cropped image");
+    } finally {
+      setUploading(false);
+      setCropDialogOpen(false);
     }
   };
 
@@ -483,6 +542,18 @@ export const FeaturedItemManager = () => {
                       className="w-full h-48 object-cover rounded-lg"
                     />
                     <div className="absolute top-2 right-2 flex gap-2">
+                      {originalImageUrl && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleRecrop}
+                          title="Recrop image"
+                        >
+                          <Crop className="h-4 w-4 mr-1" />
+                          Recrop
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="secondary"
@@ -713,6 +784,16 @@ export const FeaturedItemManager = () => {
           </div>
         </CardContent>
       </Card>
+
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageUrl={imageToCrop}
+        onCropComplete={handleCroppedImage}
+        aspectRatio={16 / 9}
+        title="Recrop Featured Item Image"
+        description="Adjust the crop to customize how this image appears in the featured item carousel"
+      />
     </div>
   );
 };
