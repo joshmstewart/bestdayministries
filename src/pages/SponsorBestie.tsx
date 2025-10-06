@@ -143,11 +143,9 @@ const SponsorBestie = () => {
         setUserRole(roleData.role);
       }
       
-      // Block besties from sponsoring
+      // Warn besties but don't block them
       if (roleData?.role === "bestie") {
-        toast.error("Besties cannot sponsor other besties at this time");
-        navigate("/community");
-        return;
+        toast.info("Note: Besties typically receive sponsorships rather than giving them.");
       }
       
       // Get email from auth user object instead of profiles
@@ -448,12 +446,12 @@ const SponsorBestie = () => {
                       onChange={(e) => setEmail(e.target.value)} 
                       placeholder="your@email.com" 
                       className="text-base"
-                      disabled={isLoggedIn}
+                      required
                     />
                     <p className="text-xs text-muted-foreground">
                       {isLoggedIn 
-                        ? "Using your account email" 
-                        : "We'll send your sponsorship receipt and updates to this email"}
+                        ? "We'll send your sponsorship receipt to this email" 
+                        : "Don't have an account? You can sponsor as a guest and create one later to view your sponsorships."}
                     </p>
                   </div>
 

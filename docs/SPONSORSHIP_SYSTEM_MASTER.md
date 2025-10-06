@@ -59,16 +59,26 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 1. Load active `sponsor_besties` + funding progress
 2. Display carousel/list (randomized or pre-selected by URL param)
 3. User selects bestie, amount (min $10), frequency (one-time/monthly)
-4. Email auto-filled if logged in
+4. **Email:** Auto-filled if logged in, but always editable | Guest checkout supported
 5. Call `create-sponsorship-checkout` edge function
 6. Redirect to Stripe Checkout
 7. On success → `/sponsorship-success` → calls `verify-sponsorship-payment`
-8. Creates `sponsorships` record with status 'active'
+8. Creates `sponsorships` record:
+   - **If logged in:** `sponsor_id` = user ID, `sponsor_email` = NULL
+   - **If guest:** `sponsor_id` = NULL, `sponsor_email` = entered email
+   - **Auto-linking:** When guest creates account with same email, trigger links existing sponsorships
+9. Status: 'active', stores `stripe_subscription_id` (for monthly)
 
 **Validation:**
-- Besties blocked from sponsoring (role check)
 - Min $10, valid email (Zod)
+- Besties can sponsor (shows info toast but doesn't block)
 - Defaults: $25, monthly
+
+**Guest Checkout:**
+- No account required to sponsor
+- Sponsorships stored with `sponsor_email` instead of `sponsor_id`
+- Message shown: "Don't have an account? You can sponsor as a guest and create one later to view your sponsorships."
+- When user creates account with matching email, sponsorships auto-link via database trigger
 
 ### 2. VIEW SPONSORSHIPS (Supporter/Guardian)
 
@@ -238,25 +248,28 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 **create-sponsorship-checkout**
 - **Request:** `{bestie_id, amount, frequency, email}`
 - **Flow:**
-  1. Authenticate user (optional for guest checkout)
+  1. **No auth check required** - supports guest checkout
   2. Get/create Stripe customer by email
   3. Create Stripe price for amount
-  4. Create checkout session:
-     - `mode: 'subscription'` (monthly) OR `mode: 'payment'` (one-time)
-     - `success_url: /sponsorship-success`
-     - `cancel_url: /sponsor-bestie`
-  5. Return `{url}` for redirect
+  4. Create checkout session (mode: 'subscription' for monthly, 'payment' for one-time)
+  5. Store `bestie_id` in session metadata
+  6. Return `{url}` for redirect
 
 **verify-sponsorship-payment**
 - **Request:** `{session_id}`
 - **Flow:**
   1. Verify payment with Stripe
-  2. Get user by email from session
-  3. Insert into `sponsorships`:
-     - `sponsor_id` = user.id
-     - `sponsor_bestie_id` = sponsor_besties.id (NOT bestie_id)
-     - `amount`, `frequency`, `status: 'active'`
-     - `stripe_subscription_id` (if monthly)
+  2. Get customer email from session
+  3. Find user by email from auth.users (if exists)
+  4. Check for existing sponsorship by `stripe_subscription_id`
+  5. Insert into `sponsorships`:
+     - **If user found:** `sponsor_id` = user.id, `sponsor_email` = NULL
+     - **If guest:** `sponsor_id` = NULL, `sponsor_email` = customer email
+     - `sponsor_bestie_id`, `amount`, `frequency`, `status: 'active'`
+     - `stripe_subscription_id` (if monthly), `stripe_mode`
+  6. Return success message:
+     - **If authenticated:** Standard confirmation
+     - **If guest:** "Your sponsorship will automatically link when you create an account with this email."
 
 **manage-sponsorship**
 - **Request:** None (uses auth token)
@@ -297,6 +310,7 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 - Finds user by customer email from auth.users
 - Uses subscription metadata for precise targeting
 - Logs all events for debugging
+- **Guest checkout support:** Updates sponsorships by `sponsor_email` if `sponsor_id` is NULL
 
 ### Status Flow & Progress Bar Updates
 
@@ -342,6 +356,14 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 ---
 
 ## KEY BUSINESS RULES
+
+### Guest Checkout
+- **No account required** to sponsor a bestie
+- Sponsorships stored with `sponsor_email` (no `sponsor_id`)
+- Database trigger `link_guest_sponsorships()` runs on user signup
+- Automatically links sponsorships when email matches
+- Guest sees message: "Your sponsorship will automatically link when you create an account with this email."
+- RLS policy allows logged-in users to view sponsorships by email match
 
 ### Funding Progress
 - Only shown if `monthly_goal > 0`
@@ -413,6 +435,8 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 | Progress bar not updating after cancel | Webhook not processing | Check edge function logs |
 | Cancelled sponsorship still counts | Status not updated | Verify webhook received event |
 | Portal button doesn't work | No Stripe customer | User must complete checkout first |
+| Guest sponsorship not linking | Email mismatch or trigger failure | Check `link_guest_sponsorships` trigger logs |
+| Can't view sponsorships after signup | Email mismatch | Verify signup email matches sponsorship email |
 
 ---
 

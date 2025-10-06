@@ -62,23 +62,7 @@ serve(async (req) => {
     // Find user by email using auth.admin
     const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
     const user = usersData.users.find(u => u.email?.toLowerCase() === customerEmail.toLowerCase());
-    
-    if (!user) {
-      // For guest checkouts, we can't create a sponsorship without a user ID
-      console.log('User not found for email:', customerEmail);
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          message: 'Payment successful. Please create an account to view your sponsorships.',
-          amount: session.metadata.amount,
-          frequency: session.metadata.frequency,
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
+    const userId = user?.id || null;
 
     // Check if sponsorship already exists for this Stripe session
     const stripeReferenceId = session.subscription || session.payment_intent;
@@ -106,11 +90,12 @@ serve(async (req) => {
       }
     }
 
-    // Create new sponsorship record
+    // Create new sponsorship record (with sponsor_id for logged in, or sponsor_email for guest)
     const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
       .from('sponsorships')
       .insert({
-        sponsor_id: user.id,
+        sponsor_id: userId,
+        sponsor_email: userId ? null : customerEmail, // Store email for guest checkouts
         sponsor_bestie_id: session.metadata.bestie_id, // This is actually sponsor_bestie.id
         amount: parseFloat(session.metadata.amount),
         frequency: session.metadata.frequency,
@@ -127,7 +112,7 @@ serve(async (req) => {
       throw new Error('Failed to create sponsorship record');
     }
 
-    console.log('Sponsorship created:', sponsorship.id);
+    console.log('Sponsorship created:', sponsorship.id, userId ? '(authenticated)' : '(guest)');
 
     return new Response(
       JSON.stringify({ 
@@ -135,6 +120,7 @@ serve(async (req) => {
         sponsorship_id: sponsorship.id,
         amount: session.metadata.amount,
         frequency: session.metadata.frequency,
+        message: userId ? undefined : 'Your sponsorship will automatically link when you create an account with this email.',
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

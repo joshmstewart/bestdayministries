@@ -302,11 +302,14 @@ export default function GuardianLinks() {
 
   const loadSponsorships = async (userId: string) => {
     try {
-      // Load sponsorships where user is sponsor (using any to bypass type issues)
+      // Get user's email for matching guest sponsorships
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      // Load sponsorships where user is sponsor (by user ID or by email for guest checkouts)
       const { data: ownSponsorshipsData, error: ownError } = await supabase
         .from("sponsorships")
         .select("*")
-        .eq("sponsor_id", userId)
+        .or(`sponsor_id.eq.${userId},sponsor_email.eq.${authUser?.email}`)
         .eq("status", "active")
         .order("started_at", { ascending: false }) as { data: any[] | null, error: any };
 

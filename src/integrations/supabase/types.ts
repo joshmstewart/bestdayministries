@@ -1609,7 +1609,8 @@ export type Database = {
           frequency: string | null
           id: string
           sponsor_bestie_id: string | null
-          sponsor_id: string
+          sponsor_email: string | null
+          sponsor_id: string | null
           started_at: string
           status: string | null
           stripe_mode: string | null
@@ -1622,7 +1623,8 @@ export type Database = {
           frequency?: string | null
           id?: string
           sponsor_bestie_id?: string | null
-          sponsor_id: string
+          sponsor_email?: string | null
+          sponsor_id?: string | null
           started_at?: string
           status?: string | null
           stripe_mode?: string | null
@@ -1635,7 +1637,8 @@ export type Database = {
           frequency?: string | null
           id?: string
           sponsor_bestie_id?: string | null
-          sponsor_id?: string
+          sponsor_email?: string | null
+          sponsor_id?: string | null
           started_at?: string
           status?: string | null
           stripe_mode?: string | null
