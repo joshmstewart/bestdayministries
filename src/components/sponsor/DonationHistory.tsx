@@ -33,11 +33,12 @@ export const DonationHistory = () => {
   const loadReceipts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user?.email) return;
 
       const { data, error } = await supabase
         .from('sponsorship_receipts')
         .select('*')
+        .eq('sponsor_email', user.email)
         .order('transaction_date', { ascending: false });
 
       if (error) throw error;

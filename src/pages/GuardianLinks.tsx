@@ -1631,8 +1631,8 @@ export default function GuardianLinks() {
             </Card>
           )}
 
-          {/* Donation History & Tax Receipts Section - For Sponsors */}
-          {(ownSponsorships.length > 0 || userRole === "supporter" || userRole === "caregiver") && (
+          {/* Donation History & Tax Receipts Section - For Sponsors Only */}
+          {userRole === "supporter" && (
             <div className="space-y-4 mt-12">
               <div className="flex items-center gap-2 mb-6">
                 <FileCheck className="w-6 h-6 text-primary" />
