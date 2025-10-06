@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowLeft } from "lucide-react";
 
 type AvatarCategory = "humans" | "animals" | "monsters" | "shapes";
 
@@ -120,6 +120,16 @@ export default function AvatarManagement() {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       <main className="flex-1 container mx-auto px-4 pt-20 pb-8">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/admin')}
+          className="mb-6"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Admin
+        </Button>
+
         <Card>
           <CardHeader>
             <CardTitle>Avatar Management</CardTitle>

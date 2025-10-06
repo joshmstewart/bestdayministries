@@ -455,6 +455,16 @@ export default function EventManagement() {
       <UnifiedHeader />
       <main className="flex-1 container mx-auto px-4 pt-20 pb-8">
         <div className="max-w-6xl mx-auto space-y-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/admin')}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Admin
+          </Button>
+
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold">Event Management</h1>
             <Button onClick={() => {
