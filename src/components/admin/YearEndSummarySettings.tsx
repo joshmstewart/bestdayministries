@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Eye, Info } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -122,6 +122,17 @@ export function YearEndSummarySettings() {
         }
       });
 
+      // Check if the data contains an error message (even if HTTP succeeded)
+      if (data?.error) {
+        toast({
+          title: "No Data Available",
+          description: `${data.error} for year ${data.year || new Date().getFullYear() - 1}. The preview requires at least one completed sponsorship payment to generate.`,
+          variant: "destructive",
+        });
+        setPreviewOpen(false);
+        return;
+      }
+
       if (error) throw error;
       
       if (data?.html) {
@@ -133,7 +144,7 @@ export function YearEndSummarySettings() {
       console.error("Error generating preview:", error);
       toast({
         title: "Preview Error",
-        description: error.message || "Failed to generate preview. Make sure you have donation data.",
+        description: "Failed to generate preview. Please try again or contact support if the issue persists.",
         variant: "destructive",
       });
       setPreviewOpen(false);
@@ -274,6 +285,9 @@ export function YearEndSummarySettings() {
                 Preview Email
               </Button>
             </DialogTrigger>
+            <DialogDescription className="sr-only">
+              Preview of the year-end tax summary email template with your custom settings
+            </DialogDescription>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Year-End Tax Summary Preview</DialogTitle>
