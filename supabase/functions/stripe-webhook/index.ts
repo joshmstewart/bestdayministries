@@ -256,10 +256,16 @@ serve(async (req) => {
         break;
       }
 
-      case "invoice.payment_succeeded":
-      case "invoice_payment.paid": {
-        // Handle recurring subscription payments
+      case "invoice.payment_succeeded": {
+        // Handle recurring subscription payments (SKIP initial invoice - already handled by checkout.session.completed)
         const invoice = event.data.object as Stripe.Invoice;
+        
+        // Skip if this is the first invoice (billing_reason: 'subscription_create')
+        // These are already handled by checkout.session.completed
+        if (invoice.billing_reason === 'subscription_create') {
+          console.log('Skipping initial subscription invoice - already handled by checkout.session.completed');
+          break;
+        }
         
         if (!invoice.subscription) {
           console.log("Invoice not related to a subscription");

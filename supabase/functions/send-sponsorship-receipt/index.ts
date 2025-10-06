@@ -327,6 +327,13 @@ serve(async (req) => {
     const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
     receiptNumber = `RCP-${timestamp}-${randomStr}`;
 
+    // Get user_id from email if user exists
+    const { data: userData } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', sponsorEmail)
+      .maybeSingle();
+
     // Store receipt in database for history/year-end summaries
     const { error: insertError } = await supabaseAdmin
       .from('sponsorship_receipts')
@@ -340,7 +347,8 @@ serve(async (req) => {
         transaction_date: transactionDate,
         receipt_number: receiptNumber,
         tax_year: new Date(transactionDate).getFullYear(),
-        stripe_mode: stripeMode
+        stripe_mode: stripeMode,
+        user_id: userData?.id || null
       });
 
     if (insertError) {
