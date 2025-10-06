@@ -479,6 +479,7 @@ export type Database = {
       }
       discussion_posts: {
         Row: {
+          album_id: string | null
           approval_status: string
           approved_at: string | null
           approved_by: string | null
@@ -500,6 +501,7 @@ export type Database = {
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
+          album_id?: string | null
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -521,6 +523,7 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
+          album_id?: string | null
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -542,6 +545,13 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "discussion_posts_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "discussion_posts_author_id_fkey"
             columns: ["author_id"]

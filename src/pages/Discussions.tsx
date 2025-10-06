@@ -140,7 +140,8 @@ const Discussions = () => {
       .from("discussion_posts")
       .select(`
         *,
-        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role, avatar_number)
+        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role, avatar_number),
+        album:albums(id, title, cover_image_url, is_active)
       `)
       .eq("is_moderated", true)
       .order("created_at", { ascending: false});
@@ -935,6 +936,17 @@ const Discussions = () => {
                               <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/30">
                                 Rejected
                               </span>
+                            )}
+                            {(post as any).album && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/gallery#${(post as any).album.id}`)}
+                                className="text-xs h-6 px-2 gap-1"
+                              >
+                                <ImageIcon className="w-3 h-3" />
+                                View Album
+                              </Button>
                             )}
                           </div>
                         </div>

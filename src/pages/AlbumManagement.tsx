@@ -361,6 +361,7 @@ export default function AlbumManagement() {
       }
 
       // Upload images
+      let coverImageUrl = editingAlbum?.cover_image_url || null;
       for (let i = 0; i < selectedImages.length; i++) {
         const file = selectedImages[i];
         const compressedImage = await compressImage(file, 4.5);
@@ -397,7 +398,51 @@ export default function AlbumManagement() {
             .from("albums")
             .update({ cover_image_url: publicUrl })
             .eq("id", albumId);
+          coverImageUrl = publicUrl;
         }
+      }
+
+      // If album is marked as a post, create or update the discussion post
+      if (isPost && albumId) {
+        // Use cover image or first existing image for the post
+        const postImageUrl = coverImageUrl || existingImages[0]?.image_url || null;
+        
+        // Check if a post already exists for this album
+        const { data: existingPost } = await supabase
+          .from("discussion_posts")
+          .select("id")
+          .eq("album_id", albumId)
+          .maybeSingle();
+
+        const postData = {
+          title,
+          content: description || `View the ${title} album`,
+          author_id: user.id,
+          image_url: postImageUrl,
+          visible_to_roles: visibleToRoles,
+          is_moderated: true,
+          approval_status: 'approved',
+          album_id: albumId,
+        };
+
+        if (existingPost) {
+          // Update existing post
+          await supabase
+            .from("discussion_posts")
+            .update(postData)
+            .eq("id", existingPost.id);
+        } else {
+          // Create new post
+          await supabase
+            .from("discussion_posts")
+            .insert(postData);
+        }
+      } else if (!isPost && albumId) {
+        // If unchecked, delete any associated post
+        await supabase
+          .from("discussion_posts")
+          .delete()
+          .eq("album_id", albumId);
       }
 
       toast.success(editingAlbum ? "Album updated successfully" : "Album created successfully");
