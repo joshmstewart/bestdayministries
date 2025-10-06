@@ -42,15 +42,18 @@ export const DonationHistory = () => {
         .eq('sponsor_email', user.email)
         .order('transaction_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // If there's an error (table doesn't exist, RLS issue, etc.), just set empty receipts
+        console.error('Error loading receipts:', error);
+        setReceipts([]);
+        return;
+      }
+      
       setReceipts(data || []);
     } catch (error) {
+      // Silently handle errors - no receipts just means the section won't show
       console.error('Error loading receipts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load donation history",
-        variant: "destructive",
-      });
+      setReceipts([]);
     } finally {
       setLoading(false);
     }
