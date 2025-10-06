@@ -333,9 +333,10 @@ const SponsorBestie = () => {
         ) : null;
       
       case 'sponsor_carousel':
+        const urlBestieId = searchParams.get('bestieId');
         return (
           <div className="mb-8" key="sponsor_carousel">
-            <SponsorBestieDisplay selectedBestieId={selectedBestie} />
+            <SponsorBestieDisplay selectedBestieId={urlBestieId || undefined} />
           </div>
         );
       
