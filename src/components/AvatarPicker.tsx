@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import composite1 from "@/assets/avatars/composite-1.png";
 import composite2 from "@/assets/avatars/composite-2.png";
 import composite3 from "@/assets/avatars/composite-3.png";
@@ -234,15 +233,15 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label>Choose Your Avatar (Optional)</Label>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-9 p-0">
-            <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-            <span className="sr-only">Toggle avatar picker</span>
-          </Button>
-        </CollapsibleTrigger>
-      </div>
+      <CollapsibleTrigger asChild>
+        <button 
+          type="button"
+          className="flex items-center justify-between w-full text-left hover:opacity-70 transition-opacity"
+        >
+          <Label className="cursor-pointer">Choose Your Avatar (Optional)</Label>
+          <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+        </button>
+      </CollapsibleTrigger>
       
       <CollapsibleContent className="space-y-4">
         {Object.entries(avatarsByCategory).map(([key, category]) => (

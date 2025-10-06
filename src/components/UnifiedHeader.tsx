@@ -382,7 +382,7 @@ export const UnifiedHeader = () => {
                   Login
                 </Button>
                 <Button 
-                  onClick={() => navigate("/auth")}
+                  onClick={() => navigate("/auth?signup=true")}
                   className="bg-gradient-warm border-0 font-semibold"
                 >
                   Sign Up
