@@ -294,6 +294,7 @@ export const ContactFormManager = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12"></TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
@@ -306,13 +307,36 @@ export const ContactFormManager = () => {
                 {submissions.map((submission) => (
                   <TableRow key={submission.id}>
                     <TableCell>
+                      <div className="flex items-center justify-center">
+                        {submission.status === "new" && (
+                          <div className="w-2 h-2 rounded-full bg-destructive" title="New submission" />
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       {format(new Date(submission.created_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>{submission.name}</TableCell>
                     <TableCell>
-                      <a href={`mailto:${submission.email}`} className="text-primary hover:underline">
-                        {submission.email}
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            navigator.clipboard.writeText(submission.email);
+                            toast({
+                              title: "Email copied",
+                              description: "Email address copied to clipboard",
+                            });
+                          }}
+                          title="Copy email"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <a href={`mailto:${submission.email}`} className="text-primary hover:underline">
+                          {submission.email}
+                        </a>
+                      </div>
                     </TableCell>
                     <TableCell>{submission.subject || "—"}</TableCell>
                     <TableCell>
@@ -327,18 +351,16 @@ export const ContactFormManager = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => markAsRead(submission.id)}
-                            title="Mark as Read"
                           >
-                            <Mail className="h-4 w-4" />
+                            Mark Read
                           </Button>
                         ) : (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => markAsNew(submission.id)}
-                            title="Mark as New"
                           >
-                            <Mail className="h-4 w-4 text-primary" />
+                            Mark Unread
                           </Button>
                         )}
                         <Button
