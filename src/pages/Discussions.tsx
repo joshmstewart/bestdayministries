@@ -331,14 +331,19 @@ const Discussions = () => {
 
         // Check moderation settings
         const { data: moderationSettings } = await supabase
-          .from('moderation_settings' as any)
-          .select('require_image_moderation')
+          .from('moderation_settings')
+          .select('discussion_post_image_policy')
           .maybeSingle();
 
-        const requireModeration = (moderationSettings as any)?.require_image_moderation ?? true;
+        const imagePolicy = moderationSettings?.discussion_post_image_policy || 'flagged';
 
-        if (requireModeration) {
-          // Moderate the uploaded image
+        if (imagePolicy === 'all') {
+          // All images require moderation
+          imageModerationStatus = 'pending';
+          imageModerationSeverity = 'manual_review';
+          imageModerationReason = 'Admin policy requires all images to be reviewed';
+        } else if (imagePolicy === 'flagged') {
+          // Moderate the uploaded image with AI
           const { data: imageModeration, error: imageModerationError } = await supabase.functions.invoke('moderate-image', {
             body: { imageUrl: publicUrl }
           });
@@ -353,7 +358,7 @@ const Discussions = () => {
             imageModerationReason = imageModeration?.reason || null;
           }
         } else {
-          // Auto-approve if moderation not required
+          // Policy is 'none' - auto-approve
           imageModerationStatus = 'approved';
         }
       }

@@ -34,6 +34,7 @@ import { VendorManagement } from "@/components/admin/VendorManagement";
 import { ContactFormManager } from "@/components/admin/ContactFormManager";
 import { VideoManager } from "@/components/admin/VideoManager";
 import { MessageModerationQueue } from "@/components/admin/MessageModerationQueue";
+import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -388,6 +389,8 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="moderation" className="space-y-4">
+            <ModerationPolicyManager />
+            
             <MessageModerationQueue />
 
             <Card>

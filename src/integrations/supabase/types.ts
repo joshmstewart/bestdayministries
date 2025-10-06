@@ -22,6 +22,11 @@ export type Database = {
           display_order: number
           id: string
           image_url: string
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_reason: string | null
+          moderation_severity: string | null
+          moderation_status: string | null
         }
         Insert: {
           album_id: string
@@ -30,6 +35,11 @@ export type Database = {
           display_order?: number
           id?: string
           image_url: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_severity?: string | null
+          moderation_status?: string | null
         }
         Update: {
           album_id?: string
@@ -38,6 +48,11 @@ export type Database = {
           display_order?: number
           id?: string
           image_url?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_severity?: string | null
+          moderation_status?: string | null
         }
         Relationships: [
           {
@@ -474,7 +489,12 @@ export type Database = {
           id: string
           image_url: string | null
           is_moderated: boolean | null
+          moderated_at: string | null
+          moderated_by: string | null
           moderation_notes: string | null
+          moderation_reason: string | null
+          moderation_severity: string | null
+          moderation_status: string | null
           title: string
           updated_at: string
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
@@ -490,7 +510,12 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_moderated?: boolean | null
+          moderated_at?: string | null
+          moderated_by?: string | null
           moderation_notes?: string | null
+          moderation_reason?: string | null
+          moderation_severity?: string | null
+          moderation_status?: string | null
           title: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
@@ -506,7 +531,12 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_moderated?: boolean | null
+          moderated_at?: string | null
+          moderated_by?: string | null
           moderation_notes?: string | null
+          moderation_reason?: string | null
+          moderation_severity?: string | null
+          moderation_status?: string | null
           title?: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
@@ -619,6 +649,11 @@ export type Database = {
           is_recurring: boolean
           location: string | null
           max_attendees: number | null
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_reason: string | null
+          moderation_severity: string | null
+          moderation_status: string | null
           recurrence_end_date: string | null
           recurrence_interval: number | null
           recurrence_type: string | null
@@ -641,6 +676,11 @@ export type Database = {
           is_recurring?: boolean
           location?: string | null
           max_attendees?: number | null
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_severity?: string | null
+          moderation_status?: string | null
           recurrence_end_date?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
@@ -663,6 +703,11 @@ export type Database = {
           is_recurring?: boolean
           location?: string | null
           max_attendees?: number | null
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_severity?: string | null
+          moderation_status?: string | null
           recurrence_end_date?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
@@ -798,6 +843,11 @@ export type Database = {
           image_url: string
           is_active: boolean | null
           is_fully_funded: boolean
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_reason: string | null
+          moderation_severity: string | null
+          moderation_status: string | null
           monthly_goal: number | null
           start_date: string | null
           updated_at: string
@@ -818,6 +868,11 @@ export type Database = {
           image_url: string
           is_active?: boolean | null
           is_fully_funded?: boolean
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_severity?: string | null
+          moderation_status?: string | null
           monthly_goal?: number | null
           start_date?: string | null
           updated_at?: string
@@ -838,6 +893,11 @@ export type Database = {
           image_url?: string
           is_active?: boolean | null
           is_fully_funded?: boolean
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_severity?: string | null
+          moderation_status?: string | null
           monthly_goal?: number | null
           start_date?: string | null
           updated_at?: string
@@ -988,6 +1048,63 @@ export type Database = {
           section_key?: string
           section_name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      moderation_settings: {
+        Row: {
+          auto_approve_low_severity: boolean | null
+          discussion_comment_image_policy:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          discussion_post_image_policy:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          id: string
+          sponsor_message_image_policy:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          sponsor_message_video_policy:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          auto_approve_low_severity?: boolean | null
+          discussion_comment_image_policy?:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          discussion_post_image_policy?:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          id?: string
+          sponsor_message_image_policy?:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          sponsor_message_video_policy?:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          auto_approve_low_severity?: boolean | null
+          discussion_comment_image_policy?:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          discussion_post_image_policy?:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          id?: string
+          sponsor_message_image_policy?:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          sponsor_message_video_policy?:
+            | Database["public"]["Enums"]["moderation_policy"]
+            | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -1505,8 +1622,12 @@ export type Database = {
           image_url: string | null
           is_read: boolean
           message: string
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_reason: string | null
           moderation_result: Json | null
           moderation_severity: string | null
+          moderation_status: string | null
           rejection_reason: string | null
           sent_at: string | null
           sent_by: string | null
@@ -1525,8 +1646,12 @@ export type Database = {
           image_url?: string | null
           is_read?: boolean
           message: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
           moderation_result?: Json | null
           moderation_severity?: string | null
+          moderation_status?: string | null
           rejection_reason?: string | null
           sent_at?: string | null
           sent_by?: string | null
@@ -1545,8 +1670,12 @@ export type Database = {
           image_url?: string | null
           is_read?: boolean
           message?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
           moderation_result?: Json | null
           moderation_severity?: string | null
+          moderation_status?: string | null
           rejection_reason?: string | null
           sent_at?: string | null
           sent_by?: string | null
@@ -2147,6 +2276,7 @@ export type Database = {
         | "rejected"
         | "sent"
         | "pending_moderation"
+      moderation_policy: "all" | "flagged" | "none"
       order_status:
         | "pending"
         | "processing"
@@ -2304,6 +2434,7 @@ export const Constants = {
         "sent",
         "pending_moderation",
       ],
+      moderation_policy: ["all", "flagged", "none"],
       order_status: [
         "pending",
         "processing",

@@ -359,45 +359,67 @@ export const GuardianSponsorMessenger = () => {
 
     setSending(true);
     try {
-      // Check if image was already moderated
+      // Fetch moderation policies
+      const { data: moderationSettings } = await supabase
+        .from("moderation_settings")
+        .select("sponsor_message_image_policy, sponsor_message_video_policy")
+        .maybeSingle();
+
+      const imagePolicy = moderationSettings?.sponsor_message_image_policy || 'flagged';
+      const videoPolicy = moderationSettings?.sponsor_message_video_policy || 'flagged';
+
       let messageStatus = 'approved';
       let moderationResult = null;
       let moderationSeverity = null;
 
       if (messageType === 'image' && uploadedImageUrl) {
-        // Re-check moderation result
-        const { data: modResult, error: modError } = await supabase.functions.invoke(
-          'moderate-image',
-          {
-            body: { imageUrl: uploadedImageUrl }
-          }
-        );
-
-        if (modError) throw modError;
-
-        if (!modResult.approved) {
+        if (imagePolicy === 'all') {
+          // All images require moderation
           messageStatus = 'pending_moderation';
-          moderationResult = modResult;
-          moderationSeverity = modResult.severity;
+          moderationSeverity = 'manual_review';
+        } else if (imagePolicy === 'flagged') {
+          // Check with AI
+          const { data: modResult, error: modError } = await supabase.functions.invoke(
+            'moderate-image',
+            {
+              body: { imageUrl: uploadedImageUrl }
+            }
+          );
+
+          if (modError) throw modError;
+
+          if (!modResult.approved) {
+            messageStatus = 'pending_moderation';
+            moderationResult = modResult;
+            moderationSeverity = modResult.severity;
+          }
         }
+        // If policy is 'none', messageStatus stays 'approved'
       }
 
       if (messageType === 'video' && uploadedVideoUrl) {
-        // Re-check moderation result
-        const { data: modResult, error: modError } = await supabase.functions.invoke(
-          'moderate-video',
-          {
-            body: { videoUrl: uploadedVideoUrl }
-          }
-        );
-
-        if (modError) throw modError;
-
-        if (!modResult.approved) {
+        if (videoPolicy === 'all') {
+          // All videos require moderation
           messageStatus = 'pending_moderation';
-          moderationResult = modResult;
-          moderationSeverity = modResult.severity;
+          moderationSeverity = 'manual_review';
+        } else if (videoPolicy === 'flagged') {
+          // Check with AI
+          const { data: modResult, error: modError } = await supabase.functions.invoke(
+            'moderate-video',
+            {
+              body: { videoUrl: uploadedVideoUrl }
+            }
+          );
+
+          if (modError) throw modError;
+
+          if (!modResult.approved) {
+            messageStatus = 'pending_moderation';
+            moderationResult = modResult;
+            moderationSeverity = modResult.severity;
+          }
         }
+        // If policy is 'none', messageStatus stays 'approved'
       }
 
       const { error } = await supabase
