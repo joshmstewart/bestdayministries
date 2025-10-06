@@ -300,7 +300,7 @@ const ProfileSettings = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       <UnifiedHeader />
       
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 pt-20 pb-12">
         <div className="max-w-2xl mx-auto space-y-8">
           <div>
             <h1 className="text-4xl font-black text-foreground">

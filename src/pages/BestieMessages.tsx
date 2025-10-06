@@ -54,7 +54,7 @@ export default function BestieMessages() {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       
-      <main className="flex-1 pt-6">
+      <main className="flex-1 pt-20 pb-6">
         <div className="container mx-auto px-4">
           <Button
             variant="outline"

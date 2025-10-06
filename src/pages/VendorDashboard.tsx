@@ -151,7 +151,7 @@ const VendorDashboard = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       
-      <main className="flex-1 container mx-auto px-4 py-12">
+      <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
         {vendorStatus === 'none' && (
           <div className="max-w-2xl mx-auto">
             <Card>

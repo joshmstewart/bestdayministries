@@ -119,7 +119,7 @@ export default function AvatarManagement() {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 pt-20 pb-8">
         <Card>
           <CardHeader>
             <CardTitle>Avatar Management</CardTitle>

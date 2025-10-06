@@ -204,7 +204,7 @@ const ModerationQueue = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       <UnifiedHeader />
       
-      <main className="container mx-auto px-4 pt-6">
+      <main className="container mx-auto px-4 pt-20 pb-12">
         <Button
           variant="outline"
           size="sm"

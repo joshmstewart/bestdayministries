@@ -6,7 +6,7 @@ const JoyRocksPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
-      <main className="flex-1">
+      <main className="flex-1 pt-14">
         <JoyRocks />
       </main>
       <Footer />

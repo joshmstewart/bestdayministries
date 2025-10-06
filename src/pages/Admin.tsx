@@ -147,7 +147,7 @@ const Admin = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 pt-20 pb-8">
         <div className="mb-8">
           <Button
             variant="ghost"

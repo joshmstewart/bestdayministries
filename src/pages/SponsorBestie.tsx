@@ -553,7 +553,7 @@ const SponsorBestie = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
-      <main className="flex-1 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 relative overflow-hidden">
+      <main className="flex-1 pt-14 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute inset-0 opacity-40">
           <div className="absolute top-40 left-20 w-96 h-96 bg-secondary/30 rounded-full blur-3xl animate-float" />

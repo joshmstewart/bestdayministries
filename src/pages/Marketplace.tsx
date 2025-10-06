@@ -36,7 +36,7 @@ const Marketplace = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       
-      <main className="flex-1">
+      <main className="flex-1 pt-14">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 py-16">
           <div className="container mx-auto px-4">

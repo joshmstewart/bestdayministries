@@ -64,7 +64,7 @@ const SponsorshipSuccess = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
-      <main className="flex-1 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4">
+      <main className="flex-1 pt-14 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full border-2 shadow-2xl">
           <CardContent className="p-12 text-center space-y-6">
             {verifying ? (

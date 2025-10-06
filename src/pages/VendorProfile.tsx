@@ -192,9 +192,9 @@ const VendorProfile = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       
-      <main className="flex-1">
+      <main className="flex-1 pt-14">
         {/* Banner Section */}
-        <div 
+        <div
           className="h-32 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 relative"
           style={vendor.banner_image_url ? {
             backgroundImage: `url(${vendor.banner_image_url})`,
