@@ -859,14 +859,14 @@ export default function GuardianLinks() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background">
         <UnifiedHeader />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
-            <p className="text-muted-foreground">Loading your links...</p>
+        <main className="flex-1 flex items-center justify-center pt-16">
+          <div className="text-center space-y-6 animate-fade-in">
+            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+            <p className="text-lg text-muted-foreground">Loading your links...</p>
           </div>
-        </div>
+        </main>
         <Footer />
       </div>
     );
