@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Eye } from "lucide-react";
 
 interface ReceiptSettings {
   id: string;
@@ -24,6 +25,7 @@ export const ReceiptSettingsManager = () => {
   const [settings, setSettings] = useState<ReceiptSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -98,6 +100,164 @@ export const ReceiptSettingsManager = () => {
   const updateField = (field: keyof ReceiptSettings, value: string) => {
     if (!settings) return;
     setSettings({ ...settings, [field]: value });
+  };
+
+  const generatePreviewHtml = () => {
+    if (!settings) return '';
+
+    const formattedAmount = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(25.00);
+
+    const formattedDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sponsorship Receipt</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 40px 20px;">
+              <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <!-- Header -->
+                <tr>
+                  <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #D97706 0%, #B45309 100%); border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">
+                      ${settings.organization_name}
+                    </h1>
+                    <p style="margin: 10px 0 0; color: #ffffff; font-size: 16px;">
+                      Sponsorship Receipt
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Thank You Message -->
+                <tr>
+                  <td style="padding: 30px 40px;">
+                    <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                      Dear John Sponsor,
+                    </p>
+                    <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                      ${settings.receipt_message}
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Sponsorship Details -->
+                <tr>
+                  <td style="padding: 0 40px 30px;">
+                    <table role="presentation" style="width: 100%; border: 2px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
+                      <tr>
+                        <td style="padding: 20px; background-color: #F9FAFB; border-bottom: 1px solid #E5E7EB;">
+                          <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">
+                            Sponsorship Details
+                          </h2>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 20px;">
+                          <table role="presentation" style="width: 100%;">
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Bestie Sponsored:</td>
+                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">Sample Bestie Name</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Amount:</td>
+                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${formattedAmount}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Frequency:</td>
+                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">Monthly Recurring</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Date:</td>
+                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${formattedDate}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Transaction ID:</td>
+                              <td style="padding: 8px 0; font-size: 12px; font-weight: 600; color: #111827; text-align: right; word-break: break-all;">ch_1234567890abcdef</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Tax Information -->
+                <tr>
+                  <td style="padding: 0 40px 30px;">
+                    <div style="padding: 20px; background-color: #FEF3C7; border-left: 4px solid #D97706; border-radius: 4px;">
+                      <h3 style="margin: 0 0 10px; font-size: 16px; font-weight: 600; color: #92400E;">
+                        Tax-Deductible Donation
+                      </h3>
+                      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350F;">
+                        ${settings.tax_deductible_notice}
+                      </p>
+                      ${settings.tax_id ? `
+                        <p style="margin: 10px 0 0; font-size: 14px; color: #78350F;">
+                          <strong>Tax ID:</strong> ${settings.tax_id}
+                        </p>
+                      ` : ''}
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Organization Info -->
+                <tr>
+                  <td style="padding: 20px 40px 40px; border-top: 1px solid #E5E7EB;">
+                    <table role="presentation" style="width: 100%;">
+                      <tr>
+                        <td style="text-align: center;">
+                          <p style="margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #374151;">
+                            ${settings.organization_name}
+                          </p>
+                          ${settings.organization_address ? `
+                            <p style="margin: 0 0 8px; font-size: 13px; color: #6B7280;">
+                              ${settings.organization_address}
+                            </p>
+                          ` : ''}
+                          ${settings.website_url ? `
+                            <p style="margin: 0; font-size: 13px;">
+                              <a href="${settings.website_url}" style="color: #D97706; text-decoration: none;">
+                                ${settings.website_url.replace('https://', '').replace('http://', '')}
+                              </a>
+                            </p>
+                          ` : ''}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 20px 40px; background-color: #F9FAFB; border-radius: 0 0 8px 8px; text-align: center;">
+                    <p style="margin: 0; font-size: 12px; color: #6B7280;">
+                      Please keep this receipt for your tax records.
+                    </p>
+                    <p style="margin: 10px 0 0; font-size: 12px; color: #6B7280;">
+                      You will receive a receipt each time your monthly sponsorship is processed.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
   };
 
   if (loading) {
@@ -244,8 +404,29 @@ export const ReceiptSettingsManager = () => {
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="flex justify-end pt-4 border-t">
+        {/* Actions */}
+        <div className="flex justify-between items-center pt-4 border-t">
+          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Eye className="w-4 h-4 mr-2" />
+                Preview Receipt
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+              <DialogHeader>
+                <DialogTitle>Receipt Preview</DialogTitle>
+              </DialogHeader>
+              <div className="border rounded-lg overflow-hidden">
+                <iframe
+                  srcDoc={generatePreviewHtml()}
+                  className="w-full h-[600px] border-0"
+                  title="Receipt Preview"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               <>
