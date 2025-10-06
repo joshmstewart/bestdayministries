@@ -131,6 +131,25 @@ export const ContactFormManager = () => {
 
     if (!error) {
       loadSubmissions();
+      toast({
+        title: "Success",
+        description: "Submission marked as read",
+      });
+    }
+  };
+
+  const markAsNew = async (id: string) => {
+    const { error } = await supabase
+      .from("contact_form_submissions")
+      .update({ status: "new" })
+      .eq("id", id);
+
+    if (!error) {
+      loadSubmissions();
+      toast({
+        title: "Success",
+        description: "Submission marked as new",
+      });
     }
   };
 
@@ -303,19 +322,30 @@ export const ContactFormManager = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {submission.status === "new" && (
+                        {submission.status === "new" ? (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => markAsRead(submission.id)}
+                            title="Mark as Read"
                           >
                             <Mail className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => markAsNew(submission.id)}
+                            title="Mark as New"
+                          >
+                            <Mail className="h-4 w-4 text-primary" />
                           </Button>
                         )}
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => deleteSubmission(submission.id)}
+                          title="Delete"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

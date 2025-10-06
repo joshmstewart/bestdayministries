@@ -24,6 +24,7 @@ import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
 import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
+import { useContactFormCount } from "@/hooks/useContactFormCount";
 import HomepageOrderManager from "@/components/admin/HomepageOrderManager";
 import CommunityOrderManager from "@/components/admin/CommunityOrderManager";
 import { FeaturedItemManager } from "@/components/admin/FeaturedItemManager";
@@ -50,6 +51,7 @@ const Admin = () => {
   const { count: moderationCount } = useModerationCount();
   const { count: pendingVendorsCount } = usePendingVendorsCount();
   const { count: messageModerationCount } = useMessageModerationCount();
+  const { count: contactFormCount } = useContactFormCount();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
@@ -243,6 +245,17 @@ const Admin = () => {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="contact" className="relative">
+              Contact
+              {contactFormCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
+                >
+                  {contactFormCount}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -431,6 +444,10 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="contact">
+            <ContactFormManager />
           </TabsContent>
 
           <TabsContent value="settings">
