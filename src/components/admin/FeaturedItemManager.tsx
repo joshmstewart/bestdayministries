@@ -20,6 +20,7 @@ interface FeaturedItem {
   description: string;
   image_url: string | null;
   original_image_url: string | null;
+  aspect_ratio: string;
   link_url: string;
   link_text: string;
   is_active: boolean;
@@ -53,6 +54,7 @@ export const FeaturedItemManager = () => {
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [originalImageUrl, setOriginalImageUrl] = useState<string>("");
+  const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('16:9');
 
   useEffect(() => {
     loadItems();
@@ -234,6 +236,7 @@ export const FeaturedItemManager = () => {
         link_url: linkType === "sponsorship" ? "/sponsor-bestie" : formData.link_url,
         image_url: imageUrl,
         original_image_url: originalUrl,
+        aspect_ratio: aspectRatioKey,
         created_by: user.id,
         is_active: true,
         is_public: isPublic,
@@ -294,6 +297,7 @@ export const FeaturedItemManager = () => {
     
     setIsPublic(item.is_public ?? true);
     setVisibleToRoles(item.visible_to_roles?.filter(r => !['admin', 'owner'].includes(r)) || ['caregiver', 'bestie', 'supporter']);
+    setAspectRatioKey((item.aspect_ratio as any) || '16:9');
     
     if (item.image_url) {
       setImagePreview(item.image_url);
@@ -355,6 +359,7 @@ export const FeaturedItemManager = () => {
     setImageFile(null);
     setImagePreview("");
     setOriginalImageUrl("");
+    setAspectRatioKey('16:9');
     setIsPublic(true);
     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
     if (fileInputRef.current) {
@@ -362,9 +367,12 @@ export const FeaturedItemManager = () => {
     }
   };
 
-  const handleRecrop = () => {
+  const handleRecrop = (currentAspectRatio?: string) => {
     if (originalImageUrl) {
       setImageToCrop(originalImageUrl);
+      if (currentAspectRatio) {
+        setAspectRatioKey(currentAspectRatio as any);
+      }
       setCropDialogOpen(true);
     }
   };
@@ -388,7 +396,7 @@ export const FeaturedItemManager = () => {
         .from("app-assets")
         .getPublicUrl(fileName);
 
-      // Update preview and form data
+      // Update preview and form data with aspect ratio
       setImagePreview(publicUrl);
       setFormData({ ...formData, image_url: publicUrl });
       
@@ -536,18 +544,20 @@ export const FeaturedItemManager = () => {
                 />
                 {imagePreview ? (
                   <div className="relative">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
+                    <div className="w-full max-w-md mx-auto" style={{ aspectRatio: aspectRatioKey.replace(':', '/') }}>
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    </div>
                     <div className="absolute top-2 right-2 flex gap-2">
                       {originalImageUrl && (
                         <Button
                           type="button"
                           variant="secondary"
                           size="sm"
-                          onClick={handleRecrop}
+                          onClick={() => handleRecrop(aspectRatioKey)}
                           title="Recrop image"
                         >
                           <Crop className="h-4 w-4 mr-1" />
@@ -790,9 +800,11 @@ export const FeaturedItemManager = () => {
         onOpenChange={setCropDialogOpen}
         imageUrl={imageToCrop}
         onCropComplete={handleCroppedImage}
-        aspectRatio={16 / 9}
-        title="Recrop Featured Item Image"
-        description="Adjust the crop to customize how this image appears in the featured item carousel"
+        allowAspectRatioChange={true}
+        selectedRatioKey={aspectRatioKey}
+        onAspectRatioKeyChange={setAspectRatioKey}
+        title="Crop Featured Item Image"
+        description="Select aspect ratio and adjust the crop for the featured item carousel"
       />
     </div>
   );

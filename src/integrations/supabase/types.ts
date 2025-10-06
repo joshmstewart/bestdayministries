@@ -920,6 +920,7 @@ export type Database = {
       }
       featured_items: {
         Row: {
+          aspect_ratio: string | null
           created_at: string
           created_by: string
           description: string
@@ -936,6 +937,7 @@ export type Database = {
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
+          aspect_ratio?: string | null
           created_at?: string
           created_by: string
           description: string
@@ -952,6 +954,7 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
+          aspect_ratio?: string | null
           created_at?: string
           created_by?: string
           description?: string

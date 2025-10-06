@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface FeaturedItemData {
   id: string;
   title: string;
   description: string;
   image_url: string | null;
+  aspect_ratio: string;
   link_url: string;
   link_text: string;
   is_public: boolean;
@@ -147,6 +149,11 @@ export const FeaturedItem = () => {
 
   const currentItem = items[currentIndex];
   const isExternalLink = resolvedUrl.startsWith("http");
+  
+  // Parse aspect ratio (e.g., "16:9" -> 16/9)
+  const aspectRatioValue = currentItem.aspect_ratio 
+    ? eval(currentItem.aspect_ratio.replace(':', '/'))
+    : 16 / 9;
 
   return (
     <Card className="mb-8 overflow-hidden border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
@@ -155,11 +162,13 @@ export const FeaturedItem = () => {
           <div className="flex flex-col md:flex-row gap-6 items-center">
             {currentItem.image_url && (
               <div className="w-full md:w-5/12 flex-shrink-0">
-                <img
-                  src={currentItem.image_url}
-                  alt={currentItem.title}
-                  className="w-full h-56 md:h-64 object-cover rounded-lg"
-                />
+                <AspectRatio ratio={aspectRatioValue}>
+                  <img
+                    src={currentItem.image_url}
+                    alt={currentItem.title}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                </AspectRatio>
               </div>
             )}
             <div className="flex-1 text-center md:text-left">
