@@ -51,6 +51,7 @@ interface AlbumImage {
   image_url: string;
   caption: string | null;
   display_order: number;
+  original_image_url?: string | null;
 }
 
 interface Event {
@@ -422,6 +423,7 @@ export default function AlbumManagement() {
           .insert({
             album_id: albumId,
             image_url: publicUrl,
+            original_image_url: publicUrl, // Save original for future re-cropping
             caption: imageCaptions[i] || null,
             display_order: nextOrder,
           });
@@ -1171,11 +1173,15 @@ export default function AlbumManagement() {
             setCropExistingImage(null);
           }
         }}
-        imageUrl={cropExistingImage?.image_url || (cropImageIndex !== null ? imagePreviews[cropImageIndex] : "")}
+        imageUrl={
+          cropExistingImage?.original_image_url || 
+          cropExistingImage?.image_url || 
+          (cropImageIndex !== null ? imagePreviews[cropImageIndex] : "")
+        }
         onCropComplete={handleCroppedImage}
         aspectRatio={4 / 3}
         title="Crop Album Image"
-        description="Adjust the crop area to match how this image will appear in the album (4:3 aspect ratio)"
+        description={cropExistingImage ? "Cropping from original image - you can zoom in or out as needed" : "Adjust the crop area to match how this image will appear in the album (4:3 aspect ratio)"}
       />
 
       <Dialog open={showCaptionDialog} onOpenChange={setShowCaptionDialog}>

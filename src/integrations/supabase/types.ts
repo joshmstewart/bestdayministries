@@ -27,6 +27,7 @@ export type Database = {
           moderation_reason: string | null
           moderation_severity: string | null
           moderation_status: string | null
+          original_image_url: string | null
         }
         Insert: {
           album_id: string
@@ -40,6 +41,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_severity?: string | null
           moderation_status?: string | null
+          original_image_url?: string | null
         }
         Update: {
           album_id?: string
@@ -53,6 +55,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_severity?: string | null
           moderation_status?: string | null
+          original_image_url?: string | null
         }
         Relationships: [
           {
