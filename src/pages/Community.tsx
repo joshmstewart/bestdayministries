@@ -140,6 +140,13 @@ const Community = () => {
     return loadedSections.has(previousSection.key);
   };
 
+  // Mark synchronous sections as loaded on mount
+  useEffect(() => {
+    if (sectionOrder.find(s => s.key === 'welcome')) {
+      markSectionLoaded('welcome');
+    }
+  }, [sectionOrder]);
+
   const loadLatestContent = async () => {
     // Don't load if we don't have an effective role yet
     if (!effectiveRole) {
@@ -290,8 +297,6 @@ const Community = () => {
 
             switch (key) {
               case 'welcome':
-                // Mark as loaded immediately - no async work
-                markSectionLoaded('welcome');
                 return (
                   <div key={key} className="text-center space-y-4">
                     <h1 className="text-4xl md:text-5xl font-black text-foreground">

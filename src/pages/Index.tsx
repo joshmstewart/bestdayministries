@@ -107,9 +107,19 @@ const Index = () => {
     return loadedSections.has(previousSection.section_key);
   };
 
+  // Mark synchronous sections as loaded on mount
+  useEffect(() => {
+    const syncSections = ['hero', 'mission', 'community_features', 'our_family', 'public_events', 'community_gallery', 'joy_rocks', 'donate', 'about'];
+    syncSections.forEach(key => {
+      if (sections.find(s => s.section_key === key)) {
+        markSectionLoaded(key);
+      }
+    });
+  }, [sections]);
+
   // Component mapping
   const componentMap: Record<string, React.ReactNode> = {
-    hero: (() => { markSectionLoaded('hero'); return <Hero />; })(),
+    hero: <Hero />,
     featured_items: (
       <div className="container mx-auto px-4 pt-8">
         <FeaturedItem 
@@ -134,20 +144,20 @@ const Index = () => {
         />
       </section>
     ),
-    mission: (() => { markSectionLoaded('mission'); return <Mission />; })(),
-    community_features: (() => { markSectionLoaded('community_features'); return <CommunityFeatures />; })(),
-    our_family: (() => { markSectionLoaded('our_family'); return <OurFamily />; })(),
+    mission: <Mission />,
+    community_features: <CommunityFeatures />,
+    our_family: <OurFamily />,
     latest_album: (
       <LatestAlbum 
         canLoad={canLoadSection('latest_album')}
         onLoadComplete={() => markSectionLoaded('latest_album')}
       />
     ),
-    public_events: (() => { markSectionLoaded('public_events'); return <PublicEvents />; })(),
-    community_gallery: (() => { markSectionLoaded('community_gallery'); return <CommunityGallery />; })(),
-    joy_rocks: (() => { markSectionLoaded('joy_rocks'); return <JoyRocks />; })(),
-    donate: (() => { markSectionLoaded('donate'); return <Donate />; })(),
-    about: (() => { markSectionLoaded('about'); return <About />; })(),
+    public_events: <PublicEvents />,
+    community_gallery: <CommunityGallery />,
+    joy_rocks: <JoyRocks />,
+    donate: <Donate />,
+    about: <About />,
   };
 
 
