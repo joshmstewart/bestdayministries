@@ -373,7 +373,7 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
 
   // Multiple besties - display in carousel
   return (
-    <div className="space-y-4 scale-[0.8] origin-top">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black text-foreground">
           <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
