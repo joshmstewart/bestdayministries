@@ -189,15 +189,38 @@ export const quickLinkSchema = z.object({
 
 export type QuickLinkInput = z.infer<typeof quickLinkSchema>;
 
-// URL sanitization helper
+// URL sanitization helper - Enhanced for security
 export const sanitizeUrl = (url: string): string => {
   try {
-    const parsed = new URL(url, url.startsWith('/') ? 'http://localhost' : undefined);
-    if (!['http:', 'https:', ''].includes(parsed.protocol)) {
-      throw new Error('Invalid URL protocol');
+    // Trim and check for dangerous patterns
+    const trimmedUrl = url.trim();
+    
+    // Block javascript:, data:, vbscript:, and other dangerous protocols
+    const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'file:', 'about:'];
+    const lowerUrl = trimmedUrl.toLowerCase();
+    
+    for (const protocol of dangerousProtocols) {
+      if (lowerUrl.startsWith(protocol)) {
+        throw new Error('Dangerous URL protocol detected');
+      }
     }
-    return url;
-  } catch {
+    
+    // For relative URLs, allow them
+    if (trimmedUrl.startsWith('/')) {
+      return trimmedUrl;
+    }
+    
+    // For absolute URLs, validate protocol
+    const parsed = new URL(trimmedUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('Invalid URL protocol. Only http and https are allowed.');
+    }
+    
+    return trimmedUrl;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('protocol')) {
+      throw error;
+    }
     throw new Error('Invalid URL format');
   }
 };

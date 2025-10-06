@@ -1,10 +1,20 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Validation schema for AfterShip webhook payload
+const aftershipWebhookSchema = z.object({
+  msg: z.object({
+    tracking_number: z.string().min(1, "Tracking number is required").max(100),
+    tag: z.enum(['Delivered', 'InTransit', 'OutForDelivery', 'Exception', 'Expired', 'Pending', 'InfoReceived', 'AttemptFail', 'AvailableForPickup']).optional(),
+    slug: z.string().optional(),
+  }),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,20 +22,27 @@ serve(async (req) => {
   }
 
   try {
-    const webhookData = await req.json();
+    const requestData = await req.json();
     
-    console.log('[aftership-webhook] Received webhook:', JSON.stringify(webhookData, null, 2));
-
-    const trackingNumber = webhookData.msg?.tracking_number;
-    const tag = webhookData.msg?.tag; // AfterShip status: Delivered, InTransit, Exception, etc.
-
-    if (!trackingNumber) {
-      console.log('[aftership-webhook] No tracking number in webhook');
+    console.log('[aftership-webhook] Received webhook:', JSON.stringify(requestData, null, 2));
+    
+    // Validate webhook payload structure
+    const validationResult = aftershipWebhookSchema.safeParse(requestData);
+    
+    if (!validationResult.success) {
+      console.error('[aftership-webhook] Invalid webhook payload:', validationResult.error.errors);
       return new Response(
-        JSON.stringify({ received: true }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        JSON.stringify({ 
+          error: 'Invalid webhook payload',
+          details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+    
+    const { msg } = validationResult.data;
+    const trackingNumber = msg.tracking_number;
+    const tag = msg.tag;
 
     console.log('[aftership-webhook] Processing tracking:', trackingNumber, 'Status:', tag);
 
