@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { ExternalLink, Pause, Play, ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { format } from "date-fns";
 
 interface FeaturedItemData {
   id: string;
@@ -19,6 +20,11 @@ interface FeaturedItemData {
   visible_to_roles: string[];
 }
 
+interface EventDetails {
+  event_date: string;
+  location: string | null;
+}
+
 export const FeaturedItem = () => {
   const [items, setItems] = useState<FeaturedItemData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -27,6 +33,7 @@ export const FeaturedItem = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [eventDetails, setEventDetails] = useState<EventDetails | null>(null);
   const autoAdvanceRef = useRef(false);
 
   useEffect(() => {
@@ -111,18 +118,30 @@ export const FeaturedItem = () => {
     }
   };
 
-  const resolveUrl = () => {
+  const resolveUrl = async () => {
     const item = items[currentIndex];
     if (!item) return;
 
     if (item.link_url.startsWith("event:")) {
       setResolvedUrl(`/events`);
-    } else if (item.link_url.startsWith("album:")) {
-      setResolvedUrl(`/gallery`);
-    } else if (item.link_url.startsWith("post:")) {
-      setResolvedUrl(`/discussions`);
+      // Fetch event details
+      const eventId = item.link_url.replace("event:", "");
+      const { data: eventData } = await supabase
+        .from("events")
+        .select("event_date, location")
+        .eq("id", eventId)
+        .maybeSingle();
+      
+      setEventDetails(eventData);
     } else {
-      setResolvedUrl(item.link_url);
+      setEventDetails(null);
+      if (item.link_url.startsWith("album:")) {
+        setResolvedUrl(`/gallery`);
+      } else if (item.link_url.startsWith("post:")) {
+        setResolvedUrl(`/discussions`);
+      } else {
+        setResolvedUrl(item.link_url);
+      }
     }
   };
 
@@ -177,6 +196,26 @@ export const FeaturedItem = () => {
                 <TextToSpeech text={`${currentItem.title}. ${currentItem.description}`} />
               </div>
               <p className="text-muted-foreground mb-4">{currentItem.description}</p>
+              
+              {eventDetails && (
+                <div className="space-y-2 mb-4 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    <span>{format(new Date(eventDetails.event_date), "EEEE, MMMM d, yyyy")}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="w-4 h-4" />
+                    <span>{format(new Date(eventDetails.event_date), "h:mm a")}</span>
+                  </div>
+                  {eventDetails.location && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="w-4 h-4" />
+                      <span>{eventDetails.location}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {isExternalLink ? (
                 <Button asChild>
                   <a
