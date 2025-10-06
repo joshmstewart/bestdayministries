@@ -297,21 +297,36 @@ const Auth = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="bestie">
-                        <div className="flex items-center gap-2">
-                          <Heart className="w-4 h-4 text-primary" />
-                          <span>Bestie (Community Member)</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Heart className="w-4 h-4 text-primary" />
+                            <span className="font-semibold">Bestie (Community Member)</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground pl-6">
+                            I'm part of the Best Day community and want to share my story, connect with others, and participate in activities.
+                          </span>
                         </div>
                       </SelectItem>
                       <SelectItem value="caregiver">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-secondary" />
-                          <span>Guardian</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-secondary" />
+                            <span className="font-semibold">Guardian</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground pl-6">
+                            I'm a family member, caregiver, or support person for a Bestie and want to manage their profile and help them stay connected.
+                          </span>
                         </div>
                       </SelectItem>
                       <SelectItem value="supporter">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4 text-accent" />
-                          <span>Supporter (Volunteer/Friend)</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-accent" />
+                            <span className="font-semibold">Supporter (Volunteer/Friend)</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground pl-6">
+                            I'm a volunteer, donor, or friend who wants to support the community, attend events, and stay connected.
+                          </span>
                         </div>
                       </SelectItem>
                     </SelectContent>
