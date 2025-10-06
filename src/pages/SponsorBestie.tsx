@@ -437,6 +437,29 @@ const SponsorBestie = () => {
                     </div>
                   </div>
 
+                  {/* Login Prompt for Non-Logged-In Users */}
+                  {!isLoggedIn && (
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Heart className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <p className="text-sm font-semibold">Already have an account?</p>
+                          <p className="text-xs text-muted-foreground">
+                            Log in to track your sponsorships, view updates, and manage your giving in one place.
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => navigate('/auth')}
+                            className="mt-2"
+                          >
+                            Log In
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Email Input */}
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Your Email</Label>
