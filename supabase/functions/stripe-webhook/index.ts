@@ -189,6 +189,7 @@ serve(async (req) => {
             frequency: frequency,
             status: "active",
             started_at: new Date().toISOString(),
+            stripe_subscription_id: subscriptionId,
             stripe_mode: stripeMode,
           }, {
             onConflict: "sponsor_id,sponsor_bestie_id",

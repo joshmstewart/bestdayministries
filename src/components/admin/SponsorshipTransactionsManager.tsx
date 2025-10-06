@@ -451,7 +451,7 @@ export const SponsorshipTransactionsManager = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {sponsorship.stripe_subscription_id && (
+                          {sponsorship.stripe_subscription_id ? (
                             <>
                               <Button
                                 variant="ghost"
@@ -476,7 +476,11 @@ export const SponsorshipTransactionsManager = () => {
                                 <ExternalLink className="w-4 h-4" />
                               </Button>
                             </>
-                          )}
+                          ) : sponsorship.frequency === 'monthly' ? (
+                            <Badge variant="secondary" className="text-xs">
+                              No Subscription ID
+                            </Badge>
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
