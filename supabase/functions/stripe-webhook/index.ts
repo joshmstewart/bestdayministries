@@ -19,26 +19,39 @@ serve(async (req) => {
   try {
     const body = await req.text();
     
-    // Try to construct event with test key first, then live
-    // Only one will succeed based on which mode created the webhook event
+    // Determine which mode to use based on which webhook secret is configured
     let event;
     let stripe;
-    let stripeMode = 'test'; // Track which mode we're in
+    let stripeMode = 'test';
     
-    try {
-      if (testWebhookSecret) {
-        stripe = new Stripe(stripeTestKey, { apiVersion: "2025-08-27.basil" });
-        event = await stripe.webhooks.constructEventAsync(body, signature, testWebhookSecret);
-        stripeMode = 'test';
+    // Try live webhook secret first if available
+    if (liveWebhookSecret) {
+      try {
+        stripe = new Stripe(stripeLiveKey, { apiVersion: "2025-08-27.basil" });
+        event = await stripe.webhooks.constructEventAsync(body, signature, liveWebhookSecret);
+        stripeMode = 'live';
+        console.log('✅ Live webhook signature verified');
+      } catch (liveError) {
+        console.log('Live webhook verification failed, trying test...');
+        // If live fails and test secret exists, try test
+        if (testWebhookSecret) {
+          stripe = new Stripe(stripeTestKey, { apiVersion: "2025-08-27.basil" });
+          event = await stripe.webhooks.constructEventAsync(body, signature, testWebhookSecret);
+          stripeMode = 'test';
+          console.log('✅ Test webhook signature verified');
+        } else {
+          console.error('❌ Live webhook verification failed:', liveError);
+          throw liveError;
+        }
       }
-    } catch (e) {
-      // If test fails, try live
-      if (!liveWebhookSecret) {
-        throw new Error('No valid webhook secret found');
-      }
-      stripe = new Stripe(stripeLiveKey, { apiVersion: "2025-08-27.basil" });
-      event = await stripe.webhooks.constructEventAsync(body, signature, liveWebhookSecret);
-      stripeMode = 'live';
+    } else if (testWebhookSecret) {
+      // Only test secret available
+      stripe = new Stripe(stripeTestKey, { apiVersion: "2025-08-27.basil" });
+      event = await stripe.webhooks.constructEventAsync(body, signature, testWebhookSecret);
+      stripeMode = 'test';
+      console.log('✅ Test webhook signature verified');
+    } else {
+      throw new Error('No webhook secrets configured');
     }
 
     console.log(`Received event: ${event.type}`);
@@ -243,7 +256,8 @@ serve(async (req) => {
         break;
       }
 
-      case "invoice.payment_succeeded": {
+      case "invoice.payment_succeeded":
+      case "invoice_payment.paid": {
         // Handle recurring subscription payments
         const invoice = event.data.object as Stripe.Invoice;
         
