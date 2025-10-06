@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Shield, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 
 interface Profile {
@@ -204,7 +204,17 @@ const ModerationQueue = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       <UnifiedHeader />
       
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 pt-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/admin')}
+          className="mb-6"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Admin
+        </Button>
+
         <div className="max-w-6xl mx-auto space-y-8">
           <div>
             <h1 className="text-4xl font-black text-foreground flex items-center gap-3">
