@@ -314,6 +314,9 @@ export const ContactFormManager = () => {
                     onClick={() => {
                       setSelectedSubmission(submission);
                       setViewDialogOpen(true);
+                      if (submission.status === "new") {
+                        markAsRead(submission.id);
+                      }
                     }}
                   >
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -363,6 +366,9 @@ export const ContactFormManager = () => {
                             e.stopPropagation();
                             setSelectedSubmission(submission);
                             setViewDialogOpen(true);
+                            if (submission.status === "new") {
+                              markAsRead(submission.id);
+                            }
                           }}
                         >
                           View
@@ -442,6 +448,20 @@ export const ContactFormManager = () => {
                     {selectedSubmission.status}
                   </Badge>
                 </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    markAsNew(selectedSubmission.id);
+                    setViewDialogOpen(false);
+                  }}
+                >
+                  Mark Unread
+                </Button>
+                <Button onClick={() => setViewDialogOpen(false)}>
+                  Done
+                </Button>
               </div>
             </div>
           )}
