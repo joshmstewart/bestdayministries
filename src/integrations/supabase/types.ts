@@ -2408,7 +2408,6 @@ export type Database = {
       }
       sponsor_bestie_funding_progress_by_mode: {
         Row: {
-          bestie_id: string | null
           bestie_name: string | null
           current_monthly_pledges: number | null
           funding_percentage: number | null

@@ -211,9 +211,27 @@ const SponsorBestie = () => {
   };
 
   const loadFundingProgress = async () => {
+    // Get current Stripe mode
+    const { data: modeData } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'stripe_mode')
+      .single();
+    
+    let currentMode: 'test' | 'live' = 'test';
+    if (modeData?.setting_value) {
+      const rawValue = modeData.setting_value;
+      const cleanValue = typeof rawValue === 'string' 
+        ? rawValue.replace(/^"(.*)"$/, '$1')
+        : String(rawValue);
+      currentMode = (cleanValue === 'live' ? 'live' : 'test') as 'test' | 'live';
+    }
+
+    // Load funding progress filtered by current Stripe mode
     const { data, error } = await supabase
-      .from("sponsor_bestie_funding_progress")
-      .select("*");
+      .from("sponsor_bestie_funding_progress_by_mode")
+      .select("*")
+      .eq("stripe_mode", currentMode);
 
     if (error) {
       console.error("Error loading funding progress:", error);

@@ -162,13 +162,30 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           }
         }
 
-        // Load funding progress for besties with goals
+        // Get current Stripe mode
+        const { data: modeData } = await supabase
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', 'stripe_mode')
+          .single();
+        
+        let currentMode: 'test' | 'live' = 'test';
+        if (modeData?.setting_value) {
+          const rawValue = modeData.setting_value;
+          const cleanValue = typeof rawValue === 'string' 
+            ? rawValue.replace(/^"(.*)"$/, '$1')
+            : String(rawValue);
+          currentMode = (cleanValue === 'live' ? 'live' : 'test') as 'test' | 'live';
+        }
+
+        // Load funding progress for besties with goals, filtered by Stripe mode
         const bestiesWithGoals = orderedBesties.filter(b => b.monthly_goal && b.monthly_goal > 0);
         if (bestiesWithGoals.length > 0) {
           const { data: progressData } = await supabase
-            .from('sponsor_bestie_funding_progress')
+            .from('sponsor_bestie_funding_progress_by_mode')
             .select('*')
-            .in('sponsor_bestie_id', bestiesWithGoals.map(b => b.id));
+            .in('sponsor_bestie_id', bestiesWithGoals.map(b => b.id))
+            .eq('stripe_mode', currentMode);
 
           if (progressData) {
             const progressMap: Record<string, FundingProgress> = {};
