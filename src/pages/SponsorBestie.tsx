@@ -41,7 +41,7 @@ interface Video {
 }
 
 const sponsorshipSchema = z.object({
-  amount: z.number().min(10, "Minimum sponsorship is $10"),
+  amount: z.number().min(5, "Minimum sponsorship is $5"),
   email: z.string().email("Invalid email address"),
 });
 
@@ -311,7 +311,7 @@ const SponsorBestie = () => {
     }
   };
 
-  const presetAmounts = ["10", "25", "50", "100"];
+  const presetAmounts = ["5", "25", "50", "100"];
 
   const renderSection = (sectionKey: string) => {
     switch (sectionKey) {
@@ -461,7 +461,7 @@ const SponsorBestie = () => {
                     </div>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
-                      <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="pl-8 text-lg font-bold" placeholder="Custom amount" min="10" step="1" />
+                      <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="pl-8 text-lg font-bold" placeholder="Custom amount" min="5" step="1" />
                     </div>
                   </div>
 
