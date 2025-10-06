@@ -258,6 +258,18 @@ export default function AlbumManagement() {
 
         if (updateError) throw updateError;
 
+        // Check if this image is the cover image and update the album's cover_image_url
+        if (editingAlbum?.cover_image_url === cropExistingImage.image_url) {
+          const { error: albumUpdateError } = await supabase
+            .from("albums")
+            .update({ cover_image_url: publicUrl })
+            .eq("id", editingAlbum.id);
+
+          if (albumUpdateError) {
+            console.error("Error updating album cover:", albumUpdateError);
+          }
+        }
+
         // Immediately update the existingImages state with cache-busted URL
         setExistingImages(prev => 
           prev.map(img => 
