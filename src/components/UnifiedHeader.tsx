@@ -16,6 +16,9 @@ import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useContactFormCount } from "@/hooks/useContactFormCount";
 import { Separator } from "@/components/ui/separator";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 export const UnifiedHeader = () => {
   const navigate = useNavigate();
@@ -28,7 +31,7 @@ export const UnifiedHeader = () => {
   const [isTestAccount, setIsTestAccount] = useState(false);
   const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
   const [showNav, setShowNav] = useState(true);
-  const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number }>>([]);
+  const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number; visible_to_roles?: UserRole[] }>>([]);
   const { count: moderationCount } = useModerationCount();
   const { count: approvalsCount } = useGuardianApprovalsCount();
   const { count: pendingVendorsCount } = usePendingVendorsCount();
@@ -151,7 +154,7 @@ export const UnifiedHeader = () => {
     try {
       const { data, error } = await supabase
         .from("navigation_links")
-        .select("id, label, href, display_order")
+        .select("id, label, href, display_order, visible_to_roles")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
 
@@ -398,27 +401,34 @@ export const UnifiedHeader = () => {
               <div className="container mx-auto px-4 flex items-center justify-between">
                 <div className="flex-1" />
                 <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
-                  {navLinks.map((link) => (
-                    <li key={link.id}>
-                      {link.href.startsWith('http') ? (
-                        <a 
-                          href={link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                        >
-                          {link.label}
-                        </a>
-                      ) : (
-                        <Link 
-                          to={link.href} 
-                          className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                        >
-                          {link.label}
-                        </Link>
-                      )}
-                    </li>
-                  ))}
+                  {navLinks
+                    .filter(link => {
+                      // If no visible_to_roles set, show to everyone
+                      if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
+                      // Otherwise check if user's role is in the list
+                      return link.visible_to_roles.includes(profile?.role || '');
+                    })
+                    .map((link) => (
+                      <li key={link.id}>
+                        {link.href.startsWith('http') ? (
+                          <a 
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                          >
+                            {link.label}
+                          </a>
+                        ) : (
+                          <Link 
+                            to={link.href} 
+                            className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                          >
+                            {link.label}
+                          </Link>
+                        )}
+                      </li>
+                    ))}
                 </ul>
                 <div className="flex-1 flex justify-end">
                   {profile && (

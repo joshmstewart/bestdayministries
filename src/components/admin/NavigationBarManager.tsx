@@ -19,6 +19,19 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database['public']['Enums']['user_role'];
+
+const USER_ROLES: Array<{ value: UserRole; label: string }> = [
+  { value: 'supporter', label: 'Supporter' },
+  { value: 'bestie', label: 'Bestie' },
+  { value: 'caregiver', label: 'Guardian' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'owner', label: 'Owner' },
+  { value: 'vendor', label: 'Vendor' },
+];
 
 interface NavigationLink {
   id: string;
@@ -26,6 +39,7 @@ interface NavigationLink {
   href: string;
   display_order: number;
   is_active: boolean;
+  visible_to_roles?: UserRole[];
 }
 
 function SortableLink({
@@ -105,6 +119,33 @@ function SortableLink({
             </Select>
           )}
         </div>
+
+        <div className="col-span-2">
+          <Label className="text-xs">Visible to Roles</Label>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {USER_ROLES.map((role) => (
+              <div key={role.value} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`${link.id}-${role.value}`}
+                  checked={link.visible_to_roles?.includes(role.value) ?? true}
+                  onCheckedChange={(checked) => {
+                    const currentRoles = link.visible_to_roles || USER_ROLES.map(r => r.value);
+                    const newRoles = checked
+                      ? [...currentRoles, role.value]
+                      : currentRoles.filter(r => r !== role.value);
+                    onUpdate(link.id, { visible_to_roles: newRoles });
+                  }}
+                />
+                <label
+                  htmlFor={`${link.id}-${role.value}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {role.label}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -142,7 +183,7 @@ export function NavigationBarManager() {
     try {
       const { data, error } = await supabase
         .from("navigation_links")
-        .select("*")
+        .select("id, label, href, display_order, is_active, visible_to_roles")
         .order("display_order", { ascending: true });
 
       if (error) throw error;
@@ -163,6 +204,7 @@ export function NavigationBarManager() {
       href: "/",
       display_order: links.length,
       is_active: true,
+      visible_to_roles: USER_ROLES.map(r => r.value),
     };
     setLinks([...links, newLink]);
   };
@@ -254,6 +296,7 @@ export function NavigationBarManager() {
               href: link.href.trim(),
               display_order: link.display_order,
               is_active: link.is_active,
+              visible_to_roles: link.visible_to_roles || USER_ROLES.map(r => r.value),
               created_by: userData.user.id,
             }]);
             return { error, type: 'insert', link };
@@ -264,6 +307,7 @@ export function NavigationBarManager() {
               href: link.href.trim(),
               display_order: link.display_order,
               is_active: link.is_active,
+              visible_to_roles: link.visible_to_roles || USER_ROLES.map(r => r.value),
             }).eq("id", link.id);
             return { error, type: 'update', link };
           }
