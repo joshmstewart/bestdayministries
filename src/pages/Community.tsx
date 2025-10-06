@@ -309,7 +309,7 @@ const Community = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-20 pb-12">
-        <div className="max-w-6xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-6">
           {sectionOrder.map(({ key, visible }) => {
             if (!visible) return null;
 
