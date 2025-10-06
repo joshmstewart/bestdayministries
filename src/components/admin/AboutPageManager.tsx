@@ -37,7 +37,7 @@ interface AboutSection {
 interface SortableItemProps {
   section: AboutSection;
   onToggleVisibility: (id: string, visible: boolean) => void;
-  onEdit: (section: AboutSection) => void;
+  onEdit?: (section: AboutSection) => void;
 }
 
 const SortableItem = ({ section, onToggleVisibility, onEdit }: SortableItemProps) => {
@@ -78,7 +78,7 @@ const SortableItem = ({ section, onToggleVisibility, onEdit }: SortableItemProps
       </div>
 
       <div className="flex gap-1">
-        {section.section_key === 'about_content' && (
+        {section.section_key === 'about_content' && onEdit && (
           <Button
             variant="ghost"
             size="icon"
@@ -108,6 +108,7 @@ const SortableItem = ({ section, onToggleVisibility, onEdit }: SortableItemProps
 
 const AboutPageManager = () => {
   const [sections, setSections] = useState<AboutSection[]>([]);
+  const [aboutContent, setAboutContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingSection, setEditingSection] = useState<AboutSection | null>(null);
@@ -127,16 +128,34 @@ const AboutPageManager = () => {
 
   const fetchSections = async () => {
     try {
+      // Fetch about_sections for ordering/visibility
       const { data, error } = await supabase
         .from("about_sections")
         .select("*")
         .order("display_order", { ascending: true });
 
       if (error) throw error;
+      
       setSections((data || []).map(section => ({
         ...section,
         content: (section.content as Record<string, any>) || {}
       })));
+
+      // Fetch the actual About content from homepage_sections
+      const { data: aboutData } = await supabase
+        .from("homepage_sections")
+        .select("*")
+        .eq("section_key", "about")
+        .single();
+
+      if (aboutData) {
+        setAboutContent({
+          id: aboutData.id,
+          section_key: aboutData.section_key,
+          section_name: "About Content",
+          content: (aboutData.content as Record<string, any>) || {}
+        });
+      }
     } catch (error) {
       console.error("Error fetching sections:", error);
       toast({
@@ -271,7 +290,7 @@ const AboutPageManager = () => {
                   key={section.id}
                   section={section}
                   onToggleVisibility={handleToggleVisibility}
-                  onEdit={setEditingSection}
+                  onEdit={section.section_key === 'about_content' && aboutContent ? () => setEditingSection(aboutContent) : undefined}
                 />
               ))}
             </div>
@@ -293,7 +312,6 @@ const AboutPageManager = () => {
           onOpenChange={(open) => !open && setEditingSection(null)}
           section={editingSection}
           onSave={fetchSections}
-          tableName="about_sections"
         />
       )}
     </Card>
