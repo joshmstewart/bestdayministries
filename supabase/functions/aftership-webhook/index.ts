@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,9 +23,59 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
+    // SECURITY: Verify webhook signature from AfterShip
+    const signature = req.headers.get('aftership-hmac-sha256');
+    if (!signature) {
+      console.error('[aftership-webhook] Missing signature header');
+      return new Response(
+        JSON.stringify({ error: 'Missing signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+      );
+    }
+
+    const webhookSecret = Deno.env.get('AFTERSHIP_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      console.error('[aftership-webhook] Webhook secret not configured');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+      );
+    }
+
+    // Read raw body for signature verification
+    const body = await req.text();
     
-    console.log('[aftership-webhook] Received webhook:', JSON.stringify(requestData, null, 2));
+    // Calculate expected signature using HMAC-SHA256
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(webhookSecret);
+    const messageData = encoder.encode(body);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    // Verify signature (timing-safe comparison)
+    if (signature !== expectedSignature) {
+      console.error('[aftership-webhook] Invalid signature');
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+      );
+    }
+
+    // Parse body after signature validation
+    const requestData = JSON.parse(body);
+    
+    console.log('[aftership-webhook] Received verified webhook:', JSON.stringify(requestData, null, 2));
     
     // Validate webhook payload structure
     const validationResult = aftershipWebhookSchema.safeParse(requestData);
