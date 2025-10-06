@@ -60,6 +60,7 @@ const SponsorBestie = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [coverStripeFee, setCoverStripeFee] = useState(true);
   const [pageContent, setPageContent] = useState({
     badge_text: "Sponsor a Bestie",
     main_heading: "Change a Life Today",
@@ -316,6 +317,7 @@ const SponsorBestie = () => {
           amount: parseFloat(amount),
           frequency,
           email: email.trim(),
+          coverStripeFee,
         },
       });
 
@@ -492,6 +494,25 @@ const SponsorBestie = () => {
                     </div>
                   </div>
 
+                  {/* Cover Stripe Fee Checkbox */}
+                  <div className="flex items-start space-x-2 py-2 bg-muted/30 rounded-lg px-4 border border-primary/10">
+                    <Checkbox 
+                      id="cover-fee" 
+                      checked={coverStripeFee}
+                      onCheckedChange={(checked) => setCoverStripeFee(checked as boolean)}
+                      className="mt-1"
+                    />
+                    <label
+                      htmlFor="cover-fee"
+                      className="text-sm leading-relaxed cursor-pointer flex-1"
+                    >
+                      <span className="font-semibold text-foreground">Cover payment processing fees</span>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Add {((parseFloat(amount) || 0) * 0.029 + 0.30).toFixed(2)} to ensure 100% of your ${amount || '0'} sponsorship reaches the Bestie
+                      </p>
+                    </label>
+                  </div>
+
                   {/* Login Prompt for Non-Logged-In Users */}
                   {!isLoggedIn && (
                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
@@ -564,9 +585,25 @@ const SponsorBestie = () => {
 
                   {/* Submit Button */}
                   <Button onClick={handleSponsorship} disabled={loading || !selectedBestie || !email || !amount || !acceptedTerms} size="lg" className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
-                    {loading ? "Processing..." : `Sponsor with $${amount} ${frequency === "monthly" ? "/month" : ""}`}
+                    {loading ? "Processing..." : (
+                      <>
+                        Sponsor with ${coverStripeFee ? ((parseFloat(amount) || 0) * 1.029 + 0.30).toFixed(2) : amount}
+                        {frequency === "monthly" ? "/month" : ""}
+                      </>
+                    )}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
+                  
+                  {/* Tax & Legal Info */}
+                  <div className="text-xs text-muted-foreground text-center space-y-1 pt-2">
+                    <p>
+                      Best Day Ministries is a church under section 508(c)(1)(A) of the Internal Revenue Code. 
+                      Your sponsorship may be tax-deductible to the extent allowed by law.
+                    </p>
+                    <p className="font-medium">
+                      100% of your sponsorship goes directly to support the Bestie {coverStripeFee ? '(processing fees covered)' : '(minus processing fees)'}.
+                    </p>
+                  </div>
 
                   {frequency === "monthly" && (
                     <div className="flex items-start gap-2 text-sm bg-accent/10 rounded-lg px-4 py-3 border border-accent/20">
@@ -592,7 +629,7 @@ const SponsorBestie = () => {
                       <Heart className="w-8 h-8 text-primary" />
                     </div>
                     <h4 className="font-bold">Direct Support</h4>
-                    <p className="text-sm text-muted-foreground">100% of your sponsorship goes directly to supporting your chosen Bestie's programs and activities</p>
+                    <p className="text-sm text-muted-foreground">100% of your sponsorship amount supports your chosen Bestie's programs and activities (minus Stripe processing fees unless you choose to cover them)</p>
                   </div>
                   <div className="text-center space-y-2">
                     <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-3">

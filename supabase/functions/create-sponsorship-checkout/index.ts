@@ -22,7 +22,8 @@ const sponsorshipSchema = z.object({
     .email("Invalid email address")
     .max(255, "Email must be less than 255 characters")
     .toLowerCase()
-    .trim()
+    .trim(),
+  coverStripeFee: z.boolean().optional().default(false)
 });
 
 serve(async (req) => {
@@ -69,13 +70,23 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { bestie_id, amount, frequency, email } = validationResult.data;
+    const { bestie_id, amount, frequency, email, coverStripeFee } = validationResult.data;
+
+    // Calculate final amount including Stripe fee if user chose to cover it
+    // Stripe fee: 2.9% + $0.30
+    let finalAmount = amount;
+    if (coverStripeFee) {
+      // To cover the fee, we need to calculate: (amount + 0.30) / (1 - 0.029)
+      finalAmount = (amount + 0.30) / 0.971;
+    }
 
     // Sanitize for logging (truncate email)
     const sanitizedEmail = email.substring(0, 3) + '***@' + email.split('@')[1];
     console.log('Creating sponsorship checkout:', { 
       bestie_id, 
       amount, 
+      finalAmount,
+      coverStripeFee,
       frequency, 
       email: sanitizedEmail 
     });
@@ -91,8 +102,8 @@ serve(async (req) => {
       throw new Error('Besties cannot sponsor other besties at this time');
     }
 
-    // Convert amount to cents for Stripe
-    const amountInCents = Math.round(amount * 100);
+    // Convert final amount to cents for Stripe
+    const amountInCents = Math.round(finalAmount * 100);
 
     // Create or get customer
     const customers = await stripe.customers.list({
@@ -140,6 +151,7 @@ serve(async (req) => {
         bestie_id,
         frequency,
         amount: amount.toString(),
+        coverStripeFee: coverStripeFee.toString(),
       },
       // Add subscription metadata so webhook can access it
       ...(frequency === 'monthly' && {
@@ -148,6 +160,7 @@ serve(async (req) => {
             bestie_id,
             frequency,
             amount: amount.toString(),
+            coverStripeFee: coverStripeFee.toString(),
           },
         },
       }),

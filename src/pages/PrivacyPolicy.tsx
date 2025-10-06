@@ -168,16 +168,47 @@ const PrivacyPolicy = () => {
 
               <section>
                 <h2 className="text-2xl font-bold mb-3">9. Retention of Information</h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  We retain your information for as long as necessary to provide our services, comply with legal obligations, resolve disputes, and enforce our agreements. 
-                  Sponsorship and donation records are retained for tax and legal purposes as required by law.
-                </p>
+                <div className="space-y-3 text-muted-foreground">
+                  <p className="leading-relaxed">
+                    We retain your information for as long as necessary to provide our services, comply with legal obligations, resolve disputes, and enforce our agreements.
+                  </p>
+                  <p className="leading-relaxed">
+                    <strong>Specific Retention Periods:</strong>
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li><strong>Sponsorship and Donation Records:</strong> Retained for at least 7 years as required by IRS regulations</li>
+                    <li><strong>Account Information:</strong> Retained while your account is active and for 3 years after closure</li>
+                    <li><strong>Transaction Records:</strong> Retained for 7 years for accounting and tax purposes</li>
+                    <li><strong>User Content:</strong> Retained while your account is active unless you request deletion</li>
+                    <li><strong>Communication Records:</strong> Retained for 3 years unless legally required to retain longer</li>
+                  </ul>
+                </div>
               </section>
 
               <Separator />
 
               <section>
-                <h2 className="text-2xl font-bold mb-3">10. Third-Party Links</h2>
+                <h2 className="text-2xl font-bold mb-3">10. Donor Privacy</h2>
+                <div className="space-y-3 text-muted-foreground">
+                  <p className="leading-relaxed">
+                    <strong>10.1 Sponsor Information Privacy:</strong> We take donor privacy seriously. Your sponsorship information is kept confidential and is not made public in any way.
+                  </p>
+                  <p className="leading-relaxed">
+                    <strong>10.2 What We Share:</strong> Only aggregate donation amounts (which contribute to funding progress indicators visible on bestie profiles) are displayed on our platform. Individual sponsor names, contact information, and specific donation amounts are never shared publicly or with the Besties you sponsor.
+                  </p>
+                  <p className="leading-relaxed">
+                    <strong>10.3 Anonymous Giving:</strong> All sponsorships are effectively anonymous to the Besties. While we may acknowledge the collective impact of sponsors as a group, individual sponsors remain private unless you choose to contact the Bestie's guardian through approved communication channels.
+                  </p>
+                  <p className="leading-relaxed">
+                    <strong>10.4 Financial Information Security:</strong> Payment information is processed by Stripe and is never stored on our servers. We only retain transaction IDs for record-keeping purposes.
+                  </p>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section>
+                <h2 className="text-2xl font-bold mb-3">11. Third-Party Links</h2>
                 <p className="text-muted-foreground leading-relaxed">
                   Our Service may contain links to third-party websites. We are not responsible for the privacy practices of these external sites. 
                   We encourage you to review their privacy policies before providing any information.
@@ -187,7 +218,7 @@ const PrivacyPolicy = () => {
               <Separator />
 
               <section>
-                <h2 className="text-2xl font-bold mb-3">11. International Data Transfers</h2>
+                <h2 className="text-2xl font-bold mb-3">12. International Data Transfers</h2>
                 <p className="text-muted-foreground leading-relaxed">
                   Your information may be transferred to and processed in countries other than your own. 
                   We ensure appropriate safeguards are in place to protect your information in accordance with this Privacy Policy.
@@ -197,7 +228,7 @@ const PrivacyPolicy = () => {
               <Separator />
 
               <section>
-                <h2 className="text-2xl font-bold mb-3">12. Changes to This Privacy Policy</h2>
+                <h2 className="text-2xl font-bold mb-3">13. Changes to This Privacy Policy</h2>
                 <p className="text-muted-foreground leading-relaxed">
                   We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated "Last Updated" date. 
                   We encourage you to review this policy periodically. Continued use of our services after changes are posted constitutes acceptance of the updated policy.
@@ -207,7 +238,7 @@ const PrivacyPolicy = () => {
               <Separator />
 
               <section>
-                <h2 className="text-2xl font-bold mb-3">13. Contact Us</h2>
+                <h2 className="text-2xl font-bold mb-3">14. Contact Us</h2>
                 <p className="text-muted-foreground leading-relaxed mb-3">
                   If you have questions about this Privacy Policy or wish to exercise your privacy rights, please contact us:
                 </p>
@@ -221,7 +252,7 @@ const PrivacyPolicy = () => {
               <Separator />
 
               <section>
-                <h2 className="text-2xl font-bold mb-3">14. California Privacy Rights</h2>
+                <h2 className="text-2xl font-bold mb-3">15. California Privacy Rights</h2>
                 <p className="text-muted-foreground leading-relaxed">
                   California residents have additional rights under the California Consumer Privacy Act (CCPA), including the right to know what information we collect, 
                   the right to request deletion, and the right to opt-out of sale of personal information. We do not sell personal information.
@@ -231,7 +262,7 @@ const PrivacyPolicy = () => {
               <Separator />
 
               <section>
-                <h2 className="text-2xl font-bold mb-3">15. GDPR Compliance (EU Users)</h2>
+                <h2 className="text-2xl font-bold mb-3">16. GDPR Compliance (EU Users)</h2>
                 <p className="text-muted-foreground leading-relaxed mb-2">
                   If you are located in the European Economic Area (EEA), you have rights under the General Data Protection Regulation (GDPR), including:
                 </p>

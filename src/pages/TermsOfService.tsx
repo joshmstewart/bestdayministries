@@ -79,10 +79,13 @@ const TermsOfService = () => {
                     <strong>4.2 Payment Processing:</strong> All payments are processed securely through Stripe. By making a sponsorship, you authorize us to charge your payment method.
                   </p>
                   <p className="leading-relaxed">
-                    <strong>4.3 Monthly Subscriptions:</strong> Monthly sponsorships will automatically renew until cancelled. You may cancel at any time through your account settings or the Stripe customer portal.
+                    <strong>4.3 Monthly Subscriptions:</strong> Monthly sponsorships will automatically renew until cancelled. You may cancel at any time by logging into your account and clicking "Manage Subscription" on your sponsorship dashboard, which will open the Stripe customer portal where you can cancel, update payment methods, or view your payment history. Cancellations take effect at the end of the current billing period.
                   </p>
                   <p className="leading-relaxed">
-                    <strong>4.4 Use of Funds:</strong> Sponsorship funds directly support the sponsored Bestie's participation in programs, activities, and community engagement opportunities provided by Best Day Ministries.
+                    <strong>4.4 Use of Funds:</strong> 100% of your sponsorship amount goes directly to support the sponsored Bestie's participation in programs, activities, and community engagement opportunities provided by Best Day Ministries, with the exception of payment processing fees charged by Stripe (which you may optionally cover at checkout).
+                  </p>
+                  <p className="leading-relaxed">
+                    <strong>4.5 Donor Privacy:</strong> Your sponsorship information is kept private. We do not publicly share sponsor names, contact information, or donation amounts. Only aggregate donation totals (which contribute to funding progress indicators) are visible on our platform. Sponsor names are not shared with the Besties you sponsor.
                   </p>
                 </div>
               </section>
@@ -93,16 +96,16 @@ const TermsOfService = () => {
                 <h2 className="text-2xl font-bold mb-3">5. Refund Policy</h2>
                 <div className="space-y-3 text-muted-foreground">
                   <p className="leading-relaxed">
-                    <strong>4.1 One-Time Sponsorships:</strong> One-time sponsorships are generally non-refundable once processed. However, we will consider refund requests on a case-by-case basis within 30 days of the donation.
+                    <strong>5.1 One-Time Sponsorships:</strong> One-time sponsorships are generally non-refundable once processed. However, we will consider refund requests on a case-by-case basis within 30 days of the donation.
                   </p>
                   <p className="leading-relaxed">
-                    <strong>4.2 Monthly Subscriptions:</strong> You may cancel your monthly subscription at any time. Cancellation will take effect at the end of the current billing period. No refunds will be provided for partial months.
+                    <strong>5.2 Monthly Subscriptions:</strong> You may cancel your monthly subscription at any time. Cancellation will take effect at the end of the current billing period. No refunds will be provided for partial months.
                   </p>
                   <p className="leading-relaxed">
-                    <strong>4.3 Disputed Charges:</strong> If you believe a charge was made in error, please contact us immediately at contact@bestdayministries.org. We will investigate and resolve disputes promptly.
+                    <strong>5.3 Disputed Charges:</strong> If you believe a charge was made in error, please contact us immediately at contact@bestdayministries.org. We will investigate and resolve disputes promptly.
                   </p>
                   <p className="leading-relaxed">
-                    <strong>4.4 Tax Deductibility:</strong> Best Day Ministries is a 501(c)(3) tax-exempt organization. Sponsorships may be tax-deductible to the extent allowed by law. You will receive a receipt for your records and an annual summary for tax purposes.
+                    <strong>5.4 Tax Deductibility:</strong> Best Day Ministries is a church under section 508(c)(1)(A) of the Internal Revenue Code and is exempt from federal income tax. Sponsorships may be tax-deductible to the extent allowed by law. You will receive a receipt for your records and an annual summary for tax purposes. No goods or services are provided in exchange for your sponsorship.
                   </p>
                 </div>
               </section>
