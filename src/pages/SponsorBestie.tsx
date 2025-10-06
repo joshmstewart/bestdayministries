@@ -160,10 +160,19 @@ const SponsorBestie = () => {
       .from("sponsor_besties")
       .select("id, bestie_name, image_url, text_sections, monthly_goal")
       .eq("is_active", true)
+      .eq("is_public", true)
+      .eq("approval_status", "approved")
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error loading besties:", error);
+      toast.error("Unable to load besties. Please refresh the page.");
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.log("No besties found matching criteria");
+      setBesties([]);
       return;
     }
 
