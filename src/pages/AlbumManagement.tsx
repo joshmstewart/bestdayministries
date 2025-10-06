@@ -258,15 +258,23 @@ export default function AlbumManagement() {
 
         if (updateError) throw updateError;
 
-        // Check if this image is the cover image and update the album's cover_image_url
-        if (editingAlbum?.cover_image_url === cropExistingImage.image_url) {
+        // Find and update any albums using this image as their cover
+        // We need to check against the OLD URL before it was updated
+        const { data: albumsWithThisCover, error: queryError } = await supabase
+          .from("albums")
+          .select("id")
+          .eq("cover_image_url", cropExistingImage.image_url);
+
+        if (!queryError && albumsWithThisCover && albumsWithThisCover.length > 0) {
+          // Update all albums that had this as their cover image
+          const albumIds = albumsWithThisCover.map(a => a.id);
           const { error: albumUpdateError } = await supabase
             .from("albums")
             .update({ cover_image_url: publicUrl })
-            .eq("id", editingAlbum.id);
+            .in("id", albumIds);
 
           if (albumUpdateError) {
-            console.error("Error updating album cover:", albumUpdateError);
+            console.error("Error updating album covers:", albumUpdateError);
           }
         }
 
