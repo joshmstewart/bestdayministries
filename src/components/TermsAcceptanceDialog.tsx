@@ -65,7 +65,7 @@ export const TermsAcceptanceDialog = ({ isOpen, onAccepted }: TermsAcceptanceDia
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Updated Terms & Privacy Policy</DialogTitle>
           <DialogDescription className="space-y-4 pt-4">
