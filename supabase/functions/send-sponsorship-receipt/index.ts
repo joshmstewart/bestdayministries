@@ -322,10 +322,10 @@ serve(async (req) => {
       });
     }
 
-    // Generate unique receipt number (format: YEAR-XXXXXX)
-    const year = new Date(transactionDate).getFullYear();
-    const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    receiptNumber = `${year}-${randomNum}`;
+    // Generate unique receipt number (format: RCP-TIMESTAMP-RANDOM)
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
+    receiptNumber = `RCP-${timestamp}-${randomStr}`;
 
     // Store receipt in database for history/year-end summaries
     const { error: insertError } = await supabaseAdmin
@@ -339,7 +339,7 @@ serve(async (req) => {
         transaction_id: transactionId,
         transaction_date: transactionDate,
         receipt_number: receiptNumber,
-        tax_year: year,
+        tax_year: new Date(transactionDate).getFullYear(),
         stripe_mode: stripeMode
       });
 
