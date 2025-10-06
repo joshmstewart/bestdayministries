@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import composite1 from "@/assets/avatars/composite-1.png";
 import composite2 from "@/assets/avatars/composite-2.png";
 import composite3 from "@/assets/avatars/composite-3.png";
@@ -170,6 +173,7 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
   const [avatarsByCategory, setAvatarsByCategory] = useState<Record<string, { label: string; avatars: number[] }>>({});
   const [loading, setLoading] = useState(true);
   const [storageUrls, setStorageUrls] = useState<Record<number, string>>({});
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     loadAvatars();
@@ -229,52 +233,63 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
   }
 
   return (
-    <div className="space-y-4">
-      <Label>Choose Your Avatar</Label>
-      {Object.entries(avatarsByCategory).map(([key, category]) => (
-        <div key={key} className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">{category.label}</h3>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 p-4 border rounded-lg bg-muted/20">
-            {category.avatars.map((avatarNum) => {
-              const config = getAvatarConfig(avatarNum);
-              const isSelected = selectedAvatar === avatarNum;
-              
-              if (!config) return null;
-              
-              // Determine the background image URL
-              const backgroundUrl = config.isStorageAvatar 
-                ? storageUrls[avatarNum] 
-                : config.image;
-              
-              return (
-                <button
-                  key={avatarNum}
-                  type="button"
-                  onClick={() => onSelectAvatar(avatarNum)}
-                  className={cn(
-                    "relative aspect-square rounded-lg transition-all border-2 overflow-hidden",
-                    isSelected 
-                      ? "border-primary scale-105 shadow-lg ring-2 ring-primary ring-offset-2" 
-                      : "border-border hover:scale-105 hover:border-primary/50"
-                  )}
-                  title={`Avatar ${avatarNum}`}
-                  style={{
-                    backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : undefined,
-                    backgroundSize: config.position ? '200% 200%' : 'cover',
-                    backgroundPosition: config.position ? `${config.position.x}% ${config.position.y}%` : 'center',
-                  }}
-                >
-                  {isSelected && (
-                    <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg">
-                      ✓
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label>Choose Your Avatar (Optional)</Label>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="w-9 p-0">
+            <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+            <span className="sr-only">Toggle avatar picker</span>
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      
+      <CollapsibleContent className="space-y-4">
+        {Object.entries(avatarsByCategory).map(([key, category]) => (
+          <div key={key} className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">{category.label}</h3>
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 p-4 border rounded-lg bg-muted/20">
+              {category.avatars.map((avatarNum) => {
+                const config = getAvatarConfig(avatarNum);
+                const isSelected = selectedAvatar === avatarNum;
+                
+                if (!config) return null;
+                
+                // Determine the background image URL
+                const backgroundUrl = config.isStorageAvatar 
+                  ? storageUrls[avatarNum] 
+                  : config.image;
+                
+                return (
+                  <button
+                    key={avatarNum}
+                    type="button"
+                    onClick={() => onSelectAvatar(avatarNum)}
+                    className={cn(
+                      "relative aspect-square rounded-lg transition-all border-2 overflow-hidden",
+                      isSelected 
+                        ? "border-primary scale-105 shadow-lg ring-2 ring-primary ring-offset-2" 
+                        : "border-border hover:scale-105 hover:border-primary/50"
+                    )}
+                    title={`Avatar ${avatarNum}`}
+                    style={{
+                      backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : undefined,
+                      backgroundSize: config.position ? '200% 200%' : 'cover',
+                      backgroundPosition: config.position ? `${config.position.x}% ${config.position.y}%` : 'center',
+                    }}
+                  >
+                    {isSelected && (
+                      <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg">
+                        ✓
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
