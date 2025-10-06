@@ -311,7 +311,7 @@ const SponsorBestie = () => {
     }
   };
 
-  const presetAmounts = ["5", "25", "50", "100"];
+  const presetAmounts = ["10", "25", "50", "100"];
 
   const renderSection = (sectionKey: string) => {
     switch (sectionKey) {
