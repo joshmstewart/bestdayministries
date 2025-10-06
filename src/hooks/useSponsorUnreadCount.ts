@@ -35,7 +35,16 @@ export const useSponsorUnreadCount = () => {
         return;
       }
 
-      const bestieIds = sponsorships.map(s => s.bestie_id);
+      // Filter out null bestie_ids (sponsor_besties without linked accounts)
+      const bestieIds = sponsorships
+        .map(s => s.bestie_id)
+        .filter((id): id is string => id !== null);
+
+      if (bestieIds.length === 0) {
+        setCount(0);
+        setLoading(false);
+        return;
+      }
 
       // Count unread messages from all sponsored besties
       const { count: unreadCount, error: countError } = await supabase

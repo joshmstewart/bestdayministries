@@ -1492,13 +1492,15 @@ export default function GuardianLinks() {
                         </div>
                       )}
 
-                      {/* Messages from Bestie */}
-                      <div className="pt-4 border-t">
-                        <SponsorMessageInbox
-                          bestieId={sponsorship.bestie_id}
-                          bestieName={sponsorship.bestie.display_name}
-                        />
-                      </div>
+                      {/* Messages from Bestie - only show if linked to actual user */}
+                      {sponsorship.bestie_id && (
+                        <div className="pt-4 border-t">
+                          <SponsorMessageInbox
+                            bestieId={sponsorship.bestie_id}
+                            bestieName={sponsorship.bestie.display_name}
+                          />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -1596,13 +1598,15 @@ export default function GuardianLinks() {
                         </div>
                       )}
 
-                      {/* Messages from Bestie */}
-                      <div className="pt-4 border-t">
-                        <SponsorMessageInbox 
-                          bestieId={sponsorship.bestie_id}
-                          bestieName={sponsorship.bestie.display_name}
-                        />
-                      </div>
+                      {/* Messages from Bestie - only show if linked to actual user */}
+                      {sponsorship.bestie_id && (
+                        <div className="pt-4 border-t">
+                          <SponsorMessageInbox 
+                            bestieId={sponsorship.bestie_id}
+                            bestieName={sponsorship.bestie.display_name}
+                          />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
