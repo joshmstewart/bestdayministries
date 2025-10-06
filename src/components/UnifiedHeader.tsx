@@ -261,7 +261,7 @@ export const UnifiedHeader = () => {
                   src={logoUrl} 
                   alt="Best Day Ever Coffee + Crepes" 
                   className="h-[85px] w-auto cursor-pointer my-1.5 mx-1 rounded-lg"
-                  onClick={() => navigate(user ? "/community" : "/")}
+                  onClick={() => navigate(user && profile ? "/community" : "/")}
                 />
               ) : (
                 <div className="h-[85px] w-[140px] my-1.5 mx-1" />
