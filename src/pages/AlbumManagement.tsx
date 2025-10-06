@@ -528,7 +528,9 @@ export default function AlbumManagement() {
       for (let i = 0; i < selectedImages.length; i++) {
         const file = selectedImages[i];
         const compressedImage = await compressImage(file, 4.5);
-        const fileName = `${user.id}/${Date.now()}_${file.name}`;
+        // Sanitize filename: replace spaces and special characters
+        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileName = `${user.id}/${Date.now()}_${sanitizedName}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("album-images")
