@@ -128,6 +128,7 @@ const Community = () => {
   };
 
   const markSectionLoaded = (sectionKey: string) => {
+    console.log('Community - Marking section as loaded:', sectionKey);
     setLoadedSections(prev => new Set([...prev, sectionKey]));
   };
 
@@ -135,9 +136,19 @@ const Community = () => {
     const sectionIndex = sectionOrder.findIndex(s => s.key === sectionKey);
     if (sectionIndex === 0) return true; // First section can always load
     
-    // Check if previous section is loaded
-    const previousSection = sectionOrder[sectionIndex - 1];
-    return loadedSections.has(previousSection.key);
+    // Find the previous visible section
+    let prevIndex = sectionIndex - 1;
+    while (prevIndex >= 0 && !sectionOrder[prevIndex].visible) {
+      prevIndex--;
+    }
+    
+    // If no previous visible section, this can load
+    if (prevIndex < 0) return true;
+    
+    const previousSection = sectionOrder[prevIndex];
+    const canLoad = loadedSections.has(previousSection.key);
+    console.log(`Community - Can load "${sectionKey}"?`, canLoad, `(previous visible: ${previousSection.key}, loaded sections:`, Array.from(loadedSections), ')');
+    return canLoad;
   };
 
   // Mark synchronous sections as loaded on mount

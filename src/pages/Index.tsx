@@ -102,8 +102,16 @@ const Index = () => {
     const sectionIndex = sections.findIndex(s => s.section_key === sectionKey);
     if (sectionIndex === 0) return true; // First section can always load
     
-    // Check if previous section is loaded
-    const previousSection = sections[sectionIndex - 1];
+    // Find the previous visible section
+    let prevIndex = sectionIndex - 1;
+    while (prevIndex >= 0 && !sections[prevIndex].is_visible) {
+      prevIndex--;
+    }
+    
+    // If no previous visible section, this can load
+    if (prevIndex < 0) return true;
+    
+    const previousSection = sections[prevIndex];
     return loadedSections.has(previousSection.section_key);
   };
 
