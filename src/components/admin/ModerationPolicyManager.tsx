@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Image, Video, MessageSquare, MessageCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type ModerationPolicy = 'all' | 'flagged' | 'none';
 
@@ -106,6 +107,11 @@ export const ModerationPolicyManager = () => {
     }
   };
 
+  const getPolicyLabel = (policy: ModerationPolicy) => {
+    const option = POLICY_OPTIONS.find(opt => opt.value === policy);
+    return option?.label || policy;
+  };
+
   if (loading) {
     return (
       <Card>
@@ -127,134 +133,151 @@ export const ModerationPolicyManager = () => {
           Control when content requires admin approval
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Sponsor Messages Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-lg font-semibold">
-            <MessageSquare className="w-5 h-5 text-primary" />
-            <h3>Sponsor Messages (Guardian to Sponsors)</h3>
-          </div>
-          
-          <div className="pl-7 space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Image className="w-4 h-4 text-muted-foreground" />
-                <Label htmlFor="sponsor-image-policy">Image Uploads</Label>
+      <CardContent>
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="policies" className="border-none">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex flex-col items-start gap-2 text-left">
+                <span className="font-semibold">Current Policy Settings</span>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <div>Sponsor Messages: Images <span className="font-medium text-foreground">{getPolicyLabel(settings.sponsor_message_image_policy)}</span>, Videos <span className="font-medium text-foreground">{getPolicyLabel(settings.sponsor_message_video_policy)}</span></div>
+                  <div>Discussion Posts: Images <span className="font-medium text-foreground">{getPolicyLabel(settings.discussion_post_image_policy)}</span>, Comments <span className="font-medium text-foreground">{getPolicyLabel(settings.discussion_comment_image_policy)}</span></div>
+                </div>
               </div>
-              <Select
-                value={settings.sponsor_message_image_policy}
-                onValueChange={(value) => updatePolicy('sponsor_message_image_policy', value as ModerationPolicy)}
-              >
-                <SelectTrigger id="sponsor-image-policy">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {POLICY_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-6 pt-4">
+                {/* Sponsor Messages Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-lg font-semibold">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <h3>Sponsor Messages (Guardian to Sponsors)</h3>
+                  </div>
+                  
+                  <div className="pl-7 space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Image className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="sponsor-image-policy">Image Uploads</Label>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                      <Select
+                        value={settings.sponsor_message_image_policy}
+                        onValueChange={(value) => updatePolicy('sponsor_message_image_policy', value as ModerationPolicy)}
+                      >
+                        <SelectTrigger id="sponsor-image-policy">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {POLICY_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-xs text-muted-foreground">{option.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Video className="w-4 h-4 text-muted-foreground" />
-                <Label htmlFor="sponsor-video-policy">Video Uploads</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="sponsor-video-policy">Video Uploads</Label>
+                      </div>
+                      <Select
+                        value={settings.sponsor_message_video_policy}
+                        onValueChange={(value) => updatePolicy('sponsor_message_video_policy', value as ModerationPolicy)}
+                      >
+                        <SelectTrigger id="sponsor-video-policy">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {POLICY_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-xs text-muted-foreground">{option.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Discussion Posts Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-lg font-semibold">
+                    <MessageCircle className="w-5 h-5 text-primary" />
+                    <h3>Discussion Posts & Comments</h3>
+                  </div>
+                  
+                  <div className="pl-7 space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Image className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="post-image-policy">Post Image Uploads</Label>
+                      </div>
+                      <Select
+                        value={settings.discussion_post_image_policy}
+                        onValueChange={(value) => updatePolicy('discussion_post_image_policy', value as ModerationPolicy)}
+                      >
+                        <SelectTrigger id="post-image-policy">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {POLICY_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-xs text-muted-foreground">{option.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Image className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="comment-image-policy">Comment Image Uploads</Label>
+                      </div>
+                      <Select
+                        value={settings.discussion_comment_image_policy}
+                        onValueChange={(value) => updatePolicy('discussion_comment_image_policy', value as ModerationPolicy)}
+                      >
+                        <SelectTrigger id="comment-image-policy">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {POLICY_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div>
+                                <div className="font-medium">{option.label}</div>
+                                <div className="text-xs text-muted-foreground">{option.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t text-sm text-muted-foreground space-y-2">
+                  <p><strong>All:</strong> Every upload goes to moderation queue regardless of AI result</p>
+                  <p><strong>Flagged Only:</strong> Only uploads flagged by AI go to moderation queue</p>
+                  <p><strong>None:</strong> All uploads auto-approve (no AI check, no queue)</p>
+                </div>
               </div>
-              <Select
-                value={settings.sponsor_message_video_policy}
-                onValueChange={(value) => updatePolicy('sponsor_message_video_policy', value as ModerationPolicy)}
-              >
-                <SelectTrigger id="sponsor-video-policy">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {POLICY_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Discussion Posts Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-lg font-semibold">
-            <MessageCircle className="w-5 h-5 text-primary" />
-            <h3>Discussion Posts & Comments</h3>
-          </div>
-          
-          <div className="pl-7 space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Image className="w-4 h-4 text-muted-foreground" />
-                <Label htmlFor="post-image-policy">Post Image Uploads</Label>
-              </div>
-              <Select
-                value={settings.discussion_post_image_policy}
-                onValueChange={(value) => updatePolicy('discussion_post_image_policy', value as ModerationPolicy)}
-              >
-                <SelectTrigger id="post-image-policy">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {POLICY_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Image className="w-4 h-4 text-muted-foreground" />
-                <Label htmlFor="comment-image-policy">Comment Image Uploads</Label>
-              </div>
-              <Select
-                value={settings.discussion_comment_image_policy}
-                onValueChange={(value) => updatePolicy('discussion_comment_image_policy', value as ModerationPolicy)}
-              >
-                <SelectTrigger id="comment-image-policy">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {POLICY_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-4 border-t text-sm text-muted-foreground space-y-2">
-          <p><strong>All:</strong> Every upload goes to moderation queue regardless of AI result</p>
-          <p><strong>Flagged Only:</strong> Only uploads flagged by AI go to moderation queue</p>
-          <p><strong>None:</strong> All uploads auto-approve (no AI check, no queue)</p>
-        </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </CardContent>
     </Card>
   );
