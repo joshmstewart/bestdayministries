@@ -142,9 +142,12 @@ const Community = () => {
 
   // Mark synchronous sections as loaded on mount
   useEffect(() => {
-    if (sectionOrder.find(s => s.key === 'welcome')) {
-      markSectionLoaded('welcome');
-    }
+    const syncSections = ['welcome', 'latest_discussion', 'upcoming_events', 'our_family', 'quick_links'];
+    syncSections.forEach(key => {
+      if (sectionOrder.find(s => s.key === key)) {
+        markSectionLoaded(key);
+      }
+    });
   }, [sectionOrder]);
 
   const loadLatestContent = async () => {
