@@ -392,17 +392,17 @@ const Admin = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Content Moderation</CardTitle>
-                <CardDescription>Review and moderate community content</CardDescription>
+                <CardTitle>Posts & Comments - Moderation</CardTitle>
+                <CardDescription>Review and moderate discussion posts and comments</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-muted-foreground">
-                    Review posts and comments that have been flagged by our AI moderation system.
+                    Review discussion posts and comments that have been flagged by AI moderation.
                   </p>
                   <Button onClick={() => navigate("/moderation")} className="gap-2 relative">
                     <Shield className="w-4 h-4" />
-                    Open Moderation Queue
+                    Open Post/Comment Queue
                     {moderationCount > 0 && (
                       <Badge 
                         variant="destructive" 

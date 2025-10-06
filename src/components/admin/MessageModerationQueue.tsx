@@ -64,28 +64,36 @@ export const MessageModerationQueue = () => {
     try {
       const { data, error } = await supabase
         .from("sponsor_messages")
-        .select(`
-          id,
-          bestie_id,
-          subject,
-          message,
-          image_url,
-          from_guardian,
-          moderation_result,
-          moderation_severity,
-          created_at,
-          bestie:profiles!sponsor_messages_bestie_id_fkey(display_name),
-          sender:profiles!sponsor_messages_sent_by_fkey(display_name)
-        `)
+        .select("*")
         .eq("status", "pending_moderation")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
+      // Fetch profile data separately to avoid foreign key issues
+      const bestieIds = [...new Set(data?.map(m => m.bestie_id) || [])];
+      const senderIds = [...new Set(data?.map(m => m.sent_by) || [])];
+      const allUserIds = [...new Set([...bestieIds, ...senderIds])];
+
+      const { data: profiles } = await supabase
+        .from("profiles_public")
+        .select("id, display_name")
+        .in("id", allUserIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.display_name]) || []);
+
       const transformedData = (data || []).map(msg => ({
-        ...msg,
-        bestie: Array.isArray(msg.bestie) ? msg.bestie[0] : msg.bestie,
-        sender: Array.isArray(msg.sender) ? msg.sender[0] : msg.sender,
+        id: msg.id,
+        bestie_id: msg.bestie_id,
+        subject: msg.subject,
+        message: msg.message,
+        image_url: msg.image_url,
+        from_guardian: msg.from_guardian,
+        moderation_result: msg.moderation_result as { approved: boolean; reason: string; severity: string; } | null,
+        moderation_severity: msg.moderation_severity,
+        created_at: msg.created_at,
+        bestie: { display_name: profileMap.get(msg.bestie_id) || 'Unknown' },
+        sender: { display_name: profileMap.get(msg.sent_by) || 'Unknown' },
       }));
 
       setMessages(transformedData as PendingMessage[]);
@@ -184,9 +192,9 @@ export const MessageModerationQueue = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Image className="w-5 h-5" />
-            Image Moderation Queue
+            Sponsor Messages - Moderation
           </CardTitle>
-          <CardDescription>Review messages flagged by AI content moderation</CardDescription>
+          <CardDescription>Review sponsor messages flagged by AI moderation</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground py-8">
@@ -204,10 +212,10 @@ export const MessageModerationQueue = () => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-orange-500" />
-              Image Moderation Queue
+              Sponsor Messages - Moderation
               <Badge variant="destructive">{messages.length}</Badge>
             </CardTitle>
-            <CardDescription>Review messages flagged by AI content moderation</CardDescription>
+            <CardDescription>Review sponsor messages flagged by AI moderation</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={loadPendingMessages}>
             <RefreshCw className="w-4 h-4 mr-2" />
