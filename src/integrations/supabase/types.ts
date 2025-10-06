@@ -1734,6 +1734,7 @@ export type Database = {
           tax_year: number
           transaction_date: string
           transaction_id: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -1750,6 +1751,7 @@ export type Database = {
           tax_year: number
           transaction_date: string
           transaction_id: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -1766,6 +1768,7 @@ export type Database = {
           tax_year?: number
           transaction_date?: string
           transaction_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2308,10 +2311,6 @@ export type Database = {
       cleanup_rate_limits: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      get_user_email: {
-        Args: { _user_id: string }
-        Returns: string
       }
       get_user_role: {
         Args: { _user_id: string }

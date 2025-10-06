@@ -106,6 +106,7 @@ serve(async (req) => {
       
       return {
         sponsorship_id: sponsorship.id,
+        user_id: userData.user.id,
         sponsor_email: userData.user.email,
         sponsor_name: sponsorName,
         bestie_name: bestieName,

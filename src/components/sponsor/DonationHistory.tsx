@@ -35,17 +35,16 @@ export const DonationHistory = () => {
   const loadReceipts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
-        console.log('No user email found');
+      if (!user?.id) {
+        console.log('No user id found');
         return;
       }
 
-      console.log('Loading receipts for:', user.email);
+      console.log('Loading receipts for user:', user.id);
 
       const { data, error } = await supabase
         .from('sponsorship_receipts')
         .select('*')
-        .eq('sponsor_email', user.email)
         .order('transaction_date', { ascending: false });
 
       if (error) {
