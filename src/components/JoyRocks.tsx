@@ -9,6 +9,8 @@ interface JoyRocksContent {
   paragraph2?: string;
   highlight_text?: string;
   button_text?: string;
+  button_url?: string;
+  button_url_type?: string;
   stat_number?: string;
   stat_label?: string;
   image_url?: string;
@@ -26,10 +28,20 @@ const JoyRocks = ({ content = {} }: JoyRocksProps) => {
     paragraph2 = "Through rock painting, we provide a creative outlet for all! Once decorated, rocks can be gifted or placed in public areas for others to find. The new owner can keep it as a reminder of kindness, or hide it for someone else to discover.",
     highlight_text = "Each rock's journey spreads our mission—one colorful rock at a time! 🎨",
     button_text = "Learn More About Joy Rocks",
+    button_url = "/joy-rocks",
+    button_url_type = "internal",
     stat_number = "10K+",
     stat_label = "Rocks Painted",
     image_url = joyRocksImage
   } = content;
+
+  const handleButtonClick = () => {
+    if (button_url_type === "custom") {
+      window.open(button_url, "_blank", "noopener,noreferrer");
+    } else {
+      window.location.href = button_url || "/joy-rocks";
+    }
+  };
 
   // Extract "Love Globally" or similar for gradient styling
   const loveGloballyMatch = heading.match(/(Love Globally|[A-Z][a-z]+ [A-Z][a-z]+)$/i);
@@ -103,7 +115,11 @@ const JoyRocks = ({ content = {} }: JoyRocksProps) => {
               </div>
             </div>
 
-            <Button size="lg" className="group shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0 text-lg px-8 py-6">
+            <Button 
+              size="lg" 
+              onClick={handleButtonClick}
+              className="group shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0 text-lg px-8 py-6"
+            >
               {button_text}
               <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>

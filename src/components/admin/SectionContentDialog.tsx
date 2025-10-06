@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { INTERNAL_PAGES } from "@/lib/internalPages";
 
 interface SectionContentDialogProps {
   open: boolean;
@@ -145,6 +147,51 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
                 onChange={(e) => setContent({ ...content, button_text: e.target.value })}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="button_url_type">Button Link Type</Label>
+              <Select
+                value={content.button_url_type || "internal"}
+                onValueChange={(value) => setContent({ ...content, button_url_type: value, button_url: "" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Internal Page</SelectItem>
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {content.button_url_type === "custom" ? (
+              <div className="space-y-2">
+                <Label htmlFor="button_url">Custom URL</Label>
+                <Input
+                  id="button_url"
+                  value={content.button_url || ""}
+                  onChange={(e) => setContent({ ...content, button_url: e.target.value })}
+                  placeholder="https://example.com"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="button_url">Internal Page</Label>
+                <Select
+                  value={content.button_url || ""}
+                  onValueChange={(value) => setContent({ ...content, button_url: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERNAL_PAGES.map((page) => (
+                      <SelectItem key={page.value} value={page.value}>
+                        {page.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="stat1_number">Stat 1 Number</Label>
@@ -433,6 +480,51 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
                 onChange={(e) => setContent({ ...content, button_text: e.target.value })}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="button_url_type">Button Link Type</Label>
+              <Select
+                value={content.button_url_type || "internal"}
+                onValueChange={(value) => setContent({ ...content, button_url_type: value, button_url: "" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Internal Page</SelectItem>
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {content.button_url_type === "custom" ? (
+              <div className="space-y-2">
+                <Label htmlFor="button_url">Custom URL</Label>
+                <Input
+                  id="button_url"
+                  value={content.button_url || ""}
+                  onChange={(e) => setContent({ ...content, button_url: e.target.value })}
+                  placeholder="https://example.com"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="button_url">Internal Page</Label>
+                <Select
+                  value={content.button_url || ""}
+                  onValueChange={(value) => setContent({ ...content, button_url: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERNAL_PAGES.map((page) => (
+                      <SelectItem key={page.value} value={page.value}>
+                        {page.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="stat_number">Stat Number</Label>

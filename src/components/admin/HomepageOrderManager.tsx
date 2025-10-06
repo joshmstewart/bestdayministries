@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { GripVertical, Eye, EyeOff, Lock, Pencil } from "lucide-react";
+import { GripVertical, Eye, EyeOff, Lock, Pencil, ExternalLink } from "lucide-react";
 import SectionContentDialog from "./SectionContentDialog";
+import { useNavigate } from "react-router-dom";
 import {
   DndContext,
   closestCenter,
@@ -142,6 +143,7 @@ const HomepageOrderManager = () => {
   const [saving, setSaving] = useState(false);
   const [editingSection, setEditingSection] = useState<HomepageSection | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -271,12 +273,24 @@ const HomepageOrderManager = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Homepage Section Order</CardTitle>
-        <CardDescription>
-          Drag sections to reorder them. Click the eye icon to show/hide sections.
-          The hero banner is locked in place and always visible.
-          Changes are saved when you click "Save Order".
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Homepage Section Order</CardTitle>
+            <CardDescription>
+              Drag sections to reorder them. Click the eye icon to show/hide sections.
+              The hero banner is locked in place and always visible.
+              Changes are saved when you click "Save Order".
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/")}
+            className="gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Preview Homepage
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <DndContext

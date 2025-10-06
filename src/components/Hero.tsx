@@ -7,6 +7,8 @@ interface HeroContent {
   heading?: string;
   description?: string;
   button_text?: string;
+  button_url?: string;
+  button_url_type?: string;
   stat1_number?: string;
   stat1_label?: string;
   stat2_number?: string;
@@ -24,12 +26,22 @@ const Hero = ({ content = {} }: HeroProps) => {
     heading = "Spreading JOY through the unique gifts of the special needs community",
     description = "Building a supportive community for adults with special needs by sharing their creativity and giving them confidence, independence, and JOY!",
     button_text = "Join Our Community",
+    button_url = "/auth",
+    button_url_type = "internal",
     stat1_number = "500+",
     stat1_label = "Community Members",
     stat2_number = "10K+",
     stat2_label = "Lives Touched",
     image_url = heroImage
   } = content;
+
+  const handleButtonClick = () => {
+    if (button_url_type === "custom") {
+      window.open(button_url, "_blank", "noopener,noreferrer");
+    } else {
+      window.location.href = button_url || "/auth";
+    }
+  };
 
   // Extract JOY if it exists in the heading
   const joyIndex = heading.toUpperCase().indexOf("JOY");
@@ -80,7 +92,7 @@ const Hero = ({ content = {} }: HeroProps) => {
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
                 size="lg" 
-                onClick={() => window.location.href = "/auth"}
+                onClick={handleButtonClick}
                 className="group px-6 py-6 shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
               >
                 {button_text}
