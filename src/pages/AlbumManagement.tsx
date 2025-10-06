@@ -16,6 +16,23 @@ import AudioRecorder from "@/components/AudioRecorder";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -54,6 +71,108 @@ interface AlbumImage {
   original_image_url?: string | null;
 }
 
+interface SortableImageItemProps {
+  image: AlbumImage;
+  isCover: boolean;
+  onSetCover: (url: string) => void;
+  onEditCaption: (image: AlbumImage) => void;
+  onCrop: (image: AlbumImage) => void;
+  onDelete: (id: string) => void;
+}
+
+function SortableImageItem({ image, isCover, onSetCover, onEditCaption, onCrop, onDelete }: SortableImageItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: image.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative space-y-2">
+      <div className="relative">
+        <img 
+          src={image.image_url} 
+          alt={image.caption || "Album image"} 
+          className="w-full h-32 object-cover rounded-lg" 
+        />
+        {isCover && (
+          <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold">
+            Cover
+          </div>
+        )}
+        <div className="absolute top-2 left-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 cursor-move bg-black/50 hover:bg-black/70"
+            {...attributes}
+            {...listeners}
+            title="Drag to reorder"
+          >
+            <GripVertical className="w-4 h-4 text-white" />
+          </Button>
+        </div>
+        <div className="absolute top-2 right-2 flex gap-1">
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onSetCover(image.image_url)}
+            title="Set as cover"
+          >
+            <Images className="w-3 h-3" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onEditCaption(image)}
+            title="Edit caption"
+          >
+            <MessageSquare className="w-3 h-3" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onCrop(image)}
+            title="Recrop image"
+          >
+            <Edit className="w-3 h-3" />
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onDelete(image.id)}
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+      {image.caption && (
+        <p className="text-xs text-muted-foreground truncate">
+          {image.caption}
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface Event {
   id: string;
   title: string;
@@ -69,6 +188,13 @@ export default function AlbumManagement() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   
   // Form fields
   const [title, setTitle] = useState("");
@@ -614,6 +740,43 @@ export default function AlbumManagement() {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = existingImages.findIndex((img) => img.id === active.id);
+    const newIndex = existingImages.findIndex((img) => img.id === over.id);
+
+    const reorderedImages = arrayMove(existingImages, oldIndex, newIndex);
+    setExistingImages(reorderedImages);
+
+    // Update display_order in database
+    try {
+      const updates = reorderedImages.map((img, index) => ({
+        id: img.id,
+        display_order: index,
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("album_images")
+          .update({ display_order: update.display_order })
+          .eq("id", update.id);
+
+        if (error) throw error;
+      }
+
+      toast.success("Image order updated");
+      loadAlbums();
+    } catch (error: any) {
+      console.error("Error updating image order:", error);
+      toast.error("Failed to update image order");
+      // Revert on error
+      setExistingImages(existingImages);
+    }
+  };
+
   const handleSetCover = async (imageUrl: string) => {
     if (!editingAlbum) return;
 
@@ -914,71 +1077,28 @@ export default function AlbumManagement() {
                   {/* Existing Images when editing */}
                   {editingAlbum && existingImages.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Existing Images</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {existingImages.map((image) => (
-                          <div key={image.id} className="relative space-y-2">
-                            <div className="relative">
-                              <img 
-                                src={image.image_url} 
-                                alt={image.caption || "Album image"} 
-                                className="w-full h-32 object-cover rounded-lg" 
+                      <p className="text-sm text-muted-foreground">Existing Images (Drag to reorder)</p>
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext items={existingImages.map(img => img.id)} strategy={rectSortingStrategy}>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {existingImages.map((image) => (
+                              <SortableImageItem
+                                key={image.id}
+                                image={image}
+                                isCover={editingAlbum.cover_image_url === image.image_url}
+                                onSetCover={handleSetCover}
+                                onEditCaption={handleEditCaption}
+                                onCrop={handleCropExistingImage}
+                                onDelete={handleDeleteImage}
                               />
-                              {editingAlbum.cover_image_url === image.image_url && (
-                                <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold">
-                                  Cover
-                                </div>
-                              )}
-                              <div className="absolute top-2 right-2 flex gap-1">
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => handleSetCover(image.image_url)}
-                                  title="Set as cover"
-                                >
-                                  <Images className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => handleEditCaption(image)}
-                                  title="Edit caption"
-                                >
-                                  <MessageSquare className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => handleCropExistingImage(image)}
-                                  title="Recrop image"
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="destructive"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => handleDeleteImage(image.id)}
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                            {image.caption && (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {image.caption}
-                              </p>
-                            )}
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </SortableContext>
+                      </DndContext>
                     </div>
                   )}
                   
