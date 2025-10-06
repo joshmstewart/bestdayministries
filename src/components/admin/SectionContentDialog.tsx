@@ -28,16 +28,18 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [imageFieldName, setImageFieldName] = useState<string>("image_url");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string = "image_url") => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const file = files[0];
     setImageFile(file);
+    setImageFieldName(fieldName);
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -78,7 +80,7 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
           .from("app-assets")
           .getPublicUrl(fileName);
 
-        updatedContent.image_url = publicUrl;
+        updatedContent[imageFieldName] = publicUrl;
         setUploading(false);
       }
 
@@ -755,6 +757,45 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
                 onChange={(e) => setContent({ ...content, doc_button_text: e.target.value })}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="doc_button_link">Documentary Button Link</Label>
+              <Input
+                id="doc_button_link"
+                type="url"
+                placeholder="https://example.com"
+                value={content.doc_button_link || ""}
+                onChange={(e) => setContent({ ...content, doc_button_link: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Documentary Image</Label>
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageSelect(e, "doc_image_url")}
+                  className="cursor-pointer"
+                />
+                {content.doc_image_url && (
+                  <div className="relative inline-block">
+                    <img
+                      src={content.doc_image_url}
+                      alt="Documentary Preview"
+                      className="w-full h-32 object-cover rounded"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => setContent({ ...content, doc_image_url: "" })}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="font-bold text-lg mt-6 mb-2">Best Day Ever Section</div>
             <div className="space-y-2">
               <Label htmlFor="bde_description1">BDE Description 1</Label>
@@ -808,6 +849,45 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
                   value={content.bde_button_text || ""}
                   onChange={(e) => setContent({ ...content, bde_button_text: e.target.value })}
                 />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bde_button_link">BDE Button Link</Label>
+              <Input
+                id="bde_button_link"
+                type="url"
+                placeholder="https://example.com"
+                value={content.bde_button_link || ""}
+                onChange={(e) => setContent({ ...content, bde_button_link: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>BDE Image</Label>
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageSelect(e, "bde_image_url")}
+                  className="cursor-pointer"
+                />
+                {content.bde_image_url && (
+                  <div className="relative inline-block">
+                    <img
+                      src={content.bde_image_url}
+                      alt="BDE Preview"
+                      className="w-full h-32 object-cover rounded"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => setContent({ ...content, bde_image_url: "" })}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

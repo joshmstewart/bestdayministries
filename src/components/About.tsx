@@ -13,6 +13,7 @@ interface AboutContent {
   doc_title?: string;
   doc_description?: string;
   doc_button_text?: string;
+  doc_button_link?: string;
   doc_image_url?: string;
   bde_description1?: string;
   bde_description2?: string;
@@ -20,6 +21,7 @@ interface AboutContent {
   bde_city?: string;
   bde_status?: string;
   bde_button_text?: string;
+  bde_button_link?: string;
   bde_image_url?: string;
 }
 
@@ -36,6 +38,7 @@ const About = ({ content = {} }: AboutProps) => {
     doc_title = "Joy Redefined",
     doc_description = "Watch our documentary to learn the inspiring story of how Best Day Ministries came to be and the lives we're touching every day.",
     doc_button_text = "Watch Documentary",
+    doc_button_link = "#",
     doc_image_url = teamWithFounder,
     bde_description1 = "The founders of Best Day Ministries have opened a partner company, best day ever! coffee + crepes in Longmont, Colorado.",
     bde_description2 = "Come in for delicious crepes, coffee, and ice cream while supporting our mission!",
@@ -43,6 +46,7 @@ const About = ({ content = {} }: AboutProps) => {
     bde_city = "Longmont, CO",
     bde_status = "Open NOW!",
     bde_button_text = "Visit Best Day Ever",
+    bde_button_link = "https://bestdayeverlongmont.com",
     bde_image_url = bdeOutdoorEvent,
   } = content || {};
   return (
@@ -91,7 +95,11 @@ const About = ({ content = {} }: AboutProps) => {
                   <p className="text-lg text-muted-foreground leading-relaxed">
                     {doc_description}
                   </p>
-                  <Button size="lg" className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
+                  <Button 
+                    size="lg" 
+                    className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                    onClick={() => window.open(doc_button_link, '_blank')}
+                  >
                     <Film className="mr-2 w-5 h-5" />
                     {doc_button_text}
                   </Button>
@@ -146,6 +154,7 @@ const About = ({ content = {} }: AboutProps) => {
                       backgroundColor: 'hsl(13 33% 36%)',
                       color: 'hsl(27 41% 88%)'
                     }}
+                    onClick={() => window.open(bde_button_link, '_blank')}
                   >
                     <Coffee className="mr-2 w-5 h-5" />
                     {bde_button_text}
