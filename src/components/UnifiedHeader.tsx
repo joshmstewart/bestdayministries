@@ -421,17 +421,17 @@ export const UnifiedHeader = () => {
                         // Special handling for Support Us with dropdown
                         if (link.href === '/support' || link.label === 'Support Us') {
                           return (
-                            <NavigationMenuItem key={link.id}>
-                              <NavigationMenuTrigger className="bg-transparent hover:bg-transparent data-[state=open]:bg-transparent py-1 px-0 h-auto text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors">
+                            <NavigationMenuItem key={link.id} className="relative">
+                              <NavigationMenuTrigger className="bg-transparent hover:bg-transparent data-[state=open]:bg-transparent py-1 px-0 h-auto text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors font-['Roca'] text-sm font-medium">
                                 {link.label}
                               </NavigationMenuTrigger>
-                              <NavigationMenuContent className="bg-card/95 backdrop-blur-xl border border-border/50">
-                                <ul className="w-48 p-2">
+                              <NavigationMenuContent className="absolute top-full left-0 mt-1 bg-card border border-border shadow-lg rounded-md z-[100] min-w-[160px]">
+                                <ul className="p-1">
                                   <li>
                                     <NavigationMenuLink asChild>
                                       <Link
                                         to="/support"
-                                        className="block px-4 py-3 rounded-md text-foreground/80 hover:text-[hsl(var(--burnt-orange))] hover:bg-accent/50 transition-colors"
+                                        className="block px-3 py-2 rounded-sm text-sm text-foreground/80 hover:text-[hsl(var(--burnt-orange))] hover:bg-accent transition-colors whitespace-nowrap"
                                       >
                                         Support Us
                                       </Link>
@@ -441,7 +441,7 @@ export const UnifiedHeader = () => {
                                     <NavigationMenuLink asChild>
                                       <Link
                                         to="/sponsor-bestie"
-                                        className="block px-4 py-3 rounded-md text-foreground/80 hover:text-[hsl(var(--burnt-orange))] hover:bg-accent/50 transition-colors"
+                                        className="block px-3 py-2 rounded-sm text-sm text-foreground/80 hover:text-[hsl(var(--burnt-orange))] hover:bg-accent transition-colors whitespace-nowrap"
                                       >
                                         Sponsor a Bestie
                                       </Link>
