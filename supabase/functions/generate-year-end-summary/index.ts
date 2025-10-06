@@ -57,14 +57,25 @@ serve(async (req) => {
       });
     }
 
-    // Fetch receipt settings
-    const { data: settings } = await supabaseAdmin
+    // Fetch year-end summary settings
+    const { data: yearEndSettings } = await supabaseAdmin
+      .from('year_end_summary_settings')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+
+    if (!yearEndSettings) {
+      throw new Error('Year-end summary settings not configured');
+    }
+
+    // Fetch receipt settings for organization info
+    const { data: receiptSettings } = await supabaseAdmin
       .from('receipt_settings')
       .select('*')
       .limit(1)
       .maybeSingle();
 
-    if (!settings) {
+    if (!receiptSettings) {
       throw new Error('Receipt settings not configured');
     }
 
@@ -113,6 +124,9 @@ serve(async (req) => {
       `;
     }).join('');
 
+    const emailSubject = yearEndSettings.email_subject.replace('{year}', year.toString());
+    const emailIntro = yearEndSettings.email_intro_text.replace('{year}', year.toString());
+    
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -130,13 +144,13 @@ serve(async (req) => {
                 <tr>
                   <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #D97706 0%, #B45309 100%); border-radius: 8px 8px 0 0;">
                     ${logoUrl ? `
-                      <img src="${logoUrl}" alt="${settings.organization_name}" style="max-width: 200px; height: auto; margin-bottom: 20px; border-radius: 12px;" />
+                      <img src="${logoUrl}" alt="${receiptSettings.organization_name}" style="max-width: 200px; height: auto; margin-bottom: 20px; border-radius: 12px;" />
                     ` : ''}
                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">
                       ${year} Year-End Tax Summary
                     </h1>
                     <p style="margin: 10px 0 0; color: #ffffff; font-size: 16px;">
-                      ${settings.organization_name}
+                      ${receiptSettings.organization_name}
                     </p>
                   </td>
                 </tr>
@@ -148,7 +162,7 @@ serve(async (req) => {
                       Dear ${summary.sponsor_name || 'Generous Donor'},
                     </p>
                     <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
-                      Thank you for your incredible generosity in ${year}! This summary includes all your tax-deductible donations made to ${settings.organization_name}.
+                      ${emailIntro}
                     </p>
                     
                     <!-- Total Box -->
@@ -196,11 +210,11 @@ serve(async (req) => {
                         Tax Deduction Information
                       </h3>
                       <p style="margin: 0 0 10px; font-size: 14px; line-height: 1.6; color: #78350F;">
-                        ${settings.tax_deductible_notice}
+                        ${yearEndSettings.tax_notice_text}
                       </p>
-                      ${settings.tax_id ? `
+                      ${receiptSettings.tax_id ? `
                         <p style="margin: 10px 0 0; font-size: 14px; color: #78350F;">
-                          <strong>Tax ID (EIN):</strong> ${settings.tax_id}
+                          <strong>Tax ID (EIN):</strong> ${receiptSettings.tax_id}
                         </p>
                       ` : ''}
                       <p style="margin: 10px 0 0; font-size: 13px; color: #92400E; font-style: italic;">
@@ -217,20 +231,20 @@ serve(async (req) => {
                       <tr>
                         <td style="text-align: center;">
                           ${logoUrl ? `
-                            <img src="${logoUrl}" alt="${settings.organization_name}" style="max-width: 150px; height: auto; margin-bottom: 12px; border-radius: 8px;" />
+                            <img src="${logoUrl}" alt="${receiptSettings.organization_name}" style="max-width: 150px; height: auto; margin-bottom: 12px; border-radius: 8px;" />
                           ` : ''}
                           <p style="margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #374151;">
-                            ${settings.organization_name}
+                            ${receiptSettings.organization_name}
                           </p>
-                          ${settings.organization_address ? `
+                          ${receiptSettings.organization_address ? `
                             <p style="margin: 0 0 8px; font-size: 13px; color: #6B7280;">
-                              ${settings.organization_address}
+                              ${receiptSettings.organization_address}
                             </p>
                           ` : ''}
-                          ${settings.website_url ? `
+                          ${receiptSettings.website_url ? `
                             <p style="margin: 0; font-size: 13px;">
-                              <a href="${settings.website_url}" style="color: #D97706; text-decoration: none;">
-                                ${settings.website_url.replace('https://', '').replace('http://', '')}
+                              <a href="${receiptSettings.website_url}" style="color: #D97706; text-decoration: none;">
+                                ${receiptSettings.website_url.replace('https://', '').replace('http://', '')}
                               </a>
                             </p>
                           ` : ''}
@@ -260,22 +274,39 @@ serve(async (req) => {
     `;
 
     // Send email if requested
+    let resendEmailId: string | null = null;
     if (sendEmail) {
-      await resend.emails.send({
-        from: settings.from_email,
+      const emailResponse = await resend.emails.send({
+        from: receiptSettings.from_email,
         to: [user.email],
-        replyTo: settings.reply_to_email || undefined,
-        subject: `${year} Year-End Tax Summary - ${settings.organization_name}`,
+        replyTo: receiptSettings.reply_to_email || undefined,
+        subject: emailSubject,
         html: emailHtml,
       });
-      console.log('Year-end summary email sent to:', user.email);
+      
+      resendEmailId = emailResponse.data?.id || null;
+      console.log('Year-end summary email sent to:', user.email, 'Email ID:', resendEmailId);
+
+      // Log sent email to database
+      await supabaseAdmin
+        .from('year_end_summary_sent')
+        .insert({
+          user_id: user.id,
+          user_email: user.email,
+          user_name: summary.sponsor_name,
+          tax_year: year,
+          total_amount: summary.total_amount,
+          resend_email_id: resendEmailId,
+          status: 'sent',
+        });
     }
 
     return new Response(JSON.stringify({ 
       success: true,
       summary,
       html: emailHtml,
-      emailSent: sendEmail || false
+      emailSent: sendEmail || false,
+      resendEmailId
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -2187,6 +2187,81 @@ export type Database = {
         }
         Relationships: []
       }
+      year_end_summary_sent: {
+        Row: {
+          created_at: string
+          id: string
+          resend_email_id: string | null
+          sent_at: string
+          status: string
+          tax_year: number
+          total_amount: number
+          user_email: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resend_email_id?: string | null
+          sent_at?: string
+          status?: string
+          tax_year: number
+          total_amount: number
+          user_email: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resend_email_id?: string | null
+          sent_at?: string
+          status?: string
+          tax_year?: number
+          total_amount?: number
+          user_email?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      year_end_summary_settings: {
+        Row: {
+          auto_send_day: number
+          auto_send_enabled: boolean
+          auto_send_month: number
+          email_intro_text: string
+          email_subject: string
+          id: string
+          tax_notice_text: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          auto_send_day?: number
+          auto_send_enabled?: boolean
+          auto_send_month?: number
+          email_intro_text?: string
+          email_subject?: string
+          id?: string
+          tax_notice_text?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          auto_send_day?: number
+          auto_send_enabled?: boolean
+          auto_send_month?: number
+          email_intro_text?: string
+          email_subject?: string
+          id?: string
+          tax_notice_text?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       app_settings_public: {

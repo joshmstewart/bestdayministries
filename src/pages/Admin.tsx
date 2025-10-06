@@ -15,6 +15,8 @@ import { SponsorPageOrderManager } from "@/components/admin/SponsorPageOrderMana
 import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
 import { ReceiptSettingsManager } from "@/components/admin/ReceiptSettingsManager";
 import { SponsorshipTransactionsManager } from "@/components/admin/SponsorshipTransactionsManager";
+import { YearEndSummarySettings } from "@/components/admin/YearEndSummarySettings";
+import { YearEndSummarySentHistory } from "@/components/admin/YearEndSummarySentHistory";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
@@ -309,6 +311,8 @@ const Admin = () => {
                     <TabsTrigger value="page-content">Page Content</TabsTrigger>
                     <TabsTrigger value="page-order">Page Order</TabsTrigger>
                     <TabsTrigger value="receipts">Receipt Settings</TabsTrigger>
+                    <TabsTrigger value="year-end-settings">Year-End Settings</TabsTrigger>
+                    <TabsTrigger value="sent-history">Sent History</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="sponsorships">
@@ -329,6 +333,14 @@ const Admin = () => {
 
                   <TabsContent value="receipts">
                     <ReceiptSettingsManager />
+                  </TabsContent>
+
+                  <TabsContent value="year-end-settings">
+                    <YearEndSummarySettings />
+                  </TabsContent>
+
+                  <TabsContent value="sent-history">
+                    <YearEndSummarySentHistory />
                   </TabsContent>
                 </Tabs>
               </CardContent>
