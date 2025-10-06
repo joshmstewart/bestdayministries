@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAppManifest } from "@/hooks/useAppManifest";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { TermsAcceptanceGuard } from "@/components/TermsAcceptanceGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Community from "./pages/Community";
@@ -50,7 +51,8 @@ const App = () => {
         <BrowserRouter>
           <ScrollToTop />
           <ImpersonationBanner />
-          <Routes>
+          <TermsAcceptanceGuard>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/vendor" element={<VendorAuth />} />
@@ -82,6 +84,7 @@ const App = () => {
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </TermsAcceptanceGuard>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
