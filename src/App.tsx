@@ -20,6 +20,7 @@ import JoyRocksPage from "./pages/JoyRocksPage";
 import GalleryPage from "./pages/GalleryPage";
 import VideosPage from "./pages/VideosPage";
 import DonatePage from "./pages/DonatePage";
+import SupportUs from "./pages/SupportUs";
 import SponsorBestie from "./pages/SponsorBestie";
 import SponsorshipSuccess from "./pages/SponsorshipSuccess";
 import Discussions from "./pages/Discussions";
@@ -67,6 +68,7 @@ const App = () => {
             <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/videos" element={<VideosPage />} />
             <Route path="/donate" element={<DonatePage />} />
+            <Route path="/support" element={<SupportUs />} />
             <Route path="/sponsor-bestie" element={<SponsorBestie />} />
             <Route path="/sponsorship-success" element={<SponsorshipSuccess />} />
             <Route path="/discussions" element={<Discussions />} />
