@@ -168,9 +168,31 @@ export const DonationHistory = () => {
     );
   }
 
-  // Don't render if no receipts
+  // Show generate button even if no receipts exist yet
   if (receipts.length === 0) {
-    return null;
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Donation Receipts</CardTitle>
+              <CardDescription>
+                No receipts found. Generate receipts for your existing sponsorships.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateMissingReceipts}
+              disabled={generatingReceipts}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${generatingReceipts ? 'animate-spin' : ''}`} />
+              Generate Receipts
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
+    );
   }
 
   return (
