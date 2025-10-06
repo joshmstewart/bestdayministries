@@ -167,7 +167,7 @@ const Index = () => {
       </section>
     ),
     mission: <Mission content={content} />,
-    community_features: <CommunityFeatures />,
+    community_features: <CommunityFeatures content={content} />,
     our_family: <OurFamily />,
     latest_album: (
       <LatestAlbum 
@@ -176,10 +176,10 @@ const Index = () => {
       />
     ),
     public_events: <PublicEvents />,
-    community_gallery: <CommunityGallery />,
+    community_gallery: <CommunityGallery content={content} />,
     joy_rocks: <JoyRocks content={content} />,
-    donate: <Donate />,
-    about: <About />,
+    donate: <Donate content={content} />,
+    about: <About content={content} />,
   };
   
     return componentMap[section.section_key];

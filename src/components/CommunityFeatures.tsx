@@ -1,7 +1,22 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Calendar, MessageSquare, Users, Gift, Link2, Volume2, Shield } from "lucide-react";
 
-const CommunityFeatures = () => {
+interface CommunityFeaturesContent {
+  badge_text?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+interface CommunityFeaturesProps {
+  content?: CommunityFeaturesContent;
+}
+
+const CommunityFeatures = ({ content = {} }: CommunityFeaturesProps) => {
+  const {
+    badge_text = "Platform Features",
+    title = "Join Our Community",
+    subtitle = "Connect, create, and celebrate together",
+  } = content;
   const features = [
     {
       icon: Heart,
@@ -64,16 +79,19 @@ const CommunityFeatures = () => {
         <div className="text-center mb-16 space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-4">
             <Users className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold text-primary">Platform Features</span>
+            <span className="text-sm font-semibold text-primary">{badge_text}</span>
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-foreground">
-            Everything You Need to{" "}
-            <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-              Connect
-            </span>
+            {title.split(' ').map((word, i) => 
+              ['Connect', 'connect', 'Community', 'community'].includes(word) ? (
+                <span key={i} className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">{word} </span>
+              ) : (
+                word + ' '
+              )
+            )}
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Our online platform brings together Besties, Guardians, and Supporters in one joyful community
+            {subtitle}
           </p>
         </div>
 

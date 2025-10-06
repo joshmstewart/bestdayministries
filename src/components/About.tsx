@@ -5,7 +5,46 @@ import bdeLogo from "@/assets/bde-logo-transparent.png";
 import teamWithFounder from "@/assets/team-with-founder.jpg";
 import bdeOutdoorEvent from "@/assets/bde-outdoor-event.jpg";
 
-const About = () => {
+interface AboutContent {
+  badge_text?: string;
+  heading?: string;
+  story_paragraph1?: string;
+  story_paragraph2?: string;
+  doc_title?: string;
+  doc_description?: string;
+  doc_button_text?: string;
+  doc_image_url?: string;
+  bde_description1?: string;
+  bde_description2?: string;
+  bde_address?: string;
+  bde_city?: string;
+  bde_status?: string;
+  bde_button_text?: string;
+  bde_image_url?: string;
+}
+
+interface AboutProps {
+  content?: AboutContent;
+}
+
+const About = ({ content = {} }: AboutProps) => {
+  const {
+    badge_text = "Founded with Love",
+    heading = "Our Story",
+    story_paragraph1 = "Best Day Ministries was born from the heart and creativity of Seth Truitt, a 33-year-old with Down Syndrome who lives in his own home (the Best Day Ministries house) on the back acre of his parent's property.",
+    story_paragraph2 = "Seth creates beautiful artwork to share with the world, and this inspired his family to create Best Day Ministries—a community where adults with special needs can showcase their unique talents and creativity while building confidence, independence, and JOY!",
+    doc_title = "Joy Redefined",
+    doc_description = "Watch our documentary to learn the inspiring story of how Best Day Ministries came to be and the lives we're touching every day.",
+    doc_button_text = "Watch Documentary",
+    doc_image_url = teamWithFounder,
+    bde_description1 = "The founders of Best Day Ministries have opened a partner company, best day ever! coffee + crepes in Longmont, Colorado.",
+    bde_description2 = "Come in for delicious crepes, coffee, and ice cream while supporting our mission!",
+    bde_address = "516 Coffman Street",
+    bde_city = "Longmont, CO",
+    bde_status = "Open NOW!",
+    bde_button_text = "Visit Best Day Ever",
+    bde_image_url = bdeOutdoorEvent,
+  } = content;
   return (
     <section id="about" className="py-24 bg-gradient-to-b from-background via-muted/20 to-background relative overflow-hidden">
       {/* Decorative elements */}
@@ -19,18 +58,20 @@ const About = () => {
           {/* Our Story */}
           <div className="text-center space-y-6 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-4">
-              <span className="text-sm font-semibold text-primary">Founded with Love</span>
+              <span className="text-sm font-semibold text-primary">{badge_text}</span>
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-foreground">
-              Our <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Story</span>
+              {heading.split(' ').map((word, i) => 
+                word.toLowerCase() === 'story' ? (
+                  <span key={i} className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">{word}</span>
+                ) : (
+                  word + ' '
+                )
+              )}
             </h2>
             <div className="max-w-3xl mx-auto space-y-4 text-lg text-muted-foreground">
-              <p>
-                Best Day Ministries was born from the heart and creativity of <strong className="text-foreground font-bold">Seth Truitt</strong>, a 33-year-old with Down Syndrome who lives in his own home (the Best Day Ministries house) on the back acre of his parent&apos;s property.
-              </p>
-              <p>
-                Seth creates beautiful artwork to share with the world, and this inspired his family to create Best Day Ministries—a community where adults with special needs can showcase their unique talents and creativity while building confidence, independence, and JOY!
-              </p>
+              <p>{story_paragraph1}</p>
+              <p>{story_paragraph2}</p>
             </div>
           </div>
 
@@ -44,20 +85,20 @@ const About = () => {
                       <Film className="w-7 h-7 text-primary" />
                     </div>
                     <h3 className="text-3xl font-black text-foreground">
-                      Joy Redefined
+                      {doc_title}
                     </h3>
                   </div>
                   <p className="text-lg text-muted-foreground leading-relaxed">
-                    Watch our documentary to learn the inspiring story of how Best Day Ministries came to be and the lives we&apos;re touching every day.
+                    {doc_description}
                   </p>
                   <Button size="lg" className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
                     <Film className="mr-2 w-5 h-5" />
-                    Watch Documentary
+                    {doc_button_text}
                   </Button>
                 </div>
                 <div className="relative overflow-hidden min-h-[300px]">
                   <img 
-                    src={teamWithFounder}
+                    src={doc_image_url}
                     alt="Best Day Ministries team with founder and community members"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
@@ -78,23 +119,23 @@ const About = () => {
                     className="w-64 h-auto mb-6"
                   />
                   <p className="text-lg leading-relaxed" style={{ color: 'hsl(13 33% 36%)' }}>
-                    The founders of Best Day Ministries have opened a partner company, <strong>best day ever! coffee + crepes</strong> in Longmont, Colorado.
+                    {bde_description1}
                   </p>
                   <p className="text-lg leading-relaxed" style={{ color: 'hsl(13 33% 36%)' }}>
-                    Come in for delicious crepes, coffee, and ice cream while supporting our mission!
+                    {bde_description2}
                   </p>
                   
                   <div className="space-y-4 pt-4">
                     <div className="flex items-start gap-3">
                       <MapPin className="w-5 h-5 mt-1 flex-shrink-0" style={{ color: 'hsl(13 33% 36%)' }} />
                       <div>
-                        <div className="font-bold text-lg" style={{ color: 'hsl(13 33% 36%)' }}>516 Coffman Street</div>
-                        <div style={{ color: 'hsl(13 33% 36%)' }}>Longmont, CO</div>
+                        <div className="font-bold text-lg" style={{ color: 'hsl(13 33% 36%)' }}>{bde_address}</div>
+                        <div style={{ color: 'hsl(13 33% 36%)' }}>{bde_city}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Clock className="w-5 h-5 flex-shrink-0" style={{ color: 'hsl(13 33% 36%)' }} />
-                      <div className="font-bold text-xl" style={{ color: 'hsl(13 33% 36%)' }}>Open NOW!</div>
+                      <div className="font-bold text-xl" style={{ color: 'hsl(13 33% 36%)' }}>{bde_status}</div>
                     </div>
                   </div>
                   
@@ -107,13 +148,13 @@ const About = () => {
                     }}
                   >
                     <Coffee className="mr-2 w-5 h-5" />
-                    Visit Best Day Ever
+                    {bde_button_text}
                   </Button>
                 </div>
                 
                 <div className="relative overflow-hidden min-h-[400px] order-1 md:order-2">
                   <img 
-                    src={bdeOutdoorEvent}
+                    src={bde_image_url}
                     alt="Best Day Ever outdoor event with Best Day Ministries partnership"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />

@@ -3,9 +3,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Heart, TrendingUp, Sparkles, Gift } from "lucide-react";
 
-const Donate = () => {
-  const raised = 7140;
-  const goal = 50000;
+interface DonateContent {
+  badge_text?: string;
+  heading?: string;
+  subtitle?: string;
+  raised_amount?: number;
+  goal_amount?: number;
+}
+
+interface DonateProps {
+  content?: DonateContent;
+}
+
+const Donate = ({ content = {} }: DonateProps) => {
+  const {
+    badge_text = "Support Our Mission",
+    heading = "Make a Difference Today",
+    subtitle = "Your support helps us empower adults with disabilities through creativity and community",
+    raised_amount = 7140,
+    goal_amount = 50000,
+  } = content;
+  
+  const raised = raised_amount;
+  const goal = goal_amount;
   const percentage = (raised / goal) * 100;
 
   return (
@@ -21,17 +41,19 @@ const Donate = () => {
           <div className="text-center mb-12 space-y-4 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-4">
               <Gift className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">Support Our Mission</span>
+              <span className="text-sm font-semibold text-primary">{badge_text}</span>
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-foreground">
-              Make a{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                Difference
-              </span>{" "}
-              Today
+              {heading.split(' ').map((word, i) => 
+                ['Difference', 'difference'].includes(word) ? (
+                  <span key={i} className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">{word} </span>
+                ) : (
+                  word + ' '
+                )
+              )}
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Your support helps us empower adults with disabilities through creativity and community
+              {subtitle}
             </p>
           </div>
 

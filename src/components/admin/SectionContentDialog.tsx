@@ -615,6 +615,14 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
         return (
           <>
             <div className="space-y-2">
+              <Label htmlFor="badge_text">Badge Text</Label>
+              <Input
+                id="badge_text"
+                value={content.badge_text || ""}
+                onChange={(e) => setContent({ ...content, badge_text: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
@@ -631,6 +639,178 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
               />
             </div>
           </>
+        );
+
+      case "donate":
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="badge_text">Badge Text</Label>
+              <Input
+                id="badge_text"
+                value={content.badge_text || ""}
+                onChange={(e) => setContent({ ...content, badge_text: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="heading">Heading</Label>
+              <Input
+                id="heading"
+                value={content.heading || ""}
+                onChange={(e) => setContent({ ...content, heading: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subtitle">Subtitle</Label>
+              <Textarea
+                id="subtitle"
+                value={content.subtitle || ""}
+                onChange={(e) => setContent({ ...content, subtitle: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="raised_amount">Amount Raised</Label>
+                <Input
+                  id="raised_amount"
+                  type="number"
+                  value={content.raised_amount || ""}
+                  onChange={(e) => setContent({ ...content, raised_amount: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="goal_amount">Goal Amount</Label>
+                <Input
+                  id="goal_amount"
+                  type="number"
+                  value={content.goal_amount || ""}
+                  onChange={(e) => setContent({ ...content, goal_amount: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+          </>
+        );
+
+      case "about":
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="badge_text">Badge Text</Label>
+              <Input
+                id="badge_text"
+                value={content.badge_text || ""}
+                onChange={(e) => setContent({ ...content, badge_text: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="heading">Heading</Label>
+              <Input
+                id="heading"
+                value={content.heading || ""}
+                onChange={(e) => setContent({ ...content, heading: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="story_paragraph1">Story Paragraph 1</Label>
+              <Textarea
+                id="story_paragraph1"
+                value={content.story_paragraph1 || ""}
+                onChange={(e) => setContent({ ...content, story_paragraph1: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="story_paragraph2">Story Paragraph 2</Label>
+              <Textarea
+                id="story_paragraph2"
+                value={content.story_paragraph2 || ""}
+                onChange={(e) => setContent({ ...content, story_paragraph2: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="font-bold text-lg mt-6 mb-2">Documentary Section</div>
+            <div className="space-y-2">
+              <Label htmlFor="doc_title">Documentary Title</Label>
+              <Input
+                id="doc_title"
+                value={content.doc_title || ""}
+                onChange={(e) => setContent({ ...content, doc_title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="doc_description">Documentary Description</Label>
+              <Textarea
+                id="doc_description"
+                value={content.doc_description || ""}
+                onChange={(e) => setContent({ ...content, doc_description: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="doc_button_text">Documentary Button Text</Label>
+              <Input
+                id="doc_button_text"
+                value={content.doc_button_text || ""}
+                onChange={(e) => setContent({ ...content, doc_button_text: e.target.value })}
+              />
+            </div>
+            <div className="font-bold text-lg mt-6 mb-2">Best Day Ever Section</div>
+            <div className="space-y-2">
+              <Label htmlFor="bde_description1">BDE Description 1</Label>
+              <Textarea
+                id="bde_description1"
+                value={content.bde_description1 || ""}
+                onChange={(e) => setContent({ ...content, bde_description1: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bde_description2">BDE Description 2</Label>
+              <Textarea
+                id="bde_description2"
+                value={content.bde_description2 || ""}
+                onChange={(e) => setContent({ ...content, bde_description2: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bde_address">BDE Address</Label>
+                <Input
+                  id="bde_address"
+                  value={content.bde_address || ""}
+                  onChange={(e) => setContent({ ...content, bde_address: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bde_city">BDE City</Label>
+                <Input
+                  id="bde_city"
+                  value={content.bde_city || ""}
+                  onChange={(e) => setContent({ ...content, bde_city: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bde_status">BDE Status</Label>
+                <Input
+                  id="bde_status"
+                  value={content.bde_status || ""}
+                  onChange={(e) => setContent({ ...content, bde_status: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bde_button_text">BDE Button Text</Label>
+                <Input
+                  id="bde_button_text"
+                  value={content.bde_button_text || ""}
+                  onChange={(e) => setContent({ ...content, bde_button_text: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
         );
 
       default:

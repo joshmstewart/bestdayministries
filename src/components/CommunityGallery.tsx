@@ -5,7 +5,22 @@ import communityMemberLawnMower from "@/assets/community-member-lawn-mower.jpg";
 import foundersTeam from "@/assets/founders-team.jpg";
 import communitySunCostume from "@/assets/community-sun-costume.jpg";
 
-const CommunityGallery = () => {
+interface CommunityGalleryContent {
+  badge_text?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+interface CommunityGalleryProps {
+  content?: CommunityGalleryContent;
+}
+
+const CommunityGallery = ({ content = {} }: CommunityGalleryProps) => {
+  const {
+    badge_text = "Community Snapshots",
+    title = "Our Community in Action",
+    subtitle = "Celebrating moments of joy, creativity, and connection",
+  } = content;
   const images = [
     {
       src: communityPromCelebration,
@@ -45,14 +60,19 @@ const CommunityGallery = () => {
         <div className="text-center mb-16 space-y-4 animate-fade-in">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-4">
             <Camera className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold text-primary">Community Snapshots</span>
+            <span className="text-sm font-semibold text-primary">{badge_text}</span>
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-foreground">
-            Our Community in{" "}
-            <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Action</span>
+            {title.split(' ').map((word, i) => 
+              ['Action', 'action'].includes(word) ? (
+                <span key={i} className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">{word}</span>
+              ) : (
+                word + ' '
+              )
+            )}
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            See the joy, creativity, and growth happening every day at Best Day Ministries
+            {subtitle}
           </p>
         </div>
 
