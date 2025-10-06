@@ -28,6 +28,7 @@ const Community = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [quickLinks, setQuickLinks] = useState<any[]>([]);
   const [sectionOrder, setSectionOrder] = useState<Array<{key: string, visible: boolean}>>([]);
+  const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
   const [effectiveRole, setEffectiveRole] = useState<UserRole | null>(null);
 
@@ -124,6 +125,19 @@ const Community = () => {
         { key: 'quick_links', visible: true },
       ]);
     }
+  };
+
+  const markSectionLoaded = (sectionKey: string) => {
+    setLoadedSections(prev => new Set([...prev, sectionKey]));
+  };
+
+  const canLoadSection = (sectionKey: string): boolean => {
+    const sectionIndex = sectionOrder.findIndex(s => s.key === sectionKey);
+    if (sectionIndex === 0) return true; // First section can always load
+    
+    // Check if previous section is loaded
+    const previousSection = sectionOrder[sectionIndex - 1];
+    return loadedSections.has(previousSection.key);
   };
 
   const loadLatestContent = async () => {
@@ -276,6 +290,8 @@ const Community = () => {
 
             switch (key) {
               case 'welcome':
+                // Mark as loaded immediately - no async work
+                markSectionLoaded('welcome');
                 return (
                   <div key={key} className="text-center space-y-4">
                     <h1 className="text-4xl md:text-5xl font-black text-foreground">
@@ -292,13 +308,31 @@ const Community = () => {
                 );
 
               case 'featured_item':
-                return <FeaturedItem key={key} />;
+                return (
+                  <FeaturedItem 
+                    key={key}
+                    canLoad={canLoadSection('featured_item')}
+                    onLoadComplete={() => markSectionLoaded('featured_item')}
+                  />
+                );
 
               case 'featured_bestie':
-                return <FeaturedBestieDisplay key={key} />;
+                return (
+                  <FeaturedBestieDisplay 
+                    key={key}
+                    canLoad={canLoadSection('featured_bestie')}
+                    onLoadComplete={() => markSectionLoaded('featured_bestie')}
+                  />
+                );
 
               case 'sponsor_bestie':
-                return <SponsorBestieDisplay key={key} />;
+                return (
+                  <SponsorBestieDisplay 
+                    key={key}
+                    canLoad={canLoadSection('sponsor_bestie')}
+                    onLoadComplete={() => markSectionLoaded('sponsor_bestie')}
+                  />
+                );
 
               case 'latest_discussion':
               case 'upcoming_events':
@@ -503,7 +537,13 @@ const Community = () => {
                 return null; // Skip upcoming_events as it's rendered with latest_discussion
 
               case 'latest_album':
-                return <LatestAlbum key={key} />;
+                return (
+                  <LatestAlbum 
+                    key={key}
+                    canLoad={canLoadSection('latest_album')}
+                    onLoadComplete={() => markSectionLoaded('latest_album')}
+                  />
+                );
 
               case 'our_family':
                 return <OurFamily key={key} />;

@@ -36,9 +36,11 @@ interface FundingProgress {
 
 interface SponsorBestieDisplayProps {
   selectedBestieId?: string;
+  canLoad?: boolean;
+  onLoadComplete?: () => void;
 }
 
-export const SponsorBestieDisplay = ({ selectedBestieId }: SponsorBestieDisplayProps) => {
+export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadComplete }: SponsorBestieDisplayProps = {}) => {
   const navigate = useNavigate();
   const [besties, setBesties] = useState<SponsorBestie[]>([]);
   const [fundingProgress, setFundingProgress] = useState<Record<string, FundingProgress>>({});
@@ -52,9 +54,11 @@ export const SponsorBestieDisplay = ({ selectedBestieId }: SponsorBestieDisplayP
   const autoScrollRef = useRef(false);
 
   useEffect(() => {
-    loadUserRole();
-    loadCurrentBesties();
-  }, []);
+    if (canLoad) {
+      loadUserRole();
+      loadCurrentBesties();
+    }
+  }, [canLoad]);
 
   useEffect(() => {
     if (!api) return;
@@ -179,6 +183,7 @@ export const SponsorBestieDisplay = ({ selectedBestieId }: SponsorBestieDisplayP
       console.error('Error loading besties:', error);
     } finally {
       setLoading(false);
+      onLoadComplete?.();
     }
   };
 

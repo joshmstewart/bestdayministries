@@ -22,14 +22,21 @@ interface Album {
   images: { image_url: string; caption: string | null }[];
 }
 
-export default function LatestAlbum() {
+interface LatestAlbumProps {
+  canLoad?: boolean;
+  onLoadComplete?: () => void;
+}
+
+export default function LatestAlbum({ canLoad = true, onLoadComplete }: LatestAlbumProps = {}) {
   const [album, setAlbum] = useState<Album | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadLatestAlbum();
-  }, []);
+    if (canLoad) {
+      loadLatestAlbum();
+    }
+  }, [canLoad]);
 
   const loadLatestAlbum = async () => {
     const { data: albumData, error: albumError } = await supabase
@@ -61,6 +68,7 @@ export default function LatestAlbum() {
     }
 
     setLoading(false);
+    onLoadComplete?.();
   };
 
   if (loading) {

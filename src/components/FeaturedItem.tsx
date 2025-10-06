@@ -25,7 +25,12 @@ interface EventDetails {
   location: string | null;
 }
 
-export const FeaturedItem = () => {
+interface FeaturedItemProps {
+  canLoad?: boolean;
+  onLoadComplete?: () => void;
+}
+
+export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemProps = {}) => {
   const [items, setItems] = useState<FeaturedItemData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -37,14 +42,16 @@ export const FeaturedItem = () => {
   const autoAdvanceRef = useRef(false);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (canLoad) {
+      checkAuth();
+    }
+  }, [canLoad]);
 
   useEffect(() => {
-    if (userRole !== null) {
+    if (userRole !== null && canLoad) {
       loadFeaturedItems();
     }
-  }, [userRole]);
+  }, [userRole, canLoad]);
 
   useEffect(() => {
     if (items.length > 0) {
@@ -115,6 +122,7 @@ export const FeaturedItem = () => {
       console.error("Error loading featured items:", error);
     } finally {
       setLoading(false);
+      onLoadComplete?.();
     }
   };
 
@@ -290,3 +298,5 @@ export const FeaturedItem = () => {
     </Card>
   );
 };
+
+export default FeaturedItem;

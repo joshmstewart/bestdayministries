@@ -39,6 +39,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [sections, setSections] = useState<Array<{ section_key: string; is_visible: boolean }>>(DEFAULT_SECTIONS);
   const [loading, setLoading] = useState(false);
+  const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Check vendor status but don't block page load
@@ -93,33 +94,60 @@ const Index = () => {
     }
   };
 
+  const markSectionLoaded = (sectionKey: string) => {
+    setLoadedSections(prev => new Set([...prev, sectionKey]));
+  };
+
+  const canLoadSection = (sectionKey: string): boolean => {
+    const sectionIndex = sections.findIndex(s => s.section_key === sectionKey);
+    if (sectionIndex === 0) return true; // First section can always load
+    
+    // Check if previous section is loaded
+    const previousSection = sections[sectionIndex - 1];
+    return loadedSections.has(previousSection.section_key);
+  };
+
   // Component mapping
   const componentMap: Record<string, React.ReactNode> = {
-    hero: <Hero />,
+    hero: (() => { markSectionLoaded('hero'); return <Hero />; })(),
     featured_items: (
       <div className="container mx-auto px-4 pt-8">
-        <FeaturedItem />
+        <FeaturedItem 
+          canLoad={canLoadSection('featured_items')}
+          onLoadComplete={() => markSectionLoaded('featured_items')}
+        />
       </div>
     ),
     featured_bestie: (
       <section className="container mx-auto px-4 py-16">
-        <FeaturedBestieDisplay />
+        <FeaturedBestieDisplay 
+          canLoad={canLoadSection('featured_bestie')}
+          onLoadComplete={() => markSectionLoaded('featured_bestie')}
+        />
       </section>
     ),
     sponsor_bestie: (
       <section className="container mx-auto px-4 py-16">
-        <SponsorBestieDisplay />
+        <SponsorBestieDisplay 
+          canLoad={canLoadSection('sponsor_bestie')}
+          onLoadComplete={() => markSectionLoaded('sponsor_bestie')}
+        />
       </section>
     ),
-    mission: <Mission />,
-    community_features: <CommunityFeatures />,
-    our_family: <OurFamily />,
-    latest_album: <LatestAlbum />,
-    public_events: <PublicEvents />,
-    community_gallery: <CommunityGallery />,
-    joy_rocks: <JoyRocks />,
-    donate: <Donate />,
-    about: <About />,
+    mission: (() => { markSectionLoaded('mission'); return <Mission />; })(),
+    community_features: (() => { markSectionLoaded('community_features'); return <CommunityFeatures />; })(),
+    our_family: (() => { markSectionLoaded('our_family'); return <OurFamily />; })(),
+    latest_album: (
+      <LatestAlbum 
+        canLoad={canLoadSection('latest_album')}
+        onLoadComplete={() => markSectionLoaded('latest_album')}
+      />
+    ),
+    public_events: (() => { markSectionLoaded('public_events'); return <PublicEvents />; })(),
+    community_gallery: (() => { markSectionLoaded('community_gallery'); return <CommunityGallery />; })(),
+    joy_rocks: (() => { markSectionLoaded('joy_rocks'); return <JoyRocks />; })(),
+    donate: (() => { markSectionLoaded('donate'); return <Donate />; })(),
+    about: (() => { markSectionLoaded('about'); return <About />; })(),
   };
 
 

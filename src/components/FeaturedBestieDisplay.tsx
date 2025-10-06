@@ -39,7 +39,12 @@ interface FundingProgress {
   funding_percentage: number;
 }
 
-export const FeaturedBestieDisplay = () => {
+interface FeaturedBestieDisplayProps {
+  canLoad?: boolean;
+  onLoadComplete?: () => void;
+}
+
+export const FeaturedBestieDisplay = ({ canLoad = true, onLoadComplete }: FeaturedBestieDisplayProps = {}) => {
   const navigate = useNavigate();
   const [besties, setBesties] = useState<FeaturedBestie[]>([]);
   const [fundingProgress, setFundingProgress] = useState<Record<string, FundingProgress>>({});
@@ -53,12 +58,16 @@ export const FeaturedBestieDisplay = () => {
   const autoScrollRef = useRef(false);
 
   useEffect(() => {
-    loadUserRole();
-  }, []);
+    if (canLoad) {
+      loadUserRole();
+    }
+  }, [canLoad]);
 
   useEffect(() => {
-    loadCurrentBesties();
-  }, [userId]);
+    if (canLoad && userId !== null) {
+      loadCurrentBesties();
+    }
+  }, [userId, canLoad]);
 
   useEffect(() => {
     if (!carouselApi || besties.length <= 1) return;
@@ -171,6 +180,7 @@ export const FeaturedBestieDisplay = () => {
       console.error("Error loading featured besties:", error);
     } finally {
       setLoading(false);
+      onLoadComplete?.();
     }
   };
 
