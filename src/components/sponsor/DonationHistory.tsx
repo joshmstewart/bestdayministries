@@ -42,18 +42,11 @@ export const DonationHistory = () => {
 
       console.log('Loading receipts for user:', user.id);
 
-      // Get user email for guest sponsorship matching
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('id', user.id)
-        .single();
-
-      // Query with explicit filter - RLS will further restrict this
+      // Query receipts - RLS ensures users only see their own
       const { data, error } = await supabase
         .from('sponsorship_receipts')
         .select('*')
-        .or(`user_id.eq.${user.id},sponsor_email.eq.${profile?.email}`)
+        .eq('user_id', user.id)
         .order('transaction_date', { ascending: false });
 
       if (error) {
