@@ -99,6 +99,12 @@ const Index = () => {
   };
 
   const canLoadSection = (sectionKey: string): boolean => {
+    // These sections load independently with no dependencies
+    const independentSections = ['featured_item', 'featured_items', 'featured_bestie', 'sponsor_bestie', 'latest_album'];
+    if (independentSections.includes(sectionKey)) {
+      return true;
+    }
+    
     const sectionIndex = sections.findIndex(s => s.section_key === sectionKey);
     if (sectionIndex === 0) return true; // First section can always load
     

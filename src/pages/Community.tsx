@@ -133,6 +133,12 @@ const Community = () => {
   };
 
   const canLoadSection = (sectionKey: string): boolean => {
+    // These sections load independently with no dependencies
+    const independentSections = ['featured_bestie', 'sponsor_bestie', 'featured_item', 'latest_album'];
+    if (independentSections.includes(sectionKey)) {
+      return true;
+    }
+    
     const sectionIndex = sectionOrder.findIndex(s => s.key === sectionKey);
     if (sectionIndex === 0) return true; // First section can always load
     
@@ -146,9 +152,7 @@ const Community = () => {
     if (prevIndex < 0) return true;
     
     const previousSection = sectionOrder[prevIndex];
-    const canLoad = loadedSections.has(previousSection.key);
-    console.log(`Community - Can load "${sectionKey}"?`, canLoad, `(previous visible: ${previousSection.key}, loaded sections:`, Array.from(loadedSections), ')');
-    return canLoad;
+    return loadedSections.has(previousSection.key);
   };
 
   // Mark synchronous sections as loaded on mount
