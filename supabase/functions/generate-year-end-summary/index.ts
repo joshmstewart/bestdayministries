@@ -47,7 +47,34 @@ serve(async (req) => {
       .maybeSingle();
 
     if (summaryError) throw summaryError;
-    if (!summary) {
+    
+    // If no summary found and not sending email, create mock data for preview
+    let summaryData = summary;
+    if (!summary && !sendEmail) {
+      // Generate mock data for preview
+      summaryData = {
+        sponsor_email: user.email,
+        sponsor_name: 'John Sponsor',
+        tax_year: year,
+        total_amount: 300.00,
+        total_donations: 12,
+        donations: [
+          { date: `${year}-01-15`, bestie_name: 'Sample Bestie 1', amount: 25.00, receipt_number: 'RCPT-001' },
+          { date: `${year}-02-15`, bestie_name: 'Sample Bestie 1', amount: 25.00, receipt_number: 'RCPT-002' },
+          { date: `${year}-03-15`, bestie_name: 'Sample Bestie 2', amount: 25.00, receipt_number: 'RCPT-003' },
+          { date: `${year}-04-15`, bestie_name: 'Sample Bestie 2', amount: 25.00, receipt_number: 'RCPT-004' },
+          { date: `${year}-05-15`, bestie_name: 'Sample Bestie 1', amount: 25.00, receipt_number: 'RCPT-005' },
+          { date: `${year}-06-15`, bestie_name: 'Sample Bestie 3', amount: 25.00, receipt_number: 'RCPT-006' },
+          { date: `${year}-07-15`, bestie_name: 'Sample Bestie 1', amount: 25.00, receipt_number: 'RCPT-007' },
+          { date: `${year}-08-15`, bestie_name: 'Sample Bestie 2', amount: 25.00, receipt_number: 'RCPT-008' },
+          { date: `${year}-09-15`, bestie_name: 'Sample Bestie 1', amount: 25.00, receipt_number: 'RCPT-009' },
+          { date: `${year}-10-15`, bestie_name: 'Sample Bestie 3', amount: 25.00, receipt_number: 'RCPT-010' },
+          { date: `${year}-11-15`, bestie_name: 'Sample Bestie 1', amount: 25.00, receipt_number: 'RCPT-011' },
+          { date: `${year}-12-15`, bestie_name: 'Sample Bestie 2', amount: 25.00, receipt_number: 'RCPT-012' },
+        ]
+      };
+    } else if (!summary && sendEmail) {
+      // If trying to send actual email but no data, return error
       return new Response(JSON.stringify({ 
         error: 'No donations found for this year',
         year 
@@ -100,10 +127,10 @@ serve(async (req) => {
     const formattedTotal = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(summary.total_amount);
+    }).format(summaryData.total_amount);
 
     // Generate detailed donations table
-    const donationsTable = summary.donations.map((donation: any) => {
+    const donationsTable = summaryData.donations.map((donation: any) => {
       const date = new Date(donation.date).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -158,9 +185,9 @@ serve(async (req) => {
                 <!-- Summary -->
                 <tr>
                   <td style="padding: 30px 40px;">
-                    <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
-                      Dear ${summary.sponsor_name || 'Generous Donor'},
-                    </p>
+                     <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                       Dear ${summaryData.sponsor_name || 'Generous Donor'},
+                     </p>
                     <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
                       ${emailIntro}
                     </p>
@@ -173,9 +200,9 @@ serve(async (req) => {
                       <p style="margin: 0; font-size: 42px; font-weight: bold; color: #78350F;">
                         ${formattedTotal}
                       </p>
-                      <p style="margin: 8px 0 0; font-size: 14px; color: #92400E;">
-                        ${summary.total_donations} donation${summary.total_donations > 1 ? 's' : ''}
-                      </p>
+                       <p style="margin: 8px 0 0; font-size: 14px; color: #92400E;">
+                         ${summaryData.total_donations} donation${summaryData.total_donations > 1 ? 's' : ''}
+                       </p>
                     </div>
                   </td>
                 </tr>
@@ -287,26 +314,29 @@ serve(async (req) => {
       resendEmailId = emailResponse.data?.id || null;
       console.log('Year-end summary email sent to:', user.email, 'Email ID:', resendEmailId);
 
-      // Log sent email to database
-      await supabaseAdmin
-        .from('year_end_summary_sent')
-        .insert({
-          user_id: user.id,
-          user_email: user.email,
-          user_name: summary.sponsor_name,
-          tax_year: year,
-          total_amount: summary.total_amount,
-          resend_email_id: resendEmailId,
-          status: 'sent',
-        });
+      // Log sent email to database (only if real data)
+      if (summary) {
+        await supabaseAdmin
+          .from('year_end_summary_sent')
+          .insert({
+            user_id: user.id,
+            user_email: user.email,
+            user_name: summary.sponsor_name,
+            tax_year: year,
+            total_amount: summary.total_amount,
+            resend_email_id: resendEmailId,
+            status: 'sent',
+          });
+      }
     }
 
     return new Response(JSON.stringify({ 
       success: true,
-      summary,
+      summary: summaryData,
       html: emailHtml,
       emailSent: sendEmail || false,
-      resendEmailId
+      resendEmailId,
+      isMockData: !summary
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
