@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, ImageIcon } from "lucide-react";
+import { Calendar, ImageIcon, MessageSquare } from "lucide-react";
 import Footer from "@/components/Footer";
 import ImageLightbox from "@/components/ImageLightbox";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -18,6 +18,7 @@ interface Album {
   is_post: boolean;
   event: { title: string; event_date: string } | null;
   images: { id: string; image_url: string; caption: string | null }[];
+  linkedPost?: { id: string; title: string } | null;
 }
 
 const GalleryPage = () => {
@@ -51,7 +52,15 @@ const GalleryPage = () => {
             .eq("album_id", album.id)
             .order("display_order", { ascending: true });
 
-          return { ...album, images: images || [] };
+          // Check if there's a discussion post linked to this album
+          const { data: linkedPost } = await supabase
+            .from("discussion_posts")
+            .select("id, title")
+            .eq("album_id", album.id)
+            .eq("is_moderated", true)
+            .maybeSingle();
+
+          return { ...album, images: images || [], linkedPost };
         })
       );
       setAlbums(albumsWithImages);
@@ -142,6 +151,20 @@ const GalleryPage = () => {
                           <Calendar className="w-3 h-3" />
                           <span className="line-clamp-1">{new Date(album.event.event_date).toLocaleDateString()}</span>
                         </div>
+                      )}
+                      {album.linkedPost && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/discussions');
+                          }}
+                        >
+                          <MessageSquare className="w-3 h-3 mr-1" />
+                          View Discussion
+                        </Button>
                       )}
                     </CardContent>
                   </Card>
