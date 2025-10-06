@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useGoogleMapsScript } from "@/hooks/useGoogleMapsScript";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface LocationAutocompleteProps {
   value: string;
@@ -11,6 +12,12 @@ interface LocationAutocompleteProps {
   label?: string;
   placeholder?: string;
   required?: boolean;
+}
+
+interface SavedLocation {
+  id: string;
+  name: string;
+  address: string;
 }
 
 export function LocationAutocomplete({ 
@@ -24,6 +31,24 @@ export function LocationAutocomplete({
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [apiKey, setApiKey] = useState<string>("");
   const [fetchingKey, setFetchingKey] = useState(true);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+
+  // Fetch saved locations
+  useEffect(() => {
+    const fetchSavedLocations = async () => {
+      const { data, error } = await supabase
+        .from("saved_locations")
+        .select("id, name, address")
+        .eq("is_active", true)
+        .order("name");
+
+      if (!error && data) {
+        setSavedLocations(data);
+      }
+    };
+
+    fetchSavedLocations();
+  }, []);
 
   // Fetch API key from edge function
   useEffect(() => {
@@ -130,6 +155,33 @@ export function LocationAutocomplete({
   return (
     <div className="space-y-2">
       {label && <Label htmlFor="location">{label}</Label>}
+      
+      {savedLocations.length > 0 && (
+        <Select
+          value=""
+          onValueChange={(locationId) => {
+            const location = savedLocations.find(l => l.id === locationId);
+            if (location) {
+              onChange(location.address);
+            }
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a saved location..." />
+          </SelectTrigger>
+          <SelectContent>
+            {savedLocations.map((location) => (
+              <SelectItem key={location.id} value={location.id}>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">{location.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      
       <div className="relative">
         <Input
           ref={inputRef}
@@ -144,7 +196,9 @@ export function LocationAutocomplete({
       </div>
       {!value && (
         <p className="text-xs text-muted-foreground">
-          Start typing to search for a location
+          {savedLocations.length > 0 
+            ? "Select a saved location above or search for a new one"
+            : "Start typing to search for a location"}
         </p>
       )}
     </div>

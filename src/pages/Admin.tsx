@@ -37,6 +37,7 @@ import { ContactFormManager } from "@/components/admin/ContactFormManager";
 import { VideoManager } from "@/components/admin/VideoManager";
 import { MessageModerationQueue } from "@/components/admin/MessageModerationQueue";
 import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyManager";
+import { SavedLocationsManager } from "@/components/admin/SavedLocationsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -437,6 +438,7 @@ const Admin = () => {
               <RoleImpersonator />
               <AppSettingsManager />
               <ContactFormManager />
+              <SavedLocationsManager />
               
               <AvatarUploader />
 
