@@ -12,8 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Mail, Trash2 } from "lucide-react";
+import { Loader2, Save, Mail, Trash2, Eye } from "lucide-react";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const settingsSchema = z.object({
   is_enabled: z.boolean(),
@@ -39,6 +40,8 @@ export const ContactFormManager = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -346,6 +349,17 @@ export const ContactFormManager = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedSubmission(submission);
+                            setViewDialogOpen(true);
+                          }}
+                          title="View submission"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         {submission.status === "new" ? (
                           <Button
                             size="sm"
@@ -380,6 +394,52 @@ export const ContactFormManager = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Contact Form Submission</DialogTitle>
+          </DialogHeader>
+          {selectedSubmission && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Date</label>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(selectedSubmission.created_at), "MMMM d, yyyy 'at' h:mm a")}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Name</label>
+                <p className="text-sm text-muted-foreground">{selectedSubmission.name}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <p className="text-sm text-muted-foreground">{selectedSubmission.email}</p>
+              </div>
+              {selectedSubmission.subject && (
+                <div>
+                  <label className="text-sm font-medium">Subject</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.subject}</p>
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium">Message</label>
+                <div className="mt-1 p-4 rounded-md bg-muted">
+                  <p className="text-sm whitespace-pre-wrap">{selectedSubmission.message}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <div className="mt-1">
+                  <Badge variant={selectedSubmission.status === "new" ? "default" : "secondary"}>
+                    {selectedSubmission.status}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
