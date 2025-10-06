@@ -24,7 +24,7 @@ const Community = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [latestDiscussion, setLatestDiscussion] = useState<any>(null);
+  const [latestDiscussions, setLatestDiscussions] = useState<any[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [quickLinks, setQuickLinks] = useState<any[]>([]);
   const [sectionOrder, setSectionOrder] = useState<Array<{key: string, visible: boolean}>>([]);
@@ -135,7 +135,7 @@ const Community = () => {
     
     console.log('Community - loadLatestContent running with role:', effectiveRole);
     try {
-      // Fetch latest discussion
+      // Fetch latest discussions (up to 3)
       const { data: discussions } = await supabase
         .from("discussion_posts")
         .select(`
@@ -144,11 +144,10 @@ const Community = () => {
         `)
         .eq("is_moderated", true)
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(3);
 
       if (discussions) {
-        setLatestDiscussion(discussions);
+        setLatestDiscussions(discussions);
       }
 
       // Fetch upcoming events with role-based filtering
@@ -329,32 +328,37 @@ const Community = () => {
                             </div>
                           </CardHeader>
                           <CardContent>
-                {latestDiscussion ? (
-                  <div 
-                    className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors"
-                    onClick={() => navigate("/discussions")}
-                  >
-                    {latestDiscussion.image_url && (
-                      <img
-                        src={latestDiscussion.image_url}
-                        alt={latestDiscussion.title}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    )}
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{latestDiscussion.title}</h3>
+                {latestDiscussions.length > 0 ? (
+                  <div className="space-y-4">
+                    {latestDiscussions.map((discussion) => (
+                      <div 
+                        key={discussion.id}
+                        className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors border-b last:border-0"
+                        onClick={() => navigate("/discussions")}
+                      >
+                        {discussion.image_url && (
+                          <img
+                            src={discussion.image_url}
+                            alt={discussion.title}
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                        )}
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{discussion.title}</h3>
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <TextToSpeech text={`${discussion.title}. ${discussion.content}`} />
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{discussion.content}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>by {discussion.author?.display_name}</span>
+                          <span>•</span>
+                          <span>{new Date(discussion.created_at).toLocaleDateString()}</span>
+                        </div>
                       </div>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <TextToSpeech text={`${latestDiscussion.title}. ${latestDiscussion.content}`} />
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{latestDiscussion.content}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>by {latestDiscussion.author?.display_name}</span>
-                      <span>•</span>
-                      <span>{new Date(latestDiscussion.created_at).toLocaleDateString()}</span>
-                    </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-center py-4">No discussions yet. Be the first!</p>
