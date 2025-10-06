@@ -714,7 +714,7 @@ export const UserManagement = () => {
               <TableHead>Display Name</TableHead>
               <TableHead className="w-12"></TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Permissions</TableHead>
+              <TableHead>Moderation Permissions</TableHead>
               <TableHead>Vendor Status</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -758,28 +758,37 @@ export const UserManagement = () => {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {user.permissions && user.permissions.length > 0 ? (
-                      user.permissions.map(perm => (
-                        <span key={perm} className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                          {perm}
-                        </span>
-                      ))
+                    {['admin', 'owner'].includes(user.role) ? (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        Full Access
+                      </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">None</span>
-                    )}
-                    {canEditUserRole(user.role) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2"
-                        onClick={() => {
-                          const hasModerate = user.permissions?.includes('moderate');
-                          handleTogglePermission(user.id, 'moderate', hasModerate || false);
-                        }}
-                        title={user.permissions?.includes('moderate') ? "Revoke moderation" : "Grant moderation"}
-                      >
-                        {user.permissions?.includes('moderate') ? '−' : '+'}
-                      </Button>
+                      <>
+                        {user.permissions && user.permissions.length > 0 ? (
+                          user.permissions.map(perm => (
+                            <span key={perm} className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                              {perm}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">None</span>
+                        )}
+                        {canEditUserRole(user.role) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2"
+                            onClick={() => {
+                              const hasModerate = user.permissions?.includes('moderate');
+                              handleTogglePermission(user.id, 'moderate', hasModerate || false);
+                            }}
+                            title={user.permissions?.includes('moderate') ? "Revoke moderation" : "Grant moderation"}
+                          >
+                            {user.permissions?.includes('moderate') ? '−' : '+'}
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </TableCell>
