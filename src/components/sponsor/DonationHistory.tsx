@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText, Mail, Calendar } from "lucide-react";
+import { Download, FileText, Mail, Calendar, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Receipt {
@@ -25,6 +25,7 @@ export const DonationHistory = () => {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [generatingYear, setGeneratingYear] = useState<number | null>(null);
+  const [generatingReceipts, setGeneratingReceipts] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -111,7 +112,35 @@ export const DonationHistory = () => {
     }
   };
 
-  const filteredReceipts = selectedYear === "all" 
+  const generateMissingReceipts = async () => {
+    setGeneratingReceipts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-missing-receipts');
+
+      if (error) throw error;
+
+      toast({
+        title: "Receipts Generated",
+        description: data.message || `Generated ${data.receiptsGenerated} receipt(s)`,
+      });
+
+      // Reload receipts to show the newly generated ones
+      if (data.receiptsGenerated > 0) {
+        await loadReceipts();
+      }
+    } catch (error: any) {
+      console.error('Error generating receipts:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate receipts",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingReceipts(false);
+    }
+  };
+
+  const filteredReceipts = selectedYear === "all"
     ? receipts 
     : receipts.filter(r => r.tax_year.toString() === selectedYear);
 
@@ -206,19 +235,30 @@ export const DonationHistory = () => {
                 View and download all your donation receipts
               </CardDescription>
             </div>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by year" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
-                {availableYears.map(year => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={generateMissingReceipts}
+                disabled={generatingReceipts}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${generatingReceipts ? 'animate-spin' : ''}`} />
+                Generate Missing Receipts
+              </Button>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
