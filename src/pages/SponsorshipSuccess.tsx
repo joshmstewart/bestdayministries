@@ -18,6 +18,7 @@ const SponsorshipSuccess = () => {
     frequency: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -25,7 +26,17 @@ const SponsorshipSuccess = () => {
       return;
     }
     verifyPayment();
+    checkAuthStatus();
   }, [sessionId, navigate]);
+
+  const checkAuthStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+  };
+
+  const handleReturnHome = () => {
+    navigate(isAuthenticated ? "/community" : "/");
+  };
 
   const verifyPayment = async () => {
     try {
@@ -112,7 +123,7 @@ const SponsorshipSuccess = () => {
 
             <div className="pt-6 space-y-3">
               <Button
-                onClick={() => navigate("/")}
+                onClick={handleReturnHome}
                 size="lg"
                 className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
               >
@@ -120,12 +131,13 @@ const SponsorshipSuccess = () => {
                 Return Home
               </Button>
               <Button
-                onClick={() => navigate("/community")}
+                onClick={() => navigate("/sponsor-bestie")}
                 variant="outline"
                 size="lg"
                 className="w-full"
               >
-                Explore Our Community
+                <Heart className="w-5 h-5 mr-2" />
+                Sponsor Another Bestie
               </Button>
             </div>
 
