@@ -712,7 +712,7 @@ export const UserManagement = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Display Name</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead className="w-12"></TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Permissions</TableHead>
               <TableHead>Vendor Status</TableHead>
@@ -731,11 +731,24 @@ export const UserManagement = () => {
               filteredUsers.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.display_name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  <div className="flex items-center gap-2">
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (user.email) {
+                        navigator.clipboard.writeText(user.email);
+                        toast({
+                          title: "Email copied",
+                          description: user.email,
+                        });
+                      }
+                    }}
+                    title={user.email || "No email"}
+                    className="h-8 w-8"
+                  >
                     <Mail className="w-4 h-4" />
-                    {user.email}
-                  </div>
+                  </Button>
                 </TableCell>
                 <TableCell>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
