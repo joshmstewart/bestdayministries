@@ -248,6 +248,9 @@ export const ReceiptSettingsManager = () => {
                     <table role="presentation" style="width: 100%;">
                       <tr>
                         <td style="text-align: center;">
+                          ${logoUrl ? `
+                            <img src="${logoUrl}" alt="${settings.organization_name}" style="max-width: 150px; height: auto; margin-bottom: 12px; border-radius: 8px;" />
+                          ` : ''}
                           <p style="margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #374151;">
                             ${settings.organization_name}
                           </p>
