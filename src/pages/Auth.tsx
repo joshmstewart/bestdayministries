@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, Users, Sparkles, Store } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import joyHouseLogo from "@/assets/joy-house-logo-full.png";
@@ -24,6 +25,7 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Fetch the logo from database
@@ -108,6 +110,16 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
+        if (!acceptedTerms) {
+          toast({
+            title: "Terms Required",
+            description: "Please accept the Terms of Service and Privacy Policy to create an account.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -331,10 +343,33 @@ const Auth = () => {
               />
             </div>
 
+            {isSignUp && (
+              <div className="flex items-start space-x-2 pt-2">
+                <Checkbox 
+                  id="terms" 
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  I agree to the{" "}
+                  <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
+            )}
+
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
-              disabled={loading}
+              disabled={loading || (isSignUp && !acceptedTerms)}
             >
               {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
             </Button>
