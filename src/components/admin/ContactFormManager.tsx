@@ -358,7 +358,7 @@ export const ContactFormManager = () => {
                       </Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         <Button
                           size="sm"
                           variant="outline"
@@ -370,6 +370,7 @@ export const ContactFormManager = () => {
                               markAsRead(submission.id);
                             }
                           }}
+                          className="w-20"
                         >
                           View
                         </Button>
@@ -378,6 +379,7 @@ export const ContactFormManager = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => markAsRead(submission.id)}
+                            className="w-28"
                           >
                             Mark Read
                           </Button>
@@ -386,6 +388,7 @@ export const ContactFormManager = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => markAsNew(submission.id)}
+                            className="w-28"
                           >
                             Mark Unread
                           </Button>
@@ -395,6 +398,7 @@ export const ContactFormManager = () => {
                           variant="outline"
                           onClick={() => deleteSubmission(submission.id)}
                           title="Delete"
+                          className="w-10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
