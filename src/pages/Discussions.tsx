@@ -18,6 +18,7 @@ import AudioRecorder from "@/components/AudioRecorder";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import ImageLightbox from "@/components/ImageLightbox";
 import { discussionPostSchema, commentSchema, validateInput } from "@/lib/validation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
@@ -51,6 +52,18 @@ interface Post {
   approval_status?: string;
   author?: Profile;
   comments?: Comment[];
+  album?: {
+    id: string;
+    title: string;
+    cover_image_url: string | null;
+    is_active: boolean;
+  };
+  album_images?: Array<{
+    id: string;
+    image_url: string;
+    caption: string | null;
+    display_order: number;
+  }>;
 }
 
 const Discussions = () => {
@@ -76,6 +89,9 @@ const Discussions = () => {
   const [expandedComments, setExpandedComments] = useState<{ [key: string]: boolean }>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<Array<{ image_url: string; caption?: string | null }>>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     checkUser();
@@ -191,7 +207,19 @@ const Discussions = () => {
           })));
         }
 
-        return { ...post, comments: commentsData || [] };
+        // If post has an album, load its images
+        let albumImages = [];
+        if ((post as any).album_id) {
+          const { data: imagesData } = await supabase
+            .from("album_images")
+            .select("*")
+            .eq("album_id", (post as any).album_id)
+            .order("display_order", { ascending: true });
+          
+          albumImages = imagesData || [];
+        }
+
+        return { ...post, comments: commentsData || [], album_images: albumImages };
       })
     );
 
@@ -966,14 +994,61 @@ const Discussions = () => {
                   <CardContent className="space-y-6">
                     <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
 
-                    {/* Display Image if present */}
-                    {post.image_url && (
+                    {/* Display Image if present and no album images */}
+                    {post.image_url && !post.album_images?.length && (
                       <div className="rounded-lg overflow-hidden">
                         <img 
                           src={post.image_url} 
                           alt="Post image" 
                           className="w-full max-h-96 object-cover"
                         />
+                      </div>
+                    )}
+
+                    {/* Display album images in a grid if present */}
+                    {post.album_images && post.album_images.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {post.album_images.slice(0, 6).map((image, index) => (
+                            <div
+                              key={image.id}
+                              className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
+                              onClick={() => {
+                                setLightboxImages(post.album_images!);
+                                setLightboxIndex(index);
+                                setLightboxOpen(true);
+                              }}
+                            >
+                              <img
+                                src={image.image_url}
+                                alt={image.caption || `Album image ${index + 1}`}
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              />
+                              {index === 5 && post.album_images.length > 6 && (
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                  <span className="text-white text-2xl font-bold">
+                                    +{post.album_images.length - 6}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {post.album_images.length > 6 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setLightboxImages(post.album_images!);
+                              setLightboxIndex(0);
+                              setLightboxOpen(true);
+                            }}
+                            className="w-full"
+                          >
+                            <ImageIcon className="w-4 h-4 mr-2" />
+                            View All {post.album_images.length} Photos
+                          </Button>
+                        )}
                       </div>
                     )}
 
@@ -1185,6 +1260,24 @@ const Discussions = () => {
           description="Adjust the image to show what will be visible in the post (16:9 format)"
         />
       )}
+
+      {/* Image Lightbox */}
+      <ImageLightbox
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onPrevious={() => {
+          setLightboxIndex((prev) => 
+            prev === 0 ? lightboxImages.length - 1 : prev - 1
+          );
+        }}
+        onNext={() => {
+          setLightboxIndex((prev) => 
+            prev === lightboxImages.length - 1 ? 0 : prev + 1
+          );
+        }}
+      />
     </div>
   );
 };
