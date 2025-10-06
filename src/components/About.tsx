@@ -14,6 +14,7 @@ interface AboutContent {
   doc_description?: string;
   doc_button_text?: string;
   doc_button_link?: string;
+  doc_button_link_type?: string;
   doc_image_url?: string;
   bde_description1?: string;
   bde_description2?: string;
@@ -22,6 +23,7 @@ interface AboutContent {
   bde_status?: string;
   bde_button_text?: string;
   bde_button_link?: string;
+  bde_button_link_type?: string;
   bde_image_url?: string;
 }
 
@@ -39,6 +41,7 @@ const About = ({ content = {} }: AboutProps) => {
     doc_description = "Watch our documentary to learn the inspiring story of how Best Day Ministries came to be and the lives we're touching every day.",
     doc_button_text = "Watch Documentary",
     doc_button_link = "#",
+    doc_button_link_type = "custom",
     doc_image_url = teamWithFounder,
     bde_description1 = "The founders of Best Day Ministries have opened a partner company, best day ever! coffee + crepes in Longmont, Colorado.",
     bde_description2 = "Come in for delicious crepes, coffee, and ice cream while supporting our mission!",
@@ -47,6 +50,7 @@ const About = ({ content = {} }: AboutProps) => {
     bde_status = "Open NOW!",
     bde_button_text = "Visit Best Day Ever",
     bde_button_link = "https://bestdayeverlongmont.com",
+    bde_button_link_type = "custom",
     bde_image_url = bdeOutdoorEvent,
   } = content || {};
   return (
@@ -98,7 +102,13 @@ const About = ({ content = {} }: AboutProps) => {
                   <Button 
                     size="lg" 
                     className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                    onClick={() => window.open(doc_button_link, '_blank')}
+                    onClick={() => {
+                      if (doc_button_link_type === "internal") {
+                        window.location.href = doc_button_link;
+                      } else {
+                        window.open(doc_button_link, '_blank');
+                      }
+                    }}
                   >
                     <Film className="mr-2 w-5 h-5" />
                     {doc_button_text}
@@ -154,7 +164,13 @@ const About = ({ content = {} }: AboutProps) => {
                       backgroundColor: 'hsl(13 33% 36%)',
                       color: 'hsl(27 41% 88%)'
                     }}
-                    onClick={() => window.open(bde_button_link, '_blank')}
+                    onClick={() => {
+                      if (bde_button_link_type === "internal") {
+                        window.location.href = bde_button_link;
+                      } else {
+                        window.open(bde_button_link, '_blank');
+                      }
+                    }}
                   >
                     <Coffee className="mr-2 w-5 h-5" />
                     {bde_button_text}

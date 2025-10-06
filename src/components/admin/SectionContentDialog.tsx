@@ -758,15 +758,51 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="doc_button_link">Documentary Button Link</Label>
-              <Input
-                id="doc_button_link"
-                type="url"
-                placeholder="https://example.com"
-                value={content.doc_button_link || ""}
-                onChange={(e) => setContent({ ...content, doc_button_link: e.target.value })}
-              />
+              <Label htmlFor="doc_button_link_type">Documentary Button Link Type</Label>
+              <Select
+                value={content.doc_button_link_type || "custom"}
+                onValueChange={(value) => setContent({ ...content, doc_button_link_type: value, doc_button_link: "" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Internal Page</SelectItem>
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {content.doc_button_link_type === "custom" ? (
+              <div className="space-y-2">
+                <Label htmlFor="doc_button_link">Documentary Button Link</Label>
+                <Input
+                  id="doc_button_link"
+                  type="url"
+                  placeholder="https://example.com"
+                  value={content.doc_button_link || ""}
+                  onChange={(e) => setContent({ ...content, doc_button_link: e.target.value })}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="doc_button_link">Documentary Internal Page</Label>
+                <Select
+                  value={content.doc_button_link || "/"}
+                  onValueChange={(value) => setContent({ ...content, doc_button_link: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERNAL_PAGES.map((page) => (
+                      <SelectItem key={page.value} value={page.value}>
+                        {page.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Documentary Image</Label>
               <div className="space-y-2">
@@ -852,15 +888,51 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bde_button_link">BDE Button Link</Label>
-              <Input
-                id="bde_button_link"
-                type="url"
-                placeholder="https://example.com"
-                value={content.bde_button_link || ""}
-                onChange={(e) => setContent({ ...content, bde_button_link: e.target.value })}
-              />
+              <Label htmlFor="bde_button_link_type">BDE Button Link Type</Label>
+              <Select
+                value={content.bde_button_link_type || "custom"}
+                onValueChange={(value) => setContent({ ...content, bde_button_link_type: value, bde_button_link: "" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Internal Page</SelectItem>
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {content.bde_button_link_type === "custom" ? (
+              <div className="space-y-2">
+                <Label htmlFor="bde_button_link">BDE Button Link</Label>
+                <Input
+                  id="bde_button_link"
+                  type="url"
+                  placeholder="https://example.com"
+                  value={content.bde_button_link || ""}
+                  onChange={(e) => setContent({ ...content, bde_button_link: e.target.value })}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="bde_button_link">BDE Internal Page</Label>
+                <Select
+                  value={content.bde_button_link || "/"}
+                  onValueChange={(value) => setContent({ ...content, bde_button_link: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERNAL_PAGES.map((page) => (
+                      <SelectItem key={page.value} value={page.value}>
+                        {page.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>BDE Image</Label>
               <div className="space-y-2">
