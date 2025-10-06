@@ -236,6 +236,7 @@ serve(async (req) => {
                   'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
                 },
               body: JSON.stringify({
+                sponsorshipId: upsertError ? undefined : sponsorBestieId, // Pass sponsorship context
                 sponsorEmail: customerEmail,
                 sponsorName: profileData?.display_name || null,
                 bestieName: bestieData.bestie_name,
@@ -325,6 +326,7 @@ serve(async (req) => {
                 'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
               },
               body: JSON.stringify({
+                sponsorshipId: sponsorBestieId, // Pass sponsorship context
                 sponsorEmail: customerEmail,
                 sponsorName: profileData?.display_name || null,
                 bestieName: bestieData.bestie_name,

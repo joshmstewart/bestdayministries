@@ -10,6 +10,7 @@ const corsHeaders = {
 
 // Validation schema for receipt request
 const receiptRequestSchema = z.object({
+  sponsorshipId: z.string().uuid().optional(),
   sponsorEmail: z.string()
     .email("Invalid email address")
     .max(255, "Email too long"),
@@ -39,6 +40,7 @@ const receiptRequestSchema = z.object({
 });
 
 interface ReceiptRequest {
+  sponsorshipId?: string;
   sponsorEmail: string;
   sponsorName?: string;
   bestieName: string;
@@ -82,6 +84,7 @@ serve(async (req) => {
     }
     
     const {
+      sponsorshipId,
       sponsorEmail,
       sponsorName,
       bestieName,
@@ -92,17 +95,46 @@ serve(async (req) => {
       stripeMode = 'live'
     } = validationResult.data;
 
-    console.log('Sending receipt to:', sponsorEmail, 'for bestie:', bestieName);
+    console.log('[AUDIT] Receipt generation starting for:', sponsorEmail);
+    
+    // Log receipt generation start
+    if (sponsorshipId) {
+      await supabaseAdmin.from('receipt_generation_logs').insert({
+        sponsorship_id: sponsorshipId,
+        stage: 'receipt_generation_start',
+        status: 'success',
+        metadata: { sponsor_email: sponsorEmail, amount, frequency }
+      });
+    }
 
     // Fetch receipt settings
-    const { data: settings } = await supabaseAdmin
+    console.log('[AUDIT] Fetching receipt settings');
+    const { data: settings, error: settingsError } = await supabaseAdmin
       .from('receipt_settings')
       .select('*')
       .limit(1)
       .maybeSingle();
 
-    if (!settings) {
+    if (settingsError || !settings) {
+      console.error('[AUDIT] Failed to fetch settings:', settingsError);
+      if (sponsorshipId) {
+        await supabaseAdmin.from('receipt_generation_logs').insert({
+          sponsorship_id: sponsorshipId,
+          stage: 'settings_fetch',
+          status: 'failure',
+          error_message: settingsError?.message || 'Settings not found'
+        });
+      }
       throw new Error('Receipt settings not configured');
+    }
+
+    console.log('[AUDIT] Settings fetched successfully');
+    if (sponsorshipId) {
+      await supabaseAdmin.from('receipt_generation_logs').insert({
+        sponsorship_id: sponsorshipId,
+        stage: 'settings_fetch',
+        status: 'success'
+      });
     }
 
     // Fetch logo URL from app settings
@@ -288,6 +320,7 @@ serve(async (req) => {
       </html>
     `;
 
+    console.log('[AUDIT] Sending email to:', sponsorEmail);
     const emailResponse = await resend.emails.send({
       from: settings.from_email,
       to: [sponsorEmail],
@@ -296,7 +329,15 @@ serve(async (req) => {
       html: emailHtml,
     });
 
-    console.log('Receipt sent successfully:', emailResponse);
+    console.log('[AUDIT] Email sent successfully:', emailResponse.data?.id);
+    if (sponsorshipId) {
+      await supabaseAdmin.from('receipt_generation_logs').insert({
+        sponsorship_id: sponsorshipId,
+        stage: 'email_send',
+        status: 'success',
+        metadata: { email_id: emailResponse.data?.id, recipient: sponsorEmail }
+      });
+    }
 
     // Check if receipt already exists for this transaction
     const { data: existingReceipt } = await supabaseAdmin
@@ -335,7 +376,8 @@ serve(async (req) => {
       .maybeSingle();
 
     // Store receipt in database for history/year-end summaries
-    const { error: insertError } = await supabaseAdmin
+    console.log('[AUDIT] Storing receipt in database');
+    const { data: receiptData, error: insertError } = await supabaseAdmin
       .from('sponsorship_receipts')
       .insert({
         sponsor_email: sponsorEmail,
@@ -349,11 +391,32 @@ serve(async (req) => {
         tax_year: new Date(transactionDate).getFullYear(),
         stripe_mode: stripeMode,
         user_id: userData?.id || null
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
-      console.error('Error storing receipt record:', insertError);
+      console.error('[AUDIT] Failed to store receipt:', insertError);
+      if (sponsorshipId) {
+        await supabaseAdmin.from('receipt_generation_logs').insert({
+          sponsorship_id: sponsorshipId,
+          stage: 'database_insert',
+          status: 'failure',
+          error_message: insertError.message
+        });
+      }
       // Don't fail the request if receipt tracking fails
+    } else {
+      console.log('[AUDIT] Receipt stored successfully');
+      if (sponsorshipId) {
+        await supabaseAdmin.from('receipt_generation_logs').insert({
+          sponsorship_id: sponsorshipId,
+          receipt_id: receiptData?.id,
+          stage: 'database_insert',
+          status: 'success',
+          metadata: { receipt_number: receiptNumber }
+        });
+      }
     }
 
     return new Response(JSON.stringify({ 

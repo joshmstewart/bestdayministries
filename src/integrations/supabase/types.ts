@@ -1431,6 +1431,54 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_generation_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          receipt_id: string | null
+          sponsorship_id: string | null
+          stage: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          receipt_id?: string | null
+          sponsorship_id?: string | null
+          stage: string
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          receipt_id?: string | null
+          sponsorship_id?: string | null
+          stage?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_generation_logs_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "sponsorship_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_generation_logs_sponsorship_id_fkey"
+            columns: ["sponsorship_id"]
+            isOneToOne: false
+            referencedRelation: "sponsorships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       receipt_settings: {
         Row: {
           from_email: string
