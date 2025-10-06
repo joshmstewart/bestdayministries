@@ -5,7 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail } from "lucide-react";
+import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -46,6 +53,9 @@ export const SponsorshipTransactionsManager = () => {
   const [filteredSponshorships, setFilteredSponshorships] = useState<Sponsorship[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterBestie, setFilterBestie] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterFrequency, setFilterFrequency] = useState<string>("all");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,7 +64,7 @@ export const SponsorshipTransactionsManager = () => {
 
   useEffect(() => {
     filterSponshorships();
-  }, [searchTerm, sponsorships]);
+  }, [searchTerm, sponsorships, filterBestie, filterStatus, filterFrequency]);
 
   const loadSponshorships = async () => {
     try {
@@ -84,27 +94,64 @@ export const SponsorshipTransactionsManager = () => {
   };
 
   const filterSponshorships = () => {
-    if (!searchTerm.trim()) {
-      setFilteredSponshorships(sponsorships);
-      return;
+    let filtered = [...sponsorships];
+
+    // Apply search term filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(s => {
+        const sponsorName = s.sponsor_profile?.display_name?.toLowerCase() || '';
+        const sponsorEmail = s.sponsor_email?.toLowerCase() || '';
+        const bestieName = s.sponsor_bestie?.bestie_name?.toLowerCase() || 
+                           s.bestie_profile?.display_name?.toLowerCase() || '';
+        const subscriptionId = s.stripe_subscription_id?.toLowerCase() || '';
+        
+        return sponsorName.includes(term) ||
+               sponsorEmail.includes(term) ||
+               bestieName.includes(term) ||
+               subscriptionId.includes(term);
+      });
     }
 
-    const term = searchTerm.toLowerCase();
-    const filtered = sponsorships.filter(s => {
-      const sponsorName = s.sponsor_profile?.display_name?.toLowerCase() || '';
-      const sponsorEmail = s.sponsor_email?.toLowerCase() || '';
-      const bestieName = s.sponsor_bestie?.bestie_name?.toLowerCase() || 
-                         s.bestie_profile?.display_name?.toLowerCase() || '';
-      const subscriptionId = s.stripe_subscription_id?.toLowerCase() || '';
-      
-      return sponsorName.includes(term) ||
-             sponsorEmail.includes(term) ||
-             bestieName.includes(term) ||
-             subscriptionId.includes(term);
-    });
+    // Apply bestie filter
+    if (filterBestie !== "all") {
+      filtered = filtered.filter(s => 
+        s.sponsor_bestie_id === filterBestie
+      );
+    }
+
+    // Apply status filter
+    if (filterStatus !== "all") {
+      if (filterStatus === "scheduled_cancel") {
+        filtered = filtered.filter(s => s.status === 'active' && s.ended_at);
+      } else {
+        filtered = filtered.filter(s => s.status === filterStatus);
+      }
+    }
+
+    // Apply frequency filter
+    if (filterFrequency !== "all") {
+      filtered = filtered.filter(s => s.frequency === filterFrequency);
+    }
 
     setFilteredSponshorships(filtered);
   };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterBestie("all");
+    setFilterStatus("all");
+    setFilterFrequency("all");
+  };
+
+  // Get unique besties for filter dropdown
+  const uniqueBesties = Array.from(
+    new Map(
+      sponsorships
+        .filter(s => s.sponsor_bestie)
+        .map(s => [s.sponsor_bestie_id, s.sponsor_bestie?.bestie_name])
+    )
+  ).map(([id, name]) => ({ id, name }));
 
   const getStatusBadge = (status: string, endedAt: string | null) => {
     // If status is active but has ended_at, it's scheduled to cancel
@@ -237,8 +284,8 @@ export const SponsorshipTransactionsManager = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Search */}
-          <div className="mb-4">
+          {/* Search and Filters */}
+          <div className="mb-4 space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
@@ -247,6 +294,64 @@ export const SponsorshipTransactionsManager = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
+            </div>
+            
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex-1 min-w-[200px]">
+                <Select value={filterBestie} onValueChange={setFilterBestie}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Bestie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Besties</SelectItem>
+                    {uniqueBesties.map((bestie) => (
+                      <SelectItem key={bestie.id} value={bestie.id}>
+                        {bestie.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex-1 min-w-[150px]">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="scheduled_cancel">Scheduled to Cancel</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex-1 min-w-[150px]">
+                <Select value={filterFrequency} onValueChange={setFilterFrequency}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Frequencies</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="one-time">One-Time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(filterBestie !== "all" || filterStatus !== "all" || filterFrequency !== "all" || searchTerm) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </div>
 
