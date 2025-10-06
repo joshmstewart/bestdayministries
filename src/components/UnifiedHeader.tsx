@@ -23,6 +23,7 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
+  NavigationMenuViewport,
 } from "@/components/ui/navigation-menu";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -408,7 +409,7 @@ export const UnifiedHeader = () => {
             <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-50 shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
               <div className="container mx-auto px-4 flex items-center justify-between">
                 <div className="flex-1" />
-                <NavigationMenu>
+                <NavigationMenu className="relative">
                   <NavigationMenuList className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
                     {navLinks
                       .filter(link => {
@@ -482,6 +483,7 @@ export const UnifiedHeader = () => {
                         );
                       })}
                   </NavigationMenuList>
+                  <NavigationMenuViewport className="absolute top-full left-0 mt-2 w-auto" />
                 </NavigationMenu>
                 <div className="flex-1 flex justify-end">
                   {profile && (
