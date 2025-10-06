@@ -2,7 +2,41 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Heart } from "lucide-react";
 import heroImage from "@/assets/hero-hands.jpg";
 
-const Hero = () => {
+interface HeroContent {
+  badge_text?: string;
+  heading?: string;
+  description?: string;
+  button_text?: string;
+  stat1_number?: string;
+  stat1_label?: string;
+  stat2_number?: string;
+  stat2_label?: string;
+  image_url?: string;
+}
+
+interface HeroProps {
+  content?: HeroContent;
+}
+
+const Hero = ({ content = {} }: HeroProps) => {
+  const {
+    badge_text = "Building Community Through Creativity",
+    heading = "Spreading JOY through the unique gifts of the special needs community",
+    description = "Building a supportive community for adults with special needs by sharing their creativity and giving them confidence, independence, and JOY!",
+    button_text = "Join Our Community",
+    stat1_number = "500+",
+    stat1_label = "Community Members",
+    stat2_number = "10K+",
+    stat2_label = "Lives Touched",
+    image_url = heroImage
+  } = content;
+
+  // Extract JOY if it exists in the heading
+  const joyIndex = heading.toUpperCase().indexOf("JOY");
+  const beforeJoy = joyIndex > -1 ? heading.substring(0, joyIndex) : heading;
+  const afterJoy = joyIndex > -1 ? heading.substring(joyIndex + 3) : "";
+  const hasJoy = joyIndex > -1;
+
   return (
     <section className="relative min-h-[85vh] flex items-center overflow-hidden bg-gradient-to-br from-background via-muted/30 to-secondary/10">
       {/* Background decorative elements */}
@@ -17,24 +51,30 @@ const Hero = () => {
           <div className="space-y-6 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
               <Heart className="w-3.5 h-3.5 text-primary fill-primary" />
-              <span className="text-xs font-semibold text-primary">Building Community Through Creativity</span>
+              <span className="text-xs font-semibold text-primary">{badge_text}</span>
             </div>
             
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-[1.1] text-foreground">
-              Spreading{" "}
-              <span className="relative inline-block">
-                <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                  JOY
-                </span>
-                <svg className="absolute -bottom-1 left-0 w-full" height="8" viewBox="0 0 200 8" fill="none">
-                  <path d="M2 6C50 2 150 2 198 6" stroke="currentColor" strokeWidth="2" className="text-secondary" />
-                </svg>
-              </span>
-              {" "}through the unique gifts of the special needs community
+              {hasJoy ? (
+                <>
+                  {beforeJoy}
+                  <span className="relative inline-block">
+                    <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                      JOY
+                    </span>
+                    <svg className="absolute -bottom-1 left-0 w-full" height="8" viewBox="0 0 200 8" fill="none">
+                      <path d="M2 6C50 2 150 2 198 6" stroke="currentColor" strokeWidth="2" className="text-secondary" />
+                    </svg>
+                  </span>
+                  {afterJoy}
+                </>
+              ) : (
+                heading
+              )}
             </h1>
             
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl">
-              Building a supportive community for adults with special needs by sharing their creativity and giving them confidence, independence, and JOY!
+              {description}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3">
@@ -43,7 +83,7 @@ const Hero = () => {
                 onClick={() => window.location.href = "/auth"}
                 className="group px-6 py-6 shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
               >
-                Join Our Community
+                {button_text}
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button 
@@ -59,12 +99,12 @@ const Hero = () => {
             {/* Stats */}
             <div className="flex gap-6 pt-4">
               <div className="space-y-0.5">
-                <div className="text-3xl font-black text-primary">500+</div>
-                <div className="text-xs text-muted-foreground">Community Members</div>
+                <div className="text-3xl font-black text-primary">{stat1_number}</div>
+                <div className="text-xs text-muted-foreground">{stat1_label}</div>
               </div>
               <div className="space-y-0.5">
-                <div className="text-3xl font-black text-secondary">10K+</div>
-                <div className="text-xs text-muted-foreground">Lives Touched</div>
+                <div className="text-3xl font-black text-secondary">{stat2_number}</div>
+                <div className="text-xs text-muted-foreground">{stat2_label}</div>
               </div>
             </div>
           </div>
@@ -74,7 +114,7 @@ const Hero = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-secondary rounded-3xl rotate-3 opacity-20 blur-xl" />
             <div className="relative h-full rounded-3xl overflow-hidden shadow-xl">
               <img
-                src={heroImage}
+                src={image_url}
                 alt="Best Day Ministries community members creating together"
                 className="w-full h-full object-cover"
               />

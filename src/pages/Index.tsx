@@ -37,7 +37,7 @@ const DEFAULT_SECTIONS = [
 
 const Index = () => {
   const navigate = useNavigate();
-  const [sections, setSections] = useState<Array<{ section_key: string; is_visible: boolean }>>(DEFAULT_SECTIONS);
+  const [sections, setSections] = useState<Array<{ section_key: string; is_visible: boolean; content?: any }>>(DEFAULT_SECTIONS);
   const [loading, setLoading] = useState(false);
   const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
 
@@ -83,7 +83,7 @@ const Index = () => {
     try {
       const { data, error } = await supabase
         .from("homepage_sections")
-        .select("section_key, is_visible")
+        .select("section_key, is_visible, content")
         .order("display_order", { ascending: true });
 
       if (error) {
@@ -137,8 +137,11 @@ const Index = () => {
   }, [sections]);
 
   // Component mapping
-  const componentMap: Record<string, React.ReactNode> = {
-    hero: <Hero />,
+  const getComponentForSection = (section: { section_key: string; is_visible: boolean; content?: any }): React.ReactNode => {
+    const content = section.content || {};
+    
+    const componentMap: Record<string, React.ReactNode> = {
+    hero: <Hero content={content} />,
     featured_items: (
       <div className="container mx-auto px-4 pt-8">
         <FeaturedItem 
@@ -163,7 +166,7 @@ const Index = () => {
         />
       </section>
     ),
-    mission: <Mission />,
+    mission: <Mission content={content} />,
     community_features: <CommunityFeatures />,
     our_family: <OurFamily />,
     latest_album: (
@@ -174,9 +177,12 @@ const Index = () => {
     ),
     public_events: <PublicEvents />,
     community_gallery: <CommunityGallery />,
-    joy_rocks: <JoyRocks />,
+    joy_rocks: <JoyRocks content={content} />,
     donate: <Donate />,
     about: <About />,
+  };
+  
+    return componentMap[section.section_key];
   };
 
 
@@ -188,7 +194,7 @@ const Index = () => {
           .filter((section) => section.is_visible)
           .map((section) => (
             <div key={section.section_key}>
-              {componentMap[section.section_key]}
+              {getComponentForSection(section)}
             </div>
           ))}
       </main>

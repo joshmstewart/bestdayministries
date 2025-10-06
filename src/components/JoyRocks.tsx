@@ -2,7 +2,40 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import joyRocksImage from "@/assets/joy-rocks.jpg";
 
-const JoyRocks = () => {
+interface JoyRocksContent {
+  badge_text?: string;
+  heading?: string;
+  paragraph1?: string;
+  paragraph2?: string;
+  highlight_text?: string;
+  button_text?: string;
+  stat_number?: string;
+  stat_label?: string;
+  image_url?: string;
+}
+
+interface JoyRocksProps {
+  content?: JoyRocksContent;
+}
+
+const JoyRocks = ({ content = {} }: JoyRocksProps) => {
+  const {
+    badge_text = "Global Movement",
+    heading = "Planting Seeds of Love Globally",
+    paragraph1 = "Inspired by Bill Stewart's love for the Best Day Ministries mission, Best Day Ministries Rocks creates a fun and engaging activity that brings people together to promote positivity and joy.",
+    paragraph2 = "Through rock painting, we provide a creative outlet for all! Once decorated, rocks can be gifted or placed in public areas for others to find. The new owner can keep it as a reminder of kindness, or hide it for someone else to discover.",
+    highlight_text = "Each rock's journey spreads our mission—one colorful rock at a time! 🎨",
+    button_text = "Learn More About Joy Rocks",
+    stat_number = "10K+",
+    stat_label = "Rocks Painted",
+    image_url = joyRocksImage
+  } = content;
+
+  // Extract "Love Globally" or similar for gradient styling
+  const loveGloballyMatch = heading.match(/(Love Globally|[A-Z][a-z]+ [A-Z][a-z]+)$/i);
+  const beforeHighlight = loveGloballyMatch ? heading.substring(0, loveGloballyMatch.index) : heading;
+  const highlightText = loveGloballyMatch ? loveGloballyMatch[0] : "";
+
   return (
     <section id="rocks" className="py-24 bg-gradient-to-br from-secondary/5 via-background to-primary/5 relative overflow-hidden">
       {/* Decorative elements */}
@@ -20,7 +53,7 @@ const JoyRocks = () => {
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/40 via-accent/30 to-secondary/40 rounded-[2.5rem] blur-xl" />
               <div className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white/50">
                 <img
-                  src={joyRocksImage}
+                  src={image_url}
                   alt="Best Day Ministries Rocks - Painted rocks with positive messages"
                   className="w-full h-auto object-cover"
                 />
@@ -34,8 +67,8 @@ const JoyRocks = () => {
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-foreground">10K+</div>
-                  <div className="text-sm text-muted-foreground">Rocks Painted</div>
+                  <div className="text-2xl font-black text-foreground">{stat_number}</div>
+                  <div className="text-sm text-muted-foreground">{stat_label}</div>
                 </div>
               </div>
             </div>
@@ -44,32 +77,34 @@ const JoyRocks = () => {
           <div className="order-1 lg:order-2 space-y-6 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 backdrop-blur-sm rounded-full border border-accent/20">
               <Sparkles className="w-4 h-4 text-accent" />
-              <span className="text-sm font-semibold text-accent">Global Movement</span>
+              <span className="text-sm font-semibold text-accent">{badge_text}</span>
             </div>
             
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground leading-tight">
-              Planting Seeds of{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                Love Globally
-              </span>
+              {highlightText ? (
+                <>
+                  {beforeHighlight}
+                  <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                    {highlightText}
+                  </span>
+                </>
+              ) : (
+                heading
+              )}
             </h2>
             
             <div className="space-y-4 text-lg text-muted-foreground leading-relaxed">
-              <p>
-                Inspired by Bill Stewart&apos;s love for the Best Day Ministries mission, <strong className="text-foreground font-bold">Best Day Ministries Rocks</strong> creates a fun and engaging activity that brings people together to promote positivity and joy.
-              </p>
-              <p>
-                Through rock painting, we provide a creative outlet for all! Once decorated, rocks can be gifted or placed in public areas for others to find. The new owner can keep it as a reminder of kindness, or hide it for someone else to discover.
-              </p>
+              <p>{paragraph1}</p>
+              <p>{paragraph2}</p>
               <div className="bg-gradient-card border-2 border-primary/20 rounded-2xl p-6 space-y-2">
                 <p className="font-bold text-foreground text-xl">
-                  Each rock's journey spreads our mission—one colorful rock at a time! 🎨
+                  {highlight_text}
                 </p>
               </div>
             </div>
 
             <Button size="lg" className="group shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0 text-lg px-8 py-6">
-              Learn More About Joy Rocks
+              {button_text}
               <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
