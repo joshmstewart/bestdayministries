@@ -10,7 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Heart, Sparkles, Users, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FundingProgressBar } from "@/components/FundingProgressBar";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
@@ -58,6 +59,7 @@ const SponsorBestie = () => {
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [pageContent, setPageContent] = useState({
     badge_text: "Sponsor a Bestie",
     main_heading: "Change a Life Today",
@@ -266,6 +268,13 @@ const SponsorBestie = () => {
     try {
       setLoading(true);
 
+      // Check terms acceptance
+      if (!acceptedTerms) {
+        toast.error("Please accept the Terms of Service and Privacy Policy to continue");
+        setLoading(false);
+        return;
+      }
+
       // Validate inputs
       const validation = sponsorshipSchema.safeParse({
         amount: parseFloat(amount),
@@ -274,11 +283,13 @@ const SponsorBestie = () => {
 
       if (!validation.success) {
         toast.error(validation.error.errors[0].message);
+        setLoading(false);
         return;
       }
 
       if (!selectedBestie) {
         toast.error("Please select a bestie to sponsor");
+        setLoading(false);
         return;
       }
 
@@ -512,8 +523,31 @@ const SponsorBestie = () => {
                     </p>
                   </div>
 
+                  {/* Terms and Privacy Policy Checkbox */}
+                  <div className="flex items-start space-x-2 py-2">
+                    <Checkbox 
+                      id="terms" 
+                      checked={acceptedTerms}
+                      onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                      className="mt-1"
+                    />
+                    <label
+                      htmlFor="terms"
+                      className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                    >
+                      I agree to the{" "}
+                      <Link to="/terms" className="text-primary hover:underline font-medium" target="_blank">
+                        Terms of Service
+                      </Link>
+                      {" "}and{" "}
+                      <Link to="/privacy" className="text-primary hover:underline font-medium" target="_blank">
+                        Privacy Policy
+                      </Link>
+                    </label>
+                  </div>
+
                   {/* Submit Button */}
-                  <Button onClick={handleSponsorship} disabled={loading || !selectedBestie || !email || !amount} size="lg" className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
+                  <Button onClick={handleSponsorship} disabled={loading || !selectedBestie || !email || !amount || !acceptedTerms} size="lg" className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
                     {loading ? "Processing..." : `Sponsor with $${amount} ${frequency === "monthly" ? "/month" : ""}`}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>

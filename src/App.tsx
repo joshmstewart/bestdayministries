@@ -32,6 +32,8 @@ import VendorDashboard from "./pages/VendorDashboard";
 import VendorAuth from "./pages/VendorAuth";
 import VendorProfile from "./pages/VendorProfile";
 import OrderHistory from "./pages/OrderHistory";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +77,8 @@ const App = () => {
             <Route path="/vendors/:id" element={<VendorProfile />} />
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />
             <Route path="/orders" element={<OrderHistory />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
