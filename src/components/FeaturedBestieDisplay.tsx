@@ -176,9 +176,21 @@ export const FeaturedBestieDisplay = () => {
 
   if (loading) {
     return (
-      <div className="animate-pulse">
-        <div className="h-64 bg-muted rounded-lg"></div>
-      </div>
+      <Card className="border-2 border-primary/20 shadow-warm overflow-hidden animate-pulse">
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          {/* Image skeleton */}
+          <div className="relative overflow-hidden rounded-lg bg-muted" style={{ aspectRatio: '9/16', maxHeight: '500px' }}>
+            <div className="w-full h-full bg-muted-foreground/10" />
+          </div>
+          {/* Content skeleton */}
+          <div className="flex flex-col justify-center space-y-4">
+            <div className="h-8 w-3/4 bg-muted rounded" />
+            <div className="h-20 w-full bg-muted rounded" />
+            <div className="h-12 w-full bg-muted rounded" />
+            <div className="h-10 w-full bg-muted rounded" />
+          </div>
+        </div>
+      </Card>
     );
   }
 

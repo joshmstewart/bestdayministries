@@ -67,8 +67,20 @@ export default function LatestAlbum() {
     return (
       <section className="py-16 bg-gradient-to-b from-background to-muted/20">
         <div className="container mx-auto px-4">
-          <div className="text-center">
-            <div className="w-12 h-12 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+          <div className="text-center mb-12 space-y-4 animate-pulse">
+            <div className="inline-flex w-32 h-8 bg-muted rounded-full mx-auto" />
+            <div className="h-12 w-64 bg-muted rounded mx-auto" />
+            <div className="h-6 w-96 max-w-full bg-muted rounded mx-auto" />
+          </div>
+          <div className="max-w-4xl mx-auto">
+            <Card className="overflow-hidden border-2 animate-pulse">
+              <div className="w-full bg-muted" style={{ aspectRatio: '16/9', height: '400px' }} />
+              <CardContent className="p-6 space-y-4">
+                <div className="h-8 w-3/4 bg-muted rounded" />
+                <div className="h-16 w-full bg-muted rounded" />
+                <div className="h-10 w-full bg-muted rounded" />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

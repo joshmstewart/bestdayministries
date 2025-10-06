@@ -188,8 +188,25 @@ export const SponsorBestieDisplay = ({ selectedBestieId }: SponsorBestieDisplayP
 
   if (loading) {
     return (
-      <div className="w-full flex items-center justify-center py-12">
-        <div className="animate-pulse text-muted-foreground">Loading sponsorships...</div>
+      <div className="space-y-4">
+        <div className="h-9 w-64 bg-muted rounded animate-pulse" />
+        <Card className="border-2 overflow-hidden animate-pulse">
+          <CardContent className="p-0">
+            <div className="grid md:grid-cols-2 gap-0">
+              {/* Image skeleton */}
+              <div className="relative bg-muted" style={{ maxHeight: '450px', minHeight: '400px' }}>
+                <div className="w-full h-full bg-muted-foreground/10" />
+              </div>
+              {/* Content skeleton */}
+              <div className="p-6 space-y-4 flex flex-col justify-center">
+                <div className="h-8 w-3/4 bg-muted rounded" />
+                <div className="h-24 w-full bg-muted rounded" />
+                <div className="h-16 w-full bg-muted rounded" />
+                <div className="h-12 w-full bg-muted rounded" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
