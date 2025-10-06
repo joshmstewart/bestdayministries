@@ -208,7 +208,7 @@ const Admin = () => {
 
         {/* Admin Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
@@ -302,7 +302,7 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="transactions" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-5">
+                  <TabsList className="flex flex-wrap h-auto w-full">
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     <TabsTrigger value="sponsorships">Sponsor Besties</TabsTrigger>
                     <TabsTrigger value="page-content">Page Content</TabsTrigger>
@@ -350,7 +350,7 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="homepage" className="space-y-4">
-                  <TabsList>
+                  <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="homepage">Homepage</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
                     <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
