@@ -1292,6 +1292,48 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_settings: {
+        Row: {
+          from_email: string
+          id: string
+          organization_address: string | null
+          organization_name: string
+          receipt_message: string
+          reply_to_email: string | null
+          tax_deductible_notice: string
+          tax_id: string
+          updated_at: string | null
+          updated_by: string | null
+          website_url: string | null
+        }
+        Insert: {
+          from_email?: string
+          id?: string
+          organization_address?: string | null
+          organization_name?: string
+          receipt_message?: string
+          reply_to_email?: string | null
+          tax_deductible_notice?: string
+          tax_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          from_email?: string
+          id?: string
+          organization_address?: string | null
+          organization_name?: string
+          receipt_message?: string
+          reply_to_email?: string | null
+          tax_deductible_notice?: string
+          tax_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       shopping_cart: {
         Row: {
           created_at: string

@@ -114,6 +114,37 @@ serve(async (req) => {
 
     console.log('Sponsorship created:', sponsorship.id, userId ? '(authenticated)' : '(guest)');
 
+    // Send receipt email in background
+    const { data: bestieData } = await supabaseAdmin
+      .from('sponsor_besties')
+      .select('bestie_name')
+      .eq('id', session.metadata.bestie_id)
+      .single();
+
+    if (bestieData) {
+      try {
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            sponsorEmail: customerEmail,
+            bestieName: bestieData.bestie_name,
+            amount: parseFloat(session.metadata.amount),
+            frequency: session.metadata.frequency,
+            transactionId: session.id,
+            transactionDate: new Date().toISOString(),
+          }),
+        });
+        console.log('Receipt email sent');
+      } catch (emailError) {
+        console.error('Failed to send receipt email:', emailError);
+        // Don't fail the whole transaction if email fails
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,

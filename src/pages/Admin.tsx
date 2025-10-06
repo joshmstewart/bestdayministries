@@ -32,6 +32,7 @@ import { ContactFormManager } from "@/components/admin/ContactFormManager";
 import { VideoManager } from "@/components/admin/VideoManager";
 import { SponsorPageOrderManager } from "@/components/admin/SponsorPageOrderManager";
 import { MessageModerationQueue } from "@/components/admin/MessageModerationQueue";
+import { ReceiptSettingsManager } from "@/components/admin/ReceiptSettingsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -300,10 +301,11 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="sponsorships" className="space-y-4">
-                  <TabsList>
+                  <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
                     <TabsTrigger value="page-content">Sponsor Page Content</TabsTrigger>
                     <TabsTrigger value="page-order">Sponsor Page Order</TabsTrigger>
+                    <TabsTrigger value="receipts">Receipt Settings</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="sponsorships">
@@ -316,6 +318,10 @@ const Admin = () => {
 
                   <TabsContent value="page-order">
                     <SponsorPageOrderManager />
+                  </TabsContent>
+
+                  <TabsContent value="receipts">
+                    <ReceiptSettingsManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>

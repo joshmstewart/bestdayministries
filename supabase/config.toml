@@ -44,3 +44,15 @@ verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.send-sponsorship-receipt]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
+
+[functions.get-google-places-key]
+verify_jwt = true
+
+[functions.update-sponsorship]
+verify_jwt = false
