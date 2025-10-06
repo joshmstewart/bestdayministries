@@ -293,6 +293,22 @@ const SponsorBestie = () => {
         return;
       }
 
+      // Record terms acceptance if user is logged in
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.functions.invoke("record-terms-acceptance", {
+            body: {
+              termsVersion: "1.0",
+              privacyVersion: "1.0",
+            },
+          });
+        }
+      } catch (termsError) {
+        console.error("Error recording terms acceptance:", termsError);
+        // Don't block sponsorship if terms recording fails
+      }
+
       // Call Stripe edge function to create checkout session
       const { data, error } = await supabase.functions.invoke("create-sponsorship-checkout", {
         body: {

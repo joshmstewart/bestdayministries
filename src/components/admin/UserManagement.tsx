@@ -21,6 +21,9 @@ interface Profile {
   vendor_status?: 'pending' | 'approved' | 'rejected' | 'suspended' | null;
   business_name?: string;
   permissions?: string[];
+  terms_version?: string | null;
+  privacy_version?: string | null;
+  terms_accepted_at?: string | null;
 }
 
 export const UserManagement = () => {
@@ -109,14 +112,34 @@ export const UserManagement = () => {
         .from("user_permissions")
         .select("user_id, permission_type");
 
-      // Merge roles, vendor status, and permissions with profiles
-      const usersWithRoles = (profiles || []).map(profile => ({
-        ...profile,
-        role: rolesData?.find(r => r.user_id === profile.id)?.role || "supporter",
-        vendor_status: vendorsData?.find(v => v.user_id === profile.id)?.status || null,
-        business_name: vendorsData?.find(v => v.user_id === profile.id)?.business_name || undefined,
-        permissions: permissionsData?.filter(p => p.user_id === profile.id).map(p => p.permission_type) || []
-      }));
+      // Fetch terms acceptance for all users (most recent version per user)
+      const { data: termsData } = await supabase
+        .from("terms_acceptance")
+        .select("user_id, terms_version, privacy_version, accepted_at")
+        .order("accepted_at", { ascending: false });
+
+      // Group terms by user_id (take most recent)
+      const termsMap = new Map();
+      termsData?.forEach(term => {
+        if (!termsMap.has(term.user_id)) {
+          termsMap.set(term.user_id, term);
+        }
+      });
+
+      // Merge roles, vendor status, permissions, and terms with profiles
+      const usersWithRoles = (profiles || []).map(profile => {
+        const userTerms = termsMap.get(profile.id);
+        return {
+          ...profile,
+          role: rolesData?.find(r => r.user_id === profile.id)?.role || "supporter",
+          vendor_status: vendorsData?.find(v => v.user_id === profile.id)?.status || null,
+          business_name: vendorsData?.find(v => v.user_id === profile.id)?.business_name || undefined,
+          permissions: permissionsData?.filter(p => p.user_id === profile.id).map(p => p.permission_type) || [],
+          terms_version: userTerms?.terms_version || null,
+          privacy_version: userTerms?.privacy_version || null,
+          terms_accepted_at: userTerms?.accepted_at || null,
+        };
+      });
 
       setUsers(usersWithRoles);
     } catch (error: any) {
@@ -716,6 +739,7 @@ export const UserManagement = () => {
               <TableHead>Role</TableHead>
               <TableHead>Moderation Permissions</TableHead>
               <TableHead>Vendor Status</TableHead>
+              <TableHead>Terms Accepted</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -723,7 +747,7 @@ export const UserManagement = () => {
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No users found matching your filters
                 </TableCell>
               </TableRow>
@@ -828,6 +852,24 @@ export const UserManagement = () => {
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {user.terms_version && user.privacy_version ? (
+                    <div className="flex flex-col gap-1">
+                      <span className="flex items-center gap-1 text-xs">
+                        <CheckCircle className="w-3 h-3 text-green-600" />
+                        <span className="font-medium">v{user.terms_version}</span>
+                      </span>
+                      {(user.terms_version !== "1.0" || user.privacy_version !== "1.0") && (
+                        <span className="text-xs text-yellow-600 dark:text-yellow-400">Outdated</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <XCircle className="w-3 h-3 text-red-500" />
+                      Not Signed
+                    </span>
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">

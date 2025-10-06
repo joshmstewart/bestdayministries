@@ -135,6 +135,19 @@ const Auth = () => {
 
         if (error) throw error;
 
+        // Record terms acceptance after successful signup
+        try {
+          await supabase.functions.invoke("record-terms-acceptance", {
+            body: {
+              termsVersion: "1.0",
+              privacyVersion: "1.0",
+            },
+          });
+        } catch (termsError) {
+          console.error("Error recording terms acceptance:", termsError);
+          // Don't block signup if terms recording fails
+        }
+
         toast({
           title: "Welcome to Best Day Ministries!",
           description: "Your account has been created successfully.",

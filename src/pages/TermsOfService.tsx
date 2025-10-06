@@ -13,7 +13,7 @@ const TermsOfService = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-4xl font-black">Terms of Service</CardTitle>
-              <p className="text-sm text-muted-foreground">Last Updated: January 6, 2025</p>
+              <p className="text-sm text-muted-foreground">Last Updated: January 6, 2025 • Version 1.0</p>
             </CardHeader>
             <CardContent className="space-y-6 text-sm">
               <section>
