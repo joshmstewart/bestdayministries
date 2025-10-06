@@ -484,11 +484,12 @@ const SponsorBestie = () => {
                       onChange={(e) => setEmail(e.target.value)} 
                       placeholder="your@email.com" 
                       className="text-base"
+                      disabled={isLoggedIn}
                       required
                     />
                     <p className="text-xs text-muted-foreground">
                       {isLoggedIn 
-                        ? "We'll send your sponsorship receipt to this email" 
+                        ? "This email is linked to your account and will be used to track and manage your sponsorship. Receipts will be sent here." 
                         : "Don't have an account? You can sponsor as a guest and create one later to view your sponsorships."}
                     </p>
                   </div>
