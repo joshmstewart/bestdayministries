@@ -366,15 +366,16 @@ export const SponsorshipTransactionsManager = () => {
                   <TableHead>Frequency</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Mode</TableHead>
-                  <TableHead>Started</TableHead>
-                  <TableHead>Ended</TableHead>
+                  <TableHead>Transaction ID</TableHead>
+                  <TableHead>Start</TableHead>
+                  <TableHead>End</TableHead>
                   <TableHead>Stripe</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredSponshorships.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                       {searchTerm ? 'No sponsorships match your search' : 'No sponsorships yet'}
                     </TableCell>
                   </TableRow>
@@ -413,6 +414,17 @@ export const SponsorshipTransactionsManager = () => {
                       <TableCell>{getFrequencyBadge(sponsorship.frequency)}</TableCell>
                       <TableCell>{getStatusBadge(sponsorship.status, sponsorship.ended_at)}</TableCell>
                       <TableCell>{getModeBadge(sponsorship.stripe_mode)}</TableCell>
+                      <TableCell>
+                        <div className="text-sm font-mono text-muted-foreground">
+                          {sponsorship.stripe_subscription_id ? (
+                            <span className="truncate max-w-[150px] inline-block">
+                              {sponsorship.stripe_subscription_id}
+                            </span>
+                          ) : (
+                            <span>N/A</span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="w-3 h-3 text-muted-foreground" />
