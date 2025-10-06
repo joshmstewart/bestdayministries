@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Eye, Info } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface YearEndSettings {
@@ -39,6 +41,9 @@ export function YearEndSummarySettings() {
   const [settings, setSettings] = useState<YearEndSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [previewLoading, setPreviewLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -105,6 +110,38 @@ export function YearEndSummarySettings() {
     }
   };
 
+  const handlePreview = async () => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-year-end-summary', {
+        body: { 
+          taxYear: new Date().getFullYear() - 1,
+          sendEmail: false 
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.html) {
+        setPreviewHtml(data.html);
+      } else {
+        throw new Error("No preview HTML returned");
+      }
+    } catch (error: any) {
+      console.error("Error generating preview:", error);
+      toast({
+        title: "Preview Error",
+        description: error.message || "Failed to generate preview. Make sure you have donation data.",
+        variant: "destructive",
+      });
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -131,6 +168,13 @@ export function YearEndSummarySettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Info about inherited settings */}
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Organization Details:</strong> Tax ID/EIN, organization name, address, website, and email settings are pulled from <strong>Receipt Settings</strong> to ensure consistency across all donor communications.
+          </AlertDescription>
+        </Alert>
         <div className="space-y-2">
           <Label htmlFor="email_subject">Email Subject</Label>
           <Input
@@ -222,7 +266,34 @@ export function YearEndSummarySettings() {
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-between items-center pt-4 border-t">
+          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={handlePreview}>
+                <Eye className="mr-2 h-4 w-4" />
+                Preview Email
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Year-End Tax Summary Preview</DialogTitle>
+              </DialogHeader>
+              {previewLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <iframe
+                    srcDoc={previewHtml}
+                    className="w-full h-[600px]"
+                    title="Year-End Email Preview"
+                  />
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               <>
