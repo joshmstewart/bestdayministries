@@ -17,14 +17,11 @@ import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useContactFormCount } from "@/hooks/useContactFormCount";
 import { Separator } from "@/components/ui/separator";
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  NavigationMenuViewport,
-} from "@/components/ui/navigation-menu";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database['public']['Enums']['user_role'];
@@ -409,82 +406,69 @@ export const UnifiedHeader = () => {
             <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-50 shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
               <div className="container mx-auto px-4 flex items-center justify-between">
                 <div className="flex-1" />
-                <NavigationMenu className="relative">
-                  <NavigationMenuList className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
-                    {navLinks
-                      .filter(link => {
-                        // If no visible_to_roles set, show to everyone
-                        if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
-                        // Otherwise check if user's role is in the list
-                        return link.visible_to_roles.includes(profile?.role || '');
-                      })
-                      .map((link) => {
-                        // Special handling for Support Us with dropdown
-                        if (link.href === '/support' || link.label === 'Support Us') {
-                          return (
-                            <NavigationMenuItem key={link.id}>
-                              <NavigationMenuTrigger className="bg-transparent hover:bg-transparent data-[state=open]:bg-transparent py-1 px-0 h-auto text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors font-['Roca'] text-sm font-medium">
-                                {link.label}
-                              </NavigationMenuTrigger>
-                              <NavigationMenuContent>
-                                <ul className="bg-card border border-border shadow-lg rounded-md p-2 min-w-[180px]">
-                                  <li>
-                                    <NavigationMenuLink asChild>
-                                      <Link
-                                        to="/support"
-                                        className="block px-3 py-2 rounded-sm text-sm text-foreground/80 hover:text-[hsl(var(--burnt-orange))] hover:bg-accent transition-colors whitespace-nowrap"
-                                      >
-                                        Support Us
-                                      </Link>
-                                    </NavigationMenuLink>
-                                  </li>
-                                  <li>
-                                    <NavigationMenuLink asChild>
-                                      <Link
-                                        to="/sponsor-bestie"
-                                        className="block px-3 py-2 rounded-sm text-sm text-foreground/80 hover:text-[hsl(var(--burnt-orange))] hover:bg-accent transition-colors whitespace-nowrap"
-                                      >
-                                        Sponsor a Bestie
-                                      </Link>
-                                    </NavigationMenuLink>
-                                  </li>
-                                </ul>
-                              </NavigationMenuContent>
-                            </NavigationMenuItem>
-                          );
-                        }
-
-                        // Skip rendering "Sponsor a Bestie" if it's a separate nav link
-                        if (link.href === '/sponsor-bestie' || link.label === 'Sponsor a Bestie') {
-                          return null;
-                        }
-
-                        // Regular links
+                <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
+                  {navLinks
+                    .filter(link => {
+                      // If no visible_to_roles set, show to everyone
+                      if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
+                      // Otherwise check if user's role is in the list
+                      return link.visible_to_roles.includes(profile?.role || '');
+                    })
+                    .map((link) => {
+                      // Special handling for Support Us with dropdown
+                      if (link.href === '/support' || link.label === 'Support Us') {
                         return (
-                          <NavigationMenuItem key={link.id}>
-                            {link.href.startsWith('http') ? (
-                              <a 
-                                href={link.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                              >
-                                {link.label}
-                              </a>
-                            ) : (
-                              <Link 
-                                to={link.href} 
-                                className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                              >
-                                {link.label}
-                              </Link>
-                            )}
-                          </NavigationMenuItem>
+                          <li key={link.id}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full bg-transparent border-0 outline-none">
+                                {link.label} <ChevronDown className="inline-block w-3 h-3 ml-1" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="center" className="min-w-[160px]">
+                                <DropdownMenuItem asChild>
+                                  <Link to="/support" className="cursor-pointer">
+                                    Support Us
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link to="/sponsor-bestie" className="cursor-pointer">
+                                    Sponsor a Bestie
+                                  </Link>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </li>
                         );
-                      })}
-                  </NavigationMenuList>
-                  <NavigationMenuViewport className="absolute top-full left-0 mt-2 w-auto" />
-                </NavigationMenu>
+                      }
+
+                      // Skip rendering "Sponsor a Bestie" if it's a separate nav link
+                      if (link.href === '/sponsor-bestie' || link.label === 'Sponsor a Bestie') {
+                        return null;
+                      }
+
+                      // Regular links
+                      return (
+                        <li key={link.id}>
+                          {link.href.startsWith('http') ? (
+                            <a 
+                              href={link.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                            >
+                              {link.label}
+                            </a>
+                          ) : (
+                            <Link 
+                              to={link.href} 
+                              className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                            >
+                              {link.label}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
+                </ul>
                 <div className="flex-1 flex justify-end">
                   {profile && (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
