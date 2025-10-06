@@ -1512,6 +1512,7 @@ export type Database = {
           sent_by: string | null
           status: Database["public"]["Enums"]["message_status"]
           subject: string
+          video_url: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -1531,6 +1532,7 @@ export type Database = {
           sent_by?: string | null
           status?: Database["public"]["Enums"]["message_status"]
           subject: string
+          video_url?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -1550,6 +1552,7 @@ export type Database = {
           sent_by?: string | null
           status?: Database["public"]["Enums"]["message_status"]
           subject?: string
+          video_url?: string | null
         }
         Relationships: []
       }

@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Send, MessageSquare, Mic, Upload, Image, X } from "lucide-react";
+import { Send, MessageSquare, Mic, Upload, Image, X, Video } from "lucide-react";
 import AudioRecorder from "@/components/AudioRecorder";
 import AudioPlayer from "@/components/AudioPlayer";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { compressImage } from "@/lib/imageUtils";
 
 interface LinkedBestie {
@@ -28,9 +29,10 @@ export const GuardianSponsorMessenger = () => {
   const [messageFrom, setMessageFrom] = useState<'bestie' | 'guardian'>('bestie');
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<'text' | 'audio' | 'image'>('text');
+  const [messageType, setMessageType] = useState<'text' | 'audio' | 'image' | 'video'>('text');
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [moderating, setModerating] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -199,6 +201,77 @@ export const GuardianSponsorMessenger = () => {
     }
   };
 
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a video file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    setModerating(true);
+    try {
+      // Upload to storage
+      const fileName = `sponsor-messages/${userId}/${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('app-assets')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(fileName);
+
+      // Moderate video using AI
+      toast({
+        title: "Checking video...",
+        description: "AI is reviewing the video for appropriate content",
+      });
+
+      const { data: moderationResult, error: moderationError } = await supabase.functions.invoke(
+        'moderate-video',
+        {
+          body: { videoUrl: publicUrl }
+        }
+      );
+
+      if (moderationError) throw moderationError;
+
+      if (!moderationResult.approved) {
+        toast({
+          title: "Video flagged for review",
+          description: `This video has been flagged and will be reviewed by an admin before sending. Reason: ${moderationResult.reason}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Video approved",
+          description: "Your video passed content review",
+        });
+      }
+
+      setUploadedVideoUrl(publicUrl);
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      // Clean up on error
+      setUploadedVideoUrl(null);
+    } finally {
+      setUploading(false);
+      setModerating(false);
+    }
+  };
+
   const handleRecordingComplete = async (blob: Blob) => {
     setUploading(true);
     try {
@@ -275,6 +348,15 @@ export const GuardianSponsorMessenger = () => {
       return;
     }
 
+    if (messageType === 'video' && !uploadedVideoUrl) {
+      toast({
+        title: "Missing information",
+        description: "Please upload a video",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSending(true);
     try {
       // Check if image was already moderated
@@ -300,6 +382,24 @@ export const GuardianSponsorMessenger = () => {
         }
       }
 
+      if (messageType === 'video' && uploadedVideoUrl) {
+        // Re-check moderation result
+        const { data: modResult, error: modError } = await supabase.functions.invoke(
+          'moderate-video',
+          {
+            body: { videoUrl: uploadedVideoUrl }
+          }
+        );
+
+        if (modError) throw modError;
+
+        if (!modResult.approved) {
+          messageStatus = 'pending_moderation';
+          moderationResult = modResult;
+          moderationSeverity = modResult.severity;
+        }
+      }
+
       const { error } = await supabase
         .from("sponsor_messages")
         .insert({
@@ -310,6 +410,7 @@ export const GuardianSponsorMessenger = () => {
           message: messageType === 'text' ? message.trim() : (messageType === 'image' ? '' : ''),
           audio_url: messageType === 'audio' ? uploadedAudioUrl : null,
           image_url: messageType === 'image' ? uploadedImageUrl : null,
+          video_url: messageType === 'video' ? uploadedVideoUrl : null,
           moderation_result: moderationResult as any,
           moderation_severity: moderationSeverity,
           status: messageStatus as any,
@@ -337,6 +438,7 @@ export const GuardianSponsorMessenger = () => {
       setMessageType('text');
       setUploadedAudioUrl(null);
       setUploadedImageUrl(null);
+      setUploadedVideoUrl(null);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -427,7 +529,7 @@ export const GuardianSponsorMessenger = () => {
             </div>
 
             {/* Message Type Toggle */}
-            <div className="flex gap-2 border-b pb-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 border-b pb-2">
               <Button
                 type="button"
                 variant={messageType === 'text' ? 'default' : 'outline'}
@@ -454,6 +556,15 @@ export const GuardianSponsorMessenger = () => {
               >
                 <Image className="w-4 h-4 mr-2" />
                 Image
+              </Button>
+              <Button
+                type="button"
+                variant={messageType === 'video' ? 'default' : 'outline'}
+                onClick={() => setMessageType('video')}
+                className="flex-1"
+              >
+                <Video className="w-4 h-4 mr-2" />
+                Video
               </Button>
             </div>
 
@@ -572,6 +683,47 @@ export const GuardianSponsorMessenger = () => {
               </div>
             )}
 
+            {/* Video Message Input */}
+            {messageType === 'video' && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Upload Video</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Videos will be automatically checked by AI for appropriate content
+                  </p>
+                  <Input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                    disabled={uploading || moderating}
+                  />
+                  {moderating && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      AI is reviewing your video...
+                    </p>
+                  )}
+                </div>
+
+                {uploadedVideoUrl && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <Label className="mb-2 block">Preview</Label>
+                    <div className="relative">
+                      <VideoPlayer src={uploadedVideoUrl} className="w-full" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => setUploadedVideoUrl(null)}
+                        className="absolute top-2 right-2"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <Button
               onClick={handleSendMessage}
               disabled={
@@ -580,12 +732,13 @@ export const GuardianSponsorMessenger = () => {
                 !subject.trim() || 
                 (messageType === 'text' && !message.trim()) ||
                 (messageType === 'audio' && !uploadedAudioUrl) ||
-                (messageType === 'image' && !uploadedImageUrl)
+                (messageType === 'image' && !uploadedImageUrl) ||
+                (messageType === 'video' && !uploadedVideoUrl)
               }
               className="w-full"
             >
               <Send className="w-4 h-4 mr-2" />
-              {sending ? "Sending..." : moderating ? "Reviewing image..." : "Send Message"}
+              {sending ? "Sending..." : moderating ? (messageType === 'video' ? "Reviewing video..." : "Reviewing image...") : "Send Message"}
             </Button>
           </>
         )}

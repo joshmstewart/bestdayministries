@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, CheckCircle, XCircle, Send, Clock, Edit, Image as ImageIcon, X } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, Send, Clock, Edit, Image as ImageIcon, X, Video } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AudioPlayer from "@/components/AudioPlayer";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 interface SponsorMessage {
@@ -23,6 +24,7 @@ interface SponsorMessage {
   sent_at: string | null;
   audio_url: string | null;
   image_url: string | null;
+  video_url: string | null;
   from_guardian: boolean;
   bestie: {
     display_name: string;
@@ -48,6 +50,9 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
   const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('16:9');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadPendingMessages();
@@ -194,6 +199,8 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
     setSelectedImageFile(null);
     setImagePreviewUrl(null);
     setCroppedImageBlob(null);
+    setSelectedVideoFile(null);
+    setVideoPreviewUrl(null);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,13 +234,38 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
     setCroppedImageBlob(null);
   };
 
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("video/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please select a video file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedVideoFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setVideoPreviewUrl(previewUrl);
+  };
+
+  const removeVideo = () => {
+    setSelectedVideoFile(null);
+    setVideoPreviewUrl(null);
+  };
+
   const handleEditAndApprove = async (messageId: string) => {
     try {
       setUploadingImage(true);
+      setUploadingVideo(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       let imageUrl = null;
+      let videoUrl = null;
 
       // Upload image if one was cropped
       if (croppedImageBlob) {
@@ -253,6 +285,42 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
         imageUrl = publicUrl;
       }
 
+      // Upload video if selected
+      if (selectedVideoFile) {
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_${selectedVideoFile.name}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("app-assets")
+          .upload(filePath, selectedVideoFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("app-assets")
+          .getPublicUrl(filePath);
+
+        videoUrl = publicUrl;
+
+        // Moderate video using AI
+        const { data: moderationResult, error: moderationError } = await supabase.functions.invoke(
+          'moderate-video',
+          {
+            body: { videoUrl: publicUrl }
+          }
+        );
+
+        if (moderationError) {
+          console.error("Video moderation error:", moderationError);
+        } else if (!moderationResult?.approved) {
+          toast({
+            title: "Video flagged",
+            description: `Video was flagged: ${moderationResult?.reason}. The message will still be approved but video may need review.`,
+            variant: "destructive",
+          });
+        }
+      }
+
       // Update message with edits
       const updateData: any = {
         subject: editedSubject.trim(),
@@ -265,6 +333,10 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
 
       if (imageUrl) {
         updateData.image_url = imageUrl;
+      }
+
+      if (videoUrl) {
+        updateData.video_url = videoUrl;
       }
 
       const { error } = await supabase
@@ -285,6 +357,8 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
       setCroppedImageBlob(null);
+      setSelectedVideoFile(null);
+      setVideoPreviewUrl(null);
       await loadPendingMessages();
       onMessagesChange?.();
     } catch (error: any) {
@@ -295,6 +369,7 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
       });
     } finally {
       setUploadingImage(false);
+      setUploadingVideo(false);
     }
   };
 
@@ -333,6 +408,11 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
               {msg.image_url && (
                 <div className="mb-2">
                   <img src={msg.image_url} alt="Message attachment" className="max-w-full rounded-lg" />
+                </div>
+              )}
+              {msg.video_url && (
+                <div className="mb-2">
+                  <VideoPlayer src={msg.video_url} />
                 </div>
               )}
               {msg.audio_url ? (
@@ -429,6 +509,33 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
                         />
                       )}
                     </div>
+                    <div>
+                      <Label htmlFor="video">Add Video (optional)</Label>
+                      {videoPreviewUrl ? (
+                        <div className="space-y-2">
+                          <div className="relative inline-block w-full max-w-md">
+                            <VideoPlayer src={videoPreviewUrl} />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2 z-50"
+                              onClick={removeVideo}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Input
+                          id="video"
+                          type="file"
+                          accept="video/*"
+                          onChange={handleVideoSelect}
+                          className="cursor-pointer"
+                        />
+                      )}
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button
@@ -439,10 +546,10 @@ export const BestieSponsorMessages = ({ onMessagesChange }: BestieSponsorMessage
                     </Button>
                     <Button
                       onClick={() => handleEditAndApprove(msg.id)}
-                      disabled={!editedSubject.trim() || uploadingImage}
+                      disabled={!editedSubject.trim() || uploadingImage || uploadingVideo}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      {uploadingImage ? "Uploading..." : "Approve & Send"}
+                      {uploadingImage || uploadingVideo ? "Uploading..." : "Approve & Send"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

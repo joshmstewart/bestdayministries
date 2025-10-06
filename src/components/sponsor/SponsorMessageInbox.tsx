@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Mail } from "lucide-react";
 import AudioPlayer from "@/components/AudioPlayer";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,6 +14,7 @@ interface SponsorMessage {
   message: string;
   audio_url: string | null;
   image_url: string | null;
+  video_url: string | null;
   sent_at: string | null;
   created_at: string;
   is_read: boolean;
@@ -58,7 +60,7 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
       // Fetch only approved/sent messages
       const { data, error } = await supabase
         .from("sponsor_messages")
-        .select("id, subject, message, audio_url, image_url, sent_at, created_at, is_read, status")
+        .select("id, subject, message, audio_url, image_url, video_url, sent_at, created_at, is_read, status")
         .eq("bestie_id", bestieId)
         .in("status", ["approved", "sent"])
         .order("created_at", { ascending: false });
@@ -179,6 +181,12 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
                     <AudioPlayer src={msg.audio_url} />
                   </div>
                 )}
+                {msg.video_url && (
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-2">Video Message:</div>
+                    <VideoPlayer src={msg.video_url} title={msg.subject} />
+                  </div>
+                )}
                 {msg.image_url && (
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <div className="text-xs text-muted-foreground mb-2">Image:</div>
@@ -189,12 +197,12 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
                     />
                   </div>
                 )}
-                {msg.message && !msg.audio_url && (
+                {msg.message && !msg.audio_url && !msg.video_url && (
                   <p className="text-sm text-foreground/80 whitespace-pre-line bg-muted/30 p-3 rounded-lg">
                     {msg.message}
                   </p>
                 )}
-                {msg.message && msg.image_url && (
+                {msg.message && (msg.image_url || msg.video_url) && (
                   <p className="text-sm text-foreground/80 mt-2 whitespace-pre-line">
                     {msg.message}
                   </p>

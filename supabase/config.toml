@@ -12,6 +12,9 @@ verify_jwt = true
 [functions.moderate-image]
 verify_jwt = true
 
+[functions.moderate-video]
+verify_jwt = true
+
 [functions.text-to-speech]
 verify_jwt = true
 
