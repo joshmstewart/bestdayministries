@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText } from "lucide-react";
+import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Sponsorship {
   id: string;
@@ -65,6 +66,10 @@ export const SponsorshipTransactionsManager = () => {
   const [filterFrequency, setFilterFrequency] = useState<string>("all");
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
+  const [auditLogsOpen, setAuditLogsOpen] = useState(false);
+  const [selectedSponsorshipId, setSelectedSponsorshipId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -241,6 +246,51 @@ export const SponsorshipTransactionsManager = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const loadAuditLogs = async (sponsorshipId: string) => {
+    setLoadingLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from('receipt_generation_logs')
+        .select('*')
+        .eq('sponsorship_id', sponsorshipId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setAuditLogs(data || []);
+      setSelectedSponsorshipId(sponsorshipId);
+      setAuditLogsOpen(true);
+    } catch (error) {
+      console.error('Error loading audit logs:', error);
+      toast({ 
+        title: "Failed to load audit logs", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive" 
+      });
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const getStageIcon = (stage: string, status: string) => {
+    if (status === 'failure') {
+      return <XCircle className="w-4 h-4 text-destructive" />;
+    }
+    return <CheckCircle className="w-4 h-4 text-green-600" />;
+  };
+
+  const getStageName = (stage: string) => {
+    const stageNames: Record<string, string> = {
+      'webhook_received': 'Webhook Received',
+      'sponsorship_create': 'Sponsorship Created',
+      'receipt_trigger': 'Receipt Triggered',
+      'receipt_generation_start': 'Receipt Generation Started',
+      'settings_fetch': 'Settings Fetched',
+      'email_send': 'Email Sent',
+      'database_insert': 'Database Insert'
+    };
+    return stageNames[stage] || stage;
   };
 
   // Calculate stats
@@ -451,6 +501,15 @@ export const SponsorshipTransactionsManager = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => loadAuditLogs(sponsorship.id)}
+                            title="View Receipt Generation Logs"
+                            disabled={loadingLogs}
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
                           {sponsorship.stripe_subscription_id ? (
                             <>
                               <Button
@@ -462,7 +521,7 @@ export const SponsorshipTransactionsManager = () => {
                                 }}
                                 title="View Transaction ID"
                               >
-                                <FileText className="w-4 h-4" />
+                                <Copy className="w-4 h-4" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -491,6 +550,70 @@ export const SponsorshipTransactionsManager = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Audit Logs Dialog */}
+      <Dialog open={auditLogsOpen} onOpenChange={setAuditLogsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Receipt Generation Audit Log</DialogTitle>
+            <DialogDescription>
+              Detailed log of all stages in the receipt generation process
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[500px] pr-4">
+            {loadingLogs ? (
+              <div className="flex items-center justify-center p-8">
+                <Clock className="w-6 h-6 animate-spin" />
+                <span className="ml-2">Loading logs...</span>
+              </div>
+            ) : auditLogs.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground">
+                No audit logs found for this transaction
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {auditLogs.map((log) => (
+                  <Card key={log.id} className={log.status === 'failure' ? 'border-destructive' : ''}>
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1">
+                          {getStageIcon(log.stage, log.status)}
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold">{getStageName(log.stage)}</h4>
+                            <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
+                              {log.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(log.created_at).toLocaleString()}
+                          </p>
+                          {log.error_message && (
+                            <div className="mt-2 p-2 bg-destructive/10 rounded text-sm text-destructive">
+                              <strong>Error:</strong> {log.error_message}
+                            </div>
+                          )}
+                          {log.metadata && Object.keys(log.metadata).length > 0 && (
+                            <details className="mt-2">
+                              <summary className="text-sm cursor-pointer text-muted-foreground hover:text-foreground">
+                                View metadata
+                              </summary>
+                              <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
+                                {JSON.stringify(log.metadata, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* Transaction ID Dialog */}
       <Dialog open={transactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
