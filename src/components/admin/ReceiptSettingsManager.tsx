@@ -26,10 +26,12 @@ export const ReceiptSettingsManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     loadSettings();
+    loadLogo();
   }, []);
 
   const loadSettings = async () => {
@@ -55,6 +57,22 @@ export const ReceiptSettingsManager = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLogo = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'logo_url')
+        .maybeSingle();
+
+      if (data?.setting_value) {
+        setLogoUrl(data.setting_value as string);
+      }
+    } catch (error: any) {
+      console.error('Error loading logo:', error);
     }
   };
 
@@ -132,6 +150,9 @@ export const ReceiptSettingsManager = () => {
                 <!-- Header -->
                 <tr>
                   <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #D97706 0%, #B45309 100%); border-radius: 8px 8px 0 0;">
+                    ${logoUrl ? `
+                      <img src="${logoUrl}" alt="${settings.organization_name}" style="max-width: 200px; height: auto; margin-bottom: 20px;" />
+                    ` : ''}
                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">
                       ${settings.organization_name}
                     </h1>
