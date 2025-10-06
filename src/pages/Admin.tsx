@@ -418,26 +418,6 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
-
-            <AvatarUploader />
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Existing Avatars</CardTitle>
-                <CardDescription>Manage avatar categories and visibility</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">
-                    Control which avatars are available to users and organize them by category.
-                  </p>
-                  <Button onClick={() => navigate("/admin/avatars")} className="gap-2">
-                    <Users className="w-4 h-4" />
-                    Manage Avatars
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="settings">
@@ -445,6 +425,26 @@ const Admin = () => {
               <RoleImpersonator />
               <AppSettingsManager />
               <ContactFormManager />
+              
+              <AvatarUploader />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Manage Existing Avatars</CardTitle>
+                  <CardDescription>Manage avatar categories and visibility</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                      Control which avatars are available to users and organize them by category.
+                    </p>
+                    <Button onClick={() => navigate("/admin/avatars")} className="gap-2">
+                      <Users className="w-4 h-4" />
+                      Manage Avatars
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>
