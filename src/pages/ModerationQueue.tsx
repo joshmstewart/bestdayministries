@@ -205,7 +205,7 @@ const ModerationQueue = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/community")}
           className="mb-6"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
