@@ -12,7 +12,7 @@ const corsHeaders = {
 const sponsorshipSchema = z.object({
   bestie_id: z.string().uuid("Invalid bestie ID format"),
   amount: z.number()
-    .min(10, "Minimum sponsorship amount is $10")
+    .min(5, "Minimum sponsorship amount is $5")
     .max(100000, "Maximum sponsorship amount is $100,000")
     .finite("Amount must be a valid number"),
   frequency: z.enum(['monthly', 'one-time'], {
