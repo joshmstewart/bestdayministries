@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Mail, Trash2, Eye } from "lucide-react";
+import { Loader2, Save, Mail, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -308,8 +308,15 @@ export const ContactFormManager = () => {
               </TableHeader>
               <TableBody>
                 {submissions.map((submission) => (
-                  <TableRow key={submission.id}>
-                    <TableCell>
+                  <TableRow 
+                    key={submission.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setSelectedSubmission(submission);
+                      setViewDialogOpen(true);
+                    }}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center">
                         {submission.status === "new" && (
                           <div className="w-2 h-2 rounded-full bg-destructive" title="New submission" />
@@ -320,7 +327,7 @@ export const ContactFormManager = () => {
                       {format(new Date(submission.created_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>{submission.name}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
                         <Button
                           size="sm"
@@ -342,23 +349,23 @@ export const ContactFormManager = () => {
                       </div>
                     </TableCell>
                     <TableCell>{submission.subject || "—"}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Badge variant={submission.status === "new" ? "default" : "secondary"}>
                         {submission.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedSubmission(submission);
                             setViewDialogOpen(true);
                           }}
-                          title="View submission"
                         >
-                          <Eye className="h-4 w-4" />
+                          View
                         </Button>
                         {submission.status === "new" ? (
                           <Button
