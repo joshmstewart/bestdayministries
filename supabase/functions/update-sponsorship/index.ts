@@ -1,11 +1,22 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Validation schema for sponsorship update request
+const updateSponsorshipSchema = z.object({
+  sponsorship_id: z.string()
+    .uuid("Invalid sponsorship ID format"),
+  new_amount: z.number()
+    .positive("Amount must be positive")
+    .min(10, "Minimum sponsorship amount is $10")
+    .max(100000, "Amount exceeds maximum allowed"),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -52,18 +63,28 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { sponsorship_id, new_amount } = await req.json();
+    const requestData = await req.json();
+    
+    // Validate request data
+    const validationResult = updateSponsorshipSchema.safeParse(requestData);
+    
+    if (!validationResult.success) {
+      console.error('Invalid update sponsorship request:', validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request data',
+          details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+    
+    const { sponsorship_id, new_amount } = validationResult.data;
 
     console.log('Updating sponsorship:', { sponsorship_id, new_amount, user_id: user.id });
-
-    // Validate inputs
-    if (!sponsorship_id || !new_amount) {
-      throw new Error('Missing required fields');
-    }
-
-    if (new_amount < 10) {
-      throw new Error('Minimum sponsorship amount is $10');
-    }
 
     // Get sponsorship details
     const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin

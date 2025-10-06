@@ -1,11 +1,39 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Validation schema for receipt request
+const receiptRequestSchema = z.object({
+  sponsorEmail: z.string()
+    .email("Invalid email address")
+    .max(255, "Email too long"),
+  sponsorName: z.string()
+    .max(100, "Name too long")
+    .optional(),
+  bestieName: z.string()
+    .min(1, "Bestie name is required")
+    .max(100, "Bestie name too long"),
+  amount: z.number()
+    .positive("Amount must be positive")
+    .max(1000000, "Amount too large"),
+  frequency: z.enum(['monthly', 'one-time'], {
+    errorMap: () => ({ message: "Frequency must be 'monthly' or 'one-time'" })
+  }),
+  transactionId: z.string()
+    .min(1, "Transaction ID is required")
+    .max(255, "Transaction ID too long"),
+  transactionDate: z.string()
+    .min(1, "Transaction date is required")
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: "Invalid date format"
+    }),
+});
 
 interface ReceiptRequest {
   sponsorEmail: string;
@@ -30,6 +58,25 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    const requestData = await req.json();
+    
+    // Validate request data
+    const validationResult = receiptRequestSchema.safeParse(requestData);
+    
+    if (!validationResult.success) {
+      console.error('Invalid receipt request:', validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request data',
+          details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+    
     const {
       sponsorEmail,
       sponsorName,
@@ -38,7 +85,7 @@ serve(async (req) => {
       frequency,
       transactionId,
       transactionDate
-    }: ReceiptRequest = await req.json();
+    } = validationResult.data;
 
     console.log('Sending receipt to:', sponsorEmail, 'for bestie:', bestieName);
 

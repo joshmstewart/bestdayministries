@@ -1,11 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Validation schema for payment verification request
+const verifyPaymentSchema = z.object({
+  session_id: z.string()
+    .min(1, "Session ID is required")
+    .regex(/^cs_/, "Invalid Stripe session ID format")
+    .max(255, "Session ID too long"),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -38,12 +47,27 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    const { session_id } = await req.json();
-    console.log('Verifying sponsorship payment for session:', session_id);
-
-    if (!session_id) {
-      throw new Error('Session ID is required');
+    const requestData = await req.json();
+    
+    // Validate request data
+    const validationResult = verifyPaymentSchema.safeParse(requestData);
+    
+    if (!validationResult.success) {
+      console.error('Invalid payment verification request:', validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request data',
+          details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
+    
+    const { session_id } = validationResult.data;
+    console.log('Verifying sponsorship payment for session:', session_id);
 
     // Retrieve the checkout session
     const session = await stripe.checkout.sessions.retrieve(session_id);
