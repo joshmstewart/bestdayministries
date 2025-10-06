@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      about_sections: {
+        Row: {
+          content: Json | null
+          created_at: string
+          display_order: number
+          id: string
+          is_visible: boolean
+          section_key: string
+          section_name: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          display_order: number
+          id?: string
+          is_visible?: boolean
+          section_key: string
+          section_name: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_visible?: boolean
+          section_key?: string
+          section_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       album_images: {
         Row: {
           album_id: string

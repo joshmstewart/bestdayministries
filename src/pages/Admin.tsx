@@ -27,6 +27,7 @@ import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
 import { useContactFormCount } from "@/hooks/useContactFormCount";
 import HomepageOrderManager from "@/components/admin/HomepageOrderManager";
 import CommunityOrderManager from "@/components/admin/CommunityOrderManager";
+import AboutPageManager from "@/components/admin/AboutPageManager";
 import { FeaturedItemManager } from "@/components/admin/FeaturedItemManager";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import { FamilyOrganizationsManager } from "@/components/admin/FamilyOrganizationsManager";
@@ -379,6 +380,7 @@ const Admin = () => {
                 <Tabs defaultValue="homepage" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="homepage">Homepage</TabsTrigger>
+                    <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
                     <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
@@ -388,6 +390,10 @@ const Admin = () => {
 
                   <TabsContent value="homepage">
                     <HomepageOrderManager />
+                  </TabsContent>
+
+                  <TabsContent value="about">
+                    <AboutPageManager />
                   </TabsContent>
 
                   <TabsContent value="community">

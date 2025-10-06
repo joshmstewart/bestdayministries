@@ -21,9 +21,10 @@ interface SectionContentDialogProps {
     content: Record<string, any>;
   };
   onSave: () => void;
+  tableName?: string; // Default to 'homepage_sections', but can be overridden
 }
 
-const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionContentDialogProps) => {
+const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName = 'homepage_sections' }: SectionContentDialogProps) => {
   const [content, setContent] = useState(section.content || {});
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -84,10 +85,22 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave }: SectionCo
         setUploading(false);
       }
 
-      const { error } = await supabase
-        .from("homepage_sections")
-        .update({ content: updatedContent })
-        .eq("id", section.id);
+      let error;
+      
+      // For about_sections table, update the homepage_sections 'about' content (shared content)
+      if (tableName === 'about_sections') {
+        const { error: updateError } = await supabase
+          .from("homepage_sections")
+          .update({ content: updatedContent })
+          .eq("section_key", "about");
+        error = updateError;
+      } else {
+        const { error: updateError } = await supabase
+          .from("homepage_sections")
+          .update({ content: updatedContent })
+          .eq("id", section.id);
+        error = updateError;
+      }
 
       if (error) throw error;
 
