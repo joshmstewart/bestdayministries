@@ -37,12 +37,17 @@ export const StripeModeSwitcher = () => {
 
       if (error) throw error;
 
-      // Parse the JSONB value - it could be a string "test" or "live"
+      // Parse the JSONB value - handle both quoted strings and plain values
       let mode: 'test' | 'live' = 'test';
-      if (data?.setting_value && typeof data.setting_value === 'string') {
-        mode = data.setting_value as 'test' | 'live';
+      if (data?.setting_value) {
+        const rawValue = data.setting_value;
+        // If it's a string, use it; if it's wrapped in quotes, strip them
+        const cleanValue = typeof rawValue === 'string' 
+          ? rawValue.replace(/^"(.*)"$/, '$1')  // Remove surrounding quotes if present
+          : String(rawValue);
+        mode = (cleanValue === 'live' ? 'live' : 'test') as 'test' | 'live';
       }
-      console.log('Loaded Stripe mode:', mode);
+      console.log('Loaded Stripe mode:', mode, 'from raw:', data?.setting_value);
       setCurrentMode(mode);
     } catch (error) {
       console.error('Error loading Stripe mode:', error);
