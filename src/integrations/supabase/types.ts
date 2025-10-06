@@ -1405,6 +1405,7 @@ export type Database = {
           image_url: string
           is_active: boolean | null
           is_fully_funded: boolean | null
+          is_public: boolean
           monthly_goal: number | null
           text_sections: Json | null
           updated_at: string
@@ -1423,6 +1424,7 @@ export type Database = {
           image_url: string
           is_active?: boolean | null
           is_fully_funded?: boolean | null
+          is_public?: boolean
           monthly_goal?: number | null
           text_sections?: Json | null
           updated_at?: string
@@ -1441,6 +1443,7 @@ export type Database = {
           image_url?: string
           is_active?: boolean | null
           is_fully_funded?: boolean | null
+          is_public?: boolean
           monthly_goal?: number | null
           text_sections?: Json | null
           updated_at?: string

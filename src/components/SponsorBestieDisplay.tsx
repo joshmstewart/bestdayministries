@@ -110,11 +110,12 @@ export const SponsorBestieDisplay = () => {
 
   const loadCurrentBesties = async () => {
     try {
-      // Fetch all active besties from sponsor_besties table
+      // Fetch all active and public besties from sponsor_besties table
       const { data: bestiesData, error: bestiesError } = await supabase
         .from('sponsor_besties')
         .select('*')
         .eq('is_active', true)
+        .eq('is_public', true)
         .order('created_at', { ascending: false });
 
       if (bestiesError) throw bestiesError;

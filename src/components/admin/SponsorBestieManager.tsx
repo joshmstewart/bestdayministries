@@ -28,6 +28,7 @@ interface SponsorBestie {
   voice_note_url: string | null;
   is_active: boolean;
   is_fully_funded: boolean;
+  is_public: boolean;
   approval_status: string;
   approved_at: string | null;
   approved_by: string | null;
@@ -49,6 +50,7 @@ export const SponsorBestieManager = () => {
   const [bestieName, setBestieName] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [isFullyFunded, setIsFullyFunded] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [monthlyGoal, setMonthlyGoal] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -218,6 +220,7 @@ export const SponsorBestieManager = () => {
         bestie_name: bestieName,
         is_active: isActive,
         is_fully_funded: autoFullyFunded,
+        is_public: isPublic,
         approval_status: 'approved',
         monthly_goal: monthlyGoal ? parseFloat(monthlyGoal) : null,
         aspect_ratio: aspectRatioKey,
@@ -273,6 +276,7 @@ export const SponsorBestieManager = () => {
     setBestieName(bestie.bestie_name);
     setIsActive(bestie.is_active);
     setIsFullyFunded(bestie.is_fully_funded);
+    setIsPublic(bestie.is_public);
     setMonthlyGoal(bestie.monthly_goal ? bestie.monthly_goal.toString() : "");
     setCurrentImageUrl(bestie.image_url);
     setCurrentAudioUrl(bestie.voice_note_url);
@@ -348,6 +352,7 @@ export const SponsorBestieManager = () => {
     setBestieName("");
     setIsActive(true);
     setIsFullyFunded(false);
+    setIsPublic(true);
     setMonthlyGoal("");
     setImageFile(null);
     setAudioFile(null);
@@ -706,6 +711,15 @@ export const SponsorBestieManager = () => {
                 <Label htmlFor="fully-funded">Fully Funded</Label>
               </div>
 
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="public"
+                  checked={isPublic}
+                  onCheckedChange={setIsPublic}
+                />
+                <Label htmlFor="public">Public (visible on homepage and sponsor page)</Label>
+              </div>
+
               <div className="flex gap-2 pt-6 border-t">
                 <Button
                   type="button"
@@ -752,6 +766,11 @@ export const SponsorBestieManager = () => {
             {bestie.is_active && (
               <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
                 ACTIVE
+              </div>
+            )}
+            {!bestie.is_public && (
+              <div className="absolute top-12 right-2 bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
+                PRIVATE
               </div>
             )}
             {bestie.is_fully_funded && (
