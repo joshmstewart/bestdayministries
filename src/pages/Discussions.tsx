@@ -296,33 +296,14 @@ const Discussions = () => {
       }
 
       let imageUrl: string | null = null;
-      let imageModerationNotes: string | null = null;
+      let imageModerationStatus: string | null = null;
+      let imageModerationSeverity: string | null = null;
+      let imageModerationReason: string | null = null;
 
-      // Moderate and upload image if present
+      // Upload and moderate image if present
       if (selectedImage && imagePreview) {
-        const { data: imageModeration, error: imageModerationError } = await supabase.functions.invoke('moderate-image', {
-          body: { imageUrl: imagePreview }
-        });
-
-        if (imageModerationError) {
-          console.error("Image moderation error:", imageModerationError);
-          toast({
-            title: "Error checking image",
-            description: "Please try again",
-            variant: "destructive",
-          });
-          setUploadingImage(false);
-          return;
-        }
-
-        const imageApproved = imageModeration?.approved ?? true;
-
-        if (!imageApproved) {
-          imageModerationNotes = `${imageModeration.severity} severity: ${imageModeration.reason}`;
-        }
-
         // Compress image before uploading
-        const compressedImage = await compressImage(selectedImage, 4.5); // Slightly under 5MB limit
+        const compressedImage = await compressImage(selectedImage, 4.5);
 
         // Upload compressed image to storage
         const fileName = `${user?.id}/${Date.now()}_${selectedImage.name}`;
@@ -347,6 +328,34 @@ const Discussions = () => {
           .getPublicUrl(fileName);
 
         imageUrl = publicUrl;
+
+        // Check moderation settings
+        const { data: moderationSettings } = await supabase
+          .from('moderation_settings' as any)
+          .select('require_image_moderation')
+          .maybeSingle();
+
+        const requireModeration = (moderationSettings as any)?.require_image_moderation ?? true;
+
+        if (requireModeration) {
+          // Moderate the uploaded image
+          const { data: imageModeration, error: imageModerationError } = await supabase.functions.invoke('moderate-image', {
+            body: { imageUrl: publicUrl }
+          });
+
+          if (imageModerationError) {
+            console.error("Image moderation error:", imageModerationError);
+            // Continue anyway - fail open
+          } else {
+            const imageApproved = imageModeration?.approved ?? true;
+            imageModerationStatus = imageApproved ? 'approved' : 'pending';
+            imageModerationSeverity = imageModeration?.severity || null;
+            imageModerationReason = imageModeration?.reason || null;
+          }
+        } else {
+          // Auto-approve if moderation not required
+          imageModerationStatus = 'approved';
+        }
       }
 
       const textIsApproved = textModeration?.approved ?? true;
@@ -355,10 +364,10 @@ const Discussions = () => {
 
       // Combine moderation notes
       let finalModerationNotes = null;
-      if (!textIsApproved || imageModerationNotes) {
+      if (!textIsApproved || (imageModerationStatus === 'pending')) {
         const notes = [];
         if (!textIsApproved) notes.push(`Text: ${textSeverity} severity - ${textReason}`);
-        if (imageModerationNotes) notes.push(`Image: ${imageModerationNotes}`);
+        if (imageModerationStatus === 'pending') notes.push(`Image: ${imageModerationSeverity} severity - ${imageModerationReason}`);
         finalModerationNotes = notes.join('; ');
       }
 
@@ -387,7 +396,10 @@ const Discussions = () => {
           author_id: user?.id,
           image_url: imageUrl,
           visible_to_roles: finalVisibleRoles,
-          is_moderated: textIsApproved && !imageModerationNotes,
+          is_moderated: textIsApproved && (imageModerationStatus === 'approved' || imageModerationStatus === null),
+          moderation_status: imageModerationStatus || 'pending',
+          moderation_severity: imageModerationSeverity,
+          moderation_reason: imageModerationReason,
           moderation_notes: finalModerationNotes,
           approval_status: approvalStatus,
         });
@@ -407,7 +419,7 @@ const Discussions = () => {
           title: "Post pending approval",
           description: "Your guardian will review this post before it's published.",
         });
-      } else if (textIsApproved && !imageModerationNotes) {
+      } else if (textIsApproved && (imageModerationStatus === 'approved' || imageModerationStatus === null)) {
         toast({ title: "Post created successfully!" });
       } else {
         toast({ 
