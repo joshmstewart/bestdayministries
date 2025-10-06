@@ -335,7 +335,7 @@ const SponsorBestie = () => {
       case 'sponsor_carousel':
         return (
           <div className="mb-8" key="sponsor_carousel">
-            <SponsorBestieDisplay />
+            <SponsorBestieDisplay selectedBestieId={selectedBestie} />
           </div>
         );
       

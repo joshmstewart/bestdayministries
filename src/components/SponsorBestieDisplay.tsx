@@ -34,14 +34,18 @@ interface FundingProgress {
   funding_percentage: number;
 }
 
-export const SponsorBestieDisplay = () => {
+interface SponsorBestieDisplayProps {
+  selectedBestieId?: string;
+}
+
+export const SponsorBestieDisplay = ({ selectedBestieId }: SponsorBestieDisplayProps) => {
   const navigate = useNavigate();
   const [besties, setBesties] = useState<SponsorBestie[]>([]);
   const [fundingProgress, setFundingProgress] = useState<Record<string, FundingProgress>>({});
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sponsoringBesties, setSponsoringBesties] = useState<Set<string>>(new Set());
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(!selectedBestieId); // Pause if coming from direct link
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [api, setApi] = useState<any>();
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -121,25 +125,41 @@ export const SponsorBestieDisplay = () => {
       if (bestiesError) throw bestiesError;
 
       if (bestiesData && bestiesData.length > 0) {
-        // Parse text_sections and randomize the order
+        // Parse text_sections
         const parsedBesties = bestiesData.map(b => ({
           ...b,
           text_sections: Array.isArray(b.text_sections) ? b.text_sections : 
             (typeof b.text_sections === 'string' ? JSON.parse(b.text_sections) : [])
         }));
-        const randomized = [...parsedBesties].sort(() => Math.random() - 0.5);
-        setBesties(randomized);
+        
+        // If there's a selected bestie, put it first, then randomize the rest
+        let orderedBesties: typeof parsedBesties;
+        if (selectedBestieId) {
+          const selectedIndex = parsedBesties.findIndex(b => b.id === selectedBestieId);
+          if (selectedIndex !== -1) {
+            const selected = parsedBesties[selectedIndex];
+            const others = [...parsedBesties.slice(0, selectedIndex), ...parsedBesties.slice(selectedIndex + 1)];
+            const randomizedOthers = others.sort(() => Math.random() - 0.5);
+            orderedBesties = [selected, ...randomizedOthers];
+          } else {
+            orderedBesties = [...parsedBesties].sort(() => Math.random() - 0.5);
+          }
+        } else {
+          orderedBesties = [...parsedBesties].sort(() => Math.random() - 0.5);
+        }
+        
+        setBesties(orderedBesties);
 
         // Check sponsorship statuses if user is logged in
         if (currentUserId) {
-          const bestieIds = randomized.map(b => b.bestie_id).filter(Boolean) as string[];
+          const bestieIds = orderedBesties.map(b => b.bestie_id).filter(Boolean) as string[];
           if (bestieIds.length > 0) {
             await checkSponsorshipStatuses(bestieIds, currentUserId);
           }
         }
 
         // Load funding progress for besties with goals
-        const bestiesWithGoals = randomized.filter(b => b.monthly_goal && b.monthly_goal > 0);
+        const bestiesWithGoals = orderedBesties.filter(b => b.monthly_goal && b.monthly_goal > 0);
         if (bestiesWithGoals.length > 0) {
           const { data: progressData } = await supabase
             .from('sponsor_bestie_funding_progress')
