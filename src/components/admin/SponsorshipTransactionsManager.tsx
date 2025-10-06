@@ -5,7 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X } from "lucide-react";
+import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -56,6 +63,8 @@ export const SponsorshipTransactionsManager = () => {
   const [filterBestie, setFilterBestie] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterFrequency, setFilterFrequency] = useState<string>("all");
+  const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -213,7 +222,25 @@ export const SponsorshipTransactionsManager = () => {
     const baseUrl = mode === 'live' 
       ? 'https://dashboard.stripe.com'
       : 'https://dashboard.stripe.com/test';
-    window.open(`${baseUrl}/subscriptions/${subscriptionId}`, '_blank');
+    window.open(`${baseUrl}/subscriptions/${subscriptionId}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const copyTransactionId = async () => {
+    if (!selectedTransactionId) return;
+    
+    try {
+      await navigator.clipboard.writeText(selectedTransactionId);
+      toast({
+        title: "Copied!",
+        description: "Transaction ID copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy to clipboard",
+        variant: "destructive",
+      });
+    }
   };
 
   // Calculate stats
@@ -366,16 +393,15 @@ export const SponsorshipTransactionsManager = () => {
                   <TableHead>Frequency</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Mode</TableHead>
-                  <TableHead>Transaction ID</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
-                  <TableHead>Stripe</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredSponshorships.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       {searchTerm ? 'No sponsorships match your search' : 'No sponsorships yet'}
                     </TableCell>
                   </TableRow>
@@ -415,17 +441,6 @@ export const SponsorshipTransactionsManager = () => {
                       <TableCell>{getStatusBadge(sponsorship.status, sponsorship.ended_at)}</TableCell>
                       <TableCell>{getModeBadge(sponsorship.stripe_mode)}</TableCell>
                       <TableCell>
-                        <div className="text-sm font-mono text-muted-foreground">
-                          {sponsorship.stripe_subscription_id ? (
-                            <span className="truncate max-w-[150px] inline-block">
-                              {sponsorship.stripe_subscription_id}
-                            </span>
-                          ) : (
-                            <span>N/A</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="w-3 h-3 text-muted-foreground" />
                           {formatDate(sponsorship.started_at)}
@@ -435,21 +450,34 @@ export const SponsorshipTransactionsManager = () => {
                         {formatDate(sponsorship.ended_at)}
                       </TableCell>
                       <TableCell>
-                        {sponsorship.stripe_subscription_id ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openStripeSubscription(
-                              sponsorship.stripe_subscription_id!,
-                              sponsorship.stripe_mode || 'test'
-                            )}
-                          >
-                            <ExternalLink className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">N/A</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {sponsorship.stripe_subscription_id && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedTransactionId(sponsorship.stripe_subscription_id);
+                                  setTransactionDialogOpen(true);
+                                }}
+                                title="View Transaction ID"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openStripeSubscription(
+                                  sponsorship.stripe_subscription_id!,
+                                  sponsorship.stripe_mode || 'test'
+                                )}
+                                title="Open in Stripe Dashboard"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -459,6 +487,27 @@ export const SponsorshipTransactionsManager = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transaction ID Dialog */}
+      <Dialog open={transactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transaction ID</DialogTitle>
+            <DialogDescription>
+              Stripe subscription ID for this sponsorship
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-md font-mono text-sm break-all">
+              {selectedTransactionId}
+            </div>
+            <Button onClick={copyTransactionId} className="w-full gap-2">
+              <Copy className="w-4 h-4" />
+              Copy to Clipboard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
