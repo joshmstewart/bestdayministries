@@ -222,15 +222,16 @@ serve(async (req) => {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
                 },
-                body: JSON.stringify({
-                  sponsorEmail: customerEmail,
-                  sponsorName: profileData?.display_name || null,
-                  bestieName: bestieData.bestie_name,
-                  amount: amount,
-                  frequency: frequency,
-                  transactionId: session.id,
-                  transactionDate: new Date().toISOString(),
-                }),
+              body: JSON.stringify({
+                sponsorEmail: customerEmail,
+                sponsorName: profileData?.display_name || null,
+                bestieName: bestieData.bestie_name,
+                amount: amount,
+                frequency: frequency,
+                transactionId: session.id,
+                transactionDate: new Date().toISOString(),
+                stripeMode: stripeMode,
+              }),
               });
               console.log('Receipt email sent for webhook sponsorship');
             } catch (emailError) {
@@ -311,6 +312,7 @@ serve(async (req) => {
                 frequency: frequency,
                 transactionId: invoice.id,
                 transactionDate: new Date(invoice.created * 1000).toISOString(),
+                stripeMode: stripeMode,
               }),
             });
             console.log('Receipt email sent for recurring payment');

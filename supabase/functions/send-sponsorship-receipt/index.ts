@@ -33,6 +33,9 @@ const receiptRequestSchema = z.object({
     .refine((date) => !isNaN(Date.parse(date)), {
       message: "Invalid date format"
     }),
+  stripeMode: z.enum(['test', 'live'], {
+    errorMap: () => ({ message: "Stripe mode must be 'test' or 'live'" })
+  }).optional().default('live'),
 });
 
 interface ReceiptRequest {
@@ -43,6 +46,7 @@ interface ReceiptRequest {
   frequency: string;
   transactionId: string;
   transactionDate: string;
+  stripeMode?: 'test' | 'live';
 }
 
 serve(async (req) => {
@@ -84,7 +88,8 @@ serve(async (req) => {
       amount,
       frequency,
       transactionId,
-      transactionDate
+      transactionDate,
+      stripeMode = 'live'
     } = validationResult.data;
 
     console.log('Sending receipt to:', sponsorEmail, 'for bestie:', bestieName);
@@ -293,10 +298,34 @@ serve(async (req) => {
 
     console.log('Receipt sent successfully:', emailResponse);
 
+    // Check if receipt already exists for this transaction
+    const { data: existingReceipt } = await supabaseAdmin
+      .from('sponsorship_receipts')
+      .select('id, receipt_number')
+      .eq('transaction_id', transactionId)
+      .eq('sponsor_email', sponsorEmail)
+      .maybeSingle();
+
+    let receiptNumber: string;
+    
+    if (existingReceipt) {
+      console.log('Receipt already exists for transaction:', transactionId);
+      receiptNumber = existingReceipt.receipt_number;
+      // Receipt already sent, just return success
+      return new Response(JSON.stringify({ 
+        success: true, 
+        emailId: emailResponse.data?.id,
+        receiptNumber,
+        alreadyExists: true 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Generate unique receipt number (format: YEAR-XXXXXX)
     const year = new Date(transactionDate).getFullYear();
     const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    const receiptNumber = `${year}-${randomNum}`;
+    receiptNumber = `${year}-${randomNum}`;
 
     // Store receipt in database for history/year-end summaries
     const { error: insertError } = await supabaseAdmin
@@ -310,7 +339,8 @@ serve(async (req) => {
         transaction_id: transactionId,
         transaction_date: transactionDate,
         receipt_number: receiptNumber,
-        tax_year: year
+        tax_year: year,
+        stripe_mode: stripeMode
       });
 
     if (insertError) {
