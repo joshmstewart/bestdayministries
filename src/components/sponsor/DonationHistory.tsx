@@ -40,13 +40,12 @@ export const DonationHistory = () => {
         return;
       }
 
-      console.log('Loading receipts for user:', user.id);
+      console.log('Loading receipts for user:', user.email);
 
       // Query receipts - RLS ensures users only see their own
       const { data, error } = await supabase
         .from('sponsorship_receipts')
         .select('*')
-        .eq('user_id', user.id)
         .order('transaction_date', { ascending: false });
 
       if (error) {
