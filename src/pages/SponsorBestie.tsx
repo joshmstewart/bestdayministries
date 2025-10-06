@@ -459,7 +459,12 @@ const SponsorBestie = () => {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => navigate('/auth')}
+                            onClick={() => {
+                              const redirectUrl = selectedBestie 
+                                ? `/auth?redirect=/sponsor-bestie&bestieId=${selectedBestie}`
+                                : `/auth?redirect=/sponsor-bestie`;
+                              navigate(redirectUrl);
+                            }}
                             className="mt-2"
                           >
                             Log In

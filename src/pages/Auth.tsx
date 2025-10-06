@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -53,9 +54,19 @@ const Auth = () => {
   useEffect(() => {
     console.log('🎬 Auth page mounted, setting up redirect logic');
     
+    const redirectPath = searchParams.get('redirect');
+    const bestieId = searchParams.get('bestieId');
+    
     const checkAndRedirect = async (userId: string) => {
       try {
-        // First check if user is a vendor
+        // If there's a redirect path specified, use it
+        if (redirectPath) {
+          const fullPath = bestieId ? `${redirectPath}?bestieId=${bestieId}` : redirectPath;
+          navigate(fullPath, { replace: true });
+          return;
+        }
+        
+        // Otherwise, check if user is a vendor
         const { data: vendor, error } = await supabase
           .from('vendors')
           .select('*')
@@ -89,7 +100,7 @@ const Auth = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
