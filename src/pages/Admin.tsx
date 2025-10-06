@@ -301,21 +301,21 @@ const Admin = () => {
                 <CardDescription>Manage sponsor page content and active sponsorships</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="transactions" className="space-y-4">
+                <Tabs defaultValue="sponsorships" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto w-full">
-                    <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     <TabsTrigger value="sponsorships">Sponsor Besties</TabsTrigger>
+                    <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     <TabsTrigger value="page-content">Page Content</TabsTrigger>
                     <TabsTrigger value="page-order">Page Order</TabsTrigger>
                     <TabsTrigger value="receipts">Receipt Settings</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="transactions">
-                    <SponsorshipTransactionsManager />
-                  </TabsContent>
-
                   <TabsContent value="sponsorships">
                     <SponsorBestieManager />
+                  </TabsContent>
+
+                  <TabsContent value="transactions">
+                    <SponsorshipTransactionsManager />
                   </TabsContent>
 
                   <TabsContent value="page-content">
