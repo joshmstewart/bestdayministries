@@ -69,7 +69,15 @@ export const ReceiptSettingsManager = () => {
         .maybeSingle();
 
       if (data?.setting_value) {
-        setLogoUrl(data.setting_value as string);
+        // Parse the JSON-stringified value
+        try {
+          const parsed = typeof data.setting_value === 'string' 
+            ? JSON.parse(data.setting_value)
+            : data.setting_value;
+          setLogoUrl(parsed);
+        } catch {
+          setLogoUrl(data.setting_value as string);
+        }
       }
     } catch (error: any) {
       console.error('Error loading logo:', error);

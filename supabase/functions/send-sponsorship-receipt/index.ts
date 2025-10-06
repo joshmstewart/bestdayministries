@@ -60,7 +60,17 @@ serve(async (req) => {
       .eq('setting_key', 'logo_url')
       .maybeSingle();
 
-    const logoUrl = logoSetting?.setting_value as string | null;
+    // Parse the JSON-stringified value
+    let logoUrl: string | null = null;
+    if (logoSetting?.setting_value) {
+      try {
+        logoUrl = typeof logoSetting.setting_value === 'string' 
+          ? JSON.parse(logoSetting.setting_value)
+          : logoSetting.setting_value;
+      } catch {
+        logoUrl = logoSetting.setting_value as string;
+      }
+    }
 
     const formattedAmount = new Intl.NumberFormat('en-US', {
       style: 'currency',
