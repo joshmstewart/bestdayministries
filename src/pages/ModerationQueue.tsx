@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 interface Profile {
   id: string;
@@ -46,12 +47,15 @@ const ModerationQueue = () => {
   const [flaggedPosts, setFlaggedPosts] = useState<FlaggedPost[]>([]);
   const [flaggedComments, setFlaggedComments] = useState<FlaggedComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canModerate, loading: permissionsLoading } = useUserPermissions();
 
   useEffect(() => {
     checkAccess();
-  }, []);
+  }, [canModerate, permissionsLoading]);
 
   const checkAccess = async () => {
+    if (permissionsLoading) return;
+
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
@@ -59,18 +63,11 @@ const ModerationQueue = () => {
       return;
     }
 
-    // Fetch role from user_roles table (security requirement)
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-
-    // Check for admin-level access (owner role automatically has admin access)
-    if (!roleData || !['admin', 'owner', 'moderator'].includes(roleData.role)) {
+    // Check for moderation permission (includes admins and users with 'moderate' permission)
+    if (!canModerate) {
       toast({
         title: "Access denied",
-        description: "You don't have permission to view this page",
+        description: "You don't have moderation permissions",
         variant: "destructive",
       });
       navigate("/community");
@@ -208,11 +205,11 @@ const ModerationQueue = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate(-1)}
           className="mb-6"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Admin
+          Back
         </Button>
 
         <div className="max-w-6xl mx-auto space-y-8">

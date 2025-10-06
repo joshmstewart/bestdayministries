@@ -20,6 +20,7 @@ interface Profile {
   email?: string;
   vendor_status?: 'pending' | 'approved' | 'rejected' | 'suspended' | null;
   business_name?: string;
+  permissions?: string[];
 }
 
 export const UserManagement = () => {
@@ -103,12 +104,18 @@ export const UserManagement = () => {
         .from("vendors")
         .select("user_id, status, business_name");
 
-      // Merge roles and vendor status with profiles
+      // Fetch permissions for all users
+      const { data: permissionsData } = await supabase
+        .from("user_permissions")
+        .select("user_id, permission_type");
+
+      // Merge roles, vendor status, and permissions with profiles
       const usersWithRoles = (profiles || []).map(profile => ({
         ...profile,
         role: rolesData?.find(r => r.user_id === profile.id)?.role || "supporter",
         vendor_status: vendorsData?.find(v => v.user_id === profile.id)?.status || null,
-        business_name: vendorsData?.find(v => v.user_id === profile.id)?.business_name || undefined
+        business_name: vendorsData?.find(v => v.user_id === profile.id)?.business_name || undefined,
+        permissions: permissionsData?.filter(p => p.user_id === profile.id).map(p => p.permission_type) || []
       }));
 
       setUsers(usersWithRoles);
@@ -398,6 +405,51 @@ export const UserManagement = () => {
     }
   };
 
+  const handleTogglePermission = async (userId: string, permission: string, currentlyHas: boolean) => {
+    try {
+      if (currentlyHas) {
+        // Revoke permission
+        const { error } = await supabase
+          .from("user_permissions")
+          .delete()
+          .eq("user_id", userId)
+          .eq("permission_type", permission);
+
+        if (error) throw error;
+
+        toast({
+          title: "Permission revoked",
+          description: `${permission} permission has been removed.`,
+        });
+      } else {
+        // Grant permission
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await supabase
+          .from("user_permissions")
+          .insert({
+            user_id: userId,
+            permission_type: permission,
+            granted_by: user?.id
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Permission granted",
+          description: `${permission} permission has been added.`,
+        });
+      }
+
+      await loadUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error updating permission",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
     const matchesSearch = searchTerm === "" || 
@@ -662,6 +714,7 @@ export const UserManagement = () => {
               <TableHead>Display Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Permissions</TableHead>
               <TableHead>Vendor Status</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -670,7 +723,7 @@ export const UserManagement = () => {
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No users found matching your filters
                 </TableCell>
               </TableRow>
@@ -689,6 +742,33 @@ export const UserManagement = () => {
                     {user.role === "owner" && <Shield className="w-3 h-3 inline mr-1" />}
                     {user.role}
                   </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {user.permissions && user.permissions.length > 0 ? (
+                      user.permissions.map(perm => (
+                        <span key={perm} className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                          {perm}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">None</span>
+                    )}
+                    {canEditUserRole(user.role) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2"
+                        onClick={() => {
+                          const hasModerate = user.permissions?.includes('moderate');
+                          handleTogglePermission(user.id, 'moderate', hasModerate || false);
+                        }}
+                        title={user.permissions?.includes('moderate') ? "Revoke moderation" : "Grant moderation"}
+                      >
+                        {user.permissions?.includes('moderate') ? '−' : '+'}
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {user.vendor_status ? (
