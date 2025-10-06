@@ -159,7 +159,7 @@ export const ReceiptSettingsManager = () => {
                 <tr>
                   <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #D97706 0%, #B45309 100%); border-radius: 8px 8px 0 0;">
                     ${logoUrl ? `
-                      <img src="${logoUrl}" alt="${settings.organization_name}" style="max-width: 200px; height: auto; margin-bottom: 20px;" />
+                      <img src="${logoUrl}" alt="${settings.organization_name}" style="max-width: 200px; height: auto; margin-bottom: 20px; border-radius: 12px;" />
                     ` : ''}
                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">
                       ${settings.organization_name}
