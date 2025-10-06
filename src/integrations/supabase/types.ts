@@ -1353,6 +1353,7 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string
+          email: string | null
           friend_code: string | null
           id: string
           tts_enabled: boolean
@@ -1366,6 +1367,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name: string
+          email?: string | null
           friend_code?: string | null
           id: string
           tts_enabled?: boolean
@@ -1379,6 +1381,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string
+          email?: string | null
           friend_code?: string | null
           id?: string
           tts_enabled?: boolean
