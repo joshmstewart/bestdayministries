@@ -145,6 +145,115 @@ export const DonationHistory = () => {
     }
   };
 
+  const downloadIndividualReceipt = async (receipt: Receipt) => {
+    try {
+      // Fetch receipt settings and org info
+      const { data: settings } = await supabase
+        .from('receipt_settings')
+        .select('*')
+        .single();
+
+      const { data: appSettings } = await supabase
+        .from('app_settings_public')
+        .select('setting_value')
+        .eq('setting_key', 'logo_url')
+        .single();
+
+      const logoUrl = appSettings?.setting_value as string || '';
+
+      // Generate HTML receipt
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Donation Receipt</title>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+            .header { text-align: center; margin-bottom: 40px; }
+            .logo { max-width: 200px; margin-bottom: 20px; }
+            .receipt-number { font-size: 14px; color: #666; margin: 10px 0; }
+            .details { background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .details table { width: 100%; border-collapse: collapse; }
+            .details td { padding: 12px 0; border-bottom: 1px solid #e0e0e0; }
+            .details td:first-child { font-weight: bold; width: 200px; }
+            .amount { font-size: 32px; font-weight: bold; color: #2563eb; text-align: center; margin: 30px 0; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="logo">` : ''}
+            <h1>Donation Receipt</h1>
+            <div class="receipt-number">Receipt #${receipt.receipt_number}</div>
+            <div class="receipt-number">Date: ${new Date(receipt.transaction_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          </div>
+          
+          <div class="amount">$${receipt.amount.toFixed(2)}</div>
+          
+          <div class="details">
+            <table>
+              <tr>
+                <td>Organization:</td>
+                <td>${settings?.organization_name || 'Best Day Ministries'}</td>
+              </tr>
+              <tr>
+                <td>Bestie Sponsored:</td>
+                <td>${receipt.bestie_name}</td>
+              </tr>
+              <tr>
+                <td>Donation Type:</td>
+                <td>${receipt.frequency === 'monthly' ? 'Monthly Recurring' : 'One-Time'}</td>
+              </tr>
+              <tr>
+                <td>Tax Year:</td>
+                <td>${receipt.tax_year}</td>
+              </tr>
+              ${settings?.tax_id ? `
+              <tr>
+                <td>Tax ID (EIN):</td>
+                <td>${settings.tax_id}</td>
+              </tr>
+              ` : ''}
+            </table>
+          </div>
+          
+          <div class="footer">
+            <p><strong>Tax Deduction Notice:</strong></p>
+            <p>This receipt confirms your donation. No goods or services were provided in exchange for this contribution. Please retain this receipt for your tax records.</p>
+            ${settings?.organization_address ? `<p><strong>Organization Address:</strong> ${settings.organization_address}</p>` : ''}
+            ${settings?.website_url ? `<p><strong>Website:</strong> ${settings.website_url}</p>` : ''}
+            ${settings?.receipt_message ? `<p>${settings.receipt_message}</p>` : ''}
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Download the receipt
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-${receipt.receipt_number}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Receipt Downloaded",
+        description: `Receipt #${receipt.receipt_number} has been downloaded`,
+      });
+    } catch (error: any) {
+      console.error('Error downloading receipt:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download receipt",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredReceipts = selectedYear === "all"
     ? receipts 
     : receipts.filter(r => r.tax_year.toString() === selectedYear);
@@ -305,6 +414,7 @@ export const DonationHistory = () => {
                   <TableHead>Receipt #</TableHead>
                   <TableHead>Mode</TableHead>
                   <TableHead className="text-right">Year</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -341,6 +451,16 @@ export const DonationHistory = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline">{receipt.tax_year}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadIndividualReceipt(receipt)}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
