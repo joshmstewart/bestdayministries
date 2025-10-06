@@ -11,6 +11,10 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
 import { SponsorBestieManager } from "@/components/admin/SponsorBestieManager";
+import { SponsorPageOrderManager } from "@/components/admin/SponsorPageOrderManager";
+import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
+import { ReceiptSettingsManager } from "@/components/admin/ReceiptSettingsManager";
+import { SponsorshipTransactionsManager } from "@/components/admin/SponsorshipTransactionsManager";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
@@ -26,13 +30,10 @@ import { FamilyOrganizationsManager } from "@/components/admin/FamilyOrganizatio
 import { FooterLinksManager } from "@/components/admin/FooterLinksManager";
 import QuickLinksManager from "@/components/admin/QuickLinksManager";
 import { NavigationBarManager } from "@/components/admin/NavigationBarManager";
-import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
 import { VendorManagement } from "@/components/admin/VendorManagement";
 import { ContactFormManager } from "@/components/admin/ContactFormManager";
 import { VideoManager } from "@/components/admin/VideoManager";
-import { SponsorPageOrderManager } from "@/components/admin/SponsorPageOrderManager";
 import { MessageModerationQueue } from "@/components/admin/MessageModerationQueue";
-import { ReceiptSettingsManager } from "@/components/admin/ReceiptSettingsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -300,13 +301,18 @@ const Admin = () => {
                 <CardDescription>Manage sponsor page content and active sponsorships</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="sponsorships" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
-                    <TabsTrigger value="page-content">Sponsor Page Content</TabsTrigger>
-                    <TabsTrigger value="page-order">Sponsor Page Order</TabsTrigger>
+                <Tabs defaultValue="transactions" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="transactions">Transactions</TabsTrigger>
+                    <TabsTrigger value="sponsorships">Sponsor Besties</TabsTrigger>
+                    <TabsTrigger value="page-content">Page Content</TabsTrigger>
+                    <TabsTrigger value="page-order">Page Order</TabsTrigger>
                     <TabsTrigger value="receipts">Receipt Settings</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="transactions">
+                    <SponsorshipTransactionsManager />
+                  </TabsContent>
 
                   <TabsContent value="sponsorships">
                     <SponsorBestieManager />
