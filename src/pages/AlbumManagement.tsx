@@ -408,11 +408,15 @@ export default function AlbumManagement() {
         const postImageUrl = coverImageUrl || existingImages[0]?.image_url || null;
         
         // Check if a post already exists for this album
-        const { data: existingPost } = await supabase
+        const { data: existingPost, error: checkError } = await supabase
           .from("discussion_posts")
           .select("id")
           .eq("album_id", albumId)
           .maybeSingle();
+
+        if (checkError) {
+          console.error("Error checking for existing post:", checkError);
+        }
 
         const postData = {
           title,
@@ -427,22 +431,40 @@ export default function AlbumManagement() {
 
         if (existingPost) {
           // Update existing post
-          await supabase
+          const { error: updateError } = await supabase
             .from("discussion_posts")
             .update(postData)
             .eq("id", existingPost.id);
+          
+          if (updateError) {
+            console.error("Error updating discussion post:", updateError);
+            toast.error("Album saved but failed to update discussion post: " + updateError.message);
+          } else {
+            console.log("Discussion post updated successfully for album:", albumId);
+          }
         } else {
           // Create new post
-          await supabase
+          const { error: insertError } = await supabase
             .from("discussion_posts")
             .insert(postData);
+          
+          if (insertError) {
+            console.error("Error creating discussion post:", insertError);
+            toast.error("Album saved but failed to create discussion post: " + insertError.message);
+          } else {
+            console.log("Discussion post created successfully for album:", albumId);
+          }
         }
       } else if (!isPost && albumId) {
         // If unchecked, delete any associated post
-        await supabase
+        const { error: deleteError } = await supabase
           .from("discussion_posts")
           .delete()
           .eq("album_id", albumId);
+        
+        if (deleteError) {
+          console.error("Error deleting discussion post:", deleteError);
+        }
       }
 
       toast.success(editingAlbum ? "Album updated successfully" : "Album created successfully");
