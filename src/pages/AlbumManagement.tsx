@@ -258,8 +258,24 @@ export default function AlbumManagement() {
 
         if (updateError) throw updateError;
 
+        // Immediately update the existingImages state with cache-busted URL
+        setExistingImages(prev => 
+          prev.map(img => 
+            img.id === cropExistingImage.id 
+              ? { ...img, image_url: `${publicUrl}?t=${Date.now()}` }
+              : img
+          )
+        );
+
+        // Also update the editing album's cover if this was the cover image
+        if (editingAlbum?.cover_image_url === cropExistingImage.image_url) {
+          setEditingAlbum(prev => prev ? { ...prev, cover_image_url: `${publicUrl}?t=${Date.now()}` } : null);
+        }
+
         toast.success("Image recropped successfully");
         setCropExistingImage(null);
+        
+        // Reload albums to ensure everything is in sync
         loadAlbums();
       } catch (error: any) {
         console.error("Error recropping image:", error);
