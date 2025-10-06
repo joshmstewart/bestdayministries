@@ -1631,16 +1631,14 @@ export default function GuardianLinks() {
             </Card>
           )}
 
-          {/* Donation History & Tax Receipts Section - For Sponsors Only */}
-          {userRole === "supporter" && (
-            <div className="space-y-4 mt-12">
-              <div className="flex items-center gap-2 mb-6">
-                <FileCheck className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold">Tax Receipts & Donation History</h2>
-              </div>
-              <DonationHistory />
+          {/* Donation History & Tax Receipts Section - Shows if user has any receipts */}
+          <div className="space-y-4 mt-12">
+            <div className="flex items-center gap-2 mb-6">
+              <FileCheck className="w-6 h-6 text-primary" />
+              <h2 className="text-2xl font-bold">Tax Receipts & Donation History</h2>
             </div>
-          )}
+            <DonationHistory />
+          </div>
         </div>
       </main>
 

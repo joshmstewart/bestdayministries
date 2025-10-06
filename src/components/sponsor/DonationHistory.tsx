@@ -17,6 +17,7 @@ interface Receipt {
   receipt_number: string;
   tax_year: number;
   sent_at: string;
+  stripe_mode: string;
 }
 
 export const DonationHistory = () => {
@@ -135,6 +136,11 @@ export const DonationHistory = () => {
     );
   }
 
+  // Don't render if no receipts
+  if (receipts.length === 0) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       {/* Year-End Summary Cards */}
@@ -227,6 +233,7 @@ export const DonationHistory = () => {
                   <TableHead>Amount</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Receipt #</TableHead>
+                  <TableHead>Mode</TableHead>
                   <TableHead className="text-right">Year</TableHead>
                 </TableRow>
               </TableHeader>
@@ -256,6 +263,11 @@ export const DonationHistory = () => {
                     </TableCell>
                     <TableCell className="font-mono text-sm">
                       {receipt.receipt_number}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={receipt.stripe_mode === 'test' ? 'secondary' : 'default'}>
+                        {receipt.stripe_mode === 'test' ? 'Test' : 'Live'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline">{receipt.tax_year}</Badge>

@@ -1730,6 +1730,7 @@ export type Database = {
           sponsor_email: string
           sponsor_name: string | null
           sponsorship_id: string | null
+          stripe_mode: string
           tax_year: number
           transaction_date: string
           transaction_id: string
@@ -1745,6 +1746,7 @@ export type Database = {
           sponsor_email: string
           sponsor_name?: string | null
           sponsorship_id?: string | null
+          stripe_mode?: string
           tax_year: number
           transaction_date: string
           transaction_id: string
@@ -1760,6 +1762,7 @@ export type Database = {
           sponsor_email?: string
           sponsor_name?: string | null
           sponsorship_id?: string | null
+          stripe_mode?: string
           tax_year?: number
           transaction_date?: string
           transaction_id?: string
