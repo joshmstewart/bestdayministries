@@ -44,7 +44,7 @@ const About = ({ content = {} }: AboutProps) => {
     bde_status = "Open NOW!",
     bde_button_text = "Visit Best Day Ever",
     bde_image_url = bdeOutdoorEvent,
-  } = content;
+  } = content || {};
   return (
     <section id="about" className="py-24 bg-gradient-to-b from-background via-muted/20 to-background relative overflow-hidden">
       {/* Decorative elements */}
