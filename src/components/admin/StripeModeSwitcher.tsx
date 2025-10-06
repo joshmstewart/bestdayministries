@@ -37,8 +37,13 @@ export const StripeModeSwitcher = () => {
 
       if (error) throw error;
 
-      const mode = data?.setting_value || 'test';
-      setCurrentMode(mode as 'test' | 'live');
+      // Parse the JSONB value - it could be a string "test" or "live"
+      let mode: 'test' | 'live' = 'test';
+      if (data?.setting_value && typeof data.setting_value === 'string') {
+        mode = data.setting_value as 'test' | 'live';
+      }
+      console.log('Loaded Stripe mode:', mode);
+      setCurrentMode(mode);
     } catch (error) {
       console.error('Error loading Stripe mode:', error);
       toast.error('Failed to load Stripe mode');
@@ -56,14 +61,18 @@ export const StripeModeSwitcher = () => {
   const confirmModeSwitch = async () => {
     setSwitching(true);
     try {
+      console.log('Switching Stripe mode from', currentMode, 'to', targetMode);
+      
       const { error } = await supabase
         .from('app_settings')
-        .update({ setting_value: `"${targetMode}"` })
+        .update({ setting_value: targetMode })
         .eq('setting_key', 'stripe_mode');
 
       if (error) throw error;
 
       setCurrentMode(targetMode);
+      console.log('Successfully switched to', targetMode, 'mode');
+      
       toast.success(`Switched to ${targetMode.toUpperCase()} mode`, {
         description: targetMode === 'live' 
           ? 'All payments will now process real charges'
