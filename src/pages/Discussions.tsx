@@ -92,6 +92,9 @@ const Discussions = () => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<Array<{ image_url: string; caption?: string | null }>>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
 
   useEffect(() => {
     checkUser();
@@ -676,6 +679,48 @@ const Discussions = () => {
     );
   };
 
+  const hasAdminAccess = profile && ['admin', 'owner'].includes(profile.role);
+
+  const handleEditPost = (post: Post) => {
+    setEditingPostId(post.id);
+    setEditTitle(post.title);
+    setEditContent(post.content);
+  };
+
+  const handleSavePostEdit = async () => {
+    if (!editingPostId) return;
+
+    try {
+      const { error } = await supabase
+        .from("discussion_posts")
+        .update({
+          title: editTitle,
+          content: editContent,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editingPostId);
+
+      if (error) throw error;
+
+      toast({ title: "Post updated successfully" });
+      setEditingPostId(null);
+      loadPosts();
+    } catch (error: any) {
+      console.error("Error updating post:", error);
+      toast({
+        title: "Error updating post",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditTitle("");
+    setEditContent("");
+  };
+
   const getRoleBadgeColor = (role: string) => {
     // Use consistent outlined style matching the nav bar
     return "text-xs px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 text-primary font-semibold capitalize";
@@ -940,7 +985,17 @@ const Discussions = () => {
                       <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-2xl">{post.title}</CardTitle>
-                            <TextToSpeech text={`${post.title}. ${post.content}`} />
+                            {!editingPostId && <TextToSpeech text={`${post.title}. ${post.content}`} />}
+                            {hasAdminAccess && (post as any).album_id && editingPostId !== post.id && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditPost(post)}
+                                className="h-8 w-8"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <span className="text-sm font-medium text-foreground">
@@ -990,9 +1045,39 @@ const Discussions = () => {
                         </Button>
                       )}
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
+                   </CardHeader>
+                   <CardContent className="space-y-6">
+                     {editingPostId === post.id ? (
+                       <div className="space-y-4">
+                         <div>
+                           <Label>Title</Label>
+                           <Input
+                             value={editTitle}
+                             onChange={(e) => setEditTitle(e.target.value)}
+                             placeholder="Post title"
+                           />
+                         </div>
+                         <div>
+                           <Label>Content</Label>
+                           <Textarea
+                             value={editContent}
+                             onChange={(e) => setEditContent(e.target.value)}
+                             placeholder="Post content"
+                             className="min-h-[150px]"
+                           />
+                         </div>
+                         <div className="flex gap-2">
+                           <Button onClick={handleSavePostEdit} size="sm">
+                             Save Changes
+                           </Button>
+                           <Button onClick={handleCancelEdit} size="sm" variant="outline">
+                             Cancel
+                           </Button>
+                         </div>
+                       </div>
+                     ) : (
+                       <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
+                     )}
 
                     {/* Display Image if present and no album images */}
                     {post.image_url && !post.album_images?.length && (
