@@ -394,11 +394,11 @@ const SponsorBestie = () => {
                                     : "No description available"}
                                 </p>
                                 
-                                {bestie.monthly_goal && bestie.monthly_goal > 0 && fundingProgress[bestie.id] && (
+                                {bestie.monthly_goal && bestie.monthly_goal > 0 && (
                                   <div className="mt-3">
                                     <FundingProgressBar
-                                      currentAmount={fundingProgress[bestie.id].current_monthly_pledges}
-                                      goalAmount={fundingProgress[bestie.id].monthly_goal}
+                                      currentAmount={fundingProgress[bestie.id]?.current_monthly_pledges || 0}
+                                      goalAmount={bestie.monthly_goal}
                                     />
                                   </div>
                                 )}

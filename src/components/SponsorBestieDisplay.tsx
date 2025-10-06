@@ -322,9 +322,9 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
                 </div>
               )}
 
-              {progress && bestie.monthly_goal && (
+              {bestie.monthly_goal && bestie.monthly_goal > 0 && (
                 <FundingProgressBar
-                  currentAmount={progress.current_monthly_pledges}
+                  currentAmount={progress?.current_monthly_pledges || 0}
                   goalAmount={bestie.monthly_goal}
                   className="mt-4"
                 />
