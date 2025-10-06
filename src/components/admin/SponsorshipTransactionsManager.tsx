@@ -106,7 +106,16 @@ export const SponsorshipTransactionsManager = () => {
     setFilteredSponshorships(filtered);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, endedAt: string | null) => {
+    // If status is active but has ended_at, it's scheduled to cancel
+    if (status === 'active' && endedAt) {
+      return (
+        <Badge variant="outline" className="border-yellow-500 text-yellow-700">
+          Scheduled to Cancel
+        </Badge>
+      );
+    }
+    
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       active: "default",
       cancelled: "destructive",
@@ -115,6 +124,16 @@ export const SponsorshipTransactionsManager = () => {
     return (
       <Badge variant={variants[status] || "outline"}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  };
+
+  const getModeBadge = (mode: string | null) => {
+    if (!mode) return null;
+    
+    return (
+      <Badge variant={mode === 'live' ? 'default' : 'secondary'} className={mode === 'live' ? 'bg-green-600' : ''}>
+        {mode === 'live' ? 'Live' : 'Test'}
       </Badge>
     );
   };
@@ -241,6 +260,7 @@ export const SponsorshipTransactionsManager = () => {
                   <TableHead>Amount</TableHead>
                   <TableHead>Frequency</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Mode</TableHead>
                   <TableHead>Started</TableHead>
                   <TableHead>Ended</TableHead>
                   <TableHead>Stripe</TableHead>
@@ -249,7 +269,7 @@ export const SponsorshipTransactionsManager = () => {
               <TableBody>
                 {filteredSponshorships.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       {searchTerm ? 'No sponsorships match your search' : 'No sponsorships yet'}
                     </TableCell>
                   </TableRow>
@@ -286,7 +306,8 @@ export const SponsorshipTransactionsManager = () => {
                         </div>
                       </TableCell>
                       <TableCell>{getFrequencyBadge(sponsorship.frequency)}</TableCell>
-                      <TableCell>{getStatusBadge(sponsorship.status)}</TableCell>
+                      <TableCell>{getStatusBadge(sponsorship.status, sponsorship.ended_at)}</TableCell>
+                      <TableCell>{getModeBadge(sponsorship.stripe_mode)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="w-3 h-3 text-muted-foreground" />
