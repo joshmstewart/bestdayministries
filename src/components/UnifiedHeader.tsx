@@ -421,12 +421,12 @@ export const UnifiedHeader = () => {
                         // Special handling for Support Us with dropdown
                         if (link.href === '/support' || link.label === 'Support Us') {
                           return (
-                            <NavigationMenuItem key={link.id} className="relative">
+                            <NavigationMenuItem key={link.id}>
                               <NavigationMenuTrigger className="bg-transparent hover:bg-transparent data-[state=open]:bg-transparent py-1 px-0 h-auto text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors font-['Roca'] text-sm font-medium">
                                 {link.label}
                               </NavigationMenuTrigger>
-                              <NavigationMenuContent className="absolute top-full left-0 mt-1 bg-card border border-border shadow-lg rounded-md z-[100] min-w-[160px]">
-                                <ul className="p-1">
+                              <NavigationMenuContent>
+                                <ul className="bg-card border border-border shadow-lg rounded-md p-2 min-w-[180px]">
                                   <li>
                                     <NavigationMenuLink asChild>
                                       <Link
