@@ -132,6 +132,7 @@ serve(async (req) => {
       success_url: `${req.headers.get('origin')}/support?donation=success`,
       cancel_url: `${req.headers.get('origin')}/support`,
       metadata: {
+        type: 'donation',
         frequency,
         amount: amount.toString(),
         coverStripeFee: coverStripeFee.toString(),
@@ -140,6 +141,7 @@ serve(async (req) => {
       ...(frequency === 'monthly' && {
         subscription_data: {
           metadata: {
+            type: 'donation',
             frequency,
             amount: amount.toString(),
             coverStripeFee: coverStripeFee.toString(),
@@ -153,36 +155,34 @@ serve(async (req) => {
 
     console.log('Donation checkout session created:', session.id);
 
-    // For one-time payments, create the donation record immediately
-    if (frequency === 'one-time') {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
+    // Create the donation record immediately (status will be updated by webhook)
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
 
-      if (profile) {
-        await supabaseAdmin.from("donations").insert({
-          donor_id: profile.id,
-          amount: amount,
-          frequency: 'one-time',
-          status: 'pending',
-          started_at: new Date().toISOString(),
-          stripe_mode: mode,
-          stripe_customer_id: customer.id,
-        });
-      } else {
-        // Guest checkout
-        await supabaseAdmin.from("donations").insert({
-          donor_email: email,
-          amount: amount,
-          frequency: 'one-time',
-          status: 'pending',
-          started_at: new Date().toISOString(),
-          stripe_mode: mode,
-          stripe_customer_id: customer.id,
-        });
-      }
+    if (profile) {
+      await supabaseAdmin.from("donations").insert({
+        donor_id: profile.id,
+        amount: amount,
+        frequency: frequency,
+        status: 'pending',
+        started_at: new Date().toISOString(),
+        stripe_mode: mode,
+        stripe_customer_id: customer.id,
+      });
+    } else {
+      // Guest checkout
+      await supabaseAdmin.from("donations").insert({
+        donor_email: email,
+        amount: amount,
+        frequency: frequency,
+        status: 'pending',
+        started_at: new Date().toISOString(),
+        stripe_mode: mode,
+        stripe_customer_id: customer.id,
+      });
     }
 
     return new Response(

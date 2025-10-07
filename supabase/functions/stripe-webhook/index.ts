@@ -115,10 +115,29 @@ serve(async (req) => {
           endDate = new Date().toISOString();
         }
 
-        // Get the sponsor_bestie_id from subscription metadata if available
-        const sponsorBestieId = subscription.metadata?.bestie_id;
+        // Check if this is a donation subscription (has donation metadata)
+        const isDonation = subscription.metadata?.type === 'donation';
+        
+        if (isDonation) {
+          // Update donation status
+          const { error: updateError } = await supabaseAdmin
+            .from("donations")
+            .update({
+              status: newStatus,
+              ended_at: endDate,
+            })
+            .eq("stripe_subscription_id", subscription.id);
 
-        if (sponsorBestieId) {
+          if (updateError) {
+            console.error("Error updating donation:", updateError);
+          } else {
+            console.log(`Updated donation subscription ${subscription.id} to status: ${newStatus}, end date: ${endDate}`);
+          }
+        } else {
+          // Handle sponsorship subscription
+          const sponsorBestieId = subscription.metadata?.bestie_id;
+
+          if (sponsorBestieId) {
           // Update the specific sponsorship
           const { error: updateError } = await supabaseAdmin
             .from("sponsorships")
@@ -149,6 +168,7 @@ serve(async (req) => {
           } else {
             console.log(`Updated all sponsorships for user ${user.id} to status: ${newStatus}, end date: ${endDate}`);
           }
+          }
         }
         break;
       }
@@ -156,8 +176,70 @@ serve(async (req) => {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         
-        // Handle subscription checkout completion
-        if (session.mode === "subscription" && session.subscription) {
+        // Check if this is a donation (has donation metadata)
+        const isDonation = session.metadata?.type === 'donation';
+        
+        if (isDonation) {
+          // Handle donation checkout completion
+          const customerEmail = session.customer_details?.email;
+          if (!customerEmail) {
+            console.log("No customer email in donation checkout session");
+            break;
+          }
+
+          // Find the user by email in auth.users
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+          if (authError) {
+            console.error("Error fetching users:", authError);
+            break;
+          }
+
+          const user = authData.users.find(u => u.email === customerEmail);
+          
+          // Calculate amount (Stripe amounts are in cents)
+          const amount = session.amount_total ? session.amount_total / 100 : 0;
+          
+          if (session.mode === "payment") {
+            // One-time donation
+            const { error: updateError } = await supabaseAdmin
+              .from("donations")
+              .update({
+                status: "completed",
+              })
+              .eq("donor_email", customerEmail)
+              .eq("amount", amount)
+              .eq("frequency", "one-time")
+              .eq("status", "pending");
+
+            if (updateError) {
+              console.error("Error updating one-time donation:", updateError);
+            } else {
+              console.log(`Completed one-time donation for ${customerEmail}, amount: $${amount}`);
+            }
+          } else if (session.mode === "subscription" && session.subscription) {
+            // Monthly donation
+            const subscriptionId = session.subscription as string;
+            
+            const { error: updateError } = await supabaseAdmin
+              .from("donations")
+              .update({
+                status: "active",
+                stripe_subscription_id: subscriptionId,
+                started_at: new Date().toISOString(),
+              })
+              .eq("donor_email", customerEmail)
+              .eq("amount", amount)
+              .eq("frequency", "monthly")
+              .eq("status", "pending");
+
+            if (updateError) {
+              console.error("Error updating monthly donation:", updateError);
+            } else {
+              console.log(`Activated monthly donation for ${customerEmail}, amount: $${amount}/month`);
+            }
+          }
+        } else if (session.mode === "subscription" && session.subscription) {
+          // Handle sponsorship subscription checkout completion
           const subscriptionId = session.subscription as string;
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           
