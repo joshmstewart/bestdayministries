@@ -523,6 +523,7 @@ export type Database = {
           category: string | null
           content: string
           created_at: string
+          event_id: string | null
           id: string
           image_url: string | null
           is_moderated: boolean | null
@@ -547,6 +548,7 @@ export type Database = {
           category?: string | null
           content: string
           created_at?: string
+          event_id?: string | null
           id?: string
           image_url?: string | null
           is_moderated?: boolean | null
@@ -571,6 +573,7 @@ export type Database = {
           category?: string | null
           content?: string
           created_at?: string
+          event_id?: string | null
           id?: string
           image_url?: string | null
           is_moderated?: boolean | null
@@ -606,6 +609,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_posts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
           {

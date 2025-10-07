@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Heart, Trash2, Image as ImageIcon, X, Mic, Edit, Search, ArrowUpDown } from "lucide-react";
+import { MessageSquare, Send, Heart, Trash2, Image as ImageIcon, X, Mic, Edit, Search, ArrowUpDown, Calendar } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -77,6 +77,12 @@ interface Post {
     caption: string | null;
     display_order: number;
   }>;
+  event?: {
+    id: string;
+    title: string;
+    event_date: string;
+    location: string | null;
+  };
 }
 
 const Discussions = () => {
@@ -87,10 +93,11 @@ const Discussions = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewPost, setShowNewPost] = useState(false);
-  const [newPost, setNewPost] = useState({ title: "", content: "", video_id: "", youtube_url: "" });
+  const [newPost, setNewPost] = useState({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
   const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
   const [canCreatePosts, setCanCreatePosts] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [events, setEvents] = useState<Array<{ id: string; title: string; event_date: string }>>([]);
   const [videoInputType, setVideoInputType] = useState<"none" | "select" | "youtube">("none");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -168,9 +175,10 @@ const Discussions = () => {
     setProfile(profile);
     setCanCreatePosts(['caregiver', 'admin', 'owner'].includes(profile.role));
     
-    // Load videos for dropdown
+    // Load videos and events for dropdown
     if (['caregiver', 'admin', 'owner'].includes(profile.role)) {
       loadVideos();
+      loadEvents();
     }
   };
 
@@ -184,6 +192,17 @@ const Discussions = () => {
     if (data) setVideos(data);
   };
 
+  const loadEvents = async () => {
+    const { data } = await supabase
+      .from("events")
+      .select("id, title, event_date")
+      .eq("is_active", true)
+      .order("event_date", { ascending: false })
+      .limit(50);
+    
+    if (data) setEvents(data);
+  };
+
   const loadPosts = async () => {
       const { data: postsData, error: postsError } = await supabase
       .from("discussion_posts")
@@ -191,7 +210,8 @@ const Discussions = () => {
         *,
         author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role, avatar_number),
         album:albums(id, title, cover_image_url, is_active),
-        video:videos(id, title, video_url, youtube_url, video_type)
+        video:videos(id, title, video_url, youtube_url, video_type),
+        event:events(id, title, event_date, location)
       `)
       .eq("is_moderated", true)
       .order("created_at", { ascending: false});
@@ -498,7 +518,7 @@ const Discussions = () => {
         });
       }
 
-      setNewPost({ title: "", content: "", video_id: "", youtube_url: "" });
+      setNewPost({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
       setSelectedImage(null);
       setImagePreview(null);
       setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
@@ -914,22 +934,39 @@ const Discussions = () => {
                    </div>
                  )}
                  
-                 {videoInputType === "youtube" && (
-                   <div className="space-y-2">
-                     <Label htmlFor="youtubeUrl">YouTube URL</Label>
-                     <Input
-                       id="youtubeUrl"
-                       value={newPost.youtube_url}
-                       onChange={(e) => setNewPost({ ...newPost, youtube_url: e.target.value, video_id: "" })}
-                       placeholder="https://www.youtube.com/watch?v=... or video ID"
-                     />
-                     <p className="text-xs text-muted-foreground">
-                       Paste the full YouTube URL or just the video ID
-                     </p>
-                   </div>
-                 )}
-                 
-                 <div className="space-y-3">
+                  {videoInputType === "youtube" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="youtubeUrl">YouTube URL</Label>
+                      <Input
+                        id="youtubeUrl"
+                        value={newPost.youtube_url}
+                        onChange={(e) => setNewPost({ ...newPost, youtube_url: e.target.value, video_id: "" })}
+                        placeholder="https://www.youtube.com/watch?v=... or video ID"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Paste the full YouTube URL or just the video ID
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="event">Event (optional)</Label>
+                    <Select value={newPost.event_id || "none"} onValueChange={(value) => setNewPost({ ...newPost, event_id: value === "none" ? "" : value })}>
+                      <SelectTrigger id="event">
+                        <SelectValue placeholder="Link to event" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Event</SelectItem>
+                        {events.map((event) => (
+                          <SelectItem key={event.id} value={event.id}>
+                            {event.title} ({new Date(event.event_date).toLocaleDateString()})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-3">
                    <Label>Visible To (Admin & Owner always included)</Label>
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center space-x-2">
@@ -987,11 +1024,11 @@ const Discussions = () => {
                      {uploadingImage ? "Posting..." : "Post"}
                    </Button>
                    <Button variant="outline" onClick={() => {
-                     setShowNewPost(false);
-                     removeImage();
-                     setNewPost({ title: "", content: "", video_id: "", youtube_url: "" });
-                     setVideoInputType("none");
-                     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
+      setShowNewPost(false);
+      removeImage();
+      setNewPost({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
+      setVideoInputType("none");
+      setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
                    }} disabled={uploadingImage}>
                      Cancel
                    </Button>
@@ -1118,6 +1155,17 @@ const Discussions = () => {
                               >
                                 <ImageIcon className="w-3 h-3" />
                                 View Album
+                              </Button>
+                            )}
+                            {post.event && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/events`)}
+                                className="text-xs h-6 px-2 gap-1"
+                              >
+                                <Calendar className="w-3 h-3" />
+                                View Event
                               </Button>
                             )}
                           </div>
