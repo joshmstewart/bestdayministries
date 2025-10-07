@@ -874,12 +874,12 @@ const Discussions = () => {
                  </div>
                  <div className="space-y-2">
                    <Label htmlFor="video">Video (optional)</Label>
-                   <Select value={newPost.video_id} onValueChange={(value) => setNewPost({ ...newPost, video_id: value })}>
+                   <Select value={newPost.video_id || "none"} onValueChange={(value) => setNewPost({ ...newPost, video_id: value === "none" ? "" : value })}>
                      <SelectTrigger id="video">
                        <SelectValue placeholder="Select a video" />
                      </SelectTrigger>
                      <SelectContent>
-                       <SelectItem value="">None</SelectItem>
+                       <SelectItem value="none">None</SelectItem>
                        {videos.map((video) => (
                          <SelectItem key={video.id} value={video.id}>
                            {video.title} {video.video_type === 'youtube' && '(YouTube)'}
