@@ -298,11 +298,10 @@ export function AnalyticsDashboard() {
       return !order.stripe_payment_intent_id.includes("_test_");
     }) || [];
 
-    // Only count one-time LIVE sponsorships
+    // Count LIVE sponsorships (one-time payments + initial payment of monthly subscriptions)
     const { data: sponsorships } = await supabase
       .from("sponsorships")
-      .select("amount, frequency, stripe_mode")
-      .eq("frequency", "one-time")
+      .select("amount, frequency, stripe_mode, started_at")
       .eq("status", "active")
       .eq("stripe_mode", "live"); // Only live transactions
 
@@ -312,7 +311,14 @@ export function AnalyticsDashboard() {
 
     const totalOrders = liveOrders.length;
     const orderRevenue = liveOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
-    const sponsorshipRevenue = sponsorships?.reduce((sum, s) => sum + Number(s.amount), 0) || 0;
+    
+    // For monthly subscriptions, count the initial payment (amount * 1)
+    // For one-time, count the full amount
+    const sponsorshipRevenue = sponsorships?.reduce((sum, s) => {
+      // Count each sponsorship's amount once (initial payment)
+      return sum + Number(s.amount);
+    }, 0) || 0;
+    
     const totalRevenue = orderRevenue + sponsorshipRevenue;
 
     return {
