@@ -684,6 +684,36 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
                 placeholder="Visit Our Channel"
               />
             </div>
+            <div className="pt-4 border-t space-y-4">
+              <h4 className="font-semibold">Joy Redefined Documentary URLs</h4>
+              <div className="space-y-2">
+                <Label htmlFor="documentary_youtube_url">YouTube URL</Label>
+                <Input
+                  id="documentary_youtube_url"
+                  value={content.documentary_youtube_url || ""}
+                  onChange={(e) => setContent({ ...content, documentary_youtube_url: e.target.value })}
+                  placeholder="https://youtu.be/PKOW21IHNTG"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="documentary_vimeo_url">Vimeo URL</Label>
+                <Input
+                  id="documentary_vimeo_url"
+                  value={content.documentary_vimeo_url || ""}
+                  onChange={(e) => setContent({ ...content, documentary_vimeo_url: e.target.value })}
+                  placeholder="https://vimeo.com/1007746953"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="documentary_dailymotion_url">Dailymotion URL</Label>
+                <Input
+                  id="documentary_dailymotion_url"
+                  value={content.documentary_dailymotion_url || ""}
+                  onChange={(e) => setContent({ ...content, documentary_dailymotion_url: e.target.value })}
+                  placeholder="https://dailymotion.com/video/k4dqavontriwf6brvls"
+                />
+              </div>
+            </div>
           </div>
         );
 
