@@ -13,7 +13,23 @@
 **Hidden For:** Non-authenticated users, vendors
 **Visible For:** bestie, caregiver, supporter, admin, owner
 
-## Scroll Behavior
+## Mobile vs Desktop Behavior
+
+### Mobile (< 768px)
+- Shows hamburger menu button with "Menu" label
+- Navigation links appear in a side sheet (drawer from left)
+- Vertical list layout with larger touch targets
+- Support Us dropdown expanded into separate links
+- User role badge displayed in both menu button bar and inside drawer
+- Auto-closes when link is clicked
+
+### Desktop (≥ 768px)
+- Shows full horizontal navigation bar
+- Scroll behavior: Shows within 150px of top OR scrolling UP, hides when scrolling DOWN
+- Support Us appears as dropdown menu
+- User role badge on the right side
+
+## Scroll Behavior (Desktop Only)
 - **Shows:** Within 150px of top OR scrolling UP
 - **Hides:** Past 150px AND scrolling DOWN
 - **CSS:** `translate-y-0 opacity-100` (visible) / `-translate-y-full opacity-0` (hidden)

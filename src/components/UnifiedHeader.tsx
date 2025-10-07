@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
@@ -22,6 +22,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import type { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database['public']['Enums']['user_role'];
@@ -37,6 +42,7 @@ export const UnifiedHeader = () => {
   const [isTestAccount, setIsTestAccount] = useState(false);
   const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
   const [showNav, setShowNav] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number; visible_to_roles?: UserRole[] }>>([]);
   const { count: moderationCount } = useModerationCount();
   const { count: approvalsCount } = useGuardianApprovalsCount();
@@ -401,86 +407,174 @@ export const UnifiedHeader = () => {
             </div>
           </div>
 
-          {/* Navigation Bar - Absolutely positioned to overlay */}
+          {/* Navigation Bar */}
           {user && profile && profile.role !== "vendor" && (
-            <nav className={`absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-50 shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
-              <div className="container mx-auto px-4 flex items-center justify-between">
-                <div className="flex-1" />
-                <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
-                  {navLinks
-                    .filter(link => {
-                      // If no visible_to_roles set, show to everyone
-                      if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
-                      // Otherwise check if user's role is in the list
-                      return link.visible_to_roles.includes(profile?.role || '');
-                    })
-                    .map((link) => {
-                      // Special handling for Support Us with dropdown
-                      if (link.href === '/support' || link.label === 'Support Us') {
-                        return (
-                          <li key={link.id}>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full bg-transparent border-0 outline-none">
-                                {link.label} <ChevronDown className="inline-block w-3 h-3 ml-1" />
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="center" className="min-w-[160px]">
-                                <DropdownMenuItem asChild>
-                                  <Link to="/support" className="cursor-pointer">
+            <>
+              {/* Mobile Menu Button */}
+              <div className="md:hidden absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 z-50 shadow-sm">
+                <div className="container mx-auto px-4 flex items-center justify-between">
+                  <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                    <SheetTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <Menu className="w-4 h-4" />
+                        Menu
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                      <nav className="flex flex-col gap-4 mt-8">
+                        {navLinks
+                          .filter(link => {
+                            if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
+                            return link.visible_to_roles.includes(profile?.role || '');
+                          })
+                          .map((link) => {
+                            if (link.href === '/support' || link.label === 'Support Us') {
+                              return (
+                                <div key={link.id} className="flex flex-col gap-2">
+                                  <Link 
+                                    to="/support" 
+                                    className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                  >
                                     Support Us
                                   </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link to="/sponsor-bestie" className="cursor-pointer">
+                                  <Link 
+                                    to="/sponsor-bestie" 
+                                    className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                  >
                                     Sponsor a Bestie
                                   </Link>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </li>
-                        );
-                      }
+                                </div>
+                              );
+                            }
 
-                      // Skip rendering "Sponsor a Bestie" if it's a separate nav link
-                      if (link.href === '/sponsor-bestie' || link.label === 'Sponsor a Bestie') {
-                        return null;
-                      }
+                            if (link.href === '/sponsor-bestie' || link.label === 'Sponsor a Bestie') {
+                              return null;
+                            }
 
-                      // Regular links
-                      return (
-                        <li key={link.id}>
-                          {link.href.startsWith('http') ? (
-                            <a 
-                              href={link.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                            >
-                              {link.label}
-                            </a>
-                          ) : (
-                            <Link 
-                              to={link.href} 
-                              className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
-                            >
-                              {link.label}
-                            </Link>
-                          )}
-                        </li>
-                      );
-                    })}
-                </ul>
-                <div className="flex-1 flex justify-end">
-                  {profile && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
-                      <UserCircle2 className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs font-semibold text-primary capitalize">
-                        {profile.role === "caregiver" ? "Guardian" : profile.role}
-                      </span>
-                    </div>
-                  )}
+                            const isExternal = link.href.startsWith('http');
+                            if (isExternal) {
+                              return (
+                                <a
+                                  key={link.id}
+                                  href={link.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                                  onClick={() => setMobileMenuOpen(false)}
+                                >
+                                  {link.label}
+                                </a>
+                              );
+                            }
+
+                            return (
+                              <Link
+                                key={link.id}
+                                to={link.href}
+                                className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                                onClick={() => setMobileMenuOpen(false)}
+                              >
+                                {link.label}
+                              </Link>
+                            );
+                          })}
+                      </nav>
+                      <div className="absolute bottom-8 left-6 right-6">
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20">
+                          <UserCircle2 className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium text-primary capitalize">
+                            {profile.role === "caregiver" ? "Guardian" : profile.role}
+                          </span>
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20">
+                    <UserCircle2 className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-medium text-primary capitalize">
+                      {profile.role === "caregiver" ? "Guardian" : profile.role}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </nav>
+
+              {/* Desktop Navigation */}
+              <nav className={`hidden md:block absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-50 shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+                <div className="container mx-auto px-4 flex items-center justify-between">
+                  <div className="flex-1" />
+                  <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
+                    {navLinks
+                      .filter(link => {
+                        if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
+                        return link.visible_to_roles.includes(profile?.role || '');
+                      })
+                      .map((link) => {
+                        if (link.href === '/support' || link.label === 'Support Us') {
+                          return (
+                            <li key={link.id}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full bg-transparent border-0 outline-none">
+                                  {link.label} <ChevronDown className="inline-block w-3 h-3 ml-1" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="center" className="min-w-[160px]">
+                                  <DropdownMenuItem asChild>
+                                    <Link to="/support" className="cursor-pointer">
+                                      Support Us
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <Link to="/sponsor-bestie" className="cursor-pointer">
+                                      Sponsor a Bestie
+                                    </Link>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </li>
+                          );
+                        }
+
+                        if (link.href === '/sponsor-bestie' || link.label === 'Sponsor a Bestie') {
+                          return null;
+                        }
+
+                        return (
+                          <li key={link.id}>
+                            {link.href.startsWith('http') ? (
+                              <a 
+                                href={link.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                              >
+                                {link.label}
+                              </a>
+                            ) : (
+                              <Link 
+                                to={link.href} 
+                                className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
+                              >
+                                {link.label}
+                              </Link>
+                            )}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                  <div className="flex-1 flex justify-end">
+                    {profile && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
+                        <UserCircle2 className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-xs font-semibold text-primary capitalize">
+                          {profile.role === "caregiver" ? "Guardian" : profile.role}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </nav>
+            </>
           )}
         </div>
       </div>
