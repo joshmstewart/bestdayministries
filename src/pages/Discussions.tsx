@@ -1391,7 +1391,7 @@ const Discussions = () => {
                          {post.event && (
                            <Card 
                              className="border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5 cursor-pointer hover:border-primary/40 transition-colors"
-                             onClick={() => navigate('/events')}
+                             onClick={() => navigate(`/events?eventId=${post.event.id}`)}
                            >
                              <CardContent className="p-4">
                                <div className="flex gap-4">
@@ -1435,7 +1435,7 @@ const Discussions = () => {
                                      className="mt-3"
                                      onClick={(e) => {
                                        e.stopPropagation();
-                                       navigate('/events');
+                                       navigate(`/events?eventId=${post.event.id}`);
                                      }}
                                    >
                                      View Event Details →

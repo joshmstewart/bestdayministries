@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -45,16 +45,26 @@ interface Event {
 
 export default function EventsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedDisplayDate, setSelectedDisplayDate] = useState<Date | null>(null);
   const [selectedAllDates, setSelectedAllDates] = useState<Date[]>([]);
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
+  const [linkedEvent, setLinkedEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     loadEvents();
   }, [isImpersonating]); // Reload when impersonation changes
+  
+  // Check for linked event ID in URL and load it
+  useEffect(() => {
+    const eventId = searchParams.get('eventId');
+    if (eventId) {
+      loadLinkedEvent(eventId);
+    }
+  }, [searchParams]);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -96,6 +106,33 @@ export default function EventsPage() {
       setEvents(filteredEvents as Event[]);
     }
     setLoading(false);
+  };
+  
+  const loadLinkedEvent = async (eventId: string) => {
+    // Load the specific event even if it's past
+    const { data, error } = await supabase
+      .from("events")
+      .select(`
+        *,
+        event_dates(id, event_date)
+      `)
+      .eq("id", eventId)
+      .eq("is_active", true)
+      .single();
+    
+    if (error) {
+      console.error("Error loading linked event:", error);
+      return;
+    }
+    
+    if (data) {
+      setLinkedEvent(data as Event);
+      // Auto-open the event detail dialog
+      const allDates = getAllEventDates(data as Event);
+      setSelectedEvent(data as Event);
+      setSelectedDisplayDate(allDates[0] || new Date(data.event_date));
+      setSelectedAllDates(allDates);
+    }
   };
 
   // Helper function to get all dates for an event (sorted)
@@ -152,6 +189,28 @@ export default function EventsPage() {
       }
     });
   });
+  
+  // Add linked event to appropriate section if it's not already there
+  if (linkedEvent && !events.some(e => e.id === linkedEvent.id)) {
+    const allDates = getAllEventDates(linkedEvent);
+    allDates.forEach(date => {
+      const card: EventDateCard = {
+        event: linkedEvent,
+        displayDate: date,
+        allDates
+      };
+      
+      const now = new Date();
+      const isUpcoming = date >= now;
+      
+      if (isUpcoming) {
+        upcomingEventCards.push(card);
+      } else {
+        // Always show linked past events
+        pastEventCards.push(card);
+      }
+    });
+  }
 
   // Sort by date
   upcomingEventCards.sort((a, b) => a.displayDate.getTime() - b.displayDate.getTime());
