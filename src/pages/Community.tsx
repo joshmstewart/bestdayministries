@@ -192,8 +192,10 @@ const Community = () => {
           console.log(`Discussion "${d.title}":`, {
             has_image: !!d.image_url,
             has_video_id: !!d.video_id,
+            has_youtube_url: !!d.youtube_url,
             video_data: d.video,
-            has_video_thumbnail: !!d.video?.thumbnail_url
+            has_video_thumbnail: !!d.video?.thumbnail_url,
+            youtube_url: d.youtube_url
           });
         });
         setLatestDiscussions(discussions);
