@@ -59,6 +59,7 @@ interface Post {
   author_id: string;
   image_url?: string | null;
   video_id?: string | null;
+  youtube_url?: string | null;
   visible_to_roles?: string[];
   approval_status?: string;
   author?: Profile;
@@ -86,10 +87,11 @@ const Discussions = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewPost, setShowNewPost] = useState(false);
-  const [newPost, setNewPost] = useState({ title: "", content: "", video_id: "" });
+  const [newPost, setNewPost] = useState({ title: "", content: "", video_id: "", youtube_url: "" });
   const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
   const [canCreatePosts, setCanCreatePosts] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [videoInputType, setVideoInputType] = useState<"none" | "select" | "youtube">("none");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -462,6 +464,7 @@ const Discussions = () => {
           author_id: user?.id,
           image_url: imageUrl,
           video_id: newPost.video_id || null,
+          youtube_url: newPost.youtube_url || null,
           visible_to_roles: finalVisibleRoles,
           is_moderated: textIsApproved && (imageModerationStatus === 'approved' || imageModerationStatus === null),
           moderation_status: imageModerationStatus || 'pending',
@@ -495,11 +498,12 @@ const Discussions = () => {
         });
       }
 
-      setNewPost({ title: "", content: "", video_id: "" });
+      setNewPost({ title: "", content: "", video_id: "", youtube_url: "" });
       setSelectedImage(null);
       setImagePreview(null);
       setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
       setShowNewPost(false);
+      setVideoInputType("none");
       setUploadingImage(false);
       loadPosts();
     } catch (error) {
@@ -873,21 +877,58 @@ const Discussions = () => {
                   )}
                  </div>
                  <div className="space-y-2">
-                   <Label htmlFor="video">Video (optional)</Label>
-                   <Select value={newPost.video_id || "none"} onValueChange={(value) => setNewPost({ ...newPost, video_id: value === "none" ? "" : value })}>
-                     <SelectTrigger id="video">
-                       <SelectValue placeholder="Select a video" />
+                   <Label htmlFor="videoType">Video (optional)</Label>
+                   <Select value={videoInputType} onValueChange={(value: "none" | "select" | "youtube") => {
+                     setVideoInputType(value);
+                     if (value === "none") {
+                       setNewPost({ ...newPost, video_id: "", youtube_url: "" });
+                     }
+                   }}>
+                     <SelectTrigger id="videoType">
+                       <SelectValue placeholder="Select video option" />
                      </SelectTrigger>
                      <SelectContent>
-                       <SelectItem value="none">None</SelectItem>
-                       {videos.map((video) => (
-                         <SelectItem key={video.id} value={video.id}>
-                           {video.title} {video.video_type === 'youtube' && '(YouTube)'}
-                         </SelectItem>
-                       ))}
+                       <SelectItem value="none">No Video</SelectItem>
+                       <SelectItem value="select">Select Existing Video</SelectItem>
+                       <SelectItem value="youtube">Embed YouTube Video</SelectItem>
                      </SelectContent>
                    </Select>
                  </div>
+                 
+                 {videoInputType === "select" && (
+                   <div className="space-y-2">
+                     <Label htmlFor="video">Select Video</Label>
+                     <Select value={newPost.video_id || "none"} onValueChange={(value) => setNewPost({ ...newPost, video_id: value === "none" ? "" : value, youtube_url: "" })}>
+                       <SelectTrigger id="video">
+                         <SelectValue placeholder="Choose a video" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="none">None</SelectItem>
+                         {videos.map((video) => (
+                           <SelectItem key={video.id} value={video.id}>
+                             {video.title} {video.video_type === 'youtube' && '(YouTube)'}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                   </div>
+                 )}
+                 
+                 {videoInputType === "youtube" && (
+                   <div className="space-y-2">
+                     <Label htmlFor="youtubeUrl">YouTube URL</Label>
+                     <Input
+                       id="youtubeUrl"
+                       value={newPost.youtube_url}
+                       onChange={(e) => setNewPost({ ...newPost, youtube_url: e.target.value, video_id: "" })}
+                       placeholder="https://www.youtube.com/watch?v=... or video ID"
+                     />
+                     <p className="text-xs text-muted-foreground">
+                       Paste the full YouTube URL or just the video ID
+                     </p>
+                   </div>
+                 )}
+                 
                  <div className="space-y-3">
                    <Label>Visible To (Admin & Owner always included)</Label>
                   <div className="flex flex-col gap-3">
@@ -941,18 +982,20 @@ const Discussions = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleCreatePost} disabled={uploadingImage}>
-                    {uploadingImage ? "Posting..." : "Post"}
-                  </Button>
-                  <Button variant="outline" onClick={() => {
-                    setShowNewPost(false);
-                    removeImage();
-                    setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
-                  }} disabled={uploadingImage}>
-                    Cancel
-                  </Button>
-                </div>
+                 <div className="flex gap-2">
+                   <Button onClick={handleCreatePost} disabled={uploadingImage}>
+                     {uploadingImage ? "Posting..." : "Post"}
+                   </Button>
+                   <Button variant="outline" onClick={() => {
+                     setShowNewPost(false);
+                     removeImage();
+                     setNewPost({ title: "", content: "", video_id: "", youtube_url: "" });
+                     setVideoInputType("none");
+                     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
+                   }} disabled={uploadingImage}>
+                     Cancel
+                   </Button>
+                 </div>
               </CardContent>
             </Card>
           )}
@@ -1126,11 +1169,13 @@ const Discussions = () => {
                      )}
 
                      {/* Display Video if present */}
-                     {post.video && (
+                     {(post.video || post.youtube_url) && (
                        <div className="rounded-lg overflow-hidden">
-                         {post.video.video_type === 'youtube' && post.video.youtube_url ? (
+                         {post.youtube_url ? (
+                           <YouTubeEmbed url={post.youtube_url} title={post.title} />
+                         ) : post.video?.video_type === 'youtube' && post.video.youtube_url ? (
                            <YouTubeEmbed url={post.video.youtube_url} title={post.video.title} />
-                         ) : post.video.video_url ? (
+                         ) : post.video?.video_url ? (
                            <VideoPlayer src={post.video.video_url} title={post.video.title} className="w-full" />
                          ) : null}
                        </div>

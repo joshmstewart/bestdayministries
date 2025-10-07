@@ -536,6 +536,7 @@ export type Database = {
           updated_at: string
           video_id: string | null
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
+          youtube_url: string | null
         }
         Insert: {
           album_id?: string | null
@@ -559,6 +560,7 @@ export type Database = {
           updated_at?: string
           video_id?: string | null
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+          youtube_url?: string | null
         }
         Update: {
           album_id?: string | null
@@ -582,6 +584,7 @@ export type Database = {
           updated_at?: string
           video_id?: string | null
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+          youtube_url?: string | null
         }
         Relationships: [
           {
