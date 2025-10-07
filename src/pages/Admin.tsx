@@ -41,6 +41,7 @@ import { VideoManager } from "@/components/admin/VideoManager";
 import { MessageModerationQueue } from "@/components/admin/MessageModerationQueue";
 import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyManager";
 import { SavedLocationsManager } from "@/components/admin/SavedLocationsManager";
+import { PartnersManager } from "@/components/admin/PartnersManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -222,6 +223,7 @@ const Admin = () => {
             <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="videos">Videos</TabsTrigger>
             <TabsTrigger value="featured">Besties</TabsTrigger>
+            <TabsTrigger value="partners">Partners</TabsTrigger>
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
@@ -311,6 +313,18 @@ const Admin = () => {
 
           <TabsContent value="featured">
             <FeaturedBestieManager />
+          </TabsContent>
+
+          <TabsContent value="partners">
+            <Card>
+              <CardHeader>
+                <CardTitle>Partners</CardTitle>
+                <CardDescription>Manage partner organizations and their logos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PartnersManager />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="sponsorships">
