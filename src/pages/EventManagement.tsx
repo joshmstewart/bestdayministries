@@ -314,8 +314,11 @@ export default function EventManagement() {
           .from("event_dates")
           .delete()
           .eq("event_id", editingEvent.id);
+        
+        // Log the location for debugging
+        console.log("Event updated with location:", location);
           
-        toast.success("Event updated successfully");
+        toast.success(`Event updated successfully${location ? ' with location: ' + location : ''}`);
       } else {
         const { data: newEvent, error } = await supabase
           .from("events")
@@ -351,8 +354,15 @@ export default function EventManagement() {
         }
       }
 
+      await loadEvents();
       resetForm();
-      loadEvents();
+      
+      // Scroll to see the updated events list
+      if (editingEvent) {
+        setTimeout(() => {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }, 100);
+      }
     } catch (error: any) {
       console.error("Error saving event:", error);
       toast.error(error.message || "Failed to save event");
