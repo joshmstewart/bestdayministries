@@ -120,10 +120,14 @@ export function AnalyticsDashboard() {
   };
 
   const fetchSponsorshipRevenue = async () => {
+    // Only show one-time sponsorships to avoid confusion
+    // Monthly recurring shows as ongoing commitments, not total collected
     const { data } = await supabase
       .from("sponsorships")
-      .select("amount, started_at, status")
-      .eq("status", "active");
+      .select("amount, started_at, status, frequency, stripe_mode")
+      .eq("status", "active")
+      .eq("frequency", "one-time")
+      .neq("stripe_mode", "test"); // Exclude test transactions
 
     if (!data) return [];
 
@@ -269,14 +273,20 @@ export function AnalyticsDashboard() {
   };
 
   const fetchTopMetrics = async () => {
+    // Only count completed orders (exclude test mode if needed)
     const { data: orders } = await supabase
       .from("orders")
-      .select("total_amount");
+      .select("total_amount, status")
+      .eq("status", "completed");
 
+    // Only count one-time sponsorships that are completed
+    // Monthly sponsorships show recurring amount, not total collected
     const { data: sponsorships } = await supabase
       .from("sponsorships")
-      .select("amount")
-      .eq("status", "active");
+      .select("amount, frequency, stripe_mode")
+      .eq("frequency", "one-time")
+      .eq("status", "active")
+      .neq("stripe_mode", "test"); // Exclude test transactions
 
     const { count: activeUsers } = await supabase
       .from("profiles")
