@@ -41,7 +41,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Update app manifest dynamically based on database settings
+  // Update app manifest dynamically based on database settings 
   useAppManifest();
 
   return (
