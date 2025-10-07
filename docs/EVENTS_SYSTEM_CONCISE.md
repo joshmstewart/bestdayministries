@@ -1,181 +1,60 @@
-# EVENTS SYSTEM - CONCISE DOCS
+EVENTS SYSTEM - CONCISE
 
 ## Overview
-Community calendar (`/events`) with recurring events, multiple dates, role-based visibility, and AI moderation.
+Community calendar (`/events`) with recurring events, multiple dates, role-based visibility, AI image moderation.
 
-## Database Tables
-**events**
-- `title`, `description`, `image_url`, `audio_url`, `location`
-- `event_date` (primary date), `aspect_ratio` (default: '9:16')
-- `is_recurring`, `recurrence_type` (daily/weekly/monthly/custom)
-- `recurrence_interval` (for custom), `recurrence_end_date`
-- `expires_after_date` (bool: hide after date passes)
-- `visible_to_roles[]` (role-based access)
-- `is_active`, `is_public`
+## Database
+**events:** `title`, `description`, `image_url`, `audio_url`, `location`, `event_date`, `aspect_ratio` (default: '9:16'), `is_recurring`, `recurrence_type`, `expires_after_date`, `visible_to_roles[]`, `is_active`
 
-**event_dates**
-- `event_id`, `event_date`
-- Stores additional dates for recurring events
+**event_dates:** `event_id`, `event_date` (additional dates for recurring events)
 
-**event_attendees**
-- `event_id`, `user_id`, `status` (registered/cancelled)
-- Future feature (not implemented yet)
+**event_attendees:** `event_id`, `user_id`, `status` (future feature)
 
 ## Event Types
-
-### Single Date Event
-- `is_recurring: false`
-- Only `event_date` used
-- Creates 1 event card
-
-### Recurring Event with Multiple Dates
-- `is_recurring: true`
-- Primary `event_date` + additional dates in `event_dates` table
-- Creates **separate card for each date**
-
-### Recurring Without Explicit Dates
-- `is_recurring: true` but no `event_dates` entries
-- Only shows primary date (admin can add dates later)
+- **Single:** `is_recurring: false`, only `event_date` used
+- **Recurring (multi-date):** `is_recurring: true` + entries in `event_dates` → separate card per date
+- **Recurring (template):** `is_recurring: true` without `event_dates` → shows primary date only
 
 ## Display Logic
+**Upcoming:** `date >= now()`, chronological, each date = separate card
+**Past:** `date < now()` AND `expires_after_date = false`, reverse chronological, grayscale + "Past Event" badge
+**Expiration:** If `expires_after_date = true`, past dates hidden completely
 
-### Upcoming Events Section
-- **Filter:** `event_date >= now()`
-- **Sort:** Chronological (earliest first)
-- Each date gets its own card
-- Highlighted current date in multi-date list
-
-### Past Events Section
-- **Filter:** `event_date < now()` AND `expires_after_date = false`
-- **Sort:** Reverse chronological (most recent first)
-- Grayscale images, line-through dates
-- "Past Event" badge
-
-### Date Expiration
-- If `expires_after_date = true`: Hide all past dates completely
-- If `expires_after_date = false`: Show in Past Events section
-
-## Role-Based Visibility
-```typescript
-// Client-side filter (post-query)
-events.filter(event => 
-  event.visible_to_roles?.includes(userRole)
-)
-```
-- Fetches all active events from DB
-- Filters by user's role on frontend
-- Uses `useRoleImpersonation()` for admin testing
+**Role Filter:** Client-side filter by `visible_to_roles` after DB fetch
 
 ## Event Card Components
-
-### Image Display
-```tsx
-<AspectRatio ratio={parseFloat(aspect_ratio)}>
-  <img className="w-full h-full object-cover" />
-</AspectRatio>
-```
-- Parse `aspect_ratio` string ("9:16") to decimal (0.5625)
-- AspectRatio wrapper maintains ratio
-- `object-cover` fills container
-
-### Date Display
-**Primary Date (large box):**
-- `format(displayDate, "PPPP")` - Full date
-- `format(displayDate, "p")` - Time
-- Colored background for upcoming, muted for past
-
-**All Dates List (if multiple):**
-- Shows all dates with indicators
-- Current date: highlighted background
-- Past dates: opacity-50 + line-through
-- Future dates: opacity-70
-
-### TTS Integration
-```tsx
-<TextToSpeech text={`${title}. ${description}. Scheduled for ${formatDate}. At ${location}`} />
-```
-
-### Location Link
-```tsx
-<LocationLink location={location} />
-```
-- Clickable link to Google Maps
-- Opens in new tab
-- Event propagation stopped
-
-### Audio Player
-```tsx
-{audio_url && <AudioPlayer src={audio_url} />}
-```
-- Inline player in card
-- Event propagation stopped
+- **Image:** `AspectRatio` wrapper, parse string ("9:16") → decimal (9/16)
+- **Dates:** Primary date (large box) + all dates list (if multiple) with current highlighted
+- **TTS:** Reads `title + description + date + location`
+- **Location:** Clickable `LocationLink` → Google Maps
+- **Audio:** Inline `AudioPlayer` if `audio_url` exists
 
 ## Event Detail Dialog
-**Trigger:** Click event card
-**Component:** `EventDetailDialog`
-- Full event details
-- All dates listed
-- Recurrence info
-- Audio player + location
+Click card → `EventDetailDialog` with full details, all dates, recurrence info, audio, location
 
-## Linked Events (Discussion Integration)
-**URL Pattern:** `/events?eventId=xxx`
-- Discussion posts can link events via `event_id`
-- URL param auto-opens event dialog
-- Loads past events if linked (bypasses expiration)
+## Linked Events
+**URL:** `/events?eventId=xxx` (from discussion posts via `event_id`)
+- Auto-opens dialog, bypasses expiration for linked events
 
-## Content Moderation (AI)
+## Content Moderation
+**Image:** `moderate-image` edge function on upload → stores `moderation_status`, `moderation_severity`, `moderation_reason`
 
-### Image Moderation
-- Edge function: `moderate-image`
-- Checks on upload before save
-- Stores: `moderation_status`, `moderation_severity`, `moderation_reason`
-- Admin can override in Event Management
-
-### Text Moderation
-- Not currently implemented
-- Future: Moderate title/description
-
-## Event Creation (Admin Only)
-**Location:** `/event-management`
-- Title, description, location
-- Date/time picker
-- Recurrence settings (type, interval, end date)
-- Image upload (with crop, aspect ratio)
-- Audio upload
-- Visibility roles (checkboxes)
-- `expires_after_date` toggle
-
-## Adding Multiple Dates
-**Location:** Event Management → Edit Event → Add Date
-- Adds entry to `event_dates` table
-- Each date creates separate card on Events page
-- Can add unlimited dates
+## Admin (`/event-management`)
+Create/edit events: title, description, date/time, recurrence settings, image (crop + aspect ratio), audio, visibility roles, expiration toggle
+**Add Multiple Dates:** Edit event → Add Date → creates `event_dates` entry
 
 ## RLS Policies
-**events SELECT:** All authenticated users (client-side role filter)
-**events INSERT:** Authenticated users (author)
-**events UPDATE/DELETE:** Author or admin
-**event_dates INSERT/DELETE:** Event creator only
-
-## Key Files
-- `src/pages/EventsPage.tsx` - Public events page
-- `src/pages/EventManagement.tsx` - Admin CRUD
-- `src/components/EventDetailDialog.tsx` - Modal dialog
-- `supabase/functions/moderate-image/index.ts` - Image moderation
+- **SELECT:** All authenticated (client-side role filter)
+- **INSERT:** Authenticated users
+- **UPDATE/DELETE:** Author or admin
+- **event_dates:** Event creator only
 
 ## Common Issues
-| Issue | Solution |
-|-------|----------|
-| Event not showing | Check `is_active`, `visible_to_roles`, role filter |
-| Wrong aspect ratio | Parse `aspect_ratio` string to decimal |
-| Past event not hiding | Check `expires_after_date` setting |
-| Recurring event shows once | Add entries to `event_dates` table |
-| Image stretched/cropped | Use AspectRatio wrapper with correct ratio |
+| Issue | Fix |
+|-------|-----|
+| Event not showing | Check `is_active`, `visible_to_roles`, user role |
+| Wrong aspect ratio | Parse string to decimal |
+| Past event visible | Check `expires_after_date` |
+| Recurring shows once | Add `event_dates` entries |
 
-## Future Enhancements
-- Event registration/RSVP (attendees table ready)
-- Waitlist for max_attendees
-- Calendar view
-- Email reminders
-- Export to calendar (.ics)
+**Files:** `EventsPage.tsx`, `EventManagement.tsx`, `EventDetailDialog.tsx`, `moderate-image/index.ts`
