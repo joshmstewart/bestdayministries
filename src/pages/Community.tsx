@@ -23,6 +23,25 @@ const Community = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
+
+  // Extract YouTube video ID from various URL formats
+  const getYouTubeVideoId = (url: string): string | null => {
+    if (!url) return null;
+    const regexes = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /^([a-zA-Z0-9_-]{11})$/
+    ];
+    for (const regex of regexes) {
+      const match = url.match(regex);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  const getYouTubeThumbnail = (url: string): string | null => {
+    const videoId = getYouTubeVideoId(url);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
+  };
   const [loading, setLoading] = useState(true);
   const [latestDiscussions, setLatestDiscussions] = useState<any[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
@@ -187,17 +206,6 @@ const Community = () => {
         .limit(3);
 
       if (discussions) {
-        console.log('Community - Discussion data:', discussions);
-        discussions.forEach(d => {
-          console.log(`Discussion "${d.title}":`, {
-            has_image: !!d.image_url,
-            has_video_id: !!d.video_id,
-            has_youtube_url: !!d.youtube_url,
-            video_data: d.video,
-            has_video_thumbnail: !!d.video?.thumbnail_url,
-            youtube_url: d.youtube_url
-          });
-        });
         setLatestDiscussions(discussions);
       }
 
@@ -405,9 +413,14 @@ const Community = () => {
                         className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors border-b last:border-0"
                         onClick={() => navigate("/discussions")}
                       >
-                        {(discussion.image_url || discussion.video?.thumbnail_url) && (
+                        {(discussion.image_url || discussion.video?.thumbnail_url || (discussion.youtube_url && getYouTubeThumbnail(discussion.youtube_url))) && (
                           <img
-                            src={discussion.image_url || discussion.video?.thumbnail_url}
+                            src={
+                              discussion.image_url || 
+                              discussion.video?.thumbnail_url || 
+                              (discussion.youtube_url ? getYouTubeThumbnail(discussion.youtube_url) : '') || 
+                              ''
+                            }
                             alt={discussion.title}
                             className="w-full h-48 object-cover rounded-lg"
                           />
