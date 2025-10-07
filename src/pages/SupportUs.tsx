@@ -96,12 +96,190 @@ const SupportUs = () => {
     return sections.find(s => s.section_key === key && s.is_visible);
   };
 
-  const headerSection = getSection("header");
-  const donationSection = getSection("donation_form");
-  const sponsorSection = getSection("sponsor_bestie");
-  const otherWaysSection = getSection("other_ways");
-  const wishlistsSection = getSection("wishlists");
-  const impactSection = getSection("impact");
+  const renderSection = (sectionKey: string) => {
+    const section = getSection(sectionKey);
+    if (!section) return null;
+
+    switch (sectionKey) {
+      case 'header':
+        return (
+          <div key="header" className="text-center space-y-4 animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-4">
+              <Heart className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">{section.content.badge_text}</span>
+            </div>
+            <h1 className="text-4xl md:text-6xl font-black text-foreground">
+              {section.content.heading?.split(" ").map((word: string, i: number) => 
+                i === section.content.heading.split(" ").length - 2 ? (
+                  <span key={i} className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                    {word}{" "}
+                  </span>
+                ) : word + " "
+              )}
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              {section.content.subtitle}
+            </p>
+          </div>
+        );
+
+      case 'donation_form':
+        return (
+          <div key="donation_form" className="space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-black">{section.content.title || "Support Our Mission"}</h2>
+              <p className="text-muted-foreground">{section.content.description || "Make a general donation to support our work"}</p>
+            </div>
+            <DonationForm />
+          </div>
+        );
+
+      case 'sponsor_bestie':
+        return (
+          <div key="sponsor_bestie" className="space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-black">{section.content.title}</h2>
+              <p className="text-muted-foreground">{section.content.description}</p>
+            </div>
+            <SponsorBestieDisplay canLoad={true} />
+          </div>
+        );
+
+      case 'other_ways':
+        return waysToGive.length > 0 ? (
+          <div key="other_ways" className="space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-black">{section.content.title}</h2>
+              <p className="text-muted-foreground">{section.content.description}</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {waysToGive.map((way) => {
+                const IconComponent = way.icon === 'Gift' ? Gift : Heart;
+                
+                return (
+                  <Card 
+                    key={way.id}
+                    className={`border-2 bg-card hover:border-${way.hover_border_color} transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden ${way.is_popular ? 'relative' : ''}`}
+                  >
+                    {way.is_popular && (
+                      <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+                        ⭐ POPULAR
+                      </div>
+                    )}
+                    <div className={`absolute inset-0 bg-gradient-to-r from-${way.gradient_from} via-${way.gradient_to} to-${way.gradient_to} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                    <CardContent className="p-8 space-y-4 relative">
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-${way.icon_gradient_from} to-${way.icon_gradient_to} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                        <IconComponent className={`w-8 h-8 text-${way.icon_gradient_from.split('/')[0]}`} />
+                      </div>
+                      <h3 className="text-2xl font-black">{way.title}</h3>
+                      <p className="text-muted-foreground">{way.description}</p>
+                      <Button 
+                        size="lg" 
+                        className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                        onClick={() => {
+                          if (way.button_url.startsWith('http')) {
+                            window.open(way.button_url, '_blank', 'noopener,noreferrer');
+                          } else {
+                            window.location.href = way.button_url;
+                          }
+                        }}
+                      >
+                        {way.button_text}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        ) : null;
+
+      case 'wishlists':
+        return (wishlistSettings.amazon_wishlist_url || wishlistSettings.walmart_wishlist_url) ? (
+          <div key="wishlists" className="space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-black">{section.content.title}</h2>
+              <p className="text-muted-foreground">{section.content.description}</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {wishlistSettings.amazon_wishlist_url && (
+                <Card className="border-2 bg-card hover:border-accent/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-8 space-y-4 relative">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <ShoppingBag className="w-8 h-8 text-accent" />
+                    </div>
+                    <h3 className="text-2xl font-black">Amazon Wishlist</h3>
+                    <p className="text-muted-foreground">
+                      Browse and purchase items we need from our Amazon wishlist
+                    </p>
+                    <Button 
+                      size="lg" 
+                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                      onClick={() => window.open(wishlistSettings.amazon_wishlist_url, '_blank', 'noopener,noreferrer')}
+                    >
+                      <span className="flex items-center gap-2">
+                        View Wishlist
+                        <ExternalLink className="w-4 h-4" />
+                      </span>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {wishlistSettings.walmart_wishlist_url && (
+                <Card className="border-2 bg-card hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardContent className="p-8 space-y-4 relative">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <Gift className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="text-2xl font-black">Walmart Wishlist</h3>
+                    <p className="text-muted-foreground">
+                      Browse and purchase items we need from our Walmart registry
+                    </p>
+                    <Button 
+                      size="lg" 
+                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                      onClick={() => window.open(wishlistSettings.walmart_wishlist_url, '_blank', 'noopener,noreferrer')}
+                    >
+                      <span className="flex items-center gap-2">
+                        View Registry
+                        <ExternalLink className="w-4 h-4" />
+                      </span>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        ) : null;
+
+      case 'impact':
+        return (
+          <Card key="impact" className="border-2 shadow-float bg-gradient-card max-w-4xl mx-auto">
+            <CardContent className="p-8">
+              <h4 className="font-black text-2xl mb-6 text-center">{section.content.title}</h4>
+              <ul className="space-y-4">
+                {(section.content.items || []).map((item: string, index: number) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-primary font-bold">✓</span>
+                    </span>
+                    <span className="text-muted-foreground text-lg">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -109,182 +287,7 @@ const SupportUs = () => {
       
       <main className="flex-1 pt-6">
         <div className="container mx-auto px-4 py-8 space-y-16">
-          {/* Header */}
-          {headerSection && (
-            <div className="text-center space-y-4 animate-fade-in">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-4">
-                <Heart className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-primary">{headerSection.content.badge_text}</span>
-              </div>
-              <h1 className="text-4xl md:text-6xl font-black text-foreground">
-                {headerSection.content.heading?.split(" ").map((word: string, i: number) => 
-                  i === headerSection.content.heading.split(" ").length - 2 ? (
-                    <span key={i} className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                      {word}{" "}
-                    </span>
-                  ) : word + " "
-                )}
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                {headerSection.content.subtitle}
-              </p>
-            </div>
-          )}
-
-          {/* Donation Form Section */}
-          {donationSection && (
-            <div className="space-y-6">
-              <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black">{donationSection.content.title || "Support Our Mission"}</h2>
-                <p className="text-muted-foreground">{donationSection.content.description || "Make a general donation to support our work"}</p>
-              </div>
-              <DonationForm />
-            </div>
-          )}
-
-          {/* Sponsor a Bestie Section */}
-          {sponsorSection && (
-            <div className="space-y-6">
-              <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black">{sponsorSection.content.title}</h2>
-                <p className="text-muted-foreground">{sponsorSection.content.description}</p>
-              </div>
-              <SponsorBestieDisplay canLoad={true} />
-            </div>
-          )}
-
-          {/* Other Ways to Give */}
-          {otherWaysSection && waysToGive.length > 0 && (
-            <div className="space-y-8">
-              <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black">{otherWaysSection.content.title}</h2>
-                <p className="text-muted-foreground">{otherWaysSection.content.description}</p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                {waysToGive.map((way) => {
-                  const IconComponent = way.icon === 'Gift' ? Gift : Heart;
-                  
-                  return (
-                    <Card 
-                      key={way.id}
-                      className={`border-2 bg-card hover:border-${way.hover_border_color} transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden ${way.is_popular ? 'relative' : ''}`}
-                    >
-                      {way.is_popular && (
-                        <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                          ⭐ POPULAR
-                        </div>
-                      )}
-                      <div className={`absolute inset-0 bg-gradient-to-r from-${way.gradient_from} via-${way.gradient_to} to-${way.gradient_to} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                      <CardContent className="p-8 space-y-4 relative">
-                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-${way.icon_gradient_from} to-${way.icon_gradient_to} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                          <IconComponent className={`w-8 h-8 text-${way.icon_gradient_from.split('/')[0]}`} />
-                        </div>
-                        <h3 className="text-2xl font-black">{way.title}</h3>
-                        <p className="text-muted-foreground">{way.description}</p>
-                        <Button 
-                          size="lg" 
-                          className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                          onClick={() => {
-                            if (way.button_url.startsWith('http')) {
-                              window.open(way.button_url, '_blank', 'noopener,noreferrer');
-                            } else {
-                              window.location.href = way.button_url;
-                            }
-                          }}
-                        >
-                          {way.button_text}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Wishlists Section */}
-          {wishlistsSection && (wishlistSettings.amazon_wishlist_url || wishlistSettings.walmart_wishlist_url) && (
-            <div className="space-y-8">
-              <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black">{wishlistsSection.content.title}</h2>
-                <p className="text-muted-foreground">{wishlistsSection.content.description}</p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                {/* Amazon Wishlist */}
-                {wishlistSettings.amazon_wishlist_url && (
-                  <Card className="border-2 bg-card hover:border-accent/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <CardContent className="p-8 space-y-4 relative">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <ShoppingBag className="w-8 h-8 text-accent" />
-                      </div>
-                      <h3 className="text-2xl font-black">Amazon Wishlist</h3>
-                      <p className="text-muted-foreground">
-                        Browse and purchase items we need from our Amazon wishlist
-                      </p>
-                      <Button 
-                        size="lg" 
-                        className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                        onClick={() => window.open(wishlistSettings.amazon_wishlist_url, '_blank', 'noopener,noreferrer')}
-                      >
-                        <span className="flex items-center gap-2">
-                          View Wishlist
-                          <ExternalLink className="w-4 h-4" />
-                        </span>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Walmart Wishlist */}
-                {wishlistSettings.walmart_wishlist_url && (
-                  <Card className="border-2 bg-card hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <CardContent className="p-8 space-y-4 relative">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <Gift className="w-8 h-8 text-primary" />
-                      </div>
-                      <h3 className="text-2xl font-black">Walmart Wishlist</h3>
-                      <p className="text-muted-foreground">
-                        Browse and purchase items we need from our Walmart registry
-                      </p>
-                      <Button 
-                        size="lg" 
-                        className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                        onClick={() => window.open(wishlistSettings.walmart_wishlist_url, '_blank', 'noopener,noreferrer')}
-                      >
-                        <span className="flex items-center gap-2">
-                          View Registry
-                          <ExternalLink className="w-4 h-4" />
-                        </span>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Impact Section */}
-          {impactSection && (
-            <Card className="border-2 shadow-float bg-gradient-card max-w-4xl mx-auto">
-              <CardContent className="p-8">
-                <h4 className="font-black text-2xl mb-6 text-center">{impactSection.content.title}</h4>
-                <ul className="space-y-4">
-                  {(impactSection.content.items || []).map((item: string, index: number) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-primary font-bold">✓</span>
-                      </span>
-                      <span className="text-muted-foreground text-lg">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
+          {sections.map(section => renderSection(section.section_key))}
         </div>
       </main>
 
