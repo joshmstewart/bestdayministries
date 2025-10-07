@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { GripVertical, Eye, EyeOff, Loader2, ShoppingBag, Gift, Settings } from "lucide-react";
+import { GripVertical, Eye, EyeOff, Loader2, ShoppingBag, Gift, Settings, Plus, Trash2, Edit } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -33,6 +33,23 @@ interface SupportPageSection {
   display_order: number;
   is_visible: boolean;
   content: Record<string, any>;
+}
+
+interface WayToGive {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  gradient_from: string;
+  gradient_to: string;
+  icon_gradient_from: string;
+  icon_gradient_to: string;
+  hover_border_color: string;
+  button_text: string;
+  button_url: string;
+  is_popular: boolean;
+  is_active: boolean;
+  display_order: number;
 }
 
 interface SortableItemProps {
@@ -103,6 +120,9 @@ export const SupportPageManager = () => {
   const [amazonUrl, setAmazonUrl] = useState("");
   const [walmartUrl, setWalmartUrl] = useState("");
   const [editingSection, setEditingSection] = useState<SupportPageSection | null>(null);
+  const [waysToGive, setWaysToGive] = useState<WayToGive[]>([]);
+  const [editingWay, setEditingWay] = useState<WayToGive | null>(null);
+  const [isAddingNew, setIsAddingNew] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -114,6 +134,7 @@ export const SupportPageManager = () => {
   useEffect(() => {
     loadSections();
     loadWishlistSettings();
+    loadWaysToGive();
   }, []);
 
   const loadSections = async () => {
@@ -150,6 +171,21 @@ export const SupportPageManager = () => {
       }
     } catch (error) {
       console.error("Error loading wishlist settings:", error);
+    }
+  };
+
+  const loadWaysToGive = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("ways_to_give")
+        .select("*")
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      if (data) setWaysToGive(data as WayToGive[]);
+    } catch (error) {
+      console.error("Error loading ways to give:", error);
+      toast.error("Failed to load ways to give");
     }
   };
 
@@ -253,6 +289,83 @@ export const SupportPageManager = () => {
       toast.error("Failed to save content");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveWay = async () => {
+    if (!editingWay) return;
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (isAddingNew) {
+        const { error } = await supabase
+          .from("ways_to_give")
+          .insert({
+            ...editingWay,
+            created_by: user?.id
+          });
+
+        if (error) throw error;
+        toast.success("Way to give created successfully");
+      } else {
+        const { error } = await supabase
+          .from("ways_to_give")
+          .update(editingWay)
+          .eq("id", editingWay.id);
+
+        if (error) throw error;
+        toast.success("Way to give updated successfully");
+      }
+
+      await loadWaysToGive();
+      setEditingWay(null);
+      setIsAddingNew(false);
+    } catch (error) {
+      console.error("Error saving way to give:", error);
+      toast.error("Failed to save way to give");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteWay = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this item?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("ways_to_give")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      await loadWaysToGive();
+      toast.success("Way to give deleted successfully");
+    } catch (error) {
+      console.error("Error deleting way to give:", error);
+      toast.error("Failed to delete way to give");
+    }
+  };
+
+  const handleToggleWayActive = async (id: string, active: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("ways_to_give")
+        .update({ is_active: active })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setWaysToGive(waysToGive.map(w => 
+        w.id === id ? { ...w, is_active: active } : w
+      ));
+      
+      toast.success(active ? "Item activated" : "Item deactivated");
+    } catch (error) {
+      console.error("Error toggling active status:", error);
+      toast.error("Failed to update status");
     }
   };
 
@@ -387,6 +500,7 @@ export const SupportPageManager = () => {
           <TabsList>
             <TabsTrigger value="order">Section Order</TabsTrigger>
             <TabsTrigger value="content">Edit Content</TabsTrigger>
+            <TabsTrigger value="ways">Ways to Give</TabsTrigger>
             <TabsTrigger value="wishlists">Wishlist URLs</TabsTrigger>
           </TabsList>
 
@@ -455,6 +569,188 @@ export const SupportPageManager = () => {
                     <Settings className="w-4 h-4" />
                   </Button>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="ways" className="space-y-4">
+            {editingWay ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">{isAddingNew ? "Add New Way to Give" : "Edit Way to Give"}</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditingWay(null);
+                      setIsAddingNew(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="way_title">Title</Label>
+                    <Input
+                      id="way_title"
+                      value={editingWay.title}
+                      onChange={(e) => setEditingWay({ ...editingWay, title: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="way_description">Description</Label>
+                    <Textarea
+                      id="way_description"
+                      value={editingWay.description}
+                      onChange={(e) => setEditingWay({ ...editingWay, description: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="way_icon">Icon Name (Lucide)</Label>
+                      <Input
+                        id="way_icon"
+                        value={editingWay.icon}
+                        onChange={(e) => setEditingWay({ ...editingWay, icon: e.target.value })}
+                        placeholder="Heart, Gift, etc."
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="way_button_text">Button Text</Label>
+                      <Input
+                        id="way_button_text"
+                        value={editingWay.button_text}
+                        onChange={(e) => setEditingWay({ ...editingWay, button_text: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="way_button_url">Button URL</Label>
+                    <Input
+                      id="way_button_url"
+                      value={editingWay.button_url}
+                      onChange={(e) => setEditingWay({ ...editingWay, button_url: e.target.value })}
+                      placeholder="/sponsor-bestie or https://..."
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="way_popular"
+                      checked={editingWay.is_popular}
+                      onChange={(e) => setEditingWay({ ...editingWay, is_popular: e.target.checked })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="way_popular">Mark as Popular (shows badge)</Label>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSaveWay}
+                  disabled={saving}
+                  className="w-full"
+                >
+                  {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {isAddingNew ? "Create Item" : "Save Changes"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Manage "Other Ways to Give" buttons on the Support Us page
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setEditingWay({
+                        id: "",
+                        title: "",
+                        description: "",
+                        icon: "Heart",
+                        gradient_from: "primary/20",
+                        gradient_to: "primary/5",
+                        icon_gradient_from: "primary/20",
+                        icon_gradient_to: "primary/5",
+                        hover_border_color: "primary/50",
+                        button_text: "Learn More",
+                        button_url: "",
+                        is_popular: false,
+                        is_active: true,
+                        display_order: waysToGive.length
+                      });
+                      setIsAddingNew(true);
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Item
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {waysToGive.map((way) => (
+                    <div
+                      key={way.id}
+                      className={`flex items-center gap-3 p-4 bg-card border rounded-lg ${
+                        !way.is_active ? "opacity-60" : ""
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{way.title}</p>
+                          {way.is_popular && (
+                            <span className="text-xs bg-gradient-to-r from-primary via-accent to-secondary text-white px-2 py-0.5 rounded-full">
+                              ⭐ POPULAR
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{way.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Button: {way.button_text} → {way.button_url}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleToggleWayActive(way.id, !way.is_active)}
+                          title={way.is_active ? "Deactivate" : "Activate"}
+                          className={way.is_active ? 
+                            "bg-green-100 hover:bg-green-200 border-green-300" : 
+                            "bg-red-100 hover:bg-red-200 border-red-300"}
+                        >
+                          {way.is_active ? (
+                            <Eye className="w-4 h-4 text-green-700" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-red-700" />
+                          )}
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setEditingWay(way)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDeleteWay(way.id)}
+                          className="hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </TabsContent>

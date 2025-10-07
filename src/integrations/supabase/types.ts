@@ -2449,6 +2449,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ways_to_give: {
+        Row: {
+          button_text: string
+          button_url: string
+          created_at: string
+          created_by: string | null
+          description: string
+          display_order: number
+          gradient_from: string
+          gradient_to: string
+          hover_border_color: string
+          icon: string
+          icon_gradient_from: string
+          icon_gradient_to: string
+          id: string
+          is_active: boolean
+          is_popular: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          button_text?: string
+          button_url: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          display_order?: number
+          gradient_from?: string
+          gradient_to?: string
+          hover_border_color?: string
+          icon?: string
+          icon_gradient_from?: string
+          icon_gradient_to?: string
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          button_text?: string
+          button_url?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          display_order?: number
+          gradient_from?: string
+          gradient_to?: string
+          hover_border_color?: string
+          icon?: string
+          icon_gradient_from?: string
+          icon_gradient_to?: string
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       year_end_summary_sent: {
         Row: {
           created_at: string

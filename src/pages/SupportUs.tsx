@@ -21,14 +21,32 @@ interface SupportPageSection {
   content: Record<string, any>;
 }
 
+interface WayToGive {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  gradient_from: string;
+  gradient_to: string;
+  icon_gradient_from: string;
+  icon_gradient_to: string;
+  hover_border_color: string;
+  button_text: string;
+  button_url: string;
+  is_popular: boolean;
+  is_active: boolean;
+}
+
 const SupportUs = () => {
   const [wishlistSettings, setWishlistSettings] = useState<WishlistSettings>({});
   const [sections, setSections] = useState<SupportPageSection[]>([]);
+  const [waysToGive, setWaysToGive] = useState<WayToGive[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadWishlistSettings();
     loadSections();
+    loadWaysToGive();
   }, []);
 
   const loadWishlistSettings = async () => {
@@ -56,6 +74,20 @@ const SupportUs = () => {
       console.error("Error loading sections:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadWaysToGive = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("ways_to_give")
+        .select("*")
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      if (data) setWaysToGive(data as WayToGive[]);
+    } catch (error) {
+      console.error("Error loading ways to give:", error);
     }
   };
 
@@ -109,7 +141,7 @@ const SupportUs = () => {
           )}
 
           {/* Other Ways to Give */}
-          {otherWaysSection && (
+          {otherWaysSection && waysToGive.length > 0 && (
             <div className="space-y-8">
               <div className="text-center space-y-2">
                 <h2 className="text-3xl font-black">{otherWaysSection.content.title}</h2>
@@ -117,52 +149,43 @@ const SupportUs = () => {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                {/* One-Time Donation */}
-                <Card className="border-2 bg-card hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <CardContent className="p-8 space-y-4 relative">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                      <Heart className="w-8 h-8 text-primary" />
-                    </div>
-                    <h3 className="text-2xl font-black">One-Time Gift</h3>
-                    <p className="text-muted-foreground">
-                      Make a one-time contribution to support our mission and help us reach our goals
-                    </p>
-                    <Button 
-                      size="lg" 
-                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                      onClick={() => window.location.href = '/sponsor-bestie'}
+                {waysToGive.map((way) => {
+                  const IconComponent = way.icon === 'Gift' ? Gift : Heart;
+                  
+                  return (
+                    <Card 
+                      key={way.id}
+                      className={`border-2 bg-card hover:border-${way.hover_border_color} transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden ${way.is_popular ? 'relative' : ''}`}
                     >
-                      Donate Now
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Monthly Club */}
-                <Card className="border-2 bg-card hover:border-secondary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group overflow-hidden relative">
-                  <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-white text-xs font-bold px-3 py-1 rounded-full z-10">
-                    ⭐ POPULAR
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-accent/5 opacity-100 group-hover:opacity-100 transition-opacity duration-500" />
-                  <CardContent className="p-8 space-y-4 relative">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary/20 to-accent/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                      <Heart className="w-8 h-8 text-secondary fill-secondary" />
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="text-2xl font-black">Best Day Ministries Club</h3>
-                    </div>
-                    <p className="text-muted-foreground">
-                      Join the club! Monthly donations help us grow our mission consistently
-                    </p>
-                    <Button 
-                      size="lg" 
-                      className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                      onClick={() => window.location.href = '/sponsor-bestie'}
-                    >
-                      Join the Club
-                    </Button>
-                  </CardContent>
-                </Card>
+                      {way.is_popular && (
+                        <div className="absolute top-4 right-4 bg-gradient-to-r from-primary via-accent to-secondary text-white text-xs font-bold px-3 py-1 rounded-full z-10">
+                          ⭐ POPULAR
+                        </div>
+                      )}
+                      <div className={`absolute inset-0 bg-gradient-to-r from-${way.gradient_from} via-${way.gradient_to} to-${way.gradient_to} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                      <CardContent className="p-8 space-y-4 relative">
+                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-${way.icon_gradient_from} to-${way.icon_gradient_to} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                          <IconComponent className={`w-8 h-8 text-${way.icon_gradient_from.split('/')[0]}`} />
+                        </div>
+                        <h3 className="text-2xl font-black">{way.title}</h3>
+                        <p className="text-muted-foreground">{way.description}</p>
+                        <Button 
+                          size="lg" 
+                          className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                          onClick={() => {
+                            if (way.button_url.startsWith('http')) {
+                              window.open(way.button_url, '_blank', 'noopener,noreferrer');
+                            } else {
+                              window.location.href = way.button_url;
+                            }
+                          }}
+                        >
+                          {way.button_text}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           )}
