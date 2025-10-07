@@ -42,6 +42,7 @@ import { MessageModerationQueue } from "@/components/admin/MessageModerationQueu
 import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyManager";
 import { SavedLocationsManager } from "@/components/admin/SavedLocationsManager";
 import { PartnersManager } from "@/components/admin/PartnersManager";
+import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -218,6 +219,7 @@ const Admin = () => {
         {/* Admin Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="flex flex-wrap h-auto">
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
@@ -262,6 +264,18 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="analytics">
+            <Card>
+              <CardHeader>
+                <CardTitle>Analytics Dashboard</CardTitle>
+                <CardDescription>Comprehensive insights into your platform's performance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AnalyticsDashboard />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="users">
             <UserManagement />
