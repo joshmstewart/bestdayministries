@@ -187,6 +187,15 @@ const Community = () => {
         .limit(3);
 
       if (discussions) {
+        console.log('Community - Discussion data:', discussions);
+        discussions.forEach(d => {
+          console.log(`Discussion "${d.title}":`, {
+            has_image: !!d.image_url,
+            has_video_id: !!d.video_id,
+            video_data: d.video,
+            has_video_thumbnail: !!d.video?.thumbnail_url
+          });
+        });
         setLatestDiscussions(discussions);
       }
 
