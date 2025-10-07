@@ -179,7 +179,8 @@ const Community = () => {
         .from("discussion_posts")
         .select(`
           *,
-          author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role)
+          author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role),
+          video:videos(thumbnail_url)
         `)
         .eq("is_moderated", true)
         .order("created_at", { ascending: false })
@@ -393,9 +394,9 @@ const Community = () => {
                         className="space-y-3 cursor-pointer hover:bg-muted/50 p-3 rounded-lg transition-colors border-b last:border-0"
                         onClick={() => navigate("/discussions")}
                       >
-                        {discussion.image_url && (
+                        {(discussion.image_url || discussion.video?.thumbnail_url) && (
                           <img
-                            src={discussion.image_url}
+                            src={discussion.image_url || discussion.video?.thumbnail_url}
                             alt={discussion.title}
                             className="w-full h-48 object-cover rounded-lg"
                           />

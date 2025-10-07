@@ -46,11 +46,12 @@ Both sections use the same Card component structure:
 - **Padding:** 12px all around (`p-3`)
 - **Border Radius:** Large (`rounded-lg`)
 
-#### Image (if available)
+#### Image or Video Thumbnail (if available)
 - **Dimensions:** Full width, 192px height (`h-48`)
 - **Object Fit:** Cover (fills space while maintaining aspect ratio)
 - **Border Radius:** Large (`rounded-lg`)
-- **Condition:** Only displays if `latestDiscussion.image_url` exists
+- **Source Priority:** `image_url` OR `video.thumbnail_url` (video thumbnail used if no image)
+- **Condition:** Only displays if `latestDiscussion.image_url` OR `latestDiscussion.video?.thumbnail_url` exists
 
 #### Title
 - **Font:** Semibold, text-lg
@@ -80,21 +81,23 @@ supabase
   .from("discussion_posts")
   .select(`
     *,
-    author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role)
+    author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role),
+    video:videos(thumbnail_url)
   `)
   .eq("is_moderated", true)
   .order("created_at", { ascending: false })
-  .limit(1)
-  .maybeSingle()
+  .limit(3)
 ```
 
 **Query Rules:**
 1. **Table:** `discussion_posts`
-2. **Join:** Fetches author profile from `profiles_public` view (id, display_name, role)
+2. **Joins:** 
+   - Fetches author profile from `profiles_public` view (id, display_name, role)
+   - Fetches video thumbnail from `videos` table (thumbnail_url)
 3. **Filter:** Only posts with `is_moderated = true`
 4. **Sort:** Most recent first (`created_at DESC`)
-5. **Limit:** 1 post only
-6. **Result:** Uses `maybeSingle()` - returns null if no posts exist
+5. **Limit:** 3 posts (changed from 1 to show multiple discussions)
+6. **Video Support:** If post has `video_id`, the joined `video.thumbnail_url` is used as fallback when `image_url` doesn't exist
 
 **CRITICAL:** The query does NOT filter by `approval_status` - only by `is_moderated`. This matches the behavior of the main Discussions page.
 
