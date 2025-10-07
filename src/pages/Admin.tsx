@@ -316,15 +316,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="partners">
-            <Card>
-              <CardHeader>
-                <CardTitle>Partners</CardTitle>
-                <CardDescription>Manage partner organizations and their logos</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PartnersManager />
-              </CardContent>
-            </Card>
+            <PartnersManager />
           </TabsContent>
 
           <TabsContent value="sponsorships">
