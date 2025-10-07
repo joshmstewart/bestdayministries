@@ -278,11 +278,12 @@ export function AnalyticsDashboard() {
       .select("total_amount, status, stripe_payment_intent_id")
       .eq("status", "completed");
 
-    // Filter out test orders (Stripe test payment intents start with pi_)
+    // Filter out test orders (Stripe test payment intents contain "_test_")
+    // If there's no payment intent, assume it's a valid order (could be old data or manual entry)
     const liveOrders = orders?.filter(order => {
-      // If no payment intent, assume it's old/test data
-      if (!order.stripe_payment_intent_id) return false;
-      // Stripe test payment intents contain "_test_" or start with specific test prefixes
+      // If no payment intent, include the order (valid legacy/manual order)
+      if (!order.stripe_payment_intent_id) return true;
+      // If has payment intent, exclude only if it's a test transaction
       return !order.stripe_payment_intent_id.includes("_test_");
     }) || [];
 
