@@ -12,7 +12,7 @@ import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
 import { SponsorBestieManager } from "@/components/admin/SponsorBestieManager";
 import { SponsorPageOrderManager } from "@/components/admin/SponsorPageOrderManager";
-import { SupportWishlistManager } from "@/components/admin/SupportWishlistManager";
+import { SupportPageManager } from "@/components/admin/SupportPageManager";
 import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
 import { ReceiptSettingsManager } from "@/components/admin/ReceiptSettingsManager";
 import { SponsorshipTransactionsManager } from "@/components/admin/SponsorshipTransactionsManager";
@@ -329,7 +329,7 @@ const Admin = () => {
                     <TabsTrigger value="receipts">Receipt Settings</TabsTrigger>
                     <TabsTrigger value="year-end-settings">Year-End Settings</TabsTrigger>
                     <TabsTrigger value="sent-history">Sent History</TabsTrigger>
-                    <TabsTrigger value="support-wishlists">Support Wishlists</TabsTrigger>
+                    <TabsTrigger value="support-page">Support Us Page</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="sponsorships">
@@ -360,8 +360,8 @@ const Admin = () => {
                     <YearEndSummarySentHistory />
                   </TabsContent>
 
-                  <TabsContent value="support-wishlists">
-                    <SupportWishlistManager />
+                  <TabsContent value="support-page">
+                    <SupportPageManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>

@@ -2071,6 +2071,39 @@ export type Database = {
           },
         ]
       }
+      support_page_sections: {
+        Row: {
+          content: Json | null
+          created_at: string
+          display_order: number
+          id: string
+          is_visible: boolean
+          section_key: string
+          section_name: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          display_order: number
+          id?: string
+          is_visible?: boolean
+          section_key: string
+          section_name: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_visible?: boolean
+          section_key?: string
+          section_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       terms_acceptance: {
         Row: {
           accepted_at: string
