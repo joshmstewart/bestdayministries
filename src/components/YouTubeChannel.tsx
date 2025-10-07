@@ -30,8 +30,8 @@ export function YouTubeChannel({ content = {} }: YouTubeChannelProps) {
       <div className="container mx-auto max-w-4xl">
         <Card className="p-8 md:p-12 bg-gradient-to-br from-background to-muted/30 border-2 hover:border-primary/50 transition-colors">
           <div className="flex flex-col items-center text-center space-y-6">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-              <Youtube className="w-10 h-10 text-primary" />
+            <div className="w-24 h-24 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
+              <Youtube className="w-14 h-14 text-white" fill="white" />
             </div>
             
             <div className="space-y-2">
