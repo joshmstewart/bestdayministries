@@ -739,17 +739,70 @@ const Discussions = () => {
     setEditingPostId(post.id);
     setEditTitle(post.title);
     setEditContent(post.content);
+    
+    // Populate all media and link fields
+    setNewPost({
+      title: post.title,
+      content: post.content,
+      video_id: post.video_id || "",
+      youtube_url: post.youtube_url || "",
+      event_id: (post.event?.id as string) || "",
+    });
+    
+    // Set video input type based on what's present
+    if (post.youtube_url) {
+      setVideoInputType("youtube");
+    } else if (post.video_id) {
+      setVideoInputType("select");
+    } else {
+      setVideoInputType("none");
+    }
+    
+    // Set image preview if image exists
+    if (post.image_url) {
+      setImagePreview(post.image_url);
+    }
   };
 
   const handleSavePostEdit = async () => {
     if (!editingPostId) return;
 
     try {
+      let imageUrl = imagePreview;
+      
+      // Upload new image if one was selected
+      if (selectedImage && originalImageFile) {
+        const compressedImage = await compressImage(selectedImage, 4.5);
+        const fileName = `${user?.id}/${Date.now()}_${selectedImage.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('discussion-images')
+          .upload(fileName, compressedImage);
+
+        if (uploadError) {
+          toast({
+            title: "Error uploading image",
+            description: uploadError.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('discussion-images')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+      }
+
       const { error } = await supabase
         .from("discussion_posts")
         .update({
           title: editTitle,
           content: editContent,
+          video_id: newPost.video_id || null,
+          youtube_url: newPost.youtube_url || null,
+          event_id: newPost.event_id || null,
+          image_url: imageUrl,
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingPostId);
@@ -758,6 +811,11 @@ const Discussions = () => {
 
       toast({ title: "Post updated successfully" });
       setEditingPostId(null);
+      setSelectedImage(null);
+      setImagePreview(null);
+      setOriginalImageFile(null);
+      setVideoInputType("none");
+      setNewPost({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
       loadPosts();
     } catch (error: any) {
       console.error("Error updating post:", error);
@@ -773,6 +831,11 @@ const Discussions = () => {
     setEditingPostId(null);
     setEditTitle("");
     setEditContent("");
+    setSelectedImage(null);
+    setImagePreview(null);
+    setOriginalImageFile(null);
+    setVideoInputType("none");
+    setNewPost({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -1203,6 +1266,116 @@ const Discussions = () => {
                              className="min-h-[150px]"
                            />
                          </div>
+                         
+                         {/* Image Upload/Edit */}
+                         <div className="space-y-2">
+                           <Label htmlFor="edit-image">Image (optional)</Label>
+                           <div className="flex items-center gap-2">
+                             <Input
+                               id="edit-image"
+                               type="file"
+                               accept="image/*"
+                               onChange={handleImageSelect}
+                               className="hidden"
+                             />
+                             <Button
+                               type="button"
+                               variant="outline"
+                               onClick={() => document.getElementById('edit-image')?.click()}
+                             >
+                               <ImageIcon className="w-4 h-4 mr-2" />
+                               {imagePreview ? 'Change Image' : 'Add Image'}
+                             </Button>
+                             {imagePreview && (
+                               <Button
+                                 type="button"
+                                 variant="destructive"
+                                 size="icon"
+                                 onClick={removeImage}
+                               >
+                                 <X className="w-4 h-4" />
+                               </Button>
+                             )}
+                           </div>
+                           {imagePreview && (
+                             <div className="relative inline-block">
+                               <img 
+                                 src={imagePreview} 
+                                 alt="Preview" 
+                                 className="max-w-xs max-h-48 rounded-lg"
+                               />
+                             </div>
+                           )}
+                         </div>
+                         
+                         {/* Video Selection */}
+                         <div className="space-y-2">
+                           <Label>Video (optional)</Label>
+                           <Select value={videoInputType} onValueChange={(value: "none" | "select" | "youtube") => {
+                             setVideoInputType(value);
+                             if (value === "none") {
+                               setNewPost({ ...newPost, video_id: "", youtube_url: "" });
+                             }
+                           }}>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select video option" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="none">No Video</SelectItem>
+                               <SelectItem value="select">Select Existing Video</SelectItem>
+                               <SelectItem value="youtube">Embed YouTube Video</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
+                         {videoInputType === "select" && (
+                           <div className="space-y-2">
+                             <Label>Select Video</Label>
+                             <Select value={newPost.video_id || "none"} onValueChange={(value) => setNewPost({ ...newPost, video_id: value === "none" ? "" : value, youtube_url: "" })}>
+                               <SelectTrigger>
+                                 <SelectValue placeholder="Choose a video" />
+                               </SelectTrigger>
+                               <SelectContent>
+                                 <SelectItem value="none">None</SelectItem>
+                                 {videos.map((video) => (
+                                   <SelectItem key={video.id} value={video.id}>
+                                     {video.title} {video.video_type === 'youtube' && '(YouTube)'}
+                                   </SelectItem>
+                                 ))}
+                               </SelectContent>
+                             </Select>
+                           </div>
+                         )}
+                         
+                         {videoInputType === "youtube" && (
+                           <div className="space-y-2">
+                             <Label>YouTube URL</Label>
+                             <Input
+                               value={newPost.youtube_url}
+                               onChange={(e) => setNewPost({ ...newPost, youtube_url: e.target.value, video_id: "" })}
+                               placeholder="https://www.youtube.com/watch?v=... or video ID"
+                             />
+                           </div>
+                         )}
+                         
+                         {/* Event Selection */}
+                         <div className="space-y-2">
+                           <Label>Event (optional)</Label>
+                           <Select value={newPost.event_id || "none"} onValueChange={(value) => setNewPost({ ...newPost, event_id: value === "none" ? "" : value })}>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Link to event" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="none">No Event</SelectItem>
+                               {events.map((event) => (
+                                 <SelectItem key={event.id} value={event.id}>
+                                   {event.title} ({new Date(event.event_date).toLocaleDateString()})
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
                          <div className="flex gap-2">
                            <Button onClick={handleSavePostEdit} size="sm">
                              Save Changes
