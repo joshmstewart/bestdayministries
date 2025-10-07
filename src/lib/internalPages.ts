@@ -23,6 +23,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/discussions", label: "Discussions" },
   { value: "/events", label: "Events" },
   { value: "/gallery", label: "Albums" },
+  { value: "/videos", label: "Videos" },
   { value: "/sponsor-bestie", label: "Sponsor a Bestie" },
   { value: "/about", label: "About/Resources" },
   { value: "/support", label: "Support Us" },

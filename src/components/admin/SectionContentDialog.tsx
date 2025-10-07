@@ -87,13 +87,23 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
 
       let error;
       
-      // For about_sections table, update the homepage_sections 'about' content (shared content)
+      // For about_sections table
       if (tableName === 'about_sections') {
-        const { error: updateError } = await supabase
-          .from("homepage_sections")
-          .update({ content: updatedContent })
-          .eq("section_key", "about");
-        error = updateError;
+        if (section.section_key === 'youtube_channel') {
+          // Update youtube_channel content directly in about_sections
+          const { error: updateError } = await supabase
+            .from("about_sections")
+            .update({ content: updatedContent })
+            .eq("section_key", "youtube_channel");
+          error = updateError;
+        } else {
+          // For about_content, update the homepage_sections 'about' content (shared content)
+          const { error: updateError } = await supabase
+            .from("homepage_sections")
+            .update({ content: updatedContent })
+            .eq("section_key", "about");
+          error = updateError;
+        }
       } else {
         const { error: updateError } = await supabase
           .from("homepage_sections")
@@ -622,6 +632,58 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
               value={content.title || ""}
               onChange={(e) => setContent({ ...content, title: e.target.value })}
             />
+          </div>
+        );
+
+      case "youtube_channel":
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="badge_text">Badge Text</Label>
+              <Input
+                id="badge_text"
+                value={content.badge_text || ""}
+                onChange={(e) => setContent({ ...content, badge_text: e.target.value })}
+                placeholder="YouTube"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="heading">Heading</Label>
+              <Input
+                id="heading"
+                value={content.heading || ""}
+                onChange={(e) => setContent({ ...content, heading: e.target.value })}
+                placeholder="Subscribe to Our Channel"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={content.description || ""}
+                onChange={(e) => setContent({ ...content, description: e.target.value })}
+                rows={3}
+                placeholder="Follow our journey and stay updated with our latest videos."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="channel_url">YouTube Channel URL</Label>
+              <Input
+                id="channel_url"
+                value={content.channel_url || ""}
+                onChange={(e) => setContent({ ...content, channel_url: e.target.value })}
+                placeholder="https://youtube.com/@yourchannelname"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="button_text">Button Text</Label>
+              <Input
+                id="button_text"
+                value={content.button_text || ""}
+                onChange={(e) => setContent({ ...content, button_text: e.target.value })}
+                placeholder="Visit Our Channel"
+              />
+            </div>
           </div>
         );
 

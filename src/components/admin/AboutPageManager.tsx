@@ -78,7 +78,7 @@ const SortableItem = ({ section, onToggleVisibility, onEdit }: SortableItemProps
       </div>
 
       <div className="flex gap-1">
-        {section.section_key === 'about_content' && onEdit && (
+        {(section.section_key === 'about_content' || section.section_key === 'youtube_channel') && onEdit && (
           <Button
             variant="ghost"
             size="icon"
@@ -290,7 +290,13 @@ const AboutPageManager = () => {
                   key={section.id}
                   section={section}
                   onToggleVisibility={handleToggleVisibility}
-                  onEdit={section.section_key === 'about_content' && aboutContent ? () => setEditingSection(aboutContent) : undefined}
+                  onEdit={
+                    (section.section_key === 'about_content' && aboutContent) 
+                      ? () => setEditingSection(aboutContent)
+                      : section.section_key === 'youtube_channel'
+                      ? () => setEditingSection(section)
+                      : undefined
+                  }
                 />
               ))}
             </div>
@@ -312,6 +318,7 @@ const AboutPageManager = () => {
           onOpenChange={(open) => !open && setEditingSection(null)}
           section={editingSection}
           onSave={fetchSections}
+          tableName="about_sections"
         />
       )}
     </Card>
