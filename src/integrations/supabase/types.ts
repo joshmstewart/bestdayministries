@@ -604,6 +604,54 @@ export type Database = {
           },
         ]
       }
+      donations: {
+        Row: {
+          amount: number
+          created_at: string
+          donor_email: string | null
+          donor_id: string | null
+          ended_at: string | null
+          frequency: string
+          id: string
+          started_at: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_mode: string
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          donor_email?: string | null
+          donor_id?: string | null
+          ended_at?: string | null
+          frequency: string
+          id?: string
+          started_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_mode?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          donor_email?: string | null
+          donor_id?: string | null
+          ended_at?: string | null
+          frequency?: string
+          id?: string
+          started_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_mode?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_attendees: {
         Row: {
           created_at: string

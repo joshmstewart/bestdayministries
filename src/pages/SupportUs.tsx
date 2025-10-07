@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
+import { DonationForm } from "@/components/DonationForm";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,7 @@ const SupportUs = () => {
   };
 
   const headerSection = getSection("header");
+  const donationSection = getSection("donation_form");
   const sponsorSection = getSection("sponsor_bestie");
   const otherWaysSection = getSection("other_ways");
   const wishlistsSection = getSection("wishlists");
@@ -126,6 +128,17 @@ const SupportUs = () => {
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 {headerSection.content.subtitle}
               </p>
+            </div>
+          )}
+
+          {/* Donation Form Section */}
+          {donationSection && (
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <h2 className="text-3xl font-black">{donationSection.content.title || "Support Our Mission"}</h2>
+                <p className="text-muted-foreground">{donationSection.content.description || "Make a general donation to support our work"}</p>
+              </div>
+              <DonationForm />
             </div>
           )}
 
