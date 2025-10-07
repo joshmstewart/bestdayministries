@@ -120,14 +120,13 @@ export function AnalyticsDashboard() {
   };
 
   const fetchSponsorshipRevenue = async () => {
-    // Only show one-time sponsorships to avoid confusion
-    // Monthly recurring shows as ongoing commitments, not total collected
+    // Only show one-time LIVE sponsorships
     const { data } = await supabase
       .from("sponsorships")
       .select("amount, started_at, status, frequency, stripe_mode")
       .eq("status", "active")
       .eq("frequency", "one-time")
-      .neq("stripe_mode", "test"); // Exclude test transactions
+      .eq("stripe_mode", "live"); // Only live transactions
 
     if (!data) return [];
 
@@ -273,27 +272,34 @@ export function AnalyticsDashboard() {
   };
 
   const fetchTopMetrics = async () => {
-    // Only count completed orders (exclude test mode if needed)
+    // Only count completed LIVE orders
     const { data: orders } = await supabase
       .from("orders")
-      .select("total_amount, status")
+      .select("total_amount, status, stripe_payment_intent_id")
       .eq("status", "completed");
 
-    // Only count one-time sponsorships that are completed
-    // Monthly sponsorships show recurring amount, not total collected
+    // Filter out test orders (Stripe test payment intents start with pi_)
+    const liveOrders = orders?.filter(order => {
+      // If no payment intent, assume it's old/test data
+      if (!order.stripe_payment_intent_id) return false;
+      // Stripe test payment intents contain "_test_" or start with specific test prefixes
+      return !order.stripe_payment_intent_id.includes("_test_");
+    }) || [];
+
+    // Only count one-time LIVE sponsorships
     const { data: sponsorships } = await supabase
       .from("sponsorships")
       .select("amount, frequency, stripe_mode")
       .eq("frequency", "one-time")
       .eq("status", "active")
-      .neq("stripe_mode", "test"); // Exclude test transactions
+      .eq("stripe_mode", "live"); // Only live transactions
 
     const { count: activeUsers } = await supabase
       .from("profiles")
       .select("*", { count: "exact", head: true });
 
-    const totalOrders = orders?.length || 0;
-    const orderRevenue = orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+    const totalOrders = liveOrders.length;
+    const orderRevenue = liveOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
     const sponsorshipRevenue = sponsorships?.reduce((sum, s) => sum + Number(s.amount), 0) || 0;
     const totalRevenue = orderRevenue + sponsorshipRevenue;
 

@@ -248,6 +248,35 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
+  const deleteTestTransactions = async () => {
+    if (!confirm("Are you sure you want to delete ALL test mode sponsorships? This cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('sponsorships')
+        .delete()
+        .eq('stripe_mode', 'test');
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "All test transactions have been deleted",
+      });
+      
+      await loadSponshorships();
+    } catch (error: any) {
+      console.error('Error deleting test transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete test transactions",
+        variant: "destructive",
+      });
+    }
+  };
+
   const loadAuditLogs = async (sponsorshipId: string) => {
     setLoadingLogs(true);
     try {
@@ -293,16 +322,16 @@ export const SponsorshipTransactionsManager = () => {
     return stageNames[stage] || stage;
   };
 
-  // Calculate stats
+  // Calculate stats (Live mode only)
   const stats = {
     total: sponsorships.length,
     active: sponsorships.filter(s => s.status === 'active').length,
     cancelled: sponsorships.filter(s => s.status === 'cancelled').length,
     totalMonthlyRevenue: sponsorships
-      .filter(s => s.status === 'active' && s.frequency === 'monthly')
+      .filter(s => s.status === 'active' && s.frequency === 'monthly' && s.stripe_mode === 'live')
       .reduce((sum, s) => sum + s.amount, 0),
     totalOneTime: sponsorships
-      .filter(s => s.frequency === 'one-time')
+      .filter(s => s.frequency === 'one-time' && s.stripe_mode === 'live')
       .reduce((sum, s) => sum + s.amount, 0),
   };
 
@@ -354,10 +383,15 @@ export const SponsorshipTransactionsManager = () => {
                 View and manage all sponsorship payments and subscriptions
               </CardDescription>
             </div>
-            <Button onClick={loadSponshorships} variant="outline" size="sm">
-              <Loader2 className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={deleteTestTransactions} variant="destructive" size="sm">
+                Delete Test Transactions
+              </Button>
+              <Button onClick={loadSponshorships} variant="outline" size="sm">
+                <Loader2 className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
