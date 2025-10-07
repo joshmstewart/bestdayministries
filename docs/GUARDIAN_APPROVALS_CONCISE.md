@@ -1,197 +1,63 @@
-# GUARDIAN APPROVALS - CONCISE DOCS
+GUARDIAN APPROVALS - CONCISE
 
 ## Overview
-Central hub (`/guardian-approvals`) for guardians to approve/reject content and requests from linked besties.
+Central hub (`/guardian-approvals`) for caregivers to approve/reject content from linked besties.
 
-## Access Control
-**Who:** Caregivers only (role from `user_roles` table)
-**Redirect:** Non-caregivers sent to `/community`
+**Access:** Caregivers only (role from `user_roles`)
 
-## Approval Categories (Tabs)
+## Tabs & Sources
 
-### 1. Posts Tab
-**Source:** `discussion_posts` where `approval_status = 'pending_approval'`
-**Filter:** Posts from guardian's linked besties only
-```sql
-SELECT * FROM discussion_posts
-WHERE approval_status = 'pending_approval'
-  AND author_id IN (
-    SELECT bestie_id FROM caregiver_bestie_links
-    WHERE caregiver_id = current_user
-  )
-```
+### 1. Posts
+**Source:** `discussion_posts` where `approval_status = 'pending_approval'` AND author is linked bestie
+**Actions:** Approve (`approved` + `is_moderated = true`), Reject (`rejected`), Delete
 
-**Display:**
-- Card with author avatar, name, title, content
-- Image preview if attached
-- Video/album link if attached
-- Approve/Reject buttons
+### 2. Comments
+**Source:** `discussion_comments` where `approval_status = 'pending_approval'` AND author is linked bestie
+**Actions:** Approve, Reject
 
-**Actions:**
-- **Approve:** Sets `approval_status = 'approved'`, `is_moderated = true`
-- **Reject:** Sets `approval_status = 'rejected'` (not visible on feed)
-- **Delete:** Deletes post entirely
-
-### 2. Comments Tab
-**Source:** `discussion_comments` where `approval_status = 'pending_approval'`
-**Filter:** Comments from guardian's linked besties
-```sql
-SELECT c.*, p.title as post_title
-FROM discussion_comments c
-JOIN discussion_posts p ON c.post_id = p.id
-WHERE c.approval_status = 'pending_approval'
-  AND c.author_id IN (linked besties)
-```
-
-**Display:**
-- Card with author info, post title
-- Comment text OR audio player
-- Approve/Reject buttons
-
-**Actions:**
-- **Approve:** Sets `approval_status = 'approved'`, `is_moderated = true`
-- **Reject:** Sets `approval_status = 'rejected'`
-
-### 3. Vendors Tab
+### 3. Vendors
 **Component:** `VendorLinkRequests`
-**Source:** `vendor_bestie_requests` where `status = 'pending'`
-**Filter:** Requests for guardian's linked besties
+**Source:** `vendor_bestie_requests` where `status = 'pending'` AND bestie is linked
+**Actions:** Approve (`status = 'approved'`), Reject (`rejected`)
 
-**Display:**
-- Vendor business name, message
-- Bestie name
-- Request date
-- Approve/Reject buttons
-
-**Actions:**
-- **Approve:** `status = 'approved'` → vendor can feature bestie
-- **Reject:** `status = 'rejected'` → vendor notified
-
-### 4. Messages Tab
+### 4. Messages
 **Component:** `BestieSponsorMessages`
-**Source:** `sponsor_messages` where `status = 'pending_approval'`
-**Filter:** Messages from guardian's linked besties
-
-**Display:**
-- Bestie name, subject, message content
-- Audio player if voice message
-- Image/video preview if attached
-- Edit & Approve / Reject buttons
-
+**Source:** `sponsor_messages` where `status = 'pending_approval'` AND bestie is linked
 **Actions:**
-- **Approve As-Is:** `status = 'approved'` → sent to sponsors
-- **Edit & Approve:** Opens dialog:
-  - Edit subject, message text
-  - Add/crop image
-  - Recrop existing image
-  - On save: `status = 'approved'`, `from_guardian = true`
-- **Reject:** `status = 'rejected'`, provide rejection reason
+- **Approve As-Is:** Sets `status = 'approved'`
+- **Edit & Approve:** Dialog for editing subject, message, add/recrop image → saves with `from_guardian = true`
+- **Reject:** Provide rejection reason
 
-## Approval Requirements (Guardian Link Settings)
+## Approval Requirements
+Controlled by `caregiver_bestie_links` table:
+- `require_post_approval` - Posts need approval
+- `require_comment_approval` - Comments need approval
+- `require_message_approval` - Messages need approval (default: true)
+- `require_vendor_asset_approval` - Vendor assets need approval
 
-### Post Approval
-- Controlled by `caregiver_bestie_links.require_post_approval`
-- If `true`: Bestie posts → `pending_approval`
-- If `false`: Bestie posts → auto-approved
-
-### Comment Approval
-- Controlled by `caregiver_bestie_links.require_comment_approval`
-- If `true`: Bestie comments → `pending_approval`
-- If `false`: Bestie comments → auto-approved
-
-### Message Approval
-- Controlled by `caregiver_bestie_links.require_message_approval`
-- Default: `true` (always requires approval)
-- Guardian can disable in link settings
-
-### Vendor Asset Approval
-- Controlled by `caregiver_bestie_links.require_vendor_asset_approval`
-- Separate from post approval
-- For vendor store displays
-
-## Badge Counts (Header)
-**Location:** UnifiedHeader "Approvals" button
+## Badge Count (Header)
 **Hook:** `useGuardianApprovalsCount`
-**Calculation:**
-```typescript
-pendingPosts.length + 
-pendingComments.length + 
-pendingVendorLinks + 
-pendingMessages
-```
-
-**Realtime:** Subscribes to all 4 tables, updates live
+**Calculation:** Sum of pending posts + comments + vendor links + messages
+**Updates:** Realtime via subscriptions to all 4 tables
 
 ## Message Editing Dialog
-
-### Edit Features
-1. **Subject:** Text input, editable
-2. **Message:** Textarea, editable
-3. **Image:** 
-   - Add new image (with crop dialog)
-   - Recrop existing image (AspectRatio selector)
-   - Preview before save
-4. **Video:** Preview only (not editable)
-
-### Save Behavior
-- Updates `sponsor_messages` record
-- Sets `from_guardian = true` (indicator for sponsors)
-- Sets `status = 'approved'`
-- Uploads new image to `app-assets/sponsor-messages/` if added
+- Edit subject, message text
+- Add/crop image (`app-assets/sponsor-messages/`)
+- Recrop existing image with AspectRatio selector
+- Preview before save
 
 ## RLS Policies
-**discussion_posts UPDATE:**
-- Guardians can approve posts from linked besties
-- Uses `is_guardian_of()` function
-
-**discussion_comments UPDATE:**
-- Same guardian check as posts
-
-**vendor_bestie_requests UPDATE:**
-- Guardians approve for their besties
-
-**sponsor_messages UPDATE:**
-- Guardians approve/edit for their besties
-
-## Notification Flow
-1. Bestie creates content → `approval_status = 'pending_approval'`
-2. Guardian sees badge count increase (realtime)
-3. Guardian opens `/guardian-approvals`, sees pending items
-4. Guardian approves/rejects
-5. Bestie notified of status change (future: toast/email)
-6. If approved: Content visible to public
-7. If rejected: Content hidden, reason shown to bestie
-
-## Empty States
-**No Linked Besties:**
-```tsx
-"You haven't linked any besties yet. Go to Guardian Links to get started."
-```
-
-**No Pending Items:**
-```tsx
-"No pending {posts/comments/requests} at this time."
-```
-
-## Key Files
-- `src/pages/GuardianApprovals.tsx` - Main page
-- `src/components/guardian/VendorLinkRequests.tsx` - Vendor tab
-- `src/components/guardian/BestieSponsorMessages.tsx` - Messages tab
-- `src/hooks/useGuardianApprovalsCount.ts` - Badge count
+Uses `is_guardian_of(guardian_id, bestie_id)` function for UPDATE access on:
+- `discussion_posts`
+- `discussion_comments`
+- `vendor_bestie_requests`
+- `sponsor_messages`
 
 ## Common Issues
-| Issue | Solution |
-|-------|----------|
-| Nothing showing | Check if guardian has linked besties |
+| Issue | Fix |
+|-------|-----|
+| Nothing showing | Check linked besties exist |
 | Count doesn't update | Verify realtime subscription cleanup |
 | Can't approve | Check `is_guardian_of()` RLS function |
-| Edit dialog won't save | Verify image crop completed |
-| Badge shows wrong count | Check subscription filters match tab queries |
 
-## Future Enhancements
-- Bulk approve/reject
-- Approval history log
-- Email notifications
-- In-app notifications
-- Rejection reason editor
-- Featured post approval separate tab
+**Files:** `GuardianApprovals.tsx`, `VendorLinkRequests.tsx`, `BestieSponsorMessages.tsx`, `useGuardianApprovalsCount.ts`
