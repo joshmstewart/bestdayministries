@@ -727,10 +727,18 @@ const Discussions = () => {
 
   const canDeleteContent = (authorId: string) => {
     // Admin-level access (includes owner) or content author can delete
-    return profile && (
-      ['admin', 'owner'].includes(profile.role) || 
-      profile.id === authorId
-    );
+    if (!profile || !user) return false;
+    
+    // Debug logging to check author matching
+    console.log("Can delete check:", {
+      profileId: profile.id,
+      userId: user.id,
+      authorId: authorId,
+      profileRole: profile.role,
+      match: profile.id === authorId
+    });
+    
+    return ['admin', 'owner'].includes(profile.role) || profile.id === authorId;
   };
 
   const hasAdminAccess = profile && ['admin', 'owner'].includes(profile.role);
@@ -1220,17 +1228,7 @@ const Discussions = () => {
                                 View Album
                               </Button>
                             )}
-                            {post.event && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/events`)}
-                                className="text-xs h-6 px-2 gap-1"
-                              >
-                                <Calendar className="w-3 h-3" />
-                                View Event
-                              </Button>
-                            )}
+                            {/* Event link badge - kept for reference */}
                           </div>
                         </div>
                       </div>
@@ -1386,7 +1384,68 @@ const Discussions = () => {
                          </div>
                        </div>
                      ) : (
-                       <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
+                       <>
+                         <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
+                         
+                         {/* Event Summary Card */}
+                         {post.event && (
+                           <Card 
+                             className="border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5 cursor-pointer hover:border-primary/40 transition-colors"
+                             onClick={() => navigate('/events')}
+                           >
+                             <CardContent className="p-4">
+                               <div className="flex gap-4">
+                                 {post.event.location && (
+                                   <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                                     <div className="w-full h-full flex items-center justify-center">
+                                       <Calendar className="w-10 h-10 text-primary" />
+                                     </div>
+                                   </div>
+                                 )}
+                                 <div className="flex-1 min-w-0">
+                                   <div className="flex items-start justify-between gap-2">
+                                     <div className="flex items-center gap-2">
+                                       <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
+                                       <h4 className="font-semibold text-foreground">Linked Event</h4>
+                                     </div>
+                                   </div>
+                                   <h5 className="font-bold text-lg mt-2 text-foreground">{post.event.title}</h5>
+                                   <div className="flex flex-col gap-1 mt-2 text-sm text-muted-foreground">
+                                     <div className="flex items-center gap-2">
+                                       <Calendar className="w-3 h-3" />
+                                       <span>{new Date(post.event.event_date).toLocaleString('en-US', {
+                                         weekday: 'long',
+                                         year: 'numeric',
+                                         month: 'long',
+                                         day: 'numeric',
+                                         hour: 'numeric',
+                                         minute: '2-digit'
+                                       })}</span>
+                                     </div>
+                                     {post.event.location && (
+                                       <div className="flex items-center gap-2">
+                                         <span className="text-xs">📍</span>
+                                         <span className="truncate">{post.event.location}</span>
+                                       </div>
+                                     )}
+                                   </div>
+                                   <Button 
+                                     variant="outline" 
+                                     size="sm" 
+                                     className="mt-3"
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       navigate('/events');
+                                     }}
+                                   >
+                                     View Event Details →
+                                   </Button>
+                                 </div>
+                               </div>
+                             </CardContent>
+                           </Card>
+                         )}
+                       </>
                      )}
 
                      {/* Display Video if present */}
