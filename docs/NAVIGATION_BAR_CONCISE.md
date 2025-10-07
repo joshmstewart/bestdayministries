@@ -18,6 +18,42 @@
 - **Hides:** Past 150px AND scrolling DOWN
 - **CSS:** `translate-y-0 opacity-100` (visible) / `-translate-y-full opacity-0` (hidden)
 
+## Page Layout Requirements
+
+**CRITICAL: All pages MUST include top spacing for the nav bar**
+
+### Spacing Guidelines
+- **Standard pages:** Use `pt-24` (96px) on main content wrapper
+- **Pages with banners:** Banner can overlap, content below needs `pt-24`
+- **Minimum clearance:** 80px to prevent nav overlap with content
+
+### Implementation Pattern
+```tsx
+<div className="min-h-screen flex flex-col">
+  <UnifiedHeader />
+  
+  <main className="flex-1 pt-24"> {/* REQUIRED top padding */}
+    <div className="container mx-auto px-4">
+      {/* Page content */}
+    </div>
+  </main>
+  
+  <Footer />
+</div>
+```
+
+### Why This Matters
+- Nav bar is absolutely positioned and overlays content
+- Without top padding, nav covers page headers and content
+- Consistent spacing maintains visual hierarchy across all pages
+
+### Common Issues
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Nav covers page title | Missing top padding | Add `pt-24` to main element |
+| Title too close to nav | Insufficient padding | Increase to `pt-28` or `pt-32` |
+| Mobile overlap | Fixed padding doesn't scale | Test on mobile, adjust if needed |
+
 ## Navigation Links
 
 **Data Source:** `navigation_links` table
@@ -35,6 +71,11 @@
 - Hover: Burnt orange color (`hover:text-[hsl(var(--burnt-orange))]`)
 - Animated underline on hover
 - Font: Roca (`font-['Roca']`)
+
+## Physical Dimensions
+- **Height:** ~64px (header) + ~48px (nav) = ~112px total
+- **Z-index:** 50 (nav) ensures it stays above content
+- **Backdrop blur:** Creates depth separation from content
 
 ## Real-Time Updates
 Subscribes to `navigation_links` changes → auto-refreshes without page reload
@@ -56,8 +97,10 @@ Subscribes to `navigation_links` changes → auto-refreshes without page reload
 - Check `profile.role !== "vendor"` prevents display
 - Avoids confusion, provides focused vendor experience
 
-## Implementation Key Points
-- Wait for profile load to prevent flash
-- Authentication check before rendering
-- Role verification
-- Smooth scroll transitions
+## Implementation Checklist
+- [ ] User authentication check
+- [ ] Profile loaded before rendering
+- [ ] Role verification (exclude vendors)
+- [ ] Page has `pt-24` top padding
+- [ ] Smooth scroll transitions enabled
+- [ ] Real-time subscription cleanup on unmount
