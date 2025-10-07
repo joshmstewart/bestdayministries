@@ -1071,11 +1071,11 @@ const Discussions = () => {
                           displayName={post.author?.display_name || "Unknown"}
                           size="md"
                         />
-                      <div className="flex-1">
+                       <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-2xl">{post.title}</CardTitle>
                             {!editingPostId && <TextToSpeech text={`${post.title}. ${post.content}`} />}
-                            {hasAdminAccess && (post as any).album_id && editingPostId !== post.id && (
+                            {canDeleteContent(post.author_id) && editingPostId !== post.id && (
                               <Button
                                 variant="ghost"
                                 size="icon"
