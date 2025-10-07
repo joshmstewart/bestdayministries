@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import About from "@/components/About";
 import OurFamily from "@/components/OurFamily";
+import { YouTubeChannel } from "@/components/YouTubeChannel";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -55,6 +56,8 @@ const AboutPage = () => {
         return <About key={section.id} content={aboutContent} />;
       case 'family_orgs':
         return <OurFamily key={section.id} />;
+      case 'youtube_channel':
+        return <YouTubeChannel key={section.id} content={section.content} />;
       default:
         return null;
     }
