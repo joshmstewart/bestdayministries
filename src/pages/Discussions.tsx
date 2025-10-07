@@ -22,6 +22,8 @@ import ImageLightbox from "@/components/ImageLightbox";
 import { discussionPostSchema, commentSchema, validateInput } from "@/lib/validation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
+import { VideoPlayer } from "@/components/VideoPlayer";
+import { YouTubeEmbed } from "@/components/YouTubeEmbed";
 
 interface Profile {
   id: string;
@@ -41,6 +43,14 @@ interface Comment {
   author?: Profile;
 }
 
+interface Video {
+  id: string;
+  title: string;
+  video_url?: string;
+  youtube_url?: string;
+  video_type?: string;
+}
+
 interface Post {
   id: string;
   title: string;
@@ -48,10 +58,12 @@ interface Post {
   created_at: string;
   author_id: string;
   image_url?: string | null;
+  video_id?: string | null;
   visible_to_roles?: string[];
   approval_status?: string;
   author?: Profile;
   comments?: Comment[];
+  video?: Video | null;
   album?: {
     id: string;
     title: string;
@@ -74,9 +86,10 @@ const Discussions = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewPost, setShowNewPost] = useState(false);
-  const [newPost, setNewPost] = useState({ title: "", content: "" });
+  const [newPost, setNewPost] = useState({ title: "", content: "", video_id: "" });
   const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
   const [canCreatePosts, setCanCreatePosts] = useState(false);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -152,6 +165,21 @@ const Discussions = () => {
 
     setProfile(profile);
     setCanCreatePosts(['caregiver', 'admin', 'owner'].includes(profile.role));
+    
+    // Load videos for dropdown
+    if (['caregiver', 'admin', 'owner'].includes(profile.role)) {
+      loadVideos();
+    }
+  };
+
+  const loadVideos = async () => {
+    const { data } = await supabase
+      .from("videos")
+      .select("id, title, video_url, youtube_url, video_type")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+    
+    if (data) setVideos(data);
   };
 
   const loadPosts = async () => {
@@ -160,7 +188,8 @@ const Discussions = () => {
       .select(`
         *,
         author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role, avatar_number),
-        album:albums(id, title, cover_image_url, is_active)
+        album:albums(id, title, cover_image_url, is_active),
+        video:videos(id, title, video_url, youtube_url, video_type)
       `)
       .eq("is_moderated", true)
       .order("created_at", { ascending: false});
@@ -432,6 +461,7 @@ const Discussions = () => {
           content: newPost.content,
           author_id: user?.id,
           image_url: imageUrl,
+          video_id: newPost.video_id || null,
           visible_to_roles: finalVisibleRoles,
           is_moderated: textIsApproved && (imageModerationStatus === 'approved' || imageModerationStatus === null),
           moderation_status: imageModerationStatus || 'pending',
@@ -465,7 +495,7 @@ const Discussions = () => {
         });
       }
 
-      setNewPost({ title: "", content: "" });
+      setNewPost({ title: "", content: "", video_id: "" });
       setSelectedImage(null);
       setImagePreview(null);
       setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
@@ -841,9 +871,25 @@ const Discussions = () => {
                       </div>
                     </div>
                   )}
-                </div>
-                <div className="space-y-3">
-                  <Label>Visible To (Admin & Owner always included)</Label>
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="video">Video (optional)</Label>
+                   <Select value={newPost.video_id} onValueChange={(value) => setNewPost({ ...newPost, video_id: value })}>
+                     <SelectTrigger id="video">
+                       <SelectValue placeholder="Select a video" />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="">None</SelectItem>
+                       {videos.map((video) => (
+                         <SelectItem key={video.id} value={video.id}>
+                           {video.title} {video.video_type === 'youtube' && '(YouTube)'}
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+                 <div className="space-y-3">
+                   <Label>Visible To (Admin & Owner always included)</Label>
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -1079,16 +1125,27 @@ const Discussions = () => {
                        <p className="text-foreground whitespace-pre-wrap">{post.content}</p>
                      )}
 
-                    {/* Display Image if present and no album images */}
-                    {post.image_url && !post.album_images?.length && (
-                      <div className="rounded-lg overflow-hidden">
-                        <img 
-                          src={post.image_url} 
-                          alt="Post image" 
-                          className="w-full max-h-96 object-cover"
-                        />
-                      </div>
-                    )}
+                     {/* Display Video if present */}
+                     {post.video && (
+                       <div className="rounded-lg overflow-hidden">
+                         {post.video.video_type === 'youtube' && post.video.youtube_url ? (
+                           <YouTubeEmbed url={post.video.youtube_url} title={post.video.title} />
+                         ) : post.video.video_url ? (
+                           <VideoPlayer src={post.video.video_url} title={post.video.title} className="w-full" />
+                         ) : null}
+                       </div>
+                     )}
+
+                     {/* Display Image if present and no album images */}
+                     {post.image_url && !post.album_images?.length && (
+                       <div className="rounded-lg overflow-hidden">
+                         <img 
+                           src={post.image_url} 
+                           alt="Post image" 
+                           className="w-full max-h-96 object-cover"
+                         />
+                       </div>
+                     )}
 
                     {/* Display album images in a grid if present */}
                     {post.album_images && post.album_images.length > 0 && (

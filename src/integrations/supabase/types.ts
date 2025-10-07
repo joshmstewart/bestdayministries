@@ -534,6 +534,7 @@ export type Database = {
           moderation_status: string | null
           title: string
           updated_at: string
+          video_id: string | null
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
@@ -556,6 +557,7 @@ export type Database = {
           moderation_status?: string | null
           title: string
           updated_at?: string
+          video_id?: string | null
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
@@ -578,6 +580,7 @@ export type Database = {
           moderation_status?: string | null
           title?: string
           updated_at?: string
+          video_id?: string | null
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: [
@@ -600,6 +603,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_posts_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
             referencedColumns: ["id"]
           },
         ]
