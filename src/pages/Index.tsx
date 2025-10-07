@@ -4,7 +4,6 @@ import Mission from "@/components/Mission";
 import CommunityFeatures from "@/components/CommunityFeatures";
 import CommunityGallery from "@/components/CommunityGallery";
 import JoyRocks from "@/components/JoyRocks";
-import Donate from "@/components/Donate";
 import About from "@/components/About";
 import Footer from "@/components/Footer";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
@@ -31,7 +30,6 @@ const DEFAULT_SECTIONS = [
   { section_key: 'public_events', is_visible: true },
   { section_key: 'community_gallery', is_visible: true },
   { section_key: 'joy_rocks', is_visible: true },
-  { section_key: 'donate', is_visible: true },
   { section_key: 'about', is_visible: true },
 ];
 
@@ -128,7 +126,7 @@ const Index = () => {
 
   // Mark synchronous sections as loaded on mount
   useEffect(() => {
-    const syncSections = ['hero', 'mission', 'community_features', 'our_family', 'public_events', 'community_gallery', 'joy_rocks', 'donate', 'about'];
+    const syncSections = ['hero', 'mission', 'community_features', 'our_family', 'public_events', 'community_gallery', 'joy_rocks', 'about'];
     syncSections.forEach(key => {
       if (sections.find(s => s.section_key === key)) {
         markSectionLoaded(key);
@@ -178,7 +176,6 @@ const Index = () => {
     public_events: <PublicEvents />,
     community_gallery: <CommunityGallery content={content} />,
     joy_rocks: <JoyRocks content={content} />,
-    donate: <Donate content={content} />,
     about: <About content={content} />,
   };
   

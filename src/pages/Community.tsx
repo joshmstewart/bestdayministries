@@ -300,7 +300,7 @@ const Community = () => {
     { label: "Sponsor a Bestie", href: "/sponsor-bestie", icon: "Gift", color: "from-primary/20 to-secondary/5" },
     { label: "About Best Day Ministries", href: "/about", icon: "Users", color: "from-secondary/20 to-accent/5" },
     { label: "Joy Rocks Coffee", href: "/joy-rocks", icon: "Sparkles", color: "from-accent/20 to-primary/5" },
-    { label: "Support Us", href: "/donate", icon: "Gift", color: "from-secondary/20 to-primary/5" },
+    { label: "Support Us", href: "/support", icon: "Gift", color: "from-secondary/20 to-primary/5" },
   ];
 
   return (

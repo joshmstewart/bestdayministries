@@ -85,7 +85,7 @@ const SupportUs = () => {
                   <Button 
                     size="lg" 
                     className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                    onClick={() => window.location.href = '/donate'}
+                    onClick={() => window.location.href = '/sponsor-bestie'}
                   >
                     Donate Now
                   </Button>
@@ -111,7 +111,7 @@ const SupportUs = () => {
                   <Button 
                     size="lg" 
                     className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                    onClick={() => window.location.href = '/donate'}
+                    onClick={() => window.location.href = '/sponsor-bestie'}
                   >
                     Join the Club
                   </Button>
