@@ -100,6 +100,11 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 - Besties can sponsor (shows info toast but doesn't block)
 - Defaults: $25, monthly
 
+**Optional Features:**
+- **Cover Stripe Fees:** Checkbox adds 3% to amount to cover processing costs
+  - Example: $25 donation + $0.75 fee = $25.75 charged
+  - Full $25 goes to bestie, platform covers fees
+
 **Guest Checkout:**
 - No account required to sponsor
 - Sponsorships stored with `sponsor_email` instead of `sponsor_id`
@@ -122,8 +127,24 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
   - Update payment method
   - View payment history
   - Download invoices
+- **Update Amount:** "Update Amount" button → calls `update-sponsorship` with new amount
+  - Only for monthly subscriptions
+  - Amount range: $10-$500
+  - Updates both Stripe and database
 - View/send messages to bestie
 - Funding progress updates automatically when subscription changes
+
+### 2B. SHARE SPONSORSHIP VIEW (Supporter)
+
+**Location:** `/guardian-links` → Bestie card → "Share View" button
+
+**Flow:**
+1. Supporter clicks "Share View" on their sponsored bestie
+2. Enters 3-emoji friend code of another bestie to share with
+3. Creates record in `sponsorship_shares` table
+4. Shared bestie can now view (read-only) the sponsorship details
+
+**RLS:** Uses `can_view_sponsorship()` function to grant access
 
 ### 3. SEND MESSAGE TO SPONSORS (Bestie)
 
@@ -428,6 +449,18 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
   4. User can cancel/modify subscriptions
   5. Webhooks handle status updates automatically
 
+**update-sponsorship**
+- **Request:** `{sponsorship_id, new_amount}`
+- **Flow:**
+  1. Authenticate user
+  2. Verify user owns sponsorship (active monthly only)
+  3. Validate new amount ($10-$500 range)
+  4. Find Stripe subscription by customer email + bestie_id
+  5. Update Stripe subscription price
+  6. Update `sponsorships.amount` in database
+  7. Return success confirmation
+- **Validation:** Amount must be between $10-$500, sponsorship must be active and monthly
+
 **send-sponsorship-receipt**
 - **Request:** `{sponsorship_id}`
 - **Flow:**
@@ -514,6 +547,14 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 - **Automatic updates:** When webhook changes status, view reflects new total immediately
 - Progress bar shows: `(current_monthly_pledges / monthly_goal) * 100`
 - "Fully Funded" when: `funding_percentage >= 100` OR `is_fully_funded = true`
+
+**Ending Amount (Scheduled Cancellations):**
+- When sponsor cancels but subscription hasn't ended yet (still in billing period)
+- Progress bar shows two segments:
+  - **Stable funding:** Will continue after period ends (green)
+  - **Ending funding:** Will end when period expires (yellow/orange)
+- Calculation: `endingAmount` = sponsorships with `ended_at` set but still in active period
+- Visual indicator helps guardians/admins plan for funding changes
 
 **UI Update Flow:**
 1. User cancels via Stripe portal
@@ -617,6 +658,51 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 
 ---
 
+## DATABASE INFRASTRUCTURE
+
+### Triggers
+
+**link_guest_sponsorships()**
+- **Trigger:** ON INSERT on `auth.users` (after new user signup)
+- **Purpose:** Automatically link guest sponsorships to new accounts
+- **Logic:**
+  1. Get new user's email from `auth.users`
+  2. Find all `sponsorships` where `sponsor_email` matches AND `sponsor_id` IS NULL
+  3. Update those records: Set `sponsor_id` = new user ID, clear `sponsor_email`
+- **Security:** SECURITY DEFINER with `search_path = public`
+
+### Security Functions
+
+**has_admin_access(_user_id)**
+- Returns boolean
+- Checks if user has 'admin' or 'owner' role in `user_roles` table
+
+**is_guardian_of(_guardian_id, _bestie_id)**
+- Returns boolean
+- Checks if guardian-bestie link exists in `caregiver_bestie_links`
+
+**get_user_role(_user_id)**
+- Returns user_role enum
+- Fetches user's role from `user_roles` table
+
+**can_view_sponsorship(_sponsorship_id, _user_id)**
+- Returns boolean
+- Checks if user is sponsor, bestie, or has shared access via `sponsorship_shares`
+
+### Storage Buckets
+
+**app-assets** (Public)
+- Sponsor bestie images: `sponsor-besties/{id}/`
+- Sponsor message images: `sponsor-messages/{id}/`
+- Sponsor message videos: `sponsor-messages/{id}/`
+- Organization logos: `logos/`
+
+**featured-bestie-audio** (Public)
+- Sponsor bestie voice notes
+- Bestie message audio recordings
+
+---
+
 ## TROUBLESHOOTING
 
 | Issue | Cause | Fix |
@@ -642,6 +728,9 @@ Complete sponsorship system with Stripe payments, guardian controls, sponsor mes
 | Test mode payments not visible | Viewing live mode only | Toggle Stripe mode switcher |
 | Guest sponsorship not linking | Email mismatch or trigger failure | Check `link_guest_sponsorships` trigger logs |
 | Can't view sponsorships after signup | Email mismatch | Verify signup email matches sponsorship email |
+| Can't update sponsorship amount | Not monthly or not active | Only active monthly sponsorships can be updated |
+| Update amount fails | Amount out of range | Must be $10-$500 |
+| Shared sponsorship not visible | Friend code mismatch | Verify correct 3-emoji code used |
 
 ---
 
