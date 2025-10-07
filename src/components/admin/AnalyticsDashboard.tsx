@@ -229,12 +229,18 @@ export function AnalyticsDashboard() {
   const fetchOrderStats = async () => {
     const { data } = await supabase
       .from("orders")
-      .select("created_at, total_amount");
+      .select("created_at, total_amount, customer_id, profiles!inner(email)");
 
     if (!data) return [];
 
+    // Filter out test accounts
+    const liveOrders = data.filter(order => {
+      const email = (order.profiles as any)?.email || '';
+      return !email.includes('test') && !email.includes('@example.com');
+    });
+
     const monthlyData = new Map<string, { orders: number; revenue: number }>();
-    data.forEach((order) => {
+    liveOrders.forEach((order) => {
       const month = new Date(order.created_at).toLocaleDateString("en-US", {
         month: "short",
         year: "numeric",
@@ -275,12 +281,17 @@ export function AnalyticsDashboard() {
     // Only count completed LIVE orders
     const { data: orders } = await supabase
       .from("orders")
-      .select("total_amount, status, stripe_payment_intent_id")
+      .select("total_amount, status, stripe_payment_intent_id, customer_id, profiles!inner(email)")
       .eq("status", "completed");
 
-    // Filter out test orders (Stripe test payment intents contain "_test_")
-    // If there's no payment intent, assume it's a valid order (could be old data or manual entry)
+    // Filter out test orders and test accounts
     const liveOrders = orders?.filter(order => {
+      const email = (order.profiles as any)?.email || '';
+      const isTestAccount = email.includes('test') || email.includes('@example.com');
+      
+      // Exclude test accounts
+      if (isTestAccount) return false;
+      
       // If no payment intent, include the order (valid legacy/manual order)
       if (!order.stripe_payment_intent_id) return true;
       // If has payment intent, exclude only if it's a test transaction
