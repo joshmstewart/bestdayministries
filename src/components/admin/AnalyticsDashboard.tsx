@@ -120,12 +120,11 @@ export function AnalyticsDashboard() {
   };
 
   const fetchSponsorshipRevenue = async () => {
-    // Only show one-time LIVE sponsorships
+    // Only show LIVE sponsorships (one-time + initial payment of monthly)
     const { data } = await supabase
       .from("sponsorships")
       .select("amount, started_at, status, frequency, stripe_mode")
       .eq("status", "active")
-      .eq("frequency", "one-time")
       .eq("stripe_mode", "live"); // Only live transactions
 
     if (!data) return [];
