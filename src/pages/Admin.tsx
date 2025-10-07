@@ -222,7 +222,7 @@ const Admin = () => {
             <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="videos">Videos</TabsTrigger>
             <TabsTrigger value="featured">Besties</TabsTrigger>
-            <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
+            <TabsTrigger value="sponsorships">Donations</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
               Vendors
@@ -316,7 +316,7 @@ const Admin = () => {
           <TabsContent value="sponsorships">
             <Card>
               <CardHeader>
-                <CardTitle>Sponsorships</CardTitle>
+                <CardTitle>Donations</CardTitle>
                 <CardDescription>Manage sponsor page content and active sponsorships</CardDescription>
               </CardHeader>
               <CardContent>
@@ -324,7 +324,7 @@ const Admin = () => {
                   <TabsList className="flex flex-wrap h-auto w-full">
                     <TabsTrigger value="sponsorships">Sponsor Besties</TabsTrigger>
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                    <TabsTrigger value="page-content">Page Content</TabsTrigger>
+                    <TabsTrigger value="page-content">Sponsor Page</TabsTrigger>
                     <TabsTrigger value="page-order">Page Order</TabsTrigger>
                     <TabsTrigger value="receipts">Receipt Settings</TabsTrigger>
                     <TabsTrigger value="year-end-settings">Year-End Settings</TabsTrigger>
