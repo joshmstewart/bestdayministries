@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, Trash2, Edit2, Save, X } from "lucide-react";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { YouTubeEmbed } from "@/components/YouTubeEmbed";
 
 interface Video {
   id: string;
@@ -21,6 +23,8 @@ interface Video {
   is_active: boolean;
   display_order: number;
   created_at: string;
+  video_type?: string;
+  youtube_url?: string | null;
 }
 
 export const VideoManager = () => {
@@ -37,6 +41,8 @@ export const VideoManager = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isActive, setIsActive] = useState(true);
+  const [videoType, setVideoType] = useState<"upload" | "youtube">("upload");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
 
   useEffect(() => {
     loadVideos();
@@ -65,11 +71,31 @@ export const VideoManager = () => {
 
   const handleVideoUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!videoFile || !title) {
+    
+    // Validate based on video type
+    if (videoType === "upload" && !videoFile && !editingId) {
       toast({
         variant: "destructive",
         title: "Missing fields",
-        description: "Please provide a title and video file",
+        description: "Please provide a video file",
+      });
+      return;
+    }
+    
+    if (videoType === "youtube" && !youtubeUrl) {
+      toast({
+        variant: "destructive",
+        title: "Missing fields",
+        description: "Please provide a YouTube URL",
+      });
+      return;
+    }
+    
+    if (!title) {
+      toast({
+        variant: "destructive",
+        title: "Missing fields",
+        description: "Please provide a title",
       });
       return;
     }
@@ -79,68 +105,74 @@ export const VideoManager = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Upload video
-      const videoExt = videoFile.name.split(".").pop();
-      const videoPath = `${Date.now()}-${Math.random()}.${videoExt}`;
-      const { error: videoError } = await supabase.storage
-        .from("videos")
-        .upload(videoPath, videoFile);
-
-      if (videoError) throw videoError;
-
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from("videos")
-        .getPublicUrl(videoPath);
-
-      // Upload thumbnail if provided
+      let videoUrl = "";
       let thumbnailUrl = null;
-      if (thumbnailFile) {
-        const thumbExt = thumbnailFile.name.split(".").pop();
-        const thumbPath = `thumbnails/${Date.now()}-${Math.random()}.${thumbExt}`;
-        const { error: thumbError } = await supabase.storage
-          .from("videos")
-          .upload(thumbPath, thumbnailFile);
 
-        if (!thumbError) {
-          const { data: { publicUrl } } = supabase.storage
+      // Handle uploaded video
+      if (videoType === "upload" && videoFile) {
+        const videoExt = videoFile.name.split(".").pop();
+        const videoPath = `${Date.now()}-${Math.random()}.${videoExt}`;
+        const { error: videoError } = await supabase.storage
+          .from("videos")
+          .upload(videoPath, videoFile);
+
+        if (videoError) throw videoError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("videos")
+          .getPublicUrl(videoPath);
+        videoUrl = publicUrl;
+
+        // Upload thumbnail if provided
+        if (thumbnailFile) {
+          const thumbExt = thumbnailFile.name.split(".").pop();
+          const thumbPath = `thumbnails/${Date.now()}-${Math.random()}.${thumbExt}`;
+          const { error: thumbError } = await supabase.storage
             .from("videos")
-            .getPublicUrl(thumbPath);
-          thumbnailUrl = publicUrl;
+            .upload(thumbPath, thumbnailFile);
+
+          if (!thumbError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("videos")
+              .getPublicUrl(thumbPath);
+            thumbnailUrl = publicUrl;
+          }
         }
       }
 
       // Create video record
+      const videoData: any = {
+        title,
+        description,
+        category,
+        is_active: isActive,
+        video_type: videoType,
+      };
+
+      if (videoType === "upload") {
+        if (videoUrl) videoData.video_url = videoUrl;
+        if (thumbnailUrl) videoData.thumbnail_url = thumbnailUrl;
+      } else {
+        videoData.youtube_url = youtubeUrl;
+      }
+
       if (editingId) {
         const { error } = await supabase
           .from("videos")
-          .update({
-            title,
-            description,
-            category,
-            video_url: videoUrl,
-            thumbnail_url: thumbnailUrl,
-            is_active: isActive,
-          })
+          .update(videoData)
           .eq("id", editingId);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("videos").insert({
-          title,
-          description,
-          category,
-          video_url: videoUrl,
-          thumbnail_url: thumbnailUrl,
-          is_active: isActive,
-          created_by: user.id,
-        });
+        videoData.created_by = user.id;
+        const { error } = await supabase.from("videos").insert(videoData);
 
         if (error) throw error;
       }
 
       toast({
         title: "Success",
-        description: editingId ? "Video updated successfully" : "Video uploaded successfully",
+        description: editingId ? "Video updated successfully" : "Video added successfully",
       });
 
       // Reset form
@@ -150,13 +182,15 @@ export const VideoManager = () => {
       setVideoFile(null);
       setThumbnailFile(null);
       setIsActive(true);
+      setVideoType("upload");
+      setYoutubeUrl("");
       setEditingId(null);
       loadVideos();
     } catch (error: any) {
-      console.error("Error uploading video:", error);
+      console.error("Error saving video:", error);
       toast({
         variant: "destructive",
-        title: "Upload failed",
+        title: "Save failed",
         description: error.message || "Please try again",
       });
     } finally {
@@ -170,6 +204,8 @@ export const VideoManager = () => {
     setDescription(video.description || "");
     setCategory(video.category || "");
     setIsActive(video.is_active);
+    setVideoType((video.video_type as "upload" | "youtube") || "upload");
+    setYoutubeUrl(video.youtube_url || "");
   };
 
   const handleDelete = async (id: string, videoUrl: string) => {
@@ -209,6 +245,8 @@ export const VideoManager = () => {
     setVideoFile(null);
     setThumbnailFile(null);
     setIsActive(true);
+    setVideoType("upload");
+    setYoutubeUrl("");
   };
 
   if (loading) {
@@ -261,25 +299,56 @@ export const VideoManager = () => {
             </div>
 
             <div>
-              <Label htmlFor="video">Video File *</Label>
-              <Input
-                id="video"
-                type="file"
-                accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                required={!editingId}
-              />
+              <Label htmlFor="videoType">Video Type *</Label>
+              <Select value={videoType} onValueChange={(value: "upload" | "youtube") => setVideoType(value)}>
+                <SelectTrigger id="videoType">
+                  <SelectValue placeholder="Select video type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="upload">Upload Video File</SelectItem>
+                  <SelectItem value="youtube">Embed YouTube Video</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <Label htmlFor="thumbnail">Thumbnail Image (Optional)</Label>
-              <Input
-                id="thumbnail"
-                type="file"
-                accept="image/*"
-                onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
-              />
-            </div>
+            {videoType === "upload" ? (
+              <>
+                <div>
+                  <Label htmlFor="video">Video File *</Label>
+                  <Input
+                    id="video"
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                    required={!editingId}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="thumbnail">Thumbnail Image (Optional)</Label>
+                  <Input
+                    id="thumbnail"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <Label htmlFor="youtubeUrl">YouTube URL *</Label>
+                <Input
+                  id="youtubeUrl"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=... or video ID"
+                  required
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Paste the full YouTube URL or just the video ID
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center space-x-2">
               <Switch
@@ -319,12 +388,20 @@ export const VideoManager = () => {
         {videos.map((video) => (
           <Card key={video.id}>
             <CardContent className="p-4 space-y-3">
-              <VideoPlayer
-                src={video.video_url}
-                poster={video.thumbnail_url || undefined}
-                title={video.title}
-                className="w-full"
-              />
+              {video.video_type === "youtube" && video.youtube_url ? (
+                <YouTubeEmbed
+                  url={video.youtube_url}
+                  title={video.title}
+                  className="w-full"
+                />
+              ) : (
+                <VideoPlayer
+                  src={video.video_url}
+                  poster={video.thumbnail_url || undefined}
+                  title={video.title}
+                  className="w-full"
+                />
+              )}
               <div>
                 <h3 className="font-semibold">{video.title}</h3>
                 {video.description && (
@@ -332,11 +409,12 @@ export const VideoManager = () => {
                     {video.description}
                   </p>
                 )}
-                {video.category && (
-                  <span className="text-xs text-muted-foreground">
-                    Category: {video.category}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {video.category && <span>Category: {video.category}</span>}
+                  <span className="text-primary">
+                    {video.video_type === "youtube" ? "YouTube" : "Upload"}
                   </span>
-                )}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { YouTubeEmbed } from "@/components/YouTubeEmbed";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
@@ -22,6 +23,8 @@ interface Video {
   thumbnail_url: string | null;
   category: string | null;
   created_at: string;
+  video_type?: string;
+  youtube_url?: string | null;
 }
 
 const VideosPage = () => {
@@ -152,11 +155,19 @@ const VideosPage = () => {
           </DialogHeader>
           {selectedVideo && (
             <div className="mt-4">
-              <VideoPlayer
-                src={selectedVideo.video_url}
-                poster={selectedVideo.thumbnail_url || undefined}
-                className="w-full"
-              />
+              {selectedVideo.video_type === "youtube" && selectedVideo.youtube_url ? (
+                <YouTubeEmbed
+                  url={selectedVideo.youtube_url}
+                  title={selectedVideo.title}
+                  className="w-full"
+                />
+              ) : (
+                <VideoPlayer
+                  src={selectedVideo.video_url}
+                  poster={selectedVideo.thumbnail_url || undefined}
+                  className="w-full"
+                />
+              )}
             </div>
           )}
         </DialogContent>

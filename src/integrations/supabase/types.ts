@@ -2465,7 +2465,9 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           updated_at: string
+          video_type: string | null
           video_url: string
+          youtube_url: string | null
         }
         Insert: {
           category?: string | null
@@ -2479,7 +2481,9 @@ export type Database = {
           thumbnail_url?: string | null
           title: string
           updated_at?: string
+          video_type?: string | null
           video_url: string
+          youtube_url?: string | null
         }
         Update: {
           category?: string | null
@@ -2493,7 +2497,9 @@ export type Database = {
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
+          video_type?: string | null
           video_url?: string
+          youtube_url?: string | null
         }
         Relationships: []
       }
