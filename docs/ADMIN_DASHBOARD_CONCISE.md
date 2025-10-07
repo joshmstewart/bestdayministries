@@ -65,6 +65,10 @@ Central admin interface (`/admin`) for managing all platform content and setting
 **Component:** `SupportPageManager`
 - Configure donation page content
 - Stripe integration settings
+- View donation transactions (future)
+- Export donation data (future)
+**Status:** Webhook automation complete, admin UI pending
+**See:** `docs/DONATION_SYSTEM.md` for complete documentation
 
 ### Featured Item
 **Component:** `FeaturedItemManager`
