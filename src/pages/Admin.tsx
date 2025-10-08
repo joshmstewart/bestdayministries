@@ -43,6 +43,7 @@ import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyMana
 import { SavedLocationsManager } from "@/components/admin/SavedLocationsManager";
 import { PartnersManager } from "@/components/admin/PartnersManager";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
+import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -450,6 +451,8 @@ const Admin = () => {
             <ModerationPolicyManager />
             
             <MessageModerationQueue />
+
+            <EmailTemplatePreview />
 
             <Card>
               <CardHeader>
