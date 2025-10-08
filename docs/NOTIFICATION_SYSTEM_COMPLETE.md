@@ -26,7 +26,14 @@ Complete notification system with dual-channel delivery (in-app + email), user p
 - All preference columns for email + in-app independently (boolean, default: true)
 - **Email:** `email_on_pending_approval`, `email_on_approval_decision`, `email_on_new_sponsor_message`, `email_on_message_approved`, `email_on_message_rejected`, `email_on_new_event`, `email_on_event_update`, `email_on_new_sponsorship`, `email_on_sponsorship_update`, `email_on_comment_on_post`, `email_on_comment_on_thread`
 - **In-App:** `inapp_on_pending_approval`, `inapp_on_approval_decision`, `inapp_on_new_sponsor_message`, `inapp_on_message_approved`, `inapp_on_message_rejected`, `inapp_on_new_event`, `inapp_on_event_update`, `inapp_on_new_sponsorship`, `inapp_on_sponsorship_update`, `inapp_on_comment_on_post`, `inapp_on_comment_on_thread`
+- **Digest:** `digest_frequency` ('never', 'daily', 'weekly'), `last_digest_sent_at`
 - **RLS:** Users manage their own preferences
+
+**digest_emails_log**
+- `id`, `user_id`, `recipient_email`, `frequency`, `notification_count`, `sent_at`, `status`, `error_message`, `metadata`
+- **Purpose:** Track digest email delivery success/failure for audit and debugging
+- **RLS:** Users view own logs, Admins view all
+- **Status:** 'sent' or 'failed' with error details
 
 **email_notifications_log**
 - `id`, `user_id`, `recipient_email`, `notification_type`, `subject`, `status`, `error_message`, `metadata`, `sent_at`
@@ -40,6 +47,13 @@ Complete notification system with dual-channel delivery (in-app + email), user p
 - Returns all preference flags for a user
 - Defaults to `true` for all preferences if none exist
 - Used by email sending logic and triggers to respect user choices
+
+**get_users_needing_digest(_frequency)**
+- Returns users who have unread notifications and are due for a digest email
+- Checks `digest_frequency` preference and `last_digest_sent_at` timestamp
+- For daily: Returns users who haven't received a digest in 23+ hours
+- For weekly: Returns users who haven't received a digest in 6+ days, 23+ hours
+- Returns: `user_id`, `user_email`, `unread_count`
 
 **check_notification_rate_limit(_user_id, _endpoint, _max_requests, _window_minutes)**
 - Prevents notification spam by limiting frequency
@@ -115,6 +129,22 @@ Complete notification system with dual-channel delivery (in-app + email), user p
 - **Response:** `{success, emailId}` or `{success, skipped, reason}`
 - **Error Handling:** Logs failures, returns error details
 
+**send-digest-email** (`supabase/functions/send-digest-email/index.ts`)
+- **Auth:** Public (typically called via cron job)
+- **Request:** `{frequency: 'daily' | 'weekly'}`
+- **Flow:**
+  1. Call `get_users_needing_digest()` to find users with unread notifications
+  2. For each user:
+     - Fetch their unread notifications (up to 50 most recent)
+     - Group by notification type
+     - Build HTML digest email with all notifications
+     - Send via Resend API
+     - Update `last_digest_sent_at` timestamp
+     - Log to `digest_emails_log`
+  3. Return summary: processed, successful, failed counts
+- **Response:** `{success, processed, successful, failed}`
+- **Error Handling:** Logs individual failures, continues processing others
+
 ### 5. Frontend Components
 
 **NotificationBell** (`src/components/NotificationBell.tsx`)
@@ -188,9 +218,69 @@ END IF;
 - Users can still delete manually before expiry
 - Expired notifications excluded from queries automatically
 
----
+## DIGEST EMAIL SYSTEM
 
-## USER WORKFLOWS
+### Overview
+Users can opt to receive periodic digest emails (daily or weekly) instead of individual notification emails. Digests summarize all unread notifications grouped by type.
+
+### Configuration
+- **User Setting:** `notification_preferences.digest_frequency` ('never', 'daily', 'weekly')
+- **Tracking:** `notification_preferences.last_digest_sent_at` (timestamp of last digest sent)
+- **Schedule:** Should be run via cron job (see Scheduling section below)
+
+### Digest Content
+- **Grouping:** Notifications grouped by type (Pending Approvals, Comments, Messages, etc.)
+- **Limit:** Up to 50 most recent unread notifications per user
+- **Format:** HTML email with branded header, grouped sections, and "View All" button
+- **Email Subject:** "Your [Daily/Weekly] Notification Digest - X unread notifications"
+
+### Scheduling (Recommended)
+```sql
+-- Daily digests (run at 8 AM daily)
+SELECT cron.schedule(
+  'send-daily-digest',
+  '0 8 * * *',
+  $$
+  SELECT net.http_post(
+    url:='https://nbvijawmjkycyweioglk.supabase.co/functions/v1/send-digest-email',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_ANON_KEY"}'::jsonb,
+    body:='{"frequency": "daily"}'::jsonb
+  ) as request_id;
+  $$
+);
+
+-- Weekly digests (run at 8 AM every Monday)
+SELECT cron.schedule(
+  'send-weekly-digest',
+  '0 8 * * 1',
+  $$
+  SELECT net.http_post(
+    url:='https://nbvijawmjkycyweioglk.supabase.co/functions/v1/send-digest-email',
+    headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_ANON_KEY"}'::jsonb,
+    body:='{"frequency": "weekly"}'::jsonb
+  ) as request_id;
+  $$
+);
+```
+
+### Digest vs Individual Emails
+- When digest is enabled, users receive **NO individual notification emails**
+- In-app notifications still appear immediately regardless of digest setting
+- Digest emails include ALL unread notifications since last digest
+- Individual email preferences are ignored when digest is enabled
+
+### User Experience
+1. **Settings Page:** Users select digest frequency (Never, Daily, Weekly)
+2. **First Digest:** Sent at next scheduled time if user has unread notifications
+3. **Subsequent Digests:** Only sent if user has new unread notifications since last digest
+4. **Opt-Out:** Users can switch back to individual emails or disable all emails
+
+### Monitoring
+- **Digest Logs:** Check `digest_emails_log` for delivery status
+- **User Activity:** Query `last_digest_sent_at` to see when users last received digests
+- **Audit Trail:** All digest sends logged with notification count and status
+
+---
 
 ### 1. Receiving Notifications
 
@@ -351,9 +441,9 @@ FROM notifications;
 
 ## FUTURE ENHANCEMENTS
 
-- [ ] Push notifications (web push API for desktop/mobile browsers)
-- [ ] Notification grouping (e.g., "5 new comments on your post")
-- [ ] Digest emails (daily/weekly summaries of activity)
+- [x] ~~Push notifications (web push API for desktop/mobile browsers)~~ **NOT PLANNED**
+- [x] ~~Notification grouping (e.g., "5 new comments on your post")~~ **COULD IMPLEMENT**
+- [x] ~~Digest emails (daily/weekly summaries of activity)~~ ✅ **DONE**
 - [ ] Snooze functionality (dismiss temporarily, re-appear later)
 - [ ] Custom notification sounds per type
 - [ ] Rich notifications (inline images, action buttons)

@@ -70,6 +70,7 @@ const ProfileSettings = () => {
     inapp_on_sponsorship_update: true,
     inapp_on_comment_on_post: true,
     inapp_on_comment_on_thread: true,
+    digest_frequency: 'never' as 'never' | 'daily' | 'weekly',
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
   
@@ -334,7 +335,10 @@ const ProfileSettings = () => {
       }
 
       if (data) {
-        setNotificationPrefs(data);
+        setNotificationPrefs({
+          ...data,
+          digest_frequency: (data.digest_frequency || 'never') as 'never' | 'daily' | 'weekly'
+        });
       }
     } catch (error: any) {
       console.error("Error loading notification preferences:", error);
@@ -1011,6 +1015,45 @@ const ProfileSettings = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Email Digest Settings */}
+                  <div className="space-y-3 pt-4 border-t">
+                    <Label className="text-base">Email Digest</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Instead of individual emails, receive a summary of your notifications
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Digest frequency</Label>
+                          <p className="text-xs text-muted-foreground">Choose how often to receive digest emails</p>
+                        </div>
+                        <Select
+                          value={notificationPrefs.digest_frequency}
+                          onValueChange={(value: 'never' | 'daily' | 'weekly') => 
+                            setNotificationPrefs(prev => ({ ...prev, digest_frequency: value }))
+                          }
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="never">Never</SelectItem>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {notificationPrefs.digest_frequency !== 'never' && (
+                        <div className="bg-muted/50 p-3 rounded-lg text-sm text-muted-foreground">
+                          <p>
+                            📧 You'll receive a {notificationPrefs.digest_frequency} summary email with all your unread notifications 
+                            instead of individual notification emails.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
                   <Button
                     onClick={saveNotificationPreferences}

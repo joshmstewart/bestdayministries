@@ -449,6 +449,42 @@ export type Database = {
         }
         Relationships: []
       }
+      digest_emails_log: {
+        Row: {
+          error_message: string | null
+          frequency: string
+          id: string
+          metadata: Json | null
+          notification_count: number
+          recipient_email: string
+          sent_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          frequency: string
+          id?: string
+          metadata?: Json | null
+          notification_count: number
+          recipient_email: string
+          sent_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          error_message?: string | null
+          frequency?: string
+          id?: string
+          metadata?: Json | null
+          notification_count?: number
+          recipient_email?: string
+          sent_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       discussion_comments: {
         Row: {
           approval_status: string
@@ -1309,6 +1345,7 @@ export type Database = {
       notification_preferences: {
         Row: {
           created_at: string
+          digest_frequency: string | null
           email_on_approval_decision: boolean
           email_on_comment_on_post: boolean
           email_on_comment_on_thread: boolean
@@ -1332,11 +1369,13 @@ export type Database = {
           inapp_on_new_sponsorship: boolean
           inapp_on_pending_approval: boolean
           inapp_on_sponsorship_update: boolean
+          last_digest_sent_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          digest_frequency?: string | null
           email_on_approval_decision?: boolean
           email_on_comment_on_post?: boolean
           email_on_comment_on_thread?: boolean
@@ -1360,11 +1399,13 @@ export type Database = {
           inapp_on_new_sponsorship?: boolean
           inapp_on_pending_approval?: boolean
           inapp_on_sponsorship_update?: boolean
+          last_digest_sent_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          digest_frequency?: string | null
           email_on_approval_decision?: boolean
           email_on_comment_on_post?: boolean
           email_on_comment_on_thread?: boolean
@@ -1388,6 +1429,7 @@ export type Database = {
           inapp_on_new_sponsorship?: boolean
           inapp_on_pending_approval?: boolean
           inapp_on_sponsorship_update?: boolean
+          last_digest_sent_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2985,6 +3027,14 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_users_needing_digest: {
+        Args: { _frequency: string }
+        Returns: {
+          unread_count: number
+          user_email: string
+          user_id: string
+        }[]
       }
       has_admin_access: {
         Args: { _user_id: string }
