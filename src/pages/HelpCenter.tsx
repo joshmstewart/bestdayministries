@@ -29,6 +29,7 @@ interface Tour {
   duration_minutes: number | null;
   icon: string;
   steps: any[];
+  required_route?: string;
 }
 
 interface Guide {

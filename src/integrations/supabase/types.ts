@@ -1332,6 +1332,7 @@ export type Database = {
           icon: string
           id: string
           is_active: boolean
+          required_route: string | null
           steps: Json
           target_audience: string
           title: string
@@ -1347,6 +1348,7 @@ export type Database = {
           icon?: string
           id?: string
           is_active?: boolean
+          required_route?: string | null
           steps?: Json
           target_audience: string
           title: string
@@ -1362,6 +1364,7 @@ export type Database = {
           icon?: string
           id?: string
           is_active?: boolean
+          required_route?: string | null
           steps?: Json
           target_audience?: string
           title?: string

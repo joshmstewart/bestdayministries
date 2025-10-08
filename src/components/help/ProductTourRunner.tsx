@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Joyride, { Step, CallBackProps, STATUS } from "react-joyride";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,14 @@ interface ProductTourRunnerProps {
     title: string;
     description: string;
     steps: Step[];
+    required_route?: string;
   };
   onClose: () => void;
 }
 
 export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
-  const [run, setRun] = useState(true);
+  const navigate = useNavigate();
+  const [run, setRun] = useState(false);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status } = data;
@@ -26,9 +29,19 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   };
 
   useEffect(() => {
-    // Ensure tour starts after component mounts
-    setRun(true);
-  }, []);
+    // Navigate to required route if specified
+    if (tour.required_route) {
+      navigate(tour.required_route);
+      // Wait for navigation and page render before starting tour
+      const timer = setTimeout(() => {
+        setRun(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      // Start tour immediately if no navigation needed
+      setRun(true);
+    }
+  }, [tour.required_route, navigate]);
 
   return (
     <>
