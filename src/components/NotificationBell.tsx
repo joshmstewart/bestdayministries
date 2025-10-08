@@ -1,4 +1,4 @@
-import { Bell } from "lucide-react";
+import { Bell, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -8,9 +8,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationList } from "./NotificationList";
+import { useNavigate } from "react-router-dom";
 
 export const NotificationBell = () => {
   const { unreadCount } = useNotifications();
+  const navigate = useNavigate();
 
   return (
     <Popover>
@@ -38,6 +40,17 @@ export const NotificationBell = () => {
         sideOffset={8}
       >
         <NotificationList />
+        <div className="border-t p-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-center"
+            size="sm"
+            onClick={() => navigate('/notifications')}
+          >
+            View All Notifications
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );
