@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 
 import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { useGuardianApprovalsCount } from "@/hooks/useGuardianApprovalsCount";
@@ -296,6 +297,9 @@ export const UnifiedHeader = () => {
               </>
             ) : user && profile ? (
               <>
+                {/* Notification Bell */}
+                <NotificationBell />
+                
                 <Button 
                   variant="ghost" 
                   onClick={() => navigate("/profile")}
