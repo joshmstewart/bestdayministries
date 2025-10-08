@@ -1234,6 +1234,141 @@ export type Database = {
         }
         Relationships: []
       }
+      help_faqs: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          created_by: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          question: string
+          target_audience: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          question: string
+          target_audience?: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          question?: string
+          target_audience?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      help_guides: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          description: string
+          display_order: number
+          icon: string
+          id: string
+          is_active: boolean
+          reading_time_minutes: number | null
+          target_audience: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          display_order?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          reading_time_minutes?: number | null
+          target_audience?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          reading_time_minutes?: number | null
+          target_audience?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      help_tours: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          display_order: number
+          duration_minutes: number | null
+          icon: string
+          id: string
+          is_active: boolean
+          steps: Json
+          target_audience: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          display_order?: number
+          duration_minutes?: number | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          steps?: Json
+          target_audience: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          display_order?: number
+          duration_minutes?: number | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          steps?: Json
+          target_audience?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       homepage_sections: {
         Row: {
           content: Json | null
