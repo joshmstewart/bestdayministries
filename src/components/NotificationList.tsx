@@ -16,7 +16,7 @@ export const NotificationList = () => {
   } = useNotifications();
 
   return (
-    <div className="w-full">
+    <div className="w-full overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b gap-2">
         <h2 className="text-lg font-semibold">Notifications</h2>
         {notifications.length > 0 && (
