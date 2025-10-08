@@ -24,8 +24,8 @@ Complete notification system with dual-channel delivery (in-app + email), user p
 
 **notification_preferences**
 - All preference columns for email + in-app independently (boolean, default: true)
-- **Email:** `email_on_pending_approval`, `email_on_approval_decision`, `email_on_new_sponsor_message`, `email_on_message_approved`, `email_on_message_rejected`, `email_on_new_event`, `email_on_event_update`, `email_on_new_sponsorship`, `email_on_sponsorship_update`, `email_on_comment_on_post`, `email_on_comment_on_thread`
-- **In-App:** `inapp_on_pending_approval`, `inapp_on_approval_decision`, `inapp_on_new_sponsor_message`, `inapp_on_message_approved`, `inapp_on_message_rejected`, `inapp_on_new_event`, `inapp_on_event_update`, `inapp_on_new_sponsorship`, `inapp_on_sponsorship_update`, `inapp_on_comment_on_post`, `inapp_on_comment_on_thread`
+- **Email:** `email_on_pending_approval`, `email_on_approval_decision`, `email_on_new_sponsor_message`, `email_on_message_approved`, `email_on_message_rejected`, `email_on_new_event`, `email_on_event_update`, `email_on_new_sponsorship`, `email_on_sponsorship_update`, `email_on_comment_on_post`, `email_on_comment_on_thread`, `email_on_product_update`
+- **In-App:** `inapp_on_pending_approval`, `inapp_on_approval_decision`, `inapp_on_new_sponsor_message`, `inapp_on_message_approved`, `inapp_on_message_rejected`, `inapp_on_new_event`, `inapp_on_event_update`, `inapp_on_new_sponsorship`, `inapp_on_sponsorship_update`, `inapp_on_comment_on_post`, `inapp_on_comment_on_thread`, `inapp_on_product_update`
 - **Digest:** `digest_frequency` ('never', 'daily', 'weekly'), `last_digest_sent_at`
 - **RLS:** Users manage their own preferences
 
@@ -144,6 +144,18 @@ Complete notification system with dual-channel delivery (in-app + email), user p
   3. Return summary: processed, successful, failed counts
 - **Response:** `{success, processed, successful, failed}`
 - **Error Handling:** Logs individual failures, continues processing others
+
+**broadcast-product-update** (`supabase/functions/broadcast-product-update/index.ts`)
+- **Auth:** Requires admin/owner role
+- **Request:** `{title, message, link?, targetRoles?}`
+- **Flow:**
+  1. Verify admin/owner authorization
+  2. Fetch users (filtered by roles if specified)
+  3. Create `product_update` notifications for each user
+  4. Invoke `send-notification-email` for each user (async, non-blocking)
+  5. Return summary: notifications created, emails sent/failed
+- **Response:** `{notificationsSent, emailsSent, emailsFailed}`
+- **Purpose:** Admin broadcasts platform updates to users
 
 ### 5. Frontend Components
 
@@ -330,6 +342,7 @@ SELECT cron.schedule(
 | `event_update` | Event modified | Attendees | `/events?eventId=xxx` | `email_on_event_update` | `inapp_on_event_update` | ✅ 1/hr |
 | `comment_on_post` | New comment on user's post | Post author | `/discussions?postId=xxx` | `email_on_comment_on_post` | `inapp_on_comment_on_post` | ✅ 1/hr |
 | `comment_on_thread` | New comment on thread user participated in | Other commenters | `/discussions?postId=xxx` | `email_on_comment_on_thread` | `inapp_on_comment_on_thread` | ✅ 1/hr |
+| `product_update` | Admin broadcasts platform update | All users or specific roles | Custom link | `email_on_product_update` | `inapp_on_product_update` | ❌ No |
 
 ---
 
@@ -436,6 +449,64 @@ FROM notifications;
 4. **Preference Enforcement:** Respects user opt-outs at database level
 5. **Audit Trail:** All email sends logged with status/errors
 6. **Expiry:** Old notifications auto-deleted to prevent data accumulation
+
+---
+
+## PRODUCT UPDATE BROADCASTS
+
+**Location:** Admin → Product Updates
+
+### Overview
+Admins can broadcast platform announcements to all users or specific roles via in-app notifications and email.
+
+### Admin Component
+**ProductUpdateBroadcaster** (`src/components/admin/ProductUpdateBroadcaster.tsx`)
+- **Location:** Admin panel → Product Updates tab
+- **Interface:**
+  - Title input (required, max 100 chars)
+  - Message textarea (required, max 500 chars)
+  - Optional link input
+  - Role selector (checkboxes for targeting)
+- **Action:** "Send Update" button → calls `broadcast-product-update` edge function
+- **Feedback:** Toast on success/failure + summary (X notifications, Y emails sent, Z failed)
+
+### Edge Function
+**broadcast-product-update** (`supabase/functions/broadcast-product-update/index.ts`)
+- **Auth:** Requires admin/owner role
+- **Request:** `{title, message, link?, targetRoles?}`
+- **Flow:**
+  1. Verify admin/owner authorization
+  2. Fetch users (filtered by roles if specified)
+  3. Create `product_update` notifications for each user
+  4. Invoke `send-notification-email` for each user (async, respects preferences)
+  5. Return summary: notifications created, emails sent/failed
+- **Response:** `{notificationsSent, emailsSent, emailsFailed}`
+
+### User Preferences
+- `email_on_product_update` (default: true)
+- `inapp_on_product_update` (default: true)
+- Controllable via Settings → Notifications
+
+### Features
+- **Role Targeting:** Send to specific roles (bestie, caregiver, supporter, admin, owner, vendor) or all users
+- **Custom Links:** Optional action button in notification (e.g., link to blog post, new feature)
+- **Async Processing:** Email sending doesn't block response, failures logged but don't halt broadcast
+- **Audit Trail:** All notifications logged to `notifications` table, emails to `email_notifications_log`
+
+### Use Cases
+- New feature announcements
+- Platform maintenance notices
+- Policy updates
+- Community highlights
+- Event reminders
+
+### Future Enhancements
+- [ ] Schedule broadcasts for future dates
+- [ ] Notification templates for common updates
+- [ ] Attachment support (images, files)
+- [ ] Analytics (open rates, click-through rates)
+- [ ] Preview before sending
+- [ ] Draft saving
 
 ---
 

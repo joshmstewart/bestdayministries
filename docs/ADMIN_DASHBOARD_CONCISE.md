@@ -128,6 +128,15 @@ Central admin interface (`/admin`) for managing all platform content and setting
   - Quick visibility toggle
 **See:** `docs/HELP_CENTER_SYSTEM.md` for complete documentation
 
+### Product Updates
+**Component:** `ProductUpdateBroadcaster`
+- Broadcast platform announcements to users
+- Target all users or specific roles
+- Custom title, message, and optional link
+- Creates in-app notifications + sends emails
+- Respects user notification preferences
+**See:** `docs/NOTIFICATION_SYSTEM_COMPLETE.md` for complete notification documentation
+
 ### Notifications
 **Component:** `EmailTemplatePreview`
 - Preview email notification templates
