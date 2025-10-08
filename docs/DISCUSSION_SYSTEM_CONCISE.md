@@ -109,7 +109,7 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 - Video selection (none/select/youtube)
 - Event link (optional dropdown)
 - Visibility roles (checkboxes: caregiver, bestie, supporter)
-- **Allow Owner Claim** (admins only) - Checkbox to consent to owner changing authorship
+- **Allow Owner Claim** (admins and owners) - Checkbox to consent to owner changing authorship
 
 ### Comment Input
 - Text OR Audio (mutually exclusive)
