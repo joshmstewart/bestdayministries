@@ -905,6 +905,35 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
                 rows={2}
               />
             </div>
+            <div className="space-y-2">
+              <Label>BDE Logo</Label>
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageSelect(e, "bde_logo_url")}
+                  className="cursor-pointer"
+                />
+                {content.bde_logo_url && (
+                  <div className="relative inline-block">
+                    <img
+                      src={content.bde_logo_url}
+                      alt="BDE Logo Preview"
+                      className="w-full h-32 object-contain rounded bg-muted"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => setContent({ ...content, bde_logo_url: "" })}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="bde_address">BDE Address</Label>

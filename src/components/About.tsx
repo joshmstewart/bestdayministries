@@ -19,6 +19,7 @@ interface AboutContent {
   doc_youtube_url?: string;
   doc_vimeo_url?: string;
   doc_dailymotion_url?: string;
+  bde_logo_url?: string;
   bde_description1?: string;
   bde_description2?: string;
   bde_address?: string;
@@ -49,6 +50,7 @@ const About = ({ content = {} }: AboutProps) => {
     doc_youtube_url = "https://youtu.be/PKOW21IHNTG",
     doc_vimeo_url = "https://vimeo.com/1007746953",
     doc_dailymotion_url = "https://dailymotion.com/video/k4dqavontriwf6brvls",
+    bde_logo_url = bdeLogo,
     bde_description1 = "The founders of Best Day Ministries have opened a partner company, best day ever! coffee + crepes in Longmont, Colorado.",
     bde_description2 = "Come in for delicious crepes, coffee, and ice cream while supporting our mission!",
     bde_address = "516 Coffman Street",
@@ -170,7 +172,7 @@ const About = ({ content = {} }: AboutProps) => {
               <div className="grid md:grid-cols-2 gap-0">
                 <div className="p-8 md:p-12 space-y-6 order-2 md:order-1">
                   <img 
-                    src={bdeLogo} 
+                    src={bde_logo_url} 
                     alt="Best Day Ever Coffee + Crepes" 
                     className="w-64 h-auto mb-6"
                   />
@@ -196,12 +198,9 @@ const About = ({ content = {} }: AboutProps) => {
                   </div>
                   
                   <Button 
+                    variant="ghost"
                     size="lg" 
-                    className="shadow-md hover:shadow-lg transition-all hover:scale-105"
-                    style={{ 
-                      backgroundColor: 'hsl(13 33% 36%)',
-                      color: 'hsl(27 41% 88%)'
-                    }}
+                    className="shadow-md hover:shadow-lg transition-all hover:scale-105 bg-[hsl(13,33%,36%)] hover:bg-[hsl(13,33%,36%)]/90 text-[hsl(27,41%,88%)]"
                     onClick={() => {
                       if (bde_button_link_type === "internal") {
                         window.location.href = bde_button_link;
