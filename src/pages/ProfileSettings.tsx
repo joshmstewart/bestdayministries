@@ -427,7 +427,7 @@ const ProfileSettings = () => {
         <div className="max-w-2xl mx-auto space-y-8">
           <div>
             <h1 className="text-4xl font-black text-foreground">
-              Profile <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Settings</span>
+              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Settings</span>
             </h1>
             <p className="text-muted-foreground mt-2">
               Customize your profile and preferences
@@ -731,9 +731,12 @@ const ProfileSettings = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Header row for Email and In-App columns */}
-                  <div className="flex justify-end gap-8 pb-2 border-b">
-                    <span className="text-xs font-semibold text-muted-foreground w-16 text-center">Email</span>
-                    <span className="text-xs font-semibold text-muted-foreground w-16 text-center">In-App</span>
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <div className="flex-1"></div>
+                    <div className="flex gap-4 items-center">
+                      <span className="text-xs font-semibold text-muted-foreground w-12 text-center">Email</span>
+                      <span className="text-xs font-semibold text-muted-foreground w-12 text-center">In-App</span>
+                    </div>
                   </div>
                   {/* Guardian/Admin Notifications - Only show if user is guardian/admin/owner */}
                   {(profile?.role === "caregiver" || profile?.role === "admin" || profile?.role === "owner") && (
@@ -745,7 +748,7 @@ const ProfileSettings = () => {
                             <Label className="font-normal">Pending approvals</Label>
                             <p className="text-xs text-muted-foreground">When content needs your approval</p>
                           </div>
-                          <div className="flex gap-8 items-center">
+                          <div className="flex gap-4 items-center">
                             <Switch
                               checked={notificationPrefs.email_on_pending_approval}
                               onCheckedChange={(checked) => 
@@ -765,7 +768,7 @@ const ProfileSettings = () => {
                             <Label className="font-normal">Approval decisions</Label>
                             <p className="text-xs text-muted-foreground">When your content is approved/rejected</p>
                           </div>
-                          <div className="flex gap-8 items-center">
+                          <div className="flex gap-4 items-center">
                             <Switch
                               checked={notificationPrefs.email_on_approval_decision}
                               onCheckedChange={(checked) => 
@@ -793,7 +796,7 @@ const ProfileSettings = () => {
                           <Label className="font-normal">Comments on your posts</Label>
                           <p className="text-xs text-muted-foreground">When someone comments on a post you created</p>
                         </div>
-                        <div className="flex gap-8 items-center">
+                        <div className="flex gap-4 items-center">
                           <Switch
                             checked={notificationPrefs.email_on_comment_on_post}
                             onCheckedChange={(checked) => 
@@ -813,7 +816,7 @@ const ProfileSettings = () => {
                           <Label className="font-normal">Comments on discussions you're in</Label>
                           <p className="text-xs text-muted-foreground">When someone else comments on a post you commented on</p>
                         </div>
-                        <div className="flex gap-8 items-center">
+                        <div className="flex gap-4 items-center">
                           <Switch
                             checked={notificationPrefs.email_on_comment_on_thread}
                             onCheckedChange={(checked) => 
@@ -842,7 +845,7 @@ const ProfileSettings = () => {
                             <Label className="font-normal">New messages</Label>
                             <p className="text-xs text-muted-foreground">When you receive a new message</p>
                           </div>
-                          <div className="flex gap-8 items-center">
+                          <div className="flex gap-4 items-center">
                             <Switch
                               checked={notificationPrefs.email_on_new_sponsor_message}
                               onCheckedChange={(checked) => 
@@ -866,7 +869,7 @@ const ProfileSettings = () => {
                               <Label className="font-normal">Message approved</Label>
                               <p className="text-xs text-muted-foreground">When your message is approved</p>
                             </div>
-                            <div className="flex gap-8 items-center">
+                            <div className="flex gap-4 items-center">
                               <Switch
                                 checked={notificationPrefs.email_on_message_approved}
                                 onCheckedChange={(checked) => 
@@ -886,7 +889,7 @@ const ProfileSettings = () => {
                               <Label className="font-normal">Message rejected</Label>
                               <p className="text-xs text-muted-foreground">When your message is rejected</p>
                             </div>
-                            <div className="flex gap-8 items-center">
+                            <div className="flex gap-4 items-center">
                               <Switch
                                 checked={notificationPrefs.email_on_message_rejected}
                                 onCheckedChange={(checked) => 
@@ -922,7 +925,7 @@ const ProfileSettings = () => {
                           <Label className="font-normal">New events</Label>
                           <p className="text-xs text-muted-foreground">When new events are created</p>
                         </div>
-                        <div className="flex gap-8 items-center">
+                        <div className="flex gap-4 items-center">
                           <Switch
                             checked={notificationPrefs.email_on_new_event}
                             onCheckedChange={(checked) => 
@@ -942,7 +945,7 @@ const ProfileSettings = () => {
                           <Label className="font-normal">Event updates</Label>
                           <p className="text-xs text-muted-foreground">When events are modified</p>
                         </div>
-                        <div className="flex gap-8 items-center">
+                        <div className="flex gap-4 items-center">
                           <Switch
                             checked={notificationPrefs.email_on_event_update}
                             onCheckedChange={(checked) => 
@@ -970,7 +973,7 @@ const ProfileSettings = () => {
                             <Label className="font-normal">New sponsorships</Label>
                             <p className="text-xs text-muted-foreground">When you receive a new sponsorship</p>
                           </div>
-                          <div className="flex gap-8 items-center">
+                          <div className="flex gap-4 items-center">
                             <Switch
                               checked={notificationPrefs.email_on_new_sponsorship}
                               onCheckedChange={(checked) => 
@@ -990,7 +993,7 @@ const ProfileSettings = () => {
                             <Label className="font-normal">Sponsorship updates</Label>
                             <p className="text-xs text-muted-foreground">When sponsorships are modified</p>
                           </div>
-                          <div className="flex gap-8 items-center">
+                          <div className="flex gap-4 items-center">
                             <Switch
                               checked={notificationPrefs.email_on_sponsorship_update}
                               onCheckedChange={(checked) => 
