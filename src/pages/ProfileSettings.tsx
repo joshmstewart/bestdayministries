@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Volume2, Copy, RefreshCw } from "lucide-react";
+import { Save, Volume2, Copy, RefreshCw, Bell } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
@@ -44,6 +44,20 @@ const ProfileSettings = () => {
   const [selectedVoice, setSelectedVoice] = useState<string>("Aria");
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [generatingCode, setGeneratingCode] = useState(false);
+  
+  // Notification preferences state
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    email_on_pending_approval: true,
+    email_on_approval_decision: true,
+    email_on_new_sponsor_message: true,
+    email_on_message_approved: true,
+    email_on_message_rejected: true,
+    email_on_new_event: true,
+    email_on_event_update: false,
+    email_on_new_sponsorship: true,
+    email_on_sponsorship_update: true,
+  });
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -59,6 +73,7 @@ const ProfileSettings = () => {
 
     setUser(session.user);
     await loadProfile(session.user.id);
+    await loadNotificationPreferences(session.user.id);
     setLoading(false);
   };
 
@@ -247,6 +262,57 @@ const ProfileSettings = () => {
     { value: "marshal", label: "Marshal", description: "Strong and confident voice" },
     { value: "maverick", label: "Maverick", description: "Cool and adventurous voice" },
   ];
+
+  const loadNotificationPreferences = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("notification_preferences")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error loading notification preferences:", error);
+        return;
+      }
+
+      if (data) {
+        setNotificationPrefs(data);
+      }
+    } catch (error: any) {
+      console.error("Error loading notification preferences:", error);
+    }
+  };
+
+  const saveNotificationPreferences = async () => {
+    if (!user) return;
+
+    setSavingNotifications(true);
+    try {
+      const { error } = await supabase
+        .from("notification_preferences")
+        .upsert({
+          user_id: user.id,
+          ...notificationPrefs,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Preferences saved!",
+        description: "Your notification preferences have been updated.",
+      });
+    } catch (error: any) {
+      console.error("Error saving notification preferences:", error);
+      toast({
+        title: "Error saving preferences",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   const testVoice = async (voiceName: string) => {
     try {
@@ -540,6 +606,186 @@ const ProfileSettings = () => {
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Notification Preferences */}
+              <Card className="border-dashed border-2 border-secondary/50">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Bell className="w-5 h-5" />
+                    Email Notifications
+                  </CardTitle>
+                  <CardDescription>
+                    Choose which email notifications you want to receive
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Guardian/Admin Notifications */}
+                  {(profile?.role === "caregiver" || profile?.role === "admin" || profile?.role === "owner") && (
+                    <div className="space-y-3 pb-4 border-b">
+                      <Label className="text-base">Guardian & Admin</Label>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="pending-approval" className="font-normal">Pending approvals</Label>
+                            <p className="text-xs text-muted-foreground">When content needs your approval</p>
+                          </div>
+                          <Switch
+                            id="pending-approval"
+                            checked={notificationPrefs.email_on_pending_approval}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_pending_approval: checked }))
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="approval-decision" className="font-normal">Approval decisions</Label>
+                            <p className="text-xs text-muted-foreground">When your content is approved/rejected</p>
+                          </div>
+                          <Switch
+                            id="approval-decision"
+                            checked={notificationPrefs.email_on_approval_decision}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_approval_decision: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sponsorship Messages */}
+                  <div className="space-y-3 pb-4 border-b">
+                    <Label className="text-base">Sponsorship Messages</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="new-message" className="font-normal">New messages</Label>
+                          <p className="text-xs text-muted-foreground">When you receive a new message</p>
+                        </div>
+                        <Switch
+                          id="new-message"
+                          checked={notificationPrefs.email_on_new_sponsor_message}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsor_message: checked }))
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="message-approved" className="font-normal">Message approved</Label>
+                          <p className="text-xs text-muted-foreground">When your message is approved</p>
+                        </div>
+                        <Switch
+                          id="message-approved"
+                          checked={notificationPrefs.email_on_message_approved}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_message_approved: checked }))
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="message-rejected" className="font-normal">Message rejected</Label>
+                          <p className="text-xs text-muted-foreground">When your message is rejected</p>
+                        </div>
+                        <Switch
+                          id="message-rejected"
+                          checked={notificationPrefs.email_on_message_rejected}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_message_rejected: checked }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Events */}
+                  <div className="space-y-3 pb-4 border-b">
+                    <Label className="text-base">Events</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="new-event" className="font-normal">New events</Label>
+                          <p className="text-xs text-muted-foreground">When new events are created</p>
+                        </div>
+                        <Switch
+                          id="new-event"
+                          checked={notificationPrefs.email_on_new_event}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_new_event: checked }))
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="event-update" className="font-normal">Event updates</Label>
+                          <p className="text-xs text-muted-foreground">When events are modified</p>
+                        </div>
+                        <Switch
+                          id="event-update"
+                          checked={notificationPrefs.email_on_event_update}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_event_update: checked }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sponsorships */}
+                  <div className="space-y-3">
+                    <Label className="text-base">Sponsorships</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="new-sponsorship" className="font-normal">New sponsorships</Label>
+                          <p className="text-xs text-muted-foreground">When you receive a new sponsorship</p>
+                        </div>
+                        <Switch
+                          id="new-sponsorship"
+                          checked={notificationPrefs.email_on_new_sponsorship}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsorship: checked }))
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="sponsorship-update" className="font-normal">Sponsorship updates</Label>
+                          <p className="text-xs text-muted-foreground">When sponsorships are modified</p>
+                        </div>
+                        <Switch
+                          id="sponsorship-update"
+                          checked={notificationPrefs.email_on_sponsorship_update}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_sponsorship_update: checked }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={saveNotificationPreferences}
+                    disabled={savingNotifications}
+                    className="w-full gap-2"
+                    variant="outline"
+                  >
+                    {savingNotifications ? (
+                      <>
+                        <Save className="w-4 h-4 animate-pulse" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Save Notification Preferences
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
 
