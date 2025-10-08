@@ -1321,6 +1321,17 @@ export type Database = {
           email_on_pending_approval: boolean
           email_on_sponsorship_update: boolean
           id: string
+          inapp_on_approval_decision: boolean
+          inapp_on_comment_on_post: boolean
+          inapp_on_comment_on_thread: boolean
+          inapp_on_event_update: boolean
+          inapp_on_message_approved: boolean
+          inapp_on_message_rejected: boolean
+          inapp_on_new_event: boolean
+          inapp_on_new_sponsor_message: boolean
+          inapp_on_new_sponsorship: boolean
+          inapp_on_pending_approval: boolean
+          inapp_on_sponsorship_update: boolean
           updated_at: string
           user_id: string
         }
@@ -1338,6 +1349,17 @@ export type Database = {
           email_on_pending_approval?: boolean
           email_on_sponsorship_update?: boolean
           id?: string
+          inapp_on_approval_decision?: boolean
+          inapp_on_comment_on_post?: boolean
+          inapp_on_comment_on_thread?: boolean
+          inapp_on_event_update?: boolean
+          inapp_on_message_approved?: boolean
+          inapp_on_message_rejected?: boolean
+          inapp_on_new_event?: boolean
+          inapp_on_new_sponsor_message?: boolean
+          inapp_on_new_sponsorship?: boolean
+          inapp_on_pending_approval?: boolean
+          inapp_on_sponsorship_update?: boolean
           updated_at?: string
           user_id: string
         }
@@ -1355,6 +1377,17 @@ export type Database = {
           email_on_pending_approval?: boolean
           email_on_sponsorship_update?: boolean
           id?: string
+          inapp_on_approval_decision?: boolean
+          inapp_on_comment_on_post?: boolean
+          inapp_on_comment_on_thread?: boolean
+          inapp_on_event_update?: boolean
+          inapp_on_message_approved?: boolean
+          inapp_on_message_rejected?: boolean
+          inapp_on_new_event?: boolean
+          inapp_on_new_sponsor_message?: boolean
+          inapp_on_new_sponsorship?: boolean
+          inapp_on_pending_approval?: boolean
+          inapp_on_sponsorship_update?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -2922,6 +2955,8 @@ export type Database = {
         Args: { _user_id: string }
         Returns: {
           email_on_approval_decision: boolean
+          email_on_comment_on_post: boolean
+          email_on_comment_on_thread: boolean
           email_on_event_update: boolean
           email_on_message_approved: boolean
           email_on_message_rejected: boolean
@@ -2930,6 +2965,17 @@ export type Database = {
           email_on_new_sponsorship: boolean
           email_on_pending_approval: boolean
           email_on_sponsorship_update: boolean
+          inapp_on_approval_decision: boolean
+          inapp_on_comment_on_post: boolean
+          inapp_on_comment_on_thread: boolean
+          inapp_on_event_update: boolean
+          inapp_on_message_approved: boolean
+          inapp_on_message_rejected: boolean
+          inapp_on_new_event: boolean
+          inapp_on_new_sponsor_message: boolean
+          inapp_on_new_sponsorship: boolean
+          inapp_on_pending_approval: boolean
+          inapp_on_sponsorship_update: boolean
         }[]
       }
       get_user_email: {

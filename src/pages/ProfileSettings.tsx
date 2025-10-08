@@ -59,6 +59,17 @@ const ProfileSettings = () => {
     email_on_sponsorship_update: true,
     email_on_comment_on_post: true,
     email_on_comment_on_thread: true,
+    inapp_on_pending_approval: true,
+    inapp_on_approval_decision: true,
+    inapp_on_new_sponsor_message: true,
+    inapp_on_message_approved: true,
+    inapp_on_message_rejected: true,
+    inapp_on_new_event: true,
+    inapp_on_event_update: false,
+    inapp_on_new_sponsorship: true,
+    inapp_on_sponsorship_update: true,
+    inapp_on_comment_on_post: true,
+    inapp_on_comment_on_thread: true,
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
   
@@ -712,43 +723,62 @@ const ProfileSettings = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="w-5 h-5" />
-                    Email Notifications
+                    Notification Preferences
                   </CardTitle>
                   <CardDescription>
-                    Choose which email notifications you want to receive
+                    Choose how you want to receive notifications - via email, in-app, or both
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Header row for Email and In-App columns */}
+                  <div className="flex justify-end gap-8 pb-2 border-b">
+                    <span className="text-xs font-semibold text-muted-foreground w-16 text-center">Email</span>
+                    <span className="text-xs font-semibold text-muted-foreground w-16 text-center">In-App</span>
+                  </div>
                   {/* Guardian/Admin Notifications - Only show if user is guardian/admin/owner */}
                   {(profile?.role === "caregiver" || profile?.role === "admin" || profile?.role === "owner") && (
                     <div className="space-y-3 pb-4 border-b">
                       <Label className="text-base">Guardian & Admin</Label>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="pending-approval" className="font-normal">Pending approvals</Label>
+                          <div className="space-y-0.5 flex-1">
+                            <Label className="font-normal">Pending approvals</Label>
                             <p className="text-xs text-muted-foreground">When content needs your approval</p>
                           </div>
-                          <Switch
-                            id="pending-approval"
-                            checked={notificationPrefs.email_on_pending_approval}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, email_on_pending_approval: checked }))
-                            }
-                          />
+                          <div className="flex gap-8 items-center">
+                            <Switch
+                              checked={notificationPrefs.email_on_pending_approval}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, email_on_pending_approval: checked }))
+                              }
+                            />
+                            <Switch
+                              checked={notificationPrefs.inapp_on_pending_approval}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, inapp_on_pending_approval: checked }))
+                              }
+                            />
+                          </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="approval-decision" className="font-normal">Approval decisions</Label>
+                          <div className="space-y-0.5 flex-1">
+                            <Label className="font-normal">Approval decisions</Label>
                             <p className="text-xs text-muted-foreground">When your content is approved/rejected</p>
                           </div>
-                          <Switch
-                            id="approval-decision"
-                            checked={notificationPrefs.email_on_approval_decision}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, email_on_approval_decision: checked }))
-                            }
-                          />
+                          <div className="flex gap-8 items-center">
+                            <Switch
+                              checked={notificationPrefs.email_on_approval_decision}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, email_on_approval_decision: checked }))
+                              }
+                            />
+                            <Switch
+                              checked={notificationPrefs.inapp_on_approval_decision}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, inapp_on_approval_decision: checked }))
+                              }
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -759,30 +789,44 @@ const ProfileSettings = () => {
                     <Label className="text-base">Discussion Activity</Label>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="comment-on-post" className="font-normal">Comments on your posts</Label>
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Comments on your posts</Label>
                           <p className="text-xs text-muted-foreground">When someone comments on a post you created</p>
                         </div>
-                        <Switch
-                          id="comment-on-post"
-                          checked={notificationPrefs.email_on_comment_on_post}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_comment_on_post: checked }))
-                          }
-                        />
+                        <div className="flex gap-8 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_comment_on_post}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_comment_on_post: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_comment_on_post}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_comment_on_post: checked }))
+                            }
+                          />
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="comment-on-thread" className="font-normal">Comments on discussions you're in</Label>
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Comments on discussions you're in</Label>
                           <p className="text-xs text-muted-foreground">When someone else comments on a post you commented on</p>
                         </div>
-                        <Switch
-                          id="comment-on-thread"
-                          checked={notificationPrefs.email_on_comment_on_thread}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_comment_on_thread: checked }))
-                          }
-                        />
+                        <div className="flex gap-8 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_comment_on_thread}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_comment_on_thread: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_comment_on_thread}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_comment_on_thread: checked }))
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -794,47 +838,68 @@ const ProfileSettings = () => {
                       {/* New messages - Only show if user is actively sponsoring someone */}
                       {isSponsor && (
                         <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="new-message" className="font-normal">New messages</Label>
+                          <div className="space-y-0.5 flex-1">
+                            <Label className="font-normal">New messages</Label>
                             <p className="text-xs text-muted-foreground">When you receive a new message</p>
                           </div>
-                          <Switch
-                            id="new-message"
-                            checked={notificationPrefs.email_on_new_sponsor_message}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsor_message: checked }))
-                            }
-                          />
+                          <div className="flex gap-8 items-center">
+                            <Switch
+                              checked={notificationPrefs.email_on_new_sponsor_message}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsor_message: checked }))
+                              }
+                            />
+                            <Switch
+                              checked={notificationPrefs.inapp_on_new_sponsor_message}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, inapp_on_new_sponsor_message: checked }))
+                              }
+                            />
+                          </div>
                         </div>
                       )}
                       {/* Message approved/rejected - Only show if user is a bestie */}
                       {isBestie && (
                         <>
                           <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label htmlFor="message-approved" className="font-normal">Message approved</Label>
+                            <div className="space-y-0.5 flex-1">
+                              <Label className="font-normal">Message approved</Label>
                               <p className="text-xs text-muted-foreground">When your message is approved</p>
                             </div>
-                            <Switch
-                              id="message-approved"
-                              checked={notificationPrefs.email_on_message_approved}
-                              onCheckedChange={(checked) => 
-                                setNotificationPrefs(prev => ({ ...prev, email_on_message_approved: checked }))
-                              }
-                            />
+                            <div className="flex gap-8 items-center">
+                              <Switch
+                                checked={notificationPrefs.email_on_message_approved}
+                                onCheckedChange={(checked) => 
+                                  setNotificationPrefs(prev => ({ ...prev, email_on_message_approved: checked }))
+                                }
+                              />
+                              <Switch
+                                checked={notificationPrefs.inapp_on_message_approved}
+                                onCheckedChange={(checked) => 
+                                  setNotificationPrefs(prev => ({ ...prev, inapp_on_message_approved: checked }))
+                                }
+                              />
+                            </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label htmlFor="message-rejected" className="font-normal">Message rejected</Label>
+                            <div className="space-y-0.5 flex-1">
+                              <Label className="font-normal">Message rejected</Label>
                               <p className="text-xs text-muted-foreground">When your message is rejected</p>
                             </div>
-                            <Switch
-                              id="message-rejected"
-                              checked={notificationPrefs.email_on_message_rejected}
-                              onCheckedChange={(checked) => 
-                                setNotificationPrefs(prev => ({ ...prev, email_on_message_rejected: checked }))
-                              }
-                            />
+                            <div className="flex gap-8 items-center">
+                              <Switch
+                                checked={notificationPrefs.email_on_message_rejected}
+                                onCheckedChange={(checked) => 
+                                  setNotificationPrefs(prev => ({ ...prev, email_on_message_rejected: checked }))
+                                }
+                              />
+                              <Switch
+                                checked={notificationPrefs.inapp_on_message_rejected}
+                                onCheckedChange={(checked) => 
+                                  setNotificationPrefs(prev => ({ ...prev, inapp_on_message_rejected: checked }))
+                                }
+                              />
+                            </div>
                           </div>
                         </>
                       )}
@@ -853,30 +918,44 @@ const ProfileSettings = () => {
                     <Label className="text-base">Events</Label>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="new-event" className="font-normal">New events</Label>
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">New events</Label>
                           <p className="text-xs text-muted-foreground">When new events are created</p>
                         </div>
-                        <Switch
-                          id="new-event"
-                          checked={notificationPrefs.email_on_new_event}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_new_event: checked }))
-                          }
-                        />
+                        <div className="flex gap-8 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_new_event}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_new_event: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_new_event}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_new_event: checked }))
+                            }
+                          />
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="event-update" className="font-normal">Event updates</Label>
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Event updates</Label>
                           <p className="text-xs text-muted-foreground">When events are modified</p>
                         </div>
-                        <Switch
-                          id="event-update"
-                          checked={notificationPrefs.email_on_event_update}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_event_update: checked }))
-                          }
-                        />
+                        <div className="flex gap-8 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_event_update}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_event_update: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_event_update}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_event_update: checked }))
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -887,30 +966,44 @@ const ProfileSettings = () => {
                       <Label className="text-base">Sponsorships</Label>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="new-sponsorship" className="font-normal">New sponsorships</Label>
+                          <div className="space-y-0.5 flex-1">
+                            <Label className="font-normal">New sponsorships</Label>
                             <p className="text-xs text-muted-foreground">When you receive a new sponsorship</p>
                           </div>
-                          <Switch
-                            id="new-sponsorship"
-                            checked={notificationPrefs.email_on_new_sponsorship}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsorship: checked }))
-                            }
-                          />
+                          <div className="flex gap-8 items-center">
+                            <Switch
+                              checked={notificationPrefs.email_on_new_sponsorship}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsorship: checked }))
+                              }
+                            />
+                            <Switch
+                              checked={notificationPrefs.inapp_on_new_sponsorship}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, inapp_on_new_sponsorship: checked }))
+                              }
+                            />
+                          </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="sponsorship-update" className="font-normal">Sponsorship updates</Label>
+                          <div className="space-y-0.5 flex-1">
+                            <Label className="font-normal">Sponsorship updates</Label>
                             <p className="text-xs text-muted-foreground">When sponsorships are modified</p>
                           </div>
-                          <Switch
-                            id="sponsorship-update"
-                            checked={notificationPrefs.email_on_sponsorship_update}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, email_on_sponsorship_update: checked }))
-                            }
-                          />
+                          <div className="flex gap-8 items-center">
+                            <Switch
+                              checked={notificationPrefs.email_on_sponsorship_update}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, email_on_sponsorship_update: checked }))
+                              }
+                            />
+                            <Switch
+                              checked={notificationPrefs.inapp_on_sponsorship_update}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, inapp_on_sponsorship_update: checked }))
+                              }
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
