@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Youtube, Play } from "lucide-react";
+import { Youtube } from "lucide-react";
 
 interface YouTubeChannelProps {
   content?: {
@@ -9,9 +9,6 @@ interface YouTubeChannelProps {
     description?: string;
     channel_url?: string;
     button_text?: string;
-    documentary_youtube_url?: string;
-    documentary_vimeo_url?: string;
-    documentary_dailymotion_url?: string;
   };
 }
 
@@ -21,18 +18,11 @@ export function YouTubeChannel({ content = {} }: YouTubeChannelProps) {
     heading = "Subscribe to Our Channel",
     description = "Follow our journey and stay updated with our latest videos.",
     channel_url = "https://youtube.com/@bestdayeveraustin",
-    button_text = "Visit Our Channel",
-    documentary_youtube_url = "https://youtu.be/PKOW21IHNTG",
-    documentary_vimeo_url = "https://vimeo.com/1007746953",
-    documentary_dailymotion_url = "https://dailymotion.com/video/k4dqavontriwf6brvls"
+    button_text = "Visit Our Channel"
   } = content;
 
   const handleChannelClick = () => {
     window.open(channel_url, "_blank", "noopener,noreferrer");
-  };
-
-  const handleDocumentaryClick = (url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -65,36 +55,6 @@ export function YouTubeChannel({ content = {} }: YouTubeChannelProps) {
               <Youtube className="mr-2 h-5 w-5" />
               {button_text}
             </Button>
-
-            <div className="w-full max-w-md mt-6 pt-6 border-t">
-              <h3 className="text-xl font-semibold mb-4 font-['Roca']">Watch Joy Redefined Documentary</h3>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button 
-                  onClick={() => handleDocumentaryClick(documentary_youtube_url)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  YouTube
-                </Button>
-                <Button 
-                  onClick={() => handleDocumentaryClick(documentary_vimeo_url)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Vimeo
-                </Button>
-                <Button 
-                  onClick={() => handleDocumentaryClick(documentary_dailymotion_url)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Dailymotion
-                </Button>
-              </div>
-            </div>
           </div>
         </Card>
       </div>

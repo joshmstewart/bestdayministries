@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coffee, Film, MapPin, Clock } from "lucide-react";
+import { Coffee, Film, MapPin, Clock, Play } from "lucide-react";
 import bdeLogo from "@/assets/bde-logo-transparent.png";
 import teamWithFounder from "@/assets/team-with-founder.jpg";
 import bdeOutdoorEvent from "@/assets/bde-outdoor-event.jpg";
@@ -16,6 +16,9 @@ interface AboutContent {
   doc_button_link?: string;
   doc_button_link_type?: string;
   doc_image_url?: string;
+  doc_youtube_url?: string;
+  doc_vimeo_url?: string;
+  doc_dailymotion_url?: string;
   bde_description1?: string;
   bde_description2?: string;
   bde_address?: string;
@@ -43,6 +46,9 @@ const About = ({ content = {} }: AboutProps) => {
     doc_button_link = "#",
     doc_button_link_type = "custom",
     doc_image_url = teamWithFounder,
+    doc_youtube_url = "https://youtu.be/PKOW21IHNTG",
+    doc_vimeo_url = "https://vimeo.com/1007746953",
+    doc_dailymotion_url = "https://dailymotion.com/video/k4dqavontriwf6brvls",
     bde_description1 = "The founders of Best Day Ministries have opened a partner company, best day ever! coffee + crepes in Longmont, Colorado.",
     bde_description2 = "Come in for delicious crepes, coffee, and ice cream while supporting our mission!",
     bde_address = "516 Coffman Street",
@@ -99,20 +105,58 @@ const About = ({ content = {} }: AboutProps) => {
                   <p className="text-lg text-muted-foreground leading-relaxed">
                     {doc_description}
                   </p>
-                  <Button 
-                    size="lg" 
-                    className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                    onClick={() => {
-                      if (doc_button_link_type === "internal") {
-                        window.location.href = doc_button_link;
-                      } else {
-                        window.open(doc_button_link, '_blank');
-                      }
-                    }}
-                  >
-                    <Film className="mr-2 w-5 h-5" />
-                    {doc_button_text}
-                  </Button>
+                  <div className="space-y-4">
+                    <Button 
+                      size="lg" 
+                      className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
+                      onClick={() => {
+                        if (doc_button_link_type === "internal") {
+                          window.location.href = doc_button_link;
+                        } else {
+                          window.open(doc_button_link, '_blank');
+                        }
+                      }}
+                    >
+                      <Film className="mr-2 w-5 h-5" />
+                      {doc_button_text}
+                    </Button>
+                    
+                    <div className="flex flex-wrap gap-3">
+                      {doc_youtube_url && (
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(doc_youtube_url, '_blank')}
+                          className="hover:bg-accent"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          YouTube
+                        </Button>
+                      )}
+                      {doc_vimeo_url && (
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(doc_vimeo_url, '_blank')}
+                          className="hover:bg-accent"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Vimeo
+                        </Button>
+                      )}
+                      {doc_dailymotion_url && (
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(doc_dailymotion_url, '_blank')}
+                          className="hover:bg-accent"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Dailymotion
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div className="relative overflow-hidden min-h-[300px]">
                   <img 
