@@ -45,7 +45,10 @@ Click card → `EventDetailDialog` with full details, all dates, recurrence info
 Create/edit events: title, description, date/time, recurrence settings, image (crop + aspect ratio), audio, visibility roles, expiration toggle
 **Add Multiple Dates:** Edit event → Add Date → creates `event_dates` entry
 **Location:** Select saved location or use Google Places autocomplete
-**Display:** Event cards show saved location name (bold) + address (clickable link) when address matches a saved location
+**Display:** 
+- Event cards show saved location name (bold) + address (clickable link) when address matches a saved location
+- Images rendered with `AspectRatio` component matching EventsPage (proper aspect ratio parsing)
+- Same visual consistency as public Events page
 **Location Field:** Uses `LocationAutocomplete` component with saved location dropdown + Google Places autocomplete
 - Select from saved locations (shows name + full address)
 - Or search with Google Places autocomplete

@@ -22,6 +22,7 @@ import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { LocationLink } from "@/components/LocationLink";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface EventDate {
   id: string;
@@ -1027,16 +1028,20 @@ export default function EventManagement() {
                     !event.is_active && "opacity-50 border-dashed"
                   )}>
                     {event.image_url && (
-                      <div className={cn(
-                        "w-full overflow-hidden rounded-t-lg",
-                        (event as any).aspect_ratio === 'landscape' ? "aspect-[16/9]" : "aspect-[9/16]"
-                      )}>
+                      <AspectRatio 
+                        ratio={(() => {
+                          const ratio = (event as any).aspect_ratio || '9:16';
+                          const [w, h] = ratio.split(':').map(Number);
+                          return w / h;
+                        })()} 
+                        className="w-full overflow-hidden rounded-t-lg"
+                      >
                         <img
                           src={event.image_url}
                           alt={event.title}
                           className="w-full h-full object-cover"
                         />
-                      </div>
+                      </AspectRatio>
                     )}
                     <CardContent className="p-4 space-y-2">
                       <div className="flex justify-between items-start">
