@@ -105,27 +105,15 @@ const About = ({ content = {} }: AboutProps) => {
                   <p className="text-lg text-muted-foreground leading-relaxed">
                     {doc_description}
                   </p>
-                  <div className="space-y-4">
-                    <Button 
-                      size="lg" 
-                      className="w-fit shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0"
-                      onClick={() => {
-                        if (doc_button_link_type === "internal") {
-                          window.location.href = doc_button_link;
-                        } else {
-                          window.open(doc_button_link, '_blank');
-                        }
-                      }}
-                    >
-                      <Film className="mr-2 w-5 h-5" />
-                      {doc_button_text}
-                    </Button>
-                    
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Watch On:
+                    </h4>
                     <div className="flex flex-wrap gap-3">
                       {doc_youtube_url && (
                         <Button 
                           variant="outline"
-                          size="sm"
+                          size="default"
                           onClick={() => window.open(doc_youtube_url, '_blank')}
                           className="hover:bg-accent"
                         >
@@ -136,7 +124,7 @@ const About = ({ content = {} }: AboutProps) => {
                       {doc_vimeo_url && (
                         <Button 
                           variant="outline"
-                          size="sm"
+                          size="default"
                           onClick={() => window.open(doc_vimeo_url, '_blank')}
                           className="hover:bg-accent"
                         >
@@ -147,7 +135,7 @@ const About = ({ content = {} }: AboutProps) => {
                       {doc_dailymotion_url && (
                         <Button 
                           variant="outline"
-                          size="sm"
+                          size="default"
                           onClick={() => window.open(doc_dailymotion_url, '_blank')}
                           className="hover:bg-accent"
                         >
