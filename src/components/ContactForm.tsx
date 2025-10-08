@@ -7,14 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Upload, X } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
 
 const contactFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
   email: z.string().email("Invalid email address").max(255),
   subject: z.string().max(200).optional(),
   message: z.string().min(10, "Message must be at least 10 characters").max(2000),
+  message_type: z.enum(["bug_report", "feature_request", "general", "question", "feedback"]),
+  image: z.instanceof(File).optional(),
 });
 
 type ContactFormData = z.infer<typeof contactFormSchema>;
@@ -30,6 +34,7 @@ export const ContactForm = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<ContactFormSettings | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
@@ -38,6 +43,7 @@ export const ContactForm = () => {
       email: "",
       subject: "",
       message: "",
+      message_type: "general",
     },
   });
 
@@ -71,6 +77,25 @@ export const ContactForm = () => {
   const onSubmit = async (data: ContactFormData) => {
     setLoading(true);
     try {
+      let imageUrl: string | null = null;
+
+      // Upload image if provided
+      if (data.image) {
+        const compressedFile = await compressImage(data.image);
+        const fileName = `${Date.now()}-${compressedFile.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("app-assets")
+          .upload(`contact-form/${fileName}`, compressedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("app-assets")
+          .getPublicUrl(uploadData.path);
+        
+        imageUrl = publicUrl;
+      }
+
       // Save to database
       const { error: dbError } = await supabase
         .from("contact_form_submissions")
@@ -79,6 +104,8 @@ export const ContactForm = () => {
           email: data.email,
           subject: data.subject || null,
           message: data.message,
+          message_type: data.message_type,
+          image_url: imageUrl,
         });
 
       if (dbError) throw dbError;
@@ -104,6 +131,7 @@ export const ContactForm = () => {
       });
 
       form.reset();
+      setImagePreview(null);
     } catch (error: any) {
       console.error("Contact form error:", error);
       toast({
@@ -114,6 +142,23 @@ export const ContactForm = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      form.setValue("image", file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    form.setValue("image", undefined);
+    setImagePreview(null);
   };
 
   if (!settings?.is_enabled) return null;
@@ -163,19 +208,46 @@ export const ContactForm = () => {
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="subject"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subject (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="What's this about?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="message_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Message Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select message type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="general">General Inquiry</SelectItem>
+                          <SelectItem value="bug_report">Bug Report</SelectItem>
+                          <SelectItem value="feature_request">Feature Request</SelectItem>
+                          <SelectItem value="question">Question</SelectItem>
+                          <SelectItem value="feedback">Feedback</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="subject"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="What's this about?" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -194,6 +266,49 @@ export const ContactForm = () => {
                   </FormItem>
                 )}
               />
+
+              <div className="space-y-2">
+                <FormLabel>Attach Screenshot (Optional)</FormLabel>
+                <div className="flex flex-col gap-4">
+                  {imagePreview ? (
+                    <div className="relative inline-block">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="max-w-full h-auto max-h-48 rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={removeImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <label htmlFor="image-upload" className="cursor-pointer">
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Click to upload an image
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PNG, JPG up to 10MB
+                        </p>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? (

@@ -144,12 +144,16 @@ function toast({ ...props }: Toast) {
     });
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
 
+  // Make error/destructive toasts persistent (never auto-dismiss)
+  const duration = props.variant === "destructive" ? Infinity : props.duration;
+
   dispatch({
     type: "ADD_TOAST",
     toast: {
       ...props,
       id,
       open: true,
+      duration,
       onOpenChange: (open) => {
         if (!open) dismiss();
       },

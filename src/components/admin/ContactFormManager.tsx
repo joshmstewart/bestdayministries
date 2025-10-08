@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Mail, Trash2 } from "lucide-react";
+import { Loader2, Save, Mail, Trash2, Eye, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -34,6 +34,8 @@ interface Submission {
   message: string;
   status: string;
   created_at: string;
+  message_type: string;
+  image_url: string | null;
 }
 
 export const ContactFormManager = () => {
@@ -301,6 +303,7 @@ export const ContactFormManager = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -330,6 +333,15 @@ export const ContactFormManager = () => {
                       {format(new Date(submission.created_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>{submission.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        submission.message_type === "bug_report" ? "destructive" :
+                        submission.message_type === "feature_request" ? "default" :
+                        "secondary"
+                      }>
+                        {(submission.message_type || "general").replace(/_/g, " ")}
+                      </Badge>
+                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
                         <Button
@@ -433,6 +445,18 @@ export const ContactFormManager = () => {
                 <label className="text-sm font-medium">Email</label>
                 <p className="text-sm text-muted-foreground">{selectedSubmission.email}</p>
               </div>
+              <div>
+                <label className="text-sm font-medium">Type</label>
+                <div className="mt-1">
+                  <Badge variant={
+                    selectedSubmission.message_type === "bug_report" ? "destructive" :
+                    selectedSubmission.message_type === "feature_request" ? "default" :
+                    "secondary"
+                  }>
+                    {(selectedSubmission.message_type || "general").replace(/_/g, " ")}
+                  </Badge>
+                </div>
+              </div>
               {selectedSubmission.subject && (
                 <div>
                   <label className="text-sm font-medium">Subject</label>
@@ -445,6 +469,18 @@ export const ContactFormManager = () => {
                   <p className="text-sm whitespace-pre-wrap">{selectedSubmission.message}</p>
                 </div>
               </div>
+              {selectedSubmission.image_url && (
+                <div>
+                  <label className="text-sm font-medium">Attached Image</label>
+                  <div className="mt-2">
+                    <img 
+                      src={selectedSubmission.image_url} 
+                      alt="Submission attachment" 
+                      className="max-w-full h-auto rounded-lg border"
+                    />
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium">Status</label>
                 <div className="mt-1">
