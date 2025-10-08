@@ -15,6 +15,7 @@ import Admin from "./pages/Admin";
 import AvatarManagement from "./pages/AvatarManagement";
 import EventManagement from "./pages/EventManagement";
 import AlbumManagement from "./pages/AlbumManagement";
+import HelpCenter from "./pages/HelpCenter";
 import EventsPage from "./pages/EventsPage";
 import AboutPage from "./pages/AboutPage";
 import JoyRocksPage from "./pages/JoyRocksPage";
@@ -85,6 +86,7 @@ const App = () => {
             <Route path="/orders" element={<OrderHistory />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/help" element={<HelpCenter />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

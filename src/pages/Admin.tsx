@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft } from "lucide-react";
+import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
@@ -44,6 +44,7 @@ import { SavedLocationsManager } from "@/components/admin/SavedLocationsManager"
 import { PartnersManager } from "@/components/admin/PartnersManager";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
+import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -263,6 +264,10 @@ const Admin = () => {
                   {contactFormCount}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="help" className="gap-2">
+              <HelpCircle className="w-4 h-4" />
+              Help Center
             </TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -486,6 +491,10 @@ const Admin = () => {
 
           <TabsContent value="contact">
             <ContactFormManager />
+          </TabsContent>
+
+          <TabsContent value="help">
+            <HelpCenterManager />
           </TabsContent>
 
           <TabsContent value="settings">
