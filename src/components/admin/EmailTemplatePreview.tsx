@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface TemplateExample {
   type: string;
@@ -124,6 +127,53 @@ const templateExamples: TemplateExample[] = [
 
 export function EmailTemplatePreview() {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateExample>(templateExamples[0]);
+  const [sending, setSending] = useState(false);
+  const { toast } = useToast();
+
+  const handleSendTestEmail = async () => {
+    setSending(true);
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to send test emails",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Call the send-notification-email edge function
+      const { error } = await supabase.functions.invoke('send-notification-email', {
+        body: {
+          userId: user.id,
+          notificationType: selectedTemplate.type,
+          subject: selectedTemplate.subject,
+          title: selectedTemplate.title,
+          message: selectedTemplate.message,
+          link: selectedTemplate.link,
+          metadata: selectedTemplate.metadata,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Test Email Sent! ✅",
+        description: "Check your inbox for the test notification email.",
+      });
+    } catch (error: any) {
+      console.error("Error sending test email:", error);
+      toast({
+        title: "Failed to Send",
+        description: error.message || "An error occurred while sending the test email",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const generatePreviewHtml = (template: TemplateExample) => {
     const logoUrl = "https://via.placeholder.com/150x50?text=Logo";
@@ -199,7 +249,8 @@ export function EmailTemplatePreview() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-2 flex-1">
           <label className="text-sm font-medium">Select Template Type</label>
           <Select
             value={selectedTemplate.type + selectedTemplate.label}
@@ -219,6 +270,16 @@ export function EmailTemplatePreview() {
               ))}
             </SelectContent>
           </Select>
+          </div>
+          
+          <Button 
+            onClick={handleSendTestEmail} 
+            disabled={sending}
+            className="gap-2"
+          >
+            <Send className="w-4 h-4" />
+            {sending ? "Sending..." : "Send Test Email"}
+          </Button>
         </div>
 
         <div className="space-y-4">
