@@ -18,6 +18,7 @@ interface ProductTourRunnerProps {
 export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   const navigate = useNavigate();
   const [run, setRun] = useState(false);
+  const [filteredSteps, setFilteredSteps] = useState<Step[]>([]);
 
   console.log('ProductTourRunner - Received tour:', tour?.title, 'Steps:', tour?.steps?.length);
 
@@ -38,43 +39,41 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   };
 
   useEffect(() => {
-    console.log('ProductTourRunner - Starting element check for target:', tour.steps[0]?.target);
-    // Wait for the first target element to be available before starting
-    const firstStep = tour.steps[0];
-    if (!firstStep?.target) {
-      console.log('ProductTourRunner - No target, starting immediately');
-      setRun(true);
-      return;
-    }
+    console.log('ProductTourRunner - Starting element detection');
+    
+    // Filter steps based on element existence
+    const detectElements = () => {
+      const availableSteps = tour.steps.filter(step => {
+        if (!step.target) return true; // Keep steps without targets (info-only steps)
+        
+        const element = document.querySelector(step.target as string);
+        if (!element) {
+          console.log('ProductTourRunner - Skipping step, element not found:', step.target);
+          return false;
+        }
+        return true;
+      });
 
-    const checkElement = () => {
-      const element = document.querySelector(firstStep.target as string);
-      if (element) {
-        console.log('ProductTourRunner - Element found! Starting tour');
+      console.log(`ProductTourRunner - Filtered ${tour.steps.length} steps to ${availableSteps.length} available steps`);
+      setFilteredSteps(availableSteps);
+
+      // Start tour if we have at least one step
+      if (availableSteps.length > 0) {
         setRun(true);
       } else {
-        // Keep checking until element is found or timeout after 5 seconds
-        setTimeout(checkElement, 200);
+        console.log('ProductTourRunner - No elements found, closing tour');
+        onClose();
       }
     };
 
-    // Start checking after brief delay
-    const timer = setTimeout(checkElement, 500);
+    // Give the page time to render before checking
+    const timer = setTimeout(detectElements, 500);
     
-    // Timeout fallback - start anyway after 5 seconds
-    const fallbackTimer = setTimeout(() => {
-      console.log('ProductTourRunner - Timeout reached, starting tour anyway');
-      setRun(true);
-    }, 5000);
-    
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(fallbackTimer);
-    };
-  }, [tour.steps]);
+    return () => clearTimeout(timer);
+  }, [tour.steps, onClose]);
 
-  // Ensure all steps have disableBeacon set to true to avoid the glowing dot
-  const stepsWithBeaconDisabled = tour.steps.map(step => ({
+  // Ensure all filtered steps have disableBeacon set to true to avoid the glowing dot
+  const stepsWithBeaconDisabled = filteredSteps.map(step => ({
     ...step,
     disableBeacon: true,
   }));
