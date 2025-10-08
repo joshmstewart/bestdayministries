@@ -618,11 +618,11 @@ const Community = () => {
                 <button
                   key={link.id || index}
                   onClick={handleClick}
-                  className="group"
+                  className="group h-full"
                 >
-                  <div className={`p-6 rounded-2xl border-2 border-border hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm bg-gradient-to-br ${link.color}`}>
-                    <IconComponent className="w-10 h-10 text-primary mb-4 group-hover:scale-110 transition-transform" />
-                    <h3 className="font-bold text-lg text-foreground">{link.label}</h3>
+                  <div className={`h-full min-h-[140px] p-6 rounded-2xl border-2 border-border hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm bg-gradient-to-br ${link.color} flex flex-col items-center justify-center`}>
+                    <IconComponent className="w-10 h-10 text-primary mb-4 group-hover:scale-110 transition-transform flex-shrink-0" />
+                    <h3 className="font-bold text-lg text-foreground text-center leading-tight">{link.label}</h3>
                   </div>
                 </button>
               );

@@ -622,6 +622,65 @@ The component logs key steps:
 
 ---
 
+## QUICK LINKS SECTION
+
+### Overview
+Displays a grid of navigational cards linking to key areas of the site. Managed via the `community_quick_links` table and `QuickLinksManager` component in the admin panel.
+
+### Layout
+- **Grid:** `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6`
+- **Responsive:** 1 column mobile, 2 columns tablet, 4 columns desktop
+- **Gap:** 24px between cards
+
+### Card Structure
+```tsx
+<button className="group h-full">
+  <div className="h-full min-h-[140px] p-6 rounded-2xl border-2 border-border 
+                  hover:border-primary/50 transition-all duration-500 
+                  hover:-translate-y-2 shadow-float hover:shadow-warm 
+                  bg-gradient-to-br {color} 
+                  flex flex-col items-center justify-center">
+    <IconComponent className="w-10 h-10 text-primary mb-4 
+                              group-hover:scale-110 transition-transform flex-shrink-0" />
+    <h3 className="font-bold text-lg text-foreground text-center leading-tight">
+      {label}
+    </h3>
+  </div>
+</button>
+```
+
+### Key Features
+- **Fixed Height:** `min-h-[140px]` ensures consistent card heights even when text wraps to multiple lines
+- **Flexbox Centering:** `flex flex-col items-center justify-center` vertically centers content
+- **Hover Effects:** Cards lift up (`-translate-y-2`) and border changes to primary color
+- **Icon Animation:** Icons scale up on hover (`scale-110`)
+- **Text Wrapping:** `text-center leading-tight` ensures multi-line text is properly formatted
+
+### Database Fields
+- `label` (text) - Display name
+- `href` (text) - Link destination (internal or external)
+- `icon` (text) - Lucide icon name
+- `color` (text) - Tailwind gradient classes
+- `display_order` (integer) - Sort order
+- `is_active` (boolean) - Visibility toggle
+
+### Link Types
+- **Internal:** Uses `navigate(href)` for same-site navigation
+- **External:** Uses `window.open()` with `noopener,noreferrer` for security
+
+### Default Fallback Links
+If no database links exist, uses default:
+```typescript
+[
+  { label: "Sponsor a Bestie", href: "/sponsor-bestie", icon: "Gift" },
+  { label: "About Best Day Ministries", href: "/about", icon: "Users" },
+  { label: "Joy Rocks Coffee", href: "/joy-rocks", icon: "Sparkles" },
+  { label: "Support Us", href: "/support", icon: "Gift" }
+]
+```
+
+---
+
 ## ACCESSIBILITY CONSIDERATIONS
 
 ### Button Titles
