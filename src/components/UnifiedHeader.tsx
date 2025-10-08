@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
@@ -300,18 +300,6 @@ export const UnifiedHeader = () => {
                 {/* Notification Bell */}
                 <NotificationBell />
                 
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate("/profile")}
-                  className="gap-2 hover:bg-muted"
-                >
-                  <AvatarDisplay 
-                    avatarNumber={profile?.avatar_number} 
-                    displayName={profile?.display_name}
-                    size="md"
-                  />
-                  <span className="hidden sm:inline font-semibold">Profile</span>
-                </Button>
                 {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
                   <Button 
                     onClick={() => navigate("/guardian-links")}
@@ -382,14 +370,37 @@ export const UnifiedHeader = () => {
                     )}
                   </Button>
                 )}
-                <Button 
-                  variant="outline" 
-                  onClick={handleLogout}
-                  className="gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline font-semibold">Logout</span>
-                </Button>
+                
+                {/* Profile Dropdown - Far Right */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="gap-2 hover:bg-muted"
+                    >
+                      <AvatarDisplay 
+                        avatarNumber={profile?.avatar_number} 
+                        displayName={profile?.display_name}
+                        size="md"
+                      />
+                      <span className="hidden sm:inline font-semibold">{profile?.display_name || 'Profile'}</span>
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-card border-border z-50">
+                    <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    
+                    <Separator className="my-1" />
+                    
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
