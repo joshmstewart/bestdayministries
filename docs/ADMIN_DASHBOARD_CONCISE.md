@@ -76,6 +76,7 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - Image/link/description
 - Active/inactive toggle
 - Display order
+**Performance:** Optimized parallel loading (auth + items fetched simultaneously)
 
 ### Vendors
 **Component:** `VendorManagement`
