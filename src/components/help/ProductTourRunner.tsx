@@ -19,6 +19,8 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   const navigate = useNavigate();
   const [run, setRun] = useState(false);
 
+  console.log('ProductTourRunner - Received tour:', tour?.title, 'Steps:', tour?.steps?.length);
+
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, action, index, type } = data;
 

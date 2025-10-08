@@ -51,6 +51,7 @@ function TourManager() {
   const tourId = searchParams.get('tour');
 
   useEffect(() => {
+    console.log('TourManager - tourId changed:', tourId);
     if (tourId) {
       loadTour(tourId);
     } else {
@@ -59,17 +60,22 @@ function TourManager() {
   }, [tourId]);
 
   const loadTour = async (id: string) => {
+    console.log('TourManager - Loading tour:', id);
     const { data, error } = await supabase
       .from('help_tours')
       .select('*')
       .eq('id', id)
       .single();
     
+    console.log('TourManager - Tour data loaded:', data, 'Error:', error);
+    
     if (data) {
-      setTour({
+      const tourData = {
         ...data,
         steps: Array.isArray(data.steps) ? data.steps : []
-      });
+      };
+      console.log('TourManager - Setting tour with steps:', tourData.steps.length);
+      setTour(tourData);
     }
   };
 
