@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Store, Package, DollarSign, Clock, XCircle, CheckCircle } from "lucide-react";
+import { Loader2, Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft } from "lucide-react";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
 import { VendorOrderList } from "@/components/vendor/VendorOrderList";
@@ -196,6 +196,15 @@ const VendorDashboard = () => {
 
         {vendorStatus === 'pending' && (
           <div className="max-w-2xl mx-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mb-6"
+              onClick={() => navigate('/marketplace')}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Marketplace
+            </Button>
             <Card className="border-yellow-500/50 bg-yellow-500/5">
               <CardHeader>
                 <div className="flex items-center gap-3">
