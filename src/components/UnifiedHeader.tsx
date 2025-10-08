@@ -299,8 +299,88 @@ export const UnifiedHeader = () => {
               <>
                 {/* Notification Bell */}
                 <NotificationBell />
-                
-                {/* Profile Dropdown Menu */}
+
+                {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/guardian-links")}
+                    className="gap-2 relative"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="hidden sm:inline">My Besties</span>
+                    {sponsorUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                        {sponsorUnreadCount}
+                      </span>
+                    )}
+                  </Button>
+                )}
+
+                {profile?.role === "bestie" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/bestie-messages")}
+                    className="gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span className="hidden sm:inline">Messages</span>
+                  </Button>
+                )}
+
+                {profile?.role === "caregiver" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/guardian-approvals")}
+                    className="gap-2 relative"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="hidden sm:inline">Approvals</span>
+                    {approvalsCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                        {approvalsCount}
+                      </span>
+                    )}
+                  </Button>
+                )}
+
+                {!isAdmin && canModerate && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/moderation")}
+                    className="gap-2 relative"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="hidden sm:inline">Moderation</span>
+                    {moderationCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                        {moderationCount}
+                      </span>
+                    )}
+                  </Button>
+                )}
+
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/admin")}
+                    className="gap-2 relative"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="hidden sm:inline">Admin</span>
+                    {(moderationCount > 0 || pendingVendorsCount > 0 || messageModerationCount > 0 || contactFormCount > 0) && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                        {moderationCount + pendingVendorsCount + messageModerationCount + contactFormCount}
+                      </span>
+                    )}
+                  </Button>
+                )}
+
+                {/* Profile Dropdown Menu - Only Settings and Logout */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
@@ -321,61 +401,6 @@ export const UnifiedHeader = () => {
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
                     </DropdownMenuItem>
-                    
-                    {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
-                      <DropdownMenuItem onClick={() => navigate("/guardian-links")} className="cursor-pointer relative">
-                        <Users className="w-4 h-4 mr-2" />
-                        My Besties
-                        {sponsorUnreadCount > 0 && (
-                          <span className="ml-auto h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                            {sponsorUnreadCount}
-                          </span>
-                        )}
-                      </DropdownMenuItem>
-                    )}
-                    
-                    {profile?.role === "bestie" && (
-                      <DropdownMenuItem onClick={() => navigate("/bestie-messages")} className="cursor-pointer">
-                        <Mail className="w-4 h-4 mr-2" />
-                        Messages
-                      </DropdownMenuItem>
-                    )}
-                    
-                    {profile?.role === "caregiver" && (
-                      <DropdownMenuItem onClick={() => navigate("/guardian-approvals")} className="cursor-pointer relative">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Approvals
-                        {approvalsCount > 0 && (
-                          <span className="ml-auto h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                            {approvalsCount}
-                          </span>
-                        )}
-                      </DropdownMenuItem>
-                    )}
-                    
-                    {!isAdmin && canModerate && (
-                      <DropdownMenuItem onClick={() => navigate("/moderation")} className="cursor-pointer relative">
-                        <Shield className="w-4 h-4 mr-2" />
-                        Moderation
-                        {moderationCount > 0 && (
-                          <span className="ml-auto h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                            {moderationCount}
-                          </span>
-                        )}
-                      </DropdownMenuItem>
-                    )}
-                    
-                    {isAdmin && (
-                      <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer relative">
-                        <Shield className="w-4 h-4 mr-2" />
-                        Admin
-                        {(moderationCount > 0 || pendingVendorsCount > 0 || messageModerationCount > 0 || contactFormCount > 0) && (
-                          <span className="ml-auto h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                            {moderationCount + pendingVendorsCount + messageModerationCount + contactFormCount}
-                          </span>
-                        )}
-                      </DropdownMenuItem>
-                    )}
                     
                     <Separator className="my-1" />
                     
