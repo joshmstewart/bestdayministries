@@ -34,22 +34,12 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   };
 
   useEffect(() => {
-    // Navigate to required route if specified
-    if (tour.required_route) {
-      navigate(tour.required_route);
-      // Wait longer for navigation and page load
-      const timer = setTimeout(() => {
-        setRun(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      // Wait for page to be fully loaded before starting tour
-      const timer = setTimeout(() => {
-        setRun(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [tour.required_route, navigate]);
+    // Wait for page to be fully loaded before starting tour
+    const timer = setTimeout(() => {
+      setRun(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <>
