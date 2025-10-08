@@ -19,28 +19,94 @@ interface GuideViewerProps {
 }
 
 export function GuideViewer({ guide, onClose }: GuideViewerProps) {
-  // Simple markdown-like rendering (you could use a proper markdown library)
+  // Parse inline markdown formatting
+  const parseInlineMarkdown = (text: string) => {
+    const parts: (string | JSX.Element)[] = [];
+    let currentIndex = 0;
+    let key = 0;
+
+    // Pattern to match **bold**, *italic*, `code`, and [links](url)
+    const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[([^\]]+)\]\(([^)]+)\))/g;
+    
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      // Add text before match
+      if (match.index > currentIndex) {
+        parts.push(text.substring(currentIndex, match.index));
+      }
+
+      const matched = match[0];
+      
+      if (matched.startsWith('**') && matched.endsWith('**')) {
+        // Bold text
+        parts.push(
+          <strong key={key++} className="font-bold">
+            {matched.slice(2, -2)}
+          </strong>
+        );
+      } else if (matched.startsWith('*') && matched.endsWith('*') && !matched.startsWith('**')) {
+        // Italic text
+        parts.push(
+          <em key={key++} className="italic">
+            {matched.slice(1, -1)}
+          </em>
+        );
+      } else if (matched.startsWith('`') && matched.endsWith('`')) {
+        // Inline code
+        parts.push(
+          <code key={key++} className="bg-muted px-1 py-0.5 rounded text-sm">
+            {matched.slice(1, -1)}
+          </code>
+        );
+      } else if (matched.startsWith('[')) {
+        // Link
+        const linkText = match[2];
+        const linkUrl = match[3];
+        parts.push(
+          <a
+            key={key++}
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            {linkText}
+          </a>
+        );
+      }
+
+      currentIndex = match.index + matched.length;
+    }
+
+    // Add remaining text
+    if (currentIndex < text.length) {
+      parts.push(text.substring(currentIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
   const renderContent = (content: string) => {
     return content.split("\n\n").map((paragraph, idx) => {
       // Headers
       if (paragraph.startsWith("# ")) {
         return (
           <h1 key={idx} className="text-3xl font-bold mb-4 mt-8">
-            {paragraph.replace("# ", "")}
+            {parseInlineMarkdown(paragraph.replace("# ", ""))}
           </h1>
         );
       }
       if (paragraph.startsWith("## ")) {
         return (
           <h2 key={idx} className="text-2xl font-bold mb-3 mt-6">
-            {paragraph.replace("## ", "")}
+            {parseInlineMarkdown(paragraph.replace("## ", ""))}
           </h2>
         );
       }
       if (paragraph.startsWith("### ")) {
         return (
           <h3 key={idx} className="text-xl font-semibold mb-2 mt-4">
-            {paragraph.replace("### ", "")}
+            {parseInlineMarkdown(paragraph.replace("### ", ""))}
           </h3>
         );
       }
@@ -51,7 +117,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
         return (
           <ul key={idx} className="list-disc list-inside mb-4 space-y-2">
             {items.map((item, i) => (
-              <li key={i}>{item.replace(/^- /, "")}</li>
+              <li key={i}>{parseInlineMarkdown(item.replace(/^- /, ""))}</li>
             ))}
           </ul>
         );
@@ -63,7 +129,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
         return (
           <ol key={idx} className="list-decimal list-inside mb-4 space-y-2">
             {items.map((item, i) => (
-              <li key={i}>{item.replace(/^\d+\. /, "")}</li>
+              <li key={i}>{parseInlineMarkdown(item.replace(/^\d+\. /, ""))}</li>
             ))}
           </ol>
         );
@@ -72,7 +138,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
       // Regular paragraphs
       return (
         <p key={idx} className="mb-4 leading-relaxed">
-          {paragraph}
+          {parseInlineMarkdown(paragraph)}
         </p>
       );
     });
