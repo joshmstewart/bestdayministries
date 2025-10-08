@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,12 +49,16 @@ import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadc
 
 const Admin = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [actualRole, setActualRole] = useState<UserRole | null>(null);
   const { getEffectiveRole, impersonatedRole } = useRoleImpersonation();
+  
+  // Get tab from URL query parameter or default to "users"
+  const defaultTab = searchParams.get('tab') || 'users';
   const { count: moderationCount } = useModerationCount();
   const { count: pendingVendorsCount } = usePendingVendorsCount();
   const { count: messageModerationCount } = useMessageModerationCount();
@@ -220,7 +224,7 @@ const Admin = () => {
         </div>
 
         {/* Admin Tabs */}
-        <Tabs defaultValue="users" className="space-y-4">
+        <Tabs defaultValue={defaultTab} className="space-y-4">
           <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
