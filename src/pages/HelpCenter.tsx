@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { useTourCompletions } from "@/hooks/useTourCompletions";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface Tour {
   id: string;
@@ -207,27 +208,30 @@ export default function HelpCenter() {
                   return (
                     <Card key={tour.id} className="hover:shadow-lg transition-shadow relative">
                       <CardHeader>
-                        <div className="flex items-start justify-between mb-2">
-                          <PlayCircle className="h-8 w-8 text-primary" />
-                          <div className="flex gap-2">
-                            <Badge className={getCategoryBadgeColor(tour.category)}>
-                              {tour.category.replace("-", " ")}
+                        <div className="flex items-start gap-2 mb-2">
+                          {isCompleted && (
+                            <Badge className="bg-green-100 text-green-800 gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Complete
                             </Badge>
-                            {isCompleted && (
-                              <Badge className="bg-green-100 text-green-800 gap-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Complete
-                              </Badge>
-                            )}
-                            {isNew && !isCompleted && (
-                              <Badge className="bg-gradient-warm text-white gap-1 animate-pulse">
-                                <Sparkles className="h-3 w-3" />
-                                New
-                              </Badge>
-                            )}
-                          </div>
+                          )}
+                          {isNew && !isCompleted && (
+                            <Badge className="bg-gradient-warm text-white gap-1 animate-pulse">
+                              <Sparkles className="h-3 w-3" />
+                              New
+                            </Badge>
+                          )}
+                          <Badge className={getCategoryBadgeColor(tour.category)}>
+                            {tour.category.replace("-", " ")}
+                          </Badge>
                         </div>
-                        <CardTitle className="text-xl">{tour.title}</CardTitle>
+                        <div className="flex items-center gap-2 mb-2">
+                          <CardTitle className="text-xl flex-1">{tour.title}</CardTitle>
+                          <TextToSpeech 
+                            text={`${tour.title}. ${tour.description}`}
+                            size="sm"
+                          />
+                        </div>
                         <CardDescription>{tour.description}</CardDescription>
                       </CardHeader>
                       <CardContent>
