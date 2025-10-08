@@ -66,5 +66,7 @@ Create/edit events: title, description, date/time, recurrence settings, image (c
 | Wrong aspect ratio | Parse string to decimal |
 | Past event visible | Check `expires_after_date` |
 | Recurring shows once | Add `event_dates` entries |
+| Admin can't update event | Verify "Admins can update any event" RLS policy exists |
+| Location not saving | Check admin has update permissions via RLS |
 
 **Files:** `EventsPage.tsx`, `EventManagement.tsx`, `EventDetailDialog.tsx`, `moderate-image/index.ts`
