@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
@@ -299,6 +299,17 @@ export const UnifiedHeader = () => {
               <>
                 {/* Notification Bell */}
                 <NotificationBell />
+                
+                {/* Help Icon */}
+                <Button 
+                  onClick={() => navigate("/help")}
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  title="Help Center"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                </Button>
                 
                 {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
                   <Button 
