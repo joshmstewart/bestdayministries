@@ -26,7 +26,9 @@ Community calendar (`/events`) with recurring events, multiple dates, role-based
 - **Image:** `AspectRatio` wrapper, parse string ("9:16") → decimal (9/16)
 - **Dates:** Primary date (large box) + all dates list (if multiple) with current highlighted
 - **TTS:** Reads `title + description + date + location`
-- **Location:** Clickable `LocationLink` → Google Maps
+- **Location:** 
+  - If matches saved location: Shows location name (bold) + address (muted, clickable Google Maps link)
+  - Otherwise: Shows address with `LocationLink` component (icon + clickable link)
 - **Audio:** Inline `AudioPlayer` if `audio_url` exists
 
 ## Event Detail Dialog
@@ -42,6 +44,8 @@ Click card → `EventDetailDialog` with full details, all dates, recurrence info
 ## Admin (`/event-management`)
 Create/edit events: title, description, date/time, recurrence settings, image (crop + aspect ratio), audio, visibility roles, expiration toggle
 **Add Multiple Dates:** Edit event → Add Date → creates `event_dates` entry
+**Location:** Select saved location or use Google Places autocomplete
+**Display:** Event cards show saved location name (bold) + address (clickable link) when address matches a saved location
 **Location Field:** Uses `LocationAutocomplete` component with saved location dropdown + Google Places autocomplete
 - Select from saved locations (shows name + full address)
 - Or search with Google Places autocomplete

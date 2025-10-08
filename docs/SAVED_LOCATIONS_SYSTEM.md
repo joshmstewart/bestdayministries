@@ -107,6 +107,17 @@ interface LocationAutocompleteProps {
 4. Parent component (e.g., EventManagement) stores in `location` state
 5. On save → address stored in `events.location` field
 
+### Event Management Display
+When viewing events in the admin management interface (`/event-management`):
+1. The system loads both events and saved locations in parallel
+2. For each event card, it checks if `event.location` matches any `saved_locations.address` (case-insensitive)
+3. If a match is found:
+   - Display saved location name in bold
+   - Display address below as clickable Google Maps link (muted text)
+4. If no match:
+   - Display address with standard `LocationLink` component (icon + clickable link)
+
+
 ## Google Places API
 
 **API Key Storage:** Stored in Supabase secrets as `GOOGLE_PLACES_API_KEY`

@@ -51,9 +51,18 @@ interface Event {
   event_dates?: EventDate[];
 }
 
+interface SavedLocation {
+  id: string;
+  name: string;
+  address: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export default function EventManagement() {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -116,20 +125,35 @@ export default function EventManagement() {
 
   const loadEvents = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("events")
-      .select(`
-        *,
-        event_dates(id, event_date)
-      `)
-      .order("event_date", { ascending: false });
+    
+    // Load both events and saved locations in parallel
+    const [eventsResult, locationsResult] = await Promise.all([
+      supabase
+        .from("events")
+        .select(`
+          *,
+          event_dates(id, event_date)
+        `)
+        .order("event_date", { ascending: false }),
+      supabase
+        .from("saved_locations")
+        .select("*")
+        .eq("is_active", true)
+    ]);
 
-    if (error) {
+    if (eventsResult.error) {
       toast.error("Failed to load events");
-      console.error(error);
+      console.error(eventsResult.error);
     } else {
-      setEvents(data || []);
+      setEvents(eventsResult.data || []);
     }
+
+    if (locationsResult.error) {
+      console.error("Failed to load saved locations:", locationsResult.error);
+    } else {
+      setSavedLocations(locationsResult.data || []);
+    }
+    
     setLoading(false);
   };
 
@@ -1117,7 +1141,32 @@ export default function EventManagement() {
                         )}
                         {event.location && (
                           <div className="text-sm pt-1 border-t">
-                            <LocationLink location={event.location} className="text-sm" />
+                            {(() => {
+                              const matchingLocation = savedLocations.find(
+                                loc => loc.address.toLowerCase() === event.location?.toLowerCase()
+                              );
+                              
+                              if (matchingLocation) {
+                                return (
+                                  <div className="flex items-start gap-2">
+                                    <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-semibold text-sm">{matchingLocation.name}</div>
+                                      <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-muted-foreground hover:text-primary hover:underline break-words"
+                                      >
+                                        {event.location}
+                                      </a>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              
+                              return <LocationLink location={event.location} className="text-sm" />;
+                            })()}
                           </div>
                         )}
                       </div>
