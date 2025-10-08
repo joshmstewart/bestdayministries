@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,7 +41,7 @@ export const ContactForm = () => {
     },
   });
 
-  useState(() => {
+  useEffect(() => {
     const loadSettings = async () => {
       const { data } = await supabase
         .from("contact_form_settings")
@@ -54,7 +54,7 @@ export const ContactForm = () => {
       }
     };
     loadSettings();
-  });
+  }, []);
 
   const onSubmit = async (data: ContactFormData) => {
     setLoading(true);
