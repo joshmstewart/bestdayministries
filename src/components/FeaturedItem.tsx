@@ -195,9 +195,17 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
   const currentItem = items[currentIndex];
   const isExternalLink = resolvedUrl.startsWith("http");
   
-  // Parse aspect ratio (e.g., "16:9" -> 16/9)
+  // Parse aspect ratio safely (e.g., "16:9" -> 16/9)
+  const parseAspectRatio = (ratio: string): number => {
+    const parts = ratio.split(':').map(Number);
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[1] !== 0) {
+      return parts[0] / parts[1];
+    }
+    return 16 / 9; // Default fallback
+  };
+  
   const aspectRatioValue = currentItem.aspect_ratio 
-    ? eval(currentItem.aspect_ratio.replace(':', '/'))
+    ? parseAspectRatio(currentItem.aspect_ratio)
     : 16 / 9;
 
   return (
