@@ -308,9 +308,6 @@ export default function EventManagement() {
       // Ensure admin and owner are always included
       const finalVisibleRoles = [...new Set([...visibleToRoles, 'admin', 'owner'])] as any;
       
-      // Log location for debugging
-      console.log("Preparing to save event with location:", location);
-      
       const eventData = {
         title,
         description,
@@ -346,9 +343,6 @@ export default function EventManagement() {
           .from("event_dates")
           .delete()
           .eq("event_id", editingEvent.id);
-        
-        // Log the location for debugging
-        console.log("Event updated with location:", location);
           
         toast.success(`Event updated successfully${location ? ' with location: ' + location : ''}`);
       } else {

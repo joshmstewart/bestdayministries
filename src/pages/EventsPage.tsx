@@ -179,9 +179,6 @@ export default function EventsPage() {
       const now = new Date();
       const isUpcoming = date >= now;
       
-      // Debug logging
-      console.log(`Event: ${event.title}, Date: ${date.toISOString()}, Now: ${now.toISOString()}, Upcoming: ${isUpcoming}`);
-      
       if (isUpcoming) {
         upcomingEventCards.push(card);
       } else if (!event.expires_after_date) {

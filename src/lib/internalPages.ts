@@ -35,5 +35,6 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/profile", label: "Profile" },
   { value: "/guardian-links", label: "My Besties" },
   { value: "/guardian-approvals", label: "Guardian Approvals" },
+  { value: "/bestie-messages", label: "Bestie Messages" },
   { value: "/admin", label: "Admin Panel" },
 ];
