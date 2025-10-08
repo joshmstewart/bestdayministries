@@ -105,9 +105,7 @@ export const FeaturedBestieDisplay = ({ canLoad = true, onLoadComplete }: Featur
         .maybeSingle();
       
       if (roleData) {
-        // Filter out vendor role (now handled via vendors table)
-        const role = roleData.role === 'vendor' ? 'supporter' : roleData.role;
-        setUserRole(role as UserRole);
+        setUserRole(roleData.role as UserRole);
       }
     }
   };

@@ -7,7 +7,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { EventDetailDialog } from "@/components/EventDetailDialog";
 import { LocationLink } from "@/components/LocationLink";
-import { useRoleImpersonation } from "@/hooks/useRoleImpersonation";
+import { useRoleImpersonation, type UserRole } from "@/hooks/useRoleImpersonation";
 import { cn } from "@/lib/utils";
 
 interface EventDate {
@@ -67,9 +67,9 @@ export default function PublicEvents() {
         .maybeSingle();
       
       // Use effective role (impersonated if active)
-      // Filter out vendor role (now handled via vendors table)
-      const role = roleData?.role === 'vendor' ? 'supporter' : roleData?.role;
-      userRole = getEffectiveRole(role);
+      // Filter vendor role (migrated to supporter)
+      const dbRole = roleData?.role === 'vendor' ? 'supporter' : roleData?.role;
+      userRole = getEffectiveRole(dbRole as UserRole);
     }
     
     const { data, error } = await supabase
