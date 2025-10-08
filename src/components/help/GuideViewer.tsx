@@ -38,9 +38,9 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
       const matched = match[0];
       
       if (matched.startsWith('**') && matched.endsWith('**')) {
-        // Bold text
+        // Bold text with better styling
         parts.push(
-          <strong key={key++} className="font-bold">
+          <strong key={key++} className="font-bold text-primary">
             {matched.slice(2, -2)}
           </strong>
         );
@@ -54,7 +54,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
       } else if (matched.startsWith('`') && matched.endsWith('`')) {
         // Inline code
         parts.push(
-          <code key={key++} className="bg-muted px-1 py-0.5 rounded text-sm">
+          <code key={key++} className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">
             {matched.slice(1, -1)}
           </code>
         );
@@ -68,7 +68,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
             href={linkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary hover:underline"
+            className="text-primary hover:underline font-medium"
           >
             {linkText}
           </a>
@@ -115,9 +115,12 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
       if (paragraph.includes("\n- ")) {
         const items = paragraph.split("\n- ").filter(Boolean);
         return (
-          <ul key={idx} className="list-disc list-inside mb-4 space-y-2">
+          <ul key={idx} className="space-y-3 mb-6">
             {items.map((item, i) => (
-              <li key={i}>{parseInlineMarkdown(item.replace(/^- /, ""))}</li>
+              <li key={i} className="flex gap-3">
+                <span className="text-primary mt-1.5">•</span>
+                <span className="flex-1">{parseInlineMarkdown(item.replace(/^- /, ""))}</span>
+              </li>
             ))}
           </ul>
         );
@@ -127,9 +130,12 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
       if (/^\d+\. /.test(paragraph)) {
         const items = paragraph.split(/\n\d+\. /).filter(Boolean);
         return (
-          <ol key={idx} className="list-decimal list-inside mb-4 space-y-2">
+          <ol key={idx} className="space-y-3 mb-6">
             {items.map((item, i) => (
-              <li key={i}>{parseInlineMarkdown(item.replace(/^\d+\. /, ""))}</li>
+              <li key={i} className="flex gap-3">
+                <span className="font-semibold text-primary min-w-[1.5rem]">{i + 1}.</span>
+                <span className="flex-1">{parseInlineMarkdown(item.replace(/^\d+\. /, ""))}</span>
+              </li>
             ))}
           </ol>
         );
@@ -137,7 +143,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
 
       // Regular paragraphs
       return (
-        <p key={idx} className="mb-4 leading-relaxed">
+        <p key={idx} className="mb-6 leading-relaxed text-foreground/90">
           {parseInlineMarkdown(paragraph)}
         </p>
       );
@@ -168,7 +174,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
         </DialogHeader>
 
         <ScrollArea className="h-[60vh] pr-4">
-          <div className="prose prose-sm max-w-none">
+          <div className="prose prose-sm max-w-none space-y-1">
             {renderContent(guide.content)}
           </div>
         </ScrollArea>
