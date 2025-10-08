@@ -145,12 +145,14 @@ export default function EventManagement() {
       toast.error("Failed to load events");
       console.error(eventsResult.error);
     } else {
+      console.log("All events loaded:", eventsResult.data?.map(e => ({ title: e.title, location: e.location })));
       setEvents(eventsResult.data || []);
     }
 
     if (locationsResult.error) {
       console.error("Failed to load saved locations:", locationsResult.error);
     } else {
+      console.log("All saved locations loaded:", locationsResult.data?.map(l => ({ name: l.name, address: l.address })));
       setSavedLocations(locationsResult.data || []);
     }
     
