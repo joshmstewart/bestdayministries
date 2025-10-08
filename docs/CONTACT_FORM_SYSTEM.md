@@ -108,6 +108,8 @@ Stores all form submissions for admin review.
 - **Mark as Read:** Changes status to 'read', updates badge
 - **Mark as New:** Changes status back to 'new'
 - **Delete:** Removes submission (with confirmation)
+- **Email link:** Click email address to open in default email client
+- **Copy email:** Click mail icon to copy email to clipboard
 
 **Badge Count:**
 - Shows count of `status = 'new'` submissions
@@ -153,7 +155,16 @@ Stores all form submissions for admin review.
 **Configuration:**
 - **From:** "Best Day Ministries <marla@joyhousestore.com>"
 - **To:** Uses `recipient_email` from settings (or env var fallback)
-- **Reply-To:** Sender's email address (recipients can reply directly to the sender)
+- **Reply-To:** Sender's email address (admins can reply directly in their email client)
+
+**How Reply-To Works:**
+When an admin receives the email notification in their inbox (Gmail, Outlook, etc.), they can simply click "Reply" and it will automatically address the response to the person who submitted the form. No manual copying of email addresses needed.
+
+**Alternative Reply Methods (Admin Panel):**
+If email notifications aren't working:
+1. **Click email in table** - Opens `mailto:` link in default email client
+2. **Copy button** - Copies email address to clipboard
+3. **View dialog** - Shows full details including email address
 
 **Required Secrets:**
 - `RESEND_API_KEY` - Resend API key for sending emails
@@ -227,16 +238,19 @@ Shows badge count on Admin button when there are new contact form submissions:
 
 **Required Steps:**
 1. Sign up at [resend.com](https://resend.com)
-2. Verify your email domain at [resend.com/domains](https://resend.com/domains)
+2. **CRITICAL:** Verify your email domain at [resend.com/domains](https://resend.com/domains)
    - Add DNS records (SPF, DKIM) for your domain
    - Wait for verification (usually 5-10 minutes)
+   - **Emails will NOT send without domain verification**
 3. Create API key at [resend.com/api-keys](https://resend.com/api-keys)
 4. Add API key as `RESEND_API_KEY` secret in Lovable Cloud
+5. Update edge function `from` address to use verified domain (line 82)
 
 **Common Issues:**
-- Emails going to spam → Check SPF/DKIM records are configured
+- **"Domain is not verified" error** → Most common issue! Verify domain in Resend dashboard
+- Emails going to spam → Check SPF/DKIM records are configured correctly
 - API key invalid → Regenerate key and update secret
-- Domain not verified → Wait for DNS propagation
+- Domain not verified → Wait for DNS propagation (can take up to 24 hours)
 
 ### 2. Configure Contact Form Settings
 
@@ -305,8 +319,10 @@ INSERT INTO contact_form_settings (
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | Form doesn't appear | `is_enabled = false` | Enable in Admin → Contact settings |
+| **Emails not sending** | **Domain not verified in Resend** | **Verify domain at resend.com/domains** |
 | Form submits but no email | Resend not configured | Add `RESEND_API_KEY` secret |
 | Email goes to spam | Domain not verified | Add SPF/DKIM records in DNS |
+| Can't reply to messages | Email notifications not working | Verify domain, then use reply-to in email |
 | Validation errors | Input doesn't meet rules | Check error messages, adjust input |
 | Can't access Admin panel | Not admin/owner role | Check `user_roles` table |
 | Badge count not updating | Realtime subscription issue | Check console for errors |
@@ -330,6 +346,26 @@ INSERT INTO contact_form_settings (
 - [ ] A/B testing for form copy
 
 ---
+
+## HOW TO RESPOND TO CONTACT FORM MESSAGES
+
+**Method 1: Email Reply (Recommended)**
+When email notifications are working:
+1. Admin receives email notification at `recipient_email`
+2. Email has `reply-to` header set to sender's email
+3. Admin clicks "Reply" in their email client (Gmail, Outlook, etc.)
+4. Response goes directly to the person who submitted the form
+
+**Method 2: Manual Email (Fallback)**
+If email notifications aren't working:
+1. Admin views submission in Admin → Contact
+2. Click the email address to open in default email client
+3. OR click copy icon to copy email address to clipboard
+4. Compose response manually
+
+**Current Status:**
+- ⚠️ Domain verification required for Method 1 to work
+- ✅ Method 2 always works through admin panel
 
 ## CRITICAL BUG FIX
 
