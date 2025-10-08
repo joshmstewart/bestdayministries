@@ -1006,10 +1006,10 @@ export default function GuardianLinks() {
 
           {/* Guardian Links Section - Only for caregivers */}
           {userRole === "caregiver" && (
-            <div className="space-y-4">
+            <div className="space-y-4" data-tour-target="bestie-links">
               <h2 className="text-2xl font-bold">Guardian Relationships</h2>
               {links.length === 0 ? (
-                <Card>
+                <Card data-tour-target="add-bestie-link">
                   <CardContent className="flex flex-col items-center justify-center py-12">
                     <LinkIcon className="w-12 h-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No linked besties yet</h3>
@@ -1023,7 +1023,7 @@ export default function GuardianLinks() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-4" data-tour-target="linked-besties-list">
                   {links.map((link) => (
                     <Card key={link.id}>
                       <CardHeader>
@@ -1305,7 +1305,7 @@ export default function GuardianLinks() {
 
           {/* Sponsored Besties Section */}
           {ownSponsorships.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-4" data-tour-target="sponsorships">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">My Sponsorships</h2>
                 <Button onClick={() => navigate("/sponsor-bestie")} variant="outline">

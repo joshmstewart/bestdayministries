@@ -335,36 +335,36 @@ export default function GuardianApprovals() {
       
       <main className="flex-1 container mx-auto px-4 pt-20 pb-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          <div>
+          <div data-tour-target="approvals-header">
             <h1 className="text-3xl font-bold">Pending Approvals</h1>
             <p className="text-muted-foreground mt-2">
               Review and approve content from your linked besties
             </p>
           </div>
 
-          <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="posts" className="gap-2">
+          <Tabs defaultValue="posts" className="w-full" data-tour-target="approvals-tabs">
+            <TabsList className="grid w-full grid-cols-4" data-tour-target="approval-tabs-list">
+              <TabsTrigger value="posts" className="gap-2" data-tour-target="posts-tab">
                 <FileText className="w-4 h-4" />
                 Posts
                 {pendingPosts.length > 0 && (
                   <Badge variant="destructive" className="ml-1">{pendingPosts.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="comments" className="gap-2">
+              <TabsTrigger value="comments" className="gap-2" data-tour-target="comments-tab">
                 <MessageSquare className="w-4 h-4" />
                 Comments
                 {pendingComments.length > 0 && (
                   <Badge variant="destructive" className="ml-1">{pendingComments.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="vendors" className="gap-2">
+              <TabsTrigger value="vendors" className="gap-2" data-tour-target="vendors-tab">
                 Vendor Links
                 {pendingVendorLinks > 0 && (
                   <Badge variant="destructive" className="ml-1">{pendingVendorLinks}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="messages" className="gap-2">
+              <TabsTrigger value="messages" className="gap-2" data-tour-target="messages-tab">
                 <Mail className="w-4 h-4" />
                 Messages
                 {pendingMessages > 0 && (
