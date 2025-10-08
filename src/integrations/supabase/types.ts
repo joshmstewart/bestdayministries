@@ -516,6 +516,7 @@ export type Database = {
       discussion_posts: {
         Row: {
           album_id: string | null
+          allow_owner_claim: boolean
           approval_status: string
           approved_at: string | null
           approved_by: string | null
@@ -541,6 +542,7 @@ export type Database = {
         }
         Insert: {
           album_id?: string | null
+          allow_owner_claim?: boolean
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -566,6 +568,7 @@ export type Database = {
         }
         Update: {
           album_id?: string | null
+          allow_owner_claim?: boolean
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null

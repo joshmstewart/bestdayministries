@@ -9,6 +9,7 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 - `approval_status` (approved/pending_approval/rejected)
 - `is_moderated` (AI content moderation flag)
 - `visible_to_roles[]` (role-based visibility)
+- `allow_owner_claim` (admin consent for owner to change authorship)
 - Joins: `profiles_public` (author), `videos`, `albums`, `events`
 
 **discussion_comments**
@@ -19,7 +20,10 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 ## User Permissions
 **Create Posts:** Guardians, Admins, Owners only
 **Comment:** All authenticated users
+**Edit/Delete Posts:** Author, Guardian (of bestie author), or Admin/Owner
+**Edit/Delete Comments:** Author, Guardian (of bestie author), or Admin/Owner
 **View:** Based on post's `visible_to_roles` array
+**Change Author:** Owners only, for admin/owner posts with consent
 
 ## Content Approval Flow
 
@@ -105,6 +109,7 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 - Video selection (none/select/youtube)
 - Event link (optional dropdown)
 - Visibility roles (checkboxes: caregiver, bestie, supporter)
+- **Allow Owner Claim** (admins only) - Checkbox to consent to owner changing authorship
 
 ### Comment Input
 - Text OR Audio (mutually exclusive)
@@ -117,9 +122,13 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 - Client-side filtering (no query reload)
 
 ## Edit/Delete
-- **Posts:** Author or Admin can edit/delete
-- **Edit:** Inline form (title, content only)
+- **Posts:** Author, Guardian (of bestie author), or Admin can edit/delete
+- **Edit:** Inline form (title, content, media, allow_owner_claim checkbox for admins)
 - **Delete:** Confirmation dialog, cascade deletes comments
+- **Change Author (Owner Only):** Owners can claim admin/owner posts with `allow_owner_claim = true`
+  - Admin creates post → checks "Allow owner to claim this post"
+  - Owner sees "Claim Post" button → selects new author from admin/owner list
+  - Post authorship transfers, useful for founder claiming assistant's work
 
 ## Realtime Updates
 - Subscribe to `discussion_posts` for new posts
@@ -131,12 +140,22 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 - Approved posts: Visible to roles in `visible_to_roles[]`
 - Pending/rejected: Only author, guardian, admin
 
+**Posts UPDATE:**
+- Author can update own posts
+- Guardians can update their linked besties' posts
+- Admins/owners can update any post
+
 **Posts INSERT:**
 - Guardians, admins, owners only
 
 **Comments SELECT:**
 - Approved: All authenticated
 - Pending/rejected: Author, guardian, admin
+
+**Comments UPDATE:**
+- Author can update own comments
+- Guardians can update their linked besties' comments
+- Admins/owners can update any comment
 
 **Comments INSERT:**
 - All authenticated users
@@ -160,3 +179,5 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 | Approval stuck | Verify guardian link has approval enabled |
 | Image moderation fails | Check `moderation_settings` policy |
 | Role badge missing | Ensure joining `profiles_public` (has role) |
+| Guardian can't edit bestie post | UI loads editable posts on page load, check `caregiver_bestie_links` |
+| "Claim Post" not showing | Verify: owner role + admin created post + `allow_owner_claim = true` |

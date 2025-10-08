@@ -21,6 +21,7 @@ import { ImageCropDialog } from "@/components/ImageCropDialog";
 import ImageLightbox from "@/components/ImageLightbox";
 import { discussionPostSchema, commentSchema, validateInput } from "@/lib/validation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
@@ -117,6 +118,13 @@ const Discussions = () => {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [allowOwnerClaim, setAllowOwnerClaim] = useState(false);
+  const [changeAuthorDialogOpen, setChangeAuthorDialogOpen] = useState(false);
+  const [postToChangeAuthor, setPostToChangeAuthor] = useState<Post | null>(null);
+  const [newAuthorId, setNewAuthorId] = useState<string>("");
+  const [adminOwnerUsers, setAdminOwnerUsers] = useState<Array<{ id: string; display_name: string; role: string }>>([]);
+  const [editablePostIds, setEditablePostIds] = useState<Set<string>>(new Set());
+  const [editableCommentIds, setEditableCommentIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     checkUser();
@@ -278,6 +286,41 @@ const Discussions = () => {
     );
 
     setPosts(postsWithComments);
+    
+    // Load editable posts for current user
+    if (profile) {
+      await loadEditablePostIds(postsWithComments);
+    }
+  };
+
+  const loadEditablePostIds = async (postsToCheck: Post[]) => {
+    if (!profile || !user) return;
+    
+    const editable = new Set<string>();
+    
+    for (const post of postsToCheck) {
+      // User is author or admin/owner
+      if (profile.id === post.author_id || ['admin', 'owner'].includes(profile.role)) {
+        editable.add(post.id);
+        continue;
+      }
+      
+      // Check if user is guardian of post author
+      if (profile.role === 'caregiver') {
+        const { data: guardianLinks } = await supabase
+          .from('caregiver_bestie_links')
+          .select('id')
+          .eq('caregiver_id', profile.id)
+          .eq('bestie_id', post.author_id)
+          .maybeSingle();
+        
+        if (guardianLinks) {
+          editable.add(post.id);
+        }
+      }
+    }
+    
+    setEditablePostIds(editable);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -492,6 +535,7 @@ const Discussions = () => {
           moderation_reason: imageModerationReason,
           moderation_notes: finalModerationNotes,
           approval_status: approvalStatus,
+          allow_owner_claim: allowOwnerClaim,
         });
 
       if (error) {
@@ -725,20 +769,29 @@ const Discussions = () => {
     loadPosts();
   };
 
-  const canDeleteContent = (authorId: string) => {
+  const canDeleteContent = async (authorId: string) => {
     // Admin-level access (includes owner) or content author can delete
     if (!profile || !user) return false;
     
-    // Debug logging to check author matching
-    console.log("Can delete check:", {
-      profileId: profile.id,
-      userId: user.id,
-      authorId: authorId,
-      profileRole: profile.role,
-      match: profile.id === authorId
-    });
+    // Check if user is the author
+    if (profile.id === authorId) return true;
     
-    return ['admin', 'owner'].includes(profile.role) || profile.id === authorId;
+    // Check if user is admin/owner
+    if (['admin', 'owner'].includes(profile.role)) return true;
+    
+    // Check if user is a guardian of the author
+    if (profile.role === 'caregiver') {
+      const { data: guardianLinks } = await supabase
+        .from('caregiver_bestie_links')
+        .select('id')
+        .eq('caregiver_id', profile.id)
+        .eq('bestie_id', authorId)
+        .maybeSingle();
+      
+      return !!guardianLinks;
+    }
+    
+    return false;
   };
 
   const hasAdminAccess = profile && ['admin', 'owner'].includes(profile.role);
@@ -747,6 +800,7 @@ const Discussions = () => {
     setEditingPostId(post.id);
     setEditTitle(post.title);
     setEditContent(post.content);
+    setAllowOwnerClaim((post as any).allow_owner_claim || false);
     
     // Populate all media and link fields
     setNewPost({
@@ -811,6 +865,7 @@ const Discussions = () => {
           youtube_url: newPost.youtube_url || null,
           event_id: newPost.event_id || null,
           image_url: imageUrl,
+          allow_owner_claim: allowOwnerClaim,
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingPostId);
@@ -839,11 +894,56 @@ const Discussions = () => {
     setEditingPostId(null);
     setEditTitle("");
     setEditContent("");
+    setAllowOwnerClaim(false);
     setSelectedImage(null);
     setImagePreview(null);
     setOriginalImageFile(null);
     setVideoInputType("none");
     setNewPost({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
+  };
+
+  const loadAdminOwnerUsers = async () => {
+    const { data } = await supabase
+      .from("profiles_public")
+      .select("id, display_name, role")
+      .in("role", ["admin", "owner"])
+      .order("display_name", { ascending: true });
+    
+    if (data) setAdminOwnerUsers(data);
+  };
+
+  const handleChangeAuthor = (post: Post) => {
+    setPostToChangeAuthor(post);
+    setNewAuthorId(post.author_id);
+    loadAdminOwnerUsers();
+    setChangeAuthorDialogOpen(true);
+  };
+
+  const handleSaveAuthorChange = async () => {
+    if (!postToChangeAuthor || !newAuthorId) return;
+
+    const { error } = await supabase
+      .from("discussion_posts")
+      .update({
+        author_id: newAuthorId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", postToChangeAuthor.id);
+
+    if (error) {
+      toast({
+        title: "Error changing author",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Post author changed successfully" });
+    setChangeAuthorDialogOpen(false);
+    setPostToChangeAuthor(null);
+    setNewAuthorId("");
+    loadPosts();
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -1090,6 +1190,20 @@ const Discussions = () => {
                     </div>
                   </div>
                 </div>
+
+                {hasAdminAccess && (
+                  <div className="flex items-center space-x-2 pt-2 border-t">
+                    <Checkbox
+                      id="allow-owner-claim"
+                      checked={allowOwnerClaim}
+                      onCheckedChange={(checked) => setAllowOwnerClaim(!!checked)}
+                    />
+                    <label htmlFor="allow-owner-claim" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Allow owner to claim this post
+                    </label>
+                  </div>
+                )}
+
                  <div className="flex gap-2">
                    <Button onClick={handleCreatePost} disabled={uploadingImage}>
                      {uploadingImage ? "Posting..." : "Post"}
@@ -1100,6 +1214,7 @@ const Discussions = () => {
       setNewPost({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
       setVideoInputType("none");
       setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
+      setAllowOwnerClaim(false);
                    }} disabled={uploadingImage}>
                      Cancel
                    </Button>
@@ -1179,11 +1294,11 @@ const Discussions = () => {
                           displayName={post.author?.display_name || "Unknown"}
                           size="md"
                         />
-                       <div className="flex-1">
+                        <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-2xl">{post.title}</CardTitle>
                             {!editingPostId && <TextToSpeech text={`${post.title}. ${post.content}`} />}
-                            {canDeleteContent(post.author_id) && editingPostId !== post.id && (
+                            {editablePostIds.has(post.id) && editingPostId !== post.id && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1191,6 +1306,19 @@ const Discussions = () => {
                                 className="h-8 w-8"
                               >
                                 <Edit className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {profile?.role === 'owner' && 
+                             ['admin', 'owner'].includes(post.author?.role || '') && 
+                             (post as any).allow_owner_claim && 
+                             post.author_id !== user?.id && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleChangeAuthor(post)}
+                                className="h-8"
+                              >
+                                Claim Post
                               </Button>
                             )}
                           </div>
@@ -1577,7 +1705,7 @@ const Discussions = () => {
                                 )}
                               </div>
                             </div>
-                            {canDeleteContent(comment.author_id) && (
+                             {editableCommentIds.has(comment.id) && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1714,6 +1842,43 @@ const Discussions = () => {
       </main>
       
       <Footer />
+
+      {/* Change Author Dialog */}
+      <Dialog open={changeAuthorDialogOpen} onOpenChange={setChangeAuthorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Post Author</DialogTitle>
+            <DialogDescription>
+              Select the new author for this post. Only admins and owners are available.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-author">New Author</Label>
+              <Select value={newAuthorId} onValueChange={setNewAuthorId}>
+                <SelectTrigger id="new-author">
+                  <SelectValue placeholder="Select new author" />
+                </SelectTrigger>
+                <SelectContent>
+                  {adminOwnerUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.display_name} ({user.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangeAuthorDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveAuthorChange} disabled={!newAuthorId}>
+              Change Author
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Image Crop Dialog */}
       {(imageToCrop || imagePreview) && (
