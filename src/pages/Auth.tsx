@@ -68,14 +68,15 @@ const Auth = () => {
           return;
         }
         
-        // Otherwise, check if user is a vendor
+        // Otherwise, check if user is an approved vendor
         const { data: vendor, error } = await supabase
           .from('vendors')
-          .select('*')
+          .select('status')
           .eq('user_id', userId)
           .maybeSingle();
         
-        if (!error && vendor) {
+        // Only redirect to vendor dashboard if approved
+        if (!error && vendor?.status === 'approved') {
           navigate("/vendor-dashboard", { replace: true });
         } else {
           navigate("/community", { replace: true });
