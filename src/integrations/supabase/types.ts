@@ -678,6 +678,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_notifications_log: {
+        Row: {
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          notification_type: string
+          recipient_email: string
+          sent_at: string
+          status: string
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type: string
+          recipient_email: string
+          sent_at?: string
+          status?: string
+          subject: string
+          user_id: string
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type?: string
+          recipient_email?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_attendees: {
         Row: {
           created_at: string
@@ -1267,6 +1303,54 @@ export type Database = {
           label?: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_on_approval_decision: boolean
+          email_on_event_update: boolean
+          email_on_message_approved: boolean
+          email_on_message_rejected: boolean
+          email_on_new_event: boolean
+          email_on_new_sponsor_message: boolean
+          email_on_new_sponsorship: boolean
+          email_on_pending_approval: boolean
+          email_on_sponsorship_update: boolean
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_on_approval_decision?: boolean
+          email_on_event_update?: boolean
+          email_on_message_approved?: boolean
+          email_on_message_rejected?: boolean
+          email_on_new_event?: boolean
+          email_on_new_sponsor_message?: boolean
+          email_on_new_sponsorship?: boolean
+          email_on_pending_approval?: boolean
+          email_on_sponsorship_update?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_on_approval_decision?: boolean
+          email_on_event_update?: boolean
+          email_on_message_approved?: boolean
+          email_on_message_rejected?: boolean
+          email_on_new_event?: boolean
+          email_on_new_sponsor_message?: boolean
+          email_on_new_sponsorship?: boolean
+          email_on_pending_approval?: boolean
+          email_on_sponsorship_update?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2791,6 +2875,20 @@ export type Database = {
       cleanup_rate_limits: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      get_notification_preferences: {
+        Args: { _user_id: string }
+        Returns: {
+          email_on_approval_decision: boolean
+          email_on_event_update: boolean
+          email_on_message_approved: boolean
+          email_on_message_rejected: boolean
+          email_on_new_event: boolean
+          email_on_new_sponsor_message: boolean
+          email_on_new_sponsorship: boolean
+          email_on_pending_approval: boolean
+          email_on_sponsorship_update: boolean
+        }[]
       }
       get_user_email: {
         Args: { _user_id: string }
