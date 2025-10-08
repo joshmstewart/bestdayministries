@@ -75,15 +75,18 @@ Question and answer pairs grouped by category.
 ### 2. TAKE A PRODUCT TOUR
 **Flow:**
 1. Click "Start Tour" on tour card
-2. Interactive overlay highlights UI elements
-3. Follow prompts with Next/Back navigation
-4. Skip or close anytime
+2. Tour navigates to required route (preserves `?tour=xxx` param)
+3. Interactive overlay highlights UI elements
+4. Follow prompts with Next/Back navigation
+5. Skip or close anytime
 
 **Features:**
-- Auto-scrolling to elements
+- Auto-scrolling to elements with 150px offset (accounts for header/nav)
 - Progress indicator
 - Keyboard navigation support
 - Mobile responsive
+- Route-specific tours automatically navigate to correct page
+- Query parameter preservation during navigation
 
 ### 3. READ A GUIDE
 **Flow:**
@@ -267,6 +270,18 @@ Question and answer pairs grouped by category.
 - Minimal re-renders
 - Optimized JSON parsing
 
+### Tour System Details
+**Navigation Handling:**
+- Tours preserve `?tour=xxx` query parameter during route navigation
+- Automatic element detection with 5-second timeout fallback
+- 150px scroll offset to prevent header/nav overlap
+
+**Reliability Features:**
+- Query parameter preservation across route changes
+- Element availability checking before starting
+- Graceful fallback if elements not found
+- Proper cleanup on unmount
+
 ---
 
 ## USE CASES
@@ -336,10 +351,13 @@ A: Click on your profile icon, select Settings, then choose "Change Password". Y
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | Tour doesn't start | Invalid CSS selector | Verify selector exists in DOM |
+| Tour doesn't start after navigation | Query param lost during route change | System now preserves `?tour=xxx` automatically |
+| Elements hidden behind header | Default scroll positioning | Fixed with 150px scrollOffset |
 | Steps out of order | Wrong display_order | Update display_order values |
 | Guide formatting broken | Invalid markdown syntax | Use simple formatting only |
 | FAQ not showing | Wrong category or inactive | Check is_active and category |
 | Search not working | Missing search query | Verify state management |
+| Tour preview from admin doesn't work | Navigation timing issue | Fixed with proper query param handling |
 
 ---
 
@@ -505,4 +523,4 @@ A: Click "Manage Subscription" next to the bestie in My Besties, then use the St
 
 ---
 
-**Last Updated:** After implementing complete help center with tours, guides, FAQs, and admin management
+**Last Updated:** After fixing tour navigation, query parameter preservation, and scroll offset for header/nav clearance
