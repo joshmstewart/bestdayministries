@@ -18,6 +18,8 @@ import {
 import { GuideViewer } from "@/components/help/GuideViewer";
 import { FAQSection } from "@/components/help/FAQSection";
 import { useToast } from "@/hooks/use-toast";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 
 interface Tour {
   id: string;
@@ -152,6 +154,7 @@ export default function HelpCenter() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
       <main className="flex-1 pt-24">
         <div className="container mx-auto px-4 pb-12">
           {/* Header */}
@@ -315,6 +318,8 @@ export default function HelpCenter() {
           </Tabs>
         </div>
       </main>
+
+      <Footer />
 
       {/* Guide Viewer */}
       {selectedGuide && (
