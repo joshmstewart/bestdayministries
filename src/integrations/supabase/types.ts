@@ -2610,6 +2610,35 @@ export type Database = {
         }
         Relationships: []
       }
+      tour_completions: {
+        Row: {
+          completed_at: string
+          id: string
+          tour_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          tour_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          tour_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tour_completions_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "help_tours"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_permissions: {
         Row: {
           granted_at: string | null

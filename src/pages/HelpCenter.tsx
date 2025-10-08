@@ -13,13 +13,16 @@ import {
   Search,
   Clock,
   Users,
-  ChevronRight
+  ChevronRight,
+  CheckCircle2,
+  Sparkles
 } from "lucide-react";
 import { GuideViewer } from "@/components/help/GuideViewer";
 import { FAQSection } from "@/components/help/FAQSection";
 import { useToast } from "@/hooks/use-toast";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
+import { useTourCompletions } from "@/hooks/useTourCompletions";
 
 interface Tour {
   id: string;
@@ -61,6 +64,7 @@ export default function HelpCenter() {
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { isTourCompleted, loading: completionsLoading } = useTourCompletions();
 
   const activeTab = searchParams.get("tab") || "tours";
 
@@ -196,38 +200,61 @@ export default function HelpCenter() {
             {/* Product Tours */}
             <TabsContent value="tours">
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredTours.map((tour) => (
-                  <Card key={tour.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between mb-2">
-                        <PlayCircle className="h-8 w-8 text-primary" />
-                        <Badge className={getCategoryBadgeColor(tour.category)}>
-                          {tour.category.replace("-", " ")}
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-xl">{tour.title}</CardTitle>
-                      <CardDescription>{tour.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                        {tour.duration_minutes && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {tour.duration_minutes} min
+                {filteredTours.map((tour) => {
+                  const isCompleted = isTourCompleted(tour.id);
+                  const isNew = !isCompleted; // Consider all uncompleted tours as "new"
+                  
+                  return (
+                    <Card key={tour.id} className="hover:shadow-lg transition-shadow relative">
+                      <CardHeader>
+                        <div className="flex items-start justify-between mb-2">
+                          <PlayCircle className="h-8 w-8 text-primary" />
+                          <div className="flex gap-2">
+                            <Badge className={getCategoryBadgeColor(tour.category)}>
+                              {tour.category.replace("-", " ")}
+                            </Badge>
+                            {isCompleted && (
+                              <Badge className="bg-green-100 text-green-800 gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Complete
+                              </Badge>
+                            )}
+                            {isNew && !isCompleted && (
+                              <Badge className="bg-gradient-warm text-white gap-1 animate-pulse">
+                                <Sparkles className="h-3 w-3" />
+                                New
+                              </Badge>
+                            )}
                           </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          {tour.visible_to_roles?.join(", ") || "all"}
                         </div>
-                      </div>
-                      <Button onClick={() => handleStartTour(tour)} className="w-full">
-                        Start Tour
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                        <CardTitle className="text-xl">{tour.title}</CardTitle>
+                        <CardDescription>{tour.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                          {tour.duration_minutes && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {tour.duration_minutes} min
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {tour.visible_to_roles?.join(", ") || "all"}
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => handleStartTour(tour)} 
+                          className="w-full"
+                          variant={isCompleted ? "outline" : "default"}
+                        >
+                          {isCompleted ? "Review Tour" : "Start Tour"}
+                          <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
 
               {filteredTours.length === 0 && !isLoading && (
