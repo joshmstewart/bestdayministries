@@ -20,7 +20,12 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   const [run, setRun] = useState(false);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status } = data;
+    const { status, action, index, type } = data;
+
+    // Handle navigation for steps with routes
+    if (type === 'step:before' && tour.steps[index] && (tour.steps[index] as any).route) {
+      navigate((tour.steps[index] as any).route);
+    }
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);

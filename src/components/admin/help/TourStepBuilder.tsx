@@ -15,6 +15,7 @@ interface TourStep {
   title?: string;
   placement?: "top" | "bottom" | "left" | "right" | "center" | "auto";
   disableBeacon?: boolean;
+  route?: string;
 }
 
 interface TourStepBuilderProps {
@@ -139,6 +140,21 @@ export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor={`route-${index}`}>
+                Page Route (Optional)
+              </Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Navigate to this page before showing this step (e.g., /community, /events)
+              </p>
+              <Input
+                id={`route-${index}`}
+                value={step.route || ""}
+                onChange={(e) => updateStep(index, "route", e.target.value)}
+                placeholder="/community"
+              />
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Label htmlFor={`target-${index}`}>

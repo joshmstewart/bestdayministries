@@ -12,14 +12,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TourStepBuilder } from "./TourStepBuilder";
-import { ProductTourRunner } from "@/components/help/ProductTourRunner";
+import { useNavigate } from "react-router-dom";
 
 export function TourManager() {
   const [tours, setTours] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTour, setEditingTour] = useState<any | null>(null);
-  const [previewTour, setPreviewTour] = useState<any | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -353,7 +353,10 @@ export function TourManager() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setPreviewTour(tour)}
+                  onClick={() => {
+                    const targetRoute = tour.required_route || '/';
+                    navigate(`${targetRoute}?tour=${tour.id}`);
+                  }}
                   title="Preview Tour"
                 >
                   <Play className="w-4 h-4" />
@@ -392,17 +395,6 @@ export function TourManager() {
         ))}
       </div>
 
-      {previewTour && (
-        <ProductTourRunner
-          tour={{
-            id: previewTour.id,
-            title: previewTour.title,
-            description: previewTour.description,
-            steps: previewTour.steps || [],
-          }}
-          onClose={() => setPreviewTour(null)}
-        />
-      )}
     </div>
   );
 }
