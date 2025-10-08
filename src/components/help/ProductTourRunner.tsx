@@ -34,10 +34,10 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   };
 
   useEffect(() => {
-    // Wait for page to be fully loaded before starting tour
+    // Wait longer for page to fully render and elements to be available
     const timer = setTimeout(() => {
       setRun(true);
-    }, 500);
+    }, 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -49,7 +49,7 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
         continuous
         showProgress
         showSkipButton
-        scrollToFirstStep
+        scrollToFirstStep={false}
         disableScrolling={false}
         callback={handleJoyrideCallback}
         styles={{
