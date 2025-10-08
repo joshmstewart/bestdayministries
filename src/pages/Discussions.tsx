@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,7 @@ interface Post {
 
 const Discussions = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -140,6 +141,23 @@ const Discussions = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Scroll to post from notification
+  useEffect(() => {
+    const postId = searchParams.get('postId');
+    if (postId && posts.length > 0) {
+      setTimeout(() => {
+        const element = document.getElementById(`post-${postId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+          setTimeout(() => {
+            element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+          }, 3000);
+        }
+      }, 100);
+    }
+  }, [searchParams, posts]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -1264,7 +1282,7 @@ const Discussions = () => {
               }
 
               return sortedPosts.map((post) => (
-                <Card key={post.id}>
+                <Card key={post.id} id={`post-${post.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1">
