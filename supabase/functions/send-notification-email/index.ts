@@ -1,20 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-import React from "npm:react@18.3.1";
-import { renderAsync } from "npm:@react-email/components@0.0.22";
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Link,
-  Preview,
-  Section,
-  Text,
-  Img,
-} from 'npm:@react-email/components@0.0.22';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -35,124 +21,102 @@ interface NotificationEmailRequest {
   metadata?: any;
 }
 
-// Email styles
-const main = {
-  backgroundColor: '#f5f5f5',
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-};
+// Generate customized email content based on notification type
+const generateEmailContent = (
+  requestData: NotificationEmailRequest,
+  displayName: string
+): { title: string; message: string; actionText: string } => {
+  let emailTitle = requestData.title;
+  let emailMessage = requestData.message;
+  let actionText = "View Details";
 
-const container = {
-  backgroundColor: '#ffffff',
-  margin: '0 auto',
-  padding: '20px 0',
-  maxWidth: '600px',
-  borderRadius: '8px',
-  overflow: 'hidden',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-};
+  switch (requestData.notificationType) {
+    case "approval_decision":
+      const status = requestData.metadata?.status || "approved";
+      const itemType = requestData.metadata?.itemType || "post";
+      emailTitle = status === 'approved' 
+        ? `Your ${itemType} was approved! 🎉`
+        : `Your ${itemType} needs revision`;
+      emailMessage = status === 'approved'
+        ? `Great news! Your ${itemType}${requestData.metadata?.itemTitle ? ` "${requestData.metadata.itemTitle}"` : ''} has been approved and is now visible to the community.`
+        : `Your ${itemType}${requestData.metadata?.itemTitle ? ` "${requestData.metadata.itemTitle}"` : ''} was reviewed and needs some changes before it can be published. Please check the feedback and resubmit.`;
+      actionText = `View ${itemType}`;
+      break;
 
-const logoSection = {
-  padding: '30px 20px 20px',
-  textAlign: 'center' as const,
-};
+    case "new_sponsor_message":
+      emailTitle = "You have a new message! 💌";
+      const senderName = requestData.metadata?.senderName || "A sponsor";
+      const messageSubject = requestData.metadata?.messageSubject;
+      emailMessage = `${senderName} sent you a message${messageSubject ? ` about "${messageSubject}"` : ''}:\n\n${requestData.message.substring(0, 200)}${requestData.message.length > 200 ? '...' : ''}`;
+      actionText = "Read Message";
+      break;
 
-const logo = {
-  maxWidth: '150px',
-  height: 'auto',
-};
+    case "message_approved":
+      emailTitle = "Your message was approved! ✅";
+      emailMessage = `Your message to sponsors has been approved and delivered.`;
+      actionText = "View Messages";
+      break;
 
-const content = {
-  padding: '20px 40px',
-};
+    case "message_rejected":
+      emailTitle = "Your message needs revision";
+      emailMessage = `Your message to sponsors was reviewed and needs changes. Reason: ${requestData.metadata?.reason || 'Please see feedback'}`;
+      actionText = "View Messages";
+      break;
 
-const h1 = {
-  margin: '0 0 20px',
-  fontSize: '24px',
-  fontWeight: '600',
-  color: '#1a1a1a',
-};
+    case "new_sponsorship":
+      emailTitle = "New Sponsorship! 🎉";
+      const frequency = requestData.metadata?.frequency === 'monthly' ? 'monthly' : 'one-time';
+      const amount = requestData.metadata?.amount || 0;
+      const sponsorName = requestData.metadata?.sponsorName || "A supporter";
+      const bestieName = requestData.metadata?.bestieName || displayName;
+      emailMessage = `${sponsorName} has started a ${frequency} sponsorship of $${amount.toFixed(2)} for ${bestieName}. Thank you for your support!`;
+      actionText = "View Sponsorship";
+      break;
 
-const text = {
-  margin: '0 0 20px',
-  fontSize: '16px',
-  lineHeight: '1.6',
-  color: '#4a4a4a',
-  whiteSpace: 'pre-line' as const,
-};
+    case "sponsorship_update":
+      emailTitle = "Sponsorship Updated 💝";
+      emailMessage = requestData.message;
+      actionText = "View Sponsorships";
+      break;
 
-const buttonContainer = {
-  marginTop: '30px',
-  textAlign: 'center' as const,
-};
+    case "comment_on_post":
+      emailTitle = "New comment on your post 💬";
+      const commenterPost = requestData.metadata?.commenterName || "Someone";
+      const postTitle = requestData.metadata?.postTitle || "your post";
+      emailMessage = `${commenterPost} commented on "${postTitle}":\n\n${requestData.message.substring(0, 200)}${requestData.message.length > 200 ? '...' : ''}`;
+      actionText = "View Comment";
+      break;
 
-const button = {
-  display: 'inline-block',
-  padding: '14px 28px',
-  background: 'linear-gradient(135deg, #f97316, #ea580c)',
-  color: '#ffffff',
-  textDecoration: 'none',
-  borderRadius: '6px',
-  fontWeight: '600',
-  fontSize: '16px',
-};
+    case "comment_on_thread":
+      emailTitle = "New reply on a discussion you're following 💬";
+      const commenterThread = requestData.metadata?.commenterName || "Someone";
+      const threadTitle = requestData.metadata?.postTitle || "a discussion";
+      emailMessage = `${commenterThread} also commented on "${threadTitle}":\n\n${requestData.message.substring(0, 200)}${requestData.message.length > 200 ? '...' : ''}`;
+      actionText = "View Comment";
+      break;
 
-const footer = {
-  padding: '20px 40px',
-  backgroundColor: '#f9f9f9',
-  borderTop: '1px solid #eeeeee',
-};
+    case "new_event":
+      emailTitle = `New Event: ${requestData.metadata?.eventTitle || requestData.title} 📅`;
+      const eventDate = requestData.metadata?.eventDate || '';
+      const eventLocation = requestData.metadata?.eventLocation;
+      emailMessage = `${requestData.message}\n\nWhen: ${eventDate}${eventLocation ? `\nWhere: ${eventLocation}` : ''}`;
+      actionText = "View Event Details";
+      break;
 
-const footerText = {
-  margin: '0',
-  fontSize: '14px',
-  color: '#888888',
-  textAlign: 'center' as const,
-};
+    case "event_update":
+      emailTitle = `Event Update: ${requestData.metadata?.eventTitle || requestData.title} 📅`;
+      emailMessage = requestData.message;
+      actionText = "View Event Details";
+      break;
 
-const footerLink = {
-  color: '#888888',
-  textDecoration: 'underline',
-};
+    case "pending_approval":
+      emailTitle = "New content awaiting your approval";
+      emailMessage = requestData.message;
+      actionText = "Review Now";
+      break;
+  }
 
-// Base email template component
-const createEmailTemplate = (props: {
-  preview: string;
-  title: string;
-  message: string;
-  actionUrl?: string;
-  actionText?: string;
-  logoUrl?: string;
-  appUrl: string;
-}) => {
-  return React.createElement(Html, {},
-    React.createElement(Head, {}),
-    React.createElement(Preview, {}, props.preview),
-    React.createElement(Body, { style: main },
-      React.createElement(Container, { style: container },
-        props.logoUrl && React.createElement(Section, { style: logoSection },
-          React.createElement(Img, { src: props.logoUrl, alt: "Logo", style: logo })
-        ),
-        React.createElement(Section, { style: content },
-          React.createElement(Heading, { style: h1 }, props.title),
-          React.createElement(Text, { style: text }, props.message),
-          props.actionUrl && React.createElement(Section, { style: buttonContainer },
-            React.createElement(Link, { href: props.actionUrl, style: button },
-              props.actionText || "View Details"
-            )
-          )
-        ),
-        React.createElement(Section, { style: footer },
-          React.createElement(Text, { style: footerText },
-            "You received this email because you have notifications enabled in your settings.",
-            React.createElement('br', {}),
-            React.createElement(Link, { href: `${props.appUrl}/profile`, style: footerLink },
-              "Manage preferences"
-            )
-          )
-        )
-      )
-    )
-  );
+  return { title: emailTitle, message: emailMessage, actionText };
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -223,71 +187,69 @@ const handler = async (req: Request): Promise<Response> => {
 
     const logoUrl = appSettings?.setting_value || "";
     const appUrl = supabaseUrl.replace(".supabase.co", ".lovable.app");
-    const actionUrl = requestData.link ? `${appUrl}${requestData.link}` : undefined;
+    const actionUrl = requestData.link ? `${appUrl}${requestData.link}` : appUrl;
 
-    // Customize message and title based on notification type
-    let emailTitle = requestData.title;
-    let emailMessage = requestData.message;
-    let actionText = "View Details";
+    // Generate customized email content
+    const { title, message, actionText } = generateEmailContent(requestData, profile.display_name);
 
-    switch (requestData.notificationType) {
-      case "approval_decision":
-        const status = requestData.metadata?.status || "approved";
-        emailTitle = status === 'approved' 
-          ? `Your ${requestData.metadata?.itemType || 'post'} was approved! 🎉`
-          : `Your ${requestData.metadata?.itemType || 'post'} needs revision`;
-        actionText = `View ${requestData.metadata?.itemType || 'post'}`;
-        break;
-
-      case "new_sponsor_message":
-        emailTitle = "You have a new message! 💌";
-        emailMessage = `${requestData.metadata?.senderName || 'A sponsor'} sent you a message${requestData.metadata?.messageSubject ? ` about "${requestData.metadata.messageSubject}"` : ''}:\n\n${requestData.message}`;
-        actionText = "Read Message";
-        break;
-
-      case "new_sponsorship":
-        emailTitle = "New Sponsorship! 🎉";
-        const frequency = requestData.metadata?.frequency === 'monthly' ? 'monthly' : 'one-time';
-        emailMessage = `${requestData.metadata?.sponsorName || 'A supporter'} has started a ${frequency} sponsorship of $${requestData.metadata?.amount?.toFixed(2) || '0.00'} for ${requestData.metadata?.bestieName || 'you'}. Thank you for your support!`;
-        actionText = "View Sponsorship";
-        break;
-
-      case "comment_on_post":
-        emailTitle = "New comment on your post 💬";
-        emailMessage = `${requestData.metadata?.commenterName || 'Someone'} commented on "${requestData.metadata?.postTitle || 'your post'}":\n\n${requestData.message}`;
-        actionText = "View Comment";
-        break;
-
-      case "comment_on_thread":
-        emailTitle = "New reply on a discussion you're following 💬";
-        emailMessage = `${requestData.metadata?.commenterName || 'Someone'} also commented on "${requestData.metadata?.postTitle || 'a discussion'}":\n\n${requestData.message}`;
-        actionText = "View Comment";
-        break;
-
-      case "new_event":
-        emailTitle = `New Event: ${requestData.metadata?.eventTitle || requestData.title} 📅`;
-        emailMessage = `${requestData.message}\n\nWhen: ${requestData.metadata?.eventDate || ''}${requestData.metadata?.eventLocation ? `\nWhere: ${requestData.metadata.eventLocation}` : ''}`;
-        actionText = "View Event Details";
-        break;
-
-      case "event_update":
-        emailTitle = `Event Update: ${requestData.metadata?.eventTitle || requestData.title} 📅`;
-        actionText = "View Event Details";
-        break;
-    }
-
-    // Generate email HTML using React Email template
-    const emailComponent = createEmailTemplate({
-      preview: requestData.subject,
-      title: emailTitle,
-      message: emailMessage,
-      actionUrl,
-      actionText,
-      logoUrl,
-      appUrl,
-    });
-
-    const html = await renderAsync(emailComponent);
+    // Build email HTML with improved styling
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${requestData.subject}</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  ${logoUrl ? `
+                  <tr>
+                    <td align="center" style="padding: 30px 20px 20px;">
+                      <img src="${logoUrl}" alt="Logo" style="max-width: 150px; height: auto;">
+                    </td>
+                  </tr>
+                  ` : ''}
+                  <tr>
+                    <td style="padding: 20px 40px;">
+                      <h1 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; color: #1a1a1a;">
+                        ${title}
+                      </h1>
+                      <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #4a4a4a; white-space: pre-line;">
+                        ${message}
+                      </p>
+                      ${requestData.link ? `
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 30px;">
+                        <tr>
+                          <td align="center">
+                            <a href="${actionUrl}" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #f97316, #ea580c); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                              ${actionText}
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                      ` : ''}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 20px 40px; background-color: #f9f9f9; border-top: 1px solid #eeeeee;">
+                      <p style="margin: 0; font-size: 14px; color: #888888; text-align: center;">
+                        You received this email because you have notifications enabled in your settings.
+                        <br>
+                        <a href="${appUrl}/profile" style="color: #888888; text-decoration: underline;">Manage preferences</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
 
     // Send email
     const { data: emailData, error: emailError } = await resend.emails.send({
