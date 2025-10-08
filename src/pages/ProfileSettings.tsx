@@ -59,6 +59,11 @@ const ProfileSettings = () => {
     email_on_sponsorship_update: true,
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
+  
+  // Track user's relationships for conditional notification display
+  const [isSponsor, setIsSponsor] = useState(false);
+  const [isBeingSponsored, setIsBeingSponsored] = useState(false);
+  const [isBestie, setIsBestie] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -75,6 +80,7 @@ const ProfileSettings = () => {
     setUser(session.user);
     await loadProfile(session.user.id);
     await loadNotificationPreferences(session.user.id);
+    await checkUserRelationships(session.user.id);
     setLoading(false);
   };
 
@@ -263,6 +269,43 @@ const ProfileSettings = () => {
     { value: "marshal", label: "Marshal", description: "Strong and confident voice" },
     { value: "maverick", label: "Maverick", description: "Cool and adventurous voice" },
   ];
+
+  const checkUserRelationships = async (userId: string) => {
+    try {
+      // Check if user is actively sponsoring anyone
+      const { data: sponsorData } = await supabase
+        .from("sponsorships")
+        .select("id")
+        .eq("sponsor_id", userId)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+      
+      setIsSponsor(!!sponsorData);
+      
+      // Check if user is being sponsored
+      const { data: sponsoredData } = await supabase
+        .from("sponsorships")
+        .select("id")
+        .eq("bestie_id", userId)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+      
+      setIsBeingSponsored(!!sponsoredData);
+      
+      // Check if user is a bestie
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      setIsBestie(roleData?.role === "bestie");
+    } catch (error: any) {
+      console.error("Error checking user relationships:", error);
+    }
+  };
 
   const loadNotificationPreferences = async (userId: string) => {
     try {
@@ -674,7 +717,7 @@ const ProfileSettings = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Guardian/Admin Notifications */}
+                  {/* Guardian/Admin Notifications - Only show if user is guardian/admin/owner */}
                   {(profile?.role === "caregiver" || profile?.role === "admin" || profile?.role === "owner") && (
                     <div className="space-y-3 pb-4 border-b">
                       <Label className="text-base">Guardian & Admin</Label>
@@ -713,49 +756,64 @@ const ProfileSettings = () => {
                   <div className="space-y-3 pb-4 border-b">
                     <Label className="text-base">Sponsorship Messages</Label>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="new-message" className="font-normal">New messages</Label>
-                          <p className="text-xs text-muted-foreground">When you receive a new message</p>
+                      {/* New messages - Only show if user is actively sponsoring someone */}
+                      {isSponsor && (
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="new-message" className="font-normal">New messages</Label>
+                            <p className="text-xs text-muted-foreground">When you receive a new message</p>
+                          </div>
+                          <Switch
+                            id="new-message"
+                            checked={notificationPrefs.email_on_new_sponsor_message}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsor_message: checked }))
+                            }
+                          />
                         </div>
-                        <Switch
-                          id="new-message"
-                          checked={notificationPrefs.email_on_new_sponsor_message}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsor_message: checked }))
-                          }
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="message-approved" className="font-normal">Message approved</Label>
-                          <p className="text-xs text-muted-foreground">When your message is approved</p>
-                        </div>
-                        <Switch
-                          id="message-approved"
-                          checked={notificationPrefs.email_on_message_approved}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_message_approved: checked }))
-                          }
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="message-rejected" className="font-normal">Message rejected</Label>
-                          <p className="text-xs text-muted-foreground">When your message is rejected</p>
-                        </div>
-                        <Switch
-                          id="message-rejected"
-                          checked={notificationPrefs.email_on_message_rejected}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_message_rejected: checked }))
-                          }
-                        />
-                      </div>
+                      )}
+                      {/* Message approved/rejected - Only show if user is a bestie */}
+                      {isBestie && (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="message-approved" className="font-normal">Message approved</Label>
+                              <p className="text-xs text-muted-foreground">When your message is approved</p>
+                            </div>
+                            <Switch
+                              id="message-approved"
+                              checked={notificationPrefs.email_on_message_approved}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, email_on_message_approved: checked }))
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="message-rejected" className="font-normal">Message rejected</Label>
+                              <p className="text-xs text-muted-foreground">When your message is rejected</p>
+                            </div>
+                            <Switch
+                              id="message-rejected"
+                              checked={notificationPrefs.email_on_message_rejected}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, email_on_message_rejected: checked }))
+                              }
+                            />
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Show message if section is empty */}
+                      {!isSponsor && !isBestie && (
+                        <p className="text-sm text-muted-foreground py-2">
+                          No sponsorship message notifications available for your account.
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Events */}
+                  {/* Events - Show to everyone */}
                   <div className="space-y-3 pb-4 border-b">
                     <Label className="text-base">Events</Label>
                     <div className="space-y-3">
@@ -788,38 +846,40 @@ const ProfileSettings = () => {
                     </div>
                   </div>
 
-                  {/* Sponsorships */}
-                  <div className="space-y-3">
-                    <Label className="text-base">Sponsorships</Label>
+                  {/* Sponsorships - Only show if user is being sponsored */}
+                  {isBeingSponsored && (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="new-sponsorship" className="font-normal">New sponsorships</Label>
-                          <p className="text-xs text-muted-foreground">When you receive a new sponsorship</p>
+                      <Label className="text-base">Sponsorships</Label>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="new-sponsorship" className="font-normal">New sponsorships</Label>
+                            <p className="text-xs text-muted-foreground">When you receive a new sponsorship</p>
+                          </div>
+                          <Switch
+                            id="new-sponsorship"
+                            checked={notificationPrefs.email_on_new_sponsorship}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsorship: checked }))
+                            }
+                          />
                         </div>
-                        <Switch
-                          id="new-sponsorship"
-                          checked={notificationPrefs.email_on_new_sponsorship}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_new_sponsorship: checked }))
-                          }
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="sponsorship-update" className="font-normal">Sponsorship updates</Label>
-                          <p className="text-xs text-muted-foreground">When sponsorships are modified</p>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="sponsorship-update" className="font-normal">Sponsorship updates</Label>
+                            <p className="text-xs text-muted-foreground">When sponsorships are modified</p>
+                          </div>
+                          <Switch
+                            id="sponsorship-update"
+                            checked={notificationPrefs.email_on_sponsorship_update}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_sponsorship_update: checked }))
+                            }
+                          />
                         </div>
-                        <Switch
-                          id="sponsorship-update"
-                          checked={notificationPrefs.email_on_sponsorship_update}
-                          onCheckedChange={(checked) => 
-                            setNotificationPrefs(prev => ({ ...prev, email_on_sponsorship_update: checked }))
-                          }
-                        />
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   <Button
                     onClick={saveNotificationPreferences}
