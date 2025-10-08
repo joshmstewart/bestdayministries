@@ -94,6 +94,62 @@ export const useNotifications = () => {
     }
   };
 
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from("notifications")
+        .delete()
+        .eq("id", notificationId);
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      setUnreadCount(prev => {
+        const notification = notifications.find(n => n.id === notificationId);
+        return notification && !notification.is_read ? Math.max(0, prev - 1) : prev;
+      });
+
+      toast({
+        title: "Notification deleted",
+      });
+    } catch (error: any) {
+      console.error("Error deleting notification:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete notification",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteAllRead = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { error } = await supabase
+        .from("notifications")
+        .delete()
+        .eq("user_id", session.user.id)
+        .eq("is_read", true);
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.filter(n => !n.is_read));
+
+      toast({
+        title: "Read notifications cleared",
+      });
+    } catch (error: any) {
+      console.error("Error deleting read notifications:", error);
+      toast({
+        title: "Error",
+        description: "Failed to clear notifications",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNotificationClick = async (notification: Notification) => {
     await markAsRead(notification.id);
     
@@ -143,6 +199,8 @@ export const useNotifications = () => {
     loading,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
+    deleteAllRead,
     handleNotificationClick,
     refreshNotifications: loadNotifications,
   };

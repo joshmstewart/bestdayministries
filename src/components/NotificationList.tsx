@@ -1,86 +1,111 @@
 import { useNotifications } from "@/hooks/useNotifications";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { CheckCheck, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Bell, Check, X, Trash2 } from "lucide-react";
+import { Button } from "./ui/button";
+import { ScrollArea } from "./ui/scroll-area";
+import { Card } from "./ui/card";
 
 export const NotificationList = () => {
-  const {
-    notifications,
-    unreadCount,
-    loading,
+  const { 
+    notifications, 
+    loading, 
     markAllAsRead,
-    handleNotificationClick,
+    deleteNotification,
+    deleteAllRead,
+    handleNotificationClick 
   } = useNotifications();
 
-  if (loading) {
-    return (
-      <div className="p-8 flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col">
-      {/* Header */}
+    <div className="w-[380px]">
       <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-semibold text-sm">Notifications</h3>
-        {unreadCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={markAllAsRead}
-            className="h-8 text-xs gap-1"
-          >
-            <CheckCheck className="h-3 w-3" />
-            Mark all read
-          </Button>
+        <h2 className="text-lg font-semibold">Notifications</h2>
+        {notifications.length > 0 && (
+          <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={deleteAllRead}
+              className="text-xs"
+              title="Clear read notifications"
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Clear read
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={markAllAsRead}
+              className="text-xs"
+            >
+              <Check className="h-3 w-3 mr-1" />
+              Mark all read
+            </Button>
+          </div>
         )}
       </div>
 
-      {/* List */}
-      {notifications.length === 0 ? (
-        <div className="p-8 text-center text-sm text-muted-foreground">
-          No notifications yet
-        </div>
-      ) : (
-        <ScrollArea className="h-[400px]">
-          <div className="flex flex-col">
-            {notifications.map((notification, index) => (
-              <div key={notification.id}>
-                <button
+      <ScrollArea className="h-[400px]">
+        {loading ? (
+          <div className="p-8 text-center text-muted-foreground">
+            Loading...
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="p-8 text-center">
+            <Bell className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <p className="text-muted-foreground">No notifications yet</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {notifications.map((notification) => (
+              <Card
+                key={notification.id}
+                className={`p-4 transition-colors group relative border-0 rounded-none ${
+                  !notification.is_read ? "bg-primary/5" : ""
+                }`}
+              >
+                <div 
+                  className="cursor-pointer"
                   onClick={() => handleNotificationClick(notification)}
-                  className={`w-full text-left p-4 hover:bg-muted/50 transition-colors ${
-                    !notification.is_read ? 'bg-primary/5' : ''
-                  }`}
                 >
                   <div className="flex items-start gap-3">
-                    {!notification.is_read && (
-                      <div className="mt-2 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {notification.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                    <div className={`p-2 rounded-full ${
+                      !notification.is_read ? "bg-primary/10" : "bg-muted"
+                    }`}>
+                      <Bell className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0 pr-8">
+                      <p className="font-medium text-sm">{notification.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground mt-2">
                         {formatDistanceToNow(new Date(notification.created_at), {
                           addSuffix: true,
                         })}
                       </p>
                     </div>
+                    {!notification.is_read && (
+                      <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-2" />
+                    )}
                   </div>
-                </button>
-                {index < notifications.length - 1 && <Separator />}
-              </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteNotification(notification.id);
+                  }}
+                  title="Delete notification"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </Card>
             ))}
           </div>
-        </ScrollArea>
-      )}
+        )}
+      </ScrollArea>
     </div>
   );
 };
