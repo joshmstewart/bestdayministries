@@ -43,15 +43,9 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
 
   useEffect(() => {
     if (canLoad) {
-      checkAuth();
+      loadData();
     }
   }, [canLoad]);
-
-  useEffect(() => {
-    if (userRole !== null && canLoad) {
-      loadFeaturedItems();
-    }
-  }, [userRole, canLoad]);
 
   useEffect(() => {
     if (items.length > 0) {
@@ -78,46 +72,48 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
     autoAdvanceRef.current = false;
   }, [currentIndex]);
 
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setIsAuthenticated(!!user);
-    
-    if (user) {
-      // Fetch role from user_roles table (security requirement)
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      setUserRole(roleData?.role || null);
-    } else {
-      setUserRole(null);
-    }
-  };
-
-  const loadFeaturedItems = async () => {
+  const loadData = async () => {
     try {
-      let query = supabase
-        .from("featured_items")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
+      // Parallelize auth check and initial data fetch
+      const [authResult, itemsResult] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase
+          .from("featured_items")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true })
+      ]);
 
-      // Filter by visibility based on auth status and role
-      if (!isAuthenticated) {
+      const user = authResult.data?.user;
+      setIsAuthenticated(!!user);
+
+      let filteredItems = itemsResult.data || [];
+
+      if (user) {
+        // Fetch role from user_roles table (security requirement)
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        const role = roleData?.role || null;
+        setUserRole(role);
+
+        // Filter items based on role
+        if (role && !['admin', 'owner'].includes(role)) {
+          filteredItems = filteredItems.filter(item => 
+            item.is_public || item.visible_to_roles?.includes(role)
+          );
+        }
+        // Admin and owner see everything
+      } else {
+        setUserRole(null);
         // Only show public items to non-authenticated users
-        query = query.eq("is_public", true);
-      } else if (userRole && !['admin', 'owner'].includes(userRole)) {
-        // Authenticated users see items visible to their role
-        query = query.contains("visible_to_roles", [userRole]);
+        filteredItems = filteredItems.filter(item => item.is_public);
       }
-      // Admin and owner see everything
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setItems(data || []);
+      setItems(filteredItems);
     } catch (error) {
       console.error("Error loading featured items:", error);
     } finally {
