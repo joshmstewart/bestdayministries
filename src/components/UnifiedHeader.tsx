@@ -529,7 +529,10 @@ export const UnifiedHeader = () => {
               </div>
 
               {/* Desktop Navigation */}
-              <nav className={`hidden md:block absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-50 shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+              <nav 
+                className={`hidden md:block absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-50 shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}
+                data-tour-target="navigation-bar"
+              >
                 <div className="container mx-auto px-4 flex items-center justify-between">
                   <div className="flex-1" />
                   <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">

@@ -336,7 +336,7 @@ const Community = () => {
             switch (key) {
               case 'welcome':
                 return (
-                  <div key={key} className="text-center space-y-4">
+                  <div key={key} className="text-center space-y-4" data-tour-target="welcome-section">
                     <h1 className="text-4xl md:text-5xl font-black text-foreground">
                       Welcome to Your{" "}
                       <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
@@ -352,29 +352,32 @@ const Community = () => {
 
               case 'featured_item':
                 return (
-                  <FeaturedItem 
-                    key={key}
-                    canLoad={canLoadSection('featured_item')}
-                    onLoadComplete={() => markSectionLoaded('featured_item')}
-                  />
+                  <div key={key} data-tour-target="featured-item">
+                    <FeaturedItem 
+                      canLoad={canLoadSection('featured_item')}
+                      onLoadComplete={() => markSectionLoaded('featured_item')}
+                    />
+                  </div>
                 );
 
               case 'featured_bestie':
                 return (
-                  <FeaturedBestieDisplay 
-                    key={key}
-                    canLoad={canLoadSection('featured_bestie')}
-                    onLoadComplete={() => markSectionLoaded('featured_bestie')}
-                  />
+                  <div key={key} data-tour-target="featured-bestie">
+                    <FeaturedBestieDisplay 
+                      canLoad={canLoadSection('featured_bestie')}
+                      onLoadComplete={() => markSectionLoaded('featured_bestie')}
+                    />
+                  </div>
                 );
 
               case 'sponsor_bestie':
                 return (
-                  <SponsorBestieDisplay 
-                    key={key}
-                    canLoad={canLoadSection('sponsor_bestie')}
-                    onLoadComplete={() => markSectionLoaded('sponsor_bestie')}
-                  />
+                  <div key={key} data-tour-target="sponsor-bestie">
+                    <SponsorBestieDisplay 
+                      canLoad={canLoadSection('sponsor_bestie')}
+                      onLoadComplete={() => markSectionLoaded('sponsor_bestie')}
+                    />
+                  </div>
                 );
 
               case 'latest_discussion':
@@ -387,7 +390,7 @@ const Community = () => {
                   return (
                     <div key="latest_activity" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {showDiscussion && (
-                        <Card className="border-2 hover:border-primary/50 transition-colors">
+                        <Card className="border-2 hover:border-primary/50 transition-colors" data-tour-target="latest-discussion">
                           <CardHeader>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -450,7 +453,7 @@ const Community = () => {
                       )}
 
                       {showEvents && (
-                        <Card className="border-2 hover:border-primary/50 transition-colors">
+                        <Card className="border-2 hover:border-primary/50 transition-colors" data-tour-target="upcoming-events">
                           <CardHeader>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -586,19 +589,24 @@ const Community = () => {
 
               case 'latest_album':
                 return (
-                  <LatestAlbum 
-                    key={key}
-                    canLoad={canLoadSection('latest_album')}
-                    onLoadComplete={() => markSectionLoaded('latest_album')}
-                  />
+                  <div key={key} data-tour-target="latest-album">
+                    <LatestAlbum 
+                      canLoad={canLoadSection('latest_album')}
+                      onLoadComplete={() => markSectionLoaded('latest_album')}
+                    />
+                  </div>
                 );
 
               case 'our_family':
-                return <OurFamily key={key} />;
+                return (
+                  <div key={key} data-tour-target="our-family">
+                    <OurFamily />
+                  </div>
+                );
 
               case 'quick_links':
                 return (
-                  <div key={key} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div key={key} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" data-tour-target="quick-links">
             {quickLinks.map((link, index) => {
               const iconName = typeof link.icon === 'string' ? link.icon : 'Link';
               const IconComponent = (Icons as any)[iconName] || Icons.Link;
