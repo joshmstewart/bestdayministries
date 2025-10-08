@@ -8,6 +8,9 @@
 - Badge: Red, top-right of bell icon
 - Shows "9+" if count > 9
 - Location: Before profile dropdown menu
+- **Auto-Dismiss:** Notifications automatically marked as read when underlying action is completed (e.g., approve a post)
+- **Resolved Badge:** Auto-dismissed notifications show "✓ Resolved" badge and stay in history
+- **Styling:** Resolved notifications have grayed-out styling (75% opacity)
 
 **Approvals Button** (Caregivers only)
 - Count: Pending posts + comments + vendor link requests
@@ -60,3 +63,22 @@
 - All use red "destructive" variant
 - Realtime subscriptions for auto-updates
 - Header badges aggregate multiple sources
+- **Auto-resolve system:** Database triggers automatically mark notifications as read when actions complete
+- **Visual history:** Resolved notifications remain visible with "✓ Resolved" badge
+
+## Auto-Resolve System
+
+**Database Triggers:**
+- `discussion_posts`: Approved → marks `moderation_needed` and `pending_approval` notifications as resolved
+- `discussion_comments`: Approved → marks related notifications as resolved
+- `sponsor_messages`: Approved → marks `new_sponsor_message` notifications as resolved
+- `vendors`: Approved → marks `vendor_application` notifications as resolved
+- `vendor_bestie_requests`: Approved/Rejected → marks related notifications as resolved
+
+**User Experience:**
+- Complete action elsewhere (e.g., approve post at `/guardian-approvals`)
+- Notification automatically marked as read
+- Shows "✓ Resolved" badge in notification list
+- Styled with 75% opacity and grayed background
+- Stays in notification history for reference
+- Can still be manually deleted

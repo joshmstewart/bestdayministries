@@ -11,6 +11,7 @@ interface Notification {
   message: string;
   link: string | null;
   is_read: boolean;
+  auto_resolved: boolean;
   metadata: any;
   created_at: string;
 }

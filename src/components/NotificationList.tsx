@@ -4,6 +4,7 @@ import { Bell, Check, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Card } from "./ui/card";
+import { Badge } from "./ui/badge";
 
 export const NotificationList = () => {
   const { 
@@ -47,7 +48,11 @@ export const NotificationList = () => {
               <Card
                 key={notification.id}
                 className={`p-4 transition-colors group relative border-0 rounded-none ${
-                  !notification.is_read ? "bg-primary/5" : ""
+                  !notification.is_read 
+                    ? "bg-primary/5" 
+                    : notification.auto_resolved 
+                      ? "opacity-75 bg-muted/20" 
+                      : ""
                 }`}
               >
                 <div 
@@ -63,7 +68,12 @@ export const NotificationList = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-sm break-words flex-1">{notification.title}</p>
-                        {!notification.is_read && (
+                        {notification.auto_resolved && (
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 flex-shrink-0">
+                            ✓ Resolved
+                          </Badge>
+                        )}
+                        {!notification.is_read && !notification.auto_resolved && (
                           <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
                         )}
                       </div>

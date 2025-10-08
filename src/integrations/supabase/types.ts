@@ -1599,6 +1599,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          auto_resolved: boolean | null
           created_at: string
           id: string
           is_read: boolean
@@ -1610,6 +1611,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          auto_resolved?: boolean | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -1621,6 +1623,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          auto_resolved?: boolean | null
           created_at?: string
           id?: string
           is_read?: boolean
