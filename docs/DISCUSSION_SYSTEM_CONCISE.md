@@ -123,7 +123,7 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 
 ## Edit/Delete
 - **Posts:** Author, Guardian (of bestie author), or Admin can edit/delete
-- **Edit:** Inline form (title, content, media, allow_owner_claim checkbox for admins)
+- **Edit:** Inline form (title, content, media, allow_owner_claim checkbox for admins/owners in both create and edit)
 - **Delete:** Confirmation dialog, cascade deletes comments
 - **Change Author (Owner Only):** Owners can claim admin/owner posts with `allow_owner_claim = true`
   - Admin creates post → checks "Allow owner to claim this post"
