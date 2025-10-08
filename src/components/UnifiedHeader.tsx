@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useToast } from "@/hooks/use-toast";
@@ -300,96 +300,91 @@ export const UnifiedHeader = () => {
                 {/* Notification Bell */}
                 <NotificationBell />
                 
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate("/profile")}
-                  className="gap-2 hover:bg-muted"
-                >
-                  <AvatarDisplay 
-                    avatarNumber={profile?.avatar_number} 
-                    displayName={profile?.display_name}
-                    size="md"
-                  />
-                  <span className="hidden sm:inline font-semibold">Profile</span>
-                </Button>
-                {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
-                  <Button 
-                    onClick={() => navigate("/guardian-links")}
-                    variant="outline"
-                    className="gap-2 relative"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span className="hidden sm:inline font-semibold">My Besties</span>
-                    {sponsorUnreadCount > 0 && (
-                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                        {sponsorUnreadCount}
-                      </span>
+                {/* Profile Dropdown Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="gap-2 hover:bg-muted ml-2"
+                    >
+                      <AvatarDisplay 
+                        avatarNumber={profile?.avatar_number} 
+                        displayName={profile?.display_name}
+                        size="md"
+                      />
+                      <span className="hidden sm:inline font-semibold">{profile?.display_name || 'Profile'}</span>
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-card border-border z-50">
+                    <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    
+                    {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
+                      <DropdownMenuItem onClick={() => navigate("/guardian-links")} className="cursor-pointer relative">
+                        <Users className="w-4 h-4 mr-2" />
+                        My Besties
+                        {sponsorUnreadCount > 0 && (
+                          <span className="ml-auto h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                            {sponsorUnreadCount}
+                          </span>
+                        )}
+                      </DropdownMenuItem>
                     )}
-                  </Button>
-                )}
-                {profile?.role === "bestie" && (
-                  <Button 
-                    onClick={() => navigate("/bestie-messages")}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span className="hidden sm:inline font-semibold">Messages</span>
-                  </Button>
-                )}
-                {profile?.role === "caregiver" && (
-                  <Button 
-                    onClick={() => navigate("/guardian-approvals")}
-                    variant="outline"
-                    className="gap-2 relative"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="hidden sm:inline font-semibold">Approvals</span>
-                    {approvalsCount > 0 && (
-                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                        {approvalsCount}
-                      </span>
+                    
+                    {profile?.role === "bestie" && (
+                      <DropdownMenuItem onClick={() => navigate("/bestie-messages")} className="cursor-pointer">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Messages
+                      </DropdownMenuItem>
                     )}
-                  </Button>
-                )}
-                {/* Show Moderation button for users with moderate permission (but not admins) */}
-                {!isAdmin && canModerate && (
-                  <Button 
-                    onClick={() => navigate("/moderation")}
-                    variant="outline"
-                    className="gap-2 relative"
-                  >
-                    <Shield className="w-4 h-4" />
-                    <span className="hidden sm:inline font-semibold">Moderation</span>
-                    {moderationCount > 0 && (
-                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                        {moderationCount}
-                      </span>
+                    
+                    {profile?.role === "caregiver" && (
+                      <DropdownMenuItem onClick={() => navigate("/guardian-approvals")} className="cursor-pointer relative">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Approvals
+                        {approvalsCount > 0 && (
+                          <span className="ml-auto h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                            {approvalsCount}
+                          </span>
+                        )}
+                      </DropdownMenuItem>
                     )}
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button 
-                    onClick={() => navigate("/admin")}
-                    className="gap-2 bg-[#FF8C42] hover:bg-[#FF8C42]/90 text-white border-0 relative"
-                  >
-                    <Shield className="w-4 h-4" />
-                    <span className="hidden sm:inline font-semibold">Admin</span>
-                    {(moderationCount > 0 || pendingVendorsCount > 0 || messageModerationCount > 0 || contactFormCount > 0) && (
-                      <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                        {moderationCount + pendingVendorsCount + messageModerationCount + contactFormCount}
-                      </span>
+                    
+                    {!isAdmin && canModerate && (
+                      <DropdownMenuItem onClick={() => navigate("/moderation")} className="cursor-pointer relative">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Moderation
+                        {moderationCount > 0 && (
+                          <span className="ml-auto h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                            {moderationCount}
+                          </span>
+                        )}
+                      </DropdownMenuItem>
                     )}
-                  </Button>
-                )}
-                <Button 
-                  variant="outline" 
-                  onClick={handleLogout}
-                  className="gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline font-semibold">Logout</span>
-                </Button>
+                    
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer relative">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin
+                        {(moderationCount > 0 || pendingVendorsCount > 0 || messageModerationCount > 0 || contactFormCount > 0) && (
+                          <span className="ml-auto h-5 w-5 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
+                            {moderationCount + pendingVendorsCount + messageModerationCount + contactFormCount}
+                          </span>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    
+                    <Separator className="my-1" />
+                    
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
