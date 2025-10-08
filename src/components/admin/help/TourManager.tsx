@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { TourStepBuilder } from "./TourStepBuilder";
 
 export function TourManager() {
   const [tours, setTours] = useState<any[]>([]);
@@ -21,10 +23,10 @@ export function TourManager() {
     title: "",
     description: "",
     category: "general",
-    target_audience: "all",
+    visible_to_roles: ["supporter", "bestie", "caregiver", "admin", "owner"] as string[],
     duration_minutes: "",
     icon: "HelpCircle",
-    steps: "[]",
+    steps: [] as any[],
     display_order: "0",
     is_active: true,
   });
@@ -52,11 +54,25 @@ export function TourManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (formData.steps.length === 0) {
+      toast({
+        title: "No steps",
+        description: "Please add at least one step to the tour",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const tourData = {
-      ...formData,
+      title: formData.title,
+      description: formData.description,
+      category: formData.category,
+      visible_to_roles: formData.visible_to_roles as ("admin" | "bestie" | "caregiver" | "owner" | "supporter" | "vendor")[],
       duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
+      icon: formData.icon,
       display_order: parseInt(formData.display_order),
-      steps: JSON.parse(formData.steps),
+      steps: formData.steps,
+      is_active: formData.is_active,
     };
 
     if (editingTour) {
@@ -101,10 +117,10 @@ export function TourManager() {
       title: tour.title,
       description: tour.description,
       category: tour.category,
-      target_audience: tour.target_audience,
+      visible_to_roles: tour.visible_to_roles || ["supporter", "bestie", "caregiver", "admin", "owner"],
       duration_minutes: tour.duration_minutes?.toString() || "",
       icon: tour.icon,
-      steps: JSON.stringify(tour.steps, null, 2),
+      steps: Array.isArray(tour.steps) ? tour.steps : [],
       display_order: tour.display_order.toString(),
       is_active: tour.is_active,
     });
@@ -153,10 +169,10 @@ export function TourManager() {
       title: "",
       description: "",
       category: "general",
-      target_audience: "all",
+      visible_to_roles: ["supporter", "bestie", "caregiver", "admin", "owner"],
       duration_minutes: "",
       icon: "HelpCircle",
-      steps: "[]",
+      steps: [],
       display_order: "0",
       is_active: true,
     });
@@ -176,7 +192,7 @@ export function TourManager() {
               Add Tour
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingTour ? "Edit Tour" : "Add New Tour"}</DialogTitle>
             </DialogHeader>
@@ -222,28 +238,6 @@ export function TourManager() {
                 </div>
 
                 <div>
-                  <Label htmlFor="target_audience">Target Audience</Label>
-                  <Select
-                    value={formData.target_audience}
-                    onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Users</SelectItem>
-                      <SelectItem value="bestie">Besties</SelectItem>
-                      <SelectItem value="caregiver">Caregivers</SelectItem>
-                      <SelectItem value="supporter">Supporters</SelectItem>
-                      <SelectItem value="vendor">Vendors</SelectItem>
-                      <SelectItem value="admin">Admins</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
                   <Label htmlFor="duration">Duration (minutes)</Label>
                   <Input
                     id="duration"
@@ -252,33 +246,60 @@ export function TourManager() {
                     onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
                   />
                 </div>
+              </div>
 
-                <div>
-                  <Label htmlFor="display_order">Display Order</Label>
-                  <Input
-                    id="display_order"
-                    type="number"
-                    value={formData.display_order}
-                    onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
-                    required
-                  />
+              <div>
+                <Label>Visible to Roles</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                  {["supporter", "bestie", "caregiver", "vendor", "admin", "owner"].map((role) => (
+                    <div key={role} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`role-${role}`}
+                        checked={formData.visible_to_roles.includes(role)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData({
+                              ...formData,
+                              visible_to_roles: [...formData.visible_to_roles, role],
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              visible_to_roles: formData.visible_to_roles.filter((r) => r !== role),
+                            });
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`role-${role}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize cursor-pointer"
+                      >
+                        {role}
+                      </label>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="steps">Steps (JSON)</Label>
-                <Textarea
-                  id="steps"
-                  value={formData.steps}
-                  onChange={(e) => setFormData({ ...formData, steps: e.target.value })}
-                  placeholder='[{"target": ".selector", "content": "Step content"}]'
-                  rows={8}
-                  className="font-mono text-sm"
+                <Label htmlFor="display_order">Display Order</Label>
+                <Input
+                  id="display_order"
+                  type="number"
+                  value={formData.display_order}
+                  onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
                   required
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Example: [{"{"}"target": ".my-element", "content": "This is a step", "title": "Step 1"{"}"}]
-                </p>
+              </div>
+
+              <div>
+                <Label>Tour Steps</Label>
+                <div className="mt-2">
+                  <TourStepBuilder
+                    steps={formData.steps}
+                    onChange={(steps) => setFormData({ ...formData, steps })}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -312,12 +333,17 @@ export function TourManager() {
                 <p className="text-sm text-muted-foreground">{tour.description}</p>
                 <div className="flex gap-2 mt-2">
                   <span className="text-xs px-2 py-1 bg-muted rounded">{tour.category}</span>
-                  <span className="text-xs px-2 py-1 bg-muted rounded">{tour.target_audience}</span>
+                  <span className="text-xs px-2 py-1 bg-muted rounded capitalize">
+                    {tour.visible_to_roles?.join(", ") || "all"}
+                  </span>
                   {tour.duration_minutes && (
                     <span className="text-xs px-2 py-1 bg-muted rounded">
                       {tour.duration_minutes} min
                     </span>
                   )}
+                  <span className="text-xs px-2 py-1 bg-muted rounded">
+                    {tour.steps?.length || 0} steps
+                  </span>
                 </div>
               </div>
 

@@ -26,7 +26,7 @@ interface Tour {
   title: string;
   description: string;
   category: string;
-  target_audience: string;
+  visible_to_roles: string[];
   duration_minutes: number | null;
   icon: string;
   steps: any[];
@@ -39,7 +39,7 @@ interface Guide {
   description: string;
   content: string;
   category: string;
-  target_audience: string;
+  visible_to_roles: string[];
   reading_time_minutes: number | null;
   icon: string;
 }
@@ -218,7 +218,7 @@ export default function HelpCenter() {
                         )}
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
-                          {tour.target_audience}
+                          {tour.visible_to_roles?.join(", ") || "all"}
                         </div>
                       </div>
                       <Button onClick={() => handleStartTour(tour)} className="w-full">
@@ -268,7 +268,7 @@ export default function HelpCenter() {
                         )}
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
-                          {guide.target_audience}
+                          {guide.visible_to_roles?.join(", ") || "all"}
                         </div>
                       </div>
                       <Button

@@ -1244,8 +1244,8 @@ export type Database = {
           id: string
           is_active: boolean
           question: string
-          target_audience: string
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           answer: string
@@ -1256,8 +1256,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           question: string
-          target_audience?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           answer?: string
@@ -1268,8 +1268,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           question?: string
-          target_audience?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: []
       }
@@ -1285,9 +1285,9 @@ export type Database = {
           id: string
           is_active: boolean
           reading_time_minutes: number | null
-          target_audience: string
           title: string
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           category?: string
@@ -1300,9 +1300,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           reading_time_minutes?: number | null
-          target_audience?: string
           title: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           category?: string
@@ -1315,9 +1315,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           reading_time_minutes?: number | null
-          target_audience?: string
           title?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: []
       }
@@ -1334,9 +1334,9 @@ export type Database = {
           is_active: boolean
           required_route: string | null
           steps: Json
-          target_audience: string
           title: string
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           category?: string
@@ -1350,9 +1350,9 @@ export type Database = {
           is_active?: boolean
           required_route?: string | null
           steps?: Json
-          target_audience: string
           title: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           category?: string
@@ -1366,9 +1366,9 @@ export type Database = {
           is_active?: boolean
           required_route?: string | null
           steps?: Json
-          target_audience?: string
           title?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: []
       }

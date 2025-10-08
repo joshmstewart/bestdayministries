@@ -9,7 +9,7 @@ interface Guide {
   description: string;
   content: string;
   category: string;
-  target_audience: string;
+  visible_to_roles: string[];
   reading_time_minutes: number | null;
 }
 
@@ -196,7 +196,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
               )}
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                {guide.target_audience}
+                {guide.visible_to_roles.join(", ")}
               </div>
             </div>
           </div>
