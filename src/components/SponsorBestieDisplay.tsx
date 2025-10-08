@@ -350,6 +350,49 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
               )}
             </div>
           </div>
+
+          {besties.length > 1 && (
+            <div className="flex justify-center items-center gap-4 pt-3 pb-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => api?.scrollPrev()}
+                className="h-8 w-8"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="h-8 w-8"
+              >
+                {isPlaying && !isAudioPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              </Button>
+              <div className="flex gap-2">
+                {besties.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => api?.scrollTo(index)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      currentSlide === index
+                        ? "w-8 bg-primary"
+                        : "w-2 bg-primary/30 hover:bg-primary/50"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => api?.scrollNext()}
+                className="h-8 w-8"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -398,46 +441,6 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           ))}
         </CarouselContent>
       </Carousel>
-
-      <div className="flex justify-center items-center gap-4 pt-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => api?.scrollPrev()}
-          className="rounded-full h-8 w-8"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <div className="flex gap-2">
-          {besties.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => api?.scrollTo(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                currentSlide === index
-                  ? "bg-primary w-8"
-                  : "bg-muted-foreground/30"
-              }`}
-            />
-          ))}
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="rounded-full h-8 w-8"
-        >
-          {isPlaying && !isAudioPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => api?.scrollNext()}
-          className="rounded-full h-8 w-8"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
     </div>
   );
 };
