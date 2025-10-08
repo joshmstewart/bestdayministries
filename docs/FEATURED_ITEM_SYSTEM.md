@@ -73,10 +73,17 @@ const [authResult, itemsResult] = await Promise.all([
 ## Event Details Display
 
 When `link_url` starts with `event:`:
-- Fetches event date, time, location
+- Fetches event date, time, location from `events` table
+- Loads saved locations from `saved_locations` table
 - Displays with icons (Calendar, Clock, MapPin)
 - Format: "EEEE, MMMM d, yyyy" and "h:mm a"
+- **Location Display:**
+  - If event location matches a saved location (case-insensitive): Shows **location name** (bold) + address (below)
+  - Otherwise: Shows address string only
+  - Location is clickable (opens Google Maps)
 - Link text becomes event CTA
+
+**Integration:** Uses `saved_locations` table to provide context for event addresses (see SAVED_LOCATIONS_SYSTEM.md)
 
 ## Admin Features
 
@@ -110,7 +117,13 @@ When `link_url` starts with `event:`:
 - `src/components/FeaturedItem.tsx` - Display component
 - `src/components/admin/FeaturedItemManager.tsx` - Admin CRUD
 - `src/components/ImageCropDialog.tsx` - Crop interface
+- `src/components/LocationLink.tsx` - Clickable Google Maps links
+
+## Related Systems
+
+- **Saved Locations:** See `docs/SAVED_LOCATIONS_SYSTEM.md` for location name/address management
+- **Events:** See `docs/EVENTS_SYSTEM_CONCISE.md` for event data structure
 
 ---
 
-**Last Updated:** After optimizing parallel data loading
+**Last Updated:** After adding saved locations integration for event display

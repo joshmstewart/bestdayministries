@@ -31,8 +31,11 @@ Route: `/sponsor-bestie?bestieId={optional}` - One-time/monthly sponsorships via
 - Funding progress bar (if `monthly_goal > 0`)
 - "Sponsor This Bestie" → `/sponsor-bestie?bestieId={id}`
 - "Fully Funded" message (if `is_fully_funded` or ≥100%)
+- **Carousel Controls:** Prev/Next arrows, Play/Pause, dot indicators (inside card, bottom)
 
 **Data:** Fetches `sponsor_besties` (active), randomizes, checks user sponsorships, loads `sponsor_bestie_funding_progress` view
+
+**Controls Position:** All carousel navigation controls rendered inside each card (matches FeaturedItem pattern)
 
 ---
 
