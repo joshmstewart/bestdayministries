@@ -26,7 +26,9 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
 
     // Handle navigation for steps with routes
     if (type === 'step:before' && tour.steps[index] && (tour.steps[index] as any).route) {
-      navigate((tour.steps[index] as any).route);
+      const stepRoute = (tour.steps[index] as any).route;
+      // Preserve the tour query parameter when navigating
+      navigate(`${stepRoute}?tour=${tour.id}`);
     }
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
@@ -36,9 +38,11 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   };
 
   useEffect(() => {
+    console.log('ProductTourRunner - Starting element check for target:', tour.steps[0]?.target);
     // Wait for the first target element to be available before starting
     const firstStep = tour.steps[0];
     if (!firstStep?.target) {
+      console.log('ProductTourRunner - No target, starting immediately');
       setRun(true);
       return;
     }
@@ -46,6 +50,7 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
     const checkElement = () => {
       const element = document.querySelector(firstStep.target as string);
       if (element) {
+        console.log('ProductTourRunner - Element found! Starting tour');
         setRun(true);
       } else {
         // Keep checking until element is found or timeout after 5 seconds
@@ -57,7 +62,10 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
     const timer = setTimeout(checkElement, 500);
     
     // Timeout fallback - start anyway after 5 seconds
-    const fallbackTimer = setTimeout(() => setRun(true), 5000);
+    const fallbackTimer = setTimeout(() => {
+      console.log('ProductTourRunner - Timeout reached, starting tour anyway');
+      setRun(true);
+    }, 5000);
     
     return () => {
       clearTimeout(timer);
