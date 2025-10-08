@@ -32,6 +32,7 @@ export function LocationAutocomplete({
   const [apiKey, setApiKey] = useState<string>("");
   const [fetchingKey, setFetchingKey] = useState(true);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
 
   // Fetch saved locations
   useEffect(() => {
@@ -49,6 +50,17 @@ export function LocationAutocomplete({
 
     fetchSavedLocations();
   }, []);
+
+  // Reset selected location ID when value changes externally (e.g., when editing an event)
+  useEffect(() => {
+    if (value) {
+      // Check if current value matches a saved location
+      const matchingLocation = savedLocations.find(l => l.address === value);
+      setSelectedLocationId(matchingLocation?.id || "");
+    } else {
+      setSelectedLocationId("");
+    }
+  }, [value, savedLocations]);
 
   // Fetch API key from edge function
   useEffect(() => {
@@ -158,11 +170,18 @@ export function LocationAutocomplete({
       
       {savedLocations.length > 0 && (
         <Select
-          value=""
+          value={selectedLocationId}
           onValueChange={(locationId) => {
+            console.log("Saved location selected:", locationId);
             const location = savedLocations.find(l => l.id === locationId);
             if (location) {
+              console.log("Setting location address:", location.address);
+              setSelectedLocationId(locationId);
               onChange(location.address);
+              // Small delay to ensure state updates properly
+              setTimeout(() => {
+                console.log("Location should now be:", location.address);
+              }, 100);
             }
           }}
         >
@@ -187,7 +206,11 @@ export function LocationAutocomplete({
           ref={inputRef}
           id="location"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            // Clear saved location selection when manually typing
+            setSelectedLocationId("");
+            onChange(e.target.value);
+          }}
           placeholder={placeholder}
           required={required}
           className="pl-9"

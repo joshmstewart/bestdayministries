@@ -281,11 +281,14 @@ export default function EventManagement() {
       // Ensure admin and owner are always included
       const finalVisibleRoles = [...new Set([...visibleToRoles, 'admin', 'owner'])] as any;
       
+      // Log location for debugging
+      console.log("Preparing to save event with location:", location);
+      
       const eventData = {
         title,
         description,
         event_date: combinedDate.toISOString(),
-        location: location || null,
+        location: location?.trim() || null,
         expires_after_date: expiresAfterDate,
         is_public: isPublic,
         visible_to_roles: finalVisibleRoles,
@@ -298,6 +301,8 @@ export default function EventManagement() {
         aspect_ratio: aspectRatioKey,
         created_by: user.id,
       };
+      
+      console.log("Event data being saved:", eventData);
 
       let eventId = editingEvent?.id;
 
