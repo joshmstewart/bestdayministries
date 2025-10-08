@@ -244,7 +244,7 @@ export default function HelpCenter() {
                           )}
                           <div className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
-                            {tour.visible_to_roles?.join(", ") || "all"}
+                            {tour.visible_to_roles?.filter(role => role !== 'admin' && role !== 'owner').join(", ") || "all"}
                           </div>
                         </div>
                         <Button 
@@ -299,7 +299,7 @@ export default function HelpCenter() {
                         )}
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
-                          {guide.visible_to_roles?.join(", ") || "all"}
+                          {guide.visible_to_roles?.filter(role => role !== 'admin' && role !== 'owner').join(", ") || "all"}
                         </div>
                       </div>
                       <Button
