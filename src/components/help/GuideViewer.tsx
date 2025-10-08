@@ -111,6 +111,37 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
         );
       }
 
+      // Check for **Term** - Description pattern (common in feature lists)
+      const featurePattern = /\*\*([^*]+)\*\*\s*-\s*([^*\n]+?)(?=\s*-\s*\*\*|$)/g;
+      if (featurePattern.test(paragraph)) {
+        const items: { term: string; description: string }[] = [];
+        let match;
+        const regex = /\*\*([^*]+)\*\*\s*-\s*([^*\n]+?)(?=\s*-\s*\*\*|$)/g;
+        
+        while ((match = regex.exec(paragraph)) !== null) {
+          items.push({
+            term: match[1],
+            description: match[2].trim()
+          });
+        }
+
+        if (items.length > 0) {
+          return (
+            <ul key={idx} className="space-y-4 mb-6">
+              {items.map((item, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="text-primary mt-0.5">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-primary">{item.term}</span>
+                    <span className="text-foreground/80"> - {item.description}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+      }
+
       // Lists
       if (paragraph.includes("\n- ")) {
         const items = paragraph.split("\n- ").filter(Boolean);
