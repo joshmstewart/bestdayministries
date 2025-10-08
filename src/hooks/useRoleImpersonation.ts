@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export type UserRole = "admin" | "owner" | "caregiver" | "bestie" | "supporter" | "vendor";
+export type UserRole = "admin" | "owner" | "caregiver" | "bestie" | "supporter";
 
 const IMPERSONATION_KEY = "admin_impersonated_role";
 

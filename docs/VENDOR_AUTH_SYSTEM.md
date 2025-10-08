@@ -1,0 +1,46 @@
+VENDOR AUTHENTICATION SYSTEM
+
+## Overview
+Vendor application system where ANY authenticated user can apply to become a vendor, creating a record in the `vendors` table.
+
+## Application Flow
+
+**Route:** `/vendor-auth`
+
+### For New Users (Sign Up)
+1. Enter: Display Name, Business Name, Email, Password
+2. System creates auth account with 'supporter' role
+3. Inserts `vendors` record with 'pending' status
+4. Redirects to `/vendor-dashboard` (shows pending message)
+
+### For Existing Users (Sign In)
+1. Enter: Email, Password
+2. System verifies vendor record exists
+3. If no vendor record → suggests applying as vendor
+4. Redirects to `/vendor-dashboard`
+
+## Alternative Entry Point
+**Marketplace "Become a Vendor" button** → Can redirect to:
+- `/vendor-auth` (if not logged in)
+- `/vendor-dashboard` (if logged in) → Apply button if no vendor record
+
+## Vendor Check Pattern
+```typescript
+// Check if user has vendor capabilities
+const { data: vendor } = await supabase
+  .from('vendors')
+  .select('status')
+  .eq('user_id', userId)
+  .maybeSingle();
+
+if (vendor?.status === 'approved') {
+  // User can access vendor features
+}
+```
+
+## Key Difference from Old System
+- **Old:** Vendor was a separate role, users needed vendor-specific login
+- **New:** Vendor is a status, any user can apply while keeping their primary role
+- **Benefit:** Guardians can manage bestie vendor accounts, one login for all features
+
+**Files:** `VendorAuth.tsx`, `VendorDashboard.tsx`, `Auth.tsx`

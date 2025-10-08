@@ -3,6 +3,8 @@ VENDOR BESTIE SYSTEM - CONCISE
 ## Overview
 Vendors display guardian-approved featured bestie content (images, videos, voice notes) on their vendor profile with guardian approval workflow.
 
+**Note:** Vendor is a status (tracked in `vendors` table), not a role. Users can be caregivers, besties, or supporters AND vendors simultaneously.
+
 ## Database
 **Tables:** `featured_besties`, `vendor_bestie_requests`, `vendor_bestie_assets`, `caregiver_bestie_links`
 

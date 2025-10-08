@@ -46,17 +46,17 @@ Authentication system (`/auth`) with signup/login, role assignment, terms accept
 
 ## Role Assignment
 **Available Roles:**
-- `supporter` - Default, basic access
+- `supporter` - Default, basic access (vendors are supporters with vendor status)
 - `bestie` - Community member (can be sponsored)
-- `caregiver` - Guardian of besties
+- `caregiver` - Guardian of besties (can also be a vendor)
 - `moderator` - Can moderate content
 - `admin` - Full admin access
 - `owner` - Super admin
-- `vendor` - Marketplace seller (separate flow)
 
 **Assignment:**
 - Signup: User selects supporter/bestie/caregiver
 - Post-signup: Admin assigns via User Management
+- Vendor status: Applied via `/vendor-auth`, checked via vendors table
 - Stored in `user_roles` table (NEVER in profiles)
 
 ## Avatar System
@@ -71,10 +71,10 @@ Authentication system (`/auth`) with signup/login, role assignment, terms accept
 **Trigger:** On version change or first login
 **Versions:** `CURRENT_TERMS_VERSION = "1.0"`, `CURRENT_PRIVACY_VERSION = "1.0"` (in `useTermsCheck.ts`)
 
-## Vendor Routing
+## Vendor Status Check
 **Check:** After login, queries `vendors` table by `user_id`
-**Redirect:** Vendor → `/vendor-dashboard`, Others → `/community`
-**Signup:** Vendors use separate `/vendor-auth` flow
+**Redirect:** Has vendor record → `/vendor-dashboard`, Others → `/community`
+**Note:** Vendor is a status (via vendors table), not a role
 
 ## URL Redirect Parameters
 **Pattern:** `/auth?redirect=/path&bestieId=xxx`

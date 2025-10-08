@@ -246,7 +246,6 @@ export function GuideManager() {
                       <SelectItem value="bestie">Besties</SelectItem>
                       <SelectItem value="caregiver">Caregivers</SelectItem>
                       <SelectItem value="supporter">Supporters</SelectItem>
-                      <SelectItem value="vendor">Vendors</SelectItem>
                       <SelectItem value="admin">Admins</SelectItem>
                     </SelectContent>
                   </Select>

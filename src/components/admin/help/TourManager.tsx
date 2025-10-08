@@ -69,7 +69,7 @@ export function TourManager() {
       title: formData.title,
       description: formData.description,
       category: formData.category,
-      visible_to_roles: formData.visible_to_roles as ("admin" | "bestie" | "caregiver" | "owner" | "supporter" | "vendor")[],
+      visible_to_roles: formData.visible_to_roles as ("admin" | "bestie" | "caregiver" | "owner" | "supporter")[],
       duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
       icon: formData.icon,
       display_order: parseInt(formData.display_order),
@@ -253,7 +253,7 @@ export function TourManager() {
               <div>
                 <Label>Visible to Roles</Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                  {["supporter", "bestie", "caregiver", "vendor", "admin", "owner"].map((role) => (
+                  {["supporter", "bestie", "caregiver", "admin", "owner"].map((role) => (
                     <div key={role} className="flex items-center space-x-2">
                       <Checkbox
                         id={`role-${role}`}

@@ -422,8 +422,8 @@ export const UnifiedHeader = () => {
             </div>
           </div>
 
-          {/* Navigation Bar */}
-          {user && profile && profile.role !== "vendor" && (
+          {/* Navigation Bar - Hidden for vendors via vendors table check */}
+          {user && profile && (
             <>
               {/* Mobile Menu Button */}
               <div className={`md:hidden absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 z-50 shadow-sm transition-all duration-300 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>

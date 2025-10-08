@@ -418,16 +418,7 @@ const Auth = () => {
             </div>
           )}
 
-          <div className="pt-4 border-t border-border space-y-2">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => navigate("/auth/vendor")}
-            >
-              <Store className="w-4 h-4 mr-2" />
-              Vendor Login/Signup
-            </Button>
-            
+          <div className="pt-4 border-t border-border">
             <Button
               variant="ghost"
               className="w-full"

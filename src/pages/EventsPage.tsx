@@ -82,7 +82,9 @@ export default function EventsPage() {
         .maybeSingle();
       
       // Use effective role (impersonated if active)
-      userRole = getEffectiveRole(roleData?.role);
+      // Filter out vendor role (now handled via vendors table)
+      const role = roleData?.role === 'vendor' ? 'supporter' : roleData?.role;
+      userRole = getEffectiveRole(role);
     }
     
     const { data, error } = await supabase
