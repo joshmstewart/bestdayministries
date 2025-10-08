@@ -169,36 +169,54 @@ export function LocationAutocomplete({
       {label && <Label htmlFor="location">{label}</Label>}
       
       {savedLocations.length > 0 && (
-        <Select
-          value={selectedLocationId}
-          onValueChange={(locationId) => {
-            console.log("Saved location selected:", locationId);
-            const location = savedLocations.find(l => l.id === locationId);
-            if (location) {
-              console.log("Setting location address:", location.address);
-              setSelectedLocationId(locationId);
-              onChange(location.address);
-              // Small delay to ensure state updates properly
-              setTimeout(() => {
-                console.log("Location should now be:", location.address);
-              }, 100);
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a saved location..." />
-          </SelectTrigger>
-          <SelectContent>
-            {savedLocations.map((location) => (
-              <SelectItem key={location.id} value={location.id}>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  <span className="font-medium">{location.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="space-y-2">
+          <Select
+            value={selectedLocationId}
+            onValueChange={(locationId) => {
+              console.log("Saved location selected:", locationId);
+              const location = savedLocations.find(l => l.id === locationId);
+              if (location) {
+                console.log("Setting location address:", location.address);
+                setSelectedLocationId(locationId);
+                onChange(location.address);
+                // Small delay to ensure state updates properly
+                setTimeout(() => {
+                  console.log("Location should now be:", location.address);
+                }, 100);
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a saved location...">
+                {selectedLocationId && (() => {
+                  const location = savedLocations.find(l => l.id === selectedLocationId);
+                  return location ? (
+                    <div className="flex items-start gap-2 text-left">
+                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="font-medium">{location.name}</span>
+                        <span className="text-xs text-muted-foreground">{location.address}</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {savedLocations.map((location) => (
+                <SelectItem key={location.id} value={location.id}>
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">{location.name}</span>
+                      <span className="text-xs text-muted-foreground">{location.address}</span>
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
       
       <div className="relative">

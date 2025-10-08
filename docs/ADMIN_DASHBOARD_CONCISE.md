@@ -94,7 +94,7 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - **Footer:** Link sections (`FooterLinksManager`)
 - **Quick Links:** Community page quick links (`QuickLinksManager`)
 - **Navigation:** Top nav links (`NavigationBarManager`)
-- **Locations:** Saved locations (`SavedLocationsManager`)
+- **Locations:** Saved locations (`SavedLocationsManager`) - See `docs/SAVED_LOCATIONS_SYSTEM.md`
 
 ### Moderation
 **Badge:** `moderationCount + messageModerationCount`

@@ -42,6 +42,11 @@ Click card → `EventDetailDialog` with full details, all dates, recurrence info
 ## Admin (`/event-management`)
 Create/edit events: title, description, date/time, recurrence settings, image (crop + aspect ratio), audio, visibility roles, expiration toggle
 **Add Multiple Dates:** Edit event → Add Date → creates `event_dates` entry
+**Location Field:** Uses `LocationAutocomplete` component with saved location dropdown + Google Places autocomplete
+- Select from saved locations (shows name + full address)
+- Or search with Google Places autocomplete
+- Or type manually
+**See:** `docs/SAVED_LOCATIONS_SYSTEM.md` for location management details
 
 ## RLS Policies
 - **SELECT:** All authenticated (client-side role filter)
