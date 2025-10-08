@@ -25,6 +25,12 @@ interface EventDetails {
   location: string | null;
 }
 
+interface SavedLocation {
+  id: string;
+  name: string;
+  address: string;
+}
+
 interface FeaturedItemProps {
   canLoad?: boolean;
   onLoadComplete?: () => void;
@@ -39,11 +45,13 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [eventDetails, setEventDetails] = useState<EventDetails | null>(null);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const autoAdvanceRef = useRef(false);
 
   useEffect(() => {
     if (canLoad) {
       loadData();
+      loadSavedLocations();
     }
   }, [canLoad]);
 
@@ -71,6 +79,20 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
     }
     autoAdvanceRef.current = false;
   }, [currentIndex]);
+
+  const loadSavedLocations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("saved_locations")
+        .select("id, name, address")
+        .eq("is_active", true);
+      
+      if (error) throw error;
+      setSavedLocations(data || []);
+    } catch (error) {
+      console.error("Error loading saved locations:", error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -211,12 +233,24 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
                     <Clock className="w-4 h-4" />
                     <span>{format(new Date(eventDetails.event_date), "h:mm a")}</span>
                   </div>
-                  {eventDetails.location && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                      <span>{eventDetails.location}</span>
-                    </div>
-                  )}
+                  {eventDetails.location && (() => {
+                    const matchedLocation = savedLocations.find(
+                      loc => loc.address.toLowerCase() === eventDetails.location?.toLowerCase()
+                    );
+                    return (
+                      <div className="flex items-start gap-2 text-muted-foreground">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        {matchedLocation ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-foreground">{matchedLocation.name}</span>
+                            <span className="text-sm">{matchedLocation.address}</span>
+                          </div>
+                        ) : (
+                          <span>{eventDetails.location}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               
