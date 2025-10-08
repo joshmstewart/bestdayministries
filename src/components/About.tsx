@@ -114,33 +114,39 @@ const About = ({ content = {} }: AboutProps) => {
                         <Button 
                           variant="outline"
                           size="default"
-                          onClick={() => window.open(doc_youtube_url, '_blank')}
+                          asChild
                           className="hover:bg-accent"
                         >
-                          <Play className="mr-2 h-4 w-4" />
-                          YouTube
+                          <a href={doc_youtube_url} target="_blank" rel="noopener noreferrer">
+                            <Play className="mr-2 h-4 w-4" />
+                            YouTube
+                          </a>
                         </Button>
                       )}
                       {doc_vimeo_url && (
                         <Button 
                           variant="outline"
                           size="default"
-                          onClick={() => window.open(doc_vimeo_url, '_blank')}
+                          asChild
                           className="hover:bg-accent"
                         >
-                          <Play className="mr-2 h-4 w-4" />
-                          Vimeo
+                          <a href={doc_vimeo_url} target="_blank" rel="noopener noreferrer">
+                            <Play className="mr-2 h-4 w-4" />
+                            Vimeo
+                          </a>
                         </Button>
                       )}
                       {doc_dailymotion_url && (
                         <Button 
                           variant="outline"
                           size="default"
-                          onClick={() => window.open(doc_dailymotion_url, '_blank')}
+                          asChild
                           className="hover:bg-accent"
                         >
-                          <Play className="mr-2 h-4 w-4" />
-                          Dailymotion
+                          <a href={doc_dailymotion_url} target="_blank" rel="noopener noreferrer">
+                            <Play className="mr-2 h-4 w-4" />
+                            Dailymotion
+                          </a>
                         </Button>
                       )}
                     </div>
