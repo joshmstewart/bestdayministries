@@ -73,10 +73,16 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
     };
   }, [tour.steps]);
 
+  // Ensure all steps have disableBeacon set to true to avoid the glowing dot
+  const stepsWithBeaconDisabled = tour.steps.map(step => ({
+    ...step,
+    disableBeacon: true,
+  }));
+
   return (
     <>
       <Joyride
-        steps={tour.steps}
+        steps={stepsWithBeaconDisabled}
         run={run}
         continuous
         showProgress
