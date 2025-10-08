@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Heart, Users, Sparkles, Store, Info } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import joyHouseLogo from "@/assets/joy-house-logo-full.png";
@@ -265,12 +265,41 @@ const Auth = () => {
             <form onSubmit={handleAuth} className="space-y-4">
             {isSignUp && (
               <>
-                <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <AlertDescription className="text-sm text-blue-800 dark:text-blue-300">
-                    <strong>Want to be a vendor?</strong> First create your account, then visit the Marketplace to apply. You can manage both community participation and your vendor store from one account.
-                  </AlertDescription>
-                </Alert>
+                <div className="text-center py-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1">
+                        <Store className="h-4 w-4" />
+                        Want to be a vendor?
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <Store className="h-5 w-5 text-primary" />
+                          Become a Vendor
+                        </DialogTitle>
+                        <DialogDescription className="space-y-3 pt-4">
+                          <p>
+                            You can sell your handmade products through our marketplace!
+                          </p>
+                          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                            <p className="font-semibold text-foreground">How it works:</p>
+                            <ol className="list-decimal list-inside space-y-1 text-sm">
+                              <li>First, create your account using this form</li>
+                              <li>After signing in, visit the Marketplace</li>
+                              <li>Click "Become a Vendor" to apply</li>
+                              <li>Once approved, manage your store and community participation from one account</li>
+                            </ol>
+                          </div>
+                          <p className="text-sm">
+                            Your account will give you access to both the community features and vendor tools once approved.
+                          </p>
+                        </DialogDescription>
+                      </DialogHeader>
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Display Name</Label>
