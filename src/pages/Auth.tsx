@@ -68,19 +68,9 @@ const Auth = () => {
           return;
         }
         
-        // Otherwise, check if user is an approved vendor
-        const { data: vendor, error } = await supabase
-          .from('vendors')
-          .select('status')
-          .eq('user_id', userId)
-          .maybeSingle();
-        
-        // Only redirect to vendor dashboard if approved
-        if (!error && vendor?.status === 'approved') {
-          navigate("/vendor-dashboard", { replace: true });
-        } else {
-          navigate("/community", { replace: true });
-        }
+        // All users go to community by default
+        // Vendors can navigate to their dashboard manually
+        navigate("/community", { replace: true });
       } catch (err) {
         console.error('Error in checkAndRedirect:', err);
         navigate("/community", { replace: true });
