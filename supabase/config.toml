@@ -71,3 +71,22 @@ verify_jwt = false
 
 [functions.send-message-notification]
 verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false
+
+[functions.send-digest-email]
+verify_jwt = false
+
+[functions.record-terms-acceptance]
+verify_jwt = true
+
+[functions.create-donation-checkout]
+verify_jwt = false
+
+[functions.notify-admin-new-contact]
+verify_jwt = false
+
+[functions.send-contact-reply]
+verify_jwt = true
+

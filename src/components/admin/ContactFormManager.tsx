@@ -12,9 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Mail, Trash2, Eye, Check, X } from "lucide-react";
+import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply } from "lucide-react";
 import { format } from "date-fns";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const settingsSchema = z.object({
   is_enabled: z.boolean(),
@@ -36,6 +36,10 @@ interface Submission {
   created_at: string;
   message_type: string;
   image_url: string | null;
+  replied_at: string | null;
+  replied_by: string | null;
+  reply_message: string | null;
+  admin_notes: string | null;
 }
 
 export const ContactFormManager = () => {
@@ -44,6 +48,10 @@ export const ContactFormManager = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+  const [replyMessage, setReplyMessage] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const [sending, setSending] = useState(false);
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -170,6 +178,49 @@ export const ContactFormManager = () => {
         title: "Deleted",
         description: "Submission has been deleted.",
       });
+    }
+  };
+
+  const openReplyDialog = (submission: Submission) => {
+    setSelectedSubmission(submission);
+    setReplyMessage("");
+    setAdminNotes(submission.admin_notes || "");
+    setReplyDialogOpen(true);
+  };
+
+  const sendReply = async () => {
+    if (!selectedSubmission || !replyMessage.trim()) return;
+
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-contact-reply', {
+        body: {
+          submissionId: selectedSubmission.id,
+          replyMessage: replyMessage.trim(),
+          adminNotes: adminNotes.trim() || undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reply Sent! ✅",
+        description: `Your reply has been sent to ${selectedSubmission.email}`,
+      });
+
+      setReplyDialogOpen(false);
+      setReplyMessage("");
+      setAdminNotes("");
+      loadSubmissions();
+    } catch (error: any) {
+      console.error("Error sending reply:", error);
+      toast({
+        title: "Failed to Send Reply",
+        description: error.message || "An error occurred while sending the reply",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -370,7 +421,7 @@ export const ContactFormManager = () => {
                       </Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-2 items-center flex-wrap">
                         <Button
                           size="sm"
                           variant="outline"
@@ -382,16 +433,27 @@ export const ContactFormManager = () => {
                               markAsRead(submission.id);
                             }
                           }}
-                          className="w-20"
                         >
                           View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openReplyDialog(submission);
+                          }}
+                          className="gap-1"
+                          disabled={!!submission.replied_at}
+                        >
+                          <Reply className="h-3 w-3" />
+                          {submission.replied_at ? "Replied" : "Reply"}
                         </Button>
                         {submission.status === "new" ? (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => markAsRead(submission.id)}
-                            className="w-28"
                           >
                             Mark Read
                           </Button>
@@ -400,7 +462,6 @@ export const ContactFormManager = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => markAsNew(submission.id)}
-                            className="w-28"
                           >
                             Mark Unread
                           </Button>
@@ -410,7 +471,6 @@ export const ContactFormManager = () => {
                           variant="outline"
                           onClick={() => deleteSubmission(submission.id)}
                           title="Delete"
-                          className="w-10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -489,7 +549,42 @@ export const ContactFormManager = () => {
                   </Badge>
                 </div>
               </div>
+              {selectedSubmission.replied_at && (
+                <div className="p-4 rounded-md bg-green-50 border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Check className="h-4 w-4 text-green-600" />
+                    <label className="text-sm font-medium text-green-900">Reply Sent</label>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    {format(new Date(selectedSubmission.replied_at), "MMMM d, yyyy 'at' h:mm a")}
+                  </p>
+                  {selectedSubmission.reply_message && (
+                    <div className="mt-2 p-3 rounded bg-white border border-green-100">
+                      <p className="text-sm whitespace-pre-wrap">{selectedSubmission.reply_message}</p>
+                    </div>
+                  )}
+                  {selectedSubmission.admin_notes && (
+                    <div className="mt-2">
+                      <p className="text-xs font-medium text-green-800">Admin Notes:</p>
+                      <p className="text-xs text-green-600 mt-1">{selectedSubmission.admin_notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex justify-end gap-2 pt-4">
+                {!selectedSubmission.replied_at && (
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      setViewDialogOpen(false);
+                      openReplyDialog(selectedSubmission);
+                    }}
+                    className="gap-2"
+                  >
+                    <Reply className="h-4 w-4" />
+                    Reply
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -501,6 +596,75 @@ export const ContactFormManager = () => {
                 </Button>
                 <Button onClick={() => setViewDialogOpen(false)}>
                   Done
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Reply to {selectedSubmission?.name}</DialogTitle>
+            <DialogDescription>
+              Send a response to {selectedSubmission?.email}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSubmission && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-md bg-muted">
+                <p className="text-sm font-medium mb-2">Original Message:</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {selectedSubmission.message}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Your Reply *</label>
+                <Textarea
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  placeholder="Type your reply here..."
+                  className="min-h-[200px]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Admin Notes (Optional)</label>
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Internal notes (not sent to user)..."
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setReplyDialogOpen(false)}
+                  disabled={sending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={sendReply}
+                  disabled={sending || !replyMessage.trim()}
+                  className="gap-2"
+                >
+                  {sending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4" />
+                      Send Reply
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

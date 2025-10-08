@@ -421,6 +421,7 @@ export type Database = {
       }
       contact_form_submissions: {
         Row: {
+          admin_notes: string | null
           created_at: string
           email: string
           id: string
@@ -428,10 +429,14 @@ export type Database = {
           message: string
           message_type: string | null
           name: string
+          replied_at: string | null
+          replied_by: string | null
+          reply_message: string | null
           status: string
           subject: string | null
         }
         Insert: {
+          admin_notes?: string | null
           created_at?: string
           email: string
           id?: string
@@ -439,10 +444,14 @@ export type Database = {
           message: string
           message_type?: string | null
           name: string
+          replied_at?: string | null
+          replied_by?: string | null
+          reply_message?: string | null
           status?: string
           subject?: string | null
         }
         Update: {
+          admin_notes?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -450,6 +459,9 @@ export type Database = {
           message?: string
           message_type?: string | null
           name?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          reply_message?: string | null
           status?: string
           subject?: string | null
         }

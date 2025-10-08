@@ -97,7 +97,7 @@ export const ContactForm = () => {
       }
 
       // Save to database
-      const { error: dbError } = await supabase
+      const { error: dbError, data: submission } = await supabase
         .from("contact_form_submissions")
         .insert({
           name: data.name,
@@ -106,23 +106,27 @@ export const ContactForm = () => {
           message: data.message,
           message_type: data.message_type,
           image_url: imageUrl,
-        });
+        })
+        .select()
+        .single();
 
       if (dbError) throw dbError;
 
-      // Send email via edge function (optional - requires Resend setup)
-      try {
-        const { error: emailError } = await supabase.functions.invoke("send-contact-email", {
-          body: data,
-        });
+      // Send admin notification email
+      if (submission) {
+        try {
+          const { error: notifyError } = await supabase.functions.invoke("notify-admin-new-contact", {
+            body: { submissionId: submission.id },
+          });
 
-        if (emailError) {
-          console.error("Email send error:", emailError);
-          // Don't throw - form was saved successfully
+          if (notifyError) {
+            console.error("Admin notification error:", notifyError);
+            // Don't throw - form was saved successfully
+          }
+        } catch (notifyError) {
+          console.error("Admin notification not sent:", notifyError);
+          // Continue - form submission was successful
         }
-      } catch (emailError) {
-        console.error("Email integration not configured:", emailError);
-        // Continue - form submission was successful
       }
 
       toast({
