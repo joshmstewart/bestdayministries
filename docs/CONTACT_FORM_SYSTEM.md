@@ -51,6 +51,7 @@ Stores all form submissions for admin review.
 
 **Key Features:**
 - Auto-loads settings on mount via `useEffect`
+- **Autofills email** for logged-in users (fetches from auth.users)
 - Validates input with Zod schema
 - Saves to database (always succeeds)
 - Sends email notification (optional, graceful failure)
@@ -152,7 +153,7 @@ Stores all form submissions for admin review.
 **Configuration:**
 - **From:** "Best Day Ministries <marla@joyhousestore.com>"
 - **To:** Uses `recipient_email` from settings (or env var fallback)
-- **Reply-To:** Sender's email address (for easy responses)
+- **Reply-To:** Sender's email address (recipients can reply directly to the sender)
 
 **Required Secrets:**
 - `RESEND_API_KEY` - Resend API key for sending emails

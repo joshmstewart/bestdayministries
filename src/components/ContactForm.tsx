@@ -56,6 +56,18 @@ export const ContactForm = () => {
     loadSettings();
   }, []);
 
+  // Autofill email for logged-in users
+  useEffect(() => {
+    const loadUserEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user?.email) {
+        form.setValue("email", user.email);
+      }
+    };
+    loadUserEmail();
+  }, [form]);
+
   const onSubmit = async (data: ContactFormData) => {
     setLoading(true);
     try {
