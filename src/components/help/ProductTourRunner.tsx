@@ -34,12 +34,34 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   };
 
   useEffect(() => {
-    // Wait longer for page to fully render and elements to be available
-    const timer = setTimeout(() => {
+    // Wait for the first target element to be available before starting
+    const firstStep = tour.steps[0];
+    if (!firstStep?.target) {
       setRun(true);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+      return;
+    }
+
+    const checkElement = () => {
+      const element = document.querySelector(firstStep.target as string);
+      if (element) {
+        setRun(true);
+      } else {
+        // Keep checking until element is found or timeout after 5 seconds
+        setTimeout(checkElement, 200);
+      }
+    };
+
+    // Start checking after brief delay
+    const timer = setTimeout(checkElement, 500);
+    
+    // Timeout fallback - start anyway after 5 seconds
+    const fallbackTimer = setTimeout(() => setRun(true), 5000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(fallbackTimer);
+    };
+  }, [tour.steps]);
 
   return (
     <>
