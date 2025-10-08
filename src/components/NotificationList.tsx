@@ -51,7 +51,7 @@ export const NotificationList = () => {
                 }`}
               >
                 <div 
-                  className="cursor-pointer"
+                  className="cursor-pointer pr-8"
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-3">
@@ -60,8 +60,13 @@ export const NotificationList = () => {
                     }`}>
                       <Bell className="h-4 w-4" />
                     </div>
-                    <div className="flex-1 min-w-0 pr-8">
-                      <p className="font-medium text-sm break-words">{notification.title}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm break-words flex-1">{notification.title}</p>
+                        {!notification.is_read && (
+                          <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1 break-words">
                         {notification.message}
                       </p>
@@ -71,9 +76,6 @@ export const NotificationList = () => {
                         })}
                       </p>
                     </div>
-                    {!notification.is_read && (
-                      <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-2" />
-                    )}
                   </div>
                 </div>
                 <Button
