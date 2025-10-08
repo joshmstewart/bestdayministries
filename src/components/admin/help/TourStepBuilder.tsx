@@ -5,8 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical, MoveUp, MoveDown } from "lucide-react";
+import { Plus, Trash2, GripVertical, MoveUp, MoveDown, HelpCircle } from "lucide-react";
 import { Step } from "react-joyride";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TourStep {
   target: string;
@@ -21,7 +22,21 @@ interface TourStepBuilderProps {
   onChange: (steps: TourStep[]) => void;
 }
 
+const COMMON_TARGETS = [
+  { value: ".community-button", label: "Community Button" },
+  { value: ".discussions-link", label: "Discussions Link" },
+  { value: ".events-button", label: "Events Button" },
+  { value: ".sponsor-button", label: "Sponsor Button" },
+  { value: ".marketplace-link", label: "Marketplace Link" },
+  { value: ".profile-button", label: "Profile Button" },
+  { value: ".notification-bell", label: "Notification Bell" },
+  { value: "h1", label: "Page Title (h1)" },
+  { value: ".card", label: "First Card" },
+  { value: "custom", label: "Custom Selector..." },
+];
+
 export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
+  const [customTargets, setCustomTargets] = useState<Record<number, boolean>>({});
   const addStep = () => {
     onChange([
       ...steps,
@@ -38,6 +53,16 @@ export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
     const newSteps = [...steps];
     newSteps[index] = { ...newSteps[index], [field]: value };
     onChange(newSteps);
+  };
+
+  const handleTargetSelect = (index: number, value: string) => {
+    if (value === "custom") {
+      setCustomTargets({ ...customTargets, [index]: true });
+      updateStep(index, "target", "");
+    } else {
+      setCustomTargets({ ...customTargets, [index]: false });
+      updateStep(index, "target", value);
+    }
   };
 
   const removeStep = (index: number) => {
@@ -115,18 +140,65 @@ export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor={`target-${index}`}>
-                Target (CSS Selector) *
-              </Label>
-              <Input
-                id={`target-${index}`}
-                value={step.target}
-                onChange={(e) => updateStep(index, "target", e.target.value)}
-                placeholder="e.g., .community-button, #profile-link"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                CSS selector for the element to highlight
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <Label htmlFor={`target-${index}`}>
+                  Target Element *
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Choose the element on the page to highlight during this step. Select from common components or use a custom CSS selector (e.g., .my-class, #my-id)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              
+              {customTargets[index] ? (
+                <div className="space-y-2">
+                  <Input
+                    id={`target-${index}`}
+                    value={step.target}
+                    onChange={(e) => updateStep(index, "target", e.target.value)}
+                    placeholder="e.g., .community-button, #profile-link"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCustomTargets({ ...customTargets, [index]: false });
+                    }}
+                  >
+                    Choose from common targets
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Select
+                    value={COMMON_TARGETS.find(t => t.value === step.target)?.value || "custom"}
+                    onValueChange={(value) => handleTargetSelect(index, value)}
+                  >
+                    <SelectTrigger id={`target-${index}`}>
+                      <SelectValue placeholder="Select a component" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMON_TARGETS.map((target) => (
+                        <SelectItem key={target.value} value={target.value}>
+                          {target.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!COMMON_TARGETS.find(t => t.value === step.target) && step.target && (
+                    <p className="text-xs text-muted-foreground">
+                      Current: {step.target}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -152,7 +224,19 @@ export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor={`placement-${index}`}>Placement</Label>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label htmlFor={`placement-${index}`}>Tooltip Position</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>Where the tooltip appears relative to the highlighted element. "Auto" will choose the best position automatically.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Select
                   value={step.placement || "bottom"}
                   onValueChange={(value) => updateStep(index, "placement", value)}
@@ -166,7 +250,7 @@ export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
                     <SelectItem value="left">Left</SelectItem>
                     <SelectItem value="right">Right</SelectItem>
                     <SelectItem value="center">Center</SelectItem>
-                    <SelectItem value="auto">Auto</SelectItem>
+                    <SelectItem value="auto">Auto (Recommended)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -181,7 +265,19 @@ export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
                     }
                     className="rounded border-gray-300"
                   />
-                  <span className="text-sm">Disable beacon</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm">Disable beacon</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>The beacon is the pulsing dot that appears on the target element. Disable it for steps that don't need emphasis.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </label>
               </div>
             </div>

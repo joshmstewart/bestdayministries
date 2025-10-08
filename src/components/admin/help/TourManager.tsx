@@ -9,14 +9,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TourStepBuilder } from "./TourStepBuilder";
+import { ProductTourRunner } from "@/components/help/ProductTourRunner";
 
 export function TourManager() {
   const [tours, setTours] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTour, setEditingTour] = useState<any | null>(null);
+  const [previewTour, setPreviewTour] = useState<any | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -351,6 +353,14 @@ export function TourManager() {
                 <Button
                   variant="outline"
                   size="icon"
+                  onClick={() => setPreviewTour(tour)}
+                  title="Preview Tour"
+                >
+                  <Play className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => toggleActive(tour)}
                   title={tour.is_active ? "Deactivate" : "Activate"}
                   className={
@@ -381,6 +391,18 @@ export function TourManager() {
           </Card>
         ))}
       </div>
+
+      {previewTour && (
+        <ProductTourRunner
+          tour={{
+            id: previewTour.id,
+            title: previewTour.title,
+            description: previewTour.description,
+            steps: previewTour.steps || [],
+          }}
+          onClose={() => setPreviewTour(null)}
+        />
+      )}
     </div>
   );
 }
