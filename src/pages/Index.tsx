@@ -48,33 +48,8 @@ const Index = () => {
   }, []);
 
   const checkVendorStatus = async () => {
-    try {
-      console.log("Index - Checking vendor status...");
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log("Index - Session:", session, "Error:", sessionError);
-      
-      if (session?.user) {
-        // Check if user is a vendor
-        const { data: vendor, error: vendorError } = await supabase
-          .from('vendors')
-          .select('status')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        
-        console.log("Index - Vendor data:", vendor, "Error:", vendorError);
-        
-        if (vendor) {
-          console.log("Index - User is vendor, redirecting to vendor dashboard...");
-          navigate("/vendor-dashboard", { replace: true });
-        } else {
-          // User is logged in but not a vendor - redirect to community
-          console.log("Index - User is logged in, redirecting to community...");
-          navigate("/community", { replace: true });
-        }
-      }
-    } catch (error) {
-      console.error("Index - Error checking vendor status:", error);
-    }
+    // No automatic redirects - users can navigate freely
+    // The Index page is the public homepage
   };
 
   const fetchSections = async () => {
