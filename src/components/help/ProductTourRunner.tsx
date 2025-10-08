@@ -83,6 +83,7 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
         showSkipButton
         scrollToFirstStep={false}
         disableScrolling={false}
+        scrollOffset={150}
         callback={handleJoyrideCallback}
         styles={{
           options: {
