@@ -15,6 +15,7 @@ import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 import { formatFriendCode, generateRandomFriendCode } from "@/lib/friendCodeEmojis";
 import { profileSchema, validateInput } from "@/lib/validation";
@@ -373,16 +374,26 @@ const ProfileSettings = () => {
               Profile <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Settings</span>
             </h1>
             <p className="text-muted-foreground mt-2">
-              Customize your profile and avatar
+              Customize your profile and preferences
             </p>
           </div>
 
-          <Card className="border-2 shadow-warm">
-            <CardHeader>
-              <CardTitle>Your Profile</CardTitle>
-              <CardDescription>Update your profile information and choose an avatar</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
+              <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              <TabsTrigger value="security" className="hidden lg:block">Security</TabsTrigger>
+            </TabsList>
+
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="space-y-6 mt-6">
+              <Card className="border-2 shadow-warm">
+                <CardHeader>
+                  <CardTitle>Your Profile</CardTitle>
+                  <CardDescription>Update your profile information and choose an avatar</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
               {/* Current Avatar Preview */}
               <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
                 <AvatarDisplay 
@@ -509,10 +520,32 @@ const ProfileSettings = () => {
                 </Card>
               )}
 
-              {/* Text-to-Speech Settings */}
-              <Card className="border-dashed border-2 border-accent/50">
+              <Button 
+                onClick={handleSave} 
+                className="w-full gap-2" 
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Profile
+                  </>
+                )}
+              </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Text-to-Speech Tab */}
+            <TabsContent value="tts" className="space-y-6 mt-6">
+              <Card className="border-2 shadow-warm">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
                     <Volume2 className="w-5 h-5" />
                     Text-to-Speech Settings
                   </CardTitle>
@@ -606,13 +639,33 @@ const ProfileSettings = () => {
                       </div>
                     </div>
                   )}
+
+                  <Button 
+                    onClick={handleSave} 
+                    className="w-full gap-2" 
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Save TTS Settings
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              {/* Notification Preferences */}
-              <Card className="border-dashed border-2 border-secondary/50">
+            {/* Notifications Tab */}
+            <TabsContent value="notifications" className="space-y-6 mt-6">
+              <Card className="border-2 shadow-warm">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
                     <Bell className="w-5 h-5" />
                     Email Notifications
                   </CardTitle>
@@ -772,7 +825,6 @@ const ProfileSettings = () => {
                     onClick={saveNotificationPreferences}
                     disabled={savingNotifications}
                     className="w-full gap-2"
-                    variant="outline"
                   >
                     {savingNotifications ? (
                       <>
@@ -788,28 +840,26 @@ const ProfileSettings = () => {
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              <Button 
-                onClick={handleSave} 
-                className="w-full gap-2" 
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Save Profile
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <PasswordChangeDialog />
+            {/* Security Tab */}
+            <TabsContent value="security" className="space-y-6 mt-6">
+              <Card className="border-2 shadow-warm">
+                <CardHeader>
+                  <CardTitle>Security Settings</CardTitle>
+                  <CardDescription>Manage your password and account security</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="text-center py-8">
+                    <PasswordChangeDialog />
+                    <p className="text-sm text-muted-foreground mt-4">
+                      Click the button above to change your password
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       
