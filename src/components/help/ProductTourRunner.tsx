@@ -35,7 +35,7 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
       // Wait for navigation and page render before starting tour
       const timer = setTimeout(() => {
         setRun(true);
-      }, 500);
+      }, 1000); // Increased timeout to ensure page is fully loaded
       return () => clearTimeout(timer);
     } else {
       // Start tour immediately if no navigation needed
