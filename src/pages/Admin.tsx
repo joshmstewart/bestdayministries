@@ -46,6 +46,7 @@ import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
+import CoffeeShopManager from "@/components/admin/CoffeeShopManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -427,6 +428,7 @@ const Admin = () => {
                     <TabsTrigger value="homepage">Homepage</TabsTrigger>
                     <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
+                    <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
                     <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
                     <TabsTrigger value="footer">Footer</TabsTrigger>
@@ -443,6 +445,10 @@ const Admin = () => {
 
                   <TabsContent value="community">
                     <CommunityOrderManager />
+                  </TabsContent>
+
+                  <TabsContent value="coffee-shop">
+                    <CoffeeShopManager />
                   </TabsContent>
 
                   <TabsContent value="navigation">

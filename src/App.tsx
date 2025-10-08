@@ -9,9 +9,11 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { TermsAcceptanceGuard } from "@/components/TermsAcceptanceGuard";
 import { FaviconManager } from "@/components/FaviconManager";
 import { ProductTourRunner } from "@/components/help/ProductTourRunner";
+import { useDomainRouting } from "@/hooks/useDomainRouting";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
+import CoffeeShopHome from "./pages/CoffeeShopHome";
 import Auth from "./pages/Auth";
 import Community from "./pages/Community";
 import Admin from "./pages/Admin";
@@ -93,6 +95,18 @@ function TourManager() {
   return <ProductTourRunner tour={tour} onClose={handleClose} />;
 }
 
+const DomainRouter = () => {
+  const { isCoffeeShopDomain } = useDomainRouting();
+  
+  // If on coffee shop domain, show coffee shop homepage
+  if (isCoffeeShopDomain) {
+    return <CoffeeShopHome />;
+  }
+  
+  // Otherwise show main site homepage
+  return <Index />;
+};
+
 const App = () => {
   // Update app manifest dynamically based on database settings 
   useAppManifest();
@@ -109,7 +123,7 @@ const App = () => {
           <TourManager />
           <TermsAcceptanceGuard>
             <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<DomainRouter />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/vendor" element={<VendorAuth />} />
             <Route path="/community" element={<Community />} />
