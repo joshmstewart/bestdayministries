@@ -1500,16 +1500,29 @@ const Discussions = () => {
                                ))}
                              </SelectContent>
                            </Select>
-                         </div>
-                         
-                         <div className="flex gap-2">
-                           <Button onClick={handleSavePostEdit} size="sm">
-                             Save Changes
-                           </Button>
-                           <Button onClick={handleCancelEdit} size="sm" variant="outline">
-                             Cancel
-                           </Button>
-                         </div>
+                          </div>
+                          
+                          {hasAdminAccess && (
+                            <div className="flex items-center space-x-2 pt-2 border-t">
+                              <Checkbox
+                                id="edit-allow-owner-claim"
+                                checked={allowOwnerClaim}
+                                onCheckedChange={(checked) => setAllowOwnerClaim(!!checked)}
+                              />
+                              <label htmlFor="edit-allow-owner-claim" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                Allow owner to claim this post
+                              </label>
+                            </div>
+                          )}
+                          
+                          <div className="flex gap-2">
+                            <Button onClick={handleSavePostEdit} size="sm">
+                              Save Changes
+                            </Button>
+                            <Button onClick={handleCancelEdit} size="sm" variant="outline">
+                              Cancel
+                            </Button>
+                          </div>
                        </div>
                      ) : (
                        <>
