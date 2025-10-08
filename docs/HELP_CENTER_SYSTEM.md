@@ -276,6 +276,12 @@ Question and answer pairs grouped by category.
 - Automatic element detection with 5-second timeout fallback
 - 150px scroll offset to prevent header/nav overlap
 
+**Beacon Behavior:**
+- All tours have `disableBeacon: true` applied automatically by `ProductTourRunner`
+- Tooltips appear immediately without glowing orange dot
+- No user click required to start tour steps
+- Applied to all tours system-wide
+
 **Reliability Features:**
 - Query parameter preservation across route changes
 - Element availability checking before starting
@@ -353,6 +359,8 @@ A: Click on your profile icon, select Settings, then choose "Change Password". Y
 | Tour doesn't start | Invalid CSS selector | Verify selector exists in DOM |
 | Tour doesn't start after navigation | Query param lost during route change | System now preserves `?tour=xxx` automatically |
 | Elements hidden behind header | Default scroll positioning | Fixed with 150px scrollOffset |
+| Glowing orange dot appears | Joyride default beacon | All tours auto-disable beacons via ProductTourRunner |
+| Tour requires click to start | Beacon enabled on step | System sets disableBeacon: true on all steps |
 | Steps out of order | Wrong display_order | Update display_order values |
 | Guide formatting broken | Invalid markdown syntax | Use simple formatting only |
 | FAQ not showing | Wrong category or inactive | Check is_active and category |
@@ -523,4 +531,4 @@ A: Click "Manage Subscription" next to the bestie in My Besties, then use the St
 
 ---
 
-**Last Updated:** After fixing tour navigation, query parameter preservation, and scroll offset for header/nav clearance
+**Last Updated:** After implementing beacon disable, scroll offset fix, and navigation preservation for all tours
