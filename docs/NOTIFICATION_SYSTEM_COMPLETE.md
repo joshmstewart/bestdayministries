@@ -17,7 +17,7 @@ Dual notification system with in-app notifications (bell icon) and email notific
 ### Components
 
 **NotificationBell** (`src/components/NotificationBell.tsx`)
-- Location: UnifiedHeader (right side, before profile button)
+- Location: UnifiedHeader (right side, before profile dropdown)
 - Displays bell icon with red badge showing unread count
 - Badge shows "9+" if count > 9
 - Opens popover on click
@@ -90,7 +90,7 @@ VALUES (
 
 ---
 
-## EMAIL NOTIFICATIONS
+## NOTIFICATION PREFERENCES
 
 ### Database
 
@@ -103,11 +103,23 @@ VALUES (
   - `email_on_message_approved`
   - `email_on_message_rejected`
   - `email_on_new_event`
-  - `email_on_event_update`
+  - `email_on_event_update` (default: false)
   - `email_on_new_sponsorship`
   - `email_on_sponsorship_update`
   - `email_on_comment_on_post`
   - `email_on_comment_on_thread`
+- All in-app preference columns (boolean, default: true):
+  - `inapp_on_pending_approval`
+  - `inapp_on_approval_decision`
+  - `inapp_on_new_sponsor_message`
+  - `inapp_on_message_approved`
+  - `inapp_on_message_rejected`
+  - `inapp_on_new_event`
+  - `inapp_on_event_update` (default: false)
+  - `inapp_on_new_sponsorship`
+  - `inapp_on_sponsorship_update`
+  - `inapp_on_comment_on_post`
+  - `inapp_on_comment_on_thread`
 - **RLS:** Users manage their own preferences
 
 **email_notifications_log table**
@@ -117,44 +129,59 @@ VALUES (
 
 ### Preference UI
 
-**Location:** `/profile` → Notifications tab
+**Location:** `/profile` → Notification Preferences tab (in Settings page)
+
+**Layout:**
+- Two-column toggle system: "Email" and "In-App" headers
+- Each notification type has independent toggles for both channels
+- Users can enable/disable email, in-app, both, or neither for each type
 
 **Sections (Conditionally Rendered):**
 
 1. **Guardian & Admin** (caregivers, admins, owners only)
-   - Pending approvals
-   - Approval decisions
+   - Pending approvals (email + in-app)
+   - Approval decisions (email + in-app)
 
 2. **Discussion Activity** (all authenticated users)
-   - Comments on your posts
-   - Comments on discussions you're in
+   - Comments on your posts (email + in-app)
+   - Comments on discussions you're in (email + in-app)
 
 3. **Sponsorship Messages**
-   - New messages (sponsors only)
-   - Message approved/rejected (besties only)
+   - New messages (sponsors only) (email + in-app)
+   - Message approved/rejected (besties only) (email + in-app)
 
 4. **Events** (all users)
-   - New events
-   - Event updates
+   - New events (email + in-app)
+   - Event updates (email + in-app)
 
 5. **Sponsorships** (users being sponsored only)
-   - New sponsorships
-   - Sponsorship updates
+   - New sponsorships (email + in-app)
+   - Sponsorship updates (email + in-app)
 
 ### Database Function for Preferences
 
 **get_notification_preferences(_user_id)**
 ```sql
 CREATE OR REPLACE FUNCTION public.get_notification_preferences(_user_id uuid)
-RETURNS TABLE(...) -- all preference columns
-AS $$
+RETURNS TABLE(
+  email_on_pending_approval boolean,
+  email_on_approval_decision boolean,
+  -- ... all email preference columns
+  inapp_on_pending_approval boolean,
+  inapp_on_approval_decision boolean,
+  -- ... all in-app preference columns
+) AS $$
   SELECT 
     COALESCE(np.email_on_pending_approval, true),
-    -- ... all other columns with COALESCE defaults
+    COALESCE(np.email_on_approval_decision, true),
+    -- ... all other email columns with COALESCE defaults
+    COALESCE(np.inapp_on_pending_approval, true),
+    COALESCE(np.inapp_on_approval_decision, true),
+    -- ... all other in-app columns with COALESCE defaults
   FROM public.notification_preferences np
   WHERE np.user_id = _user_id
   UNION ALL
-  SELECT true, true, ... -- defaults if no record exists
+  SELECT true, true, ..., true, true, ... -- defaults for both email and in-app if no record exists
   WHERE NOT EXISTS (
     SELECT 1 FROM notification_preferences WHERE user_id = _user_id
   )
@@ -166,10 +193,17 @@ $$;
 
 **Pattern:**
 ```sql
+-- Check in-app notification preference
+IF (SELECT COALESCE(inapp_on_notification_type, true) 
+    FROM notification_preferences 
+    WHERE user_id = target_user_id) THEN
+  -- Create in-app notification
+END IF;
+
+-- Check email notification preference
 IF (SELECT COALESCE(email_on_notification_type, true) 
     FROM notification_preferences 
     WHERE user_id = target_user_id) THEN
-  -- Create notification
   -- Send email (if email notification exists for this type)
 END IF;
 ```
@@ -273,11 +307,13 @@ return () => {
 6. User clicks notification → jumps to discussion post
 
 ### Managing Preferences
-1. User navigates to `/profile` → Notifications tab
+1. User navigates to `/profile` (Settings page) → Notification Preferences tab
 2. Sees sections relevant to their role/relationships
-3. Toggles switches on/off
-4. Preferences saved to database
-5. Future notifications respect these settings
+3. Each notification type shows two toggles: Email and In-App
+4. User can independently enable/disable each channel
+5. Toggles switches on/off for desired notification channels
+6. Preferences saved to database automatically
+7. Future notifications respect these settings per channel
 
 ### Mark All Read
 1. User clicks "Mark all read" button
@@ -315,15 +351,21 @@ FOR EACH ROW
 EXECUTE FUNCTION notify_on_event();
 ```
 
-**2. Add email preference (if needed):**
+**2. Add notification preferences (both email and in-app):**
 ```sql
 ALTER TABLE notification_preferences
-ADD COLUMN email_on_new_type boolean NOT NULL DEFAULT true;
+ADD COLUMN email_on_new_type boolean NOT NULL DEFAULT true,
+ADD COLUMN inapp_on_new_type boolean NOT NULL DEFAULT true;
 ```
 
-**3. Update UI:**
-- Add to `notificationPrefs` state in `ProfileSettings.tsx`
-- Add switch in appropriate section with role check
+**3. Update database function:**
+- Add new columns to `get_notification_preferences()` return type
+- Add COALESCE defaults for new columns
+
+**4. Update UI:**
+- Add to `notificationPrefs` state in `ProfileSettings.tsx` (both email and in-app)
+- Add two switches (Email + In-App) in appropriate section with role check
+- Align with existing two-column layout
 
 **4. Document notification type:**
 - Add to "Notification Types" section above
@@ -400,14 +442,50 @@ ADD COLUMN email_on_new_type boolean NOT NULL DEFAULT true;
 - `src/hooks/useNotifications.ts` - Notification data management
 
 **Pages:**
-- `src/pages/ProfileSettings.tsx` - Email preferences UI
+- `src/pages/ProfileSettings.tsx` - Settings page with notification preferences (dual email/in-app toggles)
 - `src/pages/Discussions.tsx` - Post highlighting from notifications
 
 **Database:**
 - Migration: `[timestamp]_create_notifications_table.sql`
 - Migration: `[timestamp]_add_discussion_notification_preferences.sql`
+- Migration: `[timestamp]_add_inapp_notification_preferences.sql`
 - Trigger: `notify_on_new_comment()`
 
 ---
 
-**Last Updated:** After implementing complete in-app notification system with discussion comment notifications and email preference UI
+## HEADER CHANGES
+
+### Profile Dropdown
+
+**Location:** UnifiedHeader (far right)
+- Moved profile button to far right of header
+- Converted to dropdown menu using `DropdownMenu` component
+- **Dropdown Contents:**
+  - Settings (links to `/profile`)
+  - Logout
+- All other navigation buttons remain as separate buttons (unchanged)
+
+**Implementation:**
+```tsx
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="icon" className="relative">
+      <User className="h-5 w-5" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuItem onClick={() => navigate("/profile")}>
+      <Settings className="mr-2 h-4 w-4" />
+      Settings
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={handleLogout}>
+      <LogOut className="mr-2 h-4 w-4" />
+      Logout
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+---
+
+**Last Updated:** After implementing in-app notification preferences, renaming Profile Settings to Settings, and moving profile button to dropdown menu

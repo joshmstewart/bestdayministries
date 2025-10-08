@@ -7,6 +7,7 @@
 - Hook: `useNotifications`
 - Badge: Red, top-right of bell icon
 - Shows "9+" if count > 9
+- Location: Before profile dropdown menu
 
 **Approvals Button** (Caregivers only)
 - Count: Pending posts + comments + vendor link requests
