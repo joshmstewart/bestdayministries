@@ -300,17 +300,6 @@ export const UnifiedHeader = () => {
                 {/* Notification Bell */}
                 <NotificationBell />
                 
-                {/* Help Icon */}
-                <Button 
-                  onClick={() => navigate("/help")}
-                  variant="ghost"
-                  size="icon"
-                  className="relative"
-                  title="Help Center"
-                >
-                  <HelpCircle className="w-5 h-5" />
-                </Button>
-                
                 {(profile?.role === "caregiver" || profile?.role === "supporter" || profile?.role === "admin" || profile?.role === "owner" || (profile?.role === "bestie" && hasSharedSponsorships)) && (
                   <Button 
                     onClick={() => navigate("/guardian-links")}
@@ -504,8 +493,21 @@ export const UnifiedHeader = () => {
                               >
                                 {link.label}
                               </Link>
-                            );
-                          })}
+                          );
+                        })}
+                        
+                        {/* Help Icon for Mobile */}
+                        <Button 
+                          onClick={() => {
+                            navigate("/help");
+                            setMobileMenuOpen(false);
+                          }}
+                          variant="ghost"
+                          className="justify-start text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                        >
+                          <HelpCircle className="w-5 h-5 mr-2" />
+                          Help Center
+                        </Button>
                       </nav>
                       <div className="absolute bottom-8 left-6 right-6">
                         <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20">
@@ -585,8 +587,21 @@ export const UnifiedHeader = () => {
                               </Link>
                             )}
                           </li>
-                        );
-                      })}
+                          );
+                        })}
+                    
+                    {/* Help Icon */}
+                    <li>
+                      <Button 
+                        onClick={() => navigate("/help")}
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 h-auto py-1 hover:text-[hsl(var(--burnt-orange))]"
+                        title="Help Center"
+                      >
+                        <HelpCircle className="w-5 h-5" />
+                      </Button>
+                    </li>
                   </ul>
                   <div className="flex-1 flex justify-end">
                     {profile && (
