@@ -55,7 +55,8 @@ Create/edit events: title, description, date/time, recurrence settings, image (c
 ## RLS Policies
 - **SELECT:** All authenticated (client-side role filter)
 - **INSERT:** Authenticated users
-- **UPDATE/DELETE:** Author or admin
+- **UPDATE:** Event creator OR admin/owner
+- **DELETE:** Event creator OR admin/owner
 - **event_dates:** Event creator only
 
 ## Common Issues
