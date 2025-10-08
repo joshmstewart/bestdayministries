@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,15 @@ const Marketplace = () => {
   const navigate = useNavigate();
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    };
+    checkAuth();
+  }, []);
 
   // Fetch cart count
   const { data: cartCount } = useQuery({
@@ -75,7 +84,7 @@ const Marketplace = () => {
                 <Button 
                   size="lg"
                   variant="outline"
-                  onClick={() => navigate('/vendor-dashboard')}
+                  onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
                 >
                   <Store className="mr-2 h-5 w-5" />
                   Become a Vendor

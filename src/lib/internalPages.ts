@@ -32,6 +32,8 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/marketplace", label: "Marketplace" },
   { value: "/orders", label: "Order History" },
   { value: "/auth", label: "Login/Signup" },
+  { value: "/vendor-auth", label: "Vendor Application" },
+  { value: "/vendor-dashboard", label: "Vendor Dashboard" },
   { value: "/profile", label: "Profile" },
   { value: "/guardian-links", label: "My Besties" },
   { value: "/guardian-approvals", label: "Guardian Approvals" },
