@@ -2,6 +2,12 @@
 
 ## 1. UnifiedHeader (Top Nav)
 
+**Notification Bell** (All authenticated users)
+- Count: Unread in-app notifications
+- Hook: `useNotifications`
+- Badge: Red, top-right of bell icon
+- Shows "9+" if count > 9
+
 **Approvals Button** (Caregivers only)
 - Count: Pending posts + comments + vendor link requests
 - Hook: `useGuardianApprovalsCount`
