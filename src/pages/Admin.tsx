@@ -252,6 +252,7 @@ const Admin = () => {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="contact" className="relative">
               Contact
               {contactFormCount > 0 && (
@@ -452,8 +453,6 @@ const Admin = () => {
             
             <MessageModerationQueue />
 
-            <EmailTemplatePreview />
-
             <Card>
               <CardHeader>
                 <CardTitle>Posts & Comments - Moderation</CardTitle>
@@ -479,6 +478,10 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <EmailTemplatePreview />
           </TabsContent>
 
           <TabsContent value="contact">
