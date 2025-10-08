@@ -145,14 +145,32 @@ export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
                 Page Route (Optional)
               </Label>
               <p className="text-xs text-muted-foreground mb-2">
-                Navigate to this page before showing this step (e.g., /community, /events)
+                Navigate to this page before showing this step
               </p>
-              <Input
-                id={`route-${index}`}
-                value={step.route || ""}
-                onChange={(e) => updateStep(index, "route", e.target.value)}
-                placeholder="/community"
-              />
+              <Select
+                value={step.route || "none"}
+                onValueChange={(value) => updateStep(index, "route", value === "none" ? "" : value)}
+              >
+                <SelectTrigger id={`route-${index}`}>
+                  <SelectValue placeholder="Select a page" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No navigation</SelectItem>
+                  <SelectItem value="/">Home</SelectItem>
+                  <SelectItem value="/community">Community</SelectItem>
+                  <SelectItem value="/discussions">Discussions</SelectItem>
+                  <SelectItem value="/events">Events</SelectItem>
+                  <SelectItem value="/gallery">Gallery</SelectItem>
+                  <SelectItem value="/marketplace">Marketplace</SelectItem>
+                  <SelectItem value="/sponsor-bestie">Sponsor</SelectItem>
+                  <SelectItem value="/support-us">Support Us</SelectItem>
+                  <SelectItem value="/about">About</SelectItem>
+                  <SelectItem value="/help">Help Center</SelectItem>
+                  <SelectItem value="/guardian-links">My Besties</SelectItem>
+                  <SelectItem value="/guardian-approvals">Approvals</SelectItem>
+                  <SelectItem value="/bestie-messages">Bestie Messages</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
