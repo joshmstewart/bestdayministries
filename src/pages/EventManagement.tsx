@@ -1142,9 +1142,18 @@ export default function EventManagement() {
                         {event.location && (
                           <div className="text-sm pt-1 border-t">
                             {(() => {
+                              // Normalize addresses for comparison (trim and lowercase)
+                              const normalizeAddress = (addr: string) => 
+                                addr.trim().toLowerCase().replace(/\s+/g, ' ');
+                              
                               const matchingLocation = savedLocations.find(
-                                loc => loc.address.toLowerCase() === event.location?.toLowerCase()
+                                loc => normalizeAddress(loc.address) === normalizeAddress(event.location || '')
                               );
+                              
+                              console.log('Event:', event.title);
+                              console.log('Event location:', event.location);
+                              console.log('Saved locations:', savedLocations.map(l => ({ name: l.name, address: l.address })));
+                              console.log('Matching location found:', matchingLocation);
                               
                               if (matchingLocation) {
                                 return (
