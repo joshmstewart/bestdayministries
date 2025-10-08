@@ -57,6 +57,8 @@ const ProfileSettings = () => {
     email_on_event_update: false,
     email_on_new_sponsorship: true,
     email_on_sponsorship_update: true,
+    email_on_comment_on_post: true,
+    email_on_comment_on_thread: true,
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
   
@@ -751,6 +753,39 @@ const ProfileSettings = () => {
                       </div>
                     </div>
                   )}
+
+                   {/* Discussion Activity - Show to all authenticated users */}
+                  <div className="space-y-3 pb-4 border-b">
+                    <Label className="text-base">Discussion Activity</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="comment-on-post" className="font-normal">Comments on your posts</Label>
+                          <p className="text-xs text-muted-foreground">When someone comments on a post you created</p>
+                        </div>
+                        <Switch
+                          id="comment-on-post"
+                          checked={notificationPrefs.email_on_comment_on_post}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_comment_on_post: checked }))
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="comment-on-thread" className="font-normal">Comments on discussions you're in</Label>
+                          <p className="text-xs text-muted-foreground">When someone else comments on a post you commented on</p>
+                        </div>
+                        <Switch
+                          id="comment-on-thread"
+                          checked={notificationPrefs.email_on_comment_on_thread}
+                          onCheckedChange={(checked) => 
+                            setNotificationPrefs(prev => ({ ...prev, email_on_comment_on_thread: checked }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Sponsorship Messages */}
                   <div className="space-y-3 pb-4 border-b">

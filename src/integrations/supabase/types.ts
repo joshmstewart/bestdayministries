@@ -1310,6 +1310,8 @@ export type Database = {
         Row: {
           created_at: string
           email_on_approval_decision: boolean
+          email_on_comment_on_post: boolean
+          email_on_comment_on_thread: boolean
           email_on_event_update: boolean
           email_on_message_approved: boolean
           email_on_message_rejected: boolean
@@ -1325,6 +1327,8 @@ export type Database = {
         Insert: {
           created_at?: string
           email_on_approval_decision?: boolean
+          email_on_comment_on_post?: boolean
+          email_on_comment_on_thread?: boolean
           email_on_event_update?: boolean
           email_on_message_approved?: boolean
           email_on_message_rejected?: boolean
@@ -1340,6 +1344,8 @@ export type Database = {
         Update: {
           created_at?: string
           email_on_approval_decision?: boolean
+          email_on_comment_on_post?: boolean
+          email_on_comment_on_thread?: boolean
           email_on_event_update?: boolean
           email_on_message_approved?: boolean
           email_on_message_rejected?: boolean
