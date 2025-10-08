@@ -1509,6 +1509,7 @@ export type Database = {
           email_on_new_sponsor_message: boolean
           email_on_new_sponsorship: boolean
           email_on_pending_approval: boolean
+          email_on_product_update: boolean | null
           email_on_sponsorship_update: boolean
           id: string
           inapp_on_approval_decision: boolean
@@ -1521,6 +1522,7 @@ export type Database = {
           inapp_on_new_sponsor_message: boolean
           inapp_on_new_sponsorship: boolean
           inapp_on_pending_approval: boolean
+          inapp_on_product_update: boolean | null
           inapp_on_sponsorship_update: boolean
           last_digest_sent_at: string | null
           updated_at: string
@@ -1539,6 +1541,7 @@ export type Database = {
           email_on_new_sponsor_message?: boolean
           email_on_new_sponsorship?: boolean
           email_on_pending_approval?: boolean
+          email_on_product_update?: boolean | null
           email_on_sponsorship_update?: boolean
           id?: string
           inapp_on_approval_decision?: boolean
@@ -1551,6 +1554,7 @@ export type Database = {
           inapp_on_new_sponsor_message?: boolean
           inapp_on_new_sponsorship?: boolean
           inapp_on_pending_approval?: boolean
+          inapp_on_product_update?: boolean | null
           inapp_on_sponsorship_update?: boolean
           last_digest_sent_at?: string | null
           updated_at?: string
@@ -1569,6 +1573,7 @@ export type Database = {
           email_on_new_sponsor_message?: boolean
           email_on_new_sponsorship?: boolean
           email_on_pending_approval?: boolean
+          email_on_product_update?: boolean | null
           email_on_sponsorship_update?: boolean
           id?: string
           inapp_on_approval_decision?: boolean
@@ -1581,6 +1586,7 @@ export type Database = {
           inapp_on_new_sponsor_message?: boolean
           inapp_on_new_sponsorship?: boolean
           inapp_on_pending_approval?: boolean
+          inapp_on_product_update?: boolean | null
           inapp_on_sponsorship_update?: boolean
           last_digest_sent_at?: string | null
           updated_at?: string
@@ -3159,6 +3165,7 @@ export type Database = {
           email_on_new_sponsor_message: boolean
           email_on_new_sponsorship: boolean
           email_on_pending_approval: boolean
+          email_on_product_update: boolean
           email_on_sponsorship_update: boolean
           inapp_on_approval_decision: boolean
           inapp_on_comment_on_post: boolean
@@ -3170,6 +3177,7 @@ export type Database = {
           inapp_on_new_sponsor_message: boolean
           inapp_on_new_sponsorship: boolean
           inapp_on_pending_approval: boolean
+          inapp_on_product_update: boolean
           inapp_on_sponsorship_update: boolean
         }[]
       }

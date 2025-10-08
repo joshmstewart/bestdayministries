@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle } from "lucide-react";
+import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
@@ -45,6 +45,7 @@ import { PartnersManager } from "@/components/admin/PartnersManager";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
+import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -253,7 +254,14 @@ const Admin = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2">
+              <Bell className="w-4 h-4" />
+              Notifications
+            </TabsTrigger>
+            <TabsTrigger value="product-updates" className="gap-2">
+              <Megaphone className="w-4 h-4" />
+              Product Updates
+            </TabsTrigger>
             <TabsTrigger value="contact" className="relative">
               Contact
               {contactFormCount > 0 && (
@@ -487,6 +495,10 @@ const Admin = () => {
 
           <TabsContent value="notifications">
             <EmailTemplatePreview />
+          </TabsContent>
+
+          <TabsContent value="product-updates">
+            <ProductUpdateBroadcaster />
           </TabsContent>
 
           <TabsContent value="contact">
