@@ -7,6 +7,7 @@ import { useAppManifest } from "@/hooks/useAppManifest";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { TermsAcceptanceGuard } from "@/components/TermsAcceptanceGuard";
+import { FaviconManager } from "@/components/FaviconManager";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Community from "./pages/Community";
@@ -51,6 +52,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <FaviconManager />
           <ImpersonationBanner />
           <TermsAcceptanceGuard>
             <Routes>

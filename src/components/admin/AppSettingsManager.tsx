@@ -15,6 +15,7 @@ export const AppSettingsManager = () => {
     logo_url: "",
     mobile_app_name: "",
     mobile_app_icon_url: "",
+    favicon_url: "",
   });
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export const AppSettingsManager = () => {
       const { data, error } = await supabase
         .from("app_settings")
         .select("*")
-        .in("setting_key", ["logo_url", "mobile_app_name", "mobile_app_icon_url"]);
+        .in("setting_key", ["logo_url", "mobile_app_name", "mobile_app_icon_url", "favicon_url"]);
 
       if (error) throw error;
 
@@ -34,6 +35,7 @@ export const AppSettingsManager = () => {
         logo_url: "",
         mobile_app_name: "Best Day Ministries Community",
         mobile_app_icon_url: "",
+        favicon_url: "",
       };
       
       data?.forEach((setting) => {
@@ -61,7 +63,7 @@ export const AppSettingsManager = () => {
     }
   };
 
-  const handleImageUpload = async (file: File, settingKey: "logo_url" | "mobile_app_icon_url") => {
+  const handleImageUpload = async (file: File, settingKey: "logo_url" | "mobile_app_icon_url" | "favicon_url") => {
     try {
       setUploading(true);
 
@@ -104,9 +106,25 @@ export const AppSettingsManager = () => {
         [settingKey]: urlData.publicUrl,
       }));
 
+      // If favicon, also copy to public directory
+      if (settingKey === "favicon_url") {
+        // Download the file from storage
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from("app-assets")
+          .download(filePath);
+
+        if (downloadError) throw downloadError;
+
+        // Note: In a real implementation, you'd need a backend function to copy to public/
+        // For now, we store the URL and admins can manually update if needed
+      }
+
+      const displayName = settingKey === "logo_url" ? "Logo" : 
+                         settingKey === "mobile_app_icon_url" ? "Mobile app icon" : "Favicon";
+
       toast({
         title: "Success",
-        description: `${settingKey === "logo_url" ? "Logo" : "Mobile app icon"} uploaded successfully`,
+        description: `${displayName} uploaded successfully. For favicon changes to take effect, you may need to clear your browser cache.`,
       });
     } catch (error: any) {
       toast({
@@ -170,7 +188,7 @@ export const AppSettingsManager = () => {
           App Settings
         </CardTitle>
         <CardDescription>
-          Manage your app's logo, mobile app icon, and name
+          Manage your app's logo, mobile app icon, favicon, and name
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -248,6 +266,47 @@ export const AppSettingsManager = () => {
               )}
             </Button>
           </div>
+        </div>
+
+        {/* Favicon */}
+        <div className="space-y-3">
+          <Label>Browser Favicon</Label>
+          <p className="text-sm text-muted-foreground">
+            The icon that appears in browser tabs (recommended: 32x32px or 16x16px PNG/ICO)
+          </p>
+          {settings.favicon_url && (
+            <div className="border rounded-lg p-4 bg-muted/50">
+              <img
+                src={settings.favicon_url}
+                alt="Current favicon"
+                className="max-h-8 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Input
+              type="file"
+              accept="image/png,image/x-icon,image/vnd.microsoft.icon"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file, "favicon_url");
+              }}
+              disabled={uploading}
+            />
+            <Button disabled={uploading} size="icon" variant="outline">
+              {uploading ? (
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Note: After uploading, you may need to clear your browser cache to see the new favicon
+          </p>
         </div>
 
         {/* Mobile App Name */}
