@@ -2,12 +2,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom";
 import { useAppManifest } from "@/hooks/useAppManifest";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { TermsAcceptanceGuard } from "@/components/TermsAcceptanceGuard";
 import { FaviconManager } from "@/components/FaviconManager";
+import { ProductTourRunner } from "@/components/help/ProductTourRunner";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Community from "./pages/Community";
@@ -42,6 +45,47 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function TourManager() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tour, setTour] = useState<any>(null);
+  const tourId = searchParams.get('tour');
+
+  useEffect(() => {
+    if (tourId) {
+      loadTour(tourId);
+    } else {
+      setTour(null);
+    }
+  }, [tourId]);
+
+  const loadTour = async (id: string) => {
+    const { data, error } = await supabase
+      .from('help_tours')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (data) {
+      setTour({
+        ...data,
+        steps: Array.isArray(data.steps) ? data.steps : []
+      });
+    }
+  };
+
+  const handleClose = () => {
+    // Remove tour param from URL
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('tour');
+    setSearchParams(newParams);
+    setTour(null);
+  };
+
+  if (!tour) return null;
+
+  return <ProductTourRunner tour={tour} onClose={handleClose} />;
+}
+
 const App = () => {
   // Update app manifest dynamically based on database settings 
   useAppManifest();
@@ -55,6 +99,7 @@ const App = () => {
           <ScrollToTop />
           <FaviconManager />
           <ImpersonationBanner />
+          <TourManager />
           <TermsAcceptanceGuard>
             <Routes>
             <Route path="/" element={<Index />} />

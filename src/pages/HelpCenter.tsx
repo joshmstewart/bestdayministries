@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,6 @@ import {
   Users,
   ChevronRight
 } from "lucide-react";
-import { ProductTourRunner } from "@/components/help/ProductTourRunner";
 import { GuideViewer } from "@/components/help/GuideViewer";
 import { FAQSection } from "@/components/help/FAQSection";
 import { useToast } from "@/hooks/use-toast";
@@ -51,12 +50,12 @@ interface FAQ {
 }
 
 export default function HelpCenter() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [tours, setTours] = useState<Tour[]>([]);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [faqs, setFAQs] = useState<FAQ[]>([]);
-  const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
   const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -139,7 +138,12 @@ export default function HelpCenter() {
   };
 
   const handleStartTour = (tour: Tour) => {
-    setSelectedTour(tour);
+    // Navigate to the required route with tour ID in params
+    if (tour.required_route) {
+      navigate(`${tour.required_route}?tour=${tour.id}`);
+    } else {
+      navigate(`/help?tour=${tour.id}`);
+    }
   };
 
   const handleViewGuide = (guide: Guide) => {
@@ -311,14 +315,6 @@ export default function HelpCenter() {
           </Tabs>
         </div>
       </main>
-
-      {/* Tour Runner */}
-      {selectedTour && (
-        <ProductTourRunner
-          tour={selectedTour}
-          onClose={() => setSelectedTour(null)}
-        />
-      )}
 
       {/* Guide Viewer */}
       {selectedGuide && (
