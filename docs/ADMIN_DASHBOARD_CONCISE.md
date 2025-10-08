@@ -109,6 +109,30 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - View contact form submissions
 - Mark as read/resolved
 - Configure form settings
+- Reply to submissions via email
+
+### Help Center
+**Component:** `HelpCenterManager`
+**Sub-tabs:** Tours | Guides | FAQs
+- **Tours:** Interactive product tours using react-joyride
+  - Create step-by-step walkthroughs
+  - Configure target elements and content
+  - Set duration estimates
+- **Guides:** Long-form documentation
+  - Markdown-like formatting
+  - Category/audience targeting
+  - Reading time estimates
+- **FAQs:** Question/answer pairs
+  - Category grouping
+  - Target specific audiences
+  - Quick visibility toggle
+**See:** `docs/HELP_CENTER_SYSTEM.md` for complete documentation
+
+### Notifications
+**Component:** `EmailTemplatePreview`
+- Preview email notification templates
+- Send test emails
+- View email styles and formatting
 
 ### Settings
 **Sub-tabs:** App Settings | Avatars | Impersonation

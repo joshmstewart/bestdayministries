@@ -54,6 +54,9 @@ interface InternalPage {
 - `/guardian-approvals` - Guardian Approvals
 - `/bestie-messages` - Bestie Messages
 
+**Help & Support:**
+- `/help` - Help Center
+
 **Admin:**
 - `/admin` - Admin Panel
 
@@ -112,4 +115,4 @@ interface InternalPage {
 
 ---
 
-**Last Updated:** After adding `/bestie-messages` route
+**Last Updated:** After adding Help Center (`/help`) route
