@@ -111,7 +111,9 @@ Central admin interface (`/admin`) for managing all platform content and setting
 
 ### Settings
 **Sub-tabs:** App Settings | Avatars | Impersonation
-- **App Settings:** Logo, app name, etc. (`AppSettingsManager`)
+- **App Settings:** Logo, favicon, mobile app icon/name (`AppSettingsManager`)
+  - Favicon dynamically updates via `FaviconManager` component on app load
+  - Stored in `app_settings` table with key `favicon_url`
 - **Avatars:** Upload composite avatars (`AvatarUploader`)
 - **Impersonation:** Test UI as different roles (`RoleImpersonator`)
 
