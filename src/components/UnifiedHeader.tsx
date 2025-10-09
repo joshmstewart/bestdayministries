@@ -517,11 +517,34 @@ export const UnifiedHeader = () => {
                             const children = navLinks.filter(child => child.parent_id === link.id);
 
                             if (link.link_type === 'dropdown' && children.length > 0) {
+                              const hasParentLink = link.href && link.href.trim() !== '';
                               return (
                                 <div key={link.id} className="flex flex-col gap-2">
-                                  <div className="text-lg font-['Roca'] font-semibold text-foreground/90 py-2">
-                                    {link.label}
-                                  </div>
+                                  {hasParentLink ? (
+                                    link.href.startsWith('http') ? (
+                                      <a
+                                        href={link.href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-lg font-['Roca'] font-semibold text-foreground/90 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                      >
+                                        {link.label}
+                                      </a>
+                                    ) : (
+                                      <Link
+                                        to={link.href}
+                                        className="text-lg font-['Roca'] font-semibold text-foreground/90 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                      >
+                                        {link.label}
+                                      </Link>
+                                    )
+                                  ) : (
+                                    <div className="text-lg font-['Roca'] font-semibold text-foreground/90 py-2">
+                                      {link.label}
+                                    </div>
+                                  )}
                                   {children
                                     .filter(child => {
                                       if (!child.visible_to_roles || child.visible_to_roles.length === 0) return true;
@@ -638,11 +661,37 @@ export const UnifiedHeader = () => {
                         const children = navLinks.filter(child => child.parent_id === link.id);
 
                         if (link.link_type === 'dropdown' && children.length > 0) {
+                          const hasParentLink = link.href && link.href.trim() !== '';
                           return (
                             <li key={link.id}>
                               <DropdownMenu>
                                 <DropdownMenuTrigger className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full bg-transparent border-0 outline-none">
-                                  {link.label} <ChevronDown className="inline-block w-3 h-3 ml-1" />
+                                  {hasParentLink ? (
+                                    <span className="flex items-center gap-1">
+                                      {link.href.startsWith('http') ? (
+                                        <a 
+                                          href={link.href}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {link.label}
+                                        </a>
+                                      ) : (
+                                        <Link 
+                                          to={link.href}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {link.label}
+                                        </Link>
+                                      )}
+                                      <ChevronDown className="inline-block w-3 h-3" />
+                                    </span>
+                                  ) : (
+                                    <span>
+                                      {link.label} <ChevronDown className="inline-block w-3 h-3 ml-1" />
+                                    </span>
+                                  )}
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="center" className="min-w-[160px] bg-card border-border z-50">
                                   {children

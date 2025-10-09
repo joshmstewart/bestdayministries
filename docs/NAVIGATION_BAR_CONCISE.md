@@ -74,14 +74,24 @@
 
 **Data Source:** `navigation_links` table
 ```js
-.select("id, label, href, display_order")
-.eq("is_active", true)
-.order("display_order", { ascending: true })
+.select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id")
 ```
+
+**Ordering:** 
+- Top-level links (no parent_id) ordered by display_order
+- Child links ordered by display_order within their parent group
+- Proper hierarchical sorting ensures correct display order
 
 **Link Types:**
 - **Internal:** `<Link to={href}>{label}</Link>`
 - **External:** `<a href={href} target="_blank" rel="noopener noreferrer">{label}</a>`
+- **Dropdown Parent:** Can optionally have its own href, making it clickable while still showing dropdown
+
+**Parent Links Feature:**
+- Dropdown parents can now have their own clickable URL
+- If href is set, clicking the label navigates to that URL
+- The dropdown arrow still opens the submenu
+- If no href is set, only the dropdown menu is shown
 
 **Styling:**
 - Hover: Burnt orange color (`hover:text-[hsl(var(--burnt-orange))]`)

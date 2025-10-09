@@ -24,6 +24,8 @@ VISIBILITY:role≠vendor→shows
 SCROLL:shows[<150px|scroll-UP]|hides[>150px+scroll-DOWN]
 CRITICAL:all-pages-pt-24[96px-clearance]
 DB:navigation_links→realtime
+ORDERING:top-level[display_order]→children[display_order-within-parent]
+PARENT-LINKS:dropdown-parents-CAN-have-href[label-clicks→navigates|arrow→dropdown]|optional-href[empty→dropdown-only]
 
 ## NOTIF_BADGES
 LOCATIONS:UnifiedHeader[Approvals-red|Admin-red]|Admin-tabs|Guardian-tabs

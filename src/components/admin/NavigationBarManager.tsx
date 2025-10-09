@@ -109,54 +109,56 @@ function SortableLink({
             </div>
           )}
 
-          {link.link_type === 'regular' && (
-            <>
-              <div className={level === 0 ? "" : "col-span-2"}>
-                <Label className="text-xs">URL Type</Label>
-                <Select
-                  value={isCustomUrl ? "custom" : "internal"}
-                  onValueChange={(value) => {
-                    setIsCustomUrl(value === "custom");
-                    if (value === "internal") {
-                      onUpdate(link.id, { href: "/" });
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="internal">Internal Page</SelectItem>
-                    <SelectItem value="custom">Custom URL</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className={level === 0 ? "" : "col-span-2"}>
+            <Label className="text-xs">URL Type</Label>
+            <Select
+              value={isCustomUrl ? "custom" : "internal"}
+              onValueChange={(value) => {
+                setIsCustomUrl(value === "custom");
+                if (value === "internal") {
+                  onUpdate(link.id, { href: "/" });
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="internal">Internal Page</SelectItem>
+                <SelectItem value="custom">Custom URL</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-              <div className="col-span-2">
-                <Label className="text-xs">{isCustomUrl ? "Custom URL" : "Page"}</Label>
-                {isCustomUrl ? (
-                  <Input
-                    value={link.href}
-                    onChange={(e) => onUpdate(link.id, { href: e.target.value })}
-                    placeholder="https://example.com"
-                  />
-                ) : (
-                  <Select value={link.href} onValueChange={(value) => onUpdate(link.id, { href: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INTERNAL_PAGES.map((page) => (
-                        <SelectItem key={page.value} value={page.value}>
-                          {page.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </>
-          )}
+          <div className="col-span-2">
+            <Label className="text-xs">
+              {isCustomUrl ? "Custom URL" : "Page"}
+              {link.link_type === 'dropdown' && " (optional - parent can be clickable)"}
+            </Label>
+            {isCustomUrl ? (
+              <Input
+                value={link.href}
+                onChange={(e) => onUpdate(link.id, { href: e.target.value })}
+                placeholder={link.link_type === 'dropdown' ? "https://example.com (optional)" : "https://example.com"}
+              />
+            ) : (
+              <Select value={link.href} onValueChange={(value) => onUpdate(link.id, { href: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder={link.link_type === 'dropdown' ? "None (optional)" : "Select page"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {link.link_type === 'dropdown' && (
+                    <SelectItem value="">None (just dropdown)</SelectItem>
+                  )}
+                  {INTERNAL_PAGES.map((page) => (
+                    <SelectItem key={page.value} value={page.value}>
+                      {page.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
 
           <div className="col-span-2">
             <Label className="text-xs">Visible to Roles</Label>
@@ -234,11 +236,26 @@ export function NavigationBarManager() {
     try {
       const { data, error } = await supabase
         .from("navigation_links")
-        .select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id")
-        .order("display_order", { ascending: true });
+        .select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id");
 
       if (error) throw error;
-      setLinks((data || []) as NavigationLink[]);
+      
+      // Sort links properly: top-level by display_order, then children by display_order
+      const sorted = (data || []).sort((a, b) => {
+        // If one has no parent and the other does, parent comes first
+        if (!a.parent_id && b.parent_id) return -1;
+        if (a.parent_id && !b.parent_id) return 1;
+        
+        // If both have no parent or both have the same parent, sort by display_order
+        if (a.parent_id === b.parent_id) {
+          return a.display_order - b.display_order;
+        }
+        
+        // Otherwise maintain original order
+        return 0;
+      });
+      
+      setLinks(sorted as NavigationLink[]);
     } catch (error: any) {
       toast({
         title: "Error loading links",
@@ -341,7 +358,8 @@ export function NavigationBarManager() {
 
       // Validate all links before saving
       for (const link of links) {
-        if (link.link_type === 'regular') {
+        // Only validate href for regular links or dropdown links with a href
+        if (link.link_type === 'regular' || (link.link_type === 'dropdown' && link.href && link.href.trim() !== '')) {
           const validation = validateInput(navigationLinkSchema, {
             label: link.label,
             href: link.href,
@@ -380,7 +398,7 @@ export function NavigationBarManager() {
           
           const linkData = {
             label: link.label.trim(),
-            href: link.href.trim(),
+            href: (link.href && link.href.trim()) || '', // Allow empty href for dropdown parents
             display_order: link.display_order,
             is_active: link.is_active,
             visible_to_roles: link.visible_to_roles || USER_ROLES.map(r => r.value),
