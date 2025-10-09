@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 
 const NOTIFICATION_TYPES = {
   all: "All",
@@ -221,16 +223,18 @@ export default function Notifications() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
+      
       <main className="flex-1 pt-24">
         <div className="container mx-auto px-4 max-w-4xl">
           <Button
             variant="outline"
             size="sm"
             className="mb-6"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/community")}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            Back to Community
           </Button>
 
           <div className="mb-6">
@@ -397,6 +401,8 @@ export default function Notifications() {
           </Tabs>
         </div>
       </main>
+      
+      <Footer />
     </div>
   );
 }
