@@ -14,6 +14,8 @@ import { EventDetailDialog } from "@/components/EventDetailDialog";
 import { LocationLink } from "@/components/LocationLink";
 import { useRoleImpersonation, type UserRole } from "@/hooks/useRoleImpersonation";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { ShareIconButton } from "@/components/ShareButtons";
+import { SEOHead } from "@/components/SEOHead";
 
 interface EventDate {
   id: string;
@@ -217,6 +219,10 @@ export default function EventsPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <SEOHead
+        title="Community Events | Joy House Community"
+        description="Join us for exciting events and activities in our community. Connect with adults with special needs and their families."
+      />
       <UnifiedHeader />
       <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
         <div className="max-w-6xl mx-auto space-y-12">
@@ -296,6 +302,15 @@ export default function EventsPage() {
                             <p className="text-muted-foreground">
                               {event.description}
                             </p>
+
+                            <div className="pt-2">
+                              <ShareIconButton
+                                title={event.title}
+                                description={event.description}
+                                url={`${window.location.origin}/events?eventId=${event.id}`}
+                                hashtags={['JoyHouse', 'CommunityEvent']}
+                              />
+                            </div>
 
                             {/* Show all dates if there are multiple */}
                             {allDates.length > 1 && (

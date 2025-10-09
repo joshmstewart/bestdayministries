@@ -5,6 +5,7 @@ import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ShareButtons } from "@/components/ShareButtons";
 
 interface EventDate {
   id: string;
@@ -147,6 +148,15 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
               <AudioPlayer src={event.audio_url} />
             </div>
           )}
+
+          <div className="pt-4 border-t">
+            <ShareButtons
+              title={event.title}
+              description={event.description}
+              url={`${window.location.origin}/events?eventId=${event.id}`}
+              hashtags={['JoyHouse', 'CommunityEvent']}
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -25,6 +25,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
+import { ShareIconButton } from "@/components/ShareButtons";
+import { SEOHead, getArticleStructuredData } from "@/components/SEOHead";
 
 interface Profile {
   id: string;
@@ -961,6 +963,10 @@ const Discussions = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+      <SEOHead
+        title="Discussions | Joy House Community"
+        description="Join conversations and connect with our community. Share stories, experiences, and support with adults with special needs and their families."
+      />
       <UnifiedHeader />
       
       <main className="container mx-auto px-4 pt-20 pb-12">
@@ -1353,6 +1359,14 @@ const Discussions = () => {
                                 View Album
                               </Button>
                             )}
+                            <div className="ml-auto">
+                              <ShareIconButton
+                                title={post.title}
+                                description={post.content.substring(0, 150)}
+                                url={`${window.location.origin}/discussions?postId=${post.id}`}
+                                hashtags={['JoyHouse', 'Community']}
+                              />
+                            </div>
                             {/* Event link badge - kept for reference */}
                           </div>
                         </div>
