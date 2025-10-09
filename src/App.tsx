@@ -124,6 +124,7 @@ const App = () => {
           <TermsAcceptanceGuard>
             <Routes>
             <Route path="/" element={<DomainRouter />} />
+            <Route path="/coffee-shop" element={<CoffeeShopHome />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/vendor" element={<VendorAuth />} />
             <Route path="/community" element={<Community />} />
