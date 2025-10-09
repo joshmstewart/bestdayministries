@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SEOHeadProps {
   title?: string;
@@ -12,9 +13,9 @@ interface SEOHeadProps {
 }
 
 export const SEOHead = ({
-  title = "Joy House Community | Spreading Joy Through Special Needs Community",
-  description = "Joy House builds a supportive community for adults with special needs by sharing their creativity through unique gifts, giving them confidence, independence, and JOY!",
-  image = "https://lovable.dev/opengraph-image-p98pqg.png",
+  title: propTitle,
+  description: propDescription,
+  image: propImage,
   type = "website",
   noindex = false,
   canonicalUrl,
@@ -22,8 +23,54 @@ export const SEOHead = ({
 }: SEOHeadProps) => {
   const location = useLocation();
   const currentUrl = canonicalUrl || `${window.location.origin}${location.pathname}`;
+  
+  const [seoSettings, setSeoSettings] = useState({
+    title: propTitle || "Joy House Community | Spreading Joy Through Special Needs Community",
+    description: propDescription || "Joy House builds a supportive community for adults with special needs by sharing their creativity through unique gifts, giving them confidence, independence, and JOY!",
+    image: propImage || "https://lovable.dev/opengraph-image-p98pqg.png",
+    twitterHandle: "",
+  });
+
+  // Load SEO settings from database
+  useEffect(() => {
+    const loadSeoSettings = async () => {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("*")
+          .in("setting_key", ["site_title", "site_description", "og_image_url", "twitter_handle"]);
+
+        if (data) {
+          const settingsMap: any = {};
+          data.forEach((setting) => {
+            try {
+              const value = typeof setting.setting_value === 'string' 
+                ? JSON.parse(setting.setting_value) 
+                : setting.setting_value;
+              settingsMap[setting.setting_key] = value;
+            } catch {
+              settingsMap[setting.setting_key] = setting.setting_value;
+            }
+          });
+
+          setSeoSettings({
+            title: propTitle || settingsMap.site_title || seoSettings.title,
+            description: propDescription || settingsMap.site_description || seoSettings.description,
+            image: propImage || settingsMap.og_image_url || seoSettings.image,
+            twitterHandle: settingsMap.twitter_handle || "",
+          });
+        }
+      } catch (error) {
+        console.error("Error loading SEO settings:", error);
+      }
+    };
+
+    loadSeoSettings();
+  }, [propTitle, propDescription, propImage]);
 
   useEffect(() => {
+    const { title, description, image, twitterHandle } = seoSettings;
+    
     // Update title
     document.title = title;
 
@@ -57,6 +104,10 @@ export const SEOHead = ({
     updateMetaTag("twitter:title", title, true);
     updateMetaTag("twitter:description", description, true);
     updateMetaTag("twitter:image", image, true);
+    if (twitterHandle) {
+      updateMetaTag("twitter:site", `@${twitterHandle}`, true);
+      updateMetaTag("twitter:creator", `@${twitterHandle}`, true);
+    }
 
     // Robots meta tag
     if (noindex) {
@@ -86,7 +137,7 @@ export const SEOHead = ({
       }
       scriptTag.textContent = JSON.stringify(structuredData);
     }
-  }, [title, description, image, type, noindex, currentUrl, structuredData]);
+  }, [seoSettings, type, noindex, currentUrl, structuredData]);
 
   return null;
 };

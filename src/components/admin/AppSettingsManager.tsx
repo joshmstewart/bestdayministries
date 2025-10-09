@@ -16,6 +16,10 @@ export const AppSettingsManager = () => {
     mobile_app_name: "",
     mobile_app_icon_url: "",
     favicon_url: "",
+    site_title: "",
+    site_description: "",
+    og_image_url: "",
+    twitter_handle: "",
   });
 
   useEffect(() => {
@@ -27,7 +31,7 @@ export const AppSettingsManager = () => {
       const { data, error } = await supabase
         .from("app_settings")
         .select("*")
-        .in("setting_key", ["logo_url", "mobile_app_name", "mobile_app_icon_url", "favicon_url"]);
+        .in("setting_key", ["logo_url", "mobile_app_name", "mobile_app_icon_url", "favicon_url", "site_title", "site_description", "og_image_url", "twitter_handle"]);
 
       if (error) throw error;
 
@@ -36,6 +40,10 @@ export const AppSettingsManager = () => {
         mobile_app_name: "Best Day Ministries Community",
         mobile_app_icon_url: "",
         favicon_url: "",
+        site_title: "Joy House Community | Spreading Joy Through Special Needs Community",
+        site_description: "Joy House builds a supportive community for adults with special needs by sharing their creativity through unique gifts, giving them confidence, independence, and JOY!",
+        og_image_url: "https://lovable.dev/opengraph-image-p98pqg.png",
+        twitter_handle: "",
       };
       
       data?.forEach((setting) => {
@@ -63,7 +71,7 @@ export const AppSettingsManager = () => {
     }
   };
 
-  const handleImageUpload = async (file: File, settingKey: "logo_url" | "mobile_app_icon_url" | "favicon_url") => {
+  const handleImageUpload = async (file: File, settingKey: "logo_url" | "mobile_app_icon_url" | "favicon_url" | "og_image_url") => {
     try {
       setUploading(true);
 
@@ -120,7 +128,8 @@ export const AppSettingsManager = () => {
       }
 
       const displayName = settingKey === "logo_url" ? "Logo" : 
-                         settingKey === "mobile_app_icon_url" ? "Mobile app icon" : "Favicon";
+                         settingKey === "mobile_app_icon_url" ? "Mobile app icon" :
+                         settingKey === "og_image_url" ? "Social share image" : "Favicon";
 
       toast({
         title: "Success",
@@ -137,7 +146,7 @@ export const AppSettingsManager = () => {
     }
   };
 
-  const handleAppNameUpdate = async () => {
+  const handleTextSettingUpdate = async (settingKey: string, successMessage: string) => {
     try {
       setUploading(true);
 
@@ -146,8 +155,8 @@ export const AppSettingsManager = () => {
       const { error } = await supabase
         .from("app_settings")
         .upsert({
-          setting_key: "mobile_app_name",
-          setting_value: JSON.stringify(settings.mobile_app_name),
+          setting_key: settingKey,
+          setting_value: JSON.stringify(settings[settingKey as keyof typeof settings]),
           updated_by: user?.id,
         }, {
           onConflict: 'setting_key'
@@ -157,7 +166,7 @@ export const AppSettingsManager = () => {
 
       toast({
         title: "Success",
-        description: "Mobile app name updated successfully",
+        description: successMessage,
       });
     } catch (error: any) {
       toast({
@@ -188,7 +197,7 @@ export const AppSettingsManager = () => {
           App Settings
         </CardTitle>
         <CardDescription>
-          Manage your app's logo, mobile app icon, favicon, and name
+          Manage your app's logo, mobile app icon, favicon, name, and social sharing metadata
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -328,13 +337,160 @@ export const AppSettingsManager = () => {
               placeholder="Best Day Ministries Community"
               disabled={uploading}
             />
-            <Button onClick={handleAppNameUpdate} disabled={uploading}>
+            <Button onClick={() => handleTextSettingUpdate("mobile_app_name", "Mobile app name updated successfully")} disabled={uploading}>
               {uploading ? (
                 <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
               ) : (
                 "Update"
               )}
             </Button>
+          </div>
+        </div>
+
+        {/* SEO & Social Sharing Settings */}
+        <div className="border-t pt-6 mt-6 space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">SEO & Social Sharing</h3>
+            <p className="text-sm text-muted-foreground">
+              Control how your site appears when shared on social media and in search results
+            </p>
+          </div>
+
+          {/* Site Title */}
+          <div className="space-y-3">
+            <Label htmlFor="site-title">Site Title</Label>
+            <p className="text-sm text-muted-foreground">
+              The title that appears in search results and social media shares (recommended: under 60 characters)
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                id="site-title"
+                value={settings.site_title}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    site_title: e.target.value,
+                  }))
+                }
+                placeholder="Joy House Community | Spreading Joy Through Special Needs Community"
+                disabled={uploading}
+                maxLength={60}
+              />
+              <Button onClick={() => handleTextSettingUpdate("site_title", "Site title updated successfully")} disabled={uploading}>
+                {uploading ? (
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+                ) : (
+                  "Update"
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {settings.site_title.length}/60 characters
+            </p>
+          </div>
+
+          {/* Site Description */}
+          <div className="space-y-3">
+            <Label htmlFor="site-description">Site Description</Label>
+            <p className="text-sm text-muted-foreground">
+              A brief description for search results and social shares (recommended: under 160 characters)
+            </p>
+            <div className="space-y-2">
+              <textarea
+                id="site-description"
+                value={settings.site_description}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    site_description: e.target.value,
+                  }))
+                }
+                placeholder="Joy House builds a supportive community for adults with special needs..."
+                disabled={uploading}
+                maxLength={160}
+                rows={3}
+                className="w-full px-3 py-2 rounded-md border border-input bg-background"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {settings.site_description.length}/160 characters
+                </p>
+                <Button onClick={() => handleTextSettingUpdate("site_description", "Site description updated successfully")} disabled={uploading}>
+                  {uploading ? (
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+                  ) : (
+                    "Update"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Social Share Image */}
+          <div className="space-y-3">
+            <Label>Social Share Image</Label>
+            <p className="text-sm text-muted-foreground">
+              The image shown when your site is shared on social media (recommended: 1200x630px)
+            </p>
+            {settings.og_image_url && (
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <img
+                  src={settings.og_image_url}
+                  alt="Current social share image"
+                  className="max-h-40 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageUpload(file, "og_image_url");
+                }}
+                disabled={uploading}
+              />
+              <Button disabled={uploading} size="icon" variant="outline">
+                {uploading ? (
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Twitter Handle */}
+          <div className="space-y-3">
+            <Label htmlFor="twitter-handle">Twitter Handle (Optional)</Label>
+            <p className="text-sm text-muted-foreground">
+              Your Twitter/X username (without the @)
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                id="twitter-handle"
+                value={settings.twitter_handle}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    twitter_handle: e.target.value.replace('@', ''),
+                  }))
+                }
+                placeholder="lovable_dev"
+                disabled={uploading}
+              />
+              <Button onClick={() => handleTextSettingUpdate("twitter_handle", "Twitter handle updated successfully")} disabled={uploading}>
+                {uploading ? (
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+                ) : (
+                  "Update"
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
