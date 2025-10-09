@@ -56,7 +56,7 @@ export function PetAdoption({ petTypes, adoptPet }: PetAdoptionProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {petTypes.map((petType) => (
-            <Card key={petType.id} className="hover:shadow-lg transition-shadow">
+            <Card key={petType.id} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <CardHeader>
                 <CardTitle>{petType.name}</CardTitle>
                 <CardDescription>{petType.description}</CardDescription>
@@ -67,11 +67,11 @@ export function PetAdoption({ petTypes, adoptPet }: PetAdoptionProps) {
                     <img 
                       src={petType.image_url} 
                       alt={petType.name}
-                      className="w-32 h-32 object-contain rounded-lg"
+                      className="w-32 h-32 object-contain rounded-lg transition-transform duration-300 hover:scale-110"
                     />
                   ) : (
-                    <div className="w-32 h-32 bg-gradient-warm rounded-lg flex items-center justify-center">
-                      <span className="text-5xl">🐾</span>
+                    <div className="w-32 h-32 bg-gradient-warm rounded-lg flex items-center justify-center transition-transform duration-300 hover:scale-110">
+                      <span className="text-5xl animate-[float_3s_ease-in-out_infinite]">🐾</span>
                     </div>
                   )}
                 </div>
