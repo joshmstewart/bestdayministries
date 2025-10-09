@@ -50,6 +50,7 @@ import CoffeeShopManager from "@/components/admin/CoffeeShopManager";
 import { TTSVoiceManager } from "@/components/admin/TTSVoiceManager";
 import { CoinsManager } from "@/components/admin/CoinsManager";
 import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
+import { PetTypesManager } from "@/components/admin/PetTypesManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -536,6 +537,7 @@ const Admin = () => {
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
                     <TabsTrigger value="coins">Coins</TabsTrigger>
                     <TabsTrigger value="store">Store Items</TabsTrigger>
+                    <TabsTrigger value="pet-types">Pet Types</TabsTrigger>
                     <TabsTrigger value="locations">Locations</TabsTrigger>
                     <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
                   </TabsList>
@@ -576,6 +578,10 @@ const Admin = () => {
 
                   <TabsContent value="store">
                     <StoreItemsManager />
+                  </TabsContent>
+
+                  <TabsContent value="pet-types">
+                    <PetTypesManager />
                   </TabsContent>
 
                   <TabsContent value="locations">

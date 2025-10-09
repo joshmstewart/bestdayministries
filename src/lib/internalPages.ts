@@ -42,5 +42,6 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/help", label: "Help Center" },
   { value: "/notifications", label: "Notifications" },
   { value: "/games/memory-match", label: "Memory Match Game" },
+  { value: "/virtual-pet", label: "Virtual Pet" },
   { value: "/admin", label: "Admin Panel" },
 ];

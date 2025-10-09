@@ -1916,6 +1916,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pet_types: {
+        Row: {
+          base_energy: number
+          base_happiness: number
+          base_hunger: number
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          unlock_cost: number
+          updated_at: string
+        }
+        Insert: {
+          base_energy?: number
+          base_happiness?: number
+          base_hunger?: number
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          unlock_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          base_energy?: number
+          base_happiness?: number
+          base_hunger?: number
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          unlock_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
@@ -2865,6 +2910,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_pets: {
+        Row: {
+          adopted_at: string
+          created_at: string
+          energy: number
+          happiness: number
+          hunger: number
+          id: string
+          last_decay_at: string
+          last_fed_at: string | null
+          last_played_at: string | null
+          last_rested_at: string | null
+          pet_name: string
+          pet_type_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          adopted_at?: string
+          created_at?: string
+          energy?: number
+          happiness?: number
+          hunger?: number
+          id?: string
+          last_decay_at?: string
+          last_fed_at?: string | null
+          last_played_at?: string | null
+          last_rested_at?: string | null
+          pet_name: string
+          pet_type_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          adopted_at?: string
+          created_at?: string
+          energy?: number
+          happiness?: number
+          hunger?: number
+          id?: string
+          last_decay_at?: string
+          last_fed_at?: string | null
+          last_played_at?: string | null
+          last_rested_at?: string | null
+          pet_name?: string
+          pet_type_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_pets_pet_type_id_fkey"
+            columns: ["pet_type_id"]
+            isOneToOne: false
+            referencedRelation: "pet_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_purchases: {
         Row: {
