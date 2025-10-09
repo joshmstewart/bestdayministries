@@ -1,507 +1,269 @@
 MASTER_SYSTEM_DOCS
 
-## GUARDIAN_APPROVALS|/guardian-approvals|caregiver-only
-TABS:posts(discussion_posts.approval_status=pending_approval+linked_bestie→approve[approved+is_moderated=true]|reject[rejected]|del)|comments(discussion_comments.approval_status=pending_approval+linked→approve|reject)|vendors(VendorLinkRequests:vendor_bestie_requests.status=pending+linked→approve[status=approved]|reject[rejected])|messages(BestieSponsorMessages:sponsor_messages.status=pending_approval+linked→approve-as-is[status=approved]|edit-approve[subject/text/img-crop-recrop/vid-upload+from_guardian=true+save→app-assets/sponsor-messages/]|reject[reason])
-FLAGS:caregiver_bestie_links(require_post_approval|require_comment_approval|require_message_approval[def:true]|require_vendor_asset_approval)
-BADGE:useGuardianApprovalsCount→SUM(pending:posts+comments+vendor_links+messages)→realtime-subscriptions×4
-RLS:is_guardian_of(guardian_id,bestie_id)→UPDATE(discussion_posts|discussion_comments|vendor_bestie_requests|sponsor_messages)
-FILES:GuardianApprovals.tsx|VendorLinkRequests.tsx|BestieSponsorMessages.tsx|useGuardianApprovalsCount.ts
-ISSUES:empty→check-links|count-no-update→verify-realtime-cleanup|cant-approve→check-is_guardian_of-func
+## GUARDIAN_APPROVALS|/guardian-approvals|caregiver
+TABS:posts|comments|vendors|messages→approve/reject/del
+DB:caregiver_bestie_links(require_post_approval|require_comment_approval|require_message_approval|require_vendor_asset_approval)
+BADGE:useGuardianApprovalsCount→SUM-pending→realtime×4
+RLS:is_guardian_of()→UPDATE
 
-## VIDEO_SYSTEM
-COMPS:VideoPlayer(HTML5+auto-hide-controls+dynamic-aspect-from-meta+max-w-md[vert]|max-w-2xl[land]+NO-object-fit[critical:bars/crop])|YouTubeEmbed(iframe+parse-all-YT-URL+def:16:9)|YouTubeChannel(promo-section+custom-YT-logo+config[badge+heading+desc+URL]+card-gradient-bg)
-DB:videos(id|title|video_url[uploads]|youtube_url[embeds]|video_type|thumbnail_url|description|category|is_active|display_order)|about_sections.youtube_channel(content.badge_text|heading|description|channel_url|button_text)|storage:videos-bucket[100MB]+RLS[public-SELECT-active+admins-ALL]
-ADMIN:VideoManager→Admin-Videos→upload/embed+thumbnails+meta+toggle-vis+reorder[drag-drop]+del|YouTube-Channel→Admin-About→Edit-youtube_channel-section→config[URL+button-text+desc]
-INTEGRATIONS:discussion_posts(video_id[link-table]|youtube_url[direct])|app_settings.sponsor_page_content.featured_video_id|videos-page[gallery+fullscreen-dialog]|about-page(youtube-channel-section[about_sections]+doc-watch-btns[YT/Vimeo/Dailymotion→about_sections.content.doc_*_url])
-RULES:VideoPlayer:YES[dynamic-aspectRatio-inline+w-full-h-full+grad-overlays]NO[object-fit+fixed-aspect]|YouTubeEmbed:YES[flex-URL-parse+AspectRatio-wrap+iframe-security]|YouTubeChannel:YES[red-YT-logo-SVG[rounded-rect+white-triangle]+btn-new-tab]NO[Lucide-YouTube-icon]
-ISSUES:black-bars/crop→rm-object-fit|wrong-size→dynamic-style|YT-logo-wrong→custom-SVG-red-bg-white-tri
-FILES:VideoPlayer.tsx|YouTubeEmbed.tsx|VideoManager.tsx|YouTubeChannel.tsx|About.tsx[doc-section]
+## VIDEO
+COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)
+DB:videos|about_sections.youtube_channel|storage:videos-bucket
+ADMIN:VideoManager|YouTube-Channel-config
 
-## VISIBILITY_TOGGLE_STANDARD
-PURPOSE:btn-component→toggle-DB-UI-state[active/visible|inactive/hidden]
-VISUAL:ACTIVE[bg-green-100+hover:bg-green-200+border-green-300+Eye-icon-text-green-700]|INACTIVE[bg-red-100+hover:bg-red-200+border-red-300+EyeOff-icon-text-red-700]
-PATTERN:Button[variant=outline+size=icon+onClick=toggleFunction(id,state)+title=state?Deactivate:Activate+className=state?green-classes:red-classes]+icon=state?Eye[w-4-h-4-text-green-700]:EyeOff[w-4-h-4-text-red-700]
-FILES:vendor/ProductList.tsx[product-vis]|admin/CommunityOrderManager.tsx[section-vis]|admin/FamilyOrganizationsManager.tsx[org-active]|admin/FeaturedItemManager.tsx[featured-active]|admin/FooterLinksManager.tsx[footer-sections-links]|admin/HomepageOrderManager.tsx[homepage-sections]|admin/NavigationBarManager.tsx[nav-links]|EventManagement.tsx[event-vis]
-STANDARD:green=active/visible|red=inactive/hidden[consistent-across-all]
+## VISIBILITY_TOGGLE
+PATTERN:Button[variant=outline+size=icon]|ACTIVE[green-Eye]|INACTIVE[red-EyeOff]
+FILES:17-locations-use-pattern
 
-## BACK_BUTTON_PLACEMENT
-SPACING:main[pt-4-with-navbar|pt-6-no-navbar]|btn[mb-6-standard|mb-4-dense]
-STYLE:Button[variant=outline+size=sm]+ArrowLeft[mr-2-h-4-w-4]+"Back-to-[Destination]"[required-descriptive-text]
-LAYOUT-STANDARD:main.flex-1.pt-4>container.mx-auto.px-4>Button.mb-6+Card
-LAYOUT-BANNER:banner-div[h-32-bg-gradient]>container.mx-auto.px-4.h-full.flex.items-center>Button|container.mx-auto.px-4>relative-Card[-mt-8-mb-6-overlaps-banner]
-MISTAKES:NO[mb-12+too-much|inconsistent-spacing|btn-inside-cards|different-variants|icon-only-missing-text]
-A11Y:descriptive-text-required[not-just-icon]+min-44x44px-touch+color-contrast+semantic-button-with-onClick
+## BACK_BUTTON
+SPACING:main[pt-4-navbar|pt-6-no-navbar]|btn[mb-6]
+STYLE:Button[variant=outline+size=sm]+ArrowLeft+"Back-to-[Dest]"
 
-## NAVIGATION_BAR
-VISIBILITY:user+profile+role≠vendor→shows|hidden-for[non-auth+vendors]|visible-for[bestie+caregiver+supporter+admin+owner]
-SCROLL:shows[within-150px-top|scrolling-UP]|hides[past-150px+scrolling-DOWN]|CSS[translate-y-0-opacity-100-visible|-translate-y-full-opacity-0-hidden]
-PAGE-SPACING:CRITICAL-all-pages-MUST-pt-24[96px-min-clearance-80px]|standard[pt-24]|with-banner[banner-overlap-content-below-pt-24]
-LINKS:navigation_links(id|label|href|display_order|is_active=true)→internal[Link-to-href]|external[a-href-target-blank-rel-noopener]
-STYLE:hover-burnt-orange+animated-underline+font-Roca
-DIMENSIONS:height~112px[header-64px+nav-48px]|z-50|backdrop-blur
-REALTIME:subscribes-navigation_links→auto-refresh
-USER-BADGE:right-side+User-icon+capitalized-role
-POSITION:absolute-top-full-overlays-content[not-push-down]|full-width-left-0-right-0|z-50|backdrop-blur
-VENDOR-EXCLUSION:profile.role≠vendor→prevents-display|vendors-use-/vendor-dashboard[separate-tabs:Products+Orders+Earnings+Settings]
+## NAV_BAR
+VISIBILITY:role≠vendor→shows
+SCROLL:shows[<150px|scroll-UP]|hides[>150px+scroll-DOWN]
+CRITICAL:all-pages-pt-24[96px-clearance]
+DB:navigation_links→realtime
 
-## NOTIFICATION_BADGES
-LOCATIONS:UnifiedHeader-Approvals-btn[caregivers-only:pending-posts+comments+vendor-links→useGuardianApprovalsCount→red-top-right]|UnifiedHeader-Admin-btn[admins-only:moderationCount+pendingVendorsCount→red-top-right]|Admin-Vendors-tab[pendingVendorsCount→red-next-label]|Admin-Moderation-tab[useModerationCount→red-next-label]|Guardian-Approvals-tabs[Posts:pendingPosts.length|Comments:pendingComments.length|Vendor-Links:pendingVendorLinks→all-red/destructive]
-INVENTORY-BADGES:Admin-Vendor-Mgmt[red-when-inventory≤10]|Marketplace-Product-Cards[Out-of-Stock-when-inventory=0]|Vendor-Product-List[Out-of-Stock-when-inventory=0]
-FEATURES:red-destructive-variant+realtime-subscriptions+auto-updates
+## NOTIF_BADGES
+LOCATIONS:UnifiedHeader[Approvals-red|Admin-red]|Admin-tabs|Guardian-tabs
+FEATURES:red-destructive+realtime+auto-update
 
-## ERROR_HANDLING_PATTERNS
-PURPOSE:defensive-programming-handle-intermittent-loading-mobile-network-issues
-COMPS:ErrorBoundary[catch-errors-component-tree+fallback-UI+retry-btn+onReset-callback]|HeaderSkeleton[loading-placeholder+prevents-layout-shift+same-dimensions-as-real-header]
-HOOK:useRetryFetch[wrap-async-funcs-auto-retry+exponential-backoff-jitter+configurable-maxRetries-def:3+tracks-retry-count-state]
-PATTERN:UnifiedHeader-implementation[consolidated-data-loading-Promise.allSettled+auto-retry-3-attempts-1s-2s-4s+loading-skeleton-while-loading+ErrorBoundary-wrapper]
-BENEFITS:handles-temp-network-issues+no-manual-refresh+prevents-app-crash+maintains-partial-functionality+better-perceived-performance
-FILES:ErrorBoundary.tsx|HeaderSkeleton.tsx|useRetryFetch.ts|UnifiedHeader.tsx[consolidated-loading+retry]
-ISSUES:header-no-load→auto-retries-transparent|some-data-missing→Promise.allSettled-catches-failures|header-crashes→ErrorBoundary-shows-fallback|slow-loading→parallel-loading-reduces-time
-DOC:ERROR_HANDLING_PATTERNS.md[detailed-patterns+testing+future-improvements]
+## ERROR_HANDLING
+COMPS:ErrorBoundary[catch-fallback-retry]|HeaderSkeleton[loading-prevent-shift]
+HOOK:useRetryFetch[exp-backoff-3×]
+PATTERN:Promise.allSettled+auto-retry+skeleton+boundary
+FILES:ErrorBoundary.tsx|HeaderSkeleton.tsx|useRetryFetch.ts
 
-## BESTIE_LINKING_SYSTEM
-FRIEND-CODE:3-emojis[20-emoji-set=8000-combos]|storage:profiles.friend_code[TEXT-3-chars]|regen-doesnt-break-links[UUID-based]|emojis:🌟🌈🔥🌊🌸🍕🎸🚀🏆⚡🎨🎭🎪🏰🌵🦋🐉🎯🎺🏖️
-GUARDIAN-BESTIE:table:caregiver_bestie_links(caregiver_id|bestie_id|relationship|approval-flags+timestamps)|flow:guardian-enters-3-emoji→search-profiles_public[friend_code+role=bestie]→creates-link-with-approval-settings[posts+comments+featured-posts]|guardian-can:view-unlink-besties+toggle-approval-reqs+manage-featured-posts-sponsorships|RLS:caregivers-CRUD-own-links+besties-view-links
-VENDOR-BESTIE:table:vendor_bestie_requests(vendor_id|bestie_id|status[pending/approved/rejected]|reviewed_by|message)|flow:vendor-submits-request[3-emoji+msg]→guardian-approves-rejects[/guardian-approvals]→approved-vendors-feature-ONE-bestie[vendors.featured_bestie_id]|vendor-can:view-pending-approved-links+feature-unfeature-bestie[shows-profile+marketplace]|guardian-can:approve-reject-requests|RLS:vendors-see-requests+guardians-approve-linked-besties
-SPONSOR-BESTIE:table:sponsorships(sponsor_id|bestie_id|amount|frequency|status|stripe_subscription_id)|table:sponsorship_shares[share-view-access-other-besties]|flow:supporter-sponsors[/sponsor-bestie-via-Stripe]→webhook-creates-sponsorships[status:active]→supporter-shares-access[sponsorship_shares]|supporter-can:view-manage-subs[/guardian-links]+cancel-modify[Stripe-portal]+share-view-access|RLS:sponsors-besties-view-own+shared-users-via-can_view_sponsorship()
-BEHAVIORS:friend-code-change:existing-links-preserved[UUID-based]+only-affects-NEW-links[like-changing-phone-old-contacts-still-have-you]|frontend-pattern:3-Select-components-map-FRIEND_CODE_EMOJIS[emoji+name]|components:GuardianLinks.tsx|VendorBestieLinkRequest.tsx|VendorLinkRequests.tsx|VendorLinkedBesties.tsx
-USE-CASES:guardian-links-child[enter-code→set-relationship→toggle-approvals]|vendor-features-bestie[request→guardian-approves→vendor-features]|supporter-sponsors[browse-/sponsor-bestie→pay→share-access]|bestie-regenerates-code[old-links-stay+new-code-future-connections]
-SECURITY:is_guardian_of(_guardian_id,_bestie_id)
-NOT-IMPLEMENTED:bestie-initiated-linking|link-expiration|email-notifications|rate-limiting|multi-guardian-support|vendor-unlink|friend-code-history|approval-notifications
+## BESTIE_LINKING
+FRIEND-CODE:3-emoji[20-set=8k-combos]|UUID-based-links-preserved
+GUARDIAN:caregiver_bestie_links→3-emoji→search→link+approval-flags
+VENDOR:vendor_bestie_requests→guardian-approve→feature-ONE
+SPONSOR:sponsorships+sponsorship_shares→Stripe→share-access
+SECURITY:is_guardian_of()
 
-## EVENTS_SYSTEM
-TYPES:single[is_recurring:false+only-event_date]|recurring-multi[is_recurring:true+event_dates-entries→separate-card-per-date]|recurring-template[is_recurring:true+no-event_dates→shows-primary-date-only]
-DISPLAY:upcoming[date≥now+chronological+each-date=card]|past[date<now+expires_after_date=false+reverse-chron+grayscale+Past-Event-badge]|expiration[expires_after_date=true→past-dates-hidden]|role-filter:client-side-filter-visible_to_roles
-CARD-COMPS:image[AspectRatio-wrapper+parse-string-9:16→decimal-9/16]|dates[primary-large-box+all-dates-list-if-multi+current-highlighted]|TTS[reads-title+desc+date+location]|location[clickable-LocationLink→Google-Maps]|audio[inline-AudioPlayer-if-audio_url]
-DETAIL-DIALOG:click-card→EventDetailDialog[full-details+all-dates+recurrence-info+audio+location]
-LINKED-EVENTS:URL:/events?eventId=xxx[from-discussion-posts-via-event_id]→auto-opens-dialog+bypasses-expiration-for-linked
-MODERATION:image:moderate-image-edge-func-on-upload→stores-moderation_status+moderation_severity+moderation_reason
-ADMIN:/event-management→create-edit[title+desc+date-time+recurrence+image-crop-aspect+audio+visibility-roles+expiration-toggle]|add-multi-dates[edit-event→Add-Date→creates-event_dates-entry]
-DB:events(title|description|image_url|audio_url|location|event_date|aspect_ratio[def:9:16]|is_recurring|recurrence_type|expires_after_date|visible_to_roles[]|is_active)|event_dates(event_id|event_date)|event_attendees(event_id|user_id|status[future])
-RLS:SELECT[all-auth-client-filter]|INSERT[auth-users]|UPDATE-DELETE[author-or-admin]|event_dates[creator-only]
-ISSUES:not-showing→check-is_active+visible_to_roles+user-role|wrong-aspect→parse-string-to-decimal|past-visible→check-expires_after_date|recurring-shows-once→add-event_dates
-FILES:EventsPage.tsx|EventManagement.tsx|EventDetailDialog.tsx|moderate-image/index.ts
+## EVENTS
+TYPES:single|recurring-multi|recurring-template
+DISPLAY:upcoming|past|role-filter-client
+CARD:AspectRatio+parse-9:16→9/16+TTS+LocationLink+AudioPlayer
+DETAIL:EventDetailDialog+bypass-expiration-if-linked
+DB:events|event_dates|event_attendees
+RLS:SELECT[all-auth]|INSERT[auth]|UPDATE-DELETE[author-admin]
 
-## SPONSORSHIP_SYSTEM
-GUEST-CHECKOUT:no-account-required→stored-with-sponsor_email[no-sponsor_id]|trigger:link_guest_sponsorships()-on-signup→auto-links-when-email-matches|RLS:logged-users-view-by-email-match|msg:"sponsorship-auto-link-when-create-account-with-email"
-FUNDING-PROGRESS:only-if-monthly_goal>0|calc:SUM-active-monthly-sponsorships|fully-funded:is_fully_funded-OR-funding_percentage≥100
-MESSAGE-APPROVAL:controlled-per-link:require_message_approval|guardian-edit-before-approve[add-images+modify-text]|status:pending_approval→approved→sent[auto-on-sponsor-view]|besties-see:Approved-Delivered-after-guardian-approval
-SPONSOR-BESTIE-VS-ACTUAL:sponsor_besties.id→listing-ID[used-in-sponsorships]|sponsor_besties.bestie_id→optional-link-to-user|allows:generic-sponsorships-without-user-accounts
-IMAGE-HANDLING:upload-to-app-assets|guardian-crop-with-aspect-ratio|display-supports-audio+image-together
-DB:sponsor_besties(id|bestie_id[nullable-link-user]|bestie_name|image_url|voice_note_url|video_url|text_sections[jsonb:[{header,text}]]|aspect_ratio[def:9:16]|monthly_goal|is_active|is_fully_funded|available_for_sponsorship|start_date|end_date)|sponsorships(id|sponsor_id|bestie_id|sponsor_bestie_id|amount|frequency[one-time/monthly]|status[active/cancelled/paused]|stripe_subscription_id|stripe_customer_id|stripe_mode[test/live]|sponsor_email[nullable-guest]|receipt_sent|receipt_sent_at|receipt_number|started_at|ended_at)|sponsor_messages(id|bestie_id|sent_by|subject|message|audio_url|image_url|video_url|status[pending_approval/approved/sent/rejected]|from_guardian|is_read|rejection_reason|approved_by|approved_at|sent_at|moderation_status|moderation_reason)|caregiver_bestie_links(allow_sponsor_messages|require_message_approval[both-def:true]|show_sponsor_link_on_guardian|show_sponsor_link_on_bestie)|sponsor_page_sections(section_key[unique:header/featured_video/sponsor_carousel/selection_form/impact_info]|section_name|is_visible|display_order|content[jsonb])|receipt_settings(organization_name|organization_address|tax_id[EIN]|from_email|reply_to_email|website_url|receipt_footer_text)|year_end_summary_settings(email_subject|email_intro_text|tax_notice_text|is_enabled)|year_end_summary_sent(user_id|user_email|user_name|tax_year|total_amount|sent_at|resend_email_id|status)
-VIEWS:sponsor_bestie_funding_progress[sponsor_bestie_id|bestie_name|current_monthly_pledges|monthly_goal|funding_percentage|remaining_needed]|sponsorship_year_end_summary[sponsor_email|sponsor_name|tax_year|total_amount|total_donations|donations[jsonb-array]]
-EDGE-FUNCS:create-sponsorship-checkout[no-auth→supports-guest|get-create-stripe-customer-by-email|create-price|checkout-session[subscription-monthly|payment-one-time]|store-bestie_id-metadata→return-url]|verify-sponsorship-payment[session_id→verify-stripe|get-email-from-session|find-user-by-email|check-existing-by-stripe_subscription_id|insert-sponsorships[if-user:sponsor_id=user.id+sponsor_email=NULL|if-guest:sponsor_id=NULL+sponsor_email=email]→return-msg[guest:"auto-link-when-create-account"]]|manage-sponsorship[auth-token→get-stripe-customer-by-email|create-billing-portal→return-url-redirect-stripe-portal→webhooks-handle-status-updates]|update-sponsorship[sponsorship_id+new_amount→auth+verify-owns-sponsorship[active-monthly-only]|validate-amount[$10-$500]|find-stripe-sub-by-email+bestie_id|update-stripe-price|update-DB-amount→return-success]|send-sponsorship-receipt[sponsorship_id→fetch-details+settings|get-org-logo-app-settings|gen-receipt-HTML[number:RCPT-YYYYMMDD-XXXXX+sponsor+org+amount+date+bestie+EIN+disclaimer]|send-Resend-API|update-sponsorships[receipt_sent=true+receipt_sent_at+receipt_number]→return]|generate-missing-receipts[admin-only→query-receipt_sent=false|loop-call-send-sponsorship-receipt|log-each→return-summary[total+successes+failures]]|generate-year-end-summary[taxYear?+sendEmail?→auth|query-view-email+year|if-no-data+!sendEmail:gen-mock|fetch-settings+logo|build-HTML[header-logo-year+total-box+itemized-table[date+bestie+amount+receipt#]+tax-box[EIN+notice]+footer]|if-sendEmail:send-Resend+log-year_end_summary_sent→return-HTML+metadata[isMockData-flag]]
-WEBHOOKS:stripe-webhook[ACTIVE-dual-test+live]|events:customer.subscription.deleted[active→cancelled+set-ended_at]|customer.subscription.updated[3-states:cancel_at_period_end=true→stay-active-set-ended_at-to-cancel_at|status=active→active-clear-ended_at|other→cancelled-set-ended_at-now]→checks-metadata-bestie_id|checkout.session.completed[create-update-sponsorship|extract-amount-cents→dollars|set-frequency-by-interval|status:active+started_at:now|store-stripe_mode]
-STATUS-FLOW-PROGRESS:statuses[active-counts-funding|cancelled-excluded|paused-future]|view-recalc:SUM(amount)-WHERE-status=active+frequency=monthly|progress:(current/goal)*100|fully-funded:percentage≥100-OR-is_fully_funded=true|ending-amount-scheduled-cancels:sponsorships-with-ended_at-set-still-in-period→progress-bar-2-segments[stable-green+ending-yellow]|UI-update:user-cancels-portal→webhook-updates-status→view-recalcs-excludes-cancelled→frontend-queries→bar-updates-auto
-REALTIME:useGuardianApprovalsCount[subscribes:discussion_posts+discussion_comments+sponsor_messages+caregiver_bestie_links→updates-badge-immediately]|useSponsorUnreadCount[subscribes:sponsor_messages+sponsorships→updates-when-read-sent]|SponsorMessageInbox[subscribes:sponsor_messages-filtered-bestie_id→updates-new-status-changes]
-COMPS-DISPLAY:SponsorBestieDisplay.tsx[carousel+TTS+audio+funding-progress]|FundingProgressBar.tsx[visual-indicator]
-COMPS-FORM:BestieSponsorMessenger.tsx[bestie-composition]|GuardianSponsorMessenger.tsx[guardian-future]
-COMPS-GUARDIAN:BestieSponsorMessages.tsx[approval-interface+edit-dialog]|VendorAssetRequests.tsx[asset-approval-pattern]
-COMPS-SPONSOR:SponsorMessageInbox.tsx[accordion-list+read-status]|DonationHistory.tsx[table+receipt-downloads]
-COMPS-ADMIN:SponsorBestieManager.tsx[CRUD-listings]|SponsorPageOrderManager.tsx[section-ordering]|SponsorBestiePageManager.tsx[header-editor]|SponsorshipTransactionsManager.tsx[transaction-view-mgmt]|ReceiptSettingsManager.tsx[org-receipt-config]|YearEndSummarySettings.tsx[year-end-email-config]|YearEndSummarySentHistory.tsx[sent-history]|StripeModeSwitcher.tsx[test-live-toggle]
-PAGES:/sponsor-bestie[public-page]|/sponsorship-success[post-payment]|/guardian-links[my-besties-sponsors+guardians]|/bestie-messages[bestie-center]|/guardian-approvals[guardian-hub]
-TRIGGERS:link_guest_sponsorships()[ON-INSERT-auth.users-after-signup→get-email→find-sponsorships[sponsor_email-match+sponsor_id-NULL]→update[set-sponsor_id=new-user+clear-sponsor_email]]|SECURITY-DEFINER-search_path=public
-SECURITY-FUNCS:has_admin_access(_user_id)|is_guardian_of(_guardian_id,_bestie_id)|get_user_role(_user_id)|can_view_sponsorship(_sponsorship_id,_user_id)
-STORAGE:app-assets-public[sponsor-besties/{id}/|sponsor-messages/{id}/+images-videos|logos/]|featured-bestie-audio-public[voice-notes|audio-recordings]
-ISSUES:badge-no-update→check-realtime-cleanup|msg-no-img→display-logic-prioritizes-audio[FIXED:show-both]|aspect-btns-dont-work→missing-onAspectRatioKeyChange|bestie-cant-send→allow_sponsor_messages=false|funding-not-calc→no-monthly_goal|stripe-checkout-fails→check-STRIPE_SECRET_KEY_TEST-LIVE|progress-no-update-after-cancel→webhook-not-processing|cancelled-still-counts→status-not-updated|portal-btn-no-work→no-stripe-customer|receipt-not-sending→from-email-not-verified-Resend|receipt-sends-not-received→SPF-DKIM-DNS|receipt-#-dupes→system-clock-issue[uses-timestamp+random]|year-end-no-data→no-completed-donations-for-year|preview-fails→receipt-settings-not-configured|mock-in-preview→no-real-donations[expected]|email-logo-missing→logo-URL-not-in-app-settings|EIN-validation-fails→wrong-format[use-XX-XXXXXXX]|transactions-wrong-mode→mode-not-stored-creation[check-stripe_mode]|test-payments-not-visible→viewing-live-only[toggle-switcher]|guest-not-linking→email-mismatch-or-trigger-failure|cant-view-after-signup→email-mismatch|cant-update-amount→not-monthly-or-not-active|update-amount-fails→out-of-range[$10-$500]|shared-not-visible→friend-code-mismatch
-NOT-IMPLEMENTED:guardian-initiated-msgs|sponsor-replies-2-way|analytics-dashboard[donation-trends-retention]|bulk-msg-all-sponsors|scheduled-msgs|msg-templates|sponsor-tiers-benefits|impact-reporting-monthly|auto-thank-emails|donor-recognition-levels[Bronze-Silver-Gold]|monthly-leaderboard-opt-in|sponsor-portal-self-service|multi-bestie-packages|recurring-reminders|gift-sponsorships
+## SPONSORSHIP
+GUEST:no-account→sponsor_email→auto-link-on-signup
+FUNDING:monthly_goal>0→SUM-active-monthly→progress
+MSG-APPROVAL:require_message_approval→guardian-edit→approve
+DB:sponsor_besties|sponsorships|sponsor_messages|receipt_settings|year_end_summary_settings
+VIEWS:sponsor_bestie_funding_progress|sponsorship_year_end_summary
+EDGE:create-checkout|verify-payment|manage|update|send-receipt|gen-receipts|year-end
+WEBHOOKS:subscription.deleted→cancelled|subscription.updated→3-states|checkout.completed
+REALTIME:useGuardianApprovalsCount|useSponsorUnreadCount
+PAGES:/sponsor-bestie|/sponsorship-success|/guardian-links|/bestie-messages|/guardian-approvals
+TRIGGERS:link_guest_sponsorships()
+STORAGE:app-assets|featured-bestie-audio
 
-## VENDOR_BESTIE_SYSTEM
-OVERVIEW:vendors-display-guardian-approved-featured-bestie-content[images+videos+voice-notes]-on-vendor-profile-with-guardian-approval-workflow|NOTE:vendor=status[vendors-table]+not-role[users-can-be-caregivers-besties-supporters-AND-vendors-simultaneously]
-DB:featured_besties|vendor_bestie_requests|vendor_bestie_assets|caregiver_bestie_links
+## VENDOR_BESTIE
+OVERVIEW:vendors-display-approved-bestie-content-on-profile
+DB:featured_besties|vendor_bestie_requests|vendor_bestie_assets
+NOTE:vendor=status-not-role
 
-## ABOUT_PAGE_SYSTEM
-ROUTE:/about|SECTIONS:Our-Story[badge+heading-gradient+story-para1+para2+decorative-orbs]|Documentary[title+desc+YT-Vimeo-Dailymotion-links+image+Film-icon-hover-scale+Button-outline-asChild-anchor-no-gradient]|BDE[logo-256px+desc1-2+address-city+status+btn-solid-brown-NO-GRADIENT+image]
-ADMIN:Admin→About→Edit-Best-Day-Story|EDITABLE:all-text-URLs-images-button-link-types[internal-page-vs-custom-URL]
-DB:homepage_sections[section_key:about+content-JSONB]|SHARED:homepage-About-section+full-About-page
-DESIGN:Documentary-btns[outline-white-bg-border-hover-accent]|BDE-btn[solid-brown-custom-HSL-NO-gradient-matches-section-palette]|images[object-cover+gradient-overlays]|BDE-colors[bg-hsl(27-41%-88%)+text-hsl(13-33%-36%)]
-ISSUES:YT-link-blocked→use-anchor-asChild|BDE-logo-too-large→w-64-max|btn-has-gradient→use-variant-ghost-custom-bg|colors-not-theming→use-HSL-check-index.css
+## ABOUT_PAGE
+ROUTE:/about|SECTIONS:Our-Story|Documentary|BDE
+DB:homepage_sections[key:about+JSONB]
+DESIGN:Documentary[outline-white]|BDE[solid-brown-NO-gradient-HSL]
 
-## ADMIN_DASHBOARD
-ROUTE:/admin|ACCESS:admin-owner-only[from-user_roles]|REDIRECT:non-admins→/community
-STATS:Total-Users[profiles]+Events[events]+Posts[discussion_posts]+Featured-Besties[featured_besties]
-TABS:Analytics[AnalyticsDashboard]|Users[UserManagement-view-edit-roles-perms-create-test-del-pwd-reset]|Events[redirect:/admin/events]|Albums[redirect:/admin/albums]|Videos[VideoManager]|Besties[sub-tabs:Featured+Sponsors+Page-Order+Content+Receipts+Transactions+Year-End-Settings+History]|Partners[PartnersManager]|Donations[SupportPageManager-webhook-complete-UI-pending]|Featured-Item[FeaturedItemManager-parallel-loading-optimized]|Vendors[VendorManagement-badge-pendingVendorsCount-sub-tabs:Vendors+Products+Orders]|Format-Pages[sub-tabs:Homepage+Community+About+Footer+Quick-Links+Navigation+Locations]|Moderation[badge:moderationCount+messageModerationCount-sub-tabs:Content+Messages+Policies]|Contact[badge:contactFormCount-ContactFormManager]|Help-Center[HelpCenterManager-sub-tabs:Tours+Guides+FAQs]|Product-Updates[ProductUpdateBroadcaster]|Notifications[EmailTemplatePreview]|Settings[sub-tabs:App-Settings+Avatars+Impersonation]
-IMPERSONATION:useRoleImpersonation-hook→localStorage→affects-badges-visibility-perms
-BADGES:useModerationCount+usePendingVendorsCount+useMessageModerationCount+useContactFormCount
+## ADMIN_DASH
+ROUTE:/admin|ACCESS:admin-owner|REDIRECT:non-admins→/community
+TABS:Analytics|Users|Events|Albums|Videos|Besties[subs:Featured+Sponsors+Page+Content+Receipts+Trans+YE-Settings+History]|Partners|Donations|Featured|Vendors[badge-subs:Vendors+Products+Orders]|Format[subs:Homepage+Community+About+Footer+Quick+Nav+Locations]|Moderation[badge-subs:Content+Messages+Policies]|Contact[badge]|Help[subs:Tours+Guides+FAQs]|Updates|Notifications|Settings[subs:App+Avatars+Impersonation]
 
-## AUTH_SYSTEM
-ROUTE:/auth|SIGNUP:email-pwd-display_name-role[supporter-bestie-caregiver]+avatar-optional+terms-checkbox→supabase.auth.signUp-with-metadata→TRIGGER:on_auth_user_created→handle_new_user()[inserts-profiles+user_roles]→call-record-terms-acceptance-edge-func[stores-IP-user-agent]→redirect-by-role-vendor-status
-LOGIN:email-pwd→supabase.auth.signInWithPassword()→check-vendor→redirect:/vendor-dashboard-or-/community→TermsAcceptanceGuard-enforces-acceptance
-PWD-RESET:Forgot-Password→enter-email→supabase.auth.resetPasswordForEmail()→email-sent→click-link→/auth-with-reset-token→enter-new-pwd
-ROLES:supporter[default-vendors-are-supporters-with-vendor-status]|bestie[can-be-sponsored]|caregiver[guardian-can-also-be-vendor]|moderator[can-moderate]|admin[full-admin]|owner[super-admin]
-ASSIGNMENT:signup-user-selects[supporter-bestie-caregiver]|post-signup-admin-assigns-via-User-Management|vendor-status-applied-via-/vendor-auth[checked-via-vendors-table]|stored-in-user_roles-table[NEVER-in-profiles]
-AVATAR:AvatarPicker-during-signup→avatar_number-in-profiles[1-12]→AvatarDisplay-loads-from-src/assets/avatars/composite-{number}.png
-TERMS:TermsAcceptanceGuard-wraps-App.tsx→queries-terms_acceptance-for-user+version→TermsAcceptanceDialog-non-dismissible-modal→trigger-on-version-change-or-first-login→versions:CURRENT_TERMS_VERSION-1.0+CURRENT_PRIVACY_VERSION-1.0[in-useTermsCheck.ts]
-VENDOR-CHECK:after-login→query-vendors-table-by-user_id→has-vendor-record→/vendor-dashboard|others→/community
-SECURITY:handle_new_user()[SECURITY-DEFINER-SET-search_path-public→inserts-profile+role-with-elevated-privs-bypasses-RLS]|has_role(_user_id,_role)[SECURITY-DEFINER-checks-user_roles-prevents-privilege-escalation]
-AUTO-CONFIRM:enabled-via-Admin→Auth-Config→skips-email-verification[non-production-testing]
-RLS:profiles[users-see-own+guardians-see-linked-besties+admins-see-all]|user_roles[uses-has_admin_access()-admins-only-modify]
+## AUTH
+ROUTE:/auth
+SIGNUP:email-pwd-name-role+avatar→signUp→handle_new_user()→record-terms→redirect
+LOGIN:signInWithPassword→check-vendor→redirect
+ROLES:supporter|bestie|caregiver|moderator|admin|owner
+AVATAR:1-12→composite-{n}.png
+TERMS:Guard+Dialog→versions-in-useTermsCheck
+SECURITY:handle_new_user()[DEFINER]|has_role()[DEFINER]
+RLS:profiles[own+guardians-linked+admins-all]
 
-## BUTTON_STYLING_STANDARDS
-VARIANTS:default[complex-gradient-bg-gradient-warm-primary-CTAs-hero]|outline[border-bg-on-hover-secondary-actions]|secondary[solid-bg-no-gradient-supporting-actions]|ghost[transparent-hover-bg-only-tertiary-actions]
-GRADIENT-USE:✅primary-brand-actions[Join-Donate-Sponsor-Hero-CTAs]|brand-color-scheme[orange-mustard-matches-palette]|high-priority-conversions[payment-checkout-signup]|✗custom-color-schemes[non-brand-colors-eg-brown-BDE]|secondary-tertiary-actions[cancel-back-view-more]|outline-ghost-variants[never-by-design]
-CUSTOM-COLOR-PATTERN:variant-ghost+className-bg-[hsl(13,33%,36%)]+hover:bg-[hsl(13,33%,36%)]/90+text-white→solid-bg-removes-gradient-allows-custom-bg-via-className
-GRADIENT-DEF:--gradient-warm[5-radial-gradients-over-burnt-orange-hsl(24-85%-56%)-liquid-appearance]|location:src/index.css
-DECISION-TREE:primary-CTA?→brand-colors?[YES→variant-default-gradient|NO→variant-ghost-custom-bg]|NO→secondary?[variant-secondary-solid]|tertiary?[variant-outline-or-ghost]
-SIZES:sm[h-9-px-3]|default[h-10-px-4]|lg[h-11-px-8-Hero-CTAs]|icon[h-10-w-10-square]
-A11Y:gradients[WCAG-AA-white-text]|custom-colors[contrast≥4.5:1]|focus-states[ring-offset-2+keyboard-nav+screen-reader-labels]
+## BUTTON_STYLING
+VARIANTS:default[gradient-CTAs]|outline[border-secondary]|secondary[solid-supporting]|ghost[transparent-tertiary]
+GRADIENT:✅brand-CTAs|✗custom-colors-secondary-outline-ghost
+CUSTOM:ghost+bg-hsl+hover→solid-custom-NO-gradient
+GRADIENT-DEF:--gradient-warm[5-radial-burnt-orange]
+SIZES:sm|default|lg[Hero]|icon
 
-## COFFEE_SHOP_SYSTEM
-ROUTE:/coffee-shop|DB:app_settings-key-coffee_shop_content[JSONB]
-ADMIN:Admin→Coffee-Shop-Website-tab→EDITABLE:hero[heading+subheading+image-upload-crop-16:9→app-assets/coffee-shop/+compressed-4.5MB]|mission[title+description]|buttons[text+links:internal-page-dropdown[INTERNAL_PAGES]|custom-URL]|location[hours+address+phone]|menu-visibility-toggle
-FRONTEND:CoffeeShopHome.tsx→loads-settings-on-mount→sections:Hero[bg-image+heading+subheading+CTA-btns]|Mission-statement-card|Hours-location-info-cards|Menu[conditionally-rendered-based-on-show_menu]
-BUTTON-BEHAVIOR:internal-links[window.location.href]|anchor-links[#-smooth-scroll-to-element]|external-links[open-new-tab]
-MENU:CoffeeShopMenu.tsx[coffee+specialty-drinks+crepes+ice-cream-hard-coded-from-original-menu.html]
-ADMIN-PREVIEW:Preview-btn→opens-/coffee-shop-new-tab|Live-Site-btn→opens-bestdayevercoffeeandcrepes.com
-CONTENT-STRUCTURE:{hero_heading+hero_subheading+hero_image_url+menu_button_text+menu_button_link+menu_button_link_type[internal-custom]+about_button_text+about_button_link+about_button_link_type+mission_title+mission_description+hours_title+hours_content+address+phone+show_menu[boolean]}
+## COFFEE_SHOP
+ROUTE:/coffee-shop
+DB:app_settings.coffee_shop_content[JSONB]
+ADMIN:edit-hero|mission|buttons|location|menu-toggle
+FRONTEND:Hero|Mission|Hours|Menu[conditional]
 
 ## COMMUNITY_PREVIEWS
-PROFILE-LOADING:CRITICAL-fetch-profiles_public[includes-role-from-user_roles]→sets-effectiveRole→triggers-loadLatestContent()|profiles-table-has-no-role→effectiveRole-undefined→early-return→no-content-loads
-DISCUSSION-PREVIEW:query:discussion_posts-select-*+author:profiles_public(id+display_name+role)-eq-is_moderated-true[NO-approval_status-filter]-order-created_at-desc-limit-1|visibility:no-role-check-if-is_moderated=true-shows-to-all
-EVENTS-PREVIEW:query:events-select-*+event_dates(id+event_date)-eq-is_public-true-eq-is_active-true|visibility:client-side-filter-event.visible_to_roles.includes(effectiveRole)|date-logic:collect-all-dates[primary+event_dates]→filter[date≥now+(!expires_after_date-OR-isUpcoming)]→sort-chron-limit-3→height-limit[MAX_HEIGHT-1200px-CARD_PADDING-24px-SPACING-16px-TEXT_HEIGHT-120px→calc-imageHeight-from-aspect+TEXT_HEIGHT+CARD_PADDING+SPACING]
-GRID-LAYOUT:grid-cols-1-lg:grid-cols-2-gap-6
-CARD-COMPS:Discussion[border-2-hover:border-primary/50+MessageSquare-icon-text-primary+img-full-w-h-48-object-cover+TTS-right-of-title-e.stopPropagation()]|Event[border-b-between-last:border-0+Calendar-icon-text-secondary+img-dynamic-aspect-from-event.aspect_ratio[def:9:16]+location-clickable-link→Google-Maps[noopener-noreferrer-hover-primary-underline]+audio-AudioPlayer-if-audio_url[propagation-stopped]+TTS-right-title-reads[title+desc+Scheduled-for-[date]+At-[location]]]
-NAVIGATION:click-discussion-card→/discussions|click-event-card→/events|click-View-All-btns→respective-pages|TTS-location-links-e.stopPropagagation()-prevents-card-nav
-TTS-TEXT:Discussion[${title}.${content}]|Event[[title+desc+Scheduled-for-[date]+location].filter(Boolean).join('. ')]
-CRITICAL-RULES:1-Profile-fetch-profiles_public[includes-role]|2-Discussion-filter-only-is_moderated=true[no-approval_status]|3-Events-client-filter-by-role-after-DB-fetch|4-Height-events-limited-1200px-cumulative[aspect-ratio-aware]|5-Propagation-stop-TTS-location-audio-clicks|6-Visibility-check-community_sections-table|7-Empty-States-show-when-no-content
-LOAD-SEQUENCE:checkUser()→fetch-session→check-vendor→redirect-if-vendor→fetchProfile(userId)→from-profiles_public→getEffectiveRole(profile.role)→set-effectiveRole→useEffect-triggers-when-effectiveRole≠null→loadLatestContent()→fetch-discussions+events→client-filter-events-by-role→render-visible-sections
+CRITICAL:fetch-profiles_public[role]→effectiveRole→loadContent
+DISCUSSION:is_moderated=true-NO-approval_status→limit-1
+EVENTS:is_public+is_active→client-filter-roles→date-logic→height-limit-1200px
+GRID:grid-cols-1-lg:2-gap-6
+CARDS:Discussion[MessageSquare+TTS]|Event[Calendar+aspect+location-link+audio+TTS]
+TTS:stopPropagation|Discussion[title+content]|Event[title+desc+date+location]
+CRITICAL-RULES:7-rules→profiles_public|is_moderated-only|client-filter|height-limit|stop-propagation|visibility-check|empty-states
 
-## CONTACT_FORM_SYSTEM
-OVERVIEW:contact-form-at-page-bottom-with-DB-storage+admin-email-notifications+reply-functionality+input-validation
-DB:contact_form_settings(is_enabled[def:true]+title+description+recipient_email+success_message)|contact_form_submissions(name+email+subject[nullable]+message+message_type+image_url[nullable]+status[new-read]+replied_at[nullable]+replied_by[nullable]+reply_message[nullable]+admin_notes[nullable])
-FRONTEND:ContactForm.tsx[auto-loads-settings-on-mount+autofills-email-logged-users+validates-Zod+saves-DB-always-succeeds+sends-email-optional-graceful-failure+shows-custom-success-msg+hides-if-is_enabled=false]|ContactFormManager.tsx[admin-interface:Settings-card+Submissions-table[columns:Name+Email-copy-icon+Subject+Status-badge+Date+Actions[View+Mark-Read-New+Delete]]+badge-count-new-submissions+realtime-updates]
-VALIDATION:client[Zod:name-2-100+email-valid-max-255+subject-max-200-optional+message-10-2000]|server[edge-func:name-1-100-letters-spaces-hyphens-apostrophes+email-valid-lowercase-max-255+subject-max-200-optional+message-1-5000]
-SECURITY:HTML-escaping-all-user-input+email-validation-client-server+rate-limiting-via-Supabase+CORS-headers+no-raw-SQL
-EDGE-FUNCS:notify-admin-new-contact[sends-email-to-admin-on-new-submission+template-includes-details+color-coded-type-badges+View-in-Admin-btn+reply-to-header-submitter-email]|send-contact-reply[auth-required+server-Zod-validation+XSS-prevention-HTML-escape+CORS-headers+template-from-Best-Day-Ministries+reply-to-sender-email]
-REPLY-METHODS:1-Email-Reply[admin-receives-notification→reply-in-email-client→response-to-submitter]|2-Manual-Email[admin-views-submission→click-email-or-copy→compose-manually]|3-Admin-Reply-Interface[admin-views-submission→Reply-btn→compose-reply-dialog+optional-admin-notes+Send-Reply→email-to-submitter+tracked-in-DB+timestamp+admin-ID+auto-mark-read]
-SETUP:1-Configure-Resend[signup-resend.com+CRITICAL-verify-domain-resend.com/domains-add-DNS-SPF-DKIM+create-API-key+add-RESEND_API_KEY-secret+update-from-address-verified-domain]|2-Configure-Settings[Admin→Contact→toggle-Enable-ON+set-title-desc+enter-recipient-email+customize-success-msg+Save]|3-Test[navigate-any-page→fill-form→submit→check-toast+submission-in-admin+email-received]
-ISSUES:form-not-appear[is_enabled=false→enable-admin]|emails-not-sending[DOMAIN-NOT-VERIFIED→verify-resend.com/domains]|form-submits-no-email[Resend-not-configured→add-RESEND_API_KEY]|email-spam[domain-not-verified→add-SPF-DKIM-DNS]|cant-reply[email-notifications-not-working→verify-domain-then-use-reply-to-in-email]
+## CONTACT_FORM
+DB:contact_form_settings|contact_form_submissions
+FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactFormManager[admin-settings+submissions+badge-realtime]
+VALIDATION:client-Zod|server-edge
+EDGE:notify-admin|send-reply
+REPLY:3-methods[email-reply|manual-email|admin-interface]
+SETUP:Resend[verify-domain-SPF-DKIM]
 
-## DISCUSSION_SYSTEM
-OVERVIEW:community-discussion-board[/discussions]-guardians-create-posts-users-comment-guardian-approval-workflow-bestie-content
-DB:discussion_posts(title+content+author_id+image_url+video_id+youtube_url+album_id+event_id+approval_status[approved-pending_approval-rejected]+is_moderated[AI-flag]+visible_to_roles[]+allow_owner_claim)|discussion_comments(content+author_id+post_id+audio_url+approval_status+is_moderated)
-PERMS:create-posts[guardians-admins-owners]|comment[all-auth]|edit-del-posts[author-guardian-of-bestie-author-admin-owner]|edit-del-comments[author-guardian-of-bestie-author-admin-owner]|view[based-on-visible_to_roles[]]|change-author[owners-only]
-APPROVAL-FLOW:Bestie-Posts[bestie-creates→check-caregiver_bestie_links.require_post_approval→if-any-guardian-requires→approval_status:pending_approval→guardian-approves-rejects-/guardian-approvals→on-approve:approved+is_moderated:true]|Guardian-Posts[auto-approved:approval_status-approved+still-AI-moderated]|Comments[same-pattern-check-require_comment_approval]
-MODERATION-AI:text[moderate-content-edge-func-checks-title+content-before-save-flags-inappropriate→is_moderated:false]|image[moderate-image-edge-func+policy-moderation_settings.discussion_post_image_policy[all-manual-review|flagged-AI-scan|none-auto-approve]→stores-moderation_status+moderation_severity+moderation_reason]
-MEDIA:images[upload-discussion-images-bucket+compressed-4.5MB+crop-dialog-aspect-ratio+max-20MB-before-compression]|videos[option1-select-from-videos-table-admin-uploaded|option2-embed-YT-URL-direct-paste→displays-VideoPlayer-uploads-or-YouTubeEmbed-YT]|albums[link-via-album_id→shows-cover+View-Album-btn→opens-lightbox]|events[link-via-event_id→shows-title-date-location+View-Event-btn→/events?eventId=xxx]|audio-comments-only[record-or-upload→stored-featured-bestie-audio-bucket→inline-player-in-comment-card]
-UI-COMPS:Post-Card[Card-image-video-album-preview+CardHeader-AvatarDisplay-authorName-roleBadge-TextToSpeech-title+content+CardContent-title-content-linkedEvent-linkedAlbum-CommentSection]|Create-Post-Form[title-required-max-200+content-required-max-2000+image-upload-optional-with-crop+video-selection[none-select-youtube]+event-link-optional-dropdown+visibility-roles-checkboxes[caregiver-bestie-supporter]+Allow-Owner-Claim-checkbox-admins-owners]|Comment-Input[text-OR-audio-mutually-exclusive+audio-recorder-play-record-delete+submit→guardian-approval-if-required]
-SEARCH-SORT:search[filter-posts-title-content-case-insensitive]|sort[newest-first-default-or-oldest-first]|client-side-filtering-no-query-reload
-EDIT-DELETE:posts[author-guardian-bestie-author-admin-edit-delete+edit-inline-form-title-content-media-allow_owner_claim-admins-owners-both-create-edit+delete-confirmation-cascade-deletes-comments+Change-Author-Owner-Only:admin-creates-post-checks-Allow-owner-claim→owner-sees-Claim-Post-btn→selects-new-author-from-admin-owner-list→post-authorship-transfers]
-REALTIME:subscribe-discussion_posts-new-posts+subscribe-discussion_comments-new-comments→auto-refresh
-RLS:Posts-SELECT[approved-visible-to-roles-in-visible_to_roles[]+pending-rejected-only-author-guardian-admin]|Posts-UPDATE[author-can-update-own+guardians-can-update-linked-besties+admins-owners-can-update-any]|Posts-INSERT[guardians-admins-owners-only]|Comments-SELECT[approved-all-auth+pending-rejected-author-guardian-admin]|Comments-UPDATE[author-can-update-own+guardians-can-update-linked-besties+admins-owners-can-update-any]|Comments-INSERT[all-auth]
-VALIDATION:title[1-200-chars]|content[1-2000-chars]|image[max-20MB-image-types-only]|youtube[valid-URL-format]
+## DISCUSSION
+ROUTE:/discussions
+DB:discussion_posts|discussion_comments
+PERMS:posts[guardians-admins-owners]|comment[all-auth]|change-author[owners]
+APPROVAL:bestie→check-require_post_approval→pending→guardian-approve
+MODERATION:text[moderate-content]|image[moderate-image-policy]
+MEDIA:images[4.5MB-crop]|videos[select-or-YT]|albums[link]|events[link]|audio[comments]
+UI:Post-Card|Create-Form|Comment-Input[text-OR-audio]
+REALTIME:subscribe-posts+comments
+RLS:Posts-SELECT[approved-visible-or-own-pending]|UPDATE[author-guardian-admin]|INSERT[guardians-admins]
+VALIDATION:title[1-200]|content[1-2000]|image[20MB]
 
-## DONATION_SYSTEM
-OVERVIEW:general-donation-system-/support-page-one-time-monthly-recurring-via-Stripe-automated-webhook-status-updates
-DB:donations(donor_id[nullable-links-profiles-auth]|donor_email[nullable-guest]|amount[numeric-dollars]|frequency[one-time-monthly]|status[pending-completed-one-time-active-monthly-cancelled]|stripe_customer_id+stripe_subscription_id[nullable-monthly]|stripe_mode[test-live]|started_at+ended_at+created_at+updated_at)
-RLS:admins-view-all|donors-view-own[by-donor_id-OR-matching-email-from-auth.users]|public-INSERT[handled-by-edge-func-not-direct-client]
-USER-WORKFLOW:/support-page→select-frequency[Monthly-One-Time]→select-preset-amount[$10-$25-$50-$100-$250]-or-custom[min-$5-max-$100k]→enter-email[auto-filled-logged-always-editable]→optional-check-Cover-processing-fees[adds-~3%]→accept-Terms-checkbox→Donate-Now→redirects-Stripe-Checkout→after-payment-redirects-/support?donation=success
-GUEST-CHECKOUT:no-account-required→stored-donor_email-instead-donor_id→when-user-creates-account-matching-email-donations-could-link-future
-EDGE-FUNCS:create-donation-checkout[no-JWT-public-access+request:{amount+frequency+email+coverStripeFee}+validation-Zod-$5-$100k+flow:get-Stripe-mode-app_settings[test-live]→calc-final-amount-with-optional-fee-coverage→create-retrieve-Stripe-customer-by-email→create-Stripe-Checkout-session[mode:payment-one-time-subscription-monthly+metadata:{type:donation+frequency+amount+coverStripeFee+donation_type:general}]→insert-pending-donation-DB→return-url-redirect]|stripe-webhook[auth-Stripe-signature+dual-mode-test-live+events:checkout.session.completed-with-metadata.type=donation[one-time-mode:payment→UPDATE-status=completed|monthly-mode:subscription→UPDATE-status=active+stripe_subscription_id+started_at]|customer.subscription.updated-with-metadata.type=donation[updates-status-based-on-state:active→status=active+ended_at=NULL|scheduled-cancel→status=active+ended_at=cancel_at|cancelled→status=cancelled+ended_at=NOW()]|customer.subscription.deleted-with-metadata.type=donation→UPDATE-status=cancelled+ended_at=NOW()]
-FRONTEND:DonationForm.tsx[frequency-toggle-Monthly-One-Time+preset-amount-btns-$10-$250+custom-amount-input-validation+email-input-auto-filled-profile+Cover-fees-checkbox+Terms-acceptance-checkbox+amount-summary-display]|validation[amount-min-$5-max-$100k+email-valid-required+terms-must-accept]|state[frequency+amount+email+acceptedTerms+coverStripeFee+loading]
-STATUS-FLOW:One-Time[pending→checkout.session.completed→completed]|Monthly[pending→checkout.session.completed→active→customer.subscription.updated-with-cancel_at_period_end→active-with-ended_at-set→customer.subscription.deleted→cancelled]
-STRIPE-FEE-COVERAGE:formula-finalAmount=(amount+0.30)/0.971|example[$25-donation+~$0.75-fee=$25.75-charged→net-to-org-$25]|implementation-checkbox-UI+calculated-create-donation-checkout+passed-Stripe-unit_amount-cents
-DIFFERENCES-FROM-SPONSORSHIPS:purpose[donations-general-support-vs-sponsorships-specific-bestie]|recipient[org-vs-bestie-via-org]|metadata[type:donation-vs-bestie_id]|table[donations-vs-sponsorships]|UI[/support-vs-/sponsor-bestie]|guest-checkout[both-supported]|monthly[both-available]|receipts[not-implemented-vs-automated]|year-end-summaries[not-implemented-vs-automated]
-IMPLEMENTED:✅one-time-Stripe-Checkout+monthly-recurring-subscriptions+guest-checkout-no-account+Stripe-fee-coverage-option+dual-mode-test-live+automatic-status-webhooks+email-validation-sanitization+Terms-acceptance-required
-NOT-IMPLEMENTED:❌automated-receipt-generation-like-sponsorships+donation-history-page-for-donors+update-monthly-amount-ability+Stripe-Customer-Portal-link-subscription-mgmt+year-end-tax-summaries+admin-view-all-donations+donation-analytics-dashboard+email-notifications-successful-donations+linking-guest-donations-to-accounts-on-signup+multiple-payment-methods-beyond-cards+recurring-donation-reminders+honor-memorial-dedications+matching-gift-programs
+## DONATION
+ROUTE:/support
+DB:donations
+WORKFLOW:select-frequency+amount→email→terms→Stripe→success
+GUEST:donor_email→link-on-signup
+EDGE:create-checkout|stripe-webhook
+STATUS:One-Time[pending→completed]|Monthly[pending→active→cancelled]
+FEE-COVERAGE:(amt+0.30)/0.971
+DIFFERENCES:vs-sponsorships[purpose|recipient|metadata|table|UI|receipts|year-end]
 
-## HELP_CENTER_SYSTEM
-OVERVIEW:comprehensive-help-center-interactive-product-tours-searchable-guides-FAQs-fully-DB-driven-admin-management
-DB:help_tours(id+title+description+target_audience+category+steps[JSONB-array-Joyride-step-objects]+display_order+is_active+duration_minutes+icon+created_at+updated_at+created_by)|help_guides(id+title+description+content[TEXT-markdown-like]+category+target_audience+reading_time_minutes+display_order+is_active+icon+created_at+updated_at+created_by)|help_faqs(id+question+answer+category+target_audience+display_order+is_active+created_at+updated_at+created_by)
-STEP-FORMAT:[{target:.css-selector+content:step-content+title:optional+placement:bottom+disableBeacon:true}]|content-formatting[headers:#-H1-##-H2-###-H3+lists:--Item-or-1.-Item+paragraphs-separated-by-double-newlines]
-USER-WORKFLOWS:Browse[/help→tabs:Tours-Guides-FAQs+search-real-time-filtering-titles-desc-questions-answers+filtering-auto-by-user-role-target_audience+category-badges-color-coded]|Take-Tour[click-Start-Tour→navigates-required-route-preserves-?tour=xxx-param→interactive-overlay-highlights-UI→follow-prompts-Next-Back-nav→skip-close-anytime+features:auto-scroll-150px-offset-accounts-header-nav+progress-indicator+keyboard-nav+mobile-responsive+route-specific-auto-nav+query-param-preservation]|Read-Guide[click-Read-Guide→opens-full-screen-dialog→scroll-formatted-content→close+display:clean-typography-proper-spacing+formatted-headers-lists-paragraphs+reading-time-shown+scrollable]|View-FAQs[accordion-grouped-by-category→click-question-expand-answer→only-one-open-at-time+color-coded-category-badges]
-ADMIN-WORKFLOWS:Manage-Tours[Admin→Help-Center→Tours→create-edit-del+set-category-audience-duration+write-Joyride-steps-JSON+toggle-visibility+reorder-display_order]|Manage-Guides[Admin→Help-Center→Guides→create-edit-del+write-markdown-content+set-reading-time-estimate+toggle-visibility+organize-by-category]|Manage-FAQs[Admin→Help-Center→FAQs→create-edit-del+set-category-grouping+reorder-within-categories+toggle-visibility]
-CATEGORIES:tours[general-feature-role-specific-getting-started]|guides[general-getting-started-features-advanced]|faqs[general-account-sponsorship-technical-billing]
-TARGET-AUDIENCES:all-bestie-caregiver-supporter-vendor-admin
-COMPS-PUBLIC:HelpCenter.tsx[search-bar-real-time+tabbed-interface-Tours-Guides-FAQs+card-grid-layouts+empty-states]|ProductTourRunner.tsx[Joyride-wrapper-custom-styling+callback-completion-handling+manual-close-btn-overlay+themed-app-design]|GuideViewer.tsx[full-screen-dialog+markdown-rendering+scrollable-metadata+reading-time]|FAQSection.tsx[accordion-display+category-grouping+badge-color-coding+collapsible-answers]
-COMPS-ADMIN:HelpCenterManager.tsx[tab-switcher-Tours-Guides-FAQs+delegates-specialized-managers]|TourManager.tsx[CRUD-tours+JSON-editor-steps+form-validation+visibility-toggles]|GuideManager.tsx[CRUD-guides+large-textarea-content+reading-time-input+preview-capability]|FAQManager.tsx[CRUD-faqs+question-answer-fields+category-assignment+quick-visibility-toggle]
-RLS:all-tables[SELECT-active-items-visible-everyone+ALL-admins-create-update-delete]|security:content-filtered-is_active+no-user-auth-required-view+only-admins-manage
-DEPENDENCIES:react-joyride[product-tours]+@radix-ui/react-dialog[guide-viewer-modal]+@radix-ui/react-accordion[FAQ-display]
-TOUR-SYSTEM:navigation-preserves-?tour=xxx-query-param+auto-element-detection-5s-timeout-fallback+150px-scroll-offset-prevents-header-nav-overlap|beacon-all-tours-disableBeacon:true-applied-auto-ProductTourRunner→tooltips-appear-immediately-no-glowing-orange-dot-no-user-click-required-applied-all-tours-system-wide|reliability-query-param-preservation-route-changes+element-availability-checking-before-start+graceful-fallback-elements-not-found+proper-cleanup-unmount
+## HELP_CENTER
+ROUTE:/help
+DB:help_tours|help_guides|help_faqs
+STEP-FORMAT:[{target+content+title+placement+disableBeacon:true}]
+WORKFLOWS:Browse[tabs-search-filter]|Tour[navigate-overlay-?tour=xxx]|Guide[dialog]|FAQs[accordion]
+ADMIN:Tours[JSON-steps]|Guides[markdown]|FAQs[Q+A]
+TOUR:?tour=xxx-preserved|disableBeacon:true-all|150px-offset|5s-timeout|cleanup
+RLS:SELECT[active-all]|ALL[admins]
 
-## ORDER_TRACKING_CONCISE
-OVERVIEW:vendors-manually-enter-tracking-via-AfterShip-integration-customers-view-tracking-details-click-through-AfterShip-live-updates
-DB:order_items-tracking-fields[tracking_number+carrier+tracking_url+fulfillment_status-pending-shipped-delivered+shipped_at+delivered_at+vendor_id+platform_fee+vendor_payout+stripe_transfer_id]|orders[id+customer_id+total_amount+status-pending-completed-cancelled+shipping_address-JSONB+billing_address-JSONB+stripe_payment_intent_id+notes]
-EDGE-FUNCS:submit-tracking[auth-yes-vendor-must-own-order-item+request:{orderItemId+trackingNumber+carrier}+flow:verify-vendor-ownership→call-AfterShip-API-create-tracking→update-order_items-tracking-data→set-fulfillment_status:shipped+shipped_at:now()→response:{success+tracking:{trackingNumber+carrier+trackingUrl}}]|aftership-webhook[⚠️NOT-FUNCTIONAL-status-blocked-requires-upgraded-AfterShip-account+future-flow-receive-status-updates→update-fulfillment_status→set-delivered_at]
-FRONTEND:VendorOrderDetails[Vendor-Dashboard→Orders→View-Details+pending-items-input-tracking-number+carrier-dropdown→Mark-as-Shipped+shipped-items-display-tracking-read-only+carrier-badge+Mark-as-Delivered-fallback]|OrderHistory[route:/orders+display-order-cards-ID-date-status-shipping-address-items-fulfillment-badges+tracking-shows-tracking-number+carrier+Track-Package-btn-opens-tracking_url]
-CONFIG:AfterShip-API[secret-AFTERSHIP_API_KEY+base-URL-https://api.aftership.com/v4+endpoint-POST-/trackings+supported-carriers-UPS-USPS-FedEx-DHL-1000-available]|edge-func-config[submit-tracking-verify_jwt-true+aftership-webhook-verify_jwt-false-uses-AfterShip-signature]
-STATUS-BADGE-COLORS:order[pending-yellow+completed-green+cancelled-red]|fulfillment[pending-yellow+shipped-blue+delivered-green]
-IMPLEMENTED:✅manual-tracking-submission-vendor→DB→AfterShip+customer-tracking-view-/orders-page-with-AfterShip-links+vendor-fulfillment-workflow-mark-shipped-delivered+full-DB-structure-with-timestamps
-NOT-IMPLEMENTED:❌AfterShip-webhooks-automatic-status-updates+email-notifications-shipping-delivery-confirmations+in-app-tracking-timeline-multi-tracking-per-item-returns+analytics-delivery-times-success-rates
-SECURITY-RLS:order_items[vendors-UPDATE-SELECT-their-items+customers-SELECT-their-orders]|orders[customers-SELECT-their-orders+vendors-SELECT-orders-with-their-products+admins-ALL]|no-DELETE-allowed-audit-trail
+## ORDER_TRACKING
+DB:order_items[tracking+carrier+fulfillment_status]|orders
+EDGE:submit-tracking[vendor-auth+AfterShip-API]|aftership-webhook[⚠️NOT-FUNCTIONAL]
+FRONTEND:VendorOrderDetails[input-tracking]|OrderHistory[display-tracking]
+CONFIG:AfterShip-API[AFTERSHIP_API_KEY]
+STATUS-COLORS:pending-yellow|shipped-blue|delivered-green|completed-green|cancelled-red
 
-## TERMS_PRIVACY_SYSTEM
-OVERVIEW:enforces-acceptance-Terms-of-Service-Privacy-Policy-with-version-tracking-automatic-enforcement-audit-trail
-DB:terms_acceptance(user_id+terms_version+privacy_version+accepted_at+ip_address+user_agent+UNIQUE-constraint-user_id-terms_version-privacy_version)|RLS:users-view-insert-own+admins-view-all
-VERSION-MGMT:current-versions-src/hooks/useTermsCheck.ts[CURRENT_TERMS_VERSION-1.0+CURRENT_PRIVACY_VERSION-1.0]|update-process:increment-version-constants→update-Last-Updated-date-in-pages→deploy→users-prompted-next-login
-COMPS:TermsAcceptanceDialog[non-dismissible-modal-requiring-checkbox+btn-click+links-Terms-Privacy-pages-new-tabs+calls-record-terms-acceptance-edge-func+triggers-onAccepted()-callback-on-success]|TermsAcceptanceGuard[wraps-app-App.tsx-enforces-terms-site-wide+hides-dialog-public-pages:/+/auth+/terms+/privacy+reloads-page-after-acceptance-refresh-data+shows-dialog-when-needsAcceptance=true-from-useTermsCheck]|useTermsCheck-hook[returns:{needsAcceptance+loading+recordAcceptance}+queries-terms_acceptance-for-user+current-versions+updates-on-auth-state-changes]
-EDGE-FUNC:record-terms-acceptance[auth-required-JWT-token+request:{termsVersion+privacyVersion}+process-authenticates-user→extracts-IP-user-agent→inserts-into-terms_acceptance+audit-logs-IP-user-agent-timestamp+errors-ignores-duplicates+returns-400-on-auth-DB-failure]
-PAGES:Terms-of-Service[/terms-16-sections-service-desc-community-features-sponsorships-refund-policy-user-conduct-marketplace-liability-etc+version-1.0-Last-Updated-Jan-6-2025]|Privacy-Policy[/privacy-16-sections-data-collection-payment-processing-privacy-rights-donor-privacy-CCPA-GDPR-compliance-etc+version-1.0-Last-Updated-Jan-6-2025+emphasizes-donor-privacy-7-year-IRS-retention]
-USER-WORKFLOWS:First-Time[signup→redirected-protected-page→dialog-appears-no-acceptance-record→check-I-agree→click-Accept-Continue→edge-func-records→page-reloads]|Existing-After-Version-Update[version-incremented-code→login→useTermsCheck-finds-no-record-new-version→dialog-appears→user-re-accepts→new-record-created-old-records-preserved]|Guest-Sponsor[guest-sponsors-without-account-no-terms-required→later-creates-account→dialog-appears-first-login→accepts-terms→full-access-granted]
-ADMIN-FEATURES:User-Management-view-acceptance-status-per-user-version-date|Compliance-Reporting-full-audit-trail-user-ID-timestamp-IP-user-agent-versions|Export-query-terms_acceptance-table-filter-by-date-export-to-CSV
-SECURITY-COMPLIANCE:legal-requirements[audit-trail-IP-user-agent-timestamp+version-tracking-separate-Terms-Privacy+explicit-consent-checkbox+btn+non-repudiation-unique-DB-constraint+RLS-policies-prevent-tampering]|data-protection[HTTPS+encrypted-at-rest+RLS-enforcement+no-deletion]|GDPR[user-access-to-records+consent-before-processing+clear-mechanism]|CCPA[disclosure-in-Privacy-Policy+no-personal-data-sales]
-KEY-DESIGN-DECISIONS:non-dismissible-dialog-legal-requirement-proves-user-awareness|page-reload-ensures-fresh-data-avoids-state-sync-issues|IP-logging-legal-proof-fraud-detection-compliance|unique-constraint-prevents-duplicates-maintains-audit-clarity|edge-function-adds-audit-metadata-IP-user-agent-to-DB-records
+## TERMS_PRIVACY
+DB:terms_acceptance[user+versions+IP+user-agent+UNIQUE]
+VERSION:useTermsCheck.ts[CURRENT_TERMS_VERSION-1.0+CURRENT_PRIVACY_VERSION-1.0]
+COMPS:Dialog[non-dismissible+checkbox]|Guard[wraps-App+hides-public]|useTermsCheck
+EDGE:record-acceptance[auth+IP+user-agent]
+WORKFLOWS:First[signup→dialog→accept→reload]|Update[version-change→dialog]|Guest[sponsor→signup→dialog]
+SECURITY:audit-trail-IP-timestamp|non-dismissible|unique-constraint|edge-adds-metadata
 
-## SPONSOR_PAGE_SYSTEM
-ROUTE:/sponsor-bestie?bestieId={optional}-one-time-monthly-sponsorships-via-Stripe
-PAGE-FEATURES:dynamic-section-ordering-from-sponsor_page_sections-table+URL-param-handling[?bestieId=xxx→pre-select+move-to-top|no-param→randomize]+blocks-besties-from-sponsoring-role-check+Stripe-checkout-integration
-KEY-STATE:besties+selectedBestie+frequency[one-time-monthly]+amount+email[auto-filled-logged]+fundingProgress+sections+pageContent+featuredVideo
-SECTIONS:header+featured_video+sponsor_carousel+selection_form+impact_info[renders-only-is_visible:true+ordered-by-display_order]
-DISPLAY-COMP:SponsorBestieDisplay[single-card-or-carousel-7s-auto-advance-pauses-manual-nav-TTS+card-elements:image-aspect-ratio-preserved+Available-for-Sponsorship-badge+Youre-Sponsoring-badge-if-active+text-sections-TTS-on-first+voice-note-player+funding-progress-bar-if-monthly_goal>0+Sponsor-This-Bestie→/sponsor-bestie?bestieId={id}+Fully-Funded-message-if-is_fully_funded-or-≥100%+carousel-controls-Prev-Next-arrows-Play-Pause-dot-indicators-inside-card-bottom]
-DATA:fetches-sponsor_besties-active+randomizes+checks-user-sponsorships+loads-sponsor_bestie_funding_progress-view
-CONTROLS-POSITION:all-carousel-navigation-controls-rendered-inside-each-card-matches-FeaturedItem-pattern
-DB:sponsor_besties(id+bestie_id[nullable]+bestie_name+image_url+voice_note_url+text_sections[jsonb:[{header+text}]]+aspect_ratio[def:9:16]+monthly_goal+is_active+is_fully_funded)|sponsor_page_sections(id+section_key[unique]+section_name+is_visible+display_order+content[jsonb])|sponsor_bestie_funding_progress-VIEW[returns-sponsor_bestie_id+bestie_id+bestie_name+current_monthly_pledges-SUM-active-monthly+monthly_goal+funding_percentage+remaining_needed]
-ADMIN-CONTROLS:SponsorBestieManager[Admin→Sponsorships→Sponsor-Besties-CRUD-create-edit-del+upload-image+voice-note-app-assets+add-text-sections-min-1+set-aspect-ratio-monthly-goal+toggle-active-fully-funded]|SponsorPageOrderManager[Admin→Sponsorships→Sponsor-Page-Order-drag-drop-sections-dnd-kit+toggle-visibility-green-eye-visible-red-eye-off-hidden+auto-saves]|SponsorBestiePageManager[Admin→Sponsorships→Page-Content-edit-badge-text-heading-description-featured-video-dropdown+saves-to-app_settings.sponsor_page_content-as-JSON]
-SPECIAL-RULES:URL-param[with-?bestieId=xxx→move-to-top+pre-select+scroll-to-form|without→randomize+select-first]|role-blocking[besties-cannot-sponsor-check-user_roles.role-redirect-to-/community-if-bestie]|funding-display[progress-bar-only-if-monthly_goal>0|fully-funded-hide-button-show-success-when-is_fully_funded-OR-≥100%]|carousel-auto-pause[pauses-on-manual-nav-TTS-playing-pause-btn+resumes-on-play-btn-audio-ends]|form-validation[min-$10-valid-email-Zod+email-auto-filled+disabled-if-logged+defaults-$25-monthly]|TTS-rendering[only-first-section-gets-TTS-btn-combines-header+text]
-STRIPE-INTEGRATION:edge-func-create-sponsorship-checkout[request:{bestie_id+amount+frequency+email}+flow-auth→check-create-Stripe-customer→create-price→create-session-payment-subscription-mode→store-pending→return-URL+URLs-success:/sponsorship-success|cancel:/sponsor-bestie]
-WORKFLOW:1-guardian-creates-approved-featured-bestie-post→community-page|2-vendor-enters-3-emoji-code→creates-vendor_bestie_requests[pending]|3-guardian-approves-link-at-/guardian-approvals→vendor-can-request-assets|4-vendor-selects-asset→creates-vendor_bestie_assets[pending]|5-guardian-approves-asset→displays-vendor-store[/vendors/{id}]
-DISPLAY:VendorBestieAssetDisplay.tsx→layout:2-col-grid[md:grid-cols-2]+max-w-6xl-mx-auto|left:asset-AspectRatio-wrapper|right:bestie-name+description+TTS|badge:Bestie-of-Month[absolute-top-4-left-4]
-DATA-FETCH:1-fetch-approved-assets-vendor_bestie_assets-by-vendor_id|2-enrich-profiles_public[display_name]+featured_besties[description+aspect_ratio]|3-cross-ref-asset_url-with-image_url-voice_note_url-for-metadata
-RLS:SELECT[vendors-own|guardians-linked-besties|public-approved-on-store]|INSERT[approved-vendors-only]|UPDATE[guardians-approve-reject|admins-full]
-ISSUES:images-enormous→add-max-w-6xl-mx-auto|missing-name-desc→enrich-featured_besties|wrong-aspect→parse-string-9:16-to-decimal-9/16
-FILES:VendorBestieAssetDisplay.tsx|VendorBestieLinkRequest.tsx|VendorLinkedBesties.tsx|VendorProfile.tsx|VendorLinkRequests.tsx|VendorAssetRequests.tsx
+## SPONSOR_PAGE
+ROUTE:/sponsor-bestie?bestieId=xxx
+FEATURES:dynamic-ordering|URL-param|role-block-besties|Stripe
+SECTIONS:header|featured_video|carousel|selection_form|impact_info[ordered-by-display_order]
+DISPLAY:SponsorBestieDisplay[carousel-7s+TTS+audio+funding+controls-inside-card]
+DB:sponsor_besties|sponsor_page_sections|sponsor_bestie_funding_progress-VIEW
+ADMIN:Manager[CRUD]|PageOrder[drag-drop-dnd-kit]|PageContent[edit-header]
+RULES:URL[?bestieId→move-top]|role[besties-cant-sponsor]|funding[if-goal>0]|carousel[pause-on-nav-TTS]
+STRIPE:create-checkout→session→URL
+WORKFLOW:guardian-creates→vendor-links→guardian-approves→vendor-requests-asset→guardian-approves→displays
+DISPLAY:2-col-grid[asset|bestie-name-desc-TTS]
 
 ## COMMUNITY_PREVIEW_SECTIONS
-GRID:grid-cols-1-lg:grid-cols-2-gap-6[2-col-desktop+1-col-mobile+24px-spacing]|cards:Card-border-2-hover:border-primary/50-transition-colors
-LATEST-DISCUSSION:icon-MessageSquare[text-primary]+title-Latest-Discussion+View-All-btn[ghost-sm-ArrowRight]|content-card:space-y-3-cursor-pointer-hover:bg-muted/50-p-3-rounded-lg|image-or-video-thumb[if-exists]:w-full-h-48-object-cover-rounded-lg[priority:image_url-OR-video.thumbnail_url]|title:font-semibold-text-lg-flex-gap-2[TTS-btn-right]|desc:text-sm-muted-foreground-line-clamp-2[displays-content]|meta:flex-gap-2-text-xs-muted[format:by-author-•-date]|empty:No-discussions-yet-center-py-4
-DATA-LOAD-DISCUSSION:DB-query[discussion_posts+join-profiles_public[author-id-display_name-role]+join-videos[thumbnail_url]→filter-is_moderated=true→NO-approval_status-filter→order-created_at-DESC→limit-3]|TTS-format:title+.+content
-UPCOMING-EVENTS:icon-Calendar[text-secondary]+title-Upcoming-Events+View-All-btn|event-cards:space-y-4-individual[space-y-3-hover:bg-muted/50-p-3-rounded-lg-border-b-last:border-0]|image[if-exists]:dynamic-aspect-ratio-from-event.aspect_ratio[def:9:16]→calc[split-ratio-9:16→apply-CSS-aspectRatio]→w-full-h-full-object-cover|title-TTS:flex-gap-2-items-start[title-semibold-base-flex-1+TTS-btn-right-e.stopPropagation]|desc:text-sm-muted-line-clamp-2|meta:flex-gap-2-text-xs-muted[Calendar-icon-w-3-h-3+date-toLocaleDateString+bullet-if-location]|location-link:clickable→opens-Google-Maps[window.open-API=1-query=encodeURIComponent-_blank-noopener-noreferrer]→hover:text-primary-underline|audio:AudioPlayer-if-audio_url[e.stopPropagation]|empty:No-upcoming-events-center-py-4
-DATA-LOAD-EVENTS:DB-query[events+join-event_dates→filter-is_public=true+is_active=true→order-event_date-ASC]|role-filter-CLIENT-SIDE[after-fetch:filter-visible_to_roles.includes-effectiveRole]|date-processing[1-collect:primary-event_date+all-event_dates→2-sort-chronological→3-filter-upcoming:date≥now+shouldShow[expires_after_date?isUpcoming:true]→4-create-cards-per-date→5-sort-limit-3]|height-limit-calc[MAX_HEIGHT:1200px+CARD_PADDING:24px+SPACING:16px+TEXT_HEIGHT:120px→calc-per-event:imageHeight-from-aspect-ratio+TEXT_HEIGHT+CARD_PADDING+SPACING→stop-adding-if-exceeds-MAX_HEIGHT]
-TTS-INTEGRATION:btn-position-right-of-title-e.stopPropagation|discussion-format:title+.+content|event-format:[title+description+Scheduled-for-date+At-location].filter-Boolean.join-.-|component-props:{text+voice?+size?-icon+onPlayingChange?}|user-prefs:profiles.tts_voice[def:Aria]+tts_enabled[def:true]→if-!enabled-return-null|btn-states:loading[gradient-pulse-disabled]+playing[Pause-icon-stops-playback]+stopped[Play-icon-ml-0.5-starts-playback]|edge-func:text-to-speech[request:{text+voice}→response:{audioContent-base64-MP3}]|audio-process:request→receive-base64→create-Blob→Audio-element→play→cleanup[revokeObjectURL-onended-onerror]
-NAVIGATION:discussion-card-click→/discussions[exceptions:TTS-btn-propagation-stopped]|event-card-click→/events[exceptions:TTS-btn+location-link+audio-player-propagation-stopped]|View-All-btns:Latest→/discussions|Upcoming→/events[ghost-sm-ArrowRight]
-COLORS:discussion-icon-text-primary|event-icon-text-secondary|TTS-btn-bg-primary-hover:bg-primary/90|card-titles-default|descriptions-text-muted-foreground|metadata-text-muted-foreground|card-border-border-2-hover:border-primary/50|card-hover-bg-muted/50|TTS-loading-gradient-from-primary-via-accent-to-secondary
-RESPONSIVE:desktop-lg+[2-col-side-by-side-equal-width]|mobile-<lg[1-col-stacked-Latest-first-Upcoming-below]|images:discussion[fixed-h-48-192px]+events[dynamic-aspect-ratio]|all-images-full-width-object-cover
-FILES:Community.tsx|TextToSpeech.tsx|AudioPlayer.tsx|LocationLink.tsx
-CRITICAL-RULES:1-profile-fetch-profiles_public-NOT-profiles[includes-role-from-user_roles]|2-discussion-filter-is_moderated=true-ONLY[NO-approval_status-filter]|3-events-client-side-role-filter-AFTER-DB-fetch|4-height-events-limited-1200px-cumulative[aspect-ratio-aware]|5-propagation-stop-TTS-location-audio-clicks|6-visibility-check-community_sections-table-section-visibility|7-empty-states-show-when-no-content
+GRID:1-col-mobile|2-col-desktop-gap-6
+LATEST-DISCUSSION:MessageSquare|card[img-or-video-thumb+title-TTS+desc+meta]|query[is_moderated=true-NO-approval]
+UPCOMING-EVENTS:Calendar|card[dynamic-aspect+title-TTS+desc+meta+location-link+audio]|query[is_public+is_active]|role-filter-CLIENT|date-logic[collect+filter+sort-limit-3]|height-limit-1200px
+TTS:right-of-title-stopPropagation|Discussion[title+content]|Event[title+desc+date+location]
+NAV:card-click→route[except-TTS-location-audio-stopProp]
+CRITICAL:7-rules[profiles_public|is_moderated-only|client-role-filter|height-1200|stop-prop|visibility-check|empty-states]
 
-## INTERNAL_PAGES_REGISTRY
-FILE:src/lib/internalPages.ts|PURPOSE:centralized-list-all-internal-routes-used-admin-interfaces[nav-bar+footer-links+quick-links+featured-items]
-STRUCTURE:interface-InternalPage{value-string[route-path-/community]+label-string[display-name-Community]}
-PAGES:public[/→Home+/about→About/Resources+/support→Support-Us+/joy-rocks→Joy-Rocks-Coffee+/partners→Partners]|community[/community→Community+/discussions→Discussions+/events→Events+/gallery→Albums+/videos→Videos]|sponsorship[/sponsor-bestie→Sponsor-a-Bestie]|marketplace[/marketplace→Marketplace+/orders→Order-History]|user[/auth→Login/Signup+/profile→Profile]|guardian-bestie[/guardian-links→My-Besties+/guardian-approvals→Guardian-Approvals+/bestie-messages→Bestie-Messages]|help[/help→Help-Center]|admin[/admin→Admin-Panel]
-ADDING-NEW-PAGES:CRITICAL-when-add-route-App.tsx-MUST-also-add-internalPages.ts[1-add-route-App.tsx:Route-path=/new-page→2-add-internalPages.ts:{value:/new-page+label:New-Page}→3-entry-immediately-available-all-admin-dropdowns]
-WHY-MATTERS:without-entry[admins-cant-link-nav-bar+wont-appear-footer-options+cant-create-quick-links+featured-items-cant-link]|with-entry[auto-appears-all-admin-interfaces+consistent-labeling+easy-maintain-update]
-ISSUES:new-page-not-in-dropdowns→missing-from-registry-add-internalPages.ts|wrong-label→incorrect-label-value-update-registry|dead-link→route-deleted-registry-remains-remove-registry
-MAINTENANCE-RULES:1-keep-in-sync-with-routes[registry-match-App.tsx]|2-use-descriptive-labels[users-see-admin-interfaces]|3-alphabetize-by-category[maintain-logical-grouping]|4-no-external-URLs[only-internal-routes-start-/]
-FILES-USING:internalPages.ts[registry]+App.tsx[routes]+NavigationBarManager.tsx+FooterLinksManager.tsx+QuickLinksManager.tsx+FeaturedItemManager.tsx
+## INTERNAL_PAGES
+FILE:lib/internalPages.ts
+PURPOSE:registry-all-routes-for-admin-dropdowns
+STRUCTURE:{value:route+label:name}
+PAGES:public|community|sponsorship|marketplace|user|guardian-bestie|help|admin
+CRITICAL:add-route-App.tsx→MUST-add-registry→auto-in-dropdowns
+MAINTENANCE:sync-routes|descriptive-labels|alphabetize|no-external
 
-## NOTIFICATION_SYSTEM_COMPLETE
-OVERVIEW:dual-channel-delivery[in-app+email]+user-preferences+realtime-updates+grouped-notifications-UI+rate-limiting+automatic-expiry+comprehensive-triggers
-DB:notifications[id+user_id+type+title+message+link+is_read+metadata+created_at+expires_at-30-days-def]|rate_limits[id+user_id+endpoint+window_start+request_count+created_at]|notification_preferences[all-email+inapp-flags-boolean-def:true+digest_frequency-never-daily-weekly+last_digest_sent_at]|digest_emails_log[id+user_id+recipient_email+frequency+notification_count+sent_at+status+error_message+metadata]|email_notifications_log[id+user_id+recipient_email+notification_type+subject+status+error_message+metadata+sent_at]
-FUNCS:get_notification_preferences(_user_id)→returns-all-flags-defaults-true-if-none|get_users_needing_digest(_frequency)→returns-users-unread-due-digest[daily:23+hrs+weekly:6-days-23+hrs]→user_id+user_email+unread_count|check_notification_rate_limit(_user_id-_endpoint-_max_requests-_window_minutes)→prevents-spam[def:1-per-endpoint-per-hour]→returns-true-allowed-false-exceeded|cleanup_rate_limits()→deletes->1-hour-old|cleanup_expired_notifications()→deletes-past-expires_at
-TRIGGERS:notify_on_new_comment[AFTER-INSERT-discussion_comments→recipients:post-author-if-not-commenter+other-commenters→types:comment_on_post-comment_on_thread→rate-limited-1/hr→creates-in-app+link-discussion]|notify_on_pending_post_approval[AFTER-INSERT-discussion_posts-approval_status=pending_approval→recipients:guardians-linked-author→type:pending_approval→checks-require_post_approval→rate-limited→creates-in-app+optional-email]|notify_on_post_approval_decision[AFTER-UPDATE-discussion_posts-approval_status-changes→recipient:post-author→types:approval_decision-approved-rejected→rate-limited→creates-in-app+link-post]|notify_on_new_sponsor_message[AFTER-INSERT-sponsor_messages-status=approved→recipients:sponsors-of-bestie→type:new_sponsor_message→rate-limited→creates-in-app+link-inbox]|notify_on_message_status_change[AFTER-UPDATE-sponsor_messages-status-changes→recipient:message-author-bestie→types:message_approved-message_rejected→rate-limited→creates-in-app+rejection-reason]|notify_on_new_sponsorship[AFTER-INSERT-sponsorships-status=active→recipient:sponsored-bestie→type:new_sponsorship→rate-limited→creates-in-app+link-guardian-links]
-EDGE-FUNCS:send-notification-email[public-auth→request:{userId+notificationType+subject+title+message+link?+metadata?}→flow:fetch-profile-email→check-prefs-get_notification_preferences→skip-if-disabled→build-HTML-email[logo+title+message+action-btn]→send-Resend-API→log-email_notifications_log-success-failure→response:{success+emailId}-OR-{success+skipped+reason}]|send-digest-email[public-cron→request:{frequency:daily-weekly}→flow:call-get_users_needing_digest→for-each-user[fetch-unread-up-to-50→group-by-type→build-HTML-digest→send-Resend→update-last_digest_sent_at→log-digest_emails_log]→response:{success+processed+successful+failed}]|broadcast-product-update[admin-owner-only→request:{title+message+link?+targetRoles?}→flow:verify-auth→fetch-users-filtered-roles→create-product_update-notifications→invoke-send-notification-email-each-async→response:{notificationsSent+emailsSent+emailsFailed}]
-FRONTEND:NotificationBell[UnifiedHeader-before-profile→badge:red-count-9+shows-9+→popover:NotificationList-on-click]|NotificationList[NotificationBell-popover→layout:scrollable-400px-height→grouping:similar-notifications-collapsed-count-badge→display:single[icon+title+message+timestamp]+grouped-2+[title-count-expandable-all]→unread:primary-bg+blue-dot→actions:click→navigate-link+mark-read|click-group→expand|hover-individual→delete-X|header:Mark-all-read-btn→empty:Bell-icon+No-notifications-yet→features:collapsible-groups+individual-delete-within-groups→grouping-logic:by-type+target-same-post_id-event_id]
-HOOKS:useNotifications[state:notifications[]+groupedNotifications[]+unreadCount+loading→grouping-logic:comment_on_post+same-post_id→3-people-commented+pending_approval+same-item→5-items-need-approval+single-remain-ungrouped→methods:markAsRead-id+markAllAsRead+deleteNotification-id-toast+deleteAllRead-toast+handleNotificationClick-notification-mark-read+navigate+refreshNotifications-manual-reload→realtime:subscribes-notifications-table-INSERT-UPDATE-DELETE→auth:auto-refresh-sign-in-out+clears-state-sign-out→cleanup:unsubscribes-channels-unmount]
-GROUPED-NOTIFICATIONS:rules[comment_on_post+same-post_id→group|comment_on_thread+same-post_id→group|pending_approval+same-item→group|new_sponsor_message+same-bestie_id→group|moderation_needed+same-item_id→group|others-ungrouped]|UI:single[shows-normally-title+message+timestamp]+group-2+[count-badge+condensed-title-3-people-commented]+expand[click-chevron-see-all-notifications]+actions[delete-individual-within-groups]+read-status[group-marked-read-all-notifications-read]+realtime[groups-update-auto-new-notifications-arrive]|benefits[reduces-clutter-3→1-group+easier-scan-distinct-events+better-mobile-less-scrolling+modern-UX-pattern-users-expect]
-RATE-LIMITING:how[1-check-before-create-check_notification_rate_limit-user_id-endpoint-max_requests-window_minutes→2-track-creates-updates-rate_limits-window-start-rounded-interval→3-enforce-returns-false-if-exceeded-prevents-creation→4-cleanup-old-records->1-hour-cleanup_rate_limits]|def-limits[frequency:1-per-endpoint-per-user-per-hour+window:60-min-sliding-rounded-timestamps+endpoints:trigger-name-post_approval-new_message]|implementation-pattern:IF-NOT-check_notification_rate_limit(_recipient_id-endpoint_name-1-60)-THEN-RETURN-NEW-skip-notification|PROCEED-INSERT-notifications
-EXPIRY:config[def-TTL:30-days-expires_at=now+interval-30-days+cleanup:run-cleanup_expired_notifications-daily-cron-maintenance]|strategy[old-notifications-soft-deleted-remain-until-cleanup+users-can-delete-manually-before-expiry+expired-excluded-queries-auto]
-DIGEST-EMAIL:overview[users-opt-periodic-digest-daily-weekly-instead-individual-emails+summarizes-all-unread-grouped-by-type]|config[user-setting:digest_frequency-never-daily-weekly+tracking:last_digest_sent_at-timestamp+schedule:cron-job-see-scheduling]|content[grouping:by-type-Pending-Approvals-Comments-Messages+limit:50-most-recent-unread-per-user+format:HTML-branded-header-grouped-sections-View-All-btn+subject:Your-Daily-Weekly-Notification-Digest-X-unread]|scheduling-cron[daily:0-8-*-*-*-8AM-daily+weekly:0-8-*-*-1-8AM-every-Monday→SELECT-cron.schedule-send-daily-digest-0-8-*-*-*-net.http_post-URL-functions-v1-send-digest-email-headers-Authorization-Bearer-ANON_KEY-body-frequency-daily]|digest-vs-individual[when-digest-enabled:NO-individual-emails+in-app-still-appear-immediately+digest-includes-ALL-unread-since-last+individual-prefs-ignored-when-digest-enabled]|user-experience[settings:select-frequency-Never-Daily-Weekly→first-digest:sent-next-scheduled-if-has-unread→subsequent:only-if-new-unread-since-last→opt-out:switch-back-individual-or-disable-all]|monitoring[logs:digest_emails_log-delivery-status+user-activity:query-last_digest_sent_at-see-when-users-last-received+audit:all-digest-sends-logged-notification-count-status]
-NOTIFICATION-TYPES:pending_approval[trigger:post-comment-needs-approval→recipients:guardian-s→link:/guardian-approvals→email:email_on_pending_approval+inapp:inapp_on_pending_approval→rate:1-hr]|approval_decision[trigger:post-comment-approved-rejected→recipient:post-author→link:/discussions?postId=xxx→email:email_on_approval_decision+inapp:inapp_on_approval_decision→rate:1-hr]|new_sponsor_message[trigger:bestie-sends-message→recipients:sponsor-s→link:/guardian-links→email:email_on_new_sponsor_message+inapp:inapp_on_new_sponsor_message→rate:1-hr]|message_approved-message_rejected[trigger:message-approved-rejected-by-guardian→recipient:bestie→link:/bestie-messages→email:email_on_message_approved-rejected+inapp:inapp_on_message_approved-rejected→rate:1-hr]|new_sponsorship[trigger:new-sponsorship-created→recipient:bestie→link:/guardian-links→email:email_on_new_sponsorship+inapp:inapp_on_new_sponsorship→rate:1-hr]|sponsorship_update[trigger:sponsorship-modified-cancelled→recipients:sponsor+bestie→link:/guardian-links→email:email_on_sponsorship_update+inapp:inapp_on_sponsorship_update→rate:1-hr]|new_event[trigger:event-created→recipients:all-users→link:/events?eventId=xxx→email:email_on_new_event+inapp:inapp_on_new_event→rate:1-hr]|event_update[trigger:event-modified→recipients:attendees→link:/events?eventId=xxx→email:email_on_event_update+inapp:inapp_on_event_update→rate:1-hr]|comment_on_post[trigger:new-comment-on-discussion→recipient:post-author→link:/discussions?postId=xxx→email:email_on_comment_on_post+inapp:inapp_on_comment_on_post→rate:1-hr]|comment_on_thread[trigger:new-comment-on-followed-discussion→recipient:other-commenters→link:/discussions?postId=xxx→email:email_on_comment_on_thread+inapp:inapp_on_comment_on_thread→rate:1-hr]|product_update[trigger:admin-broadcasts-platform-update→recipients:all-or-specific-roles→link:custom→email:email_on_product_update+inapp:inapp_on_product_update→rate:1-hr]
-FILES:NotificationBell.tsx|NotificationList.tsx|useNotifications.ts|send-notification-email/index.ts|send-digest-email/index.ts|broadcast-product-update/index.ts|Notifications.tsx-full-page-center
+## NOTIFICATION_SYSTEM
+OVERVIEW:dual[in-app+email]+prefs+realtime+grouped+rate-limit+expiry-30d
+DB:notifications|rate_limits|notification_preferences|digest_emails_log|email_notifications_log
+FUNCS:get_prefs|get_needing_digest|check_rate_limit|cleanup_limits|cleanup_expired
+TRIGGERS:6-triggers[comment|pending|approval|sponsor-msg|msg-status|sponsorship]→rate-limited-1/hr
+EDGE:send-email|send-digest|broadcast-update
+FRONTEND:Bell[badge-popover]|List[scrollable-400px-grouping]
+HOOKS:useNotifications[notifications+grouped+unread+methods+realtime+cleanup]
+GROUPED:rules[by-type+target]|UI[single-or-count-badge+expand]
+RATE:1/endpoint/user/hr|window-60min|cleanup->1hr
+EXPIRY:30d-TTL|cleanup-daily-cron
+DIGEST:daily-weekly|50-unread|grouped-by-type|cron[8AM-daily|8AM-Mon-weekly]
+TYPES:11-types[pending|approval|sponsor-msg|msg-status|sponsorship|sponsorship-update|event|event-update|comment-post|comment-thread|product-update]
 
-## VENDOR_SYSTEM_CONCISE
-ARCHITECTURE-CHANGE-2025-10-08:vendor-now-STATUS-not-role[users-maintain-primary-role-supporter-bestie-caregiver+have-vendor-capabilities-added-via-vendors-table]
-KEY-BENEFIT:guardians-manage-bestie-vendor-account-without-separate-login+besties-be-artisans-with-guardian-admin-support+one-account-multiple-capabilities
-DB:vendors[id+user_id+business_name+description+status-pending-approved-rejected-suspended+user-primary-role-stays-user_roles-table-supporter-bestie-caregiver]|products[id+vendor_id+standard-fields+RLS:vendors-CRUD-own-products-if-approved]
-VENDOR-FLOWS:become-vendor[/vendor-auth-or-Marketplace→1-user-signs-up-OR-existing-applies→2-creates-vendors-record-pending→3-admin-approves→status:approved→4-user-accesses-/vendor-dashboard]|check-status:const-{data:vendor}=await-supabase.from-vendors.select-*.eq-user_id-userId.maybeSingle|dashboard[/vendor-dashboard→checks-vendors.status-pending-approved-rejected→tabs:Products+Orders+Earnings+Payments+Settings]
-ROLE+VENDOR-EXAMPLES:caregiver+vendor[manages-bestie-art-products]|bestie+vendor[sells-own-creations]|supporter+vendor[community-member-selling-items]
-MIGRATION-NOTES:all-existing-vendor-role-users→supporter-role+vendor-status-preserved-vendors-table+no-functionality-lost-flexibility-gained
-FILES:VendorAuth.tsx|VendorDashboard.tsx|VendorManagement.tsx-admin|vendors-table
+## VENDOR_SYSTEM
+CHANGE-2025-10-08:vendor=STATUS-not-role
+BENEFIT:guardians-manage-bestie+one-account-multiple-capabilities
+DB:vendors[status-pending-approved-rejected-suspended]|products
+FLOWS:apply[/vendor-auth→signup→pending→admin-approve→approved]|check[supabase.from-vendors.select-status]|dash[tabs:Products+Orders+Earnings+Payments+Settings]
+EXAMPLES:caregiver+vendor|bestie+vendor|supporter+vendor
 
-## FEATURED_ITEM_SYSTEM
-OVERVIEW:rotating-carousel-homepage-community-page-featured-content-role-based-visibility
-COMPS:FeaturedItem[auto-rotating-10s+pause-play-controls+manual-nav-prev-next-dot-indicators+dynamic-aspect-ratio-metadata+TTS-title+desc+event-detail-integration-date-time-location]|FeaturedItemManager[admin-CRUD-interface+image-upload-crop-aspect-ratio-selection+link-resolution-internal-external-event-album-post+display-order-management+role-based-visibility-controls]
-DB:featured_items[id+title+description+image_url+original_image_url-for-re-crop+link_url+link_text+aspect_ratio-def:16:9+is_active+is_public+visible_to_roles[]+display_order+created_by+created_at+updated_at]
-DATA-LOAD-OPTIMIZED:parallel-loading[const-[authResult-itemsResult]=await-Promise.all-supabase.auth.getUser+supabase.from-featured_items.select]→flow:1-fetch-auth+items-parallel-2-queries-not-3-4→2-if-authenticated-fetch-user-role-1-additional→3-filter-items-client-side-by-role-public-status→4-resolve-URL-for-current-item-may-trigger-event-details-fetch|performance-reduces-sequential-DB-calls-loads-faster-than-previous
-LINK-TYPES:internal[/route→React-Router-Link+event:uuid→/events-loads-event-details+album:uuid→/gallery+post:uuid→/discussions]|external[https:...→opens-new-tab]
-VISIBILITY-RULES:non-authenticated[only-is_public:true-items]|authenticated[items-where-visible_to_roles-includes-user-role-OR-is_public:true]|admin-owner[all-items-visible]
-CAROUSEL-CONTROLS:auto-advance-every-10-seconds|pause-triggers:manual-navigation+user-clicks-pause|resume:user-clicks-play-button|indicators:dot-navigation-current-slide-highlighted
-EVENT-DETAILS-DISPLAY:when-link_url-starts-event:→fetches-event-date-time-location-from-events-table→loads-saved-locations-from-saved_locations-table→displays-with-icons-Calendar-Clock-MapPin→format:EEEE-MMMM-d-yyyy-and-h:mm-a→location-display[if-event.location-matches-saved-location-case-insensitive:shows-location-name-bold+address-below|otherwise:shows-address-string-only+location-clickable-opens-Google-Maps]→link-text-becomes-event-CTA|integration:uses-saved_locations-table-provide-context-event-addresses-see-SAVED_LOCATIONS_SYSTEM.md
-ADMIN-FEATURES:create-edit[upload-image→crop-aspect-ratio-selector→set-title-description-link-type-detection→configure-visibility-public+roles→set-display-order-drag-drop]|re-crop:loads-original_image_url-unlimited-re-cropping-no-quality-loss|link-resolution:admin-selects-dropdowns-events-albums-posts-or-enters-custom-URL
-RLS:SELECT[public-sees-active-items-matching-visibility-rules]|INSERT-UPDATE-DELETE[admins-only]
-ISSUES:slow-loading→optimized-parallel-auth+items-fetch|wrong-aspect-ratio→parse-string-16:9-to-decimal-16/9|items-not-showing→check-is_active-is_public-role-visibility|carousel-doesnt-auto-advance→check-items.length>1|event-details-not-showing→verify-link_url-format:event:uuid
-FILES:FeaturedItem.tsx[display]+FeaturedItemManager.tsx[admin-CRUD]+ImageCropDialog.tsx[crop-interface]+LocationLink.tsx[clickable-Google-Maps-links]|RELATED:SAVED_LOCATIONS_SYSTEM.md[location-name-address-mgmt]+EVENTS_SYSTEM_CONCISE.md[event-data-structure]
+## FEATURED_ITEM
+OVERVIEW:carousel-homepage-community-role-visibility
+COMPS:FeaturedItem[auto-10s+pause-play+nav+aspect+TTS+event-details]|Manager[CRUD-crop-link-order-visibility]
+DB:featured_items[aspect-def:16:9]
+LOAD-OPTIMIZED:parallel[auth+items-Promise.all]→filter-client→resolve-URL
+LINK:internal[/route|event:uuid|album:uuid|post:uuid]|external[https]
+VISIBILITY:non-auth[public-only]|auth[public-or-roles]|admin[all]
+CAROUSEL:auto-10s|pause[nav-user]|resume[play-btn]|dots
+EVENT-DETAILS:event:uuid→fetch-event+saved_locations→display[Calendar-Clock-MapPin+format]
 
-## SEO_PERFORMANCE_SYSTEM
-SEO:SEOHead-component[src/components/SEOHead.tsx→props:{title?+description?+image?+type?+noindex?+canonicalUrl?+structuredData?}→features:updates-title-tag+manages-Open-Graph-tags-og:title-og:description-og:image+Twitter-Card-meta-tags+canonical-URLs+robots-meta-tag+JSON-LD-structured-data-injection]|structured-data[getOrganizationStructuredData-homepage-name-logo-contact-social-profiles-Schema.org-compliant+getArticleStructuredData-title-description-image-datePublished-author-blog-posts-discussion-posts-headline-author-publisher-info+getEventStructuredData-name-description-startDate-location-image?-events-pages-location-date-description]
-SITEMAP:edge-func-generate-sitemap[supabase/functions/generate-sitemap/index.ts→generates-dynamic-XML-sitemap-includes:static-pages-homepage-about-marketplace-etc+discussion-posts-is_moderated=true+events-is_active=true+albums-is_active+is_public=true+vendor-stores-status=approved→features:automatic-lastmod-dates-from-updated_at-columns+change-frequency-hints-for-search-engines+priority-weighting+1000-item-limit-per-content-type→accessing:call-edge-function-https://your-domain.com/functions/v1/generate-sitemap+static-fallback-/public/sitemap.xml→submit-to-search-engines:Google-Search-Console+Bing-Webmaster-Tools-submit-sitemap-URL]
-IMAGE-OPT:OptimizedImage-component[src/components/OptimizedImage.tsx→features:lazy-loading-except-priority-images+Intersection-Observer-loads-50px-before-viewport+blur-placeholder-during-load+fade-in-animation-on-load+proper-loading-and-decoding-attributes→props:{src+alt+className?+width?+height?+priority?-skip-lazy-loading-above-fold+objectFit?-cover-contain-fill-none-scale-down+onLoad?}→when-use-priority:hero-images-above-fold+logo+critical-UI-elements-visible-page-load→automatic:lazy-loading-non-priority-images+placeholder-animation+smooth-fade-in-transition]
-PERFORMANCE:HTML-head-optimizations-index.html[preconnect:link-rel=preconnect-href=https://fonts.googleapis.com+link-rel=preconnect-href=https://fonts.gstatic.com-crossorigin-reduces-DNS-lookup-time-external-resources+preload:link-rel=preload-as=image-href=/favicon.png-prioritizes-critical-resources+theme-color:meta-name=theme-color-content=#FF6B35-sets-browser-theme-color-mobile]|image-compression[all-images-compressed-via-imageUtils.ts-max-5MB-1920px+automatic-quality-reduction-oversized-images+maintains-aspect-ratio]|code-splitting[React-lazy-loading-routes-already-implemented-App.tsx+dynamic-imports-heavy-components]
-SEO-BEST-PRACTICES:meta-tag-guidelines-DO[keep-titles-under-60-chars+descriptions-under-160-chars+include-primary-keywords-naturally+use-unique-titles-descriptions-per-page+include-relevant-keywords-alt-text]+DONT[keyword-stuff+duplicate-meta-tags-across-pages+use-generic-descriptions+forget-alt-attributes-images]|structured-data-guidelines-DO[use-schema.org-types+include-all-required-properties+test-Google-Rich-Results-Test+keep-data-accurate-up-to-date]+DONT[add-irrelevant-schema+include-false-information+nest-improperly]|image-SEO-DO[use-descriptive-filenames+always-include-alt-text+specify-width-height-when-possible+use-lazy-loading-below-fold-images]+DONT[use-generic-filenames-image1.jpg+leave-alt-text-empty+load-all-images-eagerly]
-PAGE-SPECIFIC-SEO:homepage[SEOHead-title:Joy-House-Community-Spreading-Joy-Through-Special-Needs-Community+description:Building-supportive-community+structuredData:getOrganizationStructuredData]|other-pages[import-SEOHead+getArticleStructuredData-customize:SEOHead-title:Page-Title-Joy-House-Community+description:Page-specific-description+type:article+structuredData:getArticleStructuredData]
-MONITORING-TESTING:tools[Google-Search-Console:index-coverage-search-performance+Google-PageSpeed-Insights:performance-scores+Lighthouse:audit-tool-built-into-Chrome-DevTools+Schema.org-Validator:test-structured-data+Google-Rich-Results-Test:test-schema-markup]|key-metrics[LCP-Largest-Contentful-Paint:<2.5s+FID-First-Input-Delay:<100ms+CLS-Cumulative-Layout-Shift:<0.1+Time-to-Interactive:<3.5s]
-ISSUES:images-load-slowly→check-priority=true-above-fold|duplicate-meta-tags→use-SEOHead-consistently|sitemap-not-updating→regenerate-edge-function|poor-mobile-performance→enable-lazy-loading-compress-images|missing-structured-data→add-JSON-LD-via-SEOHead
-FILES:SEOHead.tsx|OptimizedImage.tsx|generate-sitemap/index.ts|index.html
+## SEO_PERF
+SEO:SEOHead[title|desc|image|type|noindex|canonical|structuredData]|structured[Org|Article|Event-Schema.org]
+SITEMAP:edge-generate-sitemap[static+posts+events+albums+vendors-XML-1k-limit]
+IMAGE-OPT:OptimizedImage[lazy-except-priority+Intersection-50px-before+blur-placeholder+fade]
+PERF:preconnect-fonts|preload-favicon|theme-color|compress-5MB-1920px|code-split-lazy
+BEST-PRACTICES:meta[<60-title|<160-desc|keywords-natural|unique]|structured[schema.org|required-props|test]|image[descriptive-names|alt-always|lazy-below-fold]
+MONITORING:Search-Console|PageSpeed|Lighthouse|Schema-Validator|Rich-Results-Test
+METRICS:LCP<2.5s|FID<100ms|CLS<0.1|TTI<3.5s
 
-## SAVED_LOCATIONS_SYSTEM
-OVERVIEW:centralized-location-management-admins-create-reusable-location-presets-selected-across-app-events-vendor-profiles
-DB:saved_locations[id+name+address+is_active-boolean-def:true+created_by+created_at+updated_at]|RLS:SELECT[all-authenticated-users-view-active-locations]+INSERT-UPDATE-DELETE[admins-only]
-COMPS:SavedLocationsManager[location:Admin→Format-Pages→Locations+file:src/components/admin/SavedLocationsManager.tsx→features:create-edit-delete-saved-locations+toggle-active-inactive-status-visibility-toggle-standard+display-name+full-address-card-format+requires-name-and-address-both-trimmed-before-save→visual-standard:active[green-bg-Eye-icon]+inactive[red-bg-EyeOff-icon]+card-layout[MapPin-icon+name-bold+address-muted]]|LocationAutocomplete[file:src/components/LocationAutocomplete.tsx→features:saved-location-dropdown-shows-all-active-saved-locations[displays:location-name-bold+address-small-muted+icon:MapPin-proper-alignment+selection-updates-both-dropdown-display-AND-input-field]+Google-Places-Autocomplete-manual-search-with-autocomplete+manual-input-can-type-directly-if-Google-API-unavailable→display-format:[MapPin-Icon]-Location-Name-Full-Address-smaller-muted-text→state-mgmt:selectedLocationId-tracks-which-saved-location-selected+auto-matches-on-edit-if-editing-event-with-location-matching-saved-location-dropdown-shows-selection+clear-on-manual-input-typing-input-field-clears-saved-location-selection+maintains-selection-dropdown-shows-selected-location-name+address→props:{value-string[current-location-value]+onChange-value-string-void[called-when-location-changes]+label?-string[field-label-def:Location]+placeholder?-string+required?-boolean}]
-USER-WORKFLOWS:admin-create-saved-location[Admin→Format-Pages→Locations→Add-Location→enter-name-Best-Day-Ever-Coffee-and-Crêpes→enter-full-address-516-Coffman-St-Longmont-CO-80504→Create→location-available-immediately-all-location-fields]|admin-deactivate-location[find-location-list→click-Eye-icon-green→changes-EyeOff-red→location-hidden-dropdown-not-deleted→existing-events-keep-address-value]|user-select-saved-location-event-creation[create-edit-event→Location-field→see-dropdown:Select-saved-location→click-dropdown→see-all-active-locations-with-name+address→select-location→dropdown-shows-selection-input-field-updates-address→can-override-type-input-field→clears-dropdown-selection]|user-use-Google-Places-autocomplete[skip-dropdown-type-directly-input-field→Google-Places-suggestions-appear-as-type→select-from-suggestions→address-auto-fills→saved-location-dropdown-clears-manual-input-mode]
-INTEGRATION-POINTS:current-usage[Event-Management-EventManagement.tsx+future:vendor-profiles-organization-profiles]|data-flow[1-SavedLocationsManager-creates-locations→saved_locations-table→2-LocationAutocomplete-fetches-active-locations→displays-dropdown→3-user-selects→onChange-called-address-value→4-parent-component-EventManagement-stores-location-state→5-on-save→address-stored-events.location-field]|event-management-display[when-viewing-events-admin-management-/event-management:1-system-loads-both-events-and-saved-locations-parallel→2-for-each-event-card-checks-if-event.location-matches-any-saved_locations.address-case-insensitive→3-if-match:display-saved-location-name-bold+display-address-below-as-clickable-Google-Maps-link-muted-text→4-if-no-match:display-address-with-standard-LocationLink-component-icon+clickable-link]
-GOOGLE-PLACES-API:API-key-storage[stored-Supabase-secrets-as-GOOGLE_PLACES_API_KEY]|edge-function[get-google-places-key:fetches-key-securely→returns-frontend-Google-Maps-SDK-initialization]|fallback[if-Google-API-unavailable-or-key-missing:saved-locations-still-work+manual-input-still-works+only-autocomplete-suggestions-unavailable]|loading-states[Fetching-API-key-while-fetching-key-from-edge-function+Loading-location-search-while-loading-Google-Maps-SDK+Location-autocomplete-unavailable-if-error-loading]
-VISUAL-DESIGN:saved-location-dropdown-display[[MapPin]-Select-saved-location-▼→when-opened:[MapPin]-Best-Day-Ever-Coffee-516-Coffman-St-Longmont-full-address-muted-text|[MapPin]-Community-Center-123-Main-St-Boulder-CO→when-selected:[MapPin]-Best-Day-Ever-Coffee-516-Coffman-St-Longmont-shows-in-trigger-too-▼]|input-field-below-dropdown[[MapPin]-516-Coffman-St-Longmont-CO-actual-value-saved]|SavedLocationsManager-card[[MapPin]-Best-Day-Ever-Coffee-516-Coffman-St-Longmont-CO-[Eye]-[Edit]-[Del]-active-green]
-ISSUES:saved-location-not-appearing-dropdown→is_active=false-toggle-active-admin|selection-doesnt-save→not-clicking-submit-after-selecting-verify-form-submission-logic|address-doesnt-show-input→onChange-not-called-check-SelectValue-implementation|Google-autocomplete-not-working→API-key-missing-invalid-check-GOOGLE_PLACES_API_KEY-secret|dropdown-shows-old-selection→state-not-resetting-form-reset-clear-selectedLocationId-reset|manual-input-doesnt-clear-dropdown→missing-state-update-add-setSelectedLocationId-on-input-change
-SECURITY:RLS[only-admins-create-modify-saved-locations+all-authenticated-users-view-active-locations+locations-linked-creator-created_by-field]|input-validation[name-and-address-trimmed-before-save+both-fields-required+no-special-character-restrictions-addresses-may-contain-punctuation]
-PERFORMANCE:optimization[saved-locations-fetched-once-component-mount+cached-component-state+only-active-locations-fetched-autocomplete+Google-Maps-SDK-loaded-asynchronously]
-FILES:SavedLocationsManager.tsx|LocationAutocomplete.tsx|EventManagement.tsx
+## SAVED_LOCATIONS
+DB:saved_locations[name+address+is_active]
+COMPS:Manager[Admin→Format→Locations-CRUD-toggle]|Autocomplete[dropdown-saved+Google-Places+manual]
+WORKFLOWS:admin[create-toggle]|user[select-saved-or-Google-or-manual]
+INTEGRATION:EventManagement[LocationAutocomplete]|display[match-saved→show-name-bold+address-link]
+GOOGLE:API-key-GOOGLE_PLACES_API_KEY|edge-get-key|fallback[saved+manual-still-work]
+DESIGN:dropdown[[MapPin]-name-address-muted]|input[[MapPin]-address]|card[[MapPin]-name-address-[Eye]]
+RLS:SELECT[all-auth-active]|INSERT-UPDATE-DELETE[admins]
 
-## SOCIAL_SHARING_SYSTEM
-OVERVIEW:social-media-sharing-public-community-events-platform-specific-integrations-native-mobile-share-support
-COMPS:ShareButtons[purpose:reusable-social-sharing-platform-specific-integrations→props:{title-string+description?-string+url?-string-defaults-current-page+hashtags?-string[]-array-without-#+#+via?-string-Twitter-via-username-def:JoyHouseCommunity+image?-string-URL-for-sharing+compact?-boolean-use-dropdown-menu-def:false}→features:mobile-first-Native-Web-Share-API-on-mobile-devices+desktop-platform-specific-buttons-Twitter-Facebook-LinkedIn-Copy+compact-mode-dropdown-menu-tight-spaces+copy-to-clipboard-always-available-fallback+WhatsApp-Email-additional-sharing-options-compact-mode]|ShareIconButton[compact-version-icon-button-with-dropdown]
-PLATFORM-INTEGRATIONS:Twitter-X[intent-URL-title-URL-hashtags-via-parameter+opens-new-window+URL:https://twitter.com/intent/tweet?text={title}&url={url}&via={via}&hashtags={hashtags}]|Facebook[sharer-dialog+opens-new-window+URL:https://www.facebook.com/sharer/sharer.php?u={url}]|LinkedIn[share-offsite-dialog+opens-new-window+URL:https://www.linkedin.com/sharing/share-offsite/?url={url}]|WhatsApp[web-API-desktop-mobile+opens-new-tab+URL:https://wa.me/?text={title}-{url}]|Email[standard-mailto:-link+subject:title+body:description+URL+URL:mailto:?subject={title}&body={description}%0A%0A{url}]|Copy-Link[uses-Clipboard-API+toast-notification-on-success+2-second-Copied-feedback+fallback-from-native-share-if-unavailable]
-IMPLEMENTATION:discussion-posts[location:post-header-after-author-info-badges+type:ShareIconButton-compact+usage:title={post.title}+description={post.content.substring-0-150}+url={window.location.origin}/discussions?postId={post.id}+hashtags=[JoyHouse-Community]]|events[location:event-card-after-description+type:ShareIconButton-compact+condition:only-shown-when-event.is_public===true+usage:title={event.title}+description={event.description}+url={window.location.origin}/events?eventId={event.id}+hashtags=[JoyHouse-CommunityEvent]]|event-detail-dialog[location:bottom-dialog-border-top-section+type:ShareButtons-expanded+condition:only-shown-when-event.is_public===true]
-UI-PATTERNS:desktop-expanded[Share:-[Twitter]-[Facebook]-[LinkedIn]-[Copy]]|mobile-expanded[Share:-[Share-Button]-triggers-native-share]|compact-all-devices[[Share-▼]→Dropdown-Menu:Share-native+Twitter+Facebook+LinkedIn+WhatsApp+Email+Copy-Link]
-NATIVE-WEB-SHARE-API:detection[if-navigator.share-native-share-available-mobile-else-fallback-platform-buttons-or-copy-link]|usage[await-navigator.share-{title:title+text:description+url:shareUrl}]|browser-support[✅Mobile-Safari-iOS+Chrome-Mobile-Android+Samsung-Internet|❌Desktop-browsers-most-dont-support]
-SEO-INTEGRATION:Open-Graph-tags[social-sharing-works-with-SEO-meta-tags-from-SEOHead-component:og:title→share-title+og:description→share-description+og:image→share-image-preview+og:url→canonical-URL]|Twitter-Cards[twitter:card→summary-card-large-image+twitter:title→tweet-title+twitter:description→tweet-description+twitter:image→preview-image]|rich-previews[when-users-share-platforms-fetch-these-meta-tags-for-rich-previews-with-images-descriptions]
-BEST-PRACTICES:URL-construction[always-use-absolute-URLs:const-shareUrl=url||window.location.href+for-specific-content:const-shareUrl=${window.location.origin}/events?eventId=${event.id}]|description-length[keep-descriptions-under-150-characters-better-display:description={event.description}]|hashtag-guidelines[use-relevant-searchable-hashtags+2-3-hashtags-maximum+no-#-symbol-array-added-automatically+example:[JoyHouse-CommunityEvent]]|copy-feedback[always-show-toast-notification-copy-success+use-visual-feedback-Check-icon-2-seconds+provide-error-handling-copy-failures]
-VISIBILITY-RULES:public-events-only[share-buttons-only-appear-when-event.is_public===true+controlled-by-database-events.is_public-column+admin-can-toggle-Event-Management+private-events-visible-specific-roles-cannot-be-shared]|role-based-access[event-visibility-controlled-by-visible_to_roles-array+sharing-respects-event-privacy-settings+users-can-only-share-what-they-can-see]
-FILES:ShareButtons.tsx|EventsPage.tsx|EventDetailDialog.tsx|Discussions.tsx
+## SOCIAL_SHARING
+COMPS:ShareButtons[mobile-Native-Share-API+desktop-platform-btns+compact-dropdown]|ShareIconButton[compact]
+PLATFORMS:Twitter|Facebook|LinkedIn|WhatsApp|Email|Copy[Clipboard-toast]
+IMPL:discussions[post-header-compact]|events[card-compact-if-public]|event-dialog[expanded-if-public]
+UI:desktop[Twitter-Facebook-LinkedIn-Copy]|mobile[Native-Share]|compact[dropdown]
+NATIVE:if-navigator.share|mobile-Safari-Chrome|desktop-no-support
+SEO:works-with-SEOHead[og:*|twitter:*]→rich-previews
+BEST:absolute-URLs|<150-desc|2-3-hashtags-no-#|toast-on-copy
+VISIBILITY:public-only[is_public=true]|role-based[visible_to_roles]
 
-## VENDOR_AUTH_SYSTEM
-OVERVIEW:vendor-application-ANY-authenticated-user-can-apply-become-vendor-creating-record-vendors-table
-APPLICATION-FLOW:route:/vendor-auth|new-users-sign-up[1-enter:Display-Name-Business-Name-Email-Password→2-system-creates-auth-account-supporter-role→3-inserts-vendors-record-pending-status→4-redirects-/vendor-dashboard-shows-pending-message]|existing-users-sign-in[1-enter:Email-Password→2-system-verifies-vendor-record-exists→3-if-no-vendor-record→suggests-applying-as-vendor→4-redirects-/vendor-dashboard]
-ALTERNATIVE-ENTRY:Marketplace-Become-Vendor-button→can-redirect:/vendor-auth-if-not-logged+/vendor-dashboard-if-logged→Apply-button-if-no-vendor-record
-VENDOR-CHECK-PATTERN:const-{data:vendor}=await-supabase.from-vendors.select-status.eq-user_id-userId.maybeSingle|if-vendor?.status===approved-user-can-access-vendor-features
-KEY-DIFFERENCE:OLD[vendor-separate-role+users-needed-vendor-specific-login]|NEW[vendor-status+any-user-apply-keeping-primary-role]|BENEFIT[guardians-manage-bestie-vendor-accounts+one-login-all-features]
-FILES:VendorAuth.tsx|VendorDashboard.tsx|Auth.tsx
+## VENDOR_AUTH
+OVERVIEW:ANY-auth-user-apply-vendor
+FLOW:route:/vendor-auth|new[signup→supporter+vendors-pending]|existing[signin→check-vendor-rec]
+ALT-ENTRY:Marketplace-Become-Vendor-btn
+CHECK:supabase.from-vendors.select-status.eq-user_id|if-approved-access-features
+DIFF:OLD[vendor-role-separate-login]|NEW[vendor-status-keep-primary-role]
+BENEFIT:guardians-manage-bestie-vendor+one-login
 
-## NOTIFICATION_CENTER_PAGE
-OVERVIEW:full-page-notification-center-at-/notifications-advanced-filtering-search-bulk-actions-better-organization-than-dropdown-bell
-LOCATION:route:/notifications+access:authenticated-users-only-all-roles+link-from:NotificationBell-dropdown→View-All-Notifications-button
-KEY-FEATURES:advanced-filtering[search-bar:searches-title+message-text-real-time-filtering-type-user-types-icon:Search-left-side+type-filter:dropdown-notification-types-options:All-Approvals-Moderation-Comments-Messages-Vendors-Updates-icon:Filter+date-filter:dropdown-time-ranges-options:All-Time-Today-Last-7-Days-Last-30-Days-icon:Calendar]|bulk-actions[mark-all-read:shows-unread-count-button-triggers-markAllAsRead-only-visible-unread-exist+clear-read:shows-read-count-button-triggers-deleteAllRead-only-visible-read-exist]|tab-organization[3-tabs:Unread-shows-only-unread+Read-shows-only-read+All-shows-all-filtered+tab-badges-display-count-notifications-each-tab]|enhanced-notification-cards[display:Bell-icon-primary-bg-unread-muted-read+title-bold+message-text+timestamp-relative-2-hours-ago+type-badge-Approvals-Messages+resolved-badge-green-auto-resolved+unread-indicator-blue-dot→styling:unread[bg-primary/5-border-primary/20]+auto-resolved[opacity-75-bg-muted/20]+hover[shadow-effect+delete-button-appears]→actions:click-card→navigate-link+mark-read+hover→delete-button-X-appears-top-right+delete→removes-notification]|empty-states[no-unread:Bell-icon+No-unread-notifications+no-read:Bell-icon+No-read-notifications+no-results:Bell-icon+No-notifications-match-filters-if-filters-active-or-No-notifications-yet]
-COMP-STRUCTURE:main.flex-1.pt-24>Container.max-w-4xl>BackButton+Header+Filters[SearchBar+TypeFilter+DateFilter]+BulkActions[MarkAllAsRead+ClearRead]+Tabs-defaultValue-unread>TabsList[Unread-Read-All]+TabsContent[notifications.map-NotificationCard]
-DATA-FLOW:hook-useNotifications-returns:{notifications-Array+loading-state+markAllAsRead-method+deleteNotification-id-method+deleteAllRead-method+handleNotificationClick-notification-method-navigate+mark-read}|filtering-logic[1-search:title.includes-query-OR-message.includes-query→2-type:type===selectedType-or-all→3-date:calc-daysDiff-from-created_at:today[daysDiff===0]+week[daysDiff≤7]+month[daysDiff≤30]]
-NOTIFICATION-TYPES-MAP:{all:All+pending_approval:Approvals+moderation_needed:Moderation+comment_on_post:Comments+new_sponsor_message:Messages+vendor_application:Vendors+product_update:Updates}
-MOBILE-RESPONSIVE:filters-stack-vertically-small-screens-flex-col-sm:flex-row+tabs-grid-layout-adjusts-auto+search-bar-full-width-mobile+max-width-max-w-[90vw]-mobile
-INTEGRATION:NotificationBell-component-changes[added-View-All-Notifications-button-bottom-dropdown+button-navigates-/notifications-route+border-top-separator-above-button+icon:ArrowRight-right-side]|App.tsx-route[Route-path=/notifications-element=Notifications]|internal-pages-registry[added:{value:/notifications+label:Notifications}]
-USER-WORKFLOWS:view-all[1-click-bell-header→2-click-View-All-Notifications-bottom→3-lands-full-page-notification-center]|filter[1-use-search-bar-text-search→2-select-type-from-dropdown-Approvals-Messages-etc→3-select-date-range-dropdown→4-results-update-immediately]|bulk-mgmt[1-view-unread-notifications-Unread-tab→2-click-Mark-all-as-read→all-become-read→3-switch-Read-tab→4-click-Clear-read→all-read-notifications-deleted]|individual[1-click-notification-card→navigate-linked-page+mark-read→2-hover-card→delete-button-appears→3-click-delete→notification-removed]
-ISSUES:filters-not-working→state-not-updating-check-filter-logic-filteredNotifications|empty-state-shows-with-notifications→filter-too-restrictive-reset-filters-All|back-button-doesnt-work→missing-navigation-setup-verify-useNavigate-hook|tabs-show-wrong-counts→filtering-happens-before-split-check-order:filter→split→count|search-case-sensitive→missing-toLowerCase-apply-both-query-text
-FILES:Notifications.tsx[main-page]+NotificationBell.tsx[bell-with-View-All-link]+useNotifications.ts[data-hook]+App.tsx[route-definition]+internalPages.ts[registry-entry]
-
-## DOCUMENTATION_MAINTENANCE
-PURPOSE:AI-instructions-for-maintaining-accurate-concise-system-docs
-PRE-CODING-CHECKLIST:MUST[1-search-existing-docs-for-system-being-modified→2-identify-docs/*_CONCISE.md+*_SYSTEM*.md-files→3-read-docs-completely-understand-patterns→4-review-naming-conventions-DB-schemas-RLS-badge-counts-TTS-image-handling]
-WHEN-UPDATE-DOCS:DB-changes[new-tables-columns+RLS-policies+triggers-functions→update-Database-sections]|component-changes[new-components+behavior-modified+props-changed→update-Components-Key-Files]|workflow-changes[user-flows+approval-processes+status-transitions→update-Workflow-User-Flows]|integration-changes[new-integrations+data-fetching+display-logic→update-Integration-Points]|issues-fixed[recurring-bugs+known-gotchas→update-Common-Issues-Troubleshooting]
-UPDATE-PROCESS:1-make-code-changes-first→2-identify-affected-docs-list-sections→3-update-docs-lov-line-replace-keep-concise<100-lines-follow-patterns-update-changed-sections-only→4-notify-user-docs/SYSTEM.md-added-X-updated-Y
-DOC-STANDARDS:file-naming[SYSTEM_NAME_CONCISE.md|FEATURE_NAME_SYSTEM.md|ALL_CAPS-underscores]|section-order[1-Overview-1-2-lines→2-Database-tables-key-fields→3-Core-Functionality-workflows-components→4-Integration-Points→5-RLS-Policies→6-Common-Issues→7-Key-Files]|formatting[**bold**-section-headers|`code`-table-field-file-names|tables-structured-data|code-blocks-ONLY-critical-patterns|bullet-points-lists|line-length≤120-chars]
-CROSS-REFERENCE:when-systems-interact-document-BOTH-places[Example:DISCUSSION-Events:Link-via-event_id-see-EVENTS|EVENTS-Linked-Events:Discussion-posts-link-events-see-DISCUSSION]
-CREATE-NEW-DOCS-WHEN:new-major-system-feature-≥3-components|system-has-DB-tables+UI+workflows|feature-spans-multiple-pages-components|system-requires-specific-RLS-policies→file-should-be:<100-lines-initially+follow-CONCISE-format+include-all-standard-sections+added-to-custom-knowledge
-RED-FLAGS:❌making-changes-without-checking-docs-first|❌creating-duplicate-documentation|❌ignoring-established-patterns-in-docs|❌writing-verbose-documentation-keep-CONCISE|❌documenting-every-single-function|❌skipping-doc-updates-after-code-changes|❌not-cross-referencing-related-systems
-DOC-AS-SOURCE-TRUTH:Docs=System-Contract-define-how-things-SHOULD-work|Code=Implementation-may-have-bugs-deviations|When-code-contradicts-docs→Fix-code-OR-update-docs-with-reasoning|When-adding-features→Check-docs-for-similar-patterns-first|When-fixing-bugs→Add-to-Common-Issues-section
-MAINTENANCE-FREQUENCY:update-immediately[DB-schema-changes+new-components-pages+modified-workflows+RLS-policy-changes]|update-when-convenient[typo-fixes+formatting-improvements+minor-clarifications]|never-update[trivial-changes+no-functionality-changed+internal-implementation-details]
-KEY-PRINCIPLE:Good-documentation-prevents-future-bugs+speeds-up-development+maintains-consistency→ALWAYS-check-docs-first+ALWAYS-update-docs-after
-
-## ALBUMS_GALLERY_SYSTEM
-ROUTE:/gallery[public-view]|/admin/albums[admin-CRUD]
-DB:albums(id|title|description|event_id[nullable-link-events]|cover_image_url|audio_url|is_post[boolean]|is_public[boolean]|is_active|created_at)|album_images(id|album_id|image_url|original_image_url[for-recrop]|caption|display_order)|storage:album-images-bucket[public]
-ADMIN-FEATURES:AlbumManagement→create-edit-albums[title+desc+event-link+visibility+audio-recorder-upload]|upload-multi-images[compress-4.5MB+captions+drag-drop-reorder+crop-recrop-ImageCropDialog]|set-cover-image[first-image-default-can-change]|link-event[optional-dropdown-all-events]|link-discussion[auto-when-album_id-set-in-discussion_posts]
-DISPLAY-FEATURES:GalleryPage→grid-layout[1-col-mobile-4-col-desktop]|album-cards[cover-image+title+desc+photo-count+event-date-if-linked+View-Discussion-btn-if-linkedPost]|ImageLightbox[fullscreen-overlay→click-card→opens-lightbox-with-nav+captions+counter+gradient-overlay]
-LIGHTBOX:ImageLightbox.tsx→Dialog-based[max-w-90vw-max-h-90vh]|controls[Close-top-right+Prev-Next-sides+Counter-top-center]|image[max-w-full-max-h-full-object-contain-NO-object-cover-prevents-crop]|caption[gradient-overlay-bottom]|navigation[wraps-around-circular]|keyboard[Escape-close-Arrow-keys-nav]
-IMAGE-HANDLING:upload[multi-select-maintains-order+previews-generate]|compress[compressImage-util-4.5MB-max]|crop[ImageCropDialog-aspect-ratio-selection+stores-original_image_url]|recrop[loads-original-unlimited-re-crops-no-quality-loss+updates-cover-if-used]|drag-drop-reorder[@dnd-kit/sortable-saves-display_order]
-INTEGRATION:events[optional-link-via-event_id→shows-date-on-card]|discussions[auto-link-when-album_id-in-discussion_posts→View-Discussion-btn-appears]|audio[AudioRecorder-component-or-upload→stores-event-audio-bucket]
-RLS:SELECT[all-auth-view-is_active=true-is_public=true]|INSERT-UPDATE-DELETE[admins-only]|album_images[same-as-albums]
-ISSUES:images-not-showing→check-is_active+is_public|lightbox-crops-images→verify-object-contain-not-object-cover|reorder-doesnt-save→check-display_order-update-logic|recrop-not-working→verify-original_image_url-exists
-FILES:GalleryPage.tsx|AlbumManagement.tsx|ImageLightbox.tsx|ImageCarousel.tsx|LatestAlbum.tsx|ImageCropDialog.tsx
-
-## MARKETPLACE_SHOPPING_CART
-ROUTE:/marketplace[browse-products]|/orders[order-history]
-DB:products(id|vendor_id|name|description|price|category[merch-handmade]|images[array]|inventory|is_active)|shopping_cart(id|user_id|product_id|quantity|created_at)|orders(id|customer_id|total_amount|status[pending-completed-cancelled]|stripe_payment_intent_id|shipping_address[JSONB]|billing_address[JSONB]|notes)|order_items(id|order_id|product_id|vendor_id|quantity|price|tracking_number|carrier|tracking_url|fulfillment_status[pending-shipped-delivered]|shipped_at|delivered_at|platform_fee|vendor_payout|stripe_transfer_id)
-MARKETPLACE-PAGE:Marketplace.tsx→hero[title+desc+action-btns:Cart-with-badge-count+Order-History+Become-Vendor]|tabs[All-Products-Official-Merch-Handmade]|ProductGrid[displays-filtered-products-by-category]|cart-sheet-overlay
-SHOPPING-CART:ShoppingCartSheet→Sheet-component[right-side-overlay-max-w-lg]|displays[product-image-name-price-quantity-controls+Plus-Minus-btns-Delete-icon]|quantity-update[inline-optimistic-updates+invalidates-queries]|total-calculation[SUM-price×quantity]|checkout-btn[Proceed-to-Checkout-placeholder-not-wired]|empty-state[Continue-Shopping-btn]
-PRODUCT-FEATURES:ProductCard→image-carousel[if-multiple-images]|price-display[bold-primary-color]|inventory-badge[Out-of-Stock-when-0-red-destructive]|Add-to-Cart-btn[updates-cart-invalidates-count-query]|vendor-link[View-Store-btn→/vendors/{id}]
-CART-OPERATIONS:add-to-cart[INSERT-shopping_cart-if-not-exists-UPDATE-quantity+1-if-exists]|update-quantity[direct-UPDATE-quantity-field+min-1]|remove-item[DELETE-from-shopping_cart+toast-confirmation]|cart-count[useQuery-SUM-quantities-realtime-badge]
-VENDOR-INTEGRATION:vendors-manage-products[/vendor-dashboard-Products-tab]|vendors-see-orders[Orders-tab+fulfillment-tracking]|vendor-store-pages[/vendors/{id}→displays-vendor-products+bestie-asset-if-featured]
-CATEGORIES:merch[official-BDE-merchandise]|handmade[community-vendor-creations]|filter[tab-selection-updates-ProductGrid-category-prop]
-RLS:shopping_cart[users-CRUD-own-cart-by-user_id]|orders[customers-SELECT-own-orders+vendors-SELECT-orders-with-their-products+admins-ALL]|order_items[customers-SELECT-via-orders+vendors-SELECT-UPDATE-their-items-for-fulfillment]
-CHECKOUT-FLOW:user-adds-items→cart-sheet→Proceed-to-Checkout→[NOT-YET-IMPLEMENTED:Stripe-checkout-session+order-creation+inventory-deduction+vendor-notifications]
-ISSUES:cart-count-wrong→check-realtime-query-invalidation|cant-add-to-cart→check-auth+product-inventory|cart-not-updating→verify-query-invalidation-after-mutations
-FILES:Marketplace.tsx|ShoppingCartSheet.tsx|ProductCard.tsx|ProductGrid.tsx|ProductList.tsx[vendor]|OrderHistory.tsx
-
-## TEXT_TO_SPEECH_SYSTEM
-OVERVIEW:app-wide-TTS-integration-OpenAI-voices-ElevenLabs-bestie-voices-user-preference-control
-DB:profiles(tts_voice[def:Aria-OpenAI-voices:Alloy-Echo-Fable-Onyx-Nova-Shimmer-Aria-or-bestie-names]|tts_enabled[boolean-def:true])|BESTIE-VOICES[Austin-Batman-Cherry-Twinkle-Creature-Grandma-Muffin-Grandpa-Werthers-Jerry-B-Johnny-Dynamite-Marshal-Maverick+voice-patterns-in-assets]
-EDGE-FUNCS:text-to-speech[public-no-auth→request:{text-voice}→OpenAI-TTS-API[model:tts-1-hd+response_format:mp3]→returns-base64-audioContent]|text-to-speech-bestie[bestie-specific-voices→ElevenLabs-API-integration+custom-voice-IDs-per-bestie]
-COMPONENT:TextToSpeech.tsx→props:{text-voice?-size?-onPlayingChange?}→button[Play-Pause-icon+gradient-pulse-loading]|loads-user-tts_voice-preference-from-profiles|returns-null-if-tts_enabled=false|e.stopPropagation-prevents-parent-click-events-critical
-USAGE-PATTERN:import-TextToSpeech→place-next-to-content[title+description]→<TextToSpeech-text={combinedText}-voice={voiceName?}/>→auto-uses-user-preference-if-no-voice-specified
-INTEGRATION-POINTS:discussions[post-cards+comments→TTS-title+content]|events[event-cards+detail-dialog→TTS-title+desc+date+location]|community-previews[Latest-Discussion+Upcoming-Events→TTS-on-each-card]|albums[TTS-for-album-descriptions]|sponsor-besties[TTS-for-bestie-text-sections]
-AUDIO-GENERATION-FLOW:1-user-clicks-Play→2-shows-loading-gradient-pulse→3-calls-edge-function-with-text+voice→4-receives-base64-MP3→5-creates-Blob+Audio-element→6-plays-audio→7-on-ended-cleanup+set-isPlaying=false→8-Pause-btn-stops-playback-immediately
-VOICE-SELECTION:user-profile[ProfileSettings→TTS-Voice-dropdown+Enable-TTS-toggle]|bestie-voices[special-ElevenLabs-voices-for-bestie-content-voice-patterns-show-waveforms-in-assets]|default[Aria-if-no-preference-set]
-BESTIE-VOICE-FLOW:1-bestie-selects-voice-profile→2-system-uses-text-to-speech-bestie-edge-func→3-ElevenLabs-API-with-bestie-voice-ID→4-high-quality-voice-cloning-realistic-speech
-ISSUES:audio-not-playing→check-console-logs-TTS-prefix+base64-length|wrong-voice→verify-profiles.tts_voice-value|TTS-btn-hidden→check-tts_enabled=true|audio-ends-immediately→base64-decode-issue-or-empty-text
-FILES:TextToSpeech.tsx|text-to-speech/index.ts|text-to-speech-bestie/index.ts|ProfileSettings.tsx[TTS-config]|voice-patterns/[bestie-waveforms]
-
-## AVATAR_SYSTEM
-OVERVIEW:48-composite-avatars[12-composites×4-quadrants]+2-monster-avatars+unlimited-custom-uploads-admin-managed
-DB:avatars(id|avatar_number[1-48-composites-49-50-monsters-51+-custom]|category[humans-animals-monsters-shapes]|is_active[boolean]|created_at)|profiles(avatar_number[references-avatars])|storage:avatars-bucket[custom-uploads-avatar-{number}.png]
-COMPOSITE-SYSTEM:12-composite-images[composite-1.png→composite-12.png]|each-composite-4-quadrants[200%×200%-background-size]|position-mapping[top-left-0-0-top-right-100-0-bottom-left-0-100-bottom-right-100-100]|example:avatar-1-4→composite-1[1:top-left-2:top-right-3:bottom-left-4:bottom-right]
-AVATAR-CATEGORIES:humans[avatars-1-20-diverse-human-faces]|animals[avatars-21-36-cats-dogs-wildlife]|monsters[avatars-37-48-aliens-creatures-plus-49-pirate-starfish-50-purple-three-eyes]|shapes[future-geometric-avatars]
-COMPONENTS:AvatarPicker→signup-ProfileSettings[collapsible-shows-all-active-avatars-grouped-by-category-grid-4×6-responsive+click-to-select-blue-ring-checkmark+shuffled-within-categories]|AvatarDisplay→renders-avatar[uses-getAvatarConfig-function+handles-composites-with-backgroundPosition+handles-storage-avatars-49+→loads-from-avatars-bucket+fallback-to-default-avatar-1]
-ADMIN-FEATURES:AvatarManagement→/admin/avatars[view-all-avatars+upload-custom-avatars-assigns-next-number-51-52-etc+toggle-active-inactive-visibility+category-assignment+delete-custom-avatars-not-composites]|AvatarUploader[upload-to-avatars-bucket+compression+assigns-avatar-number+updates-avatars-table]
-CUSTOM-AVATAR-FLOW:1-admin-uploads-image→2-system-assigns-next-available-number[51+]→3-creates-avatars-record[avatar_number-category-is_active:true]→4-uploads-to-storage[avatars/avatar-{number}.png]→5-available-immediately-in-AvatarPicker
-AVATAR-SELECTION:Auth-signup[AvatarPicker-optional-collapsible+stores-avatar_number-in-profiles]|ProfileSettings[change-avatar-anytime+same-AvatarPicker-interface+updates-profiles.avatar_number]
-AVATAR-RENDERING:getAvatarConfig-function[maps-avatar_number-to-composite-image+position-OR-storage-URL]|composite-avatars[use-CSS-backgroundImage+backgroundSize-200%-200%+backgroundPosition-calculated]|storage-avatars[use-img-src-direct-public-URL]|fallback[avatar-1-if-inactive-or-missing]
-RLS:avatars[SELECT-all-auth-where-is_active=true+INSERT-UPDATE-DELETE-admins-only]|storage:avatars-bucket[public-read-admin-write]
-ISSUES:avatar-not-showing→check-is_active-in-avatars-table|wrong-quadrant→verify-position-calculation-in-getAvatarConfig|custom-avatar-missing→check-storage-upload-success+public-URL-generation|avatar-reverts-to-default→inactive-avatar-triggers-fallback
-FILES:AvatarPicker.tsx|AvatarDisplay.tsx|AvatarManagement.tsx|AvatarUploader.tsx|avatarUtils.ts|composite-*.png[12-files]|monster-*.png[2-files]
-
-## MODERATION_QUEUE
-ROUTE:/moderation[moderators-admins-only]
-ACCESS:useUserPermissions-hook[canModerate-checks-admin-owner-roles-OR-moderate-permission-from-user_permissions-table]
-DB:discussion_posts(is_moderated[boolean-AI-flag]|moderation_notes[severity-reason]|moderation_status-moderation_severity-moderation_reason)|discussion_comments(is_moderated|moderation_notes)|user_permissions(user_id|permission_type[moderate])|moderation_settings(discussion_post_image_policy[all-manual-review-flagged-AI-scan-none-auto-approve])
-DISPLAY:ModerationQueue→2-tabs[Posts-Comments]|cards[border-l-4-border-l-orange-500+AlertTriangle-icon]|shows[title-content-author-timestamp-image-if-present-flagging-reason-severity-badge]|severity-colors[high:red-medium:orange-low:yellow]
-ACTIONS:approve-post[update-is_moderated:true+moderation_notes:Approved-by-moderator]|reject-post[DELETE-from-discussion_posts-cascade-deletes-comments]|approve-comment[update-is_moderated:true]|reject-comment[DELETE-from-discussion_comments]
-AI-MODERATION:moderate-content-edge-func[scans-text-title+content-before-save→flags-inappropriate→sets-is_moderated:false+severity]|moderate-image-edge-func[policy-based:all-manual-review[always-flagged]|flagged-AI-scan[AI-checks-flags-if-issues]|none-auto-approve[skips-moderation]]
-NOTIFICATION-INTEGRATION:notify_on_moderation_needed-trigger[AFTER-INSERT-UPDATE-when-is_moderated=false→creates-notifications-for-moderators-admins+type:moderation_needed+link:/moderation]
-EMPTY-STATE:CheckCircle-icon-green[All-clear-No-posts-comments-awaiting-moderation]
-RLS:discussion_posts-discussion_comments[moderators-admins-can-UPDATE-is_moderated-field+can-DELETE-flagged-content]|uses-can_moderate-function[SECURITY-DEFINER-checks-has_admin_access-OR-has_permission-moderate]
-ISSUES:cant-access→check-canModerate-permission|content-not-flagged→verify-moderate-content-edge-func-running|images-not-showing→check-moderation_settings.discussion_post_image_policy
-FILES:ModerationQueue.tsx|MessageModerationQueue.tsx[sponsor-messages]|ModerationPolicyManager.tsx[admin-config]|useUserPermissions.ts|moderate-content/index.ts|moderate-image/index.ts
-
-## ROLE_IMPERSONATION
-PURPOSE:admin-tool-test-UI-as-different-roles-without-logging-out-switching-accounts
-HOOK:useRoleImpersonation→{impersonatedRole-isImpersonating-startImpersonation-stopImpersonation}→stores-localStorage[impersonated_role-key]→returns-effective-role-for-UI-rendering
-BANNER:ImpersonationBanner→sticky-top-z-60[above-navbar]|bg-orange-#FF8C42[distinct-admin-mode-indicator]|shows[Eye-icon+Admin-Mode:Viewing-as-{role}+Exit-Impersonation-btn]|only-renders-when-isImpersonating=true
-ADMIN-INTERFACE:RoleImpersonator→Admin→Settings→Impersonation-tab|radio-buttons[Caregiver-Bestie-Supporter]|Start-Impersonation-btn→sets-localStorage+reloads-page|shows-current-impersonated-role-if-active
-AFFECTED-SYSTEMS:navigation-bar[role-based-visibility]|badges[guardian-approvals-sponsor-messages-etc]|page-access[role-restricted-pages]|content-visibility[role-based-discussions-events]|UI-elements[role-specific-buttons-sections]
-USAGE-FLOW:1-admin-opens-Admin→Settings→Impersonation→2-selects-role-radio-btn→3-clicks-Start-Impersonation→4-page-reloads-with-banner-visible→5-admin-sees-UI-as-selected-role→6-clicks-Exit-Impersonation-banner→7-page-reloads-back-to-admin-view
-IMPLEMENTATION-PATTERN:components-check[const-{impersonatedRole-isImpersonating}=useRoleImpersonation-if-isImpersonating-use-impersonatedRole-else-use-actual-role]|critical-banner-must-be-visible-to-remind-admin
-SECURITY:impersonation-frontend-only[does-not-change-actual-DB-user-role]|localStorage-only[clears-on-logout-browser-close]|admin-only-feature[no-access-control-needed-admins-trust]
-ISSUES:banner-not-showing→check-isImpersonating-state|wrong-UI→verify-components-using-impersonatedRole|impersonation-persists→localStorage-not-cleared-click-Exit
-FILES:useRoleImpersonation.ts|ImpersonationBanner.tsx|RoleImpersonator.tsx|App.tsx[banner-placement]
-
-## PARTNERS_SYSTEM
-ROUTE:/partners[public-display]|Admin→Partners[management]
-DB:partners(id|name|description|logo_url|website_url|display_order|is_active|created_at)
-ADMIN:PartnersManager→CRUD-interface[Add-Partner-dialog+edit-delete-btns]|form[name-description-logo-upload-website-URL-all-required-except-desc]|logo-upload[uploads-app-assets/partners/+shows-preview-w-16-h-16-object-contain]|drag-drop-reorder[@dnd-kit/sortable-updates-display_order]|visibility-toggle[Eye-EyeOff-btn-green-active-red-inactive-standard]
-DISPLAY:Partners.tsx→public-page[shows-active-partners-only-ordered-by-display_order]|partner-cards[logo-name-description-website-link-external-icon]|grid-layout[responsive-1-col-mobile-3-4-col-desktop]
-PARTNER-CARD:logo[w-24-h-24-object-contain-rounded]|name[font-semibold]|description[text-sm-muted-line-clamp-2]|website[text-primary-hover:underline-ExternalLink-icon-opens-new-tab-noopener-noreferrer]
-OPERATIONS:create[dialog-form-uploads-logo-to-storage-inserts-partners-table-display_order:partners.length]|update[same-dialog-pre-filled-can-change-logo-URL-kept-if-not-re-uploaded]|delete[confirmation-dialog-deletes-from-DB-logo-remains-in-storage]|reorder[drag-GripVertical-handle-updates-all-display_order-values]|toggle-active[Eye-EyeOff-btn-updates-is_active-field]
-RLS:SELECT[all-users-view-is_active:true-partners]|INSERT-UPDATE-DELETE[admins-only]
-INTEGRATION:homepage[can-add-partners-section-to-homepage_sections-if-needed]|about-page[partners-can-be-featured-in-about-sections]
-ISSUES:partner-not-showing→check-is_active:true|logo-not-loading→verify-public-URL-from-storage|cant-reorder→check-drag-drop-sensors-setup|website-link-blocked→use-anchor-with-target-blank-rel-noopener
-FILES:PartnersManager.tsx|Partners.tsx|partners-table
-
-## QUICK_LINKS_SYSTEM
-LOCATION:Community-page-sidebar-prominent-action-buttons
-DB:community_quick_links(id|label|href|icon[Lucide-icon-name]|color[Tailwind-gradient-classes]|display_order|is_active|created_by)
-ADMIN:QuickLinksManager→Admin→Format-Pages→Quick-Links|form[label-href-dropdown-or-custom-URL-icon-selector-50+-icons-color-gradient-picker-9-options]|href-types[internal:dropdown-from-INTERNAL_PAGES-array|custom:text-input-for-external-URLs-or-anchor-links]|drag-drop-reorder[@dnd-kit/sortable]|toggle-active[Switch-component-green-on-gray-off]
-DISPLAY:Community.tsx→quick-links-section[grid-2-col-sm:3-col-gap-3]|link-cards[gradient-bg-from-color-prop+icon-rendered-dynamically+label-text+hover:scale-105-shadow-transition]|click-behavior[internal:navigate-via-React-Router|external:window.open-new-tab]
-ICON-SYSTEM:50+-Lucide-icons[Heart-Gift-Users-Coffee-Calendar-etc]|renderIconPreview-function[dynamically-loads-icon-component-from-Icons-object]|icon-picker[dropdown-shows-icon+name-preview]
-GRADIENT-OPTIONS:9-predefined-gradients[Primary/Secondary-Primary-Variant-Secondary-Accent-Warm-Sunset-Cool-Ocean-Forest-Green-Purple-Dream-Gold-Shine]|stored-as-Tailwind-classes[from-primary/20-to-secondary/5]
-OPERATIONS:create[form-submission-inserts-community_quick_links-display_order:links.length]|update[edit-btn-fills-form-updates-record-on-submit]|delete[trash-icon-confirmation-deletes-record]|reorder[drag-GripVertical-updates-display_order-for-all]|toggle[Switch-updates-is_active-immediately]
-LINK-RESOLUTION:INTERNAL_PAGES-array[src/lib/internalPages.ts-centralized-route-registry]|internal-links[detected-by-matching-INTERNAL_PAGES.value]|custom-links[anything-not-in-registry-treated-as-custom]
-RLS:SELECT[all-auth-view-is_active:true-quick-links]|INSERT-UPDATE-DELETE[admins-only]
-ISSUES:link-not-showing→check-is_active:true|icon-not-rendering→verify-icon-name-matches-Lucide-exports|wrong-page-opens→check-href-value-in-DB|gradient-not-applying→verify-color-class-string-format
-FILES:QuickLinksManager.tsx|Community.tsx[display]|internalPages.ts[route-registry]
-
-## DOMAIN_ROUTING
-OVERVIEW:multi-domain-support-routes-users-based-on-hostname-separate-coffee-shop-vs-main-app
-HOOK:useDomainRouting→{isCoffeeShopDomain}→checks-window.location.hostname[bestdayevercoffeeandcrepes.com-www.bestdayevercoffeeandcrepes.com]|returns-boolean-flag
-USAGE:App.tsx→useEffect[if-isCoffeeShopDomain-navigate-to-/coffee-shop]|automatic-redirect-on-coffee-shop-domain-prevents-access-to-main-app-routes
-COFFEE-SHOP-DOMAIN:bestdayevercoffeeandcrepes.com→dedicated-coffee-shop-website[/coffee-shop-route]|separate-branding-menu-content-no-auth-required-public-marketing-site
-MAIN-DOMAIN:default-Joy-House-Community-app[all-other-routes-community-discussions-sponsorships-marketplace-admin]
-IMPLEMENTATION:simple-hostname-check[no-subdomain-routing-just-domain-detection]|useEffect-cleanup[re-checks-on-mount-hostname-changes]
-FUTURE-ENHANCEMENTS:could-add-more-domains[vendor-storefronts-partner-microsites-subdomain-routing-org.joyhouse.app]|could-add-custom-domain-mapping[users-bring-own-domains-map-to-specific-pages]
-ISSUES:redirect-loop→check-/coffee-shop-route-doesnt-trigger-redirect-again|domain-not-detected→verify-exact-match-in-coffeeShopDomains-array|wrong-redirect→check-isCoffeeShopDomain-logic-in-App.tsx
-FILES:useDomainRouting.ts|App.tsx[redirect-logic]|CoffeeShopHome.tsx[coffee-shop-page]
+## NOTIF_CENTER_PAGE
+ROUTE:/notifications|ACCESS:auth-all-roles
+LINK:NotificationBell→View-All-Notifications-btn
+FEATURES:advanced-filtering[search-type-date]|bulk[mark-all-read-clear-read]|tabs[Unread-Read-All-badges]|cards[Bell-icon-title-msg-timestamp-type-badge-resolved-unread-dot-hover-delete]|empty-states
+STRUCTURE:main.pt-24>Container.max-w-4xl>BackButton+Header+Filters+BulkActions+Tabs>TabsList+TabsContent[map-cards]
+DATA:useNotifications[notifications+loading+methods]|filter[search-type-date]
+TYPES-MAP:{all|pending_approval:Approvals|moderation_needed:Moderation|comment_on_post:Comments|new_sponsor_message:Messages|vendor_application:Vendors|product_update:Updates}
+MOBILE:filters-stack-vertical|tabs-grid-adjust|search-full-width|max-w-90vw
+WORKFLOWS:view-all[bell→View-All→page]|filter[search-type-date]|bulk[mark-all-clear]|individual[click→nav+mark-read|hover→del]
