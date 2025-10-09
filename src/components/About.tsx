@@ -111,16 +111,16 @@ const About = ({ content = {} }: AboutProps) => {
                     <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Watch On:
                     </h4>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-4">
                       {doc_youtube_url && (
                         <Button 
                           variant="outline"
-                          size="default"
+                          size="lg"
                           asChild
-                          className="hover:bg-accent"
+                          className="hover:bg-accent min-w-[140px]"
                         >
                           <a href={doc_youtube_url} target="_blank" rel="noopener noreferrer">
-                            <Play className="mr-2 h-4 w-4" />
+                            <Play className="mr-2 h-5 w-5" />
                             YouTube
                           </a>
                         </Button>
@@ -128,12 +128,12 @@ const About = ({ content = {} }: AboutProps) => {
                       {doc_vimeo_url && (
                         <Button 
                           variant="outline"
-                          size="default"
+                          size="lg"
                           asChild
-                          className="hover:bg-accent"
+                          className="hover:bg-accent min-w-[140px]"
                         >
                           <a href={doc_vimeo_url} target="_blank" rel="noopener noreferrer">
-                            <Play className="mr-2 h-4 w-4" />
+                            <Play className="mr-2 h-5 w-5" />
                             Vimeo
                           </a>
                         </Button>
