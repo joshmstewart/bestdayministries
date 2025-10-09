@@ -526,24 +526,43 @@ export default function GuardianLinks() {
     try {
       const friendCode = `${emoji1}${emoji2}${emoji3}`;
       
-      // Search using profiles_public view which includes role
-      const { data: bestie, error } = await supabase
+      // Search for profile by friend code
+      const { data: profile, error: profileError } = await supabase
         .from("profiles_public")
-        .select("id, display_name, role, avatar_number, friend_code, bio")
-        .eq("role", "bestie")
+        .select("id, display_name, avatar_number, friend_code, bio")
         .eq("friend_code", friendCode)
         .maybeSingle();
 
-      if (error) throw error;
-      if (!bestie) {
+      if (profileError) throw profileError;
+      if (!profile) {
         toast({
           title: "Friend code not found",
-          description: "No bestie found with that friend code",
+          description: "No user found with that friend code",
           variant: "destructive",
         });
         setIsSearching(false);
         return;
       }
+
+      // Verify the user has bestie role
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", profile.id)
+        .eq("role", "bestie")
+        .maybeSingle();
+
+      if (roleError || !roleData) {
+        toast({
+          title: "Not a bestie",
+          description: "This friend code doesn't belong to a bestie",
+          variant: "destructive",
+        });
+        setIsSearching(false);
+        return;
+      }
+
+      const bestie = profile;
 
       // Check if already linked
       const { data: existingLink } = await supabase

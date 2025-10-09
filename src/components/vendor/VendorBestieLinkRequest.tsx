@@ -41,7 +41,7 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
       // Look up bestie by friend code
       const { data: profile, error: profileError } = await supabase
         .from('profiles_public')
-        .select('id, display_name, role')
+        .select('id, display_name, friend_code')
         .eq('friend_code', friendCode)
         .maybeSingle();
 
@@ -51,7 +51,15 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
         return;
       }
 
-      if (profile.role !== 'bestie') {
+      // Verify the user has bestie role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', profile.id)
+        .eq('role', 'bestie')
+        .maybeSingle();
+
+      if (roleError || !roleData) {
         toast.error("This friend code doesn't belong to a bestie");
         setLoading(false);
         return;

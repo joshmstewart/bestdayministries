@@ -74,10 +74,25 @@ export const SponsorBestieManager = () => {
 
   const loadBestieAccounts = async () => {
     try {
+      // Get bestie user IDs from user_roles table
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "bestie");
+
+      if (roleError) throw roleError;
+      if (!roleData || roleData.length === 0) {
+        setBestieAccounts([]);
+        return;
+      }
+
+      const bestieIds = roleData.map(r => r.user_id);
+
+      // Get profiles for these besties
       const { data, error } = await supabase
         .from("profiles_public")
         .select("id, display_name")
-        .eq("role", "bestie")
+        .in("id", bestieIds)
         .order("display_name");
 
       if (error) throw error;

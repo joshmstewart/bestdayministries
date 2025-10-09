@@ -14,7 +14,7 @@ import { useUserPermissions } from "@/hooks/useUserPermissions";
 interface Profile {
   id: string;
   display_name: string;
-  role: string;
+  role?: string;
 }
 
 interface FlaggedPost {
@@ -84,7 +84,7 @@ const ModerationQueue = () => {
       .from("discussion_posts")
       .select(`
         *,
-        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role)
+        author:profiles_public!discussion_posts_author_id_fkey(id, display_name)
       `)
       .eq("is_moderated", false)
       .order("created_at", { ascending: false });
@@ -93,7 +93,7 @@ const ModerationQueue = () => {
       .from("discussion_comments")
       .select(`
         *,
-        author:profiles_public!discussion_comments_author_id_fkey(id, display_name, role),
+        author:profiles_public!discussion_comments_author_id_fkey(id, display_name),
         post:discussion_posts!discussion_comments_post_id_fkey(title)
       `)
       .eq("is_moderated", false)

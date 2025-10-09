@@ -30,7 +30,7 @@ import { SEOHead, getArticleStructuredData } from "@/components/SEOHead";
 interface Profile {
   id: string;
   display_name: string;
-  role: string;
+  role?: string;
   avatar_url?: string;
   avatar_number?: number;
 }
@@ -235,7 +235,7 @@ const Discussions = () => {
       .from("discussion_posts")
       .select(`
         *,
-        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, role, avatar_number),
+        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, avatar_number),
         album:albums(id, title, cover_image_url, is_active),
         video:videos(id, title, video_url, youtube_url, video_type),
         event:events(id, title, event_date, location)
@@ -260,7 +260,7 @@ const Discussions = () => {
           .from("discussion_comments")
           .select(`
             *,
-            author:profiles_public!discussion_comments_author_id_fkey(id, display_name, role, avatar_number)
+            author:profiles_public!discussion_comments_author_id_fkey(id, display_name, avatar_number)
           `)
           .eq("post_id", post.id)
           .eq("is_moderated", true)
@@ -901,13 +901,34 @@ const Discussions = () => {
   };
 
   const loadAdminOwnerUsers = async () => {
+    // Get admin and owner user IDs from user_roles table
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("user_id, role")
+      .in("role", ["admin", "owner"]);
+    
+    if (!roleData || roleData.length === 0) {
+      setAdminOwnerUsers([]);
+      return;
+    }
+
+    const userIds = roleData.map(r => r.user_id);
+    
+    // Get profile info for these users
     const { data } = await supabase
       .from("profiles_public")
-      .select("id, display_name, role")
-      .in("role", ["admin", "owner"])
+      .select("id, display_name")
+      .in("id", userIds)
       .order("display_name", { ascending: true });
     
-    if (data) setAdminOwnerUsers(data);
+    if (data) {
+      // Add role info back from roleData
+      const usersWithRoles = data.map(user => ({
+        ...user,
+        role: roleData.find(r => r.user_id === user.id)?.role || ''
+      }));
+      setAdminOwnerUsers(usersWithRoles);
+    }
   };
 
   const handleChangeAuthor = (post: Post) => {
