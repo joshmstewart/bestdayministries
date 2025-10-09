@@ -8,10 +8,27 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, Volume2, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Volume2, Eye, EyeOff, GripVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TTSVoice {
   id: string;
@@ -24,12 +41,95 @@ interface TTSVoice {
   is_active: boolean;
 }
 
+interface SortableRowProps {
+  voice: TTSVoice;
+  onEdit: (voice: TTSVoice) => void;
+  onDelete: (id: string) => void;
+  onToggleActive: (voice: TTSVoice) => void;
+  onTest: (voiceName: string) => void;
+}
+
+const SortableRow = ({ voice, onEdit, onDelete, onToggleActive, onTest }: SortableRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: voice.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style}>
+      <TableCell>
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">{voice.voice_label}</TableCell>
+      <TableCell className="text-muted-foreground">{voice.voice_name}</TableCell>
+      <TableCell>{voice.description}</TableCell>
+      <TableCell>{voice.display_order}</TableCell>
+      <TableCell>
+        <Badge variant={voice.is_active ? "default" : "secondary"}>
+          {voice.is_active ? "Active" : "Hidden"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onTest(voice.voice_name)}
+            title="Test voice"
+          >
+            <Volume2 className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onToggleActive(voice)}
+            title={voice.is_active ? "Hide voice" : "Show voice"}
+          >
+            {voice.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onEdit(voice)}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onDelete(voice.id)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+};
+
 export const TTSVoiceManager = () => {
   const { toast } = useToast();
   const [voices, setVoices] = useState<TTSVoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingVoice, setEditingVoice] = useState<TTSVoice | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const [formData, setFormData] = useState({
     voice_name: '',
@@ -182,6 +282,67 @@ export const TTSVoiceManager = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent, category: 'standard' | 'fun') => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const categoryVoices = voices.filter(v => v.category === category);
+    const oldIndex = categoryVoices.findIndex(v => v.id === active.id);
+    const newIndex = categoryVoices.findIndex(v => v.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reorderedVoices = arrayMove(categoryVoices, oldIndex, newIndex);
+
+    // Update display_order for all items in this category
+    const updates = reorderedVoices.map((voice, index) => ({
+      id: voice.id,
+      display_order: index + 1,
+    }));
+
+    // Optimistically update UI
+    setVoices(prevVoices => {
+      const otherCategoryVoices = prevVoices.filter(v => v.category !== category);
+      const updatedCategoryVoices = reorderedVoices.map((voice, index) => ({
+        ...voice,
+        display_order: index + 1,
+      }));
+      return [...otherCategoryVoices, ...updatedCategoryVoices].sort((a, b) => {
+        if (a.category !== b.category) {
+          return a.category === 'standard' ? -1 : 1;
+        }
+        return a.display_order - b.display_order;
+      });
+    });
+
+    // Save to database
+    try {
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('tts_voices')
+          .update({ display_order: update.display_order })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Order updated",
+        description: "Voice order has been saved",
+      });
+    } catch (error: any) {
+      console.error('Error updating order:', error);
+      toast({
+        title: "Error updating order",
+        description: error.message,
+        variant: "destructive",
+      });
+      // Reload to get correct order
+      loadVoices();
     }
   };
 
@@ -348,148 +509,92 @@ export const TTSVoiceManager = () => {
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-4">Standard Voices</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Label</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {standardVoices.length === 0 ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => handleDragEnd(event, 'standard')}
+            >
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      No standard voices found
-                    </TableCell>
+                    <TableHead className="w-12"></TableHead>
+                    <TableHead>Label</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Order</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  standardVoices.map((voice) => (
-                    <TableRow key={voice.id}>
-                      <TableCell className="font-medium">{voice.voice_label}</TableCell>
-                      <TableCell className="text-muted-foreground">{voice.voice_name}</TableCell>
-                      <TableCell>{voice.description}</TableCell>
-                      <TableCell>{voice.display_order}</TableCell>
-                      <TableCell>
-                        <Badge variant={voice.is_active ? "default" : "secondary"}>
-                          {voice.is_active ? "Active" : "Hidden"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => testVoice(voice.voice_name)}
-                            title="Test voice"
-                          >
-                            <Volume2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => toggleActive(voice)}
-                            title={voice.is_active ? "Hide voice" : "Show voice"}
-                          >
-                            {voice.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(voice)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(voice.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {standardVoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        No standard voices found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    <SortableContext items={standardVoices.map(v => v.id)} strategy={verticalListSortingStrategy}>
+                      {standardVoices.map((voice) => (
+                        <SortableRow
+                          key={voice.id}
+                          voice={voice}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                          onToggleActive={toggleActive}
+                          onTest={testVoice}
+                        />
+                      ))}
+                    </SortableContext>
+                  )}
+                </TableBody>
+              </Table>
+            </DndContext>
           </div>
 
           <div>
             <h3 className="text-lg font-semibold mb-4">Fun Voices</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Label</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {funVoices.length === 0 ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => handleDragEnd(event, 'fun')}
+            >
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      No fun voices found
-                    </TableCell>
+                    <TableHead className="w-12"></TableHead>
+                    <TableHead>Label</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Order</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  funVoices.map((voice) => (
-                    <TableRow key={voice.id}>
-                      <TableCell className="font-medium">{voice.voice_label}</TableCell>
-                      <TableCell className="text-muted-foreground">{voice.voice_name}</TableCell>
-                      <TableCell>{voice.description}</TableCell>
-                      <TableCell>{voice.display_order}</TableCell>
-                      <TableCell>
-                        <Badge variant={voice.is_active ? "default" : "secondary"}>
-                          {voice.is_active ? "Active" : "Hidden"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => testVoice(voice.voice_name)}
-                            title="Test voice"
-                          >
-                            <Volume2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => toggleActive(voice)}
-                            title={voice.is_active ? "Hide voice" : "Show voice"}
-                          >
-                            {voice.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(voice)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(voice.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {funVoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        No fun voices found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    <SortableContext items={funVoices.map(v => v.id)} strategy={verticalListSortingStrategy}>
+                      {funVoices.map((voice) => (
+                        <SortableRow
+                          key={voice.id}
+                          voice={voice}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                          onToggleActive={toggleActive}
+                          onTest={testVoice}
+                        />
+                      ))}
+                    </SortableContext>
+                  )}
+                </TableBody>
+              </Table>
+            </DndContext>
           </div>
         </div>
       </CardContent>
