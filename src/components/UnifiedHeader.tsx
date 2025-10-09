@@ -46,7 +46,7 @@ export const UnifiedHeader = () => {
   const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
   const [showNav, setShowNav] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number; visible_to_roles?: UserRole[] }>>([]);
+  const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number; visible_to_roles?: UserRole[]; link_type?: string; parent_id?: string | null }>>([]);
   const [retryCount, setRetryCount] = useState(0);
   const [dataLoaded, setDataLoaded] = useState(false);
   const { count: moderationCount } = useModerationCount();
@@ -203,7 +203,7 @@ export const UnifiedHeader = () => {
     try {
       const { data, error } = await supabase
         .from("navigation_links")
-        .select("id, label, href, display_order, visible_to_roles")
+        .select("id, label, href, display_order, visible_to_roles, link_type, parent_id")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
 
@@ -497,37 +497,57 @@ export const UnifiedHeader = () => {
                     <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                       <nav className="flex flex-col gap-4 mt-8">
                         {navLinks
+                          .filter(link => !link.parent_id)
                           .filter(link => {
                             if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
                             return link.visible_to_roles.includes(profile?.role || '');
                           })
                           .map((link) => {
-                            if (link.href === '/support' || link.label === 'Support Us') {
+                            const isExternal = link.href.startsWith('http');
+                            const children = navLinks.filter(child => child.parent_id === link.id);
+
+                            if (link.link_type === 'dropdown' && children.length > 0) {
                               return (
                                 <div key={link.id} className="flex flex-col gap-2">
-                                  <Link 
-                                    to="/support" 
-                                    className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                  >
-                                    Support Us
-                                  </Link>
-                                  <Link 
-                                    to="/sponsor-bestie" 
-                                    className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                  >
-                                    Sponsor a Bestie
-                                  </Link>
+                                  <div className="text-lg font-['Roca'] font-semibold text-foreground/90 py-2">
+                                    {link.label}
+                                  </div>
+                                  {children
+                                    .filter(child => {
+                                      if (!child.visible_to_roles || child.visible_to_roles.length === 0) return true;
+                                      return child.visible_to_roles.includes(profile?.role || '');
+                                    })
+                                    .map((child) => {
+                                      const isChildExternal = child.href.startsWith('http');
+                                      if (isChildExternal) {
+                                        return (
+                                          <a
+                                            key={child.id}
+                                            href={child.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                          >
+                                            {child.label}
+                                          </a>
+                                        );
+                                      }
+                                      return (
+                                        <Link
+                                          key={child.id}
+                                          to={child.href}
+                                          className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
+                                          onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                          {child.label}
+                                        </Link>
+                                      );
+                                    })}
                                 </div>
                               );
                             }
 
-                            if (link.href === '/sponsor-bestie' || link.label === 'Sponsor a Bestie') {
-                              return null;
-                            }
-
-                            const isExternal = link.href.startsWith('http');
                             if (isExternal) {
                               return (
                                 <a
@@ -596,37 +616,49 @@ export const UnifiedHeader = () => {
                   <div className="flex-1" />
                   <ul className="flex items-center justify-center gap-6 md:gap-8 font-['Roca'] text-sm font-medium">
                     {navLinks
+                      .filter(link => !link.parent_id)
                       .filter(link => {
                         if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
                         return link.visible_to_roles.includes(profile?.role || '');
                       })
                       .map((link) => {
-                        if (link.href === '/support' || link.label === 'Support Us') {
+                        const children = navLinks.filter(child => child.parent_id === link.id);
+
+                        if (link.link_type === 'dropdown' && children.length > 0) {
                           return (
                             <li key={link.id}>
                               <DropdownMenu>
                                 <DropdownMenuTrigger className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full bg-transparent border-0 outline-none">
                                   {link.label} <ChevronDown className="inline-block w-3 h-3 ml-1" />
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="center" className="min-w-[160px]">
-                                  <DropdownMenuItem asChild>
-                                    <Link to="/support" className="cursor-pointer">
-                                      Support Us
-                                    </Link>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem asChild>
-                                    <Link to="/sponsor-bestie" className="cursor-pointer">
-                                      Sponsor a Bestie
-                                    </Link>
-                                  </DropdownMenuItem>
+                                <DropdownMenuContent align="center" className="min-w-[160px] bg-card border-border z-50">
+                                  {children
+                                    .filter(child => {
+                                      if (!child.visible_to_roles || child.visible_to_roles.length === 0) return true;
+                                      return child.visible_to_roles.includes(profile?.role || '');
+                                    })
+                                    .map((child) => {
+                                      if (child.href.startsWith('http')) {
+                                        return (
+                                          <DropdownMenuItem key={child.id} asChild>
+                                            <a href={child.href} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                                              {child.label}
+                                            </a>
+                                          </DropdownMenuItem>
+                                        );
+                                      }
+                                      return (
+                                        <DropdownMenuItem key={child.id} asChild>
+                                          <Link to={child.href} className="cursor-pointer">
+                                            {child.label}
+                                          </Link>
+                                        </DropdownMenuItem>
+                                      );
+                                    })}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </li>
                           );
-                        }
-
-                        if (link.href === '/sponsor-bestie' || link.label === 'Sponsor a Bestie') {
-                          return null;
                         }
 
                         return (

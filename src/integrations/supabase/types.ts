@@ -1573,6 +1573,8 @@ export type Database = {
           id: string
           is_active: boolean
           label: string
+          link_type: string
+          parent_id: string | null
           updated_at: string
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
@@ -1584,6 +1586,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           label: string
+          link_type?: string
+          parent_id?: string | null
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
@@ -1595,10 +1599,20 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string
+          link_type?: string
+          parent_id?: string | null
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "navigation_links_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "navigation_links"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
