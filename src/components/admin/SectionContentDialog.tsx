@@ -875,16 +875,6 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
                   placeholder="https://vimeo.com/1007746953"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="doc_dailymotion_url">Dailymotion URL</Label>
-                <Input
-                  id="doc_dailymotion_url"
-                  type="url"
-                  value={content.doc_dailymotion_url || ""}
-                  onChange={(e) => setContent({ ...content, doc_dailymotion_url: e.target.value })}
-                  placeholder="https://dailymotion.com/video/k4dqavontriwf6brvls"
-                />
-              </div>
             </div>
             <div className="font-bold text-lg mt-6 mb-2">Best Day Ever Section</div>
             <div className="space-y-2">

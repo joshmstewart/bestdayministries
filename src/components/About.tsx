@@ -138,19 +138,6 @@ const About = ({ content = {} }: AboutProps) => {
                           </a>
                         </Button>
                       )}
-                      {doc_dailymotion_url && (
-                        <Button 
-                          variant="outline"
-                          size="default"
-                          asChild
-                          className="hover:bg-accent"
-                        >
-                          <a href={doc_dailymotion_url} target="_blank" rel="noopener noreferrer">
-                            <Play className="mr-2 h-4 w-4" />
-                            Dailymotion
-                          </a>
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </div>
