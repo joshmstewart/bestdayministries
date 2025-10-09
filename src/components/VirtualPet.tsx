@@ -3,16 +3,64 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { usePet } from "@/hooks/usePet";
 import { Heart, Utensils, Zap, Bed, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import catIdle from "@/assets/pets/cat-idle.png";
+import catWalking from "@/assets/pets/cat-walking.png";
+import catEating from "@/assets/pets/cat-eating.png";
+import catSleeping from "@/assets/pets/cat-sleeping.png";
+import catPlaying from "@/assets/pets/cat-playing.png";
+import roomBackground from "@/assets/pets/room-background.png";
+import foodBowl from "@/assets/pets/food-bowl.png";
+import toyBall from "@/assets/pets/toy-ball.png";
 
 export function VirtualPet() {
   const { pet, feedPet, playWithPet, restPet } = usePet();
-  const [animation, setAnimation] = useState<'idle' | 'eating' | 'playing' | 'sleeping'>('idle');
+  const [animation, setAnimation] = useState<'idle' | 'eating' | 'playing' | 'sleeping' | 'walking'>('idle');
   const [particles, setParticles] = useState<Array<{ id: number; type: string }>>([]);
+  const [catPosition, setCatPosition] = useState({ x: 40, y: 60 });
+  const [isMoving, setIsMoving] = useState(false);
+
+  useEffect(() => {
+    // Random walking animation
+    const walkInterval = setInterval(() => {
+      if (animation === 'idle' && !isMoving) {
+        const shouldWalk = Math.random() > 0.7;
+        if (shouldWalk) {
+          setIsMoving(true);
+          setAnimation('walking');
+          const newX = Math.random() * 70 + 10; // Keep within 10-80% of width
+          const newY = Math.random() * 50 + 40; // Keep within 40-90% of height
+          setCatPosition({ x: newX, y: newY });
+          
+          setTimeout(() => {
+            setAnimation('idle');
+            setIsMoving(false);
+          }, 2000);
+        }
+      }
+    }, 4000);
+
+    return () => clearInterval(walkInterval);
+  }, [animation, isMoving]);
 
   if (!pet) {
     return null;
   }
+
+  const getCatImage = () => {
+    switch (animation) {
+      case 'walking':
+        return catWalking;
+      case 'eating':
+        return catEating;
+      case 'sleeping':
+        return catSleeping;
+      case 'playing':
+        return catPlaying;
+      default:
+        return catIdle;
+    }
+  };
 
   const getStatColor = (value: number) => {
     if (value >= 70) return "text-green-600";
@@ -28,22 +76,31 @@ export function VirtualPet() {
 
   const handleFeed = async () => {
     setAnimation('eating');
+    setCatPosition({ x: 20, y: 70 }); // Move to food bowl position
     showParticles('food');
     const success = await feedPet();
-    setTimeout(() => setAnimation('idle'), 2000);
+    setTimeout(() => {
+      setAnimation('idle');
+    }, 3000);
   };
 
   const handlePlay = async () => {
     setAnimation('playing');
+    setCatPosition({ x: 60, y: 50 }); // Move to play area
     showParticles('hearts');
     const success = await playWithPet();
-    setTimeout(() => setAnimation('idle'), 2000);
+    setTimeout(() => {
+      setAnimation('idle');
+    }, 3000);
   };
 
   const handleRest = async () => {
     setAnimation('sleeping');
+    setCatPosition({ x: 30, y: 35 }); // Move to bed position
     const success = await restPet();
-    setTimeout(() => setAnimation('idle'), 3000);
+    setTimeout(() => {
+      setAnimation('idle');
+    }, 4000);
   };
 
   const showParticles = (type: string) => {
@@ -58,15 +115,8 @@ export function VirtualPet() {
   };
 
   return (
-    <Card className="max-w-md mx-auto relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-0 w-40 h-40 bg-secondary/5 rounded-full blur-3xl animate-pulse delay-700" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent/3 rounded-full blur-3xl animate-[pulse_4s_ease-in-out_infinite]" />
-      </div>
-
-      <CardHeader className="relative">
+    <Card className="max-w-4xl mx-auto relative overflow-hidden">
+      <CardHeader className="relative z-10 bg-card/80 backdrop-blur-sm">
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2">
             {pet.pet_name}
@@ -75,62 +125,74 @@ export function VirtualPet() {
           <span className="text-sm text-muted-foreground">{pet.pet_types.name}</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 relative">
-        {/* Particle Effects */}
-        {particles.map(particle => (
-          <div
-            key={particle.id}
-            className="absolute top-1/3 left-1/2 pointer-events-none"
-            style={{
-              transform: `translate(-50%, -50%) translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px)`,
-              animation: 'float-particle 1s ease-out forwards'
+      <CardContent className="space-y-6 relative p-0">
+        {/* Room Environment */}
+        <div className="relative w-full aspect-video overflow-hidden rounded-lg">
+          {/* Background Image */}
+          <img 
+            src={roomBackground} 
+            alt="Pet room" 
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+
+          {/* Food Bowl - Fixed position */}
+          <div className="absolute" style={{ left: '15%', bottom: '25%' }}>
+            <img 
+              src={foodBowl} 
+              alt="Food bowl" 
+              className="w-16 h-16 object-contain"
+            />
+          </div>
+
+          {/* Toy Ball - Fixed position */}
+          <div className="absolute" style={{ right: '25%', bottom: '45%' }}>
+            <img 
+              src={toyBall} 
+              alt="Toy" 
+              className="w-12 h-12 object-contain"
+            />
+          </div>
+
+          {/* Particle Effects */}
+          {particles.map(particle => (
+            <div
+              key={particle.id}
+              className="absolute pointer-events-none z-20"
+              style={{
+                left: `${catPosition.x}%`,
+                top: `${catPosition.y}%`,
+                animation: 'float-particle 1s ease-out forwards'
+              }}
+            >
+              {particle.type === 'hearts' ? '💖' : particle.type === 'food' ? '🍖' : '✨'}
+            </div>
+          ))}
+
+          {/* Animated Cat */}
+          <div 
+            className="absolute transition-all duration-2000 ease-in-out z-10"
+            style={{ 
+              left: `${catPosition.x}%`, 
+              top: `${catPosition.y}%`,
+              transform: 'translate(-50%, -50%)'
             }}
           >
-            {particle.type === 'hearts' ? '💖' : particle.type === 'food' ? '🍖' : '✨'}
-          </div>
-        ))}
-
-        {/* Pet Display */}
-        <div className="flex justify-center relative">
-          <div className={`relative transition-all duration-300 ${
-            animation === 'idle' ? 'animate-[float_3s_ease-in-out_infinite]' :
-            animation === 'eating' ? 'animate-[bounce_0.5s_ease-in-out_3]' :
-            animation === 'playing' ? 'animate-[bounce_0.3s_ease-in-out_6] scale-110' :
-            'animate-pulse opacity-70'
-          }`}>
-            {pet.pet_types.image_url ? (
-              <img 
-                src={pet.pet_types.image_url} 
-                alt={pet.pet_name}
-                className="w-48 h-48 object-contain rounded-lg"
-              />
-            ) : (
-              <div className="w-48 h-48 bg-gradient-warm rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-6xl">{animation === 'sleeping' ? '😴' : '🐾'}</span>
-              </div>
-            )}
-            
-            {/* Status Indicator */}
-            {animation === 'eating' && (
-              <div className="absolute -top-2 -right-2 text-4xl animate-[bounce_0.5s_ease-in-out_infinite]">
-                🍖
-              </div>
-            )}
-            {animation === 'playing' && (
-              <div className="absolute -top-2 -right-2 text-4xl animate-spin">
-                ⚡
-              </div>
-            )}
-            {animation === 'sleeping' && (
-              <div className="absolute -top-2 -right-2 text-2xl animate-[float_2s_ease-in-out_infinite]">
-                💤
-              </div>
-            )}
+            <img 
+              src={getCatImage()} 
+              alt={pet.pet_name}
+              className={`w-32 h-32 object-contain drop-shadow-lg ${
+                animation === 'idle' ? 'animate-[float_3s_ease-in-out_infinite]' :
+                animation === 'walking' ? '' :
+                animation === 'eating' ? 'animate-[bounce_0.5s_ease-in-out_2]' :
+                animation === 'playing' ? 'animate-[bounce_0.3s_ease-in-out_4]' :
+                ''
+              }`}
+            />
           </div>
         </div>
 
         {/* Stats */}
-        <div className="space-y-4">
+        <div className="space-y-4 px-6 pb-6">
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -183,7 +245,7 @@ export function VirtualPet() {
             onClick={handleFeed}
             variant="outline"
             className="flex flex-col h-auto py-3 gap-1 hover-scale transition-all duration-200 hover:bg-primary/5"
-            disabled={animation !== 'idle'}
+            disabled={animation !== 'idle' && animation !== 'walking'}
           >
             <Utensils className="h-5 w-5" />
             <span className="text-xs">Feed</span>
@@ -194,7 +256,7 @@ export function VirtualPet() {
             onClick={handlePlay}
             variant="outline"
             className="flex flex-col h-auto py-3 gap-1 hover-scale transition-all duration-200 hover:bg-primary/5"
-            disabled={animation !== 'idle'}
+            disabled={animation !== 'idle' && animation !== 'walking'}
           >
             <Heart className="h-5 w-5" />
             <span className="text-xs">Play</span>
@@ -205,7 +267,7 @@ export function VirtualPet() {
             onClick={handleRest}
             variant="outline"
             className="flex flex-col h-auto py-3 gap-1 hover-scale transition-all duration-200 hover:bg-primary/5"
-            disabled={animation !== 'idle'}
+            disabled={animation !== 'idle' && animation !== 'walking'}
           >
             <Bed className="h-5 w-5" />
             <span className="text-xs">Rest</span>
