@@ -1,7 +1,281 @@
 # SOCIAL SHARING SYSTEM - COMPLETE GUIDE
 
 ## OVERVIEW
-Comprehensive social media sharing system with native share API support, multiple platforms, and both compact and expanded UI variants.
+Social media sharing system for public community events with platform-specific integrations and native mobile share support.
+
+---
+
+## COMPONENTS
+
+### ShareButtons Component (`src/components/ShareButtons.tsx`)
+
+**Purpose:** Reusable social sharing component with platform-specific integrations
+
+**Props:**
+```typescript
+interface ShareButtonsProps {
+  title: string;              // Share title
+  description?: string;       // Share description
+  url?: string;              // Custom URL (defaults to current page)
+  hashtags?: string[];       // Array of hashtags (without #)
+  via?: string;             // Twitter via username (default: "JoyHouseCommunity")
+  image?: string;           // Image URL for sharing
+  compact?: boolean;        // Use dropdown menu (default: false)
+}
+```
+
+**Features:**
+- **Mobile-first:** Native Web Share API on mobile devices
+- **Desktop:** Platform-specific buttons (Twitter, Facebook, LinkedIn, Copy)
+- **Compact mode:** Dropdown menu for tight spaces
+- **Copy to clipboard:** Always available fallback
+- **WhatsApp & Email:** Additional sharing options in compact mode
+
+**Usage Examples:**
+
+#### Expanded Version (Desktop)
+```tsx
+import { ShareButtons } from "@/components/ShareButtons";
+
+<ShareButtons
+  title="Amazing Community Event"
+  description="Join us for a day of fun and creativity"
+  url="https://joyhouse.community/events/123"
+  hashtags={['JoyHouse', 'Community', 'Event']}
+/>
+```
+
+#### Compact Version (Icon Button with Dropdown)
+```tsx
+import { ShareIconButton } from "@/components/ShareButtons";
+
+<ShareIconButton
+  title={event.title}
+  description={event.description}
+  url={`${window.location.origin}/events?eventId=${event.id}`}
+  hashtags={['JoyHouse', 'CommunityEvent']}
+/>
+```
+
+---
+
+## IMPLEMENTATION LOCATIONS
+
+### Events (`src/pages/EventsPage.tsx`)
+**Location:** Event card, after description
+**Type:** `ShareIconButton` (compact)
+**Condition:** Only shown when `event.is_public === true`
+**Usage:**
+```tsx
+{event.is_public && (
+  <ShareIconButton
+    title={event.title}
+    description={event.description}
+    url={`${window.location.origin}/events?eventId=${event.id}`}
+    hashtags={['JoyHouse', 'CommunityEvent']}
+  />
+)}
+```
+
+### Event Detail Dialog (`src/components/EventDetailDialog.tsx`)
+**Location:** Bottom of dialog, border-top section
+**Type:** `ShareButtons` (expanded)
+**Condition:** Only shown when `event.is_public === true`
+**Usage:**
+```tsx
+{event.is_public && (
+  <ShareButtons
+    title={event.title}
+    description={event.description}
+    url={`${window.location.origin}/events?eventId=${event.id}`}
+    hashtags={['JoyHouse', 'CommunityEvent']}
+  />
+)}
+```
+
+---
+
+## VISIBILITY RULES
+
+### Public Events Only
+- Share buttons only appear when `event.is_public === true`
+- Controlled by database `events.is_public` column
+- Admin can toggle in Event Management
+- Private events (visible to specific roles) cannot be shared
+
+### Role-Based Access
+- Event visibility controlled by `visible_to_roles` array
+- Sharing respects event privacy settings
+- Users can only share what they can see
+
+---
+
+## PLATFORM INTEGRATIONS
+
+### Twitter/X
+- Intent URL with title, URL, hashtags, and via parameter
+- Opens in new window
+- URL: `https://twitter.com/intent/tweet?text={title}&url={url}&via={via}&hashtags={hashtags}`
+
+### Facebook
+- Sharer dialog
+- Opens in new window
+- URL: `https://www.facebook.com/sharer/sharer.php?u={url}`
+
+### LinkedIn
+- Share offsite dialog
+- Opens in new window
+- URL: `https://www.linkedin.com/sharing/share-offsite/?url={url}`
+
+### WhatsApp (Compact Mode Only)
+- Web API for desktop/mobile
+- Opens in new tab
+- URL: `https://wa.me/?text={title} {url}`
+
+### Email (Compact Mode Only)
+- Standard mailto: link
+- Subject: title
+- Body: description + URL
+- URL: `mailto:?subject={title}&body={description}%0A%0A{url}`
+
+### Copy Link
+- Uses Clipboard API
+- Toast notification on success
+- 2-second "Copied!" feedback
+- Fallback from native share if unavailable
+
+---
+
+## UI PATTERNS
+
+### Desktop Layout (Expanded)
+```
+Share: [Twitter] [Facebook] [LinkedIn] [Copy]
+```
+
+### Mobile Layout (Expanded)
+```
+Share: [Share Button] (triggers native share)
+```
+
+### Compact Layout (All Devices)
+```
+[Share ▼] → Dropdown Menu:
+  - Share (native)
+  - Twitter
+  - Facebook
+  - LinkedIn
+  - WhatsApp
+  - Email
+  - Copy Link
+```
+
+---
+
+## NATIVE WEB SHARE API
+
+### Detection
+```typescript
+if (navigator.share) {
+  // Native share available (mobile)
+} else {
+  // Fallback to platform buttons or copy link
+}
+```
+
+### Usage
+```typescript
+await navigator.share({
+  title: title,
+  text: description,
+  url: shareUrl,
+});
+```
+
+### Browser Support
+- ✅ Mobile Safari (iOS)
+- ✅ Chrome Mobile (Android)
+- ✅ Samsung Internet
+- ❌ Desktop browsers (most don't support)
+
+---
+
+## SEO INTEGRATION
+
+### Open Graph Tags
+Social sharing works with SEO meta tags from `SEOHead` component:
+- `og:title` → Share title
+- `og:description` → Share description
+- `og:image` → Share image preview
+- `og:url` → Canonical URL
+
+### Twitter Cards
+- `twitter:card` → Summary card with large image
+- `twitter:title` → Tweet title
+- `twitter:description` → Tweet description
+- `twitter:image` → Preview image
+
+### Rich Previews
+When users share, platforms fetch these meta tags for rich previews with images and descriptions.
+
+---
+
+## BEST PRACTICES
+
+### URL Construction
+```typescript
+// Always use absolute URLs
+const shareUrl = url || window.location.href;
+
+// For specific content
+const shareUrl = `${window.location.origin}/events?eventId=${event.id}`;
+```
+
+### Description Length
+```typescript
+// Keep descriptions under 150 characters for better display
+description={event.description}
+```
+
+### Hashtag Guidelines
+- Use relevant, searchable hashtags
+- 2-3 hashtags maximum
+- No # symbol in array (added automatically)
+- Example: `['JoyHouse', 'CommunityEvent']`
+
+### Copy Feedback
+- Always show toast notification on copy success
+- Use visual feedback (Check icon) for 2 seconds
+- Provide error handling for copy failures
+
+---
+
+## TROUBLESHOOTING
+
+| Issue | Solution |
+|-------|----------|
+| Share button not showing | Check `event.is_public === true` |
+| Native share not working | Check HTTPS (required for Web Share API) |
+| Wrong URL shared | Verify URL construction (use absolute URLs) |
+| Clipboard fails | Check browser permissions, provide fallback |
+| Dropdown doesn't open | Verify DropdownMenu imports |
+| Icons not showing | Check lucide-react imports |
+
+---
+
+## FUTURE ENHANCEMENTS
+
+- [ ] Share analytics tracking
+- [ ] Custom share images per event
+- [ ] Pinterest integration
+- [ ] Reddit sharing
+- [ ] Share count display
+- [ ] QR code generation for easy mobile sharing
+
+---
+
+**Last Updated:** After implementing social sharing for public events only
+
 
 ---
 

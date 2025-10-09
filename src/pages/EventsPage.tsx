@@ -34,6 +34,7 @@ interface Event {
   expires_after_date: boolean;
   is_recurring: boolean;
   is_active: boolean;
+  is_public: boolean;
   visible_to_roles?: string[];
   recurrence_type: string | null;
   recurrence_interval: number | null;
@@ -303,14 +304,16 @@ export default function EventsPage() {
                               {event.description}
                             </p>
 
-                            <div className="pt-2">
-                              <ShareIconButton
-                                title={event.title}
-                                description={event.description}
-                                url={`${window.location.origin}/events?eventId=${event.id}`}
-                                hashtags={['JoyHouse', 'CommunityEvent']}
-                              />
-                            </div>
+                            {event.is_public && (
+                              <div className="pt-2">
+                                <ShareIconButton
+                                  title={event.title}
+                                  description={event.description}
+                                  url={`${window.location.origin}/events?eventId=${event.id}`}
+                                  hashtags={['JoyHouse', 'CommunityEvent']}
+                                />
+                              </div>
+                            )}
 
                             {/* Show all dates if there are multiple */}
                             {allDates.length > 1 && (

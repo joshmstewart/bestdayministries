@@ -23,6 +23,7 @@ interface Event {
   max_attendees: number | null;
   expires_after_date: boolean;
   is_recurring: boolean;
+  is_public?: boolean;
   recurrence_type: string | null;
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
@@ -149,14 +150,16 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
             </div>
           )}
 
-          <div className="pt-4 border-t">
-            <ShareButtons
-              title={event.title}
-              description={event.description}
-              url={`${window.location.origin}/events?eventId=${event.id}`}
-              hashtags={['JoyHouse', 'CommunityEvent']}
-            />
-          </div>
+          {event.is_public && (
+            <div className="pt-4 border-t">
+              <ShareButtons
+                title={event.title}
+                description={event.description}
+                url={`${window.location.origin}/events?eventId=${event.id}`}
+                hashtags={['JoyHouse', 'CommunityEvent']}
+              />
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

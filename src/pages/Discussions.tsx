@@ -25,7 +25,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
-import { ShareIconButton } from "@/components/ShareButtons";
 import { SEOHead, getArticleStructuredData } from "@/components/SEOHead";
 
 interface Profile {
@@ -1359,14 +1358,6 @@ const Discussions = () => {
                                 View Album
                               </Button>
                             )}
-                            <div className="ml-auto">
-                              <ShareIconButton
-                                title={post.title}
-                                description={post.content.substring(0, 150)}
-                                url={`${window.location.origin}/discussions?postId=${post.id}`}
-                                hashtags={['JoyHouse', 'Community']}
-                              />
-                            </div>
                             {/* Event link badge - kept for reference */}
                           </div>
                         </div>
