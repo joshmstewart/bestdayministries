@@ -5,13 +5,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, AlertCircle } from "lucide-react";
+import { Loader2, Save, AlertCircle, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { compressImage } from "@/lib/imageUtils";
 
 export function StaticMetaTagsManager() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [metaTags, setMetaTags] = useState({
     title: "",
     description: "",
@@ -55,6 +57,56 @@ export function StaticMetaTagsManager() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Compress image (recommended 1200x630 for OG images)
+      const compressedFile = await compressImage(file, 2, 1200, 630);
+      
+      // Upload to Supabase storage
+      const fileExt = compressedFile.name.split('.').pop();
+      const fileName = `og-image-${Date.now()}.${fileExt}`;
+      const filePath = `meta-tags/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('app-assets')
+        .upload(filePath, compressedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(filePath);
+
+      setMetaTags({ ...metaTags, image: publicUrl });
+
+      toast({
+        title: "Image Uploaded",
+        description: "Image uploaded successfully. Don't forget to save your settings.",
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setMetaTags({ ...metaTags, image: "" });
   };
 
   const handleSave = async () => {
@@ -148,17 +200,49 @@ export function StaticMetaTagsManager() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="og-image">Image URL</Label>
-              <Input
-                id="og-image"
-                type="url"
-                value={metaTags.image}
-                onChange={(e) => setMetaTags({ ...metaTags, image: e.target.value })}
-                placeholder="https://your-image-url.jpg"
-              />
-              <p className="text-xs text-muted-foreground">
-                Recommended: 1200x630px. Must be a full URL starting with https://
-              </p>
+              <Label htmlFor="og-image">Image</Label>
+              
+              {metaTags.image ? (
+                <div className="space-y-2">
+                  <div className="relative w-full aspect-[1200/630] max-w-md rounded-lg overflow-hidden border border-border">
+                    <img 
+                      src={metaTags.image} 
+                      alt="Meta tag preview" 
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={handleRemoveImage}
+                      disabled={uploading}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Current image will be used in social sharing previews
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="og-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                      className="cursor-pointer"
+                    />
+                    {uploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Recommended: 1200x630px. Image will be automatically optimized for social sharing.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
