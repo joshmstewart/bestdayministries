@@ -52,6 +52,7 @@ import { CoinsManager } from "@/components/admin/CoinsManager";
 import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
 import { PetTypesManager } from "@/components/admin/PetTypesManager";
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
+import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -535,6 +536,7 @@ const Admin = () => {
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="app">App Settings</TabsTrigger>
                     <TabsTrigger value="social-sharing">Social Sharing</TabsTrigger>
+                    <TabsTrigger value="static-meta">Static Meta Tags</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
                     <TabsTrigger value="coins">Coins</TabsTrigger>
@@ -550,6 +552,10 @@ const Admin = () => {
 
                   <TabsContent value="social-sharing">
                     <SocialSharingGuide />
+                  </TabsContent>
+
+                  <TabsContent value="static-meta">
+                    <StaticMetaTagsManager />
                   </TabsContent>
 
                   <TabsContent value="avatars" className="space-y-6">
