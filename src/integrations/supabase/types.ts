@@ -3040,6 +3040,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_store_purchases: {
+        Row: {
+          coins_spent: number
+          id: string
+          is_redeemed: boolean
+          metadata: Json | null
+          purchased_at: string
+          redeemed_at: string | null
+          store_item_id: string
+          user_id: string
+        }
+        Insert: {
+          coins_spent: number
+          id?: string
+          is_redeemed?: boolean
+          metadata?: Json | null
+          purchased_at?: string
+          redeemed_at?: string | null
+          store_item_id: string
+          user_id: string
+        }
+        Update: {
+          coins_spent?: number
+          id?: string
+          is_redeemed?: boolean
+          metadata?: Json | null
+          purchased_at?: string
+          redeemed_at?: string | null
+          store_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_store_purchases_store_item_id_fkey"
+            columns: ["store_item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_bestie_assets: {
         Row: {
           approval_status: string

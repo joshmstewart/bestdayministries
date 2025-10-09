@@ -46,6 +46,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Notifications from "./pages/Notifications";
 import MemoryMatchPage from "./pages/MemoryMatchPage";
 import VirtualPetPage from "./pages/VirtualPetPage";
+import StorePage from "./pages/Store";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -159,6 +160,7 @@ const App = () => {
             <Route path="/notifications" element={<Notifications />} />
           <Route path="/games/memory-match" element={<MemoryMatchPage />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
+          <Route path="/store" element={<StorePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
