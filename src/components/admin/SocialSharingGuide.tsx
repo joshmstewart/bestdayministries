@@ -21,9 +21,9 @@ export function SocialSharingGuide() {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Social media platforms (Facebook, Twitter, LinkedIn) use web crawlers that <strong>do not execute JavaScript</strong>. 
+              Social media platforms and messaging apps (Facebook, Twitter, LinkedIn, iMessage, WhatsApp, SMS) use web crawlers that <strong>do not execute JavaScript</strong>. 
               They only read the initial HTML, which means the SEO settings you update in the admin panel 
-              only work for browsers, not for social media sharing previews.
+              only work for browsers, not for link previews in social media or text messages.
             </AlertDescription>
           </Alert>
 
@@ -31,8 +31,8 @@ export function SocialSharingGuide() {
             <h3 className="text-lg font-semibold">The Problem:</h3>
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>✅ Your SEO updates work in browsers (title, meta tags visible in browser)</p>
-              <p>❌ Social media crawlers see only the default static HTML tags</p>
-              <p>❌ Updates to images/descriptions don't appear in shared links</p>
+              <p>❌ Social media & messaging app crawlers see only the default static HTML tags</p>
+              <p>❌ Updates to images/descriptions don't appear in shared links (social OR text messages)</p>
             </div>
           </div>
 
@@ -41,10 +41,12 @@ export function SocialSharingGuide() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
-              Solution: Clear Social Media Cache
+              Solution: Clear Platform Cache
             </h3>
             <p className="text-sm text-muted-foreground">
-              After updating your SEO settings, you must manually tell social media platforms to refresh their cache:
+              After updating your SEO settings, use these tools to force social platforms to refresh their cache. 
+              Note: Text messaging apps (iMessage, WhatsApp, SMS) don't have debug tools - they cache independently 
+              and may take 7-30 days to update, or require updating the static HTML file (see below).
             </p>
 
             <div className="grid gap-3">
@@ -150,7 +152,11 @@ export function SocialSharingGuide() {
             <div className="space-y-2 text-sm">
               <div className="flex items-start gap-2">
                 <span className="font-semibold min-w-[120px]">Cache Duration:</span>
-                <span className="text-muted-foreground">Social platforms cache for 7-30 days, but you can force refresh anytime</span>
+                <span className="text-muted-foreground">Social platforms cache for 7-30 days, but you can force refresh anytime with tools above</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="font-semibold min-w-[120px]">Text Messages:</span>
+                <span className="text-muted-foreground">iMessage, WhatsApp, SMS apps have no cache-clearing tools. Updates may take weeks or require HTML changes.</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="font-semibold min-w-[120px]">Image Size:</span>
@@ -171,7 +177,8 @@ export function SocialSharingGuide() {
             <Info className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-blue-900">
               <strong>Important:</strong> The SEO settings in "App Settings" control what appears in search engines and browser tabs. 
-              For social media sharing, you need to use the cache clearing tools above after each update.
+              For social media sharing, use the cache clearing tools above after each update. For text message previews (iMessage, WhatsApp), 
+              consider updating the static HTML file for immediate results.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -181,7 +188,7 @@ export function SocialSharingGuide() {
         <CardHeader>
           <CardTitle>Current Default Meta Tags</CardTitle>
           <CardDescription>
-            These are the static tags that social media crawlers see
+            These are the static tags that all platforms see (social media, text messages, etc.)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -194,7 +201,9 @@ export function SocialSharingGuide() {
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              To permanently change these default tags, contact your developer. They need to update the <code>index.html</code> file.
+              To permanently change these default tags (recommended for text message previews), contact your developer. 
+              They need to update the <code>index.html</code> file. This ensures all platforms - social media, messaging apps, 
+              and text messages - show the correct preview immediately.
             </AlertDescription>
           </Alert>
         </CardContent>

@@ -2,15 +2,15 @@
 
 ## THE PROBLEM
 
-Social media platforms (Facebook, Twitter, LinkedIn, etc.) use web crawlers to fetch link previews. These crawlers:
+Social media platforms (Facebook, Twitter, LinkedIn) and messaging apps (iMessage, WhatsApp, SMS) use web crawlers to fetch link previews. These crawlers:
 - **Do NOT execute JavaScript**
 - Only read the initial HTML sent by the server
-- Cache the meta tags for performance
+- Cache the meta tags for performance (7-30 days)
 
 Since this is a React SPA (Single Page Application), all meta tags are updated client-side via JavaScript, which means:
-- ❌ Social media crawlers see only the default tags in `index.html`
+- ❌ Social media & messaging app crawlers see only the default tags in `index.html`
 - ❌ Dynamic page-specific meta tags are invisible to crawlers
-- ❌ Updates to SEO settings don't appear in shared links
+- ❌ Updates to SEO settings don't appear in shared links (social media OR text messages)
 
 ## CURRENT IMPLEMENTATION
 
@@ -32,7 +32,7 @@ Located: `src/components/SEOHead.tsx`
 - Adds structured data (JSON-LD)
 - Updates on route changes
 
-**Limitation:** Social media crawlers can't see these updates.
+**Limitation:** Social media crawlers and messaging apps can't see these updates.
 
 ### Static Meta Tags (index.html)
 Located: `index.html`
@@ -47,9 +47,11 @@ Located: `index.html`
 
 ## SOLUTIONS
 
-### Solution 1: Social Media Cache Refresh (Immediate)
+### Solution 1: Social Media Cache Refresh (Immediate - Social Only)
 
 When you update meta tags, social media platforms won't see changes immediately because they cache the old version. Force a refresh:
+
+**⚠️ Important:** Text messaging apps (iMessage, WhatsApp, SMS) have NO cache-clearing tools available. They will continue showing cached previews for 7-30 days, or until you update the static HTML (Solution 2).
 
 **Facebook:**
 1. Go to https://developers.facebook.com/tools/debug/
@@ -66,9 +68,9 @@ When you update meta tags, social media platforms won't see changes immediately 
 2. Enter your URL
 3. Click "Inspect"
 
-### Solution 2: Update Default Meta Tags (Quick Fix)
+### Solution 2: Update Default Meta Tags (Recommended for Text Messages)
 
-Update `index.html` with your most important/common meta tags:
+Update `index.html` with your most important/common meta tags. This is the ONLY way to update text message previews immediately.
 
 ```html
 <!-- Update these in index.html -->
@@ -77,7 +79,11 @@ Update `index.html` with your most important/common meta tags:
 <meta property="og:description" content="YOUR_DESCRIPTION" />
 ```
 
-**Pros:** Works immediately for social crawlers
+**Pros:** 
+- Works immediately for ALL platforms (social media AND text messages)
+- No cache-clearing needed for text apps
+- Most reliable solution
+
 **Cons:** All pages show the same preview
 
 ### Solution 3: Edge Function for Dynamic Meta Tags (Advanced)
@@ -108,14 +114,19 @@ These detect social media bots and serve proper HTML with meta tags, while regul
 
 ## RECOMMENDED APPROACH
 
-For most users:
+**For most users (especially if sharing via text):**
 
-1. **Update index.html** with your best default meta tags (especially og:image)
-2. **Use the cache refresh tools** after updating SEO settings
+1. **Update index.html** with your best default meta tags (especially og:image) - This is the ONLY way to fix text message previews
+2. **Use the cache refresh tools** (Facebook, Twitter, LinkedIn) after updating SEO settings
 3. **Add query parameters** to force new cache when sharing:
    ```
    https://yoursite.com/page?v=2
    ```
+
+**Why this matters for text messages:**
+- iMessage, WhatsApp, and SMS apps have no cache-clearing tools
+- They will show old previews for weeks unless you update index.html
+- This is the most common sharing method for mobile users
 
 For production apps with dynamic content:
 - Consider server-side rendering (SSR) with frameworks like Next.js
@@ -165,14 +176,17 @@ Update via Admin Panel → Settings → App Settings
 **Q: I updated my image but Facebook still shows the old one**
 A: Clear Facebook's cache using their Sharing Debugger tool
 
+**Q: Text message previews (iMessage/WhatsApp) still show old image**
+A: These apps have no cache-clearing tools. You MUST update the static meta tags in index.html, or wait 7-30 days for cache to expire naturally.
+
 **Q: Different platforms show different previews**
-A: Each platform caches independently - clear each one separately
+A: Each platform caches independently - clear each one separately (social media only; text apps can't be cleared)
 
 **Q: My changes work in browser but not when sharing**
 A: Client-side updates (SEOHead) don't work for crawlers - use index.html or edge functions
 
-**Q: How long do social media platforms cache meta tags?**
-A: Usually 7-30 days, but you can force refresh with their tools
+**Q: How long do platforms cache meta tags?**
+A: Social media: 7-30 days (but can force refresh with tools). Text messaging apps: 7-30 days (NO tools to force refresh)
 
 ## FUTURE IMPROVEMENTS
 
