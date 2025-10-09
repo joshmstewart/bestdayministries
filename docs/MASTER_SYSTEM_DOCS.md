@@ -49,6 +49,16 @@ LOCATIONS:UnifiedHeader-Approvals-btn[caregivers-only:pending-posts+comments+ven
 INVENTORY-BADGES:Admin-Vendor-Mgmt[red-when-inventory≤10]|Marketplace-Product-Cards[Out-of-Stock-when-inventory=0]|Vendor-Product-List[Out-of-Stock-when-inventory=0]
 FEATURES:red-destructive-variant+realtime-subscriptions+auto-updates
 
+## ERROR_HANDLING_PATTERNS
+PURPOSE:defensive-programming-handle-intermittent-loading-mobile-network-issues
+COMPS:ErrorBoundary[catch-errors-component-tree+fallback-UI+retry-btn+onReset-callback]|HeaderSkeleton[loading-placeholder+prevents-layout-shift+same-dimensions-as-real-header]
+HOOK:useRetryFetch[wrap-async-funcs-auto-retry+exponential-backoff-jitter+configurable-maxRetries-def:3+tracks-retry-count-state]
+PATTERN:UnifiedHeader-implementation[consolidated-data-loading-Promise.allSettled+auto-retry-3-attempts-1s-2s-4s+loading-skeleton-while-loading+ErrorBoundary-wrapper]
+BENEFITS:handles-temp-network-issues+no-manual-refresh+prevents-app-crash+maintains-partial-functionality+better-perceived-performance
+FILES:ErrorBoundary.tsx|HeaderSkeleton.tsx|useRetryFetch.ts|UnifiedHeader.tsx[consolidated-loading+retry]
+ISSUES:header-no-load→auto-retries-transparent|some-data-missing→Promise.allSettled-catches-failures|header-crashes→ErrorBoundary-shows-fallback|slow-loading→parallel-loading-reduces-time
+DOC:ERROR_HANDLING_PATTERNS.md[detailed-patterns+testing+future-improvements]
+
 ## BESTIE_LINKING_SYSTEM
 FRIEND-CODE:3-emojis[20-emoji-set=8000-combos]|storage:profiles.friend_code[TEXT-3-chars]|regen-doesnt-break-links[UUID-based]|emojis:🌟🌈🔥🌊🌸🍕🎸🚀🏆⚡🎨🎭🎪🏰🌵🦋🐉🎯🎺🏖️
 GUARDIAN-BESTIE:table:caregiver_bestie_links(caregiver_id|bestie_id|relationship|approval-flags+timestamps)|flow:guardian-enters-3-emoji→search-profiles_public[friend_code+role=bestie]→creates-link-with-approval-settings[posts+comments+featured-posts]|guardian-can:view-unlink-besties+toggle-approval-reqs+manage-featured-posts-sponsorships|RLS:caregivers-CRUD-own-links+besties-view-links
