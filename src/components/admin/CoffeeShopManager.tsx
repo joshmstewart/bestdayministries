@@ -22,7 +22,8 @@ const CoffeeShopManager = () => {
     hours_title: "Visit Us",
     hours_content: "Monday - Friday: 7am - 2pm\nSaturday: 8am - 2pm\nSunday: Closed",
     address: "123 Main Street, Longmont, CO",
-    phone: "(555) 123-4567"
+    phone: "(555) 123-4567",
+    show_menu: true
   });
 
   useEffect(() => {
@@ -75,7 +76,7 @@ const CoffeeShopManager = () => {
     }
   };
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setContent(prev => ({ ...prev, [field]: value }));
   };
 
@@ -254,6 +255,29 @@ const CoffeeShopManager = () => {
               placeholder="(555) 123-4567"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Menu Display Toggle */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Menu Settings</CardTitle>
+          <CardDescription>Control menu visibility on the website</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="show_menu"
+              checked={content.show_menu}
+              onChange={(e) => handleChange("show_menu", e.target.checked)}
+              className="w-4 h-4"
+            />
+            <Label htmlFor="show_menu">Display full menu on website</Label>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            The menu content is sourced from your existing menu.html page. Toggle this to show or hide it on the main site.
+          </p>
         </CardContent>
       </Card>
 

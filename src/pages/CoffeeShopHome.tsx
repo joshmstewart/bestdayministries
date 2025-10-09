@@ -1,5 +1,6 @@
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
+import CoffeeShopMenu from "@/components/CoffeeShopMenu";
 import { Button } from "@/components/ui/button";
 import { Coffee, Users, Heart, MapPin, Clock, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -17,6 +18,7 @@ interface CoffeeShopContent {
   hours_content?: string;
   address?: string;
   phone?: string;
+  show_menu?: boolean;
 }
 
 const CoffeeShopHome = () => {
@@ -58,7 +60,8 @@ const CoffeeShopHome = () => {
     hours_title = "Visit Us",
     hours_content = "Monday - Friday: 7am - 2pm\nSaturday: 8am - 2pm\nSunday: Closed",
     address = "123 Main Street, Longmont, CO",
-    phone = "(555) 123-4567"
+    phone = "(555) 123-4567",
+    show_menu = true
   } = content;
 
   if (loading) {
@@ -205,6 +208,9 @@ const CoffeeShopHome = () => {
           </div>
         </div>
       </section>
+
+      {/* Menu Section */}
+      {show_menu && <CoffeeShopMenu />}
 
       {/* Community Link */}
       <section className="py-16 bg-gradient-to-br from-secondary/5 via-background to-primary/5">
