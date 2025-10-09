@@ -150,6 +150,19 @@ export const UnifiedHeader = () => {
     };
   }, [retryCount]);
 
+  // Check if Games tab is visible to current user
+  const isGamesVisible = () => {
+    if (!profile) return false;
+    const gamesLink = navLinks.find(link => 
+      link.href === '/memory-match' || 
+      link.href === '/games' || 
+      link.label.toLowerCase().includes('game')
+    );
+    if (!gamesLink) return false;
+    if (!gamesLink.visible_to_roles || gamesLink.visible_to_roles.length === 0) return true;
+    return gamesLink.visible_to_roles.includes(profile.role);
+  };
+
   // Update admin status when impersonation changes
   useEffect(() => {
     if (profile) {
@@ -596,7 +609,7 @@ export const UnifiedHeader = () => {
                     </SheetContent>
                   </Sheet>
                   <div className="flex items-center gap-2">
-                    <CoinsDisplay />
+                    {isGamesVisible() && <CoinsDisplay />}
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20">
                       <UserCircle2 className="w-4 h-4 text-primary" />
                       <span className="text-xs font-medium text-primary capitalize">
@@ -700,7 +713,7 @@ export const UnifiedHeader = () => {
                   <div className="flex-1 flex justify-end">
                     {profile && (
                       <div className="flex items-center gap-2">
-                        <CoinsDisplay />
+                        {isGamesVisible() && <CoinsDisplay />}
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
                           <UserCircle2 className="w-3.5 h-3.5 text-primary" />
                           <span className="text-xs font-semibold text-primary capitalize">
