@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { HeaderSkeleton } from "@/components/HeaderSkeleton";
 import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -45,6 +46,8 @@ export const UnifiedHeader = () => {
   const [showNav, setShowNav] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number; visible_to_roles?: UserRole[] }>>([]);
+  const [retryCount, setRetryCount] = useState(0);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const { count: moderationCount } = useModerationCount();
   const { count: approvalsCount } = useGuardianApprovalsCount();
   const { count: pendingVendorsCount } = usePendingVendorsCount();
@@ -75,22 +78,54 @@ export const UnifiedHeader = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Consolidated initialization effect with retry logic
   useEffect(() => {
-    checkUser();
-    loadLogo();
-    loadNavLinks();
+    let mounted = true;
+    let retryTimeout: NodeJS.Timeout;
+
+    const initializeHeader = async () => {
+      try {
+        // Load all data in parallel for better performance
+        const [logoResult, navResult, authResult] = await Promise.allSettled([
+          loadLogo(),
+          loadNavLinks(),
+          checkUser()
+        ]);
+
+        // Check for failures and retry if needed
+        const hasFailures = [logoResult, navResult, authResult].some(
+          result => result.status === 'rejected'
+        );
+
+        if (hasFailures && retryCount < 3 && mounted) {
+          console.warn('Header initialization had failures, retrying...', { retryCount });
+          retryTimeout = setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 1000 * Math.pow(2, retryCount)); // Exponential backoff
+        } else if (mounted) {
+          setDataLoaded(true);
+        }
+      } catch (error) {
+        console.error('Error initializing header:', error);
+        if (retryCount < 3 && mounted) {
+          retryTimeout = setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 1000 * Math.pow(2, retryCount));
+        }
+      }
+    };
+
+    initializeHeader();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // CRITICAL: Keep this callback synchronous to avoid deadlocks
+      if (!mounted) return;
+      
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Defer profile fetch but keep loading state until it completes
-        setTimeout(() => {
-          fetchProfile(session.user.id).finally(() => {
-            setAuthLoading(false);
-          });
-        }, 0);
+        fetchProfile(session.user.id).finally(() => {
+          if (mounted) setAuthLoading(false);
+        });
       } else {
         setProfile(null);
         setIsAdmin(false);
@@ -102,15 +137,17 @@ export const UnifiedHeader = () => {
     const navSubscription = supabase
       .channel('navigation_links_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'navigation_links' }, () => {
-        loadNavLinks();
+        if (mounted) loadNavLinks();
       })
       .subscribe();
 
     return () => {
+      mounted = false;
+      clearTimeout(retryTimeout);
       subscription.unsubscribe();
       navSubscription.unsubscribe();
     };
-  }, []);
+  }, [retryCount]);
 
   // Update admin status when impersonation changes
   useEffect(() => {
@@ -129,7 +166,7 @@ export const UnifiedHeader = () => {
         .eq("setting_key", "logo_url")
         .maybeSingle();
 
-      console.log('Logo data from database:', data);
+      if (error) throw error;
 
       if (data?.setting_value) {
         let url: string = '';
@@ -151,15 +188,13 @@ export const UnifiedHeader = () => {
           url = JSON.stringify(data.setting_value);
         }
         
-        console.log('Setting logo URL to:', url);
         if (url) {
           setLogoUrl(url);
         }
-      } else {
-        console.log('No logo in database, using fallback');
       }
     } catch (error) {
       console.error('Error loading logo:', error);
+      throw error; // Propagate error for retry logic
     }
   };
 
@@ -175,6 +210,7 @@ export const UnifiedHeader = () => {
       setNavLinks(data || []);
     } catch (error) {
       console.error('Error loading navigation links:', error);
+      throw error; // Propagate error for retry logic
     }
   };
 
@@ -271,7 +307,26 @@ export const UnifiedHeader = () => {
   };
 
   return (
-    <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
+    <ErrorBoundary
+      fallback={
+        <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="h-10 w-32 bg-muted/50 rounded-md" />
+              <div className="text-sm text-muted-foreground">Failed to load header</div>
+            </div>
+          </div>
+        </header>
+      }
+      onReset={() => {
+        setRetryCount(0);
+        setDataLoaded(false);
+      }}
+    >
+      {!dataLoaded ? (
+        <HeaderSkeleton />
+      ) : (
+        <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
       <div className="container mx-auto px-4 py-0 relative">
         <div className="flex flex-col">
           <div className="flex items-center justify-between">
@@ -623,5 +678,7 @@ export const UnifiedHeader = () => {
         </div>
       </div>
     </header>
+      )}
+    </ErrorBoundary>
   );
 };
