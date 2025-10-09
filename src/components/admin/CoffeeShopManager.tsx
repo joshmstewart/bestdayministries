@@ -99,14 +99,26 @@ const CoffeeShopManager = () => {
             Manage content for bestdayevercoffeeandcrepes.com
           </p>
         </div>
-        <Button
-          onClick={() => window.open('https://bestdayevercoffeeandcrepes.com', '_blank')}
-          variant="outline"
-          className="gap-2"
-        >
-          <ExternalLink className="w-4 h-4" />
-          View Site
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => window.open('/coffee-shop', '_blank')}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Preview
+          </Button>
+          <Button
+            onClick={() => window.open('https://bestdayevercoffeeandcrepes.com', '_blank')}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Live Site
+          </Button>
+        </div>
       </div>
 
       {/* Hero Section */}
