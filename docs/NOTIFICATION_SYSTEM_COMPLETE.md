@@ -2,7 +2,7 @@
 
 ## SYSTEM OVERVIEW
 
-Complete notification system with dual-channel delivery (in-app + email), user preferences, realtime updates, rate limiting, automatic expiry, and comprehensive triggers for all major events.
+Complete notification system with dual-channel delivery (in-app + email), user preferences, realtime updates, **grouped notifications UI**, rate limiting, automatic expiry, and comprehensive triggers for all major events.
 
 ---
 
@@ -166,20 +166,31 @@ Complete notification system with dual-channel delivery (in-app + email), user p
 - **Accessibility:** ARIA label with count
 
 **NotificationList** (`src/components/NotificationList.tsx`)
-- **Layout:** Scrollable list (400px height), 380px width
-- **Display:** Icon, title, message, timestamp (relative via `date-fns`)
+- **Location:** NotificationBell popover
+- **Layout:** Scrollable list (400px height)
+- **Grouping:** Similar notifications collapsed with count badge
+- **Display:** 
+  - Single notification: Icon, title, message, timestamp
+  - Grouped (2+): Title with count, expandable to show all
 - **Unread:** Primary background + blue dot indicator
 - **Actions:**
   - Click notification → Navigate to link + mark as read
-  - Hover → Show delete button (X)
-  - Header: "Mark all read" + "Clear read" buttons
+  - Click group → Expand to see all notifications
+  - Hover individual → Show delete button (X)
+  - Header: "Mark all read" button
 - **Empty state:** Bell icon + "No notifications yet"
-- **Features:** Individual delete, bulk clear read notifications
+- **Features:** Collapsible groups, individual delete within groups
+- **Grouping Logic:** Groups by type + target (same post_id, event_id, etc.)
 
 ### 6. Custom Hooks
 
 **useNotifications** (`src/hooks/useNotifications.ts`)
-- **State:** `notifications[]`, `unreadCount`, `loading`
+- **State:** `notifications[]`, `groupedNotifications[]`, `unreadCount`, `loading`
+- **Grouping Logic:**
+  - Groups similar notifications by type + target (post_id, event_id, etc.)
+  - `comment_on_post` + same post_id → "3 people commented on your post"
+  - `pending_approval` + same item → "5 items need approval"
+  - Single notifications remain ungrouped
 - **Methods:**
   - `markAsRead(id)` - Mark single notification as read
   - `markAllAsRead()` - Mark all user's notifications as read
@@ -190,6 +201,35 @@ Complete notification system with dual-channel delivery (in-app + email), user p
 - **Realtime:** Subscribes to `notifications` table changes (INSERT/UPDATE/DELETE)
 - **Auth:** Auto-refreshes on sign in/out, clears state on sign out
 - **Cleanup:** Unsubscribes from channels on unmount
+
+---
+
+## GROUPED NOTIFICATIONS FEATURE
+
+### How It Works
+Notifications with the same type and target are automatically grouped in the UI:
+
+**Grouping Rules:**
+- `comment_on_post` + same `post_id` → Group all comments on same post
+- `comment_on_thread` + same `post_id` → Group all thread comments
+- `pending_approval` + same item → Group all approval requests
+- `new_sponsor_message` + same `bestie_id` → Group messages from same bestie
+- `moderation_needed` + same `item_id` → Group moderation items
+- Other types remain ungrouped (each shown individually)
+
+**UI Behavior:**
+- **Single notification:** Shows normally with title, message, timestamp
+- **Group (2+):** Shows count badge, condensed title (e.g., "3 people commented")
+- **Expand:** Click chevron to see all notifications in group
+- **Actions:** Can delete individual notifications within groups
+- **Read Status:** Group marked read when all notifications are read
+- **Realtime:** Groups update automatically as new notifications arrive
+
+**Benefits:**
+- Reduces visual clutter (3 items → 1 group)
+- Easier to scan for distinct events
+- Better mobile experience with less scrolling
+- Modern UX pattern users expect
 
 ---
 

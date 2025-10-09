@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
-import { Bell, Check, X, Filter, Search, Calendar, ArrowLeft } from "lucide-react";
+import { Bell, Check, X, Filter, Search, Calendar, ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const NOTIFICATION_TYPES = {
   all: "All",
@@ -29,7 +30,7 @@ const NOTIFICATION_TYPES = {
 export default function Notifications() {
   const navigate = useNavigate();
   const {
-    notifications,
+    groupedNotifications,
     loading,
     markAllAsRead,
     deleteNotification,
@@ -40,16 +41,29 @@ export default function Notifications() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
 
-  // Filter notifications
-  const filteredNotifications = notifications.filter((notification) => {
+  // Filter grouped notifications
+  const filteredNotifications = groupedNotifications.filter((group) => {
     const matchesSearch =
-      notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      notification.message.toLowerCase().includes(searchQuery.toLowerCase());
+      group.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      group.message.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesType = selectedType === "all" || notification.type === selectedType;
+    const matchesType = selectedType === "all" || group.type === selectedType;
 
-    const notificationDate = new Date(notification.created_at);
+    const notificationDate = new Date(group.created_at);
     const now = new Date();
     const daysDiff = Math.floor((now.getTime() - notificationDate.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -64,75 +78,146 @@ export default function Notifications() {
   const unreadNotifications = filteredNotifications.filter((n) => !n.is_read);
   const readNotifications = filteredNotifications.filter((n) => n.is_read);
 
-  const NotificationCard = ({ notification }: { notification: any }) => (
-    <Card
-      className={`p-4 transition-all hover:shadow-md group relative border ${
-        !notification.is_read
-          ? "bg-primary/5 border-primary/20"
-          : notification.auto_resolved
-          ? "opacity-75 bg-muted/20"
-          : ""
-      }`}
-    >
-      <div
-        className="cursor-pointer pr-8"
-        onClick={() => handleNotificationClick(notification)}
+  const NotificationCard = ({ group }: { group: any }) => {
+    const isExpanded = expandedGroups.has(group.id);
+    const showExpand = group.count > 1;
+    
+    return (
+      <Card
+        className={`p-4 transition-all hover:shadow-md group relative border ${
+          !group.is_read
+            ? "bg-primary/5 border-primary/20"
+            : group.auto_resolved
+            ? "opacity-75 bg-muted/20"
+            : ""
+        }`}
       >
-        <div className="flex items-start gap-3">
-          <div
-            className={`p-2 rounded-full ${
-              !notification.is_read ? "bg-primary/10" : "bg-muted"
-            }`}
+        <Collapsible open={isExpanded} onOpenChange={() => showExpand && toggleGroup(group.id)}>
+          <div className="flex items-start gap-3">
+            <div
+              className={`p-2 rounded-full ${
+                !group.is_read ? "bg-primary/10" : "bg-muted"
+              }`}
+            >
+              <Bell className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0 pr-8">
+              <div
+                className={`flex items-center gap-2 flex-wrap ${showExpand ? '' : 'cursor-pointer'}`}
+                onClick={() => !showExpand && handleNotificationClick(group.notifications[0])}
+              >
+                <p className="font-medium text-sm break-words flex-1">
+                  {group.title}
+                </p>
+                {showExpand && (
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-6 px-2">
+                      {isExpanded ? (
+                        <ChevronUp className="h-3 w-3" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                )}
+                {group.count > 1 && (
+                  <Badge variant="secondary" className="text-xs flex-shrink-0">
+                    {group.count}
+                  </Badge>
+                )}
+                {group.auto_resolved && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs bg-green-50 text-green-700 border-green-200 flex-shrink-0"
+                  >
+                    ✓ Resolved
+                  </Badge>
+                )}
+                {!group.is_read && !group.auto_resolved && (
+                  <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                )}
+              </div>
+              
+              {!showExpand && (
+                <>
+                  <p className="text-sm text-muted-foreground mt-1 break-words">
+                    {group.message}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(group.created_at), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                    <Badge variant="outline" className="text-xs">
+                      {NOTIFICATION_TYPES[group.type as keyof typeof NOTIFICATION_TYPES] || group.type}
+                    </Badge>
+                  </div>
+                </>
+              )}
+              
+              {showExpand && (
+                <CollapsibleContent className="mt-3">
+                  <div className="space-y-2">
+                    {group.notifications.map((notification: any) => (
+                      <div
+                        key={notification.id}
+                        className="p-3 rounded-md border bg-card hover:bg-muted cursor-pointer relative group/item"
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        <p className="font-medium text-sm mb-1 pr-6">
+                          {notification.title}
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {notification.message}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(notification.created_at), {
+                              addSuffix: true,
+                            })}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {NOTIFICATION_TYPES[notification.type as keyof typeof NOTIFICATION_TYPES] || notification.type}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNotification(notification.id);
+                          }}
+                          title="Delete notification"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              )}
+            </div>
+          </div>
+        </Collapsible>
+        {!showExpand && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteNotification(group.notifications[0].id);
+            }}
+            title="Delete notification"
           >
-            <Bell className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-sm break-words flex-1">
-                {notification.title}
-              </p>
-              {notification.auto_resolved && (
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-green-50 text-green-700 border-green-200 flex-shrink-0"
-                >
-                  ✓ Resolved
-                </Badge>
-              )}
-              {!notification.is_read && !notification.auto_resolved && (
-                <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1 break-words">
-              {notification.message}
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(notification.created_at), {
-                  addSuffix: true,
-                })}
-              </p>
-              <Badge variant="outline" className="text-xs">
-                {NOTIFICATION_TYPES[notification.type as keyof typeof NOTIFICATION_TYPES] || notification.type}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={(e) => {
-          e.stopPropagation();
-          deleteNotification(notification.id);
-        }}
-        title="Delete notification"
-      >
-        <X className="h-4 w-4" />
-      </Button>
-    </Card>
-  );
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </Card>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -260,10 +345,10 @@ export default function Notifications() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {unreadNotifications.map((notification) => (
+                  {unreadNotifications.map((group) => (
                     <NotificationCard
-                      key={notification.id}
-                      notification={notification}
+                      key={group.id}
+                      group={group}
                     />
                   ))}
                 </div>
@@ -278,10 +363,10 @@ export default function Notifications() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {readNotifications.map((notification) => (
+                  {readNotifications.map((group) => (
                     <NotificationCard
-                      key={notification.id}
-                      notification={notification}
+                      key={group.id}
+                      group={group}
                     />
                   ))}
                 </div>
@@ -300,10 +385,10 @@ export default function Notifications() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredNotifications.map((notification) => (
+                  {filteredNotifications.map((group) => (
                     <NotificationCard
-                      key={notification.id}
-                      notification={notification}
+                      key={group.id}
+                      group={group}
                     />
                   ))}
                 </div>
