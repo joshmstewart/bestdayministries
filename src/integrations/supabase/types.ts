@@ -290,6 +290,54 @@ export type Database = {
           },
         ]
       }
+      coin_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          related_item_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          related_item_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          related_item_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coin_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coin_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_settings: {
         Row: {
           commission_percentage: number
@@ -1872,6 +1920,7 @@ export type Database = {
           avatar_number: number | null
           avatar_url: string | null
           bio: string | null
+          coins: number
           created_at: string
           display_name: string
           email: string | null
@@ -1886,6 +1935,7 @@ export type Database = {
           avatar_number?: number | null
           avatar_url?: string | null
           bio?: string | null
+          coins?: number
           created_at?: string
           display_name: string
           email?: string | null
@@ -1900,6 +1950,7 @@ export type Database = {
           avatar_number?: number | null
           avatar_url?: string | null
           bio?: string | null
+          coins?: number
           created_at?: string
           display_name?: string
           email?: string | null
@@ -2550,6 +2601,48 @@ export type Database = {
           },
         ]
       }
+      store_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price: number
+          required_role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price: number
+          required_role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price?: number
+          required_role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_page_sections: {
         Row: {
           content: Json | null
@@ -2704,6 +2797,52 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_purchases: {
+        Row: {
+          coins_spent: number
+          id: string
+          purchased_at: string
+          store_item_id: string
+          user_id: string
+        }
+        Insert: {
+          coins_spent: number
+          id?: string
+          purchased_at?: string
+          store_item_id: string
+          user_id: string
+        }
+        Update: {
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          store_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_purchases_store_item_id_fkey"
+            columns: ["store_item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

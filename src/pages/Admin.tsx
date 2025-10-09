@@ -48,6 +48,8 @@ import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
 import CoffeeShopManager from "@/components/admin/CoffeeShopManager";
 import { TTSVoiceManager } from "@/components/admin/TTSVoiceManager";
+import { CoinsManager } from "@/components/admin/CoinsManager";
+import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -532,6 +534,8 @@ const Admin = () => {
                     <TabsTrigger value="app">App Settings</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
+                    <TabsTrigger value="coins">Coins</TabsTrigger>
+                    <TabsTrigger value="store">Store Items</TabsTrigger>
                     <TabsTrigger value="locations">Locations</TabsTrigger>
                     <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
                   </TabsList>
@@ -564,6 +568,14 @@ const Admin = () => {
 
                   <TabsContent value="tts">
                     <TTSVoiceManager />
+                  </TabsContent>
+
+                  <TabsContent value="coins">
+                    <CoinsManager />
+                  </TabsContent>
+
+                  <TabsContent value="store">
+                    <StoreItemsManager />
                   </TabsContent>
 
                   <TabsContent value="locations">

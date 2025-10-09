@@ -8,6 +8,7 @@ import { HeaderSkeleton } from "@/components/HeaderSkeleton";
 import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
+import { CoinsDisplay } from "@/components/CoinsDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { useGuardianApprovalsCount } from "@/hooks/useGuardianApprovalsCount";
@@ -352,6 +353,9 @@ export const UnifiedHeader = () => {
               </>
             ) : user && profile ? (
               <>
+                {/* Coins Display */}
+                <CoinsDisplay />
+                
                 {/* Notification Bell */}
                 <NotificationBell />
                 
