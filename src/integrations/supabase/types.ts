@@ -3526,9 +3526,32 @@ export type Database = {
           bio: string | null
           created_at: string | null
           display_name: string | null
+          email: string | null
           friend_code: string | null
           id: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_number?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          friend_code?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_number?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          friend_code?: string | null
+          id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
