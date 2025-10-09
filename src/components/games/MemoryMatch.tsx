@@ -1,0 +1,396 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Trophy, Clock, Zap, Star, RotateCcw, Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import confetti from "canvas-confetti";
+
+type Difficulty = 'easy' | 'medium' | 'hard';
+
+interface Card {
+  id: number;
+  emoji: string;
+  isFlipped: boolean;
+  isMatched: boolean;
+}
+
+const EMOJIS = ['🎨', '🎭', '🎪', '🎸', '🎹', '🎺', '🎻', '🥁', '🎮', '🎯', '🎲', '🧩', '🚀', '🌟', '⭐', '🌈', '🎈', '🎉', '🎊', '🎁'];
+
+const DIFFICULTY_CONFIG = {
+  easy: { pairs: 6, coins: 10, label: 'Easy', color: 'bg-green-500' },
+  medium: { pairs: 8, coins: 20, label: 'Medium', color: 'bg-yellow-500' },
+  hard: { pairs: 10, coins: 40, label: 'Hard', color: 'bg-red-500' },
+};
+
+export const MemoryMatch = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [cards, setCards] = useState<Card[]>([]);
+  const [flippedCards, setFlippedCards] = useState<number[]>([]);
+  const [moves, setMoves] = useState(0);
+  const [matchedPairs, setMatchedPairs] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameCompleted, setGameCompleted] = useState(false);
+  const [startTime, setStartTime] = useState<number>(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [hasHardMode, setHasHardMode] = useState(false);
+  const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number; time: number } | null>>({
+    easy: null,
+    medium: null,
+    hard: null,
+  });
+
+  useEffect(() => {
+    checkHardModeUnlock();
+    loadBestScores();
+  }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (gameStarted && !gameCompleted) {
+      interval = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [gameStarted, gameCompleted, startTime]);
+
+  const checkHardModeUnlock = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('user_purchases')
+      .select('store_item_id')
+      .eq('user_id', user.id);
+
+    const hardModeItem = await supabase
+      .from('store_items')
+      .select('id')
+      .eq('name', 'Memory Match - Hard Mode')
+      .single();
+
+    if (hardModeItem.data && data?.some(p => p.store_item_id === hardModeItem.data.id)) {
+      setHasHardMode(true);
+    }
+  };
+
+  const loadBestScores = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('game_sessions')
+      .select('difficulty, moves_count, time_seconds')
+      .eq('user_id', user.id)
+      .eq('game_type', 'memory_match')
+      .order('moves_count', { ascending: true });
+
+    if (data) {
+      const scores: Record<Difficulty, { moves: number; time: number } | null> = {
+        easy: null,
+        medium: null,
+        hard: null,
+      };
+
+      data.forEach(session => {
+        const diff = session.difficulty as Difficulty;
+        if (!scores[diff] || session.moves_count < scores[diff]!.moves) {
+          scores[diff] = {
+            moves: session.moves_count,
+            time: session.time_seconds,
+          };
+        }
+      });
+
+      setBestScores(scores);
+    }
+  };
+
+  const initializeGame = () => {
+    const pairCount = DIFFICULTY_CONFIG[difficulty].pairs;
+    const selectedEmojis = EMOJIS.slice(0, pairCount);
+    const gameCards = [...selectedEmojis, ...selectedEmojis]
+      .sort(() => Math.random() - 0.5)
+      .map((emoji, index) => ({
+        id: index,
+        emoji,
+        isFlipped: false,
+        isMatched: false,
+      }));
+
+    setCards(gameCards);
+    setFlippedCards([]);
+    setMoves(0);
+    setMatchedPairs(0);
+    setGameStarted(true);
+    setGameCompleted(false);
+    setStartTime(Date.now());
+    setElapsedTime(0);
+  };
+
+  const handleCardClick = (cardId: number) => {
+    if (flippedCards.length === 2 || flippedCards.includes(cardId)) return;
+    if (cards[cardId].isMatched) return;
+
+    const newFlipped = [...flippedCards, cardId];
+    setFlippedCards(newFlipped);
+
+    setCards(cards.map(card =>
+      card.id === cardId ? { ...card, isFlipped: true } : card
+    ));
+
+    if (newFlipped.length === 2) {
+      setMoves(moves + 1);
+      const [first, second] = newFlipped;
+
+      if (cards[first].emoji === cards[second].emoji) {
+        setCards(cards.map(card =>
+          card.id === first || card.id === second
+            ? { ...card, isMatched: true }
+            : card
+        ));
+        setMatchedPairs(matchedPairs + 1);
+        setFlippedCards([]);
+
+        if (matchedPairs + 1 === DIFFICULTY_CONFIG[difficulty].pairs) {
+          completeGame();
+        }
+      } else {
+        setTimeout(() => {
+          setCards(cards.map(card =>
+            card.id === first || card.id === second
+              ? { ...card, isFlipped: false }
+              : card
+          ));
+          setFlippedCards([]);
+        }, 1000);
+      }
+    }
+  };
+
+  const completeGame = async () => {
+    setGameCompleted(true);
+    const finalTime = Math.floor((Date.now() - startTime) / 1000);
+    const coinsEarned = DIFFICULTY_CONFIG[difficulty].coins;
+    const score = Math.max(1000 - (moves * 10) - finalTime, 100);
+
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Save game session
+    await supabase
+      .from('game_sessions')
+      .insert({
+        user_id: user.id,
+        game_type: 'memory_match',
+        difficulty,
+        score,
+        moves_count: moves + 1,
+        time_seconds: finalTime,
+        coins_earned: coinsEarned,
+      });
+
+    // Award coins
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('coins')
+      .eq('id', user.id)
+      .single();
+
+    if (profile) {
+      await supabase
+        .from('profiles')
+        .update({ coins: (profile.coins || 0) + coinsEarned })
+        .eq('id', user.id);
+
+      await supabase
+        .from('coin_transactions')
+        .insert({
+          user_id: user.id,
+          amount: coinsEarned,
+          transaction_type: 'game_reward',
+          description: `Memory Match ${DIFFICULTY_CONFIG[difficulty].label} completed`,
+        });
+    }
+
+    toast({
+      title: "🎉 Awesome Job!",
+      description: `You earned ${coinsEarned} coins! Moves: ${moves + 1}, Time: ${finalTime}s`,
+    });
+
+    loadBestScores();
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (!gameStarted) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-3xl">
+              <Star className="h-8 w-8 text-yellow-500" />
+              Memory Match Game
+            </CardTitle>
+            <CardDescription className="text-lg">
+              Find matching pairs and earn coins! Choose your difficulty:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => {
+                const config = DIFFICULTY_CONFIG[diff];
+                const isLocked = diff === 'hard' && !hasHardMode;
+                const best = bestScores[diff];
+
+                return (
+                  <Card
+                    key={diff}
+                    className={`cursor-pointer transition-all hover:scale-105 ${
+                      difficulty === diff ? 'ring-2 ring-primary' : ''
+                    } ${isLocked ? 'opacity-50' : ''}`}
+                    onClick={() => !isLocked && setDifficulty(diff)}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>{config.label}</span>
+                        {isLocked && <span className="text-sm">🔒 Locked</span>}
+                      </CardTitle>
+                      <CardDescription>
+                        {config.pairs} pairs • {config.coins} coins
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {best && (
+                        <div className="space-y-1 text-sm">
+                          <p className="text-muted-foreground">Your Best:</p>
+                          <p className="flex items-center gap-2">
+                            <Trophy className="h-4 w-4 text-yellow-500" />
+                            {best.moves} moves
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-blue-500" />
+                            {formatTime(best.time)}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <Button
+              onClick={initializeGame}
+              size="lg"
+              className="w-full"
+              disabled={difficulty === 'hard' && !hasHardMode}
+            >
+              <Zap className="h-5 w-5 mr-2" />
+              Start {DIFFICULTY_CONFIG[difficulty].label} Game
+            </Button>
+
+            {difficulty === 'hard' && !hasHardMode && (
+              <p className="text-center text-muted-foreground text-sm">
+                Unlock Hard Mode in the store for 100 coins!
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-6 w-6 text-yellow-500" />
+              Memory Match - {DIFFICULTY_CONFIG[difficulty].label}
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={() => navigate('/community')}>
+              <Home className="h-4 w-4 mr-2" />
+              Exit
+            </Button>
+          </div>
+          <div className="flex gap-4 text-sm">
+            <Badge variant="secondary" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Moves: {moves}
+            </Badge>
+            <Badge variant="secondary" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              {formatTime(elapsedTime)}
+            </Badge>
+            <Badge variant="secondary" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              {matchedPairs}/{DIFFICULTY_CONFIG[difficulty].pairs}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {gameCompleted ? (
+            <div className="text-center space-y-6 py-8">
+              <div className="text-6xl">🎉</div>
+              <div>
+                <h3 className="text-2xl font-bold mb-2">Congratulations!</h3>
+                <p className="text-muted-foreground">
+                  You completed the game in {moves} moves and {formatTime(elapsedTime)}!
+                </p>
+                <p className="text-lg font-semibold text-yellow-600 mt-2">
+                  +{DIFFICULTY_CONFIG[difficulty].coins} coins earned!
+                </p>
+              </div>
+              <div className="flex gap-4 justify-center">
+                <Button onClick={initializeGame}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Play Again
+                </Button>
+                <Button variant="outline" onClick={() => setGameStarted(false)}>
+                  Change Difficulty
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className={`grid gap-4 ${
+              difficulty === 'easy' ? 'grid-cols-4' :
+              difficulty === 'medium' ? 'grid-cols-4' :
+              'grid-cols-5'
+            }`}>
+              {cards.map((card) => (
+                <div
+                  key={card.id}
+                  onClick={() => handleCardClick(card.id)}
+                  className={`aspect-square rounded-lg flex items-center justify-center text-4xl cursor-pointer transition-all transform hover:scale-105 ${
+                    card.isFlipped || card.isMatched
+                      ? 'bg-gradient-warm text-white'
+                      : 'bg-secondary hover:bg-secondary/80'
+                  } ${card.isMatched ? 'opacity-50 cursor-default' : ''}`}
+                >
+                  {(card.isFlipped || card.isMatched) ? card.emoji : '?'}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

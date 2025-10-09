@@ -1282,6 +1282,60 @@ export type Database = {
         }
         Relationships: []
       }
+      game_sessions: {
+        Row: {
+          coins_earned: number
+          completed_at: string
+          difficulty: string
+          game_type: string
+          id: string
+          metadata: Json | null
+          moves_count: number
+          score: number
+          time_seconds: number
+          user_id: string
+        }
+        Insert: {
+          coins_earned?: number
+          completed_at?: string
+          difficulty: string
+          game_type: string
+          id?: string
+          metadata?: Json | null
+          moves_count?: number
+          score?: number
+          time_seconds?: number
+          user_id: string
+        }
+        Update: {
+          coins_earned?: number
+          completed_at?: string
+          difficulty?: string
+          game_type?: string
+          id?: string
+          metadata?: Json | null
+          moves_count?: number
+          score?: number
+          time_seconds?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_faqs: {
         Row: {
           answer: string
@@ -3271,6 +3325,34 @@ export type Database = {
           remaining_needed: number | null
         }
         Relationships: []
+      }
+      game_leaderboard: {
+        Row: {
+          best_moves: number | null
+          best_time: number | null
+          difficulty: string | null
+          game_type: string | null
+          games_played: number | null
+          high_score: number | null
+          total_coins: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles_public: {
         Row: {
