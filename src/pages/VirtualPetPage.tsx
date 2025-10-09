@@ -9,7 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function VirtualPetPage() {
-  const { pet, loading } = usePet();
+  const { pet, petTypes, loading, adoptPet } = usePet();
   const navigate = useNavigate();
 
   return (
@@ -37,7 +37,7 @@ export default function VirtualPetPage() {
           ) : pet ? (
             <VirtualPet />
           ) : (
-            <PetAdoption />
+            <PetAdoption petTypes={petTypes} adoptPet={adoptPet} />
           )}
         </div>
       </main>

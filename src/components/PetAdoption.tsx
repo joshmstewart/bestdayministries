@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { usePet } from "@/hooks/usePet";
 import { Coins } from "lucide-react";
 import {
   Dialog,
@@ -15,8 +14,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function PetAdoption() {
-  const { petTypes, adoptPet } = usePet();
+interface PetType {
+  id: string;
+  name: string;
+  description: string;
+  image_url: string | null;
+  unlock_cost: number;
+}
+
+interface PetAdoptionProps {
+  petTypes: PetType[];
+  adoptPet: (petTypeId: string, petName: string, unlockCost: number) => Promise<boolean>;
+}
+
+export function PetAdoption({ petTypes, adoptPet }: PetAdoptionProps) {
   const [selectedPetType, setSelectedPetType] = useState<string | null>(null);
   const [petName, setPetName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
