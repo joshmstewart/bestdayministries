@@ -105,6 +105,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     const logoUrl = appSettings?.setting_value || "";
 
+    // Get reply-from settings
+    const { data: contactSettings } = await supabase
+      .from("contact_form_settings")
+      .select("reply_from_email, reply_from_name, recipient_email")
+      .single();
+
+    const fromEmail = contactSettings?.reply_from_email || "noreply@yourdomain.com";
+    const fromName = contactSettings?.reply_from_name || "Joy House";
+    const replyToEmail = contactSettings?.recipient_email || "contact@example.com";
+
     // Sanitize HTML in reply message
     const sanitizedReply = replyMessage
       .replace(/</g, '&lt;')
@@ -176,17 +186,9 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
       </html>
     `;
 
-    // Get reply-to email from settings or use default
-    const { data: settings } = await supabase
-      .from("contact_form_settings")
-      .select("recipient_email")
-      .single();
-
-    const replyToEmail = settings?.recipient_email || "contact@example.com";
-
     // Send email
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Best Day Ministries <notifications@resend.dev>",
+      from: `${fromName} <${fromEmail}>`,
       to: [submission.email],
       reply_to: replyToEmail,
       subject: `Re: ${submission.subject || "Your message"}`,

@@ -21,6 +21,8 @@ const settingsSchema = z.object({
   title: z.string().min(2).max(100),
   description: z.string().min(2).max(500),
   recipient_email: z.string().email(),
+  reply_from_email: z.string().email(),
+  reply_from_name: z.string().min(2).max(100),
   success_message: z.string().min(2).max(500),
 });
 
@@ -296,6 +298,40 @@ export const ContactFormManager = () => {
                     </FormControl>
                     <FormDescription>
                       Where contact form submissions will be sent
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="reply_from_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reply From Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Joy House" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      The name that appears in the "From" field when sending replies
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="reply_from_email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reply From Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="hello@yourdomain.com" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Must be a verified domain in your Resend account
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

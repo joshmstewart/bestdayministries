@@ -441,6 +441,8 @@ export type Database = {
           id: string
           is_enabled: boolean
           recipient_email: string
+          reply_from_email: string
+          reply_from_name: string
           success_message: string
           title: string
           updated_at: string
@@ -451,6 +453,8 @@ export type Database = {
           id?: string
           is_enabled?: boolean
           recipient_email: string
+          reply_from_email?: string
+          reply_from_name?: string
           success_message?: string
           title?: string
           updated_at?: string
@@ -461,6 +465,8 @@ export type Database = {
           id?: string
           is_enabled?: boolean
           recipient_email?: string
+          reply_from_email?: string
+          reply_from_name?: string
           success_message?: string
           title?: string
           updated_at?: string
