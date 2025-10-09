@@ -1,63 +1,22 @@
-GUARDIAN APPROVALS - CONCISE
+GUARDIAN APPROVALS
 
-## Overview
-Central hub (`/guardian-approvals`) for caregivers to approve/reject content from linked besties.
+Central hub (`/guardian-approvals`) for caregivers to approve/reject content from linked besties. Caregiver role only.
 
-**Access:** Caregivers only (role from `user_roles`)
+## Tabs
 
-## Tabs & Sources
+**Posts:** `discussion_posts` (pending_approval) → Approve/Reject/Delete
+**Comments:** `discussion_comments` (pending_approval) → Approve/Reject  
+**Vendors:** `vendor_bestie_requests` (pending) → Approve/Reject
+**Messages:** `sponsor_messages` (pending_approval) → Approve As-Is | Edit & Approve (subject/text/image/video) | Reject
 
-### 1. Posts
-**Source:** `discussion_posts` where `approval_status = 'pending_approval'` AND author is linked bestie
-**Actions:** Approve (`approved` + `is_moderated = true`), Reject (`rejected`), Delete
+## Features
 
-### 2. Comments
-**Source:** `discussion_comments` where `approval_status = 'pending_approval'` AND author is linked bestie
-**Actions:** Approve, Reject
+**Approval Flags:** `caregiver_bestie_links` controls `require_post_approval`, `require_comment_approval`, `require_message_approval`, `require_vendor_asset_approval`
 
-### 3. Vendors
-**Component:** `VendorLinkRequests`
-**Source:** `vendor_bestie_requests` where `status = 'pending'` AND bestie is linked
-**Actions:** Approve (`status = 'approved'`), Reject (`rejected`)
+**Badge Count:** `useGuardianApprovalsCount` hook sums pending across all 4 tables, updates realtime
 
-### 4. Messages
-**Component:** `BestieSponsorMessages`
-**Source:** `sponsor_messages` where `status = 'pending_approval'` AND bestie is linked
-**Actions:**
-- **Approve As-Is:** Sets `status = 'approved'`
-- **Edit & Approve:** Dialog for editing subject, message, add/recrop image → saves with `from_guardian = true`
-- **Reject:** Provide rejection reason
+**Message Editing:** Subject/text edit, image crop/recrop, video upload, sets `from_guardian = true`
 
-## Approval Requirements
-Controlled by `caregiver_bestie_links` table:
-- `require_post_approval` - Posts need approval
-- `require_comment_approval` - Comments need approval
-- `require_message_approval` - Messages need approval (default: true)
-- `require_vendor_asset_approval` - Vendor assets need approval
-
-## Badge Count (Header)
-**Hook:** `useGuardianApprovalsCount`
-**Calculation:** Sum of pending posts + comments + vendor links + messages
-**Updates:** Realtime via subscriptions to all 4 tables
-
-## Message Editing Dialog
-- Edit subject, message text
-- Add/crop image (`app-assets/sponsor-messages/`)
-- Recrop existing image with AspectRatio selector
-- Preview before save
-
-## RLS Policies
-Uses `is_guardian_of(guardian_id, bestie_id)` function for UPDATE access on:
-- `discussion_posts`
-- `discussion_comments`
-- `vendor_bestie_requests`
-- `sponsor_messages`
-
-## Common Issues
-| Issue | Fix |
-|-------|-----|
-| Nothing showing | Check linked besties exist |
-| Count doesn't update | Verify realtime subscription cleanup |
-| Can't approve | Check `is_guardian_of()` RLS function |
+**RLS:** `is_guardian_of(guardian_id, bestie_id)` grants UPDATE on posts/comments/vendor_requests/messages
 
 **Files:** `GuardianApprovals.tsx`, `VendorLinkRequests.tsx`, `BestieSponsorMessages.tsx`, `useGuardianApprovalsCount.ts`
