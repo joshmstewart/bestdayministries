@@ -13,7 +13,11 @@ interface CoffeeShopContent {
   mission_title?: string;
   mission_description?: string;
   menu_button_text?: string;
+  menu_button_link?: string;
+  menu_button_link_type?: "internal" | "custom";
   about_button_text?: string;
+  about_button_link?: string;
+  about_button_link_type?: "internal" | "custom";
   hours_title?: string;
   hours_content?: string;
   address?: string;
@@ -56,7 +60,11 @@ const CoffeeShopHome = () => {
     mission_title = "Our Mission",
     mission_description = "At Best Day Ever, we believe in creating opportunities and fostering independence for adults with disabilities through meaningful employment in a joyful café environment. Our Besties are the heart of our café, bringing smiles and warmth to every cup of coffee and crepe we serve.",
     menu_button_text = "View Our Menu",
+    menu_button_link = "#menu",
+    menu_button_link_type = "custom" as const,
     about_button_text = "Meet Our Besties",
+    about_button_link = "/about",
+    about_button_link_type = "internal" as const,
     hours_title = "Visit Us",
     hours_content = "Monday - Friday: 7am - 2pm\nSaturday: 8am - 2pm\nSunday: Closed",
     address = "123 Main Street, Longmont, CO",
@@ -98,14 +106,30 @@ const CoffeeShopHome = () => {
                 <Button 
                   size="lg"
                   className="bg-gradient-warm shadow-warm hover:shadow-glow"
-                  onClick={() => window.open('/menu.html', '_blank')}
+                  onClick={() => {
+                    if (menu_button_link_type === "internal") {
+                      window.location.href = menu_button_link;
+                    } else {
+                      if (menu_button_link.startsWith("#")) {
+                        document.querySelector(menu_button_link)?.scrollIntoView({ behavior: "smooth" });
+                      } else {
+                        window.open(menu_button_link, "_blank");
+                      }
+                    }
+                  }}
                 >
                   {menu_button_text}
                 </Button>
                 <Button 
                   size="lg"
                   variant="outline"
-                  onClick={() => window.open('/about.html', '_blank')}
+                  onClick={() => {
+                    if (about_button_link_type === "internal") {
+                      window.location.href = about_button_link;
+                    } else {
+                      window.open(about_button_link, "_blank");
+                    }
+                  }}
                 >
                   {about_button_text}
                 </Button>

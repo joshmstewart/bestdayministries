@@ -4,13 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Coffee, ExternalLink } from "lucide-react";
+import { Loader2, Coffee, ExternalLink, Upload, Image as ImageIcon } from "lucide-react";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
+import { INTERNAL_PAGES } from "@/lib/internalPages";
+import { compressImage } from "@/lib/imageUtils";
 
 const CoffeeShopManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>("");
   const [content, setContent] = useState({
     hero_heading: "Coffee with Purpose. Community with Heart.",
     hero_subheading: "Welcome to Best Day Ever Coffee & Crepes, where every cup and crepe creates opportunities for adults with disabilities in Longmont.",
@@ -18,7 +25,11 @@ const CoffeeShopManager = () => {
     mission_title: "Our Mission",
     mission_description: "At Best Day Ever, we believe in creating opportunities and fostering independence for adults with disabilities through meaningful employment in a joyful café environment. Our Besties are the heart of our café, bringing smiles and warmth to every cup of coffee and crepe we serve.",
     menu_button_text: "View Our Menu",
+    menu_button_link: "#menu",
+    menu_button_link_type: "custom" as "internal" | "custom",
     about_button_text: "Meet Our Besties",
+    about_button_link: "/about",
+    about_button_link_type: "internal" as "internal" | "custom",
     hours_title: "Visit Us",
     hours_content: "Monday - Friday: 7am - 2pm\nSaturday: 8am - 2pm\nSunday: Closed",
     address: "123 Main Street, Longmont, CO",
@@ -78,6 +89,53 @@ const CoffeeShopManager = () => {
 
   const handleChange = (field: string, value: string | boolean) => {
     setContent(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSelectedImage(reader.result as string);
+        setCropDialogOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setUploading(true);
+    try {
+      // Convert Blob to File first
+      const tempFile = new File([croppedBlob], `hero-${Date.now()}.jpg`, {
+        type: "image/jpeg",
+      });
+      
+      // Then compress the file
+      const compressedFile = await compressImage(tempFile, 4.5);
+      const filePath = `coffee-shop/${compressedFile.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(filePath, compressedFile, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(filePath);
+
+      handleChange("hero_image_url", publicUrl);
+      toast.success("Hero image uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) {
@@ -151,13 +209,39 @@ const CoffeeShopManager = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="hero_image_url">Hero Image URL</Label>
-            <Input
-              id="hero_image_url"
-              value={content.hero_image_url}
-              onChange={(e) => handleChange("hero_image_url", e.target.value)}
-              placeholder="/images/hero.jpg"
-            />
+            <Label>Hero Image</Label>
+            {content.hero_image_url && (
+              <div className="relative w-full h-48 bg-muted rounded-lg overflow-hidden mb-2">
+                <img
+                  src={content.hero_image_url}
+                  alt="Hero preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById("hero-image-upload")?.click()}
+                disabled={uploading}
+                className="gap-2"
+              >
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                Upload Image
+              </Button>
+              <input
+                id="hero-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
@@ -177,6 +261,96 @@ const CoffeeShopManager = () => {
                 value={content.about_button_text}
                 onChange={(e) => handleChange("about_button_text", e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Menu Button Link Type</Label>
+              <Select
+                value={content.menu_button_link_type}
+                onValueChange={(value: "internal" | "custom") => handleChange("menu_button_link_type", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Internal Page</SelectItem>
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>About Button Link Type</Label>
+              <Select
+                value={content.about_button_link_type}
+                onValueChange={(value: "internal" | "custom") => handleChange("about_button_link_type", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Internal Page</SelectItem>
+                  <SelectItem value="custom">Custom URL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Menu Button Link</Label>
+              {content.menu_button_link_type === "internal" ? (
+                <Select
+                  value={content.menu_button_link}
+                  onValueChange={(value) => handleChange("menu_button_link", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERNAL_PAGES.map((page) => (
+                      <SelectItem key={page.value} value={page.value}>
+                        {page.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={content.menu_button_link}
+                  onChange={(e) => handleChange("menu_button_link", e.target.value)}
+                  placeholder="#menu or https://..."
+                />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>About Button Link</Label>
+              {content.about_button_link_type === "internal" ? (
+                <Select
+                  value={content.about_button_link}
+                  onValueChange={(value) => handleChange("about_button_link", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERNAL_PAGES.map((page) => (
+                      <SelectItem key={page.value} value={page.value}>
+                        {page.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={content.about_button_link}
+                  onChange={(e) => handleChange("about_button_link", e.target.value)}
+                  placeholder="https://..."
+                />
+              )}
             </div>
           </div>
         </CardContent>
@@ -291,6 +465,16 @@ const CoffeeShopManager = () => {
           Save Changes
         </Button>
       </div>
+
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageUrl={selectedImage}
+        onCropComplete={handleCropComplete}
+        aspectRatio={16 / 9}
+        title="Crop Hero Image"
+        description="Adjust the crop area for the hero image"
+      />
     </div>
   );
 };
