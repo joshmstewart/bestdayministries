@@ -276,7 +276,7 @@ const ProfileSettings = () => {
     { value: "batman", label: "Batman", description: "Deep and mysterious voice" },
     { value: "cherry-twinkle", label: "Cherry Twinkle", description: "Bright and cheerful voice" },
     { value: "creature", label: "Creature", description: "Fun and quirky voice" },
-    { value: "grandma-muffin", label: "Grandma Muffin", description: "Sweet and caring voice" },
+    { value: "elmo", label: "Elmo", description: "Fun and playful voice" },
     { value: "grandpa-werthers", label: "Grandpa Werthers", description: "Wise and comforting voice" },
     { value: "jerry-b", label: "Jerry B", description: "Energetic and upbeat voice" },
     { value: "johnny-dynamite", label: "Johnny Dynamite", description: "Bold and exciting voice" },
