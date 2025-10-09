@@ -233,6 +233,13 @@ BEST-PRACTICES:meta[<60-title|<160-desc|keywords-natural|unique]|structured[sche
 MONITORING:Search-Console|PageSpeed|Lighthouse|Schema-Validator|Rich-Results-Test
 METRICS:LCP<2.5s|FID<100ms|CLS<0.1|TTI<3.5s
 
+SOCIAL-SHARING-ISSUE:
+PROBLEM:SEOHead-updates-client-side[JS]→crawlers-NO-execute-JS→see-only-index.html-static-tags
+SOLUTION:1-clear-cache[Facebook-Debugger|Twitter-Validator|LinkedIn-Inspector]|2-update-index.html[static-default-tags]|3-add-?v=2-to-URLs
+GUIDE:Admin→Settings→Social-Sharing→SocialSharingGuide[tools+instructions+tips]
+CACHE:7-30-days-platforms|force-refresh-via-debugger-tools
+IMAGE-REQS:Facebook[1200x630]|Twitter[800x418]|LinkedIn[1200x627]|min-200x200
+
 ## SAVED_LOCATIONS
 DB:saved_locations[name+address+is_active]
 COMPS:Manager[Admin→Format→Locations-CRUD-toggle]|Autocomplete[dropdown-saved+Google-Places+manual]

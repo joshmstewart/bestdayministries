@@ -51,6 +51,7 @@ import { TTSVoiceManager } from "@/components/admin/TTSVoiceManager";
 import { CoinsManager } from "@/components/admin/CoinsManager";
 import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
 import { PetTypesManager } from "@/components/admin/PetTypesManager";
+import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -533,6 +534,7 @@ const Admin = () => {
                 <Tabs defaultValue="app" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="app">App Settings</TabsTrigger>
+                    <TabsTrigger value="social-sharing">Social Sharing</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
                     <TabsTrigger value="coins">Coins</TabsTrigger>
@@ -544,6 +546,10 @@ const Admin = () => {
 
                   <TabsContent value="app">
                     <AppSettingsManager />
+                  </TabsContent>
+
+                  <TabsContent value="social-sharing">
+                    <SocialSharingGuide />
                   </TabsContent>
 
                   <TabsContent value="avatars" className="space-y-6">

@@ -1,0 +1,184 @@
+# SOCIAL SHARING & META TAGS SYSTEM
+
+## THE PROBLEM
+
+Social media platforms (Facebook, Twitter, LinkedIn, etc.) use web crawlers to fetch link previews. These crawlers:
+- **Do NOT execute JavaScript**
+- Only read the initial HTML sent by the server
+- Cache the meta tags for performance
+
+Since this is a React SPA (Single Page Application), all meta tags are updated client-side via JavaScript, which means:
+- ❌ Social media crawlers see only the default tags in `index.html`
+- ❌ Dynamic page-specific meta tags are invisible to crawlers
+- ❌ Updates to SEO settings don't appear in shared links
+
+## CURRENT IMPLEMENTATION
+
+### Client-Side Meta Tags (SEOHead Component)
+Located: `src/components/SEOHead.tsx`
+
+```tsx
+// Works for browsers, NOT for social media crawlers
+<SEOHead
+  title="Your Page Title"
+  description="Your description"
+  image="https://your-image-url.jpg"
+/>
+```
+
+**What it does:**
+- Loads SEO settings from database (`app_settings` table)
+- Updates `document.title` and meta tags dynamically
+- Adds structured data (JSON-LD)
+- Updates on route changes
+
+**Limitation:** Social media crawlers can't see these updates.
+
+### Static Meta Tags (index.html)
+Located: `index.html`
+
+```html
+<meta property="og:title" content="Joy House Community | ..." />
+<meta property="og:description" content="Building a supportive..." />
+<meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+```
+
+**What crawlers see:** Always these static tags, regardless of which page is being shared.
+
+## SOLUTIONS
+
+### Solution 1: Social Media Cache Refresh (Immediate)
+
+When you update meta tags, social media platforms won't see changes immediately because they cache the old version. Force a refresh:
+
+**Facebook:**
+1. Go to https://developers.facebook.com/tools/debug/
+2. Enter your URL
+3. Click "Scrape Again" to clear cache
+
+**Twitter:**
+1. Go to https://cards-dev.twitter.com/validator
+2. Enter your URL
+3. Click "Preview card"
+
+**LinkedIn:**
+1. Go to https://www.linkedin.com/post-inspector/
+2. Enter your URL
+3. Click "Inspect"
+
+### Solution 2: Update Default Meta Tags (Quick Fix)
+
+Update `index.html` with your most important/common meta tags:
+
+```html
+<!-- Update these in index.html -->
+<meta property="og:image" content="YOUR_MAIN_IMAGE_URL" />
+<meta property="og:title" content="YOUR_SITE_TITLE" />
+<meta property="og:description" content="YOUR_DESCRIPTION" />
+```
+
+**Pros:** Works immediately for social crawlers
+**Cons:** All pages show the same preview
+
+### Solution 3: Edge Function for Dynamic Meta Tags (Advanced)
+
+Created: `supabase/functions/generate-meta-tags/index.ts`
+
+This generates HTML with proper meta tags for each URL, but requires additional setup:
+
+**How to use:**
+1. Share links through the edge function:
+   ```
+   https://your-project.supabase.co/functions/v1/generate-meta-tags
+   ```
+2. Pass URL parameters for page-specific tags
+3. Edge function redirects to real page after crawler reads tags
+
+**Pros:** Dynamic, page-specific meta tags
+**Cons:** Requires URL structure changes for sharing
+
+### Solution 4: Meta Tag Proxy Service (Recommended for Production)
+
+Use a service like:
+- **Cloudflare Workers** - Detect crawlers, inject meta tags
+- **Vercel Edge Functions** - Pre-render meta tags at edge
+- **Netlify Edge Functions** - Dynamic HTML generation
+
+These detect social media bots and serve proper HTML with meta tags, while regular users get the normal React app.
+
+## RECOMMENDED APPROACH
+
+For most users:
+
+1. **Update index.html** with your best default meta tags (especially og:image)
+2. **Use the cache refresh tools** after updating SEO settings
+3. **Add query parameters** to force new cache when sharing:
+   ```
+   https://yoursite.com/page?v=2
+   ```
+
+For production apps with dynamic content:
+- Consider server-side rendering (SSR) with frameworks like Next.js
+- Or implement a bot detection + meta tag injection solution
+
+## IMAGE REQUIREMENTS
+
+Social media platforms have specific requirements:
+
+**Facebook:**
+- Min: 200x200px
+- Recommended: 1200x630px
+- Format: JPG or PNG
+- Max: 8MB
+
+**Twitter:**
+- Large card: 800x418px minimum
+- Small card: 120x120px minimum
+- Max: 5MB
+
+**LinkedIn:**
+- Recommended: 1200x627px
+- Min: 200x200px
+
+## TESTING YOUR META TAGS
+
+1. **Facebook Debugger:** https://developers.facebook.com/tools/debug/
+2. **Twitter Card Validator:** https://cards-dev.twitter.com/validator
+3. **LinkedIn Inspector:** https://www.linkedin.com/post-inspector/
+4. **Open Graph Checker:** https://www.opengraph.xyz/
+
+## DATABASE SETTINGS
+
+SEO settings stored in `app_settings` table:
+
+| setting_key | Description |
+|-------------|-------------|
+| `site_title` | Default site title |
+| `site_description` | Default description |
+| `og_image_url` | Default Open Graph image |
+| `twitter_handle` | Twitter username (without @) |
+
+Update via Admin Panel → Settings → App Settings
+
+## TROUBLESHOOTING
+
+**Q: I updated my image but Facebook still shows the old one**
+A: Clear Facebook's cache using their Sharing Debugger tool
+
+**Q: Different platforms show different previews**
+A: Each platform caches independently - clear each one separately
+
+**Q: My changes work in browser but not when sharing**
+A: Client-side updates (SEOHead) don't work for crawlers - use index.html or edge functions
+
+**Q: How long do social media platforms cache meta tags?**
+A: Usually 7-30 days, but you can force refresh with their tools
+
+## FUTURE IMPROVEMENTS
+
+Consider migrating to:
+- **Next.js** - Built-in SSR for proper meta tag support
+- **Remix** - Server-side rendering with excellent meta tag handling
+- **Astro** - Static site generation with dynamic islands
+
+These frameworks generate proper HTML on the server, solving the social sharing problem permanently.
