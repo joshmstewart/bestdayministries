@@ -34,6 +34,7 @@ export function FAQSection({ faqs }: FAQSectionProps) {
       sponsorship: "bg-green-100 text-green-800",
       technical: "bg-orange-100 text-orange-800",
       billing: "bg-red-100 text-red-800",
+      admin: "bg-amber-100 text-amber-800",
     };
     return colors[category] || "bg-gray-100 text-gray-800";
   };

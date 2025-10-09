@@ -17,11 +17,13 @@ export function FAQManager() {
   const [editingFaq, setEditingFaq] = useState<any | null>(null);
   const { toast } = useToast();
 
+  type UserRole = "admin" | "bestie" | "caregiver" | "owner" | "supporter" | "vendor";
+  
   const [formData, setFormData] = useState({
     question: "",
     answer: "",
     category: "general",
-    target_audience: "all",
+    visible_to_roles: [] as UserRole[],
     display_order: "0",
     is_active: true,
   });
@@ -50,8 +52,14 @@ export function FAQManager() {
     e.preventDefault();
 
     const faqData = {
-      ...formData,
+      question: formData.question,
+      answer: formData.answer,
+      category: formData.category,
+      visible_to_roles: formData.visible_to_roles.length > 0 
+        ? formData.visible_to_roles 
+        : (['supporter', 'bestie', 'caregiver', 'admin', 'owner'] as UserRole[]),
       display_order: parseInt(formData.display_order),
+      is_active: formData.is_active,
     };
 
     if (editingFaq) {
@@ -96,7 +104,7 @@ export function FAQManager() {
       question: faq.question,
       answer: faq.answer,
       category: faq.category,
-      target_audience: faq.target_audience,
+      visible_to_roles: faq.visible_to_roles || [],
       display_order: faq.display_order.toString(),
       is_active: faq.is_active,
     });
@@ -145,7 +153,7 @@ export function FAQManager() {
       question: "",
       answer: "",
       category: "general",
-      target_audience: "all",
+      visible_to_roles: [],
       display_order: "0",
       is_active: true,
     });
@@ -192,44 +200,56 @@ export function FAQManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">General</SelectItem>
-                      <SelectItem value="account">Account</SelectItem>
-                      <SelectItem value="sponsorship">Sponsorship</SelectItem>
-                      <SelectItem value="technical">Technical</SelectItem>
-                      <SelectItem value="billing">Billing</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="account">Account</SelectItem>
+                    <SelectItem value="sponsorship">Sponsorship</SelectItem>
+                    <SelectItem value="technical">Technical</SelectItem>
+                    <SelectItem value="billing">Billing</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div>
-                  <Label htmlFor="target_audience">Target Audience</Label>
-                  <Select
-                    value={formData.target_audience}
-                    onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Users</SelectItem>
-                      <SelectItem value="bestie">Besties</SelectItem>
-                      <SelectItem value="caregiver">Caregivers</SelectItem>
-                      <SelectItem value="supporter">Supporters</SelectItem>
-                      <SelectItem value="admin">Admins</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div>
+                <Label>Visible to Roles</Label>
+                <div className="space-y-2 p-3 border rounded-md">
+                  {(['supporter', 'bestie', 'caregiver', 'admin', 'owner'] as UserRole[]).map((role) => (
+                    <label key={role} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.visible_to_roles.includes(role)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              visible_to_roles: [...formData.visible_to_roles, role as UserRole]
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              visible_to_roles: formData.visible_to_roles.filter(r => r !== role)
+                            });
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="capitalize text-sm">{role}</span>
+                    </label>
+                  ))}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave unchecked to show to all roles
+                </p>
               </div>
 
               <div>
@@ -272,9 +292,13 @@ export function FAQManager() {
               <div className="flex-1">
                 <h4 className="font-semibold">{faq.question}</h4>
                 <p className="text-sm text-muted-foreground line-clamp-2">{faq.answer}</p>
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 mt-2 flex-wrap">
                   <span className="text-xs px-2 py-1 bg-muted rounded">{faq.category}</span>
-                  <span className="text-xs px-2 py-1 bg-muted rounded">{faq.target_audience}</span>
+                  {faq.visible_to_roles && faq.visible_to_roles.length > 0 && (
+                    <span className="text-xs px-2 py-1 bg-muted rounded">
+                      {faq.visible_to_roles.join(', ')}
+                    </span>
+                  )}
                 </div>
               </div>
 
