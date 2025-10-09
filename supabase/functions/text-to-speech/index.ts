@@ -64,7 +64,32 @@ serve(async (req) => {
       'maverick': 'V33LkP9pVLdcjeB2y5Na',
     };
 
-    const voiceId = voiceIds[voice] || voiceIds['Aria'];
+    // Try to get voice ID from database first
+    let voiceId = voiceIds['Aria']; // Default fallback
+    
+    try {
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      const { data: voiceData } = await supabase
+        .from('tts_voices')
+        .select('voice_id')
+        .eq('voice_name', voice)
+        .eq('is_active', true)
+        .single();
+      
+      if (voiceData?.voice_id) {
+        voiceId = voiceData.voice_id;
+      } else {
+        // Fallback to hardcoded mapping
+        voiceId = voiceIds[voice] || voiceIds['Aria'];
+      }
+    } catch (error) {
+      console.error('Error fetching voice from database, using hardcoded mapping:', error);
+      voiceId = voiceIds[voice] || voiceIds['Aria'];
+    }
 
     // Call ElevenLabs API
     const response = await fetch(

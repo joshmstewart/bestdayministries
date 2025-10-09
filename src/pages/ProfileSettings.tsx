@@ -264,25 +264,46 @@ const ProfileSettings = () => {
     }
   };
 
-  const standardVoices = [
-    { value: "Aria", label: "Aria", description: "Warm and expressive" },
-    { value: "Roger", label: "Roger", description: "Confident and clear" },
-    { value: "Sarah", label: "Sarah", description: "Natural and friendly" },
-    { value: "Laura", label: "Laura", description: "Professional and warm" },
-  ];
+  const [standardVoices, setStandardVoices] = useState<Array<{ value: string; label: string; description: string }>>([]);
+  const [funVoices, setFunVoices] = useState<Array<{ value: string; label: string; description: string }>>([]);
 
-  const funVoices = [
-    { value: "austin", label: "Austin", description: "Warm and friendly voice" },
-    { value: "batman", label: "Batman", description: "Deep and mysterious voice" },
-    { value: "cherry-twinkle", label: "Cherry Twinkle", description: "Bright and cheerful voice" },
-    { value: "creature", label: "Creature", description: "Fun and quirky voice" },
-    { value: "elmo", label: "Elmo", description: "Fun and playful voice" },
-    { value: "grandpa-werthers", label: "Grandpa Werthers", description: "Wise and comforting voice" },
-    { value: "jerry-b", label: "Jerry B", description: "Energetic and upbeat voice" },
-    { value: "johnny-dynamite", label: "Johnny Dynamite", description: "Bold and exciting voice" },
-    { value: "marshal", label: "Marshal", description: "Strong and confident voice" },
-    { value: "maverick", label: "Maverick", description: "Cool and adventurous voice" },
-  ];
+  useEffect(() => {
+    loadVoices();
+  }, []);
+
+  const loadVoices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tts_voices')
+        .select('*')
+        .eq('is_active', true)
+        .order('category')
+        .order('display_order');
+
+      if (error) throw error;
+
+      const standard = data
+        ?.filter(v => v.category === 'standard')
+        .map(v => ({
+          value: v.voice_name,
+          label: v.voice_label,
+          description: v.description || ''
+        })) || [];
+
+      const fun = data
+        ?.filter(v => v.category === 'fun')
+        .map(v => ({
+          value: v.voice_name,
+          label: v.voice_label,
+          description: v.description || ''
+        })) || [];
+
+      setStandardVoices(standard);
+      setFunVoices(fun);
+    } catch (error: any) {
+      console.error('Error loading voices:', error);
+    }
+  };
 
   const checkUserRelationships = async (userId: string) => {
     try {

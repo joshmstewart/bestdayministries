@@ -47,6 +47,7 @@ import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
 import CoffeeShopManager from "@/components/admin/CoffeeShopManager";
+import { TTSVoiceManager } from "@/components/admin/TTSVoiceManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -520,32 +521,61 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="settings">
-            <div className="space-y-6">
-              <RoleImpersonator />
-              <AppSettingsManager />
-              <ContactFormManager />
-              <SavedLocationsManager />
-              
-              <AvatarUploader />
+            <Card>
+              <CardHeader>
+                <CardTitle>Settings</CardTitle>
+                <CardDescription>Manage app settings, avatars, and impersonation</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="app" className="space-y-4">
+                  <TabsList className="flex flex-wrap h-auto">
+                    <TabsTrigger value="app">App Settings</TabsTrigger>
+                    <TabsTrigger value="avatars">Avatars</TabsTrigger>
+                    <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
+                    <TabsTrigger value="locations">Locations</TabsTrigger>
+                    <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
+                  </TabsList>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Manage Existing Avatars</CardTitle>
-                  <CardDescription>Manage avatar categories and visibility</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-muted-foreground">
-                      Control which avatars are available to users and organize them by category.
-                    </p>
-                    <Button onClick={() => navigate("/admin/avatars")} className="gap-2">
-                      <Users className="w-4 h-4" />
-                      Manage Avatars
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <TabsContent value="app">
+                    <AppSettingsManager />
+                  </TabsContent>
+
+                  <TabsContent value="avatars" className="space-y-6">
+                    <AvatarUploader />
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Manage Existing Avatars</CardTitle>
+                        <CardDescription>Manage avatar categories and visibility</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <p className="text-muted-foreground">
+                            Control which avatars are available to users and organize them by category.
+                          </p>
+                          <Button onClick={() => navigate("/admin/avatars")} className="gap-2">
+                            <Users className="w-4 h-4" />
+                            Manage Avatars
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="tts">
+                    <TTSVoiceManager />
+                  </TabsContent>
+
+                  <TabsContent value="locations">
+                    <SavedLocationsManager />
+                  </TabsContent>
+
+                  <TabsContent value="impersonation">
+                    <RoleImpersonator />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>

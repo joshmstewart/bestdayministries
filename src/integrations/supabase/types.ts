@@ -2642,6 +2642,45 @@ export type Database = {
           },
         ]
       }
+      tts_voices: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          updated_at: string
+          voice_id: string
+          voice_label: string
+          voice_name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          voice_id: string
+          voice_label: string
+          voice_name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          voice_id?: string
+          voice_label?: string
+          voice_name?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           granted_at: string | null
