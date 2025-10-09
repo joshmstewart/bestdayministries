@@ -12,6 +12,7 @@ import LatestAlbum from "@/components/LatestAlbum";
 import PublicEvents from "@/components/PublicEvents";
 import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
+import { SEOHead, getOrganizationStructuredData } from "@/components/SEOHead";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -160,6 +161,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title="Joy House Community | Spreading Joy Through Special Needs Community"
+        description="Building a supportive community for adults with special needs by sharing their creativity through unique gifts, giving them confidence, independence, and JOY!"
+        structuredData={getOrganizationStructuredData()}
+      />
       <UnifiedHeader />
       <main>
         {sections

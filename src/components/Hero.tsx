@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Heart } from "lucide-react";
 import heroImage from "@/assets/hero-hands.jpg";
+import { OptimizedImage } from "@/components/OptimizedImage";
 
 interface HeroContent {
   badge_text?: string;
@@ -125,10 +126,12 @@ const Hero = ({ content = {} }: HeroProps) => {
           <div className="relative lg:h-[500px] animate-scale-in" style={{ animationDelay: '0.3s' }}>
             <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-secondary rounded-3xl rotate-3 opacity-20 blur-xl" />
             <div className="relative h-full rounded-3xl overflow-hidden shadow-xl">
-              <img
+              <OptimizedImage
                 src={image_url}
                 alt="Best Day Ministries community members creating together"
-                className="w-full h-full object-cover"
+                className="w-full h-full"
+                priority={true}
+                objectFit="cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent" />
               
