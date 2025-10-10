@@ -96,15 +96,16 @@ export const ErrorLogsManager = () => {
   const testSentryError = () => {
     toast({
       title: "Triggering test error",
-      description: "Check Admin > Logs > Errors in a few seconds...",
+      description: "Check Sentry dashboard in a few seconds...",
     });
     
-    // Trigger a test error
-    try {
-      throw new Error("Test error from Admin Dashboard - Sentry integration working!");
-    } catch (error) {
-      Sentry.captureException(error);
-    }
+    // Method 1: Captured exception
+    Sentry.captureException(new Error("Test error from Admin Dashboard - Sentry integration working!"));
+    
+    // Method 2: Uncaught error (will also trigger React error boundary)
+    setTimeout(() => {
+      throw new Error("Uncaught test error - This should appear in Sentry!");
+    }, 100);
   };
 
   return (
