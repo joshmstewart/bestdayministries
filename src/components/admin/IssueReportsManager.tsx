@@ -67,7 +67,23 @@ const IssueReportsManager = () => {
     try {
       const { data, error } = await supabase
         .from("issue_reports")
-        .select("*")
+        .select(`
+          id,
+          user_id,
+          user_email,
+          title,
+          description,
+          image_url,
+          current_url,
+          status,
+          priority,
+          browser_info,
+          session_data,
+          created_at,
+          resolved_by,
+          resolved_at,
+          admin_notes
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

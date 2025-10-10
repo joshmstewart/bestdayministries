@@ -527,53 +527,37 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="updates">
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Updates</CardTitle>
-                <CardDescription>Manage product updates and change logs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="product-updates" className="space-y-4">
-                  <TabsList className="flex flex-wrap h-auto w-full">
-                    <TabsTrigger value="product-updates">Product Updates</TabsTrigger>
-                    <TabsTrigger value="change-logs">Change Logs</TabsTrigger>
-                  </TabsList>
+            <Tabs defaultValue="product-updates" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="product-updates">Product Updates</TabsTrigger>
+                <TabsTrigger value="change-logs">Change Logs</TabsTrigger>
+              </TabsList>
 
-                  <TabsContent value="product-updates">
-                    <ProductUpdateBroadcaster />
-                  </TabsContent>
+              <TabsContent value="product-updates">
+                <ProductUpdateBroadcaster />
+              </TabsContent>
 
-                  <TabsContent value="change-logs">
-                    <ChangeLogManager />
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+              <TabsContent value="change-logs">
+                <ChangeLogManager />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="issues">
-            <Card>
-              <CardHeader>
-                <CardTitle>Issues & Logs</CardTitle>
-                <CardDescription>View issue reports and system error logs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="issue-reports" className="space-y-4">
-                  <TabsList className="flex flex-wrap h-auto w-full">
-                    <TabsTrigger value="issue-reports">Issue Reports</TabsTrigger>
-                    <TabsTrigger value="system-logs">System Logs</TabsTrigger>
-                  </TabsList>
+            <Tabs defaultValue="issue-reports" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="issue-reports">Issue Reports</TabsTrigger>
+                <TabsTrigger value="system-logs">System Logs</TabsTrigger>
+              </TabsList>
 
-                  <TabsContent value="issue-reports">
-                    <IssueReportsManager />
-                  </TabsContent>
+              <TabsContent value="issue-reports">
+                <IssueReportsManager />
+              </TabsContent>
 
-                  <TabsContent value="system-logs">
-                    <ErrorLogsManager />
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+              <TabsContent value="system-logs">
+                <ErrorLogsManager />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="settings">
