@@ -56,6 +56,7 @@ import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager"
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
 import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
 import IssueReportsManager from "@/components/admin/IssueReportsManager";
+import TestRunsManager from "@/components/admin/TestRunsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -276,6 +277,7 @@ const Admin = () => {
               <Megaphone className="w-4 h-4" />
               Updates
             </TabsTrigger>
+            <TabsTrigger value="testing">Testing</TabsTrigger>
             <TabsTrigger value="contact" className="relative">
               Contact
               {contactFormCount > 0 && (
@@ -546,6 +548,18 @@ const Admin = () => {
                     <ChangeLogManager />
                   </TabsContent>
                 </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="testing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Automated Test Runs</CardTitle>
+                <CardDescription>View GitHub Actions test run history and results</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TestRunsManager />
               </CardContent>
             </Card>
           </TabsContent>

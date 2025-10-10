@@ -185,6 +185,26 @@ TTS:right-of-title-stopPropagation|Discussion[title+content]|Event[title+desc+da
 NAV:card-click→route[except-TTS-location-audio-stopProp]
 CRITICAL:7-rules[profiles_public|is_moderated-only|client-role-filter|height-1200|stop-prop|visibility-check|empty-states]
 
+## SENTRY_ERROR_LOGGING
+OVERVIEW:capture-errors→Sentry→webhook→error_logs-table→admin-Issues-tab
+DB:error_logs[error_message|type|stack|user|browser|url|sentry_event_id|severity|env|metadata]
+EDGE:sentry-webhook[receive-alert→parse→insert-db]
+FRONTEND:ErrorLogsManager[list-filter-search-by-type-user-severity]|ErrorBoundary[catch-log-retry]
+WORKFLOW:1)Sentry-catch→2)alert-webhook→3)log-DB→4)admin-view
+SETUP:Sentry-dashboard[Alerts→WebHooks→add-edge-URL]
+FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry_event_id|severity|environment|metadata|created_at
+
+## AUTOMATED_TESTING
+OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
+DB:test_runs[status|workflow|commit|branch|duration|url|test_count|passed|failed|skipped|error|metadata]
+EDGE:github-test-webhook[receive-GH→parse→insert-db]
+FRONTEND:TestRunsManager[list-realtime-status-badges-links-to-GH]
+WORKFLOW:1)push-code→2)GH-Actions-run→3)webhook-log→4)admin-view
+SETUP:GH-secrets[VITE_SUPABASE_URL+VITE_SUPABASE_PUBLISHABLE_KEY]
+TESTS:playwright.config.ts|tests/basic.spec.ts[homepage|nav|auth]|3-browsers[Chrome-Firefox-Safari]
+STATUSES:success✅|failure❌|pending⏱|cancelled🚫
+RUN-LOCAL:npx-playwright-test|--ui[interactive]|show-report[view-results]
+
 ## INTERNAL_PAGES
 FILE:lib/internalPages.ts
 PURPOSE:registry-all-routes-for-admin-dropdowns

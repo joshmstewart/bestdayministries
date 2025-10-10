@@ -3002,6 +3002,63 @@ export type Database = {
         }
         Relationships: []
       }
+      test_runs: {
+        Row: {
+          branch: string
+          commit_message: string | null
+          commit_sha: string
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          failed_count: number | null
+          id: string
+          metadata: Json | null
+          passed_count: number | null
+          run_id: string
+          run_url: string
+          skipped_count: number | null
+          status: string
+          test_count: number | null
+          workflow_name: string
+        }
+        Insert: {
+          branch: string
+          commit_message?: string | null
+          commit_sha: string
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          failed_count?: number | null
+          id?: string
+          metadata?: Json | null
+          passed_count?: number | null
+          run_id: string
+          run_url: string
+          skipped_count?: number | null
+          status: string
+          test_count?: number | null
+          workflow_name: string
+        }
+        Update: {
+          branch?: string
+          commit_message?: string | null
+          commit_sha?: string
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          failed_count?: number | null
+          id?: string
+          metadata?: Json | null
+          passed_count?: number | null
+          run_id?: string
+          run_url?: string
+          skipped_count?: number | null
+          status?: string
+          test_count?: number | null
+          workflow_name?: string
+        }
+        Relationships: []
+      }
       tour_completions: {
         Row: {
           completed_at: string

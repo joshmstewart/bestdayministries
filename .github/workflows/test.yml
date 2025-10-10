@@ -35,3 +35,34 @@ jobs:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
+        
+    - name: Log test results to database
+      if: always()
+      env:
+        SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      run: |
+        curl -X POST "${SUPABASE_URL}/functions/v1/github-test-webhook" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+          -d '{
+            "workflow_run": {
+              "id": "${{ github.run_id }}",
+              "name": "${{ github.workflow }}",
+              "head_sha": "${{ github.sha }}",
+              "head_branch": "${{ github.ref_name }}",
+              "status": "${{ job.status }}",
+              "conclusion": "${{ job.status }}",
+              "html_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "head_commit": {
+                "message": "${{ github.event.head_commit.message }}"
+              },
+              "actor": {
+                "login": "${{ github.actor }}"
+              }
+            },
+            "action": "completed",
+            "repository": {
+              "full_name": "${{ github.repository }}"
+            }
+          }'
