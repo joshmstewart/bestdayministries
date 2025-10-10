@@ -48,13 +48,15 @@ const JoyRocks = ({ content = {} }: JoyRocksProps) => {
   useEffect(() => {
     if (display_type === "album" && album_id) {
       const loadAlbumImages = async () => {
+        console.log('JoyRocks - Loading album:', { display_type, album_id });
         setLoadingAlbum(true);
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('album_images')
           .select('image_url, caption')
           .eq('album_id', album_id)
-          .eq('moderation_status', 'approved')
           .order('display_order', { ascending: true });
+        
+        console.log('JoyRocks - Album images loaded:', { data, error, count: data?.length });
         
         if (data) {
           setAlbumImages(data);
