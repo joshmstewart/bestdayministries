@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,8 +31,27 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
   const [imagePreview, setImagePreview] = useState<string>("");
   const [imageFieldName, setImageFieldName] = useState<string>("image_url");
   const [uploading, setUploading] = useState(false);
+  const [albums, setAlbums] = useState<Array<{ id: string; title: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Load albums for Joy Rocks section
+  useEffect(() => {
+    if (section.section_key === 'joy_rocks') {
+      const loadAlbums = async () => {
+        const { data } = await supabase
+          .from('albums')
+          .select('id, title')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+        
+        if (data) {
+          setAlbums(data);
+        }
+      };
+      loadAlbums();
+    }
+  }, [section.section_key]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string = "image_url") => {
     const files = e.target.files;
@@ -581,56 +600,92 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="image">Joy Rocks Image</Label>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-              {imagePreview || content.image_url ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview || content.image_url}
-                    alt="Preview"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <div className="absolute top-2 right-2 flex gap-2">
+              <Label htmlFor="display_type">Display Type</Label>
+              <Select
+                value={content.display_type || "image"}
+                onValueChange={(value) => setContent({ ...content, display_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image">Static Image</SelectItem>
+                  <SelectItem value="album">Album Gallery</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {content.display_type === "album" ? (
+              <div className="space-y-2">
+                <Label htmlFor="album_id">Select Album</Label>
+                <Select
+                  value={content.album_id || ""}
+                  onValueChange={(value) => setContent({ ...content, album_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an album" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {albums.map((album) => (
+                      <SelectItem key={album.id} value={album.id}>
+                        {album.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="image">Joy Rocks Image</Label>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                {imagePreview || content.image_url ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview || content.image_url}
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Change Image
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={removeImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Upload a Joy Rocks image
+                    </p>
                     <Button
                       type="button"
-                      variant="secondary"
-                      size="sm"
+                      variant="outline"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      Change Image
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={removeImage}
-                    >
-                      <X className="h-4 w-4" />
+                      Select Image
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Upload a Joy Rocks image
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Select Image
-                  </Button>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         );
 

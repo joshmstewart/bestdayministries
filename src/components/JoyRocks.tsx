@@ -1,6 +1,9 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import joyRocksImage from "@/assets/joy-rocks.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import ImageCarousel from "@/components/ImageCarousel";
 
 interface JoyRocksContent {
   badge_text?: string;
@@ -14,6 +17,8 @@ interface JoyRocksContent {
   stat_number?: string;
   stat_label?: string;
   image_url?: string;
+  display_type?: string;
+  album_id?: string;
 }
 
 interface JoyRocksProps {
@@ -32,8 +37,33 @@ const JoyRocks = ({ content = {} }: JoyRocksProps) => {
     button_url_type = "internal",
     stat_number = "10K+",
     stat_label = "Rocks Painted",
-    image_url = joyRocksImage
+    image_url = joyRocksImage,
+    display_type = "image",
+    album_id
   } = content;
+
+  const [albumImages, setAlbumImages] = useState<Array<{ image_url: string; caption?: string }>>([]);
+  const [loadingAlbum, setLoadingAlbum] = useState(false);
+
+  useEffect(() => {
+    if (display_type === "album" && album_id) {
+      const loadAlbumImages = async () => {
+        setLoadingAlbum(true);
+        const { data } = await supabase
+          .from('album_images')
+          .select('image_url, caption')
+          .eq('album_id', album_id)
+          .eq('moderation_status', 'approved')
+          .order('display_order', { ascending: true });
+        
+        if (data) {
+          setAlbumImages(data);
+        }
+        setLoadingAlbum(false);
+      };
+      loadAlbumImages();
+    }
+  }, [display_type, album_id]);
 
   const handleButtonClick = () => {
     if (button_url_type === "custom") {
@@ -59,16 +89,24 @@ const JoyRocks = ({ content = {} }: JoyRocksProps) => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="order-2 lg:order-1 relative animate-scale-in">
-            {/* Image with modern treatment */}
+            {/* Image or Album with modern treatment */}
             <div className="absolute -inset-8 bg-gradient-warm rounded-[3rem] rotate-3 opacity-20 blur-2xl" />
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/40 via-accent/30 to-secondary/40 rounded-[2.5rem] blur-xl" />
               <div className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white/50">
-                <img
-                  src={image_url}
-                  alt="Best Day Ministries Rocks - Painted rocks with positive messages"
-                  className="w-full h-auto object-cover"
-                />
+                {display_type === "album" && albumImages.length > 0 ? (
+                  <ImageCarousel 
+                    images={albumImages} 
+                    autoPlay={true}
+                    interval={5000}
+                  />
+                ) : (
+                  <img
+                    src={image_url}
+                    alt="Best Day Ministries Rocks - Painted rocks with positive messages"
+                    className="w-full h-auto object-cover"
+                  />
+                )}
               </div>
             </div>
             
