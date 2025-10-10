@@ -55,7 +55,6 @@ import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
 import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
-import CommunityFeaturesManager from "@/components/admin/CommunityFeaturesManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -430,7 +429,7 @@ const Admin = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Format Pages</CardTitle>
-                <CardDescription>Manage homepage sections, about page, community page, features, family organizations, footer links, and quick links</CardDescription>
+                <CardDescription>Manage homepage sections, about page, community page, family organizations, footer links, and quick links. Click the edit button on Community Features to manage individual features.</CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="homepage" className="space-y-4">
@@ -438,7 +437,6 @@ const Admin = () => {
                     <TabsTrigger value="homepage">Homepage</TabsTrigger>
                     <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
-                    <TabsTrigger value="features">Features</TabsTrigger>
                     <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
                     <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
@@ -456,10 +454,6 @@ const Admin = () => {
 
                   <TabsContent value="community">
                     <CommunityOrderManager />
-                  </TabsContent>
-
-                  <TabsContent value="features">
-                    <CommunityFeaturesManager />
                   </TabsContent>
 
                   <TabsContent value="coffee-shop">

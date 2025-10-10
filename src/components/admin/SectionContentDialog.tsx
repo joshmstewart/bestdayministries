@@ -10,6 +10,8 @@ import { Upload, X } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
+import CommunityFeaturesManager from "@/components/admin/CommunityFeaturesManager";
+import { Separator } from "@/components/ui/separator";
 
 interface SectionContentDialogProps {
   open: boolean;
@@ -755,6 +757,44 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
         );
 
       case "community_features":
+        return (
+          <>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="badge_text">Badge Text</Label>
+                <Input
+                  id="badge_text"
+                  value={content.badge_text || ""}
+                  onChange={(e) => setContent({ ...content, badge_text: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={content.title || ""}
+                  onChange={(e) => setContent({ ...content, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="subtitle">Subtitle</Label>
+                <Input
+                  id="subtitle"
+                  value={content.subtitle || ""}
+                  onChange={(e) => setContent({ ...content, subtitle: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <Separator className="my-6" />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Manage Individual Features</h3>
+              <CommunityFeaturesManager />
+            </div>
+          </>
+        );
+
       case "community_gallery":
         return (
           <>
@@ -1128,11 +1168,13 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className={`${section.section_key === 'community_features' ? 'max-w-6xl' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle>Edit {section.section_name}</DialogTitle>
           <DialogDescription>
-            Update the content for this homepage section.
+            {section.section_key === 'community_features' 
+              ? 'Update section content and manage individual features'
+              : 'Update the content for this homepage section.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
