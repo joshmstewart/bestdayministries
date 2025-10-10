@@ -21,6 +21,8 @@ const USER_ROLES = [
 ];
 
 export function ProductUpdateBroadcaster() {
+  console.log("[ProductUpdateBroadcaster] Component rendering");
+  
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [link, setLink] = useState("");
@@ -28,6 +30,8 @@ export function ProductUpdateBroadcaster() {
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState<{ success: boolean; sent: number; message: string } | null>(null);
   const { toast } = useToast();
+  
+  console.log("[ProductUpdateBroadcaster] State:", { title, message, link, targetRoles, sending });
 
   const handleRoleToggle = (role: string) => {
     setTargetRoles(prev =>
@@ -97,8 +101,10 @@ export function ProductUpdateBroadcaster() {
     }
   };
 
+  console.log("[ProductUpdateBroadcaster] Rendering Card component");
+  
   return (
-    <Card>
+    <Card className="border-2 border-primary">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Megaphone className="w-5 h-5 text-primary" />
