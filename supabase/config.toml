@@ -93,3 +93,6 @@ verify_jwt = true
 [functions.get-sentry-dsn]
 verify_jwt = false
 
+[functions.sentry-webhook]
+verify_jwt = false
+

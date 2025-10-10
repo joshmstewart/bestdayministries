@@ -855,6 +855,54 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          browser_info: Json | null
+          created_at: string
+          environment: string | null
+          error_message: string
+          error_type: string | null
+          id: string
+          metadata: Json | null
+          sentry_event_id: string | null
+          severity: string
+          stack_trace: string | null
+          url: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          browser_info?: Json | null
+          created_at?: string
+          environment?: string | null
+          error_message: string
+          error_type?: string | null
+          id?: string
+          metadata?: Json | null
+          sentry_event_id?: string | null
+          severity?: string
+          stack_trace?: string | null
+          url?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          browser_info?: Json | null
+          created_at?: string
+          environment?: string | null
+          error_message?: string
+          error_type?: string | null
+          id?: string
+          metadata?: Json | null
+          sentry_event_id?: string | null
+          severity?: string
+          stack_trace?: string | null
+          url?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       event_attendees: {
         Row: {
           created_at: string

@@ -54,6 +54,7 @@ import { PetTypesManager } from "@/components/admin/PetTypesManager";
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
+import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -289,7 +290,7 @@ const Admin = () => {
               <HelpCircle className="w-4 h-4" />
               Help Center
             </TabsTrigger>
-            <TabsTrigger value="updates">Updates</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -527,8 +528,29 @@ const Admin = () => {
             <HelpCenterManager />
           </TabsContent>
 
-          <TabsContent value="updates">
-            <ChangeLogManager />
+          <TabsContent value="logs">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Logs</CardTitle>
+                <CardDescription>View change logs and error logs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="updates" className="space-y-4">
+                  <TabsList className="flex flex-wrap h-auto w-full">
+                    <TabsTrigger value="updates">Updates</TabsTrigger>
+                    <TabsTrigger value="errors">Errors</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="updates">
+                    <ChangeLogManager />
+                  </TabsContent>
+
+                  <TabsContent value="errors">
+                    <ErrorLogsManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="settings">
