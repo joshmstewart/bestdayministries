@@ -17,15 +17,23 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const payload = await req.json();
-    console.log('Received Sentry webhook:', payload);
+    console.log('Received Sentry webhook:', JSON.stringify(payload).substring(0, 500));
 
-    // Extract relevant error information from Sentry payload
-    const event = payload.event || payload;
+    // Extract event from Sentry alert webhook payload structure
+    // Sentry sends: { action: "triggered", data: { event: {...} } }
+    const event = payload.data?.event || payload.event || payload;
     const exception = event.exception?.values?.[0];
     
+    console.log('Parsed event:', {
+      hasException: !!exception,
+      message: event.message,
+      eventId: event.event_id,
+      title: event.title
+    });
+    
     const errorData = {
-      error_message: exception?.value || event.message || 'Unknown error',
-      error_type: exception?.type || event.level || 'error',
+      error_message: event.title || exception?.value || event.message || 'Unknown error',
+      error_type: exception?.type || event.type || 'error',
       stack_trace: exception?.stacktrace ? JSON.stringify(exception.stacktrace) : null,
       user_id: event.user?.id || null,
       user_email: event.user?.email || null,
@@ -37,7 +45,9 @@ serve(async (req) => {
       metadata: {
         tags: event.tags || {},
         contexts: event.contexts || {},
-        sdk: event.sdk || {}
+        sdk: event.sdk || {},
+        culprit: event.culprit || null,
+        location: event.location || null
       }
     };
 

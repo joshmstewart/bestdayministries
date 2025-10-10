@@ -36,14 +36,24 @@ https://nbvijawmjkycyweioglk.supabase.co/functions/v1/sentry-webhook
    - Then: "Send a notification via [Your Internal Integration]"
 
 ### Webhook Payload
-The webhook receives Sentry events with:
-- Error message and type
-- Stack trace
-- User information (ID, email)
-- Browser context
-- URL where error occurred
-- Sentry event ID
-- Environment and severity
+The webhook receives Sentry alert events with this structure:
+```json
+{
+  "action": "triggered",
+  "data": {
+    "event": {
+      "event_id": "...",
+      "title": "Error message and type",
+      "exception": { "values": [...] },
+      "user": { "id": "...", "email": "..." },
+      "contexts": { "browser": {...} },
+      "request": { "url": "..." },
+      "level": "error|fatal|warning|info",
+      "environment": "production",
+      ...
+    }
+  }
+}
 
 ## Error Log Fields
 - `error_message`: Main error description
