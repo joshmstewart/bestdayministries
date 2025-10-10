@@ -142,13 +142,16 @@ function SortableLink({
                 placeholder={link.link_type === 'dropdown' ? "https://example.com (optional)" : "https://example.com"}
               />
             ) : (
-              <Select value={link.href} onValueChange={(value) => onUpdate(link.id, { href: value })}>
+              <Select 
+                value={link.href || "none"} 
+                onValueChange={(value) => onUpdate(link.id, { href: value === "none" ? "" : value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={link.link_type === 'dropdown' ? "None (optional)" : "Select page"} />
                 </SelectTrigger>
                 <SelectContent>
                   {link.link_type === 'dropdown' && (
-                    <SelectItem value="">None (just dropdown)</SelectItem>
+                    <SelectItem value="none">None (just dropdown)</SelectItem>
                   )}
                   {INTERNAL_PAGES.map((page) => (
                     <SelectItem key={page.value} value={page.value}>
