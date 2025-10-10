@@ -6,6 +6,7 @@ import { OptimizedImage } from "@/components/OptimizedImage";
 interface HeroContent {
   badge_text?: string;
   heading?: string;
+  gradient_text?: string;
   description?: string;
   button_text?: string;
   button_url?: string;
@@ -25,6 +26,7 @@ const Hero = ({ content = {} }: HeroProps) => {
   const {
     badge_text = "Building Community Through Creativity",
     heading = "Spreading JOY through the unique gifts of the special needs community",
+    gradient_text = "",
     description = "Building a supportive community for adults with special needs by sharing their creativity and giving them confidence, independence, and JOY!",
     button_text = "Join Our Community",
     button_url = "/auth",
@@ -44,11 +46,13 @@ const Hero = ({ content = {} }: HeroProps) => {
     }
   };
 
-  // Extract JOY if it exists in the heading
-  const joyIndex = heading.toUpperCase().indexOf("JOY");
-  const beforeJoy = joyIndex > -1 ? heading.substring(0, joyIndex) : heading;
-  const afterJoy = joyIndex > -1 ? heading.substring(joyIndex + 3) : "";
-  const hasJoy = joyIndex > -1;
+  // Extract gradient text if specified
+  const gradientTextUpper = gradient_text?.toUpperCase() || "";
+  const headingUpper = heading.toUpperCase();
+  const gradientIndex = gradientTextUpper ? headingUpper.indexOf(gradientTextUpper) : -1;
+  const beforeGradient = gradientIndex > -1 ? heading.substring(0, gradientIndex) : heading;
+  const afterGradient = gradientIndex > -1 ? heading.substring(gradientIndex + gradient_text.length) : "";
+  const hasGradient = gradientIndex > -1 && gradient_text;
 
   return (
     <section className="relative min-h-[85vh] flex items-center overflow-hidden bg-gradient-to-br from-background via-muted/30 to-secondary/10">
@@ -68,18 +72,18 @@ const Hero = ({ content = {} }: HeroProps) => {
             </div>
             
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-[1.1] text-foreground">
-              {hasJoy ? (
+              {hasGradient ? (
                 <>
-                  {beforeJoy}
+                  {beforeGradient}
                   <span className="relative inline-block">
                     <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                      JOY
+                      {gradient_text}
                     </span>
                     <svg className="absolute -bottom-1 left-0 w-full" height="8" viewBox="0 0 200 8" fill="none">
                       <path d="M2 6C50 2 150 2 198 6" stroke="currentColor" strokeWidth="2" className="text-secondary" />
                     </svg>
                   </span>
-                  {afterJoy}
+                  {afterGradient}
                 </>
               ) : (
                 heading

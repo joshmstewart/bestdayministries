@@ -156,6 +156,18 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="gradient_text">Gradient Text (optional)</Label>
+              <Input
+                id="gradient_text"
+                value={content.gradient_text || ""}
+                onChange={(e) => setContent({ ...content, gradient_text: e.target.value })}
+                placeholder="e.g., BEST DAY EVER"
+              />
+              <p className="text-xs text-muted-foreground">
+                This text will be styled with an orange-to-yellow gradient. Leave empty for no gradient effect.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
