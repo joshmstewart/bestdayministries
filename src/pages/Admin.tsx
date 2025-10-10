@@ -291,8 +291,8 @@ const Admin = () => {
               <HelpCircle className="w-4 h-4" />
               Help Center
             </TabsTrigger>
+            <TabsTrigger value="updates">Updates</TabsTrigger>
             <TabsTrigger value="issues">Issues</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -518,44 +518,57 @@ const Admin = () => {
             <EmailTemplatePreview />
           </TabsContent>
 
-          <TabsContent value="product-updates">
-            <ProductUpdateBroadcaster />
-          </TabsContent>
-
           <TabsContent value="contact">
             <ContactFormManager />
-          </TabsContent>
-
-          <TabsContent value="issues">
-            <IssueReportsManager />
           </TabsContent>
 
           <TabsContent value="help">
             <HelpCenterManager />
           </TabsContent>
 
-          <TabsContent value="issues">
-            <IssueReportsManager />
-          </TabsContent>
-
-          <TabsContent value="logs">
+          <TabsContent value="updates">
             <Card>
               <CardHeader>
-                <CardTitle>System Logs</CardTitle>
-                <CardDescription>View change logs and error logs</CardDescription>
+                <CardTitle>Product Updates</CardTitle>
+                <CardDescription>Manage product updates and change logs</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="updates" className="space-y-4">
+                <Tabs defaultValue="product-updates" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto w-full">
-                    <TabsTrigger value="updates">Updates</TabsTrigger>
-                    <TabsTrigger value="errors">Errors</TabsTrigger>
+                    <TabsTrigger value="product-updates">Product Updates</TabsTrigger>
+                    <TabsTrigger value="change-logs">Change Logs</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="updates">
-                    <ChangeLogManager />
+                  <TabsContent value="product-updates">
+                    <ProductUpdateBroadcaster />
                   </TabsContent>
 
-                  <TabsContent value="errors">
+                  <TabsContent value="change-logs">
+                    <ChangeLogManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="issues">
+            <Card>
+              <CardHeader>
+                <CardTitle>Issues & Logs</CardTitle>
+                <CardDescription>View issue reports and system error logs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="issue-reports" className="space-y-4">
+                  <TabsList className="flex flex-wrap h-auto w-full">
+                    <TabsTrigger value="issue-reports">Issue Reports</TabsTrigger>
+                    <TabsTrigger value="system-logs">System Logs</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="issue-reports">
+                    <IssueReportsManager />
+                  </TabsContent>
+
+                  <TabsContent value="system-logs">
                     <ErrorLogsManager />
                   </TabsContent>
                 </Tabs>
