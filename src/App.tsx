@@ -50,7 +50,20 @@ import VirtualPetPage from "./pages/VirtualPetPage";
 import StorePage from "./pages/Store";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Don't show stale data older than 30 seconds
+      staleTime: 30 * 1000,
+      // Only refetch on mount if data is stale
+      refetchOnMount: 'always',
+      // Refetch when window regains focus
+      refetchOnWindowFocus: true,
+      // Keep unused data in cache for 5 minutes
+      gcTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 function TourManager() {
   const [searchParams, setSearchParams] = useSearchParams();
