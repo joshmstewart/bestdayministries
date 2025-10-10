@@ -527,37 +527,53 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="updates">
-            <Tabs defaultValue="product-updates" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="product-updates">Product Updates</TabsTrigger>
-                <TabsTrigger value="change-logs">Change Logs</TabsTrigger>
-              </TabsList>
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Updates & Change Logs</CardTitle>
+                <CardDescription>Broadcast updates to users and track system changes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="product-updates" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="product-updates">Product Updates</TabsTrigger>
+                    <TabsTrigger value="change-logs">Change Logs</TabsTrigger>
+                  </TabsList>
 
-              <TabsContent value="product-updates">
-                <ProductUpdateBroadcaster />
-              </TabsContent>
+                  <TabsContent value="product-updates">
+                    <ProductUpdateBroadcaster />
+                  </TabsContent>
 
-              <TabsContent value="change-logs">
-                <ChangeLogManager />
-              </TabsContent>
-            </Tabs>
+                  <TabsContent value="change-logs">
+                    <ChangeLogManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="issues">
-            <Tabs defaultValue="issue-reports" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="issue-reports">Issue Reports</TabsTrigger>
-                <TabsTrigger value="system-logs">System Logs</TabsTrigger>
-              </TabsList>
+            <Card>
+              <CardHeader>
+                <CardTitle>Issue Reports & System Logs</CardTitle>
+                <CardDescription>View user-reported issues and system error logs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="issue-reports" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="issue-reports">Issue Reports</TabsTrigger>
+                    <TabsTrigger value="system-logs">System Logs</TabsTrigger>
+                  </TabsList>
 
-              <TabsContent value="issue-reports">
-                <IssueReportsManager />
-              </TabsContent>
+                  <TabsContent value="issue-reports">
+                    <IssueReportsManager />
+                  </TabsContent>
 
-              <TabsContent value="system-logs">
-                <ErrorLogsManager />
-              </TabsContent>
-            </Tabs>
+                  <TabsContent value="system-logs">
+                    <ErrorLogsManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="settings">
