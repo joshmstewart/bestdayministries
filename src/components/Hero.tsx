@@ -62,7 +62,7 @@ const Hero = ({ content = {} }: HeroProps) => {
         <div className="absolute bottom-20 left-20 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
       </div>
       
-      <div className="container mx-auto px-4 pt-32 pb-12 relative z-10">
+      <div className="container mx-auto px-4 pt-24 pb-12 relative z-10">
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Left Content */}
           <div className="space-y-6 animate-fade-in">
