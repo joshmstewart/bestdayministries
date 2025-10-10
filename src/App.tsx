@@ -12,6 +12,7 @@ import { ProductTourRunner } from "@/components/help/ProductTourRunner";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { initializeSentry } from "@/lib/sentry";
 import Index from "./pages/Index";
 import CoffeeShopHome from "./pages/CoffeeShopHome";
 import Auth from "./pages/Auth";
@@ -113,6 +114,11 @@ const DomainRouter = () => {
 const App = () => {
   // Update app manifest dynamically based on database settings 
   useAppManifest();
+
+  // Initialize Sentry for error tracking
+  useEffect(() => {
+    initializeSentry();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
