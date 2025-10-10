@@ -272,9 +272,9 @@ const Admin = () => {
               <Bell className="w-4 h-4" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="product-updates" className="gap-2">
+            <TabsTrigger value="updates" className="gap-2">
               <Megaphone className="w-4 h-4" />
-              Product Updates
+              Updates
             </TabsTrigger>
             <TabsTrigger value="contact" className="relative">
               Contact
