@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, AlertTriangle, Info, Zap } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info, Zap, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 
@@ -118,10 +118,16 @@ export const ErrorLogsManager = () => {
               Errors automatically logged from Sentry
             </CardDescription>
           </div>
-          <Button onClick={testSentryError} variant="outline" size="sm" className="gap-2">
-            <Zap className="h-4 w-4" />
-            Test Error Tracking
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={loadLogs} variant="outline" size="sm" className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+            <Button onClick={testSentryError} variant="outline" size="sm" className="gap-2">
+              <Zap className="h-4 w-4" />
+              Test Error Tracking
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
