@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
@@ -44,7 +44,7 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeKey, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-08-27.basil',
     });
 
     const requestData = await req.json();
@@ -88,23 +88,36 @@ serve(async (req) => {
     const user = usersData.users.find(u => u.email?.toLowerCase() === customerEmail.toLowerCase());
     const userId = user?.id || null;
 
-    // Check if sponsorship already exists for this Stripe session
-    const stripeReferenceId = session.subscription || session.payment_intent;
-    if (stripeReferenceId) {
-      const { data: existingSponsorship } = await supabaseAdmin
+    // Check if sponsorship already exists by sponsor + bestie (handles both webhook and direct creation)
+    const sponsorBestieId = session.metadata.bestie_id;
+    
+    if (userId && sponsorBestieId) {
+      const { data: existingByUser } = await supabaseAdmin
         .from('sponsorships')
-        .select('id, amount, frequency')
-        .eq('stripe_subscription_id', stripeReferenceId)
+        .select('id, amount, frequency, stripe_subscription_id')
+        .eq('sponsor_id', userId)
+        .eq('sponsor_bestie_id', sponsorBestieId)
         .maybeSingle();
 
-      if (existingSponsorship) {
-        console.log('Sponsorship already exists for this session:', existingSponsorship.id);
+      if (existingByUser) {
+        console.log('Sponsorship already exists for this user+bestie:', existingByUser.id);
+        
+        // Update stripe_subscription_id if it's missing (edge case)
+        const stripeReferenceId = session.subscription || session.payment_intent;
+        if (stripeReferenceId && !existingByUser.stripe_subscription_id) {
+          await supabaseAdmin
+            .from('sponsorships')
+            .update({ stripe_subscription_id: stripeReferenceId })
+            .eq('id', existingByUser.id);
+          console.log('Updated missing stripe_subscription_id');
+        }
+        
         return new Response(
           JSON.stringify({ 
             success: true,
-            sponsorship_id: existingSponsorship.id,
-            amount: existingSponsorship.amount,
-            frequency: existingSponsorship.frequency,
+            sponsorship_id: existingByUser.id,
+            amount: existingByUser.amount,
+            frequency: existingByUser.frequency,
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -114,25 +127,28 @@ serve(async (req) => {
       }
     }
 
-    // Create new sponsorship record (with sponsor_id for logged in, or sponsor_email for guest)
+    // Create or update sponsorship record using upsert to avoid race condition with webhook
+    const stripeReferenceId = session.subscription || session.payment_intent;
     const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
       .from('sponsorships')
-      .insert({
+      .upsert({
         sponsor_id: userId,
         sponsor_email: userId ? null : customerEmail, // Store email for guest checkouts
-        sponsor_bestie_id: session.metadata.bestie_id, // This is actually sponsor_bestie.id
+        sponsor_bestie_id: sponsorBestieId,
         amount: parseFloat(session.metadata.amount),
         frequency: session.metadata.frequency,
         status: 'active',
         started_at: new Date().toISOString(),
         stripe_subscription_id: stripeReferenceId || null,
         stripe_mode: mode,
+      }, {
+        onConflict: userId ? 'sponsor_id,sponsor_bestie_id' : undefined,
       })
       .select()
       .single();
 
     if (sponsorshipError) {
-      console.error('Error creating sponsorship:', sponsorshipError);
+      console.error('Error creating/updating sponsorship:', sponsorshipError);
       throw new Error('Failed to create sponsorship record');
     }
 
