@@ -290,6 +290,39 @@ export type Database = {
           },
         ]
       }
+      change_logs: {
+        Row: {
+          affected_record_id: string | null
+          affected_table: string | null
+          change_details: Json | null
+          change_summary: string
+          change_type: string
+          changed_by: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          affected_record_id?: string | null
+          affected_table?: string | null
+          change_details?: Json | null
+          change_summary: string
+          change_type: string
+          changed_by: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          affected_record_id?: string | null
+          affected_table?: string | null
+          change_details?: Json | null
+          change_summary?: string
+          change_type?: string
+          changed_by?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       coin_transactions: {
         Row: {
           amount: number

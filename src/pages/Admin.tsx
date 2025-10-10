@@ -53,6 +53,7 @@ import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
 import { PetTypesManager } from "@/components/admin/PetTypesManager";
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
+import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -288,6 +289,7 @@ const Admin = () => {
               <HelpCircle className="w-4 h-4" />
               Help Center
             </TabsTrigger>
+            <TabsTrigger value="updates">Updates</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -523,6 +525,10 @@ const Admin = () => {
 
           <TabsContent value="help">
             <HelpCenterManager />
+          </TabsContent>
+
+          <TabsContent value="updates">
+            <ChangeLogManager />
           </TabsContent>
 
           <TabsContent value="settings">
