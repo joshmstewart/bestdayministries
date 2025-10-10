@@ -90,3 +90,6 @@ verify_jwt = false
 [functions.send-contact-reply]
 verify_jwt = true
 
+[functions.get-sentry-dsn]
+verify_jwt = false
+
