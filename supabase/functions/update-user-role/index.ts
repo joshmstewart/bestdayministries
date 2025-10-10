@@ -85,10 +85,10 @@ serve(async (req) => {
     const validation = updateRoleSchema.safeParse(body);
     
     if (!validation.success) {
+      console.error('Validation failed:', validation.error.errors);
       return new Response(
         JSON.stringify({ 
-          error: 'Validation failed', 
-          details: validation.error.errors 
+          error: 'Invalid input. Please check your data and try again.'
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

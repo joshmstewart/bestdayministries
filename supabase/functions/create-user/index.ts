@@ -57,8 +57,9 @@ Deno.serve(async (req) => {
     console.log('Requesting user:', requestingUser?.id);
 
     if (authError || !requestingUser) {
+      console.error('Authentication failed:', authError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: authError?.message }),
+        JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -101,10 +102,10 @@ Deno.serve(async (req) => {
     
     const validation = createUserSchema.safeParse(body);
     if (!validation.success) {
+      console.error('Validation failed:', validation.error.errors);
       return new Response(
         JSON.stringify({ 
-          error: 'Validation failed', 
-          details: validation.error.errors 
+          error: 'Invalid input. Please check your data and try again.'
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -129,7 +130,7 @@ Deno.serve(async (req) => {
     if (createError) {
       console.error('Error creating user:', createError);
       return new Response(
-        JSON.stringify({ error: 'Failed to create user', details: createError.message }),
+        JSON.stringify({ error: 'Failed to create user. Please try again.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
