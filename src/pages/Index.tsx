@@ -37,14 +37,14 @@ const DEFAULT_SECTIONS = [
 const Index = () => {
   const navigate = useNavigate();
   const [sections, setSections] = useState<Array<{ section_key: string; is_visible: boolean; content?: any }>>(DEFAULT_SECTIONS);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Check vendor status but don't block page load
     checkVendorStatus();
     
-    // Fetch sections in background to update from defaults
+    // Fetch sections immediately and show loading state until ready
     fetchSections();
   }, []);
 
@@ -62,14 +62,17 @@ const Index = () => {
 
       if (error) {
         console.error("Error fetching sections:", error);
+        setLoading(false);
         return;
       }
       
       if (data && data.length > 0) {
         setSections(data);
       }
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching sections:", error);
+      setLoading(false);
     }
   };
 
@@ -167,14 +170,24 @@ const Index = () => {
         structuredData={getOrganizationStructuredData()}
       />
       <UnifiedHeader />
-      <main>
-        {sections
-          .filter((section) => section.is_visible)
-          .map((section) => (
-            <div key={section.section_key}>
-              {getComponentForSection(section)}
+      <main className="pt-24">
+        {loading ? (
+          <div className="container mx-auto px-4 py-16">
+            <div className="animate-pulse space-y-8">
+              <div className="h-96 bg-muted rounded-lg" />
+              <div className="h-64 bg-muted rounded-lg" />
+              <div className="h-64 bg-muted rounded-lg" />
             </div>
-          ))}
+          </div>
+        ) : (
+          sections
+            .filter((section) => section.is_visible)
+            .map((section) => (
+              <div key={section.section_key}>
+                {getComponentForSection(section)}
+              </div>
+            ))
+        )}
       </main>
       <Footer />
     </div>
