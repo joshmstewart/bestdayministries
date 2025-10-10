@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ContactForm } from "@/components/ContactForm";
+import ReportIssueButton from "@/components/ReportIssueButton";
 
 // Build timestamp for admin visibility
 const BUILD_TIMESTAMP = new Date().toISOString();
@@ -205,18 +206,24 @@ const Footer = () => {
           )}
         </div>
 
-        <div className="pt-8 border-t border-border text-center text-muted-foreground">
-          <p className="flex items-center justify-center gap-2">
-            Made with <Heart className="w-4 h-4 text-primary fill-primary" /> by Best Day Ministries Community
-          </p>
-          <p className="mt-2 text-sm">
-            © {new Date().getFullYear()} Best Day Ministries Community. All rights reserved.
-          </p>
-          {isAdmin && (
-            <p className="mt-4 text-xs text-muted-foreground/70">
-              Last updated: {new Date(BUILD_TIMESTAMP).toLocaleString()}
-            </p>
-          )}
+        <div className="pt-8 border-t border-border">
+          <div className="flex flex-col items-center gap-4">
+            <ReportIssueButton />
+            
+            <div className="text-center text-muted-foreground">
+              <p className="flex items-center justify-center gap-2">
+                Made with <Heart className="w-4 h-4 text-primary fill-primary" /> by Best Day Ministries Community
+              </p>
+              <p className="mt-2 text-sm">
+                © {new Date().getFullYear()} Best Day Ministries Community. All rights reserved.
+              </p>
+              {isAdmin && (
+                <p className="mt-4 text-xs text-muted-foreground/70">
+                  Last updated: {new Date(BUILD_TIMESTAMP).toLocaleString()}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       </footer>
