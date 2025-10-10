@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import * as Sentry from "@sentry/react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, AlertTriangle, Info } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 
 interface ErrorLog {
@@ -91,13 +93,35 @@ export const ErrorLogsManager = () => {
     }
   };
 
+  const testSentryError = () => {
+    toast({
+      title: "Triggering test error",
+      description: "Check Admin > Logs > Errors in a few seconds...",
+    });
+    
+    // Trigger a test error
+    try {
+      throw new Error("Test error from Admin Dashboard - Sentry integration working!");
+    } catch (error) {
+      Sentry.captureException(error);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Error Logs</CardTitle>
-        <CardDescription>
-          Errors automatically logged from Sentry
-        </CardDescription>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>Error Logs</CardTitle>
+            <CardDescription>
+              Errors automatically logged from Sentry
+            </CardDescription>
+          </div>
+          <Button onClick={testSentryError} variant="outline" size="sm" className="gap-2">
+            <Zap className="h-4 w-4" />
+            Test Error Tracking
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
