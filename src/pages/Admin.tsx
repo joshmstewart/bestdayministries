@@ -291,7 +291,6 @@ const Admin = () => {
               <HelpCircle className="w-4 h-4" />
               Help Center
             </TabsTrigger>
-            <TabsTrigger value="updates">Updates</TabsTrigger>
             <TabsTrigger value="issues">Issues</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
