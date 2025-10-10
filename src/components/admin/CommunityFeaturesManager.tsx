@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,7 +87,7 @@ const SortableItem = ({ feature, onToggleActive, onEdit, onDelete }: SortableIte
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 p-4 bg-card border rounded-lg ${
+      className={`flex items-center gap-3 p-3 bg-card border rounded-lg ${
         !feature.is_active ? "opacity-60" : ""
       }`}
     >
@@ -97,35 +96,35 @@ const SortableItem = ({ feature, onToggleActive, onEdit, onDelete }: SortableIte
         {...listeners}
         className="cursor-grab active:cursor-grabbing"
       >
-        <GripVertical className="w-5 h-5 text-muted-foreground" />
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
       </div>
       
-      <div className="flex-1">
-        <p className="font-medium">{feature.title}</p>
-        <p className="text-sm text-muted-foreground line-clamp-1">{feature.description}</p>
-        <p className="text-xs text-muted-foreground">Icon: {feature.icon}</p>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm">{feature.title}</p>
+        <p className="text-xs text-muted-foreground line-clamp-1">{feature.description}</p>
       </div>
 
-      <div className="flex gap-1">
+      <div className="flex gap-1 flex-shrink-0">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onEdit(feature)}
           title="Edit feature"
+          className="h-8 w-8"
         >
-          <Pencil className="w-4 h-4" />
+          <Pencil className="w-3 h-3" />
         </Button>
         <Button
           variant="outline"
           size="icon"
           onClick={() => onToggleActive(feature.id, !feature.is_active)}
           title={feature.is_active ? "Hide feature" : "Show feature"}
-          className={feature.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
+          className={`h-8 w-8 ${feature.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}`}
         >
           {feature.is_active ? (
-            <Eye className="w-4 h-4 text-green-700" />
+            <Eye className="w-3 h-3 text-green-700" />
           ) : (
-            <EyeOff className="w-4 h-4 text-red-700" />
+            <EyeOff className="w-3 h-3 text-red-700" />
           )}
         </Button>
         <Button
@@ -133,9 +132,9 @@ const SortableItem = ({ feature, onToggleActive, onEdit, onDelete }: SortableIte
           size="icon"
           onClick={() => onDelete(feature.id)}
           title="Delete feature"
-          className="text-destructive hover:text-destructive"
+          className="h-8 w-8 text-destructive hover:text-destructive"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-3 h-3" />
         </Button>
       </div>
     </div>
@@ -197,7 +196,6 @@ const CommunityFeaturesManager = () => {
       
       setFeatures(newFeatures);
 
-      // Update display_order in database
       try {
         const updates = newFeatures.map((feature, index) => ({
           id: feature.id,
@@ -224,7 +222,7 @@ const CommunityFeaturesManager = () => {
           description: "Failed to update feature order",
           variant: "destructive",
         });
-        fetchFeatures(); // Reload to reset
+        fetchFeatures();
       }
     }
   };
@@ -312,7 +310,7 @@ const CommunityFeaturesManager = () => {
             ...formData,
             created_by: user?.id,
             display_order: features.length + 1,
-          });
+          } as any);
 
         if (error) throw error;
       }
@@ -362,60 +360,52 @@ const CommunityFeaturesManager = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="text-sm text-muted-foreground">Loading features...</div>;
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Community Features</CardTitle>
-              <CardDescription>
-                Manage the features displayed on the homepage. Drag to reorder, click the eye icon to show/hide.
-              </CardDescription>
-            </div>
-            <Button onClick={handleAdd}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Feature
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={features.map((f) => f.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-2">
-                {features.map((feature) => (
-                  <SortableItem
-                    key={feature.id}
-                    feature={feature}
-                    onToggleActive={handleToggleActive}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Drag to reorder, click eye to show/hide features
+        </p>
+        <Button onClick={handleAdd} size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Feature
+        </Button>
+      </div>
 
-          {features.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">
-              No features added yet. Click "Add Feature" to get started.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={features.map((f) => f.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-2">
+            {features.map((feature) => (
+              <SortableItem
+                key={feature.id}
+                feature={feature}
+                onToggleActive={handleToggleActive}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      {features.length === 0 && (
+        <p className="text-center text-muted-foreground py-4 text-sm">
+          No features added yet. Click "Add Feature" to get started.
+        </p>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {editingFeature ? "Edit Feature" : "Add Feature"}
@@ -494,7 +484,7 @@ const CommunityFeaturesManager = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 

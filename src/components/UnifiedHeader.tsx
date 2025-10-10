@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HeaderSkeleton } from "@/components/HeaderSkeleton";
 import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle } from "lucide-react";
+import ReportIssueButton from "@/components/ReportIssueButton";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CoinsDisplay } from "@/components/CoinsDisplay";
@@ -366,6 +367,9 @@ export const UnifiedHeader = () => {
               </>
             ) : user && profile ? (
               <>
+                {/* Report Issue Button */}
+                <ReportIssueButton />
+                
                 {/* Notification Bell */}
                 <NotificationBell />
                 

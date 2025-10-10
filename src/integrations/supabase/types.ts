@@ -1633,6 +1633,63 @@ export type Database = {
         }
         Relationships: []
       }
+      issue_reports: {
+        Row: {
+          admin_notes: string | null
+          browser_info: Json | null
+          created_at: string
+          current_url: string | null
+          description: string
+          id: string
+          image_url: string | null
+          priority: string
+          resolved_at: string | null
+          resolved_by: string | null
+          session_data: Json | null
+          status: string
+          title: string
+          updated_at: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          browser_info?: Json | null
+          created_at?: string
+          current_url?: string | null
+          description: string
+          id?: string
+          image_url?: string | null
+          priority?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_data?: Json | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          browser_info?: Json | null
+          created_at?: string
+          current_url?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          priority?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          session_data?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       moderation_settings: {
         Row: {
           auto_approve_low_severity: boolean | null

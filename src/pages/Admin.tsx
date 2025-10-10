@@ -55,6 +55,7 @@ import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
 import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
+import IssueReportsManager from "@/components/admin/IssueReportsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -522,6 +523,10 @@ const Admin = () => {
 
           <TabsContent value="contact">
             <ContactFormManager />
+          </TabsContent>
+
+          <TabsContent value="issues">
+            <IssueReportsManager />
           </TabsContent>
 
           <TabsContent value="help">
