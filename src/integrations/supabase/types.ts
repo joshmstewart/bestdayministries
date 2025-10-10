@@ -395,6 +395,45 @@ export type Database = {
         }
         Relationships: []
       }
+      community_features: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          display_order: number
+          gradient: string
+          icon: string
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description: string
+          display_order?: number
+          gradient?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          display_order?: number
+          gradient?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       community_quick_links: {
         Row: {
           color: string

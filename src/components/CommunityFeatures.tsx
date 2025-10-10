@@ -1,5 +1,8 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Calendar, MessageSquare, Users, Gift, Link2, Volume2, Shield } from "lucide-react";
+import { Heart, Calendar, MessageSquare, Users, Gift, Link2, Volume2, Shield, Star, Award, BookOpen, Camera, Coffee, Compass, Smile, Sparkles, Target, TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { LucideIcon } from "lucide-react";
 
 interface CommunityFeaturesContent {
   badge_text?: string;
@@ -11,62 +14,51 @@ interface CommunityFeaturesProps {
   content?: CommunityFeaturesContent;
 }
 
+// Map of icon names to components
+const iconMap: Record<string, LucideIcon> = {
+  Heart, Calendar, MessageSquare, Users, Gift, Link2, Volume2, Shield,
+  Star, Award, BookOpen, Camera, Coffee, Compass, Smile, Sparkles, Target, TrendingUp
+};
+
+interface Feature {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  gradient: string;
+  display_order: number;
+}
+
 const CommunityFeatures = ({ content = {} }: CommunityFeaturesProps) => {
   const {
     badge_text = "Platform Features",
     title = "Join Our Community",
     subtitle = "Connect, create, and celebrate together",
   } = content;
-  const features = [
-    {
-      icon: Heart,
-      title: "Featured Bestie of the Month",
-      description: "Celebrate a community member with their story, photos, and voice notes that everyone can hear and support",
-      gradient: "from-primary/20 to-primary/5"
-    },
-    {
-      icon: Calendar,
-      title: "Community Events",
-      description: "Join virtual and in-person events, workshops, and gatherings designed for connection and fun",
-      gradient: "from-secondary/20 to-secondary/5"
-    },
-    {
-      icon: MessageSquare,
-      title: "Discussions & Forums",
-      description: "Share experiences, ask questions, and support each other in safe, moderated spaces",
-      gradient: "from-accent/20 to-accent/5"
-    },
-    {
-      icon: Gift,
-      title: "Sponsor a Bestie",
-      description: "Make a direct impact by sponsoring community members and supporting their independence journey",
-      gradient: "from-primary/20 to-secondary/5"
-    },
-    {
-      icon: Link2,
-      title: "Family Connections",
-      description: "Guardians can link to their Besties' accounts to stay connected and provide support when needed",
-      gradient: "from-secondary/20 to-accent/5"
-    },
-    {
-      icon: Volume2,
-      title: "Audio Notifications",
-      description: "Besties can enable audio notifications for an accessible, easy-to-use experience",
-      gradient: "from-accent/20 to-primary/5"
-    },
-    {
-      icon: Users,
-      title: "Mutual Support Network",
-      description: "Guardians and supporters connect with each other for advice, encouragement, and shared experiences",
-      gradient: "from-primary/20 to-accent/5"
-    },
-    {
-      icon: Shield,
-      title: "AI-Moderated Safety",
-      description: "Our AI helps ensure all content follows community guidelines, keeping the space positive and safe",
-      gradient: "from-secondary/20 to-primary/5"
-    },
-  ];
+  
+  const [features, setFeatures] = useState<Feature[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("community_features")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true });
+
+        if (error) throw error;
+        setFeatures(data || []);
+      } catch (error) {
+        console.error("Error fetching community features:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeatures();
+  }, []);
 
   return (
     <section className="py-24 bg-gradient-to-b from-background via-muted/20 to-background relative overflow-hidden">
@@ -95,26 +87,36 @@ const CommunityFeatures = ({ content = {} }: CommunityFeaturesProps) => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <Card
-                key={index}
-                className="border-2 hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <CardContent className="p-6 h-full">
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-bold mb-2 text-foreground">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        {loading ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading features...</p>
+          </div>
+        ) : features.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No features available</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature, index) => {
+              const Icon = iconMap[feature.icon] || Heart;
+              return (
+                <Card
+                  key={feature.id}
+                  className="border-2 hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 shadow-float hover:shadow-warm group"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <CardContent className="p-6 h-full">
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-7 h-7 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-bold mb-2 text-foreground">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );
