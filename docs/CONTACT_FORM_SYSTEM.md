@@ -42,9 +42,12 @@ Stores all form submissions for admin review.
 - `created_at` (timestamp)
 
 **RLS Policies:**
-- Anyone can INSERT (public submissions)
-- Admins can SELECT/UPDATE (for management)
-- No DELETE allowed (audit trail)
+- **INSERT:** Anyone can create submissions (both authenticated and anonymous users)
+  - Policy: `TO public WITH CHECK (true)`
+  - Critical: Must allow anonymous users for public contact form
+- **SELECT:** Admins only (prevents users from viewing other submissions)
+- **UPDATE:** Admins only (for status management and replies)
+- **DELETE:** Admins only (for submission removal)
 
 ---
 
@@ -75,12 +78,18 @@ Stores all form submissions for admin review.
 ```
 
 **Submission Flow:**
-1. User fills form
+1. User fills form (email auto-filled for logged-in users)
 2. Client-side validation (Zod)
-3. Insert into `contact_form_submissions` table
-4. Call `send-contact-email` edge function (non-blocking)
-5. Show success toast with custom message
-6. Reset form
+3. Insert into `contact_form_submissions` table (no SELECT after insert)
+4. Call `notify-admin-new-contact` edge function with user email (non-blocking)
+5. Edge function queries latest submission by email using service role key
+6. Show success toast with custom message
+7. Reset form
+
+**Critical Implementation Details:**
+- Form does NOT attempt to SELECT submission after INSERT (RLS would block this)
+- Edge function uses service role key to query submission by email
+- Works for both authenticated and anonymous users
 
 **Error Handling:**
 - Database insert failure → shows error toast, does not proceed
@@ -132,6 +141,16 @@ Stores all form submissions for admin review.
 **Purpose:** Sends email notification to admin when new contact form submission is received
 
 **Trigger:** Automatically called after contact form submission
+
+**Input Parameters:**
+- `userEmail` (string) - Email of the submitter
+- `submissionId` (string, optional) - Direct submission ID (fallback)
+
+**How It Works:**
+1. Receives user email from frontend
+2. Uses service role key to query latest submission by email
+3. Fetches submission details from database
+4. Sends formatted email to admin
 
 **Email Template:**
 - Includes submission details (name, email, type, subject, message)
@@ -350,6 +369,8 @@ INSERT INTO contact_form_settings (
 | Badge count not updating | Realtime subscription issue | Check console for errors |
 | Settings won't save | RLS policy issue | Verify user has admin role |
 | Form loads but crashes | `useEffect` bug (was `useState`) | Fixed in current version |
+| **"Failed to send message" error** | **RLS policy blocking INSERT** | **Ensure RLS policy allows anonymous submissions with `TO public`** |
+| Submissions work in dev but fail in prod | RLS policy too restrictive | Check that INSERT policy uses `TO public WITH CHECK (true)` |
 
 ---
 
@@ -401,8 +422,9 @@ Built-in reply functionality in the admin panel:
 - ✅ Reply functionality working (via `send-contact-reply`)
 - ✅ Reply tracking in database
 
-## CRITICAL BUG FIX
+## CRITICAL BUG FIXES
 
+### Bug #1: Settings Loader (October 2025)
 **Issue:** Settings loader was using `useState` instead of `useEffect`
 **Impact:** Settings never loaded, form always hidden
 **Fixed:** Changed to `useEffect(() => { ... }, [])` on mount
@@ -422,6 +444,28 @@ useEffect(() => {
   const loadSettings = async () => { ... };
   loadSettings();
 }, []);
+```
+
+### Bug #2: RLS Policy Blocking Submissions (October 2025)
+**Issue:** RLS policy on `contact_form_submissions` was too restrictive for anonymous users
+**Impact:** Form worked in dev (authenticated users) but failed in production for some users
+**Root Cause:** 
+- Original policy didn't explicitly allow public INSERT
+- Form tried to SELECT submission after INSERT, which RLS blocked even for authenticated users
+**Fixed:** 
+1. Updated RLS policy to explicitly allow public submissions: `TO public WITH CHECK (true)`
+2. Removed SELECT after INSERT in ContactForm component
+3. Modified edge function to query by email instead of submission ID
+
+**Migration:**
+```sql
+DROP POLICY IF EXISTS "Anyone can create submissions" ON public.contact_form_submissions;
+
+CREATE POLICY "Anyone can create submissions including anonymous"
+ON public.contact_form_submissions
+FOR INSERT
+TO public
+WITH CHECK (true);
 ```
 
 ---
