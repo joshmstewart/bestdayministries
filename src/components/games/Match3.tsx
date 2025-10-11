@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCoins } from "@/hooks/useCoins";
 import { Progress } from "@/components/ui/progress";
 
-type ItemType = "☕" | "☀️" | "🌧️" | "🌙";
+type ItemType = "☕" | "☀️" | "🌧️" | "🌙" | "⭐" | "🎵";
+type Difficulty = "easy" | "medium" | "hard";
 
 interface Cell {
   id: string;
@@ -26,16 +27,28 @@ interface Challenge {
 }
 
 const GRID_SIZE = 8;
-const ITEMS: ItemType[] = ["☕", "☀️", "🌧️", "🌙"];
-const POINTS_PER_MATCH = 10;
-const COINS_PER_GAME = 5;
+const ALL_ITEMS: ItemType[] = ["☕", "☀️", "🌧️", "🌙", "⭐", "🎵"];
 
-const CHALLENGES: Challenge[] = [
-  { id: "easy", name: "Warm Up", description: "Destroy 30 icons", targetIcons: 30, maxMoves: 20, coinsReward: 10 },
-  { id: "medium", name: "Getting Hot", description: "Destroy 50 icons", targetIcons: 50, maxMoves: 25, coinsReward: 20 },
-  { id: "hard", name: "On Fire", description: "Destroy 80 icons", targetIcons: 80, maxMoves: 30, coinsReward: 35 },
-  { id: "expert", name: "Scorching", description: "Destroy 120 icons", targetIcons: 120, maxMoves: 40, coinsReward: 50 },
-];
+const DIFFICULTY_CONFIG = {
+  easy: { icons: 4, pointsPerMatch: 10, coinsPerGame: 5, multiplier: 1 },
+  medium: { icons: 5, pointsPerMatch: 15, coinsPerGame: 8, multiplier: 1.5 },
+  hard: { icons: 6, pointsPerMatch: 20, coinsPerGame: 12, multiplier: 2 },
+};
+
+const CHALLENGES: Record<Difficulty, Challenge[]> = {
+  easy: [
+    { id: "easy1", name: "Warm Up", description: "Destroy 30 icons", targetIcons: 30, maxMoves: 20, coinsReward: 10 },
+    { id: "easy2", name: "Getting Hot", description: "Destroy 50 icons", targetIcons: 50, maxMoves: 25, coinsReward: 20 },
+  ],
+  medium: [
+    { id: "medium1", name: "Rising Heat", description: "Destroy 60 icons", targetIcons: 60, maxMoves: 25, coinsReward: 30 },
+    { id: "medium2", name: "On Fire", description: "Destroy 90 icons", targetIcons: 90, maxMoves: 30, coinsReward: 45 },
+  ],
+  hard: [
+    { id: "hard1", name: "Scorching", description: "Destroy 80 icons", targetIcons: 80, maxMoves: 25, coinsReward: 50 },
+    { id: "hard2", name: "Inferno", description: "Destroy 120 icons", targetIcons: 120, maxMoves: 35, coinsReward: 75 },
+  ],
+};
 
 export const Match3 = () => {
   const [grid, setGrid] = useState<Cell[][]>([]);
@@ -47,11 +60,14 @@ export const Match3 = () => {
   const [bestScore, setBestScore] = useState<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [gameMode, setGameMode] = useState<"free" | "challenge">("free");
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
   const [challengeComplete, setChallengeComplete] = useState(false);
   const [challengeFailed, setChallengeFailed] = useState(false);
   const { toast } = useToast();
   const { awardCoins } = useCoins();
+
+  const currentItems = ALL_ITEMS.slice(0, DIFFICULTY_CONFIG[difficulty].icons);
 
   useEffect(() => {
     initializeGame();
@@ -75,7 +91,7 @@ export const Match3 = () => {
   };
 
   const generateRandomItem = (): ItemType => {
-    return ITEMS[Math.floor(Math.random() * ITEMS.length)];
+    return currentItems[Math.floor(Math.random() * currentItems.length)];
   };
 
   const createCell = (row: number, col: number): Cell => ({
@@ -107,9 +123,16 @@ export const Match3 = () => {
     setChallengeFailed(false);
   };
 
-  const startChallenge = (challenge: Challenge) => {
+  const startChallenge = (challenge: Challenge, diff: Difficulty) => {
+    setDifficulty(diff);
     setCurrentChallenge(challenge);
     setGameMode("challenge");
+    initializeGame();
+  };
+
+  const startFreePlay = (diff: Difficulty) => {
+    setDifficulty(diff);
+    setGameMode("free");
     initializeGame();
   };
 
@@ -272,7 +295,7 @@ export const Match3 = () => {
       setGrid(newGrid);
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      const pointsEarned = matchCount * POINTS_PER_MATCH;
+      const pointsEarned = matchCount * DIFFICULTY_CONFIG[difficulty].pointsPerMatch;
       setScore(prev => prev + pointsEarned);
       
       const newIconsDestroyed = iconsDestroyed + destroyedCount;
@@ -282,10 +305,11 @@ export const Match3 = () => {
       if (gameMode === "challenge" && currentChallenge && !challengeComplete) {
         if (newIconsDestroyed >= currentChallenge.targetIcons) {
           setChallengeComplete(true);
-          await awardCoins((await supabase.auth.getUser()).data.user!.id, currentChallenge.coinsReward, `${currentChallenge.name} challenge completed`);
+          const bonusCoins = Math.floor(currentChallenge.coinsReward * DIFFICULTY_CONFIG[difficulty].multiplier);
+          await awardCoins((await supabase.auth.getUser()).data.user!.id, bonusCoins, `${currentChallenge.name} challenge completed (${difficulty})`);
           toast({
             title: "Challenge Complete! 🎉",
-            description: `You destroyed ${newIconsDestroyed} icons! +${currentChallenge.coinsReward} JoyCoins`,
+            description: `You destroyed ${newIconsDestroyed} icons! +${bonusCoins} JoyCoins`,
           });
         }
       }
@@ -326,32 +350,34 @@ export const Match3 = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    const coinsEarned = DIFFICULTY_CONFIG[difficulty].coinsPerGame;
+    
     await supabase.from("game_sessions").insert({
       user_id: user.id,
       game_type: "match3",
-      difficulty: "standard",
+      difficulty,
       score,
       moves_count: moves,
-      coins_earned: COINS_PER_GAME,
+      coins_earned: coinsEarned,
     });
 
-    await awardCoins(user.id, COINS_PER_GAME, "Match-3 game completed");
+    await awardCoins(user.id, coinsEarned, `Match-3 game completed (${difficulty})`);
     
     if (!bestScore || score > bestScore) {
       setBestScore(score);
       toast({
         title: "New High Score! 🎉",
-        description: `${score} points! +${COINS_PER_GAME} JoyCoins`,
+        description: `${score} points! +${coinsEarned} JoyCoins`,
       });
     } else {
       toast({
         title: "Game Complete! ✨",
-        description: `${score} points! +${COINS_PER_GAME} JoyCoins`,
+        description: `${score} points! +${coinsEarned} JoyCoins`,
       });
     }
   };
 
-  if (gameMode === "free") {
+  if (gameMode === "free" && grid.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
@@ -359,12 +385,12 @@ export const Match3 = () => {
             Match-3 Game
           </h1>
           <p className="text-muted-foreground mb-6">
-            Choose a mode: Play freely or take on a challenge!
+            Choose a mode and difficulty!
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card className="cursor-pointer hover:border-primary transition-all" onClick={initializeGame}>
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5" />
@@ -373,29 +399,29 @@ export const Match3 = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                Play without limits! Match coffee cups, suns, rain clouds, and moons.
+                Play without limits! Match icons and score points.
               </p>
-              <div className="flex justify-center gap-4 mb-4">
-                <Badge variant="secondary" className="text-lg px-4 py-2">
-                  Score: {score}
-                </Badge>
-                <Badge variant="secondary" className="text-lg px-4 py-2">
-                  Moves: {moves}
-                </Badge>
-                {bestScore !== null && (
-                  <Badge variant="secondary" className="text-lg px-4 py-2">
-                    <Trophy className="h-4 w-4 mr-1" />
-                    Best: {bestScore}
-                  </Badge>
-                )}
-              </div>
-              <div className="flex justify-center gap-4">
-                <Button onClick={initializeGame} variant="outline" className="w-full">
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  New Game
+              <div className="space-y-2">
+                <Button onClick={() => startFreePlay("easy")} variant="outline" className="w-full justify-between">
+                  <div className="text-left">
+                    <div className="font-semibold">Easy Mode</div>
+                    <div className="text-xs text-muted-foreground">4 icon types • 10 pts/match</div>
+                  </div>
+                  <Badge variant="secondary">+5 coins</Badge>
                 </Button>
-                <Button onClick={saveGameSession} disabled={score === 0} className="w-full">
-                  Save Score
+                <Button onClick={() => startFreePlay("medium")} variant="outline" className="w-full justify-between">
+                  <div className="text-left">
+                    <div className="font-semibold">Medium Mode</div>
+                    <div className="text-xs text-muted-foreground">5 icon types • 15 pts/match</div>
+                  </div>
+                  <Badge variant="secondary">+8 coins</Badge>
+                </Button>
+                <Button onClick={() => startFreePlay("hard")} variant="outline" className="w-full justify-between">
+                  <div className="text-left">
+                    <div className="font-semibold">Hard Mode</div>
+                    <div className="text-xs text-muted-foreground">6 icon types • 20 pts/match</div>
+                  </div>
+                  <Badge variant="secondary">+12 coins</Badge>
                 </Button>
               </div>
             </CardContent>
@@ -412,26 +438,73 @@ export const Match3 = () => {
               <p className="text-muted-foreground mb-4">
                 Complete objectives to earn bonus JoyCoins!
               </p>
-              <div className="space-y-2">
-                {CHALLENGES.map((challenge) => (
-                  <Button
-                    key={challenge.id}
-                    onClick={() => startChallenge(challenge)}
-                    variant="outline"
-                    className="w-full justify-between"
-                  >
-                    <div className="text-left">
-                      <div className="font-semibold">{challenge.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {challenge.description} in {challenge.maxMoves} moves
-                      </div>
-                    </div>
-                    <Badge variant="secondary">+{challenge.coinsReward}</Badge>
-                  </Button>
-                ))}
-              </div>
+              {(["easy", "medium", "hard"] as Difficulty[]).map((diff) => (
+                <div key={diff} className="mb-4">
+                  <div className="text-sm font-semibold mb-2 capitalize">{diff} Mode</div>
+                  <div className="space-y-2">
+                    {CHALLENGES[diff].map((challenge) => (
+                      <Button
+                        key={challenge.id}
+                        onClick={() => startChallenge(challenge, diff)}
+                        variant="outline"
+                        className="w-full justify-between"
+                      >
+                        <div className="text-left">
+                          <div className="font-semibold">{challenge.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {challenge.description} in {challenge.maxMoves} moves
+                          </div>
+                        </div>
+                        <Badge variant="secondary">+{Math.floor(challenge.coinsReward * DIFFICULTY_CONFIG[diff].multiplier)}</Badge>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (gameMode === "free") {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
+            Match-3 Game
+          </h1>
+          <div className="flex justify-center gap-4 mb-4">
+            <Badge variant="secondary" className="text-lg px-4 py-2 capitalize">
+              {difficulty} Mode
+            </Badge>
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              Score: {score}
+            </Badge>
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              Moves: {moves}
+            </Badge>
+            {bestScore !== null && (
+              <Badge variant="secondary" className="text-lg px-4 py-2">
+                <Trophy className="h-4 w-4 mr-1" />
+                Best: {bestScore}
+              </Badge>
+            )}
+          </div>
+          <div className="flex justify-center gap-4 mb-4">
+            <Button onClick={backToFreeMode} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Menu
+            </Button>
+            <Button onClick={initializeGame} variant="outline">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              New Game
+            </Button>
+            <Button onClick={saveGameSession} disabled={score === 0}>
+              Save Score
+            </Button>
+          </div>
         </div>
 
         {grid.length > 0 && (
@@ -515,7 +588,7 @@ export const Match3 = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Menu
           </Button>
-          <Button onClick={() => startChallenge(currentChallenge!)} variant="outline">
+          <Button onClick={() => startChallenge(currentChallenge!, difficulty)} variant="outline">
             <RotateCcw className="h-4 w-4 mr-2" />
             Restart
           </Button>
