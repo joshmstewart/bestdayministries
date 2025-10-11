@@ -27,7 +27,7 @@ jobs:
       run: bun run build
       
     - name: Run unit tests
-      run: bun run test:unit
+      run: bun vitest run
       
     - name: Run Playwright tests
       run: npx playwright test
