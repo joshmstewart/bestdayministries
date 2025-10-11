@@ -139,7 +139,13 @@ export const Match3 = () => {
   const backToFreeMode = () => {
     setGameMode("free");
     setCurrentChallenge(null);
-    initializeGame();
+    setGrid([]);
+    setScore(0);
+    setMoves(0);
+    setIconsDestroyed(0);
+    setSelectedCell(null);
+    setChallengeComplete(false);
+    setChallengeFailed(false);
   };
 
   const removeInitialMatches = (grid: Cell[][]): Cell[][] => {
