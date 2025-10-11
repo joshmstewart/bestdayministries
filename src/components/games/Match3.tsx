@@ -593,13 +593,29 @@ export const Match3 = () => {
         }
       }
       
-      // Mark cells for destruction
+      // Mark cells for destruction and create explosions
+      const newExplosions: { row: number; col: number; id: string }[] = [];
       allMatches.forEach(match => {
         if (!specialCreated || match.row !== specialCreated.row || match.col !== specialCreated.col) {
-          if (!newGrid[match.row][match.col].matched) destroyedCount++;
+          if (!newGrid[match.row][match.col].matched) {
+            destroyedCount++;
+            newExplosions.push({ 
+              row: match.row, 
+              col: match.col, 
+              id: `explosion-${match.row}-${match.col}-${Date.now()}-${Math.random()}` 
+            });
+          }
           newGrid[match.row][match.col].matched = true;
         }
       });
+      
+      // Trigger explosions
+      if (newExplosions.length > 0) {
+        setExplosions(prev => [...prev, ...newExplosions]);
+        setTimeout(() => {
+          setExplosions(prev => prev.filter(e => !newExplosions.find(ne => ne.id === e.id)));
+        }, 600);
+      }
       
       // Create special cell if detected
       if (specialCreated) {
