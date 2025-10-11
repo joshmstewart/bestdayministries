@@ -285,7 +285,7 @@ const SupportUs = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       
-      <main className="flex-1 pt-6">
+      <main className="flex-1 pt-24">
         <div className="container mx-auto px-4 py-8 space-y-16">
           {sections.map(section => renderSection(section.section_key))}
         </div>

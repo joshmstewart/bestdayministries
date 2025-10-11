@@ -375,17 +375,19 @@ export const MemoryMatch = () => {
               'grid-cols-5'
             }`}>
               {cards.map((card) => (
-                <div
+                <button
                   key={card.id}
                   onClick={() => handleCardClick(card.id)}
-                  className={`aspect-square rounded-lg flex items-center justify-center text-4xl cursor-pointer transition-all transform hover:scale-105 ${
+                  className={`game-card aspect-square rounded-lg flex items-center justify-center text-4xl cursor-pointer transition-all transform hover:scale-105 ${
                     card.isFlipped || card.isMatched
                       ? 'bg-gradient-warm text-white'
                       : 'bg-secondary hover:bg-secondary/80'
                   } ${card.isMatched ? 'opacity-50 cursor-default' : ''}`}
+                  disabled={card.isMatched || flippedCards.includes(card.id)}
+                  aria-label={`Card ${card.id + 1}`}
                 >
                   {(card.isFlipped || card.isMatched) ? card.emoji : '?'}
-                </div>
+                </button>
               ))}
             </div>
           )}
