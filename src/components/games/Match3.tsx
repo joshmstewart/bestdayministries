@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, RotateCcw, Target, Zap, ArrowLeft } from "lucide-react";
+import { Trophy, RotateCcw, Target, Zap, ArrowLeft, Volume2, VolumeX, Music } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCoins } from "@/hooks/useCoins";
@@ -68,8 +68,62 @@ export const Match3 = () => {
   const [challengeComplete, setChallengeComplete] = useState(false);
   const [challengeFailed, setChallengeFailed] = useState(false);
   const [explosions, setExplosions] = useState<{ row: number; col: number; id: string }[]>([]);
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const { toast } = useToast();
   const { awardCoins } = useCoins();
+
+  // Initialize audio context
+  useEffect(() => {
+    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    return () => {
+      audioContextRef.current?.close();
+    };
+  }, []);
+
+  // Play sound effect
+  const playSound = (frequency: number, duration: number, type: OscillatorType = 'sine') => {
+    if (!soundEnabled || !audioContextRef.current) return;
+    
+    const oscillator = audioContextRef.current.createOscillator();
+    const gainNode = audioContextRef.current.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContextRef.current.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContextRef.current.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + duration);
+    
+    oscillator.start(audioContextRef.current.currentTime);
+    oscillator.stop(audioContextRef.current.currentTime + duration);
+  };
+
+  const playSoundEffect = (effect: 'match' | 'special' | 'win' | 'fail') => {
+    switch (effect) {
+      case 'match':
+        playSound(523.25, 0.1, 'sine'); // C5
+        setTimeout(() => playSound(659.25, 0.1, 'sine'), 50); // E5
+        break;
+      case 'special':
+        playSound(783.99, 0.15, 'square'); // G5
+        setTimeout(() => playSound(1046.5, 0.15, 'square'), 75); // C6
+        setTimeout(() => playSound(1318.5, 0.2, 'square'), 150); // E6
+        break;
+      case 'win':
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+          setTimeout(() => playSound(freq, 0.2, 'sine'), i * 100);
+        });
+        break;
+      case 'fail':
+        playSound(220, 0.3, 'sawtooth');
+        setTimeout(() => playSound(196, 0.4, 'sawtooth'), 150);
+        break;
+    }
+  };
 
   useEffect(() => {
     if (grid.length > 0) {
@@ -224,6 +278,7 @@ export const Match3 = () => {
     
     if (special) {
       const destroyedCount = activateSpecial(row, col, special, newGrid);
+      playSoundEffect('special');
       
       const newMoves = moves + 1;
       setMoves(newMoves);
@@ -240,6 +295,7 @@ export const Match3 = () => {
       if (gameMode === "challenge" && currentChallenge) {
         if (newMoves >= currentChallenge.maxMoves && iconsDestroyed + destroyedCount < currentChallenge.targetIcons) {
           setChallengeFailed(true);
+          playSoundEffect('fail');
           toast({
             title: "Challenge Failed! 😔",
             description: "You ran out of moves. Try again!",
@@ -300,10 +356,12 @@ export const Match3 = () => {
       
       if (cell1Special) {
         totalDestroyed += activateSpecial(row1, col1, cell1Special, newGrid);
+        playSoundEffect('special');
       }
       
       if (cell2Special) {
         totalDestroyed += activateSpecial(row2, col2, cell2Special, newGrid);
+        playSoundEffect('special');
       }
       
       const newMoves = moves + 1;
@@ -335,6 +393,7 @@ export const Match3 = () => {
     if (gameMode === "challenge" && currentChallenge) {
       if (newMoves >= currentChallenge.maxMoves && iconsDestroyed < currentChallenge.targetIcons) {
         setChallengeFailed(true);
+        playSoundEffect('fail');
         toast({
           title: "Challenge Failed! 😔",
           description: "You ran out of moves. Try again!",
@@ -632,6 +691,7 @@ export const Match3 = () => {
 
     if (hasMatches) {
       setGrid(newGrid);
+      playSoundEffect('match');
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const pointsEarned = matchCount * DIFFICULTY_CONFIG[difficulty].pointsPerMatch;
@@ -644,6 +704,7 @@ export const Match3 = () => {
       if (gameMode === "challenge" && currentChallenge && !challengeComplete) {
         if (newIconsDestroyed >= currentChallenge.targetIcons) {
           setChallengeComplete(true);
+          playSoundEffect('win');
           const bonusCoins = Math.floor(currentChallenge.coinsReward * DIFFICULTY_CONFIG[difficulty].multiplier);
           await awardCoins((await supabase.auth.getUser()).data.user!.id, bonusCoins, `${currentChallenge.name} challenge completed (${difficulty})`);
           toast({
@@ -700,7 +761,8 @@ export const Match3 = () => {
       coins_earned: coinsEarned,
     });
 
-    await awardCoins(user.id, coinsEarned, `Match-3 game completed (${difficulty})`);
+    await awardCoins(user.id, coinsEarned, `Brew Blast game completed (${difficulty})`);
+    playSoundEffect('win');
     
     if (!bestScore || score > bestScore) {
       setBestScore(score);
@@ -721,7 +783,7 @@ export const Match3 = () => {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
-            Match-3 Game
+            ☕ Brew Blast
           </h1>
           <p className="text-muted-foreground mb-6">
             Choose a mode and difficulty!
@@ -812,9 +874,19 @@ export const Match3 = () => {
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
-            Match-3 Game
+            ☕ Brew Blast
           </h1>
-          <div className="flex justify-center gap-4 mb-4">
+          <div className="flex justify-center gap-2 mb-4 flex-wrap">
+            <Button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              variant="outline"
+              size="icon"
+              title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+            >
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
+          </div>
+          <div className="flex justify-center gap-4 mb-4 flex-wrap">
             <Badge variant="secondary" className="text-lg px-4 py-2 capitalize">
               {difficulty} Mode
             </Badge>
@@ -969,6 +1041,17 @@ export const Match3 = () => {
               className="h-3"
             />
           </div>
+        </div>
+
+        <div className="flex justify-center gap-2 mb-4">
+          <Button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            variant="outline"
+            size="icon"
+            title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+          >
+            {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </Button>
         </div>
 
         <div className="flex justify-center gap-4">
