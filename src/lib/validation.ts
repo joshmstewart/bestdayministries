@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+// Simple validation functions
+export const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+};
+
+export const validatePassword = (password: string): boolean => {
+  if (!password || password.length < 8) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[0-9]/.test(password)) return false;
+  return true;
+};
+
 // Common validation rules
 const MAX_TEXT_LENGTH = 1000;
 const MAX_TITLE_LENGTH = 200;
