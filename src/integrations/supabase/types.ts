@@ -3692,27 +3692,6 @@ export type Database = {
       }
     }
     Views: {
-      app_settings_public: {
-        Row: {
-          id: string | null
-          setting_key: string | null
-          setting_value: Json | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string | null
-          setting_key?: string | null
-          setting_value?: Json | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string | null
-          setting_key?: string | null
-          setting_value?: Json | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       bestie_funding_progress: {
         Row: {
           bestie_id: string | null
@@ -3896,6 +3875,15 @@ export type Database = {
           inapp_on_pending_approval: boolean
           inapp_on_product_update: boolean
           inapp_on_sponsorship_update: boolean
+        }[]
+      }
+      get_public_app_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
         }[]
       }
       get_user_email: {
