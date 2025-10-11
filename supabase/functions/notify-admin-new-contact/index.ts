@@ -51,12 +51,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get app logo
     const { data: appSettings } = await supabase
-      .from("app_settings_public")
+      .from("app_settings")
       .select("setting_value")
       .eq("setting_key", "logo_url")
       .single();
 
-    const logoUrl = appSettings?.setting_value || "";
+    const logoUrl = appSettings?.setting_value ? JSON.parse(appSettings.setting_value) : "";
     const appUrl = supabaseUrl.replace(".supabase.co", ".lovable.app");
     const viewUrl = `${appUrl}/admin?tab=contact`;
 
