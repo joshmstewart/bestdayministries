@@ -17,6 +17,7 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
+import { SponsorshipBreakdownDialog } from "@/components/SponsorshipBreakdownDialog";
 
 interface Bestie {
   id: string;
@@ -424,7 +425,8 @@ const SponsorBestie = () => {
                                 </p>
                                 
                                 {bestie.monthly_goal && bestie.monthly_goal > 0 && (
-                                  <div className="mt-3">
+                                  <div className="mt-3 space-y-2">
+                                    <SponsorshipBreakdownDialog />
                                     <FundingProgressBar
                                       currentAmount={fundingProgress[bestie.id]?.current_monthly_pledges || 0}
                                       goalAmount={bestie.monthly_goal}

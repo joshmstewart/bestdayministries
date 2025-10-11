@@ -9,6 +9,7 @@ import { FundingProgressBar } from "@/components/FundingProgressBar";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useNavigate } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { SponsorshipBreakdownDialog } from "@/components/SponsorshipBreakdownDialog";
 
 interface TextSection {
   header: string;
@@ -323,11 +324,13 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
               )}
 
               {bestie.monthly_goal && bestie.monthly_goal > 0 && (
-                <FundingProgressBar
-                  currentAmount={progress?.current_monthly_pledges || 0}
-                  goalAmount={bestie.monthly_goal}
-                  className="mt-4"
-                />
+                <div className="mt-4 space-y-2">
+                  <SponsorshipBreakdownDialog />
+                  <FundingProgressBar
+                    currentAmount={progress?.current_monthly_pledges || 0}
+                    goalAmount={bestie.monthly_goal}
+                  />
+                </div>
               )}
 
               {showSponsorButton && (
