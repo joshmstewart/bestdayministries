@@ -903,20 +903,26 @@ export const Match3 = () => {
   const dropCells = async (currentGrid: Cell[][]) => {
     const newGrid = currentGrid.map(row => [...row]);
 
-    // Remove matched cells and drop
+    // For each column, drop cells down to fill gaps
     for (let col = 0; col < GRID_SIZE; col++) {
-      let emptySpaces = 0;
+      // Count empty spaces from bottom up
+      let writePos = GRID_SIZE - 1;
+      
+      // Move all non-matched cells down
       for (let row = GRID_SIZE - 1; row >= 0; row--) {
-        if (newGrid[row][col].matched) {
-          emptySpaces++;
-        } else if (emptySpaces > 0) {
-          newGrid[row + emptySpaces][col] = newGrid[row][col];
-          newGrid[row][col] = createCell(row, col, difficulty);
+        if (!newGrid[row][col].matched) {
+          if (row !== writePos) {
+            newGrid[writePos][col] = {
+              ...newGrid[row][col],
+              id: `${writePos}-${col}`
+            };
+          }
+          writePos--;
         }
       }
       
-      // Fill from top with new cells
-      for (let row = 0; row < emptySpaces; row++) {
+      // Fill empty spaces at the top with new cells
+      for (let row = 0; row <= writePos; row++) {
         newGrid[row][col] = createCell(row, col, difficulty);
       }
     }
