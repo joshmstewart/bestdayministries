@@ -106,8 +106,13 @@ export const Match3 = () => {
     }
   }, [musicEnabled, grid.length, activeTheme]); // Added activeTheme dependency
 
-  const startBackgroundMusic = () => {
+  const startBackgroundMusic = async () => {
     if (!audioContextRef.current || musicIntervalRef.current) return;
+    
+    // Resume audio context if suspended (required by browsers)
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
     
     if (activeTheme === "halloween") {
       // Halloween: Minor key eerie progression - Am - Dm - E - Am
@@ -1147,7 +1152,13 @@ export const Match3 = () => {
             </Button>
             )}
             <Button
-              onClick={() => setMusicEnabled(!musicEnabled)}
+              onClick={async () => {
+                // Resume audio context on user interaction
+                if (audioContextRef.current?.state === 'suspended') {
+                  await audioContextRef.current.resume();
+                }
+                setMusicEnabled(!musicEnabled);
+              }}
               variant="outline"
               size="icon"
               title={musicEnabled ? "Mute music" : "Enable music"}
