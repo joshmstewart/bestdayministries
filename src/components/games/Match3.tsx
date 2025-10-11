@@ -159,6 +159,17 @@ export const Match3 = () => {
       hasMatches = false;
       for (let row = 0; row < GRID_SIZE; row++) {
         for (let col = 0; col < GRID_SIZE; col++) {
+          // Check for 2x2 squares first (to prevent special patterns)
+          if (row < GRID_SIZE - 1 && col < GRID_SIZE - 1) {
+            if (newGrid[row][col].type === newGrid[row][col + 1].type &&
+                newGrid[row][col].type === newGrid[row + 1][col].type &&
+                newGrid[row][col].type === newGrid[row + 1][col + 1].type) {
+              newGrid[row][col] = createCell(row, col, diff);
+              hasMatches = true;
+              continue;
+            }
+          }
+          
           // Check horizontal
           if (col < GRID_SIZE - 2) {
             if (newGrid[row][col].type === newGrid[row][col + 1].type &&
