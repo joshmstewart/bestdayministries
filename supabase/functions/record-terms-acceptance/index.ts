@@ -33,15 +33,18 @@ serve(async (req) => {
     const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
 
-    // Record acceptance
+    // Record acceptance with upsert to handle duplicate attempts
     const { error } = await supabaseClient
       .from("terms_acceptance")
-      .insert({
+      .upsert({
         user_id: user.id,
         terms_version: termsVersion,
         privacy_version: privacyVersion,
         ip_address: ipAddress,
         user_agent: userAgent,
+      }, {
+        onConflict: 'user_id,terms_version,privacy_version',
+        ignoreDuplicates: false
       });
 
     if (error) throw error;
