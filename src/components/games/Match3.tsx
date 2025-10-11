@@ -71,6 +71,7 @@ export const Match3 = () => {
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const musicIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { awardCoins } = useCoins();
 
@@ -78,9 +79,100 @@ export const Match3 = () => {
   useEffect(() => {
     audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     return () => {
+      stopBackgroundMusic();
       audioContextRef.current?.close();
     };
   }, []);
+
+  // Start/stop background music when musicEnabled changes
+  useEffect(() => {
+    if (musicEnabled && grid.length > 0) {
+      startBackgroundMusic();
+    } else {
+      stopBackgroundMusic();
+    }
+  }, [musicEnabled, grid.length]);
+
+  const startBackgroundMusic = () => {
+    if (!audioContextRef.current || musicIntervalRef.current) return;
+    
+    // Simple upbeat chord progression: C - F - G - Am
+    const chordProgression = [
+      [261.63, 329.63, 392.00], // C major (C, E, G)
+      [349.23, 440.00, 523.25], // F major (F, A, C)
+      [392.00, 493.88, 587.33], // G major (G, B, D)
+      [440.00, 523.25, 659.25], // A minor (A, C, E)
+    ];
+    
+    let chordIndex = 0;
+    let beatCount = 0;
+    
+    const playChord = () => {
+      if (!audioContextRef.current || !musicEnabled) return;
+      
+      const chord = chordProgression[chordIndex];
+      const now = audioContextRef.current.currentTime;
+      
+      // Play chord notes
+      chord.forEach((freq, i) => {
+        const osc = audioContextRef.current!.createOscillator();
+        const gain = audioContextRef.current!.createGain();
+        
+        osc.connect(gain);
+        gain.connect(audioContextRef.current!.destination);
+        
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        
+        // Soft volume for background music
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.03, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        
+        osc.start(now);
+        osc.stop(now + 0.8);
+      });
+      
+      // Add melody note on beats 1 and 3
+      if (beatCount % 2 === 0) {
+        const melodyNotes = [523.25, 587.33, 659.25, 698.46, 783.99];
+        const melody = audioContextRef.current!.createOscillator();
+        const melodyGain = audioContextRef.current!.createGain();
+        
+        melody.connect(melodyGain);
+        melodyGain.connect(audioContextRef.current!.destination);
+        
+        melody.frequency.value = melodyNotes[Math.floor(Math.random() * melodyNotes.length)];
+        melody.type = 'triangle';
+        
+        melodyGain.gain.setValueAtTime(0, now);
+        melodyGain.gain.linearRampToValueAtTime(0.02, now + 0.01);
+        melodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        
+        melody.start(now);
+        melody.stop(now + 0.4);
+      }
+      
+      beatCount++;
+      if (beatCount >= 4) {
+        beatCount = 0;
+        chordIndex = (chordIndex + 1) % chordProgression.length;
+      }
+    };
+    
+    // Play immediately
+    playChord();
+    
+    // Then play every 500ms (upbeat tempo)
+    musicIntervalRef.current = setInterval(playChord, 500);
+  };
+
+  const stopBackgroundMusic = () => {
+    if (musicIntervalRef.current) {
+      clearInterval(musicIntervalRef.current);
+      musicIntervalRef.current = null;
+    }
+  };
 
   // Play sound effect
   const playSound = (frequency: number, duration: number, type: OscillatorType = 'sine') => {
@@ -878,6 +970,14 @@ export const Match3 = () => {
           </h1>
           <div className="flex justify-center gap-2 mb-4 flex-wrap">
             <Button
+              onClick={() => setMusicEnabled(!musicEnabled)}
+              variant="outline"
+              size="icon"
+              title={musicEnabled ? "Mute music" : "Enable music"}
+            >
+              {musicEnabled ? <Music className="h-4 w-4" /> : <Music className="h-4 w-4 opacity-50" />}
+            </Button>
+            <Button
               onClick={() => setSoundEnabled(!soundEnabled)}
               variant="outline"
               size="icon"
@@ -1045,6 +1145,14 @@ export const Match3 = () => {
 
         <div className="flex justify-center gap-2 mb-4">
           <Button
+            onClick={() => setMusicEnabled(!musicEnabled)}
+            variant="outline"
+            size="icon"
+            title={musicEnabled ? "Mute music" : "Enable music"}
+          >
+            {musicEnabled ? <Music className="h-4 w-4" /> : <Music className="h-4 w-4 opacity-50" />}
+          </Button>
+          <Button
             onClick={() => setSoundEnabled(!soundEnabled)}
             variant="outline"
             size="icon"
@@ -1054,7 +1162,7 @@ export const Match3 = () => {
           </Button>
         </div>
 
-        <div className="flex justify-center gap-4">
+        <div className="flex justify-center gap-4 flex-wrap">
           <Button onClick={backToFreeMode} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Menu
