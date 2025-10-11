@@ -1136,23 +1136,29 @@ export const Match3 = () => {
           </h1>
           <div className="flex justify-center gap-2 mb-4 flex-wrap">
             {hasHalloweenTheme && (
-              <Button
-                onClick={() => setActiveTheme(activeTheme === 'halloween' ? 'default' : 'halloween')}
-                variant={activeTheme === 'halloween' ? 'default' : 'outline'}
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Ghost className="h-4 w-4" />
-                {activeTheme === 'halloween' ? 'Spooky Mode' : 'Halloween'}
-              </Button>
+            <Button
+              onClick={() => setActiveTheme(activeTheme === 'halloween' ? 'default' : 'halloween')}
+              variant={activeTheme === 'halloween' ? 'default' : 'outline'}
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Ghost className="h-4 w-4" />
+              {activeTheme === 'halloween' ? 'Spooky Mode' : 'Normal Mode'}
+            </Button>
             )}
             <Button
               onClick={() => setMusicEnabled(!musicEnabled)}
               variant="outline"
               size="icon"
               title={musicEnabled ? "Mute music" : "Enable music"}
+              className="relative"
             >
-              {musicEnabled ? <Music className="h-4 w-4" /> : <Music className="h-4 w-4 opacity-50" />}
+              <Music className="h-4 w-4" />
+              {!musicEnabled && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-5 h-0.5 bg-foreground rotate-45" />
+                </div>
+              )}
             </Button>
             <Button
               onClick={() => setSoundEnabled(!soundEnabled)}
@@ -1212,7 +1218,7 @@ export const Match3 = () => {
                         onDragEnd={handleDragEnd}
                         className={`
                           aspect-square text-3xl flex items-center justify-center relative
-                          rounded-lg transition-all duration-200 cursor-move
+                          rounded-lg transition-all duration-500 cursor-move
                           ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
                           ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
                             ? "opacity-50 scale-90"
@@ -1226,6 +1232,10 @@ export const Match3 = () => {
                           ${cell.special ? "ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 animate-pulse" : ""}
                           bg-accent/20
                         `}
+                        style={{
+                          transform: `translateY(0)`,
+                          transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s, scale 0.2s'
+                        }}
                         disabled={isAnimating}
                       >
                         {cell.type}
