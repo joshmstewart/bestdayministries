@@ -41,28 +41,44 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
       // Look up bestie by friend code
       const { data: profile, error: profileError } = await supabase
         .from('profiles_public')
-        .select('id, display_name, friend_code, role')
+        .select('id, display_name, friend_code')
         .eq('friend_code', friendCode)
         .maybeSingle();
 
       console.log('🔍 Searching for friend code:', friendCode, 'Length:', friendCode.length);
-      console.log('🔍 Search result:', { profile, error: profileError });
+      console.log('🔍 Profile found:', profile);
 
       if (profileError || !profile) {
+        console.error('Profile error:', profileError);
         toast.error("Friend code not found");
         setLoading(false);
         return;
       }
 
-      // Check if the profile has bestie role (from profiles_public view which includes role)
-      if (profile.role !== 'bestie') {
-        console.log('❌ Not a bestie. Role:', profile.role);
+      // Verify the profile has the bestie role by checking user_roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', profile.id);
+
+      console.log('🔍 Roles for user:', roles);
+
+      if (rolesError) {
+        console.error('Roles error:', rolesError);
+        toast.error("Error verifying bestie status");
+        setLoading(false);
+        return;
+      }
+
+      const isBestie = roles?.some(r => r.role === 'bestie');
+      if (!isBestie) {
+        console.log('❌ Not a bestie. Roles:', roles);
         toast.error("This friend code doesn't belong to a bestie");
         setLoading(false);
         return;
       }
 
-      console.log('✅ Bestie found:', profile.display_name);
+      console.log('✅ Bestie verified:', profile.display_name);
 
       // Create link request
       const { error: requestError } = await supabase
