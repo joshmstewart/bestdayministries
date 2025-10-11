@@ -118,6 +118,7 @@ const Store = () => {
                 onPurchase={purchaseItem}
                 userCoins={coins}
                 loading={loading}
+                purchases={purchases}
               />
             </TabsContent>
 

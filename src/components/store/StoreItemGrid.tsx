@@ -9,14 +9,22 @@ interface StoreItem {
   image_url: string | null;
 }
 
+interface Purchase {
+  id: string;
+  store_item_id: string;
+  coins_spent: number;
+  purchased_at: string;
+}
+
 interface StoreItemGridProps {
   items: StoreItem[];
   onPurchase: (itemId: string, price: number) => Promise<boolean>;
   userCoins: number;
   loading: boolean;
+  purchases: Purchase[];
 }
 
-export const StoreItemGrid = ({ items, onPurchase, userCoins, loading }: StoreItemGridProps) => {
+export const StoreItemGrid = ({ items, onPurchase, userCoins, loading, purchases }: StoreItemGridProps) => {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -37,19 +45,23 @@ export const StoreItemGrid = ({ items, onPurchase, userCoins, loading }: StoreIt
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {items.map((item) => (
-        <StoreItemCard
-          key={item.id}
-          id={item.id}
-          name={item.name}
-          description={item.description}
-          price={item.price}
-          category={item.category}
-          imageUrl={item.image_url}
-          onPurchase={onPurchase}
-          userCoins={userCoins}
-        />
-      ))}
+      {items.map((item) => {
+        const isPurchased = purchases.some(p => p.store_item_id === item.id);
+        return (
+          <StoreItemCard
+            key={item.id}
+            id={item.id}
+            name={item.name}
+            description={item.description}
+            price={item.price}
+            category={item.category}
+            imageUrl={item.image_url}
+            onPurchase={onPurchase}
+            userCoins={userCoins}
+            isPurchased={isPurchased}
+          />
+        );
+      })}
     </div>
   );
 };

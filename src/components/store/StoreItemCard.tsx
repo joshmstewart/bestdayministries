@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Coins, ShoppingCart } from "lucide-react";
+import { Coins, ShoppingCart, Check } from "lucide-react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { useState } from "react";
 import { PurchaseDialog } from "./PurchaseDialog";
@@ -15,6 +15,7 @@ interface StoreItemCardProps {
   imageUrl?: string | null;
   onPurchase: (itemId: string, price: number) => Promise<boolean>;
   userCoins: number;
+  isPurchased: boolean;
 }
 
 export const StoreItemCard = ({
@@ -26,6 +27,7 @@ export const StoreItemCard = ({
   imageUrl,
   onPurchase,
   userCoins,
+  isPurchased,
 }: StoreItemCardProps) => {
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
@@ -88,11 +90,21 @@ export const StoreItemCard = ({
         <CardFooter>
           <Button
             onClick={() => setShowPurchaseDialog(true)}
-            disabled={!canAfford}
+            disabled={!canAfford || isPurchased}
             className="w-full"
+            variant={isPurchased ? "secondary" : "default"}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            {canAfford ? "Purchase" : "Insufficient Coins"}
+            {isPurchased ? (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                Purchased
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                {canAfford ? "Purchase" : "Insufficient Coins"}
+              </>
+            )}
           </Button>
         </CardFooter>
       </Card>
