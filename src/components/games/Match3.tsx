@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, RotateCcw } from "lucide-react";
+import { Trophy, RotateCcw, Target, Zap, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCoins } from "@/hooks/useCoins";
+import { Progress } from "@/components/ui/progress";
 
 type ItemType = "☕" | "☀️" | "🌧️" | "🌙";
 
@@ -15,10 +16,26 @@ interface Cell {
   matched: boolean;
 }
 
+interface Challenge {
+  id: string;
+  name: string;
+  description: string;
+  targetIcons: number;
+  maxMoves: number;
+  coinsReward: number;
+}
+
 const GRID_SIZE = 8;
 const ITEMS: ItemType[] = ["☕", "☀️", "🌧️", "🌙"];
 const POINTS_PER_MATCH = 10;
 const COINS_PER_GAME = 5;
+
+const CHALLENGES: Challenge[] = [
+  { id: "easy", name: "Warm Up", description: "Destroy 30 icons", targetIcons: 30, maxMoves: 20, coinsReward: 10 },
+  { id: "medium", name: "Getting Hot", description: "Destroy 50 icons", targetIcons: 50, maxMoves: 25, coinsReward: 20 },
+  { id: "hard", name: "On Fire", description: "Destroy 80 icons", targetIcons: 80, maxMoves: 30, coinsReward: 35 },
+  { id: "expert", name: "Scorching", description: "Destroy 120 icons", targetIcons: 120, maxMoves: 40, coinsReward: 50 },
+];
 
 export const Match3 = () => {
   const [grid, setGrid] = useState<Cell[][]>([]);
@@ -26,8 +43,13 @@ export const Match3 = () => {
   const [draggedCell, setDraggedCell] = useState<{ row: number; col: number } | null>(null);
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
+  const [iconsDestroyed, setIconsDestroyed] = useState(0);
   const [bestScore, setBestScore] = useState<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [gameMode, setGameMode] = useState<"free" | "challenge">("free");
+  const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
+  const [challengeComplete, setChallengeComplete] = useState(false);
+  const [challengeFailed, setChallengeFailed] = useState(false);
   const { toast } = useToast();
   const { awardCoins } = useCoins();
 
@@ -79,7 +101,22 @@ export const Match3 = () => {
     setGrid(newGrid);
     setScore(0);
     setMoves(0);
+    setIconsDestroyed(0);
     setSelectedCell(null);
+    setChallengeComplete(false);
+    setChallengeFailed(false);
+  };
+
+  const startChallenge = (challenge: Challenge) => {
+    setCurrentChallenge(challenge);
+    setGameMode("challenge");
+    initializeGame();
+  };
+
+  const backToFreeMode = () => {
+    setGameMode("free");
+    setCurrentChallenge(null);
+    initializeGame();
   };
 
   const removeInitialMatches = (grid: Cell[][]): Cell[][] => {
@@ -170,16 +207,30 @@ export const Match3 = () => {
     newGrid[row2][col2] = temp;
 
     setGrid(newGrid);
-    setMoves(prev => prev + 1);
+    const newMoves = moves + 1;
+    setMoves(newMoves);
 
     // Check for matches
     await checkMatches(newGrid);
+
+    // Check challenge fail condition
+    if (gameMode === "challenge" && currentChallenge) {
+      if (newMoves >= currentChallenge.maxMoves && iconsDestroyed < currentChallenge.targetIcons) {
+        setChallengeFailed(true);
+        toast({
+          title: "Challenge Failed! 😔",
+          description: "You ran out of moves. Try again!",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const checkMatches = async (currentGrid: Cell[][]) => {
     setIsAnimating(true);
     let hasMatches = false;
     let matchCount = 0;
+    let destroyedCount = 0;
 
     const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell, matched: false })));
 
@@ -188,6 +239,9 @@ export const Match3 = () => {
       for (let col = 0; col < GRID_SIZE - 2; col++) {
         if (newGrid[row][col].type === newGrid[row][col + 1].type &&
             newGrid[row][col].type === newGrid[row][col + 2].type) {
+          if (!newGrid[row][col].matched) destroyedCount++;
+          if (!newGrid[row][col + 1].matched) destroyedCount++;
+          if (!newGrid[row][col + 2].matched) destroyedCount++;
           newGrid[row][col].matched = true;
           newGrid[row][col + 1].matched = true;
           newGrid[row][col + 2].matched = true;
@@ -202,6 +256,9 @@ export const Match3 = () => {
       for (let col = 0; col < GRID_SIZE; col++) {
         if (newGrid[row][col].type === newGrid[row + 1][col].type &&
             newGrid[row][col].type === newGrid[row + 2][col].type) {
+          if (!newGrid[row][col].matched) destroyedCount++;
+          if (!newGrid[row + 1][col].matched) destroyedCount++;
+          if (!newGrid[row + 2][col].matched) destroyedCount++;
           newGrid[row][col].matched = true;
           newGrid[row + 1][col].matched = true;
           newGrid[row + 2][col].matched = true;
@@ -217,6 +274,21 @@ export const Match3 = () => {
       
       const pointsEarned = matchCount * POINTS_PER_MATCH;
       setScore(prev => prev + pointsEarned);
+      
+      const newIconsDestroyed = iconsDestroyed + destroyedCount;
+      setIconsDestroyed(newIconsDestroyed);
+
+      // Check challenge win condition
+      if (gameMode === "challenge" && currentChallenge && !challengeComplete) {
+        if (newIconsDestroyed >= currentChallenge.targetIcons) {
+          setChallengeComplete(true);
+          await awardCoins((await supabase.auth.getUser()).data.user!.id, currentChallenge.coinsReward, `${currentChallenge.name} challenge completed`);
+          toast({
+            title: "Challenge Complete! 🎉",
+            description: `You destroyed ${newIconsDestroyed} icons! +${currentChallenge.coinsReward} JoyCoins`,
+          });
+        }
+      }
       
       await dropCells(newGrid);
     }
@@ -279,50 +351,185 @@ export const Match3 = () => {
     }
   };
 
+  if (gameMode === "free") {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
+            Match-3 Game
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            Choose a mode: Play freely or take on a challenge!
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <Card className="cursor-pointer hover:border-primary transition-all" onClick={initializeGame}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Free Play
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Play without limits! Match coffee cups, suns, rain clouds, and moons.
+              </p>
+              <div className="flex justify-center gap-4 mb-4">
+                <Badge variant="secondary" className="text-lg px-4 py-2">
+                  Score: {score}
+                </Badge>
+                <Badge variant="secondary" className="text-lg px-4 py-2">
+                  Moves: {moves}
+                </Badge>
+                {bestScore !== null && (
+                  <Badge variant="secondary" className="text-lg px-4 py-2">
+                    <Trophy className="h-4 w-4 mr-1" />
+                    Best: {bestScore}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex justify-center gap-4">
+                <Button onClick={initializeGame} variant="outline" className="w-full">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  New Game
+                </Button>
+                <Button onClick={saveGameSession} disabled={score === 0} className="w-full">
+                  Save Score
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Challenges
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Complete objectives to earn bonus JoyCoins!
+              </p>
+              <div className="space-y-2">
+                {CHALLENGES.map((challenge) => (
+                  <Button
+                    key={challenge.id}
+                    onClick={() => startChallenge(challenge)}
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    <div className="text-left">
+                      <div className="font-semibold">{challenge.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {challenge.description} in {challenge.maxMoves} moves
+                      </div>
+                    </div>
+                    <Badge variant="secondary">+{challenge.coinsReward}</Badge>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {grid.length > 0 && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
+                {grid.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                    <button
+                      key={cell.id}
+                      draggable={!isAnimating && !cell.matched}
+                      onClick={() => handleCellClick(rowIndex, colIndex)}
+                      onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                      onDragEnd={handleDragEnd}
+                      className={`
+                        aspect-square text-4xl flex items-center justify-center
+                        rounded-lg transition-all duration-200 cursor-move
+                        ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
+                        ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
+                          ? "opacity-50 scale-90"
+                          : ""
+                        }
+                        ${selectedCell?.row === rowIndex && selectedCell?.col === colIndex
+                          ? "ring-4 ring-primary scale-110"
+                          : "hover:scale-105 hover:bg-accent/50"
+                        }
+                        ${isAnimating ? "pointer-events-none" : ""}
+                        bg-accent/20
+                      `}
+                      disabled={isAnimating}
+                    >
+                      {cell.type}
+                    </button>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
+  // Challenge Mode
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
-          Match-3 Game
+          {currentChallenge?.name}
         </h1>
         <p className="text-muted-foreground mb-4">
-          Match coffee cups, suns, rain clouds, and moons! Drag adjacent items to make 3 in a row.
+          {currentChallenge?.description} in {currentChallenge?.maxMoves} moves
         </p>
 
-        <div className="flex justify-center gap-4 mb-4">
-          <Badge variant="secondary" className="text-lg px-4 py-2">
-            Score: {score}
-          </Badge>
-          <Badge variant="secondary" className="text-lg px-4 py-2">
-            Moves: {moves}
-          </Badge>
-          {bestScore !== null && (
+        <div className="space-y-4 mb-4">
+          <div className="flex justify-center gap-4">
             <Badge variant="secondary" className="text-lg px-4 py-2">
-              <Trophy className="h-4 w-4 mr-1" />
-              Best: {bestScore}
+              <Target className="h-4 w-4 mr-1" />
+              {iconsDestroyed} / {currentChallenge?.targetIcons}
             </Badge>
-          )}
+            <Badge variant={moves >= (currentChallenge?.maxMoves || 0) ? "destructive" : "secondary"} className="text-lg px-4 py-2">
+              Moves: {moves} / {currentChallenge?.maxMoves}
+            </Badge>
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              Score: {score}
+            </Badge>
+          </div>
+
+          <div className="max-w-md mx-auto">
+            <Progress 
+              value={(iconsDestroyed / (currentChallenge?.targetIcons || 1)) * 100} 
+              className="h-3"
+            />
+          </div>
         </div>
 
         <div className="flex justify-center gap-4">
-          <Button onClick={initializeGame} variant="outline">
-            <RotateCcw className="h-4 w-4 mr-2" />
-            New Game
+          <Button onClick={backToFreeMode} variant="outline">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Menu
           </Button>
-          <Button onClick={saveGameSession} disabled={score === 0}>
-            Save Score
+          <Button onClick={() => startChallenge(currentChallenge!)} variant="outline">
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Restart
           </Button>
         </div>
       </div>
 
-      <Card>
+      <Card className={`${challengeComplete ? "border-green-500" : challengeFailed ? "border-red-500" : ""}`}>
         <CardContent className="p-4">
           <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
             {grid.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <button
                   key={cell.id}
-                  draggable={!isAnimating && !cell.matched}
+                  draggable={!isAnimating && !cell.matched && !challengeComplete && !challengeFailed}
                   onClick={() => handleCellClick(rowIndex, colIndex)}
                   onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
                   onDragOver={handleDragOver}
@@ -340,10 +547,10 @@ export const Match3 = () => {
                       ? "ring-4 ring-primary scale-110"
                       : "hover:scale-105 hover:bg-accent/50"
                     }
-                    ${isAnimating ? "pointer-events-none" : ""}
+                    ${isAnimating || challengeComplete || challengeFailed ? "pointer-events-none" : ""}
                     bg-accent/20
                   `}
-                  disabled={isAnimating}
+                  disabled={isAnimating || challengeComplete || challengeFailed}
                 >
                   {cell.type}
                 </button>
