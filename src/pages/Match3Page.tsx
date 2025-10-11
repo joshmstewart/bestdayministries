@@ -7,7 +7,12 @@ const Match3Page = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       <main className="flex-1 pt-24 pb-12">
-        <Match3 />
+        <div className="container max-w-4xl mx-auto px-4">
+          <h1 className="text-4xl font-bold text-center mb-8 gradient-text">
+            Brew Blast
+          </h1>
+          <Match3 />
+        </div>
       </main>
       <Footer />
     </div>

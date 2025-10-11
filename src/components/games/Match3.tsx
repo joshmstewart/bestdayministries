@@ -79,7 +79,13 @@ export const Match3 = () => {
   const musicIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { awardCoins } = useCoins();
-  const { hasHalloweenTheme } = useBrewBlastTheme();
+  const { hasHalloweenTheme, loading: themeLoading } = useBrewBlastTheme();
+  const [halloweenThemeEnabled, setHalloweenThemeEnabled] = useState(false);
+  
+  // Sync active theme with Halloween theme toggle
+  useEffect(() => {
+    setActiveTheme(halloweenThemeEnabled ? "halloween" : "default");
+  }, [halloweenThemeEnabled]);
 
   // Initialize audio context
   useEffect(() => {
@@ -956,13 +962,85 @@ export const Match3 = () => {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
-            ☕ Brew Blast
-          </h1>
           <p className="text-muted-foreground mb-6">
             Choose a mode and difficulty!
           </p>
         </div>
+
+        {/* Themes Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Ghost className="h-5 w-5" />
+              Themes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {/* Default Theme */}
+              <div 
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  !halloweenThemeEnabled 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-border hover:border-primary/50'
+                }`}
+                onClick={() => setHalloweenThemeEnabled(false)}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-lg">☕ Coffee Classic</h4>
+                    <Badge variant="secondary">Free</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">The original Brew Blast theme</p>
+                </div>
+              </div>
+
+              {/* Halloween Theme */}
+              <div 
+                className={`p-4 border-2 rounded-lg transition-all ${
+                  themeLoading 
+                    ? 'opacity-50 cursor-wait' 
+                    : hasHalloweenTheme 
+                      ? 'cursor-pointer' 
+                      : 'opacity-60 cursor-not-allowed'
+                } ${
+                  halloweenThemeEnabled 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-border hover:border-primary/50'
+                }`}
+                onClick={() => hasHalloweenTheme && !themeLoading && setHalloweenThemeEnabled(true)}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-lg">🎃 Spooky Season</h4>
+                    </div>
+                    {hasHalloweenTheme ? (
+                      <Badge variant="secondary">Owned</Badge>
+                    ) : (
+                      <Badge>500 JoyCoins</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Halloween-themed icons, background, and music
+                  </p>
+                  {!hasHalloweenTheme && (
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = '/store';
+                      }}
+                    >
+                      Buy in Store
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
