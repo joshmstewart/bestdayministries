@@ -23,6 +23,7 @@ const COINS_PER_GAME = 5;
 export const Match3 = () => {
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
+  const [draggedCell, setDraggedCell] = useState<{ row: number; col: number } | null>(null);
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState<number | null>(null);
@@ -126,6 +127,40 @@ export const Match3 = () => {
       }
       setSelectedCell(null);
     }
+  };
+
+  const handleDragStart = (e: React.DragEvent, row: number, col: number) => {
+    if (isAnimating) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedCell({ row, col });
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent, row: number, col: number) => {
+    e.preventDefault();
+    
+    if (!draggedCell || isAnimating) return;
+
+    const rowDiff = Math.abs(draggedCell.row - row);
+    const colDiff = Math.abs(draggedCell.col - col);
+    
+    // Check if cells are adjacent
+    if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+      swapCells(draggedCell.row, draggedCell.col, row, col);
+    }
+    
+    setDraggedCell(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCell(null);
   };
 
   const swapCells = async (row1: number, col1: number, row2: number, col2: number) => {
@@ -287,11 +322,20 @@ export const Match3 = () => {
               row.map((cell, colIndex) => (
                 <button
                   key={cell.id}
+                  draggable={!isAnimating && !cell.matched}
                   onClick={() => handleCellClick(rowIndex, colIndex)}
+                  onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                  onDragEnd={handleDragEnd}
                   className={`
                     aspect-square text-4xl flex items-center justify-center
-                    rounded-lg transition-all duration-200
+                    rounded-lg transition-all duration-200 cursor-move
                     ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
+                    ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
+                      ? "opacity-50 scale-90"
+                      : ""
+                    }
                     ${selectedCell?.row === rowIndex && selectedCell?.col === colIndex
                       ? "ring-4 ring-primary scale-110"
                       : "hover:scale-105 hover:bg-accent/50"
