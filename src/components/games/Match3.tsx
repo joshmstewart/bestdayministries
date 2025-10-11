@@ -67,10 +67,10 @@ export const Match3 = () => {
   const { toast } = useToast();
   const { awardCoins } = useCoins();
 
-  const currentItems = ALL_ITEMS.slice(0, DIFFICULTY_CONFIG[difficulty].icons);
-
   useEffect(() => {
-    initializeGame();
+    if (grid.length > 0) {
+      initializeGame(difficulty);
+    }
     loadBestScore();
   }, []);
 
@@ -90,29 +90,30 @@ export const Match3 = () => {
     if (data) setBestScore(data.score);
   };
 
-  const generateRandomItem = (): ItemType => {
-    return currentItems[Math.floor(Math.random() * currentItems.length)];
+  const generateRandomItem = (diff: Difficulty): ItemType => {
+    const items = ALL_ITEMS.slice(0, DIFFICULTY_CONFIG[diff].icons);
+    return items[Math.floor(Math.random() * items.length)];
   };
 
-  const createCell = (row: number, col: number): Cell => ({
+  const createCell = (row: number, col: number, diff: Difficulty): Cell => ({
     id: `${row}-${col}`,
-    type: generateRandomItem(),
+    type: generateRandomItem(diff),
     matched: false,
   });
 
-  const initializeGame = () => {
+  const initializeGame = (diff: Difficulty = difficulty) => {
     let newGrid: Cell[][] = [];
     
     // Create initial grid
     for (let row = 0; row < GRID_SIZE; row++) {
       newGrid[row] = [];
       for (let col = 0; col < GRID_SIZE; col++) {
-        newGrid[row][col] = createCell(row, col);
+        newGrid[row][col] = createCell(row, col, diff);
       }
     }
 
     // Ensure no initial matches
-    newGrid = removeInitialMatches(newGrid);
+    newGrid = removeInitialMatches(newGrid, diff);
     
     setGrid(newGrid);
     setScore(0);
@@ -127,13 +128,13 @@ export const Match3 = () => {
     setDifficulty(diff);
     setCurrentChallenge(challenge);
     setGameMode("challenge");
-    initializeGame();
+    initializeGame(diff);
   };
 
   const startFreePlay = (diff: Difficulty) => {
     setDifficulty(diff);
     setGameMode("free");
-    initializeGame();
+    initializeGame(diff);
   };
 
   const backToFreeMode = () => {
@@ -148,7 +149,7 @@ export const Match3 = () => {
     setChallengeFailed(false);
   };
 
-  const removeInitialMatches = (grid: Cell[][]): Cell[][] => {
+  const removeInitialMatches = (grid: Cell[][], diff: Difficulty): Cell[][] => {
     let hasMatches = true;
     let newGrid = grid.map(row => [...row]);
 
@@ -160,7 +161,7 @@ export const Match3 = () => {
           if (col < GRID_SIZE - 2) {
             if (newGrid[row][col].type === newGrid[row][col + 1].type &&
                 newGrid[row][col].type === newGrid[row][col + 2].type) {
-              newGrid[row][col] = createCell(row, col);
+              newGrid[row][col] = createCell(row, col, diff);
               hasMatches = true;
             }
           }
@@ -168,7 +169,7 @@ export const Match3 = () => {
           if (row < GRID_SIZE - 2) {
             if (newGrid[row][col].type === newGrid[row + 1][col].type &&
                 newGrid[row][col].type === newGrid[row + 2][col].type) {
-              newGrid[row][col] = createCell(row, col);
+              newGrid[row][col] = createCell(row, col, diff);
               hasMatches = true;
             }
           }
@@ -337,13 +338,13 @@ export const Match3 = () => {
           emptySpaces++;
         } else if (emptySpaces > 0) {
           newGrid[row + emptySpaces][col] = newGrid[row][col];
-          newGrid[row][col] = { ...createCell(row, col), matched: true };
+          newGrid[row][col] = { ...createCell(row, col, difficulty), matched: true };
         }
       }
       
       // Fill from top
       for (let row = 0; row < emptySpaces; row++) {
-        newGrid[row][col] = createCell(row, col);
+        newGrid[row][col] = createCell(row, col, difficulty);
       }
     }
 
@@ -503,7 +504,7 @@ export const Match3 = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Menu
             </Button>
-            <Button onClick={initializeGame} variant="outline">
+            <Button onClick={() => initializeGame(difficulty)} variant="outline">
               <RotateCcw className="h-4 w-4 mr-2" />
               New Game
             </Button>
