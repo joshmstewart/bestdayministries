@@ -434,6 +434,32 @@ export const Match3 = () => {
     const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell, matched: false })));
     const allMatches: { row: number; col: number; type: ItemType }[] = [];
 
+    // Check for 2x2 squares FIRST (to create area blast special items)
+    for (let row = 0; row < GRID_SIZE - 1; row++) {
+      for (let col = 0; col < GRID_SIZE - 1; col++) {
+        if (!newGrid[row][col].special &&
+            newGrid[row][col].type === newGrid[row][col + 1].type &&
+            newGrid[row][col].type === newGrid[row + 1][col].type &&
+            newGrid[row][col].type === newGrid[row + 1][col + 1].type) {
+          const type = newGrid[row][col].type;
+          
+          // Add all 4 cells to matches
+          const squareMatches = [
+            { row, col },
+            { row, col: col + 1 },
+            { row: row + 1, col },
+            { row: row + 1, col: col + 1 }
+          ];
+          
+          squareMatches.forEach(match => {
+            if (!allMatches.find(m => m.row === match.row && m.col === match.col)) {
+              allMatches.push({ row: match.row, col: match.col, type });
+            }
+          });
+        }
+      }
+    }
+
     // Check horizontal matches
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE - 2; col++) {
@@ -446,7 +472,9 @@ export const Match3 = () => {
           // Extend match as far as possible
           for (let c = col; c < GRID_SIZE && newGrid[row][c].type === type && !newGrid[row][c].special; c++) {
             matches.push({ row, col: c });
-            allMatches.push({ row, col: c, type });
+            if (!allMatches.find(m => m.row === row && m.col === c)) {
+              allMatches.push({ row, col: c, type });
+            }
           }
           
           // Skip already counted cells
