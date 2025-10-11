@@ -86,6 +86,18 @@ export async function mockSupabaseAuth(page: Page) {
     });
   });
 
+  // Mock session endpoint
+  await page.route('**/auth/v1/session*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: null,
+        refresh_token: null,
+      }),
+    });
+  });
+
   // Mock sign out
   await page.route('**/auth/v1/logout*', async (route) => {
     await route.fulfill({
@@ -99,14 +111,21 @@ export async function mockSupabaseAuth(page: Page) {
 /**
  * Mock an authenticated session
  */
-export async function mockAuthenticatedSession(page: Page, userEmail = 'authenticated@example.com') {
+export async function mockAuthenticatedSession(
+  page: Page, 
+  userEmail = 'authenticated@example.com',
+  userRole: 'supporter' | 'caregiver' | 'bestie' | 'admin' = 'supporter'
+) {
+  const userId = 'authenticated-user-id';
+  
+  // Mock auth session
   await page.route('**/auth/v1/user*', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         user: {
-          id: 'authenticated-user-id',
+          id: userId,
           email: userEmail,
           aud: 'authenticated',
           role: 'authenticated',
@@ -116,11 +135,33 @@ export async function mockAuthenticatedSession(page: Page, userEmail = 'authenti
     });
   });
 
+  // Mock session endpoint
+  await page.route('**/auth/v1/session*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token',
+        user: {
+          id: userId,
+          email: userEmail,
+          aud: 'authenticated',
+          role: 'authenticated',
+        },
+      }),
+    });
+  });
+
   // Set session cookie
   await page.context().addCookies([
     {
       name: 'sb-nbvijawmjkycyweioglk-auth-token',
-      value: 'mock-session-token',
+      value: JSON.stringify({
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token',
+        user: { id: userId, email: userEmail },
+      }),
       domain: 'localhost',
       path: '/',
     },
@@ -160,6 +201,7 @@ export async function mockSupabaseDatabase(page: Page) {
   // Mock user_roles table
   await page.route('**/rest/v1/user_roles*', async (route) => {
     const method = route.request().method();
+    const url = route.request().url();
     
     if (method === 'POST') {
       await route.fulfill({
@@ -173,11 +215,14 @@ export async function mockSupabaseDatabase(page: Page) {
         }]),
       });
     } else if (method === 'GET') {
+      // Return role based on URL query params
+      const role = url.includes('caregiver') ? 'caregiver' : 'supporter';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([{
-          role: 'supporter',
+          role: role,
+          user_id: 'test-user-id',
         }]),
       });
     } else {

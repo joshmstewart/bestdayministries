@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { mockSupabaseAuth, mockSupabaseDatabase, mockAuthenticatedSession } from '../utils/supabase-mocks';
+import { fillPasswordField, waitForAuthComplete } from '../utils/test-helpers';
 
 // Comprehensive Authentication & Signup Flow Tests
 test.describe('Authentication & Signup Flows', () => {
@@ -266,10 +267,15 @@ test.describe('Authentication & Signup Flows', () => {
       }
       
       await page.getByPlaceholder(/email/i).fill('invalid@example.com');
-      await page.getByPlaceholder(/password/i).fill('wrongpassword');
+      await fillPasswordField(page, 'wrongpassword', { index: 0, timeout: 15000 });
       
       await page.getByRole('button', { name: /^sign in$/i }).click();
-      await page.waitForTimeout(2000);
+      
+      // Wait for response or error to appear
+      await Promise.race([
+        page.waitForResponse(resp => resp.url().includes('/auth/v1/token'), { timeout: 5000 }).catch(() => null),
+        page.waitForTimeout(3000),
+      ]);
       
       // Should show error message or toast
       const hasError = await page.locator('text=/invalid|incorrect|wrong|failed/i').isVisible({ timeout: 3000 }).catch(() => false);

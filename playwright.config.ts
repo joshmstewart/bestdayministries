@@ -12,7 +12,13 @@ export default defineConfig({
     baseURL: 'http://localhost:8080',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Increase timeout for CI environment
+    actionTimeout: 15000,
+    navigationTimeout: 30000,
   },
+
+  // Increase default test timeout for slower CI
+  timeout: 60000,
 
   projects: [
     {
