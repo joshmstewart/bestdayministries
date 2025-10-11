@@ -34,18 +34,18 @@ const Auth = () => {
     queryKey: ['app-logo'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('app_settings_public')
-        .select('setting_value')
-        .eq('setting_key', 'logo_url')
-        .maybeSingle();
+        .rpc('get_public_app_settings')
+        .returns<Array<{ setting_key: string; setting_value: any }>>();
       
-      if (data?.setting_value) {
+      const logoSetting = data?.find((s) => s.setting_key === 'logo_url');
+      
+      if (logoSetting?.setting_value) {
         try {
-          return typeof data.setting_value === 'string' 
-            ? JSON.parse(data.setting_value) 
-            : data.setting_value;
+          return typeof logoSetting.setting_value === 'string' 
+            ? JSON.parse(logoSetting.setting_value) 
+            : logoSetting.setting_value;
         } catch {
-          return data.setting_value;
+          return logoSetting.setting_value;
         }
       }
       return null;

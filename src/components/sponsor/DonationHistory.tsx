@@ -153,12 +153,11 @@ export const DonationHistory = () => {
         .single();
 
       const { data: appSettings } = await supabase
-        .from('app_settings_public')
-        .select('setting_value')
-        .eq('setting_key', 'logo_url')
-        .single();
+        .rpc('get_public_app_settings')
+        .returns<Array<{ setting_key: string; setting_value: any }>>();
 
-      const logoUrl = appSettings?.setting_value as string || '';
+      const logoSetting = appSettings?.find((s) => s.setting_key === 'logo_url');
+      const logoUrl = logoSetting?.setting_value as string || '';
 
       // Generate HTML receipt
       const html = `

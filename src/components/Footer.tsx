@@ -38,29 +38,31 @@ const Footer = () => {
   const loadLogo = async () => {
     try {
       const { data, error } = await supabase
-        .from("app_settings_public")
-        .select("setting_value")
-        .eq("setting_key", "logo_url")
-        .maybeSingle();
+        .rpc("get_public_app_settings")
+        .returns<Array<{ setting_key: string; setting_value: any }>>();
 
-      if (data?.setting_value) {
+      if (error) throw error;
+
+      const logoSetting = data?.find((s) => s.setting_key === "logo_url");
+      
+      if (logoSetting?.setting_value) {
         let url: string = '';
         
         // Handle different possible types
-        if (typeof data.setting_value === 'string') {
+        if (typeof logoSetting.setting_value === 'string') {
           // If it's a string that looks like JSON, parse it
-          if (data.setting_value.startsWith('"')) {
+          if (logoSetting.setting_value.startsWith('"')) {
             try {
-              url = JSON.parse(data.setting_value);
+              url = JSON.parse(logoSetting.setting_value);
             } catch (e) {
-              url = data.setting_value;
+              url = logoSetting.setting_value;
             }
           } else {
-            url = data.setting_value;
+            url = logoSetting.setting_value;
           }
-        } else if (typeof data.setting_value === 'object' && data.setting_value !== null) {
+        } else if (typeof logoSetting.setting_value === 'object' && logoSetting.setting_value !== null) {
           // If it's an object, stringify and check
-          url = JSON.stringify(data.setting_value);
+          url = JSON.stringify(logoSetting.setting_value);
         }
         
         if (url) {
