@@ -1,5 +1,29 @@
 MASTER_SYSTEM_DOCS
 
+## ⚠️ CRITICAL: DOCUMENTATION WORKFLOW - READ FIRST ⚠️
+
+**BEFORE MAKING ANY CODE CHANGES:**
+1. SEARCH for relevant documentation files (MASTER_SYSTEM_DOCS.md + specific system docs)
+2. READ the complete documentation for the system you're modifying
+3. UNDERSTAND established patterns, database schemas, RLS policies, and component structures
+4. FOLLOW the existing patterns - DO NOT reinvent or contradict documented approaches
+
+**AFTER MAKING CODE CHANGES:**
+1. UPDATE this MASTER_SYSTEM_DOCS.md file with any new/changed patterns
+2. UPDATE the specific system documentation file (e.g., *_CONCISE.md, *_SYSTEM.md)
+3. ADD new sections if you created new systems/features
+4. CROSS-REFERENCE related systems when adding integrations
+
+**CONSEQUENCES OF IGNORING:**
+- RLS policy bugs (like the user_roles SELECT issue we just fixed)
+- Inconsistent patterns across codebase
+- Breaking existing functionality
+- Time wasted debugging preventable issues
+
+**THIS IS NOT OPTIONAL. DOCUMENTATION = SOURCE OF TRUTH.**
+
+---
+
 ## GUARDIAN_APPROVALS|/guardian-approvals|caregiver
 TABS:posts|comments|vendors|messages→approve/reject/del
 DB:caregiver_bestie_links(require_post_approval|require_comment_approval|require_message_approval|require_vendor_asset_approval)

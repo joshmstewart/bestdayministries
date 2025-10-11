@@ -1,5 +1,34 @@
 DOCUMENTATION MAINTENANCE - AI INSTRUCTIONS
 
+## ⚠️ CRITICAL RULE: DOCS FIRST, CODE SECOND ⚠️
+
+**YOU MUST FOLLOW THIS WORKFLOW FOR EVERY CODE CHANGE:**
+
+### STEP 1: CHECK DOCS (MANDATORY)
+- Search for `docs/*_CONCISE.md` and `docs/*_SYSTEM*.md` files related to your task
+- Read MASTER_SYSTEM_DOCS.md for system overview
+- Read complete documentation files - DO NOT just skim
+- If docs exist: FOLLOW the established patterns EXACTLY
+
+### STEP 2: MAKE CODE CHANGES
+- Implement using patterns from documentation
+- If docs contradict each other or are unclear: ASK USER before proceeding
+
+### STEP 3: UPDATE DOCS (MANDATORY)
+- Update MASTER_SYSTEM_DOCS.md with any new patterns/rules
+- Update specific system docs with changes made
+- Add cross-references if systems now interact
+- Create new doc files for new major systems
+
+**RECENT BUGS CAUSED BY IGNORING DOCS:**
+- user_roles SELECT policy missing → friend code linking broken
+- Inconsistent RLS patterns → security issues
+- Undocumented changes → repeated bugs
+
+**THIS IS NOT A SUGGESTION. THIS IS REQUIRED.**
+
+---
+
 ## Pre-Coding Checklist
 
 Before making ANY code changes, the AI MUST:
