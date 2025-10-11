@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCoins } from "@/hooks/useCoins";
 
-type ItemType = "☕" | "☀️" | "🌧️";
+type ItemType = "☕" | "☀️" | "🌧️" | "🌙";
 
 interface Cell {
   id: string;
@@ -16,7 +16,7 @@ interface Cell {
 }
 
 const GRID_SIZE = 8;
-const ITEMS: ItemType[] = ["☕", "☀️", "🌧️"];
+const ITEMS: ItemType[] = ["☕", "☀️", "🌧️", "🌙"];
 const POINTS_PER_MATCH = 10;
 const COINS_PER_GAME = 5;
 
@@ -286,7 +286,7 @@ export const Match3 = () => {
           Match-3 Game
         </h1>
         <p className="text-muted-foreground mb-4">
-          Match coffee cups, suns, and rain clouds! Drag adjacent items to make 3 in a row.
+          Match coffee cups, suns, rain clouds, and moons! Drag adjacent items to make 3 in a row.
         </p>
 
         <div className="flex justify-center gap-4 mb-4">
