@@ -91,12 +91,8 @@ export const DonationForm = () => {
       if (error) throw error;
 
       if (data.url) {
-        const checkoutWindow = window.open(data.url, '_blank');
-        if (!checkoutWindow) {
-          toast.error("Please allow pop-ups to complete checkout");
-        } else {
-          toast.success("Opening checkout in new tab...");
-        }
+        toast.success("Redirecting to secure checkout...");
+        window.location.href = data.url;
       }
     } catch (error) {
       console.error("Error creating donation:", error);
