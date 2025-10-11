@@ -12,7 +12,8 @@ const corsHeaders = {
 };
 
 interface NotifyAdminRequest {
-  submissionId: string;
+  submissionId?: string;
+  userEmail?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -22,16 +23,33 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { submissionId }: NotifyAdminRequest = await req.json();
+    const { submissionId, userEmail }: NotifyAdminRequest = await req.json();
 
-    console.log("[notify-admin-new-contact] Processing submission:", submissionId);
+    console.log("[notify-admin-new-contact] Processing submission:", submissionId || `email: ${userEmail}`);
 
-    // Get submission details
-    const { data: submission, error: submissionError } = await supabase
-      .from("contact_form_submissions")
-      .select("*")
-      .eq("id", submissionId)
-      .single();
+    // Get submission details - either by ID or latest by email
+    let submission;
+    let submissionError;
+
+    if (submissionId) {
+      const result = await supabase
+        .from("contact_form_submissions")
+        .select("*")
+        .eq("id", submissionId)
+        .single();
+      submission = result.data;
+      submissionError = result.error;
+    } else if (userEmail) {
+      const result = await supabase
+        .from("contact_form_submissions")
+        .select("*")
+        .eq("email", userEmail)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      submission = result.data;
+      submissionError = result.error;
+    }
 
     if (submissionError || !submission) {
       console.error("[notify-admin-new-contact] Submission not found:", submissionError);
