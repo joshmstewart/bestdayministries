@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCoins } from "@/hooks/useCoins";
 import { Progress } from "@/components/ui/progress";
+import explosionImage from "@/assets/games/explosion.png";
 
 type ItemType = "☕" | "☀️" | "🌧️" | "🌙" | "⭐" | "🎵";
 type Difficulty = "easy" | "medium" | "hard";
@@ -653,11 +654,11 @@ export const Match3 = () => {
           emptySpaces++;
         } else if (emptySpaces > 0) {
           newGrid[row + emptySpaces][col] = newGrid[row][col];
-          newGrid[row][col] = { ...createCell(row, col, difficulty), matched: true };
+          newGrid[row][col] = createCell(row, col, difficulty);
         }
       }
       
-      // Fill from top
+      // Fill from top with new cells
       for (let row = 0; row < emptySpaces; row++) {
         newGrid[row][col] = createCell(row, col, difficulty);
       }
@@ -890,7 +891,7 @@ export const Match3 = () => {
                 {explosions.map(explosion => (
                   <div
                     key={explosion.id}
-                    className="absolute pointer-events-none"
+                    className="absolute pointer-events-none z-10"
                     style={{
                       gridColumn: explosion.col + 1,
                       gridRow: explosion.row + 1,
@@ -901,8 +902,15 @@ export const Match3 = () => {
                     }}
                   >
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-full h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-ping" />
-                      <div className="absolute w-full h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 opacity-75 animate-pulse" />
+                      <img 
+                        src={explosionImage} 
+                        alt="explosion" 
+                        className="w-full h-full object-contain animate-ping"
+                        style={{ 
+                          filter: 'drop-shadow(0 0 10px rgba(255, 165, 0, 0.8))',
+                          animationDuration: '0.4s'
+                        }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -1019,7 +1027,7 @@ export const Match3 = () => {
             {explosions.map(explosion => (
               <div
                 key={explosion.id}
-                className="absolute pointer-events-none"
+                className="absolute pointer-events-none z-10"
                 style={{
                   gridColumn: explosion.col + 1,
                   gridRow: explosion.row + 1,
@@ -1030,8 +1038,15 @@ export const Match3 = () => {
                 }}
               >
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-full h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-ping" />
-                  <div className="absolute w-full h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 opacity-75 animate-pulse" />
+                  <img 
+                    src={explosionImage} 
+                    alt="explosion" 
+                    className="w-full h-full object-contain animate-ping"
+                    style={{ 
+                      filter: 'drop-shadow(0 0 10px rgba(255, 165, 0, 0.8))',
+                      animationDuration: '0.4s'
+                    }}
+                  />
                 </div>
               </div>
             ))}
