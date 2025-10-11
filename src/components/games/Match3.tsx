@@ -10,11 +10,13 @@ import { Progress } from "@/components/ui/progress";
 
 type ItemType = "☕" | "☀️" | "🌧️" | "🌙" | "⭐" | "🎵";
 type Difficulty = "easy" | "medium" | "hard";
+type SpecialType = "horizontal" | "vertical" | "bomb" | "area" | null;
 
 interface Cell {
   id: string;
   type: ItemType;
   matched: boolean;
+  special?: SpecialType;
 }
 
 interface Challenge {
@@ -232,6 +234,38 @@ export const Match3 = () => {
 
   const swapCells = async (row1: number, col1: number, row2: number, col2: number) => {
     const newGrid = grid.map(row => [...row]);
+    
+    // Check if either cell is a special item
+    const cell1Special = newGrid[row1][col1].special;
+    const cell2Special = newGrid[row2][col2].special;
+    
+    // If swapping with special item, activate it
+    if (cell1Special || cell2Special) {
+      setIsAnimating(true);
+      let totalDestroyed = 0;
+      
+      if (cell1Special) {
+        totalDestroyed += activateSpecial(row1, col1, cell1Special, newGrid);
+      }
+      
+      if (cell2Special) {
+        totalDestroyed += activateSpecial(row2, col2, cell2Special, newGrid);
+      }
+      
+      const newMoves = moves + 1;
+      setMoves(newMoves);
+      setGrid(newGrid);
+      
+      const pointsEarned = totalDestroyed * DIFFICULTY_CONFIG[difficulty].pointsPerMatch * 2;
+      setScore(prev => prev + pointsEarned);
+      setIconsDestroyed(prev => prev + totalDestroyed);
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await dropCells(newGrid);
+      setIsAnimating(false);
+      return;
+    }
+    
     const temp = newGrid[row1][col1];
     newGrid[row1][col1] = newGrid[row2][col2];
     newGrid[row2][col2] = temp;
@@ -256,6 +290,130 @@ export const Match3 = () => {
     }
   };
 
+  const activateSpecial = (row: number, col: number, special: SpecialType, newGrid: Cell[][]): number => {
+    let destroyedCount = 0;
+    
+    switch (special) {
+      case "horizontal":
+        // Clear entire row
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (!newGrid[row][c].matched) destroyedCount++;
+          newGrid[row][c].matched = true;
+        }
+        break;
+        
+      case "vertical":
+        // Clear entire column
+        for (let r = 0; r < GRID_SIZE; r++) {
+          if (!newGrid[r][col].matched) destroyedCount++;
+          newGrid[r][col].matched = true;
+        }
+        break;
+        
+      case "bomb":
+        // Clear both row and column
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (!newGrid[row][c].matched) destroyedCount++;
+          newGrid[row][c].matched = true;
+        }
+        for (let r = 0; r < GRID_SIZE; r++) {
+          if (!newGrid[r][col].matched) destroyedCount++;
+          newGrid[r][col].matched = true;
+        }
+        break;
+        
+      case "area":
+        // Clear 3x3 area
+        for (let r = Math.max(0, row - 1); r <= Math.min(GRID_SIZE - 1, row + 1); r++) {
+          for (let c = Math.max(0, col - 1); c <= Math.min(GRID_SIZE - 1, col + 1); c++) {
+            if (!newGrid[r][c].matched) destroyedCount++;
+            newGrid[r][c].matched = true;
+          }
+        }
+        break;
+    }
+    
+    return destroyedCount;
+  };
+
+  const detectSpecialPattern = (matches: { row: number; col: number }[], type: ItemType): { row: number; col: number; special: SpecialType } | null => {
+    // Check for 5 in a row (bomb)
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE - 4; col++) {
+        const horizontal = matches.filter(m => m.row === row && m.col >= col && m.col <= col + 4);
+        if (horizontal.length === 5) {
+          return { row, col: col + 2, special: "bomb" };
+        }
+      }
+    }
+    
+    for (let col = 0; col < GRID_SIZE; col++) {
+      for (let row = 0; row < GRID_SIZE - 4; row++) {
+        const vertical = matches.filter(m => m.col === col && m.row >= row && m.row <= row + 4);
+        if (vertical.length === 5) {
+          return { row: row + 2, col, special: "bomb" };
+        }
+      }
+    }
+    
+    // Check for 2x2 square (area blast)
+    for (let row = 0; row < GRID_SIZE - 1; row++) {
+      for (let col = 0; col < GRID_SIZE - 1; col++) {
+        const square = [
+          matches.find(m => m.row === row && m.col === col),
+          matches.find(m => m.row === row && m.col === col + 1),
+          matches.find(m => m.row === row + 1 && m.col === col),
+          matches.find(m => m.row === row + 1 && m.col === col + 1)
+        ];
+        if (square.every(m => m !== undefined)) {
+          return { row, col, special: "area" };
+        }
+      }
+    }
+    
+    // Check for L-shape patterns (bomb)
+    for (let row = 1; row < GRID_SIZE - 1; row++) {
+      for (let col = 1; col < GRID_SIZE - 1; col++) {
+        const center = matches.find(m => m.row === row && m.col === col);
+        if (!center) continue;
+        
+        const patterns = [
+          [{ r: row - 1, c: col }, { r: row + 1, c: col }, { r: row, c: col + 1 }],
+          [{ r: row - 1, c: col }, { r: row + 1, c: col }, { r: row, c: col - 1 }],
+          [{ r: row, c: col - 1 }, { r: row, c: col + 1 }, { r: row + 1, c: col }],
+          [{ r: row, c: col - 1 }, { r: row, c: col + 1 }, { r: row - 1, c: col }],
+        ];
+        
+        for (const pattern of patterns) {
+          if (pattern.every(p => matches.find(m => m.row === p.r && m.col === p.c))) {
+            return { row, col, special: "bomb" };
+          }
+        }
+      }
+    }
+    
+    // Check for 4 in a row (line blaster)
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE - 3; col++) {
+        const horizontal = matches.filter(m => m.row === row && m.col >= col && m.col <= col + 3);
+        if (horizontal.length === 4) {
+          return { row, col: col + 1, special: "horizontal" };
+        }
+      }
+    }
+    
+    for (let col = 0; col < GRID_SIZE; col++) {
+      for (let row = 0; row < GRID_SIZE - 3; row++) {
+        const vertical = matches.filter(m => m.col === col && m.row >= row && m.row <= row + 3);
+        if (vertical.length === 4) {
+          return { row: row + 1, col, special: "vertical" };
+        }
+      }
+    }
+    
+    return null;
+  };
+
   const checkMatches = async (currentGrid: Cell[][]) => {
     setIsAnimating(true);
     let hasMatches = false;
@@ -263,39 +421,93 @@ export const Match3 = () => {
     let destroyedCount = 0;
 
     const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell, matched: false })));
+    const allMatches: { row: number; col: number; type: ItemType }[] = [];
 
     // Check horizontal matches
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE - 2; col++) {
-        if (newGrid[row][col].type === newGrid[row][col + 1].type &&
+        if (!newGrid[row][col].special &&
+            newGrid[row][col].type === newGrid[row][col + 1].type &&
             newGrid[row][col].type === newGrid[row][col + 2].type) {
-          if (!newGrid[row][col].matched) destroyedCount++;
-          if (!newGrid[row][col + 1].matched) destroyedCount++;
-          if (!newGrid[row][col + 2].matched) destroyedCount++;
-          newGrid[row][col].matched = true;
-          newGrid[row][col + 1].matched = true;
-          newGrid[row][col + 2].matched = true;
-          hasMatches = true;
-          matchCount++;
+          const type = newGrid[row][col].type;
+          const matches: { row: number; col: number }[] = [];
+          
+          // Extend match as far as possible
+          for (let c = col; c < GRID_SIZE && newGrid[row][c].type === type && !newGrid[row][c].special; c++) {
+            matches.push({ row, col: c });
+            allMatches.push({ row, col: c, type });
+          }
+          
+          // Skip already counted cells
+          col += matches.length - 1;
         }
       }
     }
 
     // Check vertical matches
-    for (let row = 0; row < GRID_SIZE - 2; row++) {
-      for (let col = 0; col < GRID_SIZE; col++) {
-        if (newGrid[row][col].type === newGrid[row + 1][col].type &&
+    for (let col = 0; col < GRID_SIZE; col++) {
+      for (let row = 0; row < GRID_SIZE - 2; row++) {
+        if (!newGrid[row][col].special &&
+            newGrid[row][col].type === newGrid[row + 1][col].type &&
             newGrid[row][col].type === newGrid[row + 2][col].type) {
-          if (!newGrid[row][col].matched) destroyedCount++;
-          if (!newGrid[row + 1][col].matched) destroyedCount++;
-          if (!newGrid[row + 2][col].matched) destroyedCount++;
-          newGrid[row][col].matched = true;
-          newGrid[row + 1][col].matched = true;
-          newGrid[row + 2][col].matched = true;
-          hasMatches = true;
-          matchCount++;
+          const type = newGrid[row][col].type;
+          const matches: { row: number; col: number }[] = [];
+          
+          // Extend match as far as possible
+          for (let r = row; r < GRID_SIZE && newGrid[r][col].type === type && !newGrid[r][col].special; r++) {
+            matches.push({ row: r, col });
+            if (!allMatches.find(m => m.row === r && m.col === col)) {
+              allMatches.push({ row: r, col, type });
+            }
+          }
+          
+          // Skip already counted cells
+          row += matches.length - 1;
         }
       }
+    }
+
+    if (allMatches.length > 0) {
+      hasMatches = true;
+      
+      // Group matches by type to check for special patterns
+      const matchesByType = new Map<ItemType, { row: number; col: number }[]>();
+      allMatches.forEach(match => {
+        const existing = matchesByType.get(match.type) || [];
+        existing.push({ row: match.row, col: match.col });
+        matchesByType.set(match.type, existing);
+      });
+      
+      // Check for special patterns
+      let specialCreated: { row: number; col: number; special: SpecialType; type: ItemType } | null = null;
+      
+      for (const [type, matches] of matchesByType.entries()) {
+        const special = detectSpecialPattern(matches, type);
+        if (special) {
+          specialCreated = { ...special, type };
+          break;
+        }
+      }
+      
+      // Mark cells for destruction
+      allMatches.forEach(match => {
+        if (!specialCreated || match.row !== specialCreated.row || match.col !== specialCreated.col) {
+          if (!newGrid[match.row][match.col].matched) destroyedCount++;
+          newGrid[match.row][match.col].matched = true;
+        }
+      });
+      
+      // Create special cell if detected
+      if (specialCreated) {
+        newGrid[specialCreated.row][specialCreated.col] = {
+          ...newGrid[specialCreated.row][specialCreated.col],
+          special: specialCreated.special,
+          matched: false,
+          type: specialCreated.type
+        };
+      }
+      
+      matchCount = Math.ceil(allMatches.length / 3);
     }
 
     if (hasMatches) {
@@ -529,7 +741,7 @@ export const Match3 = () => {
                       onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
                       onDragEnd={handleDragEnd}
                       className={`
-                        aspect-square text-4xl flex items-center justify-center
+                        aspect-square text-4xl flex items-center justify-center relative
                         rounded-lg transition-all duration-200 cursor-move
                         ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
                         ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
@@ -541,11 +753,31 @@ export const Match3 = () => {
                           : "hover:scale-105 hover:bg-accent/50"
                         }
                         ${isAnimating ? "pointer-events-none" : ""}
+                        ${cell.special ? "ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 animate-pulse" : ""}
                         bg-accent/20
                       `}
                       disabled={isAnimating}
                     >
                       {cell.type}
+                      {cell.special && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          {cell.special === "horizontal" && (
+                            <div className="absolute w-full h-0.5 bg-yellow-400" />
+                          )}
+                          {cell.special === "vertical" && (
+                            <div className="absolute h-full w-0.5 bg-yellow-400" />
+                          )}
+                          {cell.special === "bomb" && (
+                            <>
+                              <div className="absolute w-full h-0.5 bg-yellow-400" />
+                              <div className="absolute h-full w-0.5 bg-yellow-400" />
+                            </>
+                          )}
+                          {cell.special === "area" && (
+                            <div className="absolute inset-2 border-2 border-yellow-400 rounded" />
+                          )}
+                        </div>
+                      )}
                     </button>
                   ))
                 )}
@@ -616,7 +848,7 @@ export const Match3 = () => {
                   onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
                   onDragEnd={handleDragEnd}
                   className={`
-                    aspect-square text-4xl flex items-center justify-center
+                    aspect-square text-4xl flex items-center justify-center relative
                     rounded-lg transition-all duration-200 cursor-move
                     ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
                     ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
@@ -628,11 +860,31 @@ export const Match3 = () => {
                       : "hover:scale-105 hover:bg-accent/50"
                     }
                     ${isAnimating || challengeComplete || challengeFailed ? "pointer-events-none" : ""}
+                    ${cell.special ? "ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 animate-pulse" : ""}
                     bg-accent/20
                   `}
                   disabled={isAnimating || challengeComplete || challengeFailed}
                 >
                   {cell.type}
+                  {cell.special && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      {cell.special === "horizontal" && (
+                        <div className="absolute w-full h-0.5 bg-yellow-400" />
+                      )}
+                      {cell.special === "vertical" && (
+                        <div className="absolute h-full w-0.5 bg-yellow-400" />
+                      )}
+                      {cell.special === "bomb" && (
+                        <>
+                          <div className="absolute w-full h-0.5 bg-yellow-400" />
+                          <div className="absolute h-full w-0.5 bg-yellow-400" />
+                        </>
+                      )}
+                      {cell.special === "area" && (
+                        <div className="absolute inset-2 border-2 border-yellow-400 rounded" />
+                      )}
+                    </div>
+                  )}
                 </button>
               ))
             )}
