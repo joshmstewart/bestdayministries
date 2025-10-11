@@ -525,6 +525,7 @@ export default function GuardianLinks() {
 
     try {
       const friendCode = `${emoji1}${emoji2}${emoji3}`;
+      console.log("🔍 Searching for friend code:", friendCode, "Length:", friendCode.length);
       
       // Search for profile by friend code
       const { data: profile, error: profileError } = await supabase
@@ -532,6 +533,8 @@ export default function GuardianLinks() {
         .select("id, display_name, avatar_number, friend_code, bio")
         .eq("friend_code", friendCode)
         .maybeSingle();
+      
+      console.log("🔍 Search result:", { profile, error: profileError });
 
       if (profileError) throw profileError;
       if (!profile) {
