@@ -22,29 +22,36 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
       icon: DollarSign,
       title: "Direct Compensation",
       description: "Paycheck for the Bestie's work and participation",
-      percentage: "60%",
+      percentage: "35%",
       color: "text-primary",
     },
     {
-      icon: Users,
-      title: "Support Staff",
-      description: "Caregivers and coordinators who provide guidance",
+      icon: Home,
+      title: "Rent",
+      description: "Venue space and facility costs",
       percentage: "15%",
       color: "text-secondary",
     },
     {
-      icon: Home,
-      title: "Facilities & Materials",
-      description: "Venue space, supplies, and equipment",
-      percentage: "15%",
+      icon: Users,
+      title: "Taxes",
+      description: "Payroll taxes and business taxes",
+      percentage: "25%",
       color: "text-accent",
     },
     {
       icon: Sparkles,
-      title: "Programs & Activities",
-      description: "Events, workshops, and community experiences",
-      percentage: "10%",
+      title: "Consumables",
+      description: "Straws, cups, napkins, and other supplies",
+      percentage: "20%",
       color: "text-burnt-orange",
+    },
+    {
+      icon: Heart,
+      title: "Insurance",
+      description: "Liability and other necessary coverage",
+      percentage: "5%",
+      color: "text-primary",
     },
   ];
 
@@ -89,10 +96,13 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
           ))}
         </div>
 
-        <div className="border-t pt-4 mt-2">
+        <div className="border-t pt-4 mt-2 space-y-2">
           <p className="text-xs text-muted-foreground text-center">
             Every dollar you contribute helps create meaningful opportunities and a supportive
             environment where our Besties can thrive.
+          </p>
+          <p className="text-xs text-muted-foreground text-center font-medium">
+            Note: All product costs (coffee, food, etc.) are covered by revenue from sales.
           </p>
         </div>
       </DialogContent>
