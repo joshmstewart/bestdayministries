@@ -2,20 +2,23 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, RotateCcw, Target, Zap, ArrowLeft, Volume2, VolumeX, Music } from "lucide-react";
+import { Trophy, RotateCcw, Target, Zap, ArrowLeft, Volume2, VolumeX, Music, Ghost } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCoins } from "@/hooks/useCoins";
 import { Progress } from "@/components/ui/progress";
 import explosionImage from "@/assets/games/explosion.png";
+import { useBrewBlastTheme } from "@/hooks/useBrewBlastTheme";
 
 type ItemType = "☕" | "☀️" | "🌧️" | "🌙" | "⭐" | "🎵";
+type HalloweenItemType = "🎃" | "👻" | "🦇" | "🕷️" | "💀" | "🍬";
 type Difficulty = "easy" | "medium" | "hard";
 type SpecialType = "horizontal" | "vertical" | "bomb" | "area" | null;
+type Theme = "default" | "halloween";
 
 interface Cell {
   id: string;
-  type: ItemType;
+  type: ItemType | HalloweenItemType;
   matched: boolean;
   special?: SpecialType;
 }
@@ -31,6 +34,7 @@ interface Challenge {
 
 const GRID_SIZE = 8;
 const ALL_ITEMS: ItemType[] = ["☕", "☀️", "🌧️", "🌙", "⭐", "🎵"];
+const HALLOWEEN_ITEMS: HalloweenItemType[] = ["🎃", "👻", "🦇", "🕷️", "💀", "🍬"];
 
 const DIFFICULTY_CONFIG = {
   easy: { icons: 4, pointsPerMatch: 10, coinsPerGame: 5, multiplier: 1 },
@@ -70,10 +74,12 @@ export const Match3 = () => {
   const [explosions, setExplosions] = useState<{ row: number; col: number; id: string }[]>([]);
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [activeTheme, setActiveTheme] = useState<Theme>("default");
   const audioContextRef = useRef<AudioContext | null>(null);
   const musicIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { awardCoins } = useCoins();
+  const { hasHalloweenTheme } = useBrewBlastTheme();
 
   // Initialize audio context
   useEffect(() => {
@@ -87,84 +93,158 @@ export const Match3 = () => {
   // Start/stop background music when musicEnabled changes
   useEffect(() => {
     if (musicEnabled && grid.length > 0) {
-      startBackgroundMusic();
+      stopBackgroundMusic(); // Stop current music first
+      startBackgroundMusic(); // Start with current theme
     } else {
       stopBackgroundMusic();
     }
-  }, [musicEnabled, grid.length]);
+  }, [musicEnabled, grid.length, activeTheme]); // Added activeTheme dependency
 
   const startBackgroundMusic = () => {
     if (!audioContextRef.current || musicIntervalRef.current) return;
     
-    // Simple upbeat chord progression: C - F - G - Am
-    const chordProgression = [
-      [261.63, 329.63, 392.00], // C major (C, E, G)
-      [349.23, 440.00, 523.25], // F major (F, A, C)
-      [392.00, 493.88, 587.33], // G major (G, B, D)
-      [440.00, 523.25, 659.25], // A minor (A, C, E)
-    ];
-    
-    let chordIndex = 0;
-    let beatCount = 0;
-    
-    const playChord = () => {
-      if (!audioContextRef.current || !musicEnabled) return;
+    if (activeTheme === "halloween") {
+      // Halloween: Minor key eerie progression - Am - Dm - E - Am
+      const chordProgression = [
+        [220.00, 261.63, 329.63], // A minor (A, C, E)
+        [293.66, 349.23, 440.00], // D minor (D, F, A)
+        [329.63, 415.30, 493.88], // E major (E, G#, B)
+        [220.00, 261.63, 329.63], // A minor (A, C, E)
+      ];
       
-      const chord = chordProgression[chordIndex];
-      const now = audioContextRef.current.currentTime;
+      let chordIndex = 0;
+      let beatCount = 0;
       
-      // Play chord notes
-      chord.forEach((freq, i) => {
-        const osc = audioContextRef.current!.createOscillator();
-        const gain = audioContextRef.current!.createGain();
+      const playChord = () => {
+        if (!audioContextRef.current || !musicEnabled) return;
         
-        osc.connect(gain);
-        gain.connect(audioContextRef.current!.destination);
+        const chord = chordProgression[chordIndex];
+        const now = audioContextRef.current.currentTime;
         
-        osc.frequency.value = freq;
-        osc.type = 'sine';
+        // Play chord notes with spooky tremolo
+        chord.forEach((freq, i) => {
+          const osc = audioContextRef.current!.createOscillator();
+          const gain = audioContextRef.current!.createGain();
+          const tremolo = audioContextRef.current!.createOscillator();
+          const tremoloGain = audioContextRef.current!.createGain();
+          
+          tremolo.frequency.value = 6; // Tremolo rate
+          tremoloGain.gain.value = 0.015; // Tremolo depth
+          tremolo.connect(tremoloGain);
+          tremoloGain.connect(gain.gain);
+          
+          osc.connect(gain);
+          gain.connect(audioContextRef.current!.destination);
+          
+          osc.frequency.value = freq;
+          osc.type = 'sine';
+          
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(0.025, now + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+          
+          tremolo.start(now);
+          tremolo.stop(now + 1.2);
+          osc.start(now);
+          osc.stop(now + 1.2);
+        });
         
-        // Soft volume for background music
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.03, now + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        // Add eerie high notes
+        if (beatCount % 4 === 0) {
+          const eerieNotes = [659.25, 698.46, 783.99, 880.00];
+          const eerie = audioContextRef.current!.createOscillator();
+          const eerieGain = audioContextRef.current!.createGain();
+          
+          eerie.connect(eerieGain);
+          eerieGain.connect(audioContextRef.current!.destination);
+          
+          eerie.frequency.value = eerieNotes[Math.floor(Math.random() * eerieNotes.length)];
+          eerie.type = 'sine';
+          
+          eerieGain.gain.setValueAtTime(0, now);
+          eerieGain.gain.linearRampToValueAtTime(0.015, now + 0.05);
+          eerieGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          
+          eerie.start(now);
+          eerie.stop(now + 0.6);
+        }
         
-        osc.start(now);
-        osc.stop(now + 0.8);
-      });
+        beatCount++;
+        if (beatCount >= 4) {
+          beatCount = 0;
+          chordIndex = (chordIndex + 1) % chordProgression.length;
+        }
+      };
       
-      // Add melody note on beats 1 and 3
-      if (beatCount % 2 === 0) {
-        const melodyNotes = [523.25, 587.33, 659.25, 698.46, 783.99];
-        const melody = audioContextRef.current!.createOscillator();
-        const melodyGain = audioContextRef.current!.createGain();
-        
-        melody.connect(melodyGain);
-        melodyGain.connect(audioContextRef.current!.destination);
-        
-        melody.frequency.value = melodyNotes[Math.floor(Math.random() * melodyNotes.length)];
-        melody.type = 'triangle';
-        
-        melodyGain.gain.setValueAtTime(0, now);
-        melodyGain.gain.linearRampToValueAtTime(0.02, now + 0.01);
-        melodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-        
-        melody.start(now);
-        melody.stop(now + 0.4);
-      }
+      playChord();
+      musicIntervalRef.current = setInterval(playChord, 600); // Slower, creepier tempo
+    } else {
+      // Default: Upbeat chord progression - C - F - G - Am
+      const chordProgression = [
+        [261.63, 329.63, 392.00], // C major (C, E, G)
+        [349.23, 440.00, 523.25], // F major (F, A, C)
+        [392.00, 493.88, 587.33], // G major (G, B, D)
+        [440.00, 523.25, 659.25], // A minor (A, C, E)
+      ];
       
-      beatCount++;
-      if (beatCount >= 4) {
-        beatCount = 0;
-        chordIndex = (chordIndex + 1) % chordProgression.length;
-      }
-    };
-    
-    // Play immediately
-    playChord();
-    
-    // Then play every 500ms (upbeat tempo)
-    musicIntervalRef.current = setInterval(playChord, 500);
+      let chordIndex = 0;
+      let beatCount = 0;
+      
+      const playChord = () => {
+        if (!audioContextRef.current || !musicEnabled) return;
+        
+        const chord = chordProgression[chordIndex];
+        const now = audioContextRef.current.currentTime;
+        
+        // Play chord notes
+        chord.forEach((freq, i) => {
+          const osc = audioContextRef.current!.createOscillator();
+          const gain = audioContextRef.current!.createGain();
+          
+          osc.connect(gain);
+          gain.connect(audioContextRef.current!.destination);
+          
+          osc.frequency.value = freq;
+          osc.type = 'sine';
+          
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(0.03, now + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          
+          osc.start(now);
+          osc.stop(now + 0.8);
+        });
+        
+        // Add melody note on beats 1 and 3
+        if (beatCount % 2 === 0) {
+          const melodyNotes = [523.25, 587.33, 659.25, 698.46, 783.99];
+          const melody = audioContextRef.current!.createOscillator();
+          const melodyGain = audioContextRef.current!.createGain();
+          
+          melody.connect(melodyGain);
+          melodyGain.connect(audioContextRef.current!.destination);
+          
+          melody.frequency.value = melodyNotes[Math.floor(Math.random() * melodyNotes.length)];
+          melody.type = 'triangle';
+          
+          melodyGain.gain.setValueAtTime(0, now);
+          melodyGain.gain.linearRampToValueAtTime(0.02, now + 0.01);
+          melodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          
+          melody.start(now);
+          melody.stop(now + 0.4);
+        }
+        
+        beatCount++;
+        if (beatCount >= 4) {
+          beatCount = 0;
+          chordIndex = (chordIndex + 1) % chordProgression.length;
+        }
+      };
+      
+      playChord();
+      musicIntervalRef.current = setInterval(playChord, 500);
+    }
   };
 
   const stopBackgroundMusic = () => {
@@ -240,8 +320,10 @@ export const Match3 = () => {
     if (data) setBestScore(data.score);
   };
 
-  const generateRandomItem = (diff: Difficulty): ItemType => {
-    const items = ALL_ITEMS.slice(0, DIFFICULTY_CONFIG[diff].icons);
+  const generateRandomItem = (diff: Difficulty): ItemType | HalloweenItemType => {
+    const items = activeTheme === "halloween" 
+      ? HALLOWEEN_ITEMS.slice(0, DIFFICULTY_CONFIG[diff].icons)
+      : ALL_ITEMS.slice(0, DIFFICULTY_CONFIG[diff].icons);
     return items[Math.floor(Math.random() * items.length)];
   };
 
@@ -563,7 +645,7 @@ export const Match3 = () => {
     return destroyedCount;
   };
 
-  const detectSpecialPattern = (matches: { row: number; col: number }[], type: ItemType): { row: number; col: number; special: SpecialType } | null => {
+  const detectSpecialPattern = (matches: { row: number; col: number }[], type: ItemType | HalloweenItemType): { row: number; col: number; special: SpecialType } | null => {
     // Check for 5 in a row (bomb)
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE - 4; col++) {
@@ -648,7 +730,7 @@ export const Match3 = () => {
     let destroyedCount = 0;
 
     const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell, matched: false })));
-    const allMatches: { row: number; col: number; type: ItemType }[] = [];
+    const allMatches: { row: number; col: number; type: ItemType | HalloweenItemType }[] = [];
 
     // Check for 2x2 squares FIRST (to create area blast special items)
     for (let row = 0; row < GRID_SIZE - 1; row++) {
@@ -726,7 +808,7 @@ export const Match3 = () => {
       hasMatches = true;
       
       // Group matches by type to check for special patterns
-      const matchesByType = new Map<ItemType, { row: number; col: number }[]>();
+      const matchesByType = new Map<ItemType | HalloweenItemType, { row: number; col: number }[]>();
       allMatches.forEach(match => {
         const existing = matchesByType.get(match.type) || [];
         existing.push({ row: match.row, col: match.col });
@@ -734,7 +816,7 @@ export const Match3 = () => {
       });
       
       // Check for special patterns
-      let specialCreated: { row: number; col: number; special: SpecialType; type: ItemType } | null = null;
+      let specialCreated: { row: number; col: number; special: SpecialType; type: ItemType | HalloweenItemType } | null = null;
       
       for (const [type, matches] of matchesByType.entries()) {
         const special = detectSpecialPattern(matches, type);
@@ -964,11 +1046,22 @@ export const Match3 = () => {
   if (gameMode === "free") {
     return (
       <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <div className="text-center mb-8">
+        <div className={`text-center mb-8 ${activeTheme === 'halloween' ? 'halloween-theme' : ''}`}>
           <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
-            ☕ Brew Blast
+            {activeTheme === 'halloween' ? '🎃 Spooky Brew Blast' : '☕ Brew Blast'}
           </h1>
           <div className="flex justify-center gap-2 mb-4 flex-wrap">
+            {hasHalloweenTheme && (
+              <Button
+                onClick={() => setActiveTheme(activeTheme === 'halloween' ? 'default' : 'halloween')}
+                variant={activeTheme === 'halloween' ? 'default' : 'outline'}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Ghost className="h-4 w-4" />
+                {activeTheme === 'halloween' ? 'Spooky Mode' : 'Halloween'}
+              </Button>
+            )}
             <Button
               onClick={() => setMusicEnabled(!musicEnabled)}
               variant="outline"
@@ -1019,7 +1112,7 @@ export const Match3 = () => {
         </div>
 
         {grid.length > 0 && (
-          <Card>
+          <Card className={activeTheme === 'halloween' ? 'bg-gradient-to-b from-purple-950/40 to-black/60 border-purple-900' : ''}>
             <CardContent className="p-4">
               <div className="relative">
                 <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
@@ -1113,9 +1206,9 @@ export const Match3 = () => {
   // Challenge Mode
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="text-center mb-8">
+      <div className={`text-center mb-8 ${activeTheme === 'halloween' ? 'halloween-theme' : ''}`}>
         <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
-          {currentChallenge?.name}
+          {activeTheme === 'halloween' ? `🎃 ${currentChallenge?.name}` : currentChallenge?.name}
         </h1>
         <p className="text-muted-foreground mb-4">
           {currentChallenge?.description} in {currentChallenge?.maxMoves} moves
@@ -1144,6 +1237,17 @@ export const Match3 = () => {
         </div>
 
         <div className="flex justify-center gap-2 mb-4">
+          {hasHalloweenTheme && (
+            <Button
+              onClick={() => setActiveTheme(activeTheme === 'halloween' ? 'default' : 'halloween')}
+              variant={activeTheme === 'halloween' ? 'default' : 'outline'}
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Ghost className="h-4 w-4" />
+              {activeTheme === 'halloween' ? 'Spooky Mode' : 'Halloween'}
+            </Button>
+          )}
           <Button
             onClick={() => setMusicEnabled(!musicEnabled)}
             variant="outline"
@@ -1174,7 +1278,7 @@ export const Match3 = () => {
         </div>
       </div>
 
-      <Card className={`${challengeComplete ? "border-green-500" : challengeFailed ? "border-red-500" : ""}`}>
+      <Card className={`${challengeComplete ? "border-green-500" : challengeFailed ? "border-red-500" : ""} ${activeTheme === 'halloween' ? 'bg-gradient-to-b from-purple-950/40 to-black/60 border-purple-900' : ''}`}>
         <CardContent className="p-4">
           <div className="relative">
             <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
