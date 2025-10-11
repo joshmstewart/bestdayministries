@@ -14,8 +14,7 @@ const contactEmailSchema = z.object({
   name: z.string()
     .trim()
     .min(1, "Name is required")
-    .max(100, "Name must be less than 100 characters")
-    .regex(/^[a-zA-Z\s'-]+$/, "Name contains invalid characters"),
+    .max(100, "Name must be less than 100 characters"),
   email: z.string()
     .trim()
     .email("Invalid email address")

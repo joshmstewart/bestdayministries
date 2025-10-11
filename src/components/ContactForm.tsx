@@ -45,6 +45,7 @@ export const ContactForm = () => {
       message: "",
       message_type: "general",
     },
+    mode: "onBlur",
   });
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export const ContactForm = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user?.email) {
-        form.setValue("email", user.email);
+        form.setValue("email", user.email, { shouldValidate: false });
       }
     };
     loadUserEmail();
