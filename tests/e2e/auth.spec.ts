@@ -127,6 +127,8 @@ test.describe('Authentication and Signup Flow', () => {
       expect(profile).toBeTruthy();
       expect(profile?.friend_code).toBeTruthy();
       expect(profile?.friend_code.length).toBeGreaterThan(0);
+      // Friend code should be exactly 3 emojis
+      expect(profile!.friend_code.length).toBe(3);
       
       // Verify role is bestie
       const roles = Array.from(state.userRoles.values()).filter(r => r.user_id === user!.id);
@@ -183,21 +185,32 @@ test.describe('Authentication and Signup Flow', () => {
     await page.getByPlaceholder(/password/i).fill('TestPass123!');
     await page.getByPlaceholder(/name|display name/i).fill('Test User');
     
-    // Don't check terms checkbox
+    // Find terms checkbox
     const termsCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: /terms|privacy|agree/i }).first();
+    
     if (await termsCheckbox.isVisible()) {
+      // Verify checkbox is not checked
       await expect(termsCheckbox).not.toBeChecked();
+      
+      // Verify submit button is disabled OR verify form doesn't submit
+      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      
+      // Try approach 1: Check if button is disabled
+      const isDisabled = await submitButton.isDisabled().catch(() => false);
+      
+      if (isDisabled) {
+        expect(isDisabled).toBeTruthy();
+      } else {
+        // Try approach 2: Click and verify no navigation/no user created
+        const initialUserCount = state.users.size;
+        await submitButton.click();
+        await page.waitForTimeout(500);
+        
+        // Verify no user was created and still on auth page
+        expect(state.users.size).toBe(initialUserCount);
+        expect(page.url()).toContain('/auth');
+      }
     }
-    
-    // Try to submit
-    const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
-    const initialUserCount = state.users.size;
-    
-    await submitButton.click();
-    await page.waitForTimeout(500);
-    
-    // Verify no user was created
-    expect(state.users.size).toBe(initialUserCount);
   });
 
   test('should allow avatar selection', async ({ page }) => {

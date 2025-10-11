@@ -314,7 +314,33 @@ test.describe('Vendor-Bestie Linking Flow', () => {
   });
 
   test.describe('Vendor Access Control', () => {
-    test('should restrict vendor dashboard to vendors', async ({ page }) => {
+    test('should allow authenticated vendors to access dashboard', async ({ page }) => {
+      // Create vendor user with proper session
+      const { userId, vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      
+      // Establish authenticated session BEFORE navigation
+      await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
+      
+      // Mock vendor endpoint to return the vendor record
+      await page.route('**/rest/v1/vendors?user_id=eq.*', async (route) => {
+        const vendor = state.vendors.get(vendorId);
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(vendor ? [vendor] : [])
+        });
+      });
+      
+      // Navigate to vendor dashboard
+      await page.goto('/vendor-dashboard');
+      await page.waitForTimeout(1000);
+      
+      // Should successfully load vendor dashboard (not redirected to /auth)
+      const currentUrl = page.url();
+      expect(currentUrl).toContain('/vendor-dashboard');
+    });
+
+    test('should restrict vendor dashboard to non-vendors', async ({ page }) => {
       // Create non-vendor user
       const userId = state.addUser('supporter@test.com', 'password123', {
         display_name: 'Regular Supporter',
@@ -323,6 +349,16 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       });
       
       await mockAuthenticatedSession(page, state, 'supporter@test.com', 'supporter');
+      
+      // Mock empty vendor response (no vendor record)
+      await page.route('**/rest/v1/vendors?user_id=eq.*', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([])
+        });
+      });
+      
       await page.goto('/vendor-dashboard');
       await page.waitForTimeout(1000);
       

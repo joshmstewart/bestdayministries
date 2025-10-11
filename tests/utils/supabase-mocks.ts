@@ -107,6 +107,24 @@ export class MockSupabaseState {
   // Token to user ID mapping
   tokens = new Map<string, string>();
 
+  // Session management
+  sessions = new Map<string, {
+    access_token: string;
+    refresh_token: string;
+    user: any;
+  }>();
+
+  // Page sections for navigation tests
+  communityPageSections = new Map<string, any>();
+  supportPageSections = new Map<string, any>();
+  appSettings = new Map<string, any>();
+
+  constructor() {
+    // Initialize with default app settings
+    this.appSettings.set('logo_url', { setting_key: 'logo_url', setting_value: null });
+    this.appSettings.set('app_name', { setting_key: 'app_name', setting_value: 'Best Day Ministries' });
+  }
+
   // Helper methods
   addUser(email: string, password: string, metadata: any): string {
     const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -141,6 +159,18 @@ export class MockSupabaseState {
       user_id: userId,
       role: metadata.role || 'supporter',
       created_at: new Date().toISOString()
+    });
+
+    // Create session
+    this.sessions.set(userId, {
+      access_token: token,
+      refresh_token: `refresh-${token}`,
+      user: {
+        id: userId,
+        email,
+        aud: 'authenticated',
+        role: 'authenticated'
+      }
     });
 
     return userId;
@@ -214,6 +244,10 @@ export class MockSupabaseState {
     this.sponsorBesties.clear();
     this.termsAcceptance.clear();
     this.tokens.clear();
+    this.sessions.clear();
+    this.communityPageSections.clear();
+    this.supportPageSections.clear();
+    this.appSettings.clear();
   }
 }
 
@@ -250,19 +284,19 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
     });
 
     const user = state.users.get(userId);
-    const token = Array.from(state.tokens.entries()).find(([_, id]) => id === userId)?.[0];
+    const session = state.sessions.get(userId);
+
+    // Store session in page's localStorage to simulate auth state
+    await page.evaluate((sessionData) => {
+      localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
+    }, session);
 
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         user,
-        session: {
-          access_token: token,
-          refresh_token: `refresh-${token}`,
-          token_type: 'bearer',
-          expires_in: 3600,
-        },
+        session,
       }),
     });
   });
@@ -384,33 +418,47 @@ export async function mockAuthenticatedSession(
   userEmail = 'authenticated@example.com',
   userRole: 'supporter' | 'caregiver' | 'bestie' | 'admin' = 'supporter'
 ) {
-  const userId = state.addUser(userEmail, 'password123', {
-    display_name: 'Test User',
-    role: userRole,
-    avatar_number: 1
-  });
+  // Get or create user
+  let user = state.getUserByEmail(userEmail);
+  let userId: string;
+  
+  if (!user) {
+    userId = state.addUser(userEmail, 'password123', {
+      display_name: userEmail.split('@')[0],
+      role: userRole,
+      avatar_number: 1
+    });
+    user = state.users.get(userId)!;
+  } else {
+    userId = user.id;
+  }
 
-  const user = state.users.get(userId);
-  const token = Array.from(state.tokens.entries()).find(([_, id]) => id === userId)?.[0];
+  const session = state.sessions.get(userId);
+  if (!session) {
+    throw new Error(`Session not found for user ${userId}`);
+  }
 
-  // Mock auth session
+  // Store session in localStorage (app checks this on load)
+  await page.evaluate((sessionData) => {
+    localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
+  }, session);
+
+  // Mock auth endpoints to return this session
   await page.route('**/auth/v1/user*', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ user }),
+      body: JSON.stringify(user),
     });
   });
 
-  // Mock session endpoint
   await page.route('**/auth/v1/session*', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        access_token: token,
-        refresh_token: `refresh-${token}`,
-        user,
+        data: { session, user },
+        error: null
       }),
     });
   });
@@ -419,17 +467,13 @@ export async function mockAuthenticatedSession(
   await page.context().addCookies([
     {
       name: 'sb-nbvijawmjkycyweioglk-auth-token',
-      value: JSON.stringify({
-        access_token: token,
-        refresh_token: `refresh-${token}`,
-        user: { id: userId, email: userEmail },
-      }),
+      value: JSON.stringify(session),
       domain: 'localhost',
       path: '/',
     },
   ]);
 
-  return { userId, token };
+  return { userId, token: session.access_token };
 }
 
 /**
@@ -694,6 +738,36 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
     } else {
       await route.continue();
     }
+  });
+
+  // Mock community_page_sections
+  await page.route('**/rest/v1/community_page_sections*', async (route) => {
+    const sections = Array.from(state.communityPageSections.values());
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(sections.length > 0 ? sections : [])
+    });
+  });
+
+  // Mock support_page_sections
+  await page.route('**/rest/v1/support_page_sections*', async (route) => {
+    const sections = Array.from(state.supportPageSections.values());
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(sections.length > 0 ? sections : [])
+    });
+  });
+
+  // Mock RPC get_public_app_settings
+  await page.route('**/rpc/get_public_app_settings*', async (route) => {
+    const settings = Array.from(state.appSettings.values());
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(settings)
+    });
   });
 
   // Mock edge functions

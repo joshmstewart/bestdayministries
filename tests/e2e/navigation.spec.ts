@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { mockSupabaseAuth, mockSupabaseDatabase, MockSupabaseState } from '../utils/supabase-mocks';
 
 test.describe('Page Navigation', () => {
+  let state: MockSupabaseState;
+
+  test.beforeEach(async ({ page }) => {
+    state = new MockSupabaseState();
+    await mockSupabaseAuth(page, state);
+    await mockSupabaseDatabase(page, state);
+  });
+
   const pages = [
     { path: '/', name: 'Homepage' },
     { path: '/about', name: 'About' },
@@ -15,8 +24,9 @@ test.describe('Page Navigation', () => {
 
   for (const page of pages) {
     test(`should load ${page.name} page`, async ({ page: browser }) => {
-      await browser.goto(page.path);
-      await browser.waitForLoadState('networkidle');
+      // Increase timeout for Firefox compatibility
+      await browser.goto(page.path, { timeout: 30000 });
+      await browser.waitForLoadState('domcontentloaded');
       await browser.waitForTimeout(1000);
       
       // Verify page loaded successfully (200 status or content visible)
@@ -25,7 +35,7 @@ test.describe('Page Navigation', () => {
       
       // Check for any content (header, nav, main, or container)
       const content = browser.locator('header, nav, main, [role="banner"], [role="main"], .container').first();
-      const contentVisible = await content.isVisible({ timeout: 5000 }).catch(() => false);
+      const contentVisible = await content.isVisible({ timeout: 10000 }).catch(() => false);
       
       expect(contentVisible).toBeTruthy();
     });
