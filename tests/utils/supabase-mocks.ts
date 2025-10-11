@@ -1,27 +1,265 @@
 import { Page } from '@playwright/test';
 
 /**
- * Mock Supabase auth responses for testing
- * Intercepts network calls to avoid creating actual test users
+ * Comprehensive stateful Supabase mock system for E2E testing
+ * Maintains in-memory state across requests to simulate real backend behavior
  */
 
-export async function mockSupabaseAuth(page: Page) {
-  // Mock successful signup
+// Friend code emoji set (matches src/lib/friendCodeEmojis.ts)
+const FRIEND_CODE_EMOJIS = [
+  '🌟', '🌈', '🔥', '🌊', '🌸', '🍕', '🎸', '🚀', '🏆', '⚡',
+  '🎨', '🎭', '🎪', '🏰', '🌵', '🦋', '🐉', '🎯', '🎺', '🏖️'
+];
+
+function generateMockFriendCode(): string {
+  return Array.from({ length: 3 }, () => 
+    FRIEND_CODE_EMOJIS[Math.floor(Math.random() * FRIEND_CODE_EMOJIS.length)]
+  ).join('');
+}
+
+/**
+ * Stateful mock backend that persists data across test requests
+ */
+export class MockSupabaseState {
+  // Core auth & profile data
+  users = new Map<string, {
+    id: string;
+    email: string;
+    aud: string;
+    role: string;
+    created_at: string;
+    raw_user_meta_data: any;
+  }>();
+
+  profiles = new Map<string, {
+    id: string;
+    user_id: string;
+    display_name: string;
+    email: string;
+    avatar_number: number;
+    friend_code: string;
+    created_at: string;
+  }>();
+
+  userRoles = new Map<string, {
+    id: string;
+    user_id: string;
+    role: string;
+    created_at: string;
+  }>();
+
+  // Linking & relationships
+  caregiverBestieLinks = new Map<string, {
+    id: string;
+    caregiver_id: string;
+    bestie_id: string;
+    relationship: string;
+    require_post_approval: boolean;
+    require_comment_approval: boolean;
+    require_message_approval: boolean;
+    require_vendor_asset_approval: boolean;
+    allow_featured_posts: boolean;
+    show_sponsor_link_on_guardian: boolean;
+    show_sponsor_link_on_bestie: boolean;
+    created_at: string;
+  }>();
+
+  // Vendor system
+  vendors = new Map<string, {
+    id: string;
+    user_id: string;
+    business_name: string;
+    status: string;
+    created_at: string;
+  }>();
+
+  vendorBestieRequests = new Map<string, {
+    id: string;
+    vendor_id: string;
+    bestie_id: string;
+    message: string;
+    status: string;
+    created_at: string;
+  }>();
+
+  // Featured besties
+  featuredBesties = new Map<string, {
+    id: string;
+    vendor_id: string;
+    bestie_id: string;
+    created_at: string;
+  }>();
+
+  // Sponsorship system
+  sponsorBesties = new Map<string, {
+    id: string;
+    bestie_id: string;
+    bestie_name: string;
+    description: string;
+    monthly_goal: number;
+    available_for_sponsorship: boolean;
+    created_at: string;
+  }>();
+
+  // Terms & compliance
+  termsAcceptance = new Set<string>();
+
+  // Token to user ID mapping
+  tokens = new Map<string, string>();
+
+  // Helper methods
+  addUser(email: string, password: string, metadata: any): string {
+    const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const token = `token-${userId}`;
+    
+    this.tokens.set(token, userId);
+    
+    this.users.set(userId, {
+      id: userId,
+      email,
+      aud: 'authenticated',
+      role: 'authenticated',
+      created_at: new Date().toISOString(),
+      raw_user_meta_data: metadata
+    });
+
+    // Auto-create profile
+    const friendCode = metadata.role === 'bestie' ? generateMockFriendCode() : '';
+    this.profiles.set(userId, {
+      id: userId,
+      user_id: userId,
+      display_name: metadata.display_name || 'New User',
+      email,
+      avatar_number: metadata.avatar_number || 1,
+      friend_code: friendCode,
+      created_at: new Date().toISOString()
+    });
+
+    // Auto-create role
+    this.userRoles.set(`${userId}-${metadata.role}`, {
+      id: `role-${userId}`,
+      user_id: userId,
+      role: metadata.role || 'supporter',
+      created_at: new Date().toISOString()
+    });
+
+    return userId;
+  }
+
+  getUserByEmail(email: string) {
+    for (const user of this.users.values()) {
+      if (user.email === email) return user;
+    }
+    return null;
+  }
+
+  getUserByToken(token: string | undefined): any {
+    if (!token) return null;
+    const userId = this.tokens.get(token);
+    return userId ? this.users.get(userId) : null;
+  }
+
+  getUserIdFromToken(authHeader: string | undefined): string | null {
+    if (!authHeader) return null;
+    const token = authHeader.replace('Bearer ', '');
+    return this.tokens.get(token) || null;
+  }
+
+  getProfileByFriendCode(friendCode: string) {
+    for (const profile of this.profiles.values()) {
+      if (profile.friend_code === friendCode) return profile;
+    }
+    return null;
+  }
+
+  addCaregiverLink(caregiverId: string, bestieId: string, relationship: string) {
+    const linkId = `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.caregiverBestieLinks.set(linkId, {
+      id: linkId,
+      caregiver_id: caregiverId,
+      bestie_id: bestieId,
+      relationship,
+      require_post_approval: false,
+      require_comment_approval: false,
+      require_message_approval: true,
+      require_vendor_asset_approval: false,
+      allow_featured_posts: true,
+      show_sponsor_link_on_guardian: true,
+      show_sponsor_link_on_bestie: true,
+      created_at: new Date().toISOString()
+    });
+    return linkId;
+  }
+
+  addVendor(userId: string, businessName: string, status: string = 'pending') {
+    const vendorId = `vendor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.vendors.set(vendorId, {
+      id: vendorId,
+      user_id: userId,
+      business_name: businessName,
+      status,
+      created_at: new Date().toISOString()
+    });
+    return vendorId;
+  }
+
+  clear() {
+    this.users.clear();
+    this.profiles.clear();
+    this.userRoles.clear();
+    this.caregiverBestieLinks.clear();
+    this.vendors.clear();
+    this.vendorBestieRequests.clear();
+    this.featuredBesties.clear();
+    this.sponsorBesties.clear();
+    this.termsAcceptance.clear();
+    this.tokens.clear();
+  }
+}
+
+/**
+ * Parse Supabase query parameters from URL
+ */
+function extractQueryParam(url: string, param: string, operator: 'eq' | 'in' = 'eq'): string | null {
+  const urlObj = new URL(url);
+  const paramValue = urlObj.searchParams.get(param);
+  
+  if (!paramValue) return null;
+  
+  if (operator === 'eq') {
+    return paramValue.replace('eq.', '');
+  } else if (operator === 'in') {
+    return paramValue.replace('in.(', '').replace(')', '');
+  }
+  
+  return paramValue;
+}
+
+/**
+ * Mock Supabase authentication with full state management
+ */
+export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
+  // Mock successful signup - creates user, profile, role, and friend code
   await page.route('**/auth/v1/signup*', async (route) => {
+    const body = await route.request().postDataJSON();
+    
+    const userId = state.addUser(body.email, body.password, {
+      display_name: body.options?.data?.display_name || 'New User',
+      role: body.options?.data?.role || 'supporter',
+      avatar_number: body.options?.data?.avatar_number || 1
+    });
+
+    const user = state.users.get(userId);
+    const token = Array.from(state.tokens.entries()).find(([_, id]) => id === userId)?.[0];
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        user: {
-          id: 'test-user-id',
-          email: 'test@example.com',
-          aud: 'authenticated',
-          role: 'authenticated',
-          created_at: new Date().toISOString(),
-        },
+        user,
         session: {
-          access_token: 'mock-access-token',
-          refresh_token: 'mock-refresh-token',
+          access_token: token,
+          refresh_token: `refresh-${token}`,
           token_type: 'bearer',
           expires_in: 3600,
         },
@@ -46,19 +284,29 @@ export async function mockSupabaseAuth(page: Page) {
       return;
     }
 
+    const user = state.getUserByEmail(body.email);
+    if (!user) {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: 'invalid_grant',
+          error_description: 'Invalid login credentials',
+        }),
+      });
+      return;
+    }
+
+    const token = Array.from(state.tokens.entries()).find(([_, id]) => id === user.id)?.[0];
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        user: {
-          id: 'test-user-id',
-          email: body.email,
-          aud: 'authenticated',
-          role: 'authenticated',
-        },
+        user,
         session: {
-          access_token: 'mock-access-token',
-          refresh_token: 'mock-refresh-token',
+          access_token: token,
+          refresh_token: `refresh-${token}`,
           token_type: 'bearer',
           expires_in: 3600,
         },
@@ -75,27 +323,46 @@ export async function mockSupabaseAuth(page: Page) {
     });
   });
 
-  // Mock session check (returns no session by default)
+  // Mock session check - returns actual created user
   await page.route('**/auth/v1/user*', async (route) => {
+    const authHeader = route.request().headers()['authorization'];
+    const user = state.getUserByToken(authHeader?.replace('Bearer ', ''));
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        user: null,
+        user: user || null,
       }),
     });
   });
 
   // Mock session endpoint
   await page.route('**/auth/v1/session*', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        access_token: null,
-        refresh_token: null,
-      }),
-    });
+    const authHeader = route.request().headers()['authorization'];
+    const user = state.getUserByToken(authHeader?.replace('Bearer ', ''));
+
+    if (user) {
+      const token = Array.from(state.tokens.entries()).find(([_, id]) => id === user.id)?.[0];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          access_token: token,
+          refresh_token: `refresh-${token}`,
+          user,
+        }),
+      });
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          access_token: null,
+          refresh_token: null,
+        }),
+      });
+    }
   });
 
   // Mock sign out
@@ -109,29 +376,29 @@ export async function mockSupabaseAuth(page: Page) {
 }
 
 /**
- * Mock an authenticated session
+ * Mock authenticated session for a specific user
  */
 export async function mockAuthenticatedSession(
-  page: Page, 
+  page: Page,
+  state: MockSupabaseState,
   userEmail = 'authenticated@example.com',
   userRole: 'supporter' | 'caregiver' | 'bestie' | 'admin' = 'supporter'
 ) {
-  const userId = 'authenticated-user-id';
-  
+  const userId = state.addUser(userEmail, 'password123', {
+    display_name: 'Test User',
+    role: userRole,
+    avatar_number: 1
+  });
+
+  const user = state.users.get(userId);
+  const token = Array.from(state.tokens.entries()).find(([_, id]) => id === userId)?.[0];
+
   // Mock auth session
   await page.route('**/auth/v1/user*', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        user: {
-          id: userId,
-          email: userEmail,
-          aud: 'authenticated',
-          role: 'authenticated',
-          created_at: new Date().toISOString(),
-        },
-      }),
+      body: JSON.stringify({ user }),
     });
   });
 
@@ -141,14 +408,9 @@ export async function mockAuthenticatedSession(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
-        user: {
-          id: userId,
-          email: userEmail,
-          aud: 'authenticated',
-          role: 'authenticated',
-        },
+        access_token: token,
+        refresh_token: `refresh-${token}`,
+        user,
       }),
     });
   });
@@ -158,71 +420,275 @@ export async function mockAuthenticatedSession(
     {
       name: 'sb-nbvijawmjkycyweioglk-auth-token',
       value: JSON.stringify({
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
+        access_token: token,
+        refresh_token: `refresh-${token}`,
         user: { id: userId, email: userEmail },
       }),
       domain: 'localhost',
       path: '/',
     },
   ]);
+
+  return { userId, token };
 }
 
 /**
- * Mock database operations (profiles, user_roles, etc.)
+ * Mock all database operations with full state management
  */
-export async function mockSupabaseDatabase(page: Page) {
-  // Mock profile creation/update
+export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState) {
+  // Mock profile operations
   await page.route('**/rest/v1/profiles*', async (route) => {
     const method = route.request().method();
+    const url = route.request().url();
     
     if (method === 'POST' || method === 'PATCH') {
+      const body = await route.request().postDataJSON();
+      if (body.user_id) {
+        state.profiles.set(body.user_id, {
+          id: body.id || body.user_id,
+          user_id: body.user_id,
+          display_name: body.display_name || 'User',
+          email: body.email || '',
+          avatar_number: body.avatar_number || 1,
+          friend_code: body.friend_code || '',
+          created_at: new Date().toISOString(),
+        });
+      }
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify([{
-          id: 'profile-id',
-          user_id: 'test-user-id',
-          display_name: 'Test User',
-          created_at: new Date().toISOString(),
-        }]),
+        body: JSON.stringify([body]),
       });
     } else if (method === 'GET') {
+      const userId = extractQueryParam(url, 'user_id');
+      const friendCode = extractQueryParam(url, 'friend_code');
+      
+      let results = Array.from(state.profiles.values());
+      
+      if (userId) {
+        results = results.filter(p => p.user_id === userId);
+      }
+      if (friendCode) {
+        results = results.filter(p => p.friend_code === friendCode);
+      }
+      
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([]),
+        body: JSON.stringify(results),
       });
     } else {
       await route.continue();
     }
   });
 
-  // Mock user_roles table
+  // Mock user_roles operations
   await page.route('**/rest/v1/user_roles*', async (route) => {
     const method = route.request().method();
     const url = route.request().url();
     
     if (method === 'POST') {
+      const body = await route.request().postDataJSON();
+      const roleId = `${body.user_id}-${body.role}`;
+      state.userRoles.set(roleId, {
+        id: body.id || roleId,
+        user_id: body.user_id,
+        role: body.role,
+        created_at: new Date().toISOString(),
+      });
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify([body]),
+      });
+    } else if (method === 'GET') {
+      const userId = extractQueryParam(url, 'user_id');
+      const role = extractQueryParam(url, 'role');
+      
+      let results = Array.from(state.userRoles.values());
+      
+      if (userId) {
+        results = results.filter(r => r.user_id === userId);
+      }
+      if (role) {
+        results = results.filter(r => r.role === role);
+      }
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(results),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Mock caregiver_bestie_links operations
+  await page.route('**/rest/v1/caregiver_bestie_links*', async (route) => {
+    const method = route.request().method();
+    const url = route.request().url();
+    
+    if (method === 'POST') {
+      const body = await route.request().postDataJSON();
+      const linkId = state.addCaregiverLink(
+        body.caregiver_id,
+        body.bestie_id,
+        body.relationship
+      );
+      const link = state.caregiverBestieLinks.get(linkId);
+      
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify([link]),
+      });
+    } else if (method === 'GET') {
+      const caregiverId = extractQueryParam(url, 'caregiver_id');
+      const bestieId = extractQueryParam(url, 'bestie_id');
+      
+      let results = Array.from(state.caregiverBestieLinks.values());
+      
+      if (caregiverId) {
+        results = results.filter(link => link.caregiver_id === caregiverId);
+      }
+      if (bestieId) {
+        results = results.filter(link => link.bestie_id === bestieId);
+      }
+      
+      // Simulate join with profiles
+      const enrichedResults = results.map(link => ({
+        ...link,
+        bestie: state.profiles.get(link.bestie_id) || null,
+      }));
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(enrichedResults),
+      });
+    } else if (method === 'DELETE') {
+      const linkId = extractQueryParam(url, 'id');
+      if (linkId) {
+        state.caregiverBestieLinks.delete(linkId);
+      }
+      await route.fulfill({ status: 204 });
+    } else if (method === 'PATCH') {
+      const linkId = extractQueryParam(url, 'id');
+      const body = await route.request().postDataJSON();
+      
+      if (linkId) {
+        const link = state.caregiverBestieLinks.get(linkId);
+        if (link) {
+          Object.assign(link, body);
+          state.caregiverBestieLinks.set(linkId, link);
+        }
+      }
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([body]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Mock vendors operations
+  await page.route('**/rest/v1/vendors*', async (route) => {
+    const method = route.request().method();
+    const url = route.request().url();
+    
+    if (method === 'POST') {
+      const body = await route.request().postDataJSON();
+      const vendorId = state.addVendor(body.user_id, body.business_name, body.status || 'pending');
+      const vendor = state.vendors.get(vendorId);
+      
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify([vendor]),
+      });
+    } else if (method === 'GET') {
+      const userId = extractQueryParam(url, 'user_id');
+      const status = extractQueryParam(url, 'status');
+      
+      let results = Array.from(state.vendors.values());
+      
+      if (userId) {
+        results = results.filter(v => v.user_id === userId);
+      }
+      if (status) {
+        results = results.filter(v => v.status === status);
+      }
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(results),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Mock vendor_bestie_requests operations
+  await page.route('**/rest/v1/vendor_bestie_requests*', async (route) => {
+    const method = route.request().method();
+    const url = route.request().url();
+    
+    if (method === 'POST') {
+      const body = await route.request().postDataJSON();
+      const requestId = `request-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      state.vendorBestieRequests.set(requestId, {
+        id: requestId,
+        vendor_id: body.vendor_id,
+        bestie_id: body.bestie_id,
+        message: body.message || '',
+        status: body.status || 'pending',
+        created_at: new Date().toISOString(),
+      });
+      
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify([state.vendorBestieRequests.get(requestId)]),
+      });
+    } else if (method === 'GET') {
+      const vendorId = extractQueryParam(url, 'vendor_id');
+      let results = Array.from(state.vendorBestieRequests.values());
+      
+      if (vendorId) {
+        results = results.filter(r => r.vendor_id === vendorId);
+      }
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(results),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Mock terms_acceptance operations
+  await page.route('**/rest/v1/terms_acceptance*', async (route) => {
+    const method = route.request().method();
+    
+    if (method === 'POST') {
+      const body = await route.request().postDataJSON();
+      state.termsAcceptance.add(body.user_id);
+      
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify([{
-          id: 'role-id',
-          user_id: 'test-user-id',
-          role: 'supporter',
+          id: `terms-${body.user_id}`,
+          user_id: body.user_id,
           created_at: new Date().toISOString(),
-        }]),
-      });
-    } else if (method === 'GET') {
-      // Return role based on URL query params
-      const role = url.includes('caregiver') ? 'caregiver' : 'supporter';
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([{
-          role: role,
-          user_id: 'test-user-id',
         }]),
       });
     } else {
@@ -230,25 +696,37 @@ export async function mockSupabaseDatabase(page: Page) {
     }
   });
 
-  // Mock terms acceptance
-  await page.route('**/rest/v1/terms_acceptance*', async (route) => {
-    await route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify([{
-        id: 'terms-id',
-        user_id: 'test-user-id',
-        created_at: new Date().toISOString(),
-      }]),
-    });
-  });
-
   // Mock edge functions
   await page.route('**/functions/v1/**', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true }),
-    });
+    const url = route.request().url();
+    
+    if (url.includes('record-terms-acceptance')) {
+      const body = await route.request().postDataJSON();
+      const authHeader = route.request().headers()['authorization'];
+      const userId = state.getUserIdFromToken(authHeader);
+      
+      if (userId) {
+        state.termsAcceptance.add(userId);
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true }),
+        });
+      } else {
+        await route.fulfill({ status: 401 });
+      }
+    } else if (url.includes('text-to-speech')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ audio_url: 'mock-audio-url.mp3' }),
+      });
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
+    }
   });
 }

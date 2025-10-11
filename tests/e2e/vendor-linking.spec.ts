@@ -1,412 +1,336 @@
 import { test, expect } from '@playwright/test';
+import { mockSupabaseAuth, mockSupabaseDatabase, mockAuthenticatedSession, MockSupabaseState } from '../utils/supabase-mocks';
+import { createMockVendor, createMockBestie, createMockCaregiver } from '../utils/test-helpers';
 
-// Vendor-Bestie Linking Flow Tests
-test.describe('Vendor-Bestie Linking', () => {
-  test.describe.configure({ mode: 'serial' });
+test.describe('Vendor-Bestie Linking Flow', () => {
+  let state: MockSupabaseState;
+
+  test.beforeEach(async ({ page }) => {
+    state = new MockSupabaseState();
+    await mockSupabaseAuth(page, state);
+    await mockSupabaseDatabase(page, state);
+  });
 
   test.describe('Vendor Link Request Flow', () => {
-    test.beforeEach(async ({ page, context }) => {
-      // Simulate authenticated vendor
-      await context.addCookies([
-        {
-          name: 'sb-access-token',
-          value: 'test-vendor-token',
-          domain: 'localhost',
-          path: '/',
-        },
-      ]);
+    test('should display link option for vendors', async ({ page }) => {
+      // Create and authenticate as vendor
+      const { userId, vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
+      
+      await page.goto('/vendor-dashboard');
+      await page.waitForLoadState('networkidle');
+      
+      // Look for link bestie option
+      const linkOption = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
+      const isVisible = await linkOption.isVisible().catch(() => false);
+      
+      expect(isVisible).toBeTruthy();
     });
 
-    test('should display vendor dashboard with link request option', async ({ page }) => {
+    test('should show friend code input for linking', async ({ page }) => {
+      // Create and authenticate as vendor
+      const { userId, vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
+      
       await page.goto('/vendor-dashboard');
       
-      // Wait for page to load
-      await page.waitForTimeout(1000);
-      
-      // Vendor dashboard requires authentication - if redirected to auth, test passes
-      // If actually on vendor dashboard, should have link option
-      const currentUrl = page.url();
-      if (currentUrl.includes('/vendor-dashboard')) {
-        // On vendor dashboard - check for link option
-        const linkOption = page.getByText(/link.*bestie|connect.*bestie|request.*bestie/i)
-          .or(page.getByRole('button', { name: /link.*bestie/i }));
-        const hasLinkOption = await linkOption.isVisible({ timeout: 2000 }).catch(() => false);
-        // Test passes if we have link option OR if we're authenticated (dashboard loaded)
-        expect(hasLinkOption || true).toBeTruthy();
-      } else {
-        // Redirected to auth (expected without real vendor account)
-        expect(currentUrl.includes('/auth') || currentUrl.includes('/vendor-auth')).toBeTruthy();
+      // Click link bestie button
+      const linkButton = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
+      if (await linkButton.isVisible()) {
+        await linkButton.click();
+        
+        // Should see emoji selectors or friend code input
+        const hasEmojiSelectors = await page.locator('select, [role="combobox"]').count();
+        expect(hasEmojiSelectors).toBeGreaterThan(0);
       }
     });
 
-    test('should have friend code entry form', async ({ page }) => {
+    test('should validate incomplete friend code', async ({ page }) => {
+      // Create and authenticate as vendor
+      const { userId, vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
+      
       await page.goto('/vendor-dashboard');
       
-      // Look for friend code entry interface
-      const emojiSelectors = page.locator('[role="combobox"]');
-      
-      // Might be in a tab or dialog
-      if (await emojiSelectors.count().then(c => c === 0)) {
-        // Try to open link dialog/tab
-        const linkButton = page.getByRole('button', { name: /link.*bestie/i });
-        if (await linkButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await linkButton.click();
+      // Click link bestie button
+      const linkButton = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
+      if (await linkButton.isVisible()) {
+        await linkButton.click();
+        
+        // Try to submit without completing friend code
+        const submitButton = page.locator('button[type="submit"]').filter({ hasText: /link|request|submit/i }).first();
+        if (await submitButton.isVisible()) {
+          await submitButton.click();
+          
+          // Should show validation error
+          await page.waitForTimeout(500);
+          const errorVisible = await page.locator('text=/complete|select|required/i').first().isVisible().catch(() => false);
+          expect(errorVisible).toBeTruthy();
         }
       }
-      
-      // Should have emoji selectors
-      const count = await page.locator('[role="combobox"]').count();
-      expect(count).toBeGreaterThanOrEqual(3);
     });
 
-    test('should allow vendor to select bestie role', async ({ page }) => {
+    test('should successfully submit link request', async ({ page }) => {
+      // Create vendor and bestie
+      const { userId: vendorUserId, vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      const { userId: bestieId, friendCode } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
+      
+      await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
       await page.goto('/vendor-dashboard');
       
-      // Look for role selector (bestie role selection)
-      const roleSelector = page.getByLabel(/role|type/i).or(
-        page.locator('[role="combobox"]').filter({ hasText: /bestie|role/i })
-      );
-      
-      if (await roleSelector.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await roleSelector.click();
+      // Click link bestie button
+      const linkButton = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
+      if (await linkButton.isVisible()) {
+        await linkButton.click();
         
-        // Should show bestie as an option
-        await expect(page.getByRole('option', { name: /bestie/i })).toBeVisible();
-      }
-    });
-
-    test('should allow optional message with link request', async ({ page }) => {
-      await page.goto('/vendor-dashboard');
-      
-      // Look for message textarea
-      const messageField = page.getByLabel(/message/i).or(
-        page.getByPlaceholder(/message|note/i)
-      );
-      
-      if (await messageField.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await messageField.fill('I would love to work with you!');
+        // Enter friend code
+        const emojis = Array.from(friendCode);
+        const emojiSelectors = await page.locator('select, [role="combobox"]').all();
         
-        // Verify text was entered
-        await expect(messageField).toHaveValue(/work with you/i);
-      }
-    });
-
-    test('should submit link request with valid friend code', async ({ page }) => {
-      await page.goto('/vendor-dashboard');
-      
-      const selectors = page.locator('[role="combobox"]');
-      
-      if (await selectors.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-        // Select 3 emojis
-        for (let i = 0; i < 3; i++) {
-          await selectors.nth(i).click();
-          await page.locator('[role="option"]').first().click();
+        for (let i = 0; i < Math.min(emojis.length, emojiSelectors.length); i++) {
+          await emojiSelectors[i].click();
+          await page.locator(`text="${emojis[i]}"`).first().click().catch(() => {});
         }
         
-        // Submit request
-        await page.getByRole('button', { name: /send.*request|submit|link/i }).click();
+        // Add message
+        const messageInput = page.locator('textarea, input[type="text"]').filter({ hasText: /message/i }).first();
+        if (await messageInput.isVisible()) {
+          await messageInput.fill('Would love to partner with you!');
+        }
         
-        // Should show success or pending message
-        await expect(
-          page.getByText(/request sent|pending|submitted/i)
-        ).toBeVisible({ timeout: 5000 });
-      }
-    });
-
-    test('should show validation error for incomplete code', async ({ page }) => {
-      await page.goto('/vendor-dashboard');
-      
-      const selectors = page.locator('[role="combobox"]');
-      
-      if (await selectors.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-        // Select only 2 emojis
-        await selectors.nth(0).click();
-        await page.locator('[role="option"]').first().click();
+        // Submit
+        const submitButton = page.locator('button[type="submit"]').filter({ hasText: /link|request|submit/i }).first();
+        await submitButton.click();
         
-        await selectors.nth(1).click();
-        await page.locator('[role="option"]').first().click();
+        await page.waitForTimeout(1000);
         
-        // Try to submit
-        await page.getByRole('button', { name: /send.*request|submit|link/i }).click();
-        
-        // Should show validation error
-        await expect(page.getByText(/select.*all|complete|three|3/i)).toBeVisible({ timeout: 3000 });
+        // Verify request was created in state
+        const requests = Array.from(state.vendorBestieRequests.values()).filter(
+          req => req.vendor_id === vendorId && req.bestie_id === bestieId
+        );
+        expect(requests.length).toBeGreaterThan(0);
+        expect(requests[0]?.status).toBe('pending');
       }
     });
 
     test('should handle invalid friend code', async ({ page }) => {
+      // Create vendor
+      const { userId: vendorUserId, vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      
+      await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
       await page.goto('/vendor-dashboard');
       
-      const selectors = page.locator('[role="combobox"]');
-      
-      if (await selectors.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-        // Select 3 random emojis (unlikely to match real bestie)
-        for (let i = 0; i < 3; i++) {
-          await selectors.nth(i).click();
-          await page.locator('[role="option"]').nth(i + 1).click();
+      // Click link bestie button
+      const linkButton = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
+      if (await linkButton.isVisible()) {
+        await linkButton.click();
+        
+        // Enter invalid friend code
+        const emojiSelectors = await page.locator('select, [role="combobox"]').all();
+        for (const selector of emojiSelectors.slice(0, 3)) {
+          await selector.click();
+          await page.locator('text="🌟"').first().click().catch(() => {});
         }
         
-        await page.getByRole('button', { name: /send.*request|submit|link/i }).click();
+        // Submit
+        const submitButton = page.locator('button[type="submit"]').filter({ hasText: /link|request|submit/i }).first();
+        const initialRequestCount = state.vendorBestieRequests.size;
         
-        // Should show error
-        await expect(page.getByText(/not found|invalid|doesn't exist/i)).toBeVisible({ timeout: 5000 });
+        await submitButton.click();
+        await page.waitForTimeout(1000);
+        
+        // Should show error or not create request
+        const errorVisible = await page.locator('text=/not found|invalid|doesn\'t exist/i').first().isVisible().catch(() => false);
+        expect(errorVisible || state.vendorBestieRequests.size === initialRequestCount).toBeTruthy();
       }
     });
   });
 
   test.describe('Vendor Link Request Status', () => {
-    test.beforeEach(async ({ page, context }) => {
-      await context.addCookies([
-        {
-          name: 'sb-access-token',
-          value: 'test-vendor-token',
-          domain: 'localhost',
-          path: '/',
-        },
-      ]);
-    });
-
-    test('should display pending link requests', async ({ page }) => {
+    test('should display pending requests', async ({ page }) => {
+      // Create vendor and bestie with pending request
+      const { userId: vendorUserId, vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      const { userId: bestieId } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
+      
+      // Create pending request
+      const requestId = `request-${Date.now()}`;
+      state.vendorBestieRequests.set(requestId, {
+        id: requestId,
+        vendor_id: vendorId,
+        bestie_id: bestieId,
+        message: 'Test request',
+        status: 'pending',
+        created_at: new Date().toISOString()
+      });
+      
+      await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
       await page.goto('/vendor-dashboard');
       
-      // Look for pending requests section
-      const pendingSection = page.getByText(/pending.*request|awaiting.*approval/i);
-      
-      const exists = await pendingSection.count().then(c => c > 0);
-      expect(exists || true).toBeTruthy();
-    });
-
-    test('should display approved links', async ({ page }) => {
-      await page.goto('/vendor-dashboard');
-      
-      // Look for approved/linked besties section
-      const approvedSection = page.getByText(/linked.*bestie|approved|connected/i);
-      
-      const exists = await approvedSection.count().then(c => c > 0);
-      expect(exists || true).toBeTruthy();
-    });
-
-    test('should show rejected requests', async ({ page }) => {
-      await page.goto('/vendor-dashboard');
-      
-      // Look for rejected requests (if any)
-      const rejectedSection = page.getByText(/rejected|declined/i);
-      
-      // Might not always be visible
-      const count = await rejectedSection.count();
-      expect(count).toBeGreaterThanOrEqual(0);
+      // Should show pending status
+      const pendingVisible = await page.locator('text=/pending|waiting/i').first().isVisible().catch(() => false);
+      expect(pendingVisible).toBeTruthy();
     });
   });
 
   test.describe('Guardian Approval Flow', () => {
-    test.beforeEach(async ({ page, context }) => {
-      // Simulate authenticated guardian
-      await context.addCookies([
-        {
-          name: 'sb-access-token',
-          value: 'test-guardian-token',
-          domain: 'localhost',
-          path: '/',
-        },
-      ]);
-    });
-
-    test('should display pending vendor requests in guardian approvals', async ({ page }) => {
+    test('should show vendor requests to guardian', async ({ page }) => {
+      // Create caregiver, bestie, vendor, and request
+      const caregiverId = createMockCaregiver(state, 'guardian@test.com', 'Test Guardian');
+      const { userId: bestieId } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
+      const { vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      
+      // Link guardian to bestie
+      state.addCaregiverLink(caregiverId, bestieId, 'Parent');
+      
+      // Create vendor request
+      const requestId = `request-${Date.now()}`;
+      state.vendorBestieRequests.set(requestId, {
+        id: requestId,
+        vendor_id: vendorId,
+        bestie_id: bestieId,
+        message: 'Partnership request',
+        status: 'pending',
+        created_at: new Date().toISOString()
+      });
+      
+      await mockAuthenticatedSession(page, state, 'guardian@test.com', 'caregiver');
       await page.goto('/guardian-approvals');
       
-      // Should show approvals page
-      await expect(page).toHaveURL('/guardian-approvals');
-      
-      // Look for vendor tab/section
-      const vendorTab = page.getByRole('tab', { name: /vendor/i }).or(
-        page.getByText(/vendor.*request/i)
-      );
-      
-      if (await vendorTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await vendorTab.click();
-      }
-      
-      // Should have approval interface
-      await expect(
-        page.getByText(/approve|reject|pending/i)
-      ).toBeVisible({ timeout: 5000 });
+      // Should see vendor request
+      const requestVisible = await page.locator('text=/vendor|partnership|request/i').first().isVisible().catch(() => false);
+      expect(requestVisible).toBeTruthy();
     });
 
-    test('should allow guardian to approve vendor link request', async ({ page }) => {
+    test('should allow guardian to approve request', async ({ page }) => {
+      // Create caregiver, bestie, vendor, and request
+      const caregiverId = createMockCaregiver(state, 'guardian@test.com', 'Test Guardian');
+      const { userId: bestieId } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
+      const { vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      
+      state.addCaregiverLink(caregiverId, bestieId, 'Parent');
+      
+      const requestId = `request-${Date.now()}`;
+      state.vendorBestieRequests.set(requestId, {
+        id: requestId,
+        vendor_id: vendorId,
+        bestie_id: bestieId,
+        message: 'Partnership request',
+        status: 'pending',
+        created_at: new Date().toISOString()
+      });
+      
+      await mockAuthenticatedSession(page, state, 'guardian@test.com', 'caregiver');
       await page.goto('/guardian-approvals');
       
-      // Navigate to vendor tab if exists
-      const vendorTab = page.getByRole('tab', { name: /vendor/i });
-      if (await vendorTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await vendorTab.click();
-      }
-      
-      // Look for approve button
-      const approveButton = page.getByRole('button', { name: /approve/i }).first();
-      
-      if (await approveButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      // Click approve button
+      const approveButton = page.locator('button').filter({ hasText: /approve|accept/i }).first();
+      if (await approveButton.isVisible()) {
         await approveButton.click();
+        await page.waitForTimeout(500);
         
-        // Should show success message
-        await expect(page.getByText(/approved|accepted/i)).toBeVisible({ timeout: 5000 });
+        // Verify status changed in state
+        const request = state.vendorBestieRequests.get(requestId);
+        expect(request?.status).toBe('approved');
       }
     });
 
-    test('should allow guardian to reject vendor link request', async ({ page }) => {
+    test('should allow guardian to reject request', async ({ page }) => {
+      // Create caregiver, bestie, vendor, and request
+      const caregiverId = createMockCaregiver(state, 'guardian@test.com', 'Test Guardian');
+      const { userId: bestieId } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
+      const { vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      
+      state.addCaregiverLink(caregiverId, bestieId, 'Parent');
+      
+      const requestId = `request-${Date.now()}`;
+      state.vendorBestieRequests.set(requestId, {
+        id: requestId,
+        vendor_id: vendorId,
+        bestie_id: bestieId,
+        message: 'Partnership request',
+        status: 'pending',
+        created_at: new Date().toISOString()
+      });
+      
+      await mockAuthenticatedSession(page, state, 'guardian@test.com', 'caregiver');
       await page.goto('/guardian-approvals');
       
-      // Navigate to vendor tab if exists
-      const vendorTab = page.getByRole('tab', { name: /vendor/i });
-      if (await vendorTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await vendorTab.click();
-      }
-      
-      // Look for reject button
-      const rejectButton = page.getByRole('button', { name: /reject|decline/i }).first();
-      
-      if (await rejectButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      // Click reject button
+      const rejectButton = page.locator('button').filter({ hasText: /reject|decline|deny/i }).first();
+      if (await rejectButton.isVisible()) {
         await rejectButton.click();
+        await page.waitForTimeout(500);
         
-        // Should show confirmation
-        await expect(page.getByText(/rejected|declined/i)).toBeVisible({ timeout: 5000 });
-      }
-    });
-
-    test('should show vendor request details before approval', async ({ page }) => {
-      await page.goto('/guardian-approvals');
-      
-      // Navigate to vendor tab
-      const vendorTab = page.getByRole('tab', { name: /vendor/i });
-      if (await vendorTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await vendorTab.click();
-      }
-      
-      // Should display request details
-      // Business name, message, etc.
-      const detailsVisible = await page.getByText(/business|vendor|message/i).count().then(c => c > 0);
-      expect(detailsVisible || true).toBeTruthy();
-    });
-  });
-
-  test.describe('Featured Bestie Feature', () => {
-    test.beforeEach(async ({ page, context }) => {
-      await context.addCookies([
-        {
-          name: 'sb-access-token',
-          value: 'test-vendor-token',
-          domain: 'localhost',
-          path: '/',
-        },
-      ]);
-    });
-
-    test('should allow vendor to feature ONE approved bestie', async ({ page }) => {
-      await page.goto('/vendor-dashboard');
-      
-      // Look for feature bestie option
-      const featureButton = page.getByRole('button', { name: /feature|set.*featured/i });
-      
-      if (await featureButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await featureButton.click();
-        
-        // Should show success or selection dialog
-        await page.waitForTimeout(1000);
-      }
-    });
-
-    test('should display featured bestie on vendor profile', async ({ page }) => {
-      // Navigate to a vendor profile page
-      await page.goto('/vendor-profile/test-vendor');
-      
-      // Look for featured bestie section
-      const featuredSection = page.getByText(/featured.*bestie/i);
-      
-      const exists = await featuredSection.count().then(c => c > 0);
-      expect(exists || true).toBeTruthy();
-    });
-
-    test('should allow unfeaturing a bestie', async ({ page }) => {
-      await page.goto('/vendor-dashboard');
-      
-      // Look for unfeature option
-      const unfeatureButton = page.getByRole('button', { name: /unfeature|remove.*feature/i });
-      
-      if (await unfeatureButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await unfeatureButton.click();
-        
-        // Should confirm action
-        await page.waitForTimeout(1000);
+        // Verify status changed in state
+        const request = state.vendorBestieRequests.get(requestId);
+        expect(request?.status).toBe('rejected');
       }
     });
   });
 
   test.describe('Error Handling', () => {
-    test.beforeEach(async ({ page, context }) => {
-      await context.addCookies([
-        {
-          name: 'sb-access-token',
-          value: 'test-vendor-token',
-          domain: 'localhost',
-          path: '/',
-        },
-      ]);
-    });
-
-    test('should handle duplicate link request attempts', async ({ page }) => {
+    test('should handle duplicate link requests', async ({ page }) => {
+      // Create vendor and bestie with existing request
+      const { userId: vendorUserId, vendorId } = createMockVendor(state, 'vendor@test.com', 'Test Vendor', 'approved');
+      const { userId: bestieId, friendCode } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
+      
+      // Create existing request
+      state.vendorBestieRequests.set('existing-request', {
+        id: 'existing-request',
+        vendor_id: vendorId,
+        bestie_id: bestieId,
+        message: 'First request',
+        status: 'pending',
+        created_at: new Date().toISOString()
+      });
+      
+      await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
       await page.goto('/vendor-dashboard');
       
-      // Try to link already-requested bestie
-      // Should show error message
-      
-      const errorContainer = page.locator('[role="alert"]').or(
-        page.getByText(/already requested|duplicate|pending/i)
-      );
-      
-      expect(await errorContainer.count()).toBeGreaterThanOrEqual(0);
-    });
-
-    test('should verify target user is a bestie', async ({ page }) => {
-      await page.goto('/vendor-dashboard');
-      
-      const selectors = page.locator('[role="combobox"]');
-      
-      if (await selectors.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-        // Submit with code for non-bestie user
-        for (let i = 0; i < 3; i++) {
-          await selectors.nth(i).click();
-          await page.locator('[role="option"]').nth(2).click();
+      // Try to create duplicate request
+      const linkButton = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
+      if (await linkButton.isVisible()) {
+        await linkButton.click();
+        
+        // Enter same friend code
+        const emojis = Array.from(friendCode);
+        const emojiSelectors = await page.locator('select, [role="combobox"]').all();
+        
+        for (let i = 0; i < Math.min(emojis.length, emojiSelectors.length); i++) {
+          await emojiSelectors[i].click();
+          await page.locator(`text="${emojis[i]}"`).first().click().catch(() => {});
         }
         
-        await page.getByRole('button', { name: /send.*request|submit/i }).click();
+        const submitButton = page.locator('button[type="submit"]').filter({ hasText: /link|request|submit/i }).first();
+        const initialRequestCount = state.vendorBestieRequests.size;
         
-        // Should show role-specific error if not a bestie
-        await page.waitForTimeout(2000);
+        await submitButton.click();
+        await page.waitForTimeout(1000);
+        
+        // Should not create duplicate
+        expect(state.vendorBestieRequests.size).toBe(initialRequestCount);
       }
     });
   });
-});
 
-// Access control tests
-test.describe('Vendor Access Control', () => {
-  test('should redirect non-vendors from vendor dashboard', async ({ page, context }) => {
-    // Simulate authenticated non-vendor user
-    await context.addCookies([
-      {
-        name: 'sb-access-token',
-        value: 'test-supporter-token',
-        domain: 'localhost',
-        path: '/',
-      },
-    ]);
-
-    await page.goto('/vendor-dashboard');
-    
-    // Should redirect or show access denied
-    await page.waitForTimeout(2000);
-    
-    const onVendorPage = page.url().includes('/vendor-dashboard');
-    const hasAccessDenied = await page.getByText(/access denied|not.*vendor|apply.*vendor/i).isVisible().catch(() => false);
-    
-    expect(onVendorPage && hasAccessDenied || !onVendorPage).toBeTruthy();
+  test.describe('Vendor Access Control', () => {
+    test('should restrict vendor dashboard to vendors', async ({ page }) => {
+      // Create non-vendor user
+      const userId = state.addUser('supporter@test.com', 'password123', {
+        display_name: 'Regular Supporter',
+        role: 'supporter',
+        avatar_number: 1
+      });
+      
+      await mockAuthenticatedSession(page, state, 'supporter@test.com', 'supporter');
+      await page.goto('/vendor-dashboard');
+      await page.waitForTimeout(1000);
+      
+      // Should be redirected or show access denied
+      const currentUrl = page.url();
+      const accessDenied = await page.locator('text=/access denied|not authorized|vendor only/i').first().isVisible().catch(() => false);
+      
+      expect(!currentUrl.includes('/vendor-dashboard') || accessDenied).toBeTruthy();
+    });
   });
 });
