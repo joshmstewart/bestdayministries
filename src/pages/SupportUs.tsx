@@ -72,7 +72,7 @@ const SupportUs = () => {
       if (error) throw error;
       if (data) setSections(data as SupportPageSection[]);
     } catch (error) {
-      console.error("Error loading sections:", error);
+      // Silently handle error, allow page to render with defaults
     } finally {
       setLoading(false);
     }

@@ -46,10 +46,15 @@ test.describe('Guardian-Bestie Linking', () => {
     test('should have three emoji selectors', async ({ page }) => {
       await page.goto('/guardian-links');
       
-      // Look for emoji selection interface
-      const emojiSelectors = page.locator('[role="combobox"]').or(
-        page.getByLabel(/emoji|friend code/i)
-      );
+      // Open the "Link Bestie" dialog
+      const linkButton = page.getByRole('button', { name: /link bestie/i });
+      await linkButton.click();
+      
+      // Wait for dialog to open
+      await page.waitForTimeout(500);
+      
+      // Look for emoji selection interface inside the dialog
+      const emojiSelectors = page.locator('[role="combobox"]');
       
       // Should have 3 emoji input fields
       const count = await emojiSelectors.count();
@@ -58,6 +63,10 @@ test.describe('Guardian-Bestie Linking', () => {
 
     test('should allow selecting emojis from dropdown', async ({ page }) => {
       await page.goto('/guardian-links');
+      
+      // Open the "Link Bestie" dialog
+      await page.getByRole('button', { name: /link bestie/i }).click();
+      await page.waitForTimeout(500);
       
       // Click first emoji selector
       const firstSelector = page.locator('[role="combobox"]').first();
@@ -72,6 +81,10 @@ test.describe('Guardian-Bestie Linking', () => {
 
     test('should show validation error for incomplete code', async ({ page }) => {
       await page.goto('/guardian-links');
+      
+      // Open the "Link Bestie" dialog
+      await page.getByRole('button', { name: /link bestie/i }).click();
+      await page.waitForTimeout(500);
       
       // Select only 2 emojis (incomplete)
       const selectors = page.locator('[role="combobox"]');
@@ -94,6 +107,10 @@ test.describe('Guardian-Bestie Linking', () => {
     test('should handle invalid friend code', async ({ page }) => {
       await page.goto('/guardian-links');
       
+      // Open the "Link Bestie" dialog
+      await page.getByRole('button', { name: /link bestie/i }).click();
+      await page.waitForTimeout(500);
+      
       // Enter a friend code that doesn't exist
       const selectors = page.locator('[role="combobox"]');
       
@@ -115,6 +132,10 @@ test.describe('Guardian-Bestie Linking', () => {
   test.describe('Relationship Field', () => {
     test('should require relationship type when linking', async ({ page }) => {
       await page.goto('/guardian-links');
+      
+      // Open the "Link Bestie" dialog
+      await page.getByRole('button', { name: /link bestie/i }).click();
+      await page.waitForTimeout(500);
       
       // Look for relationship field
       const relationshipField = page.getByLabel(/relationship/i).or(

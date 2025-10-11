@@ -89,19 +89,24 @@ const Community = () => {
   }, [user, profile, effectiveRole]); // Include all dependencies
 
   const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
 
-    // Load community page for all authenticated users
-    setUser(session.user);
-    await fetchProfile(session.user.id);
-    await loadSectionOrder();
-    // Don't call loadLatestContent here - let the effectiveRole useEffect handle it
-    setLoading(false);
+      // Load community page for all authenticated users
+      setUser(session.user);
+      await fetchProfile(session.user.id);
+      await loadSectionOrder();
+      // Don't call loadLatestContent here - let the effectiveRole useEffect handle it
+      setLoading(false);
+    } catch (error) {
+      // Silently handle error, allow page to render
+      setLoading(false);
+    }
   };
 
   const loadSectionOrder = async () => {
