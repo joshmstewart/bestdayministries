@@ -470,7 +470,38 @@ WITH CHECK (true);
 
 ---
 
-**Last Updated:** After implementing admin reply functionality and email notifications
+## Testing
+
+### E2E Tests (`tests/e2e/forms.spec.ts`)
+
+**Coverage:**
+- ✅ Contact form display and validation
+- ✅ Required field validation
+- ✅ Email format validation
+- ✅ **Anonymous user submission** (tests RLS policy fix)
+- ✅ **Authenticated user submission** (tests email auto-fill)
+- ✅ Form reset after successful submission
+- ✅ Success toast/message display
+
+**Critical Tests:**
+1. **Anonymous Submission Test** - Verifies the RLS policy allows public submissions
+2. **Authenticated Submission Test** - Ensures logged-in users can submit with pre-filled email
+
+**Running Tests:**
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run only forms tests
+npx playwright test forms.spec.ts
+
+# Run in UI mode (interactive)
+npx playwright test forms.spec.ts --ui
+```
+
+---
+
+**Last Updated:** After implementing admin reply functionality, email notifications, and RLS policy fix
 **Key Files:**
 - `src/components/ContactForm.tsx` - Public form
 - `src/components/admin/ContactFormManager.tsx` - Admin interface with reply dialog

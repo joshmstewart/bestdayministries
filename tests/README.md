@@ -9,7 +9,7 @@ End-to-end tests that simulate real user interactions:
 - `basic.spec.ts` - Homepage and basic functionality
 - `navigation.spec.ts` - Page navigation and routing
 - `auth.spec.ts` - Authentication flows
-- `forms.spec.ts` - Form validation and submission
+- `forms.spec.ts` - Form validation and submission (includes anonymous & authenticated user tests)
 - `community.spec.ts` - Community features
 - `store.spec.ts` - Store and coins functionality
 - `admin.spec.ts` - Admin dashboard features
