@@ -66,6 +66,7 @@ export const Match3 = () => {
   const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
   const [challengeComplete, setChallengeComplete] = useState(false);
   const [challengeFailed, setChallengeFailed] = useState(false);
+  const [explosions, setExplosions] = useState<{ row: number; col: number; id: string }[]>([]);
   const { toast } = useToast();
   const { awardCoins } = useCoins();
 
@@ -344,12 +345,16 @@ export const Match3 = () => {
 
   const activateSpecial = (row: number, col: number, special: SpecialType, newGrid: Cell[][]): number => {
     let destroyedCount = 0;
+    const newExplosions: { row: number; col: number; id: string }[] = [];
     
     switch (special) {
       case "horizontal":
         // Clear entire row
         for (let c = 0; c < GRID_SIZE; c++) {
-          if (!newGrid[row][c].matched) destroyedCount++;
+          if (!newGrid[row][c].matched) {
+            destroyedCount++;
+            newExplosions.push({ row, col: c, id: `explosion-${row}-${c}-${Date.now()}` });
+          }
           newGrid[row][c].matched = true;
         }
         break;
@@ -357,7 +362,10 @@ export const Match3 = () => {
       case "vertical":
         // Clear entire column
         for (let r = 0; r < GRID_SIZE; r++) {
-          if (!newGrid[r][col].matched) destroyedCount++;
+          if (!newGrid[r][col].matched) {
+            destroyedCount++;
+            newExplosions.push({ row: r, col, id: `explosion-${r}-${col}-${Date.now()}` });
+          }
           newGrid[r][col].matched = true;
         }
         break;
@@ -365,11 +373,17 @@ export const Match3 = () => {
       case "bomb":
         // Clear both row and column
         for (let c = 0; c < GRID_SIZE; c++) {
-          if (!newGrid[row][c].matched) destroyedCount++;
+          if (!newGrid[row][c].matched) {
+            destroyedCount++;
+            newExplosions.push({ row, col: c, id: `explosion-${row}-${c}-${Date.now()}` });
+          }
           newGrid[row][c].matched = true;
         }
         for (let r = 0; r < GRID_SIZE; r++) {
-          if (!newGrid[r][col].matched) destroyedCount++;
+          if (!newGrid[r][col].matched) {
+            destroyedCount++;
+            newExplosions.push({ row: r, col, id: `explosion-${r}-${col}-${Date.now()}` });
+          }
           newGrid[r][col].matched = true;
         }
         break;
@@ -378,12 +392,21 @@ export const Match3 = () => {
         // Clear 3x3 area
         for (let r = Math.max(0, row - 1); r <= Math.min(GRID_SIZE - 1, row + 1); r++) {
           for (let c = Math.max(0, col - 1); c <= Math.min(GRID_SIZE - 1, col + 1); c++) {
-            if (!newGrid[r][c].matched) destroyedCount++;
+            if (!newGrid[r][c].matched) {
+              destroyedCount++;
+              newExplosions.push({ row: r, col: c, id: `explosion-${r}-${c}-${Date.now()}` });
+            }
             newGrid[r][c].matched = true;
           }
         }
         break;
     }
+    
+    // Trigger explosions
+    setExplosions(prev => [...prev, ...newExplosions]);
+    setTimeout(() => {
+      setExplosions(prev => prev.filter(e => !newExplosions.find(ne => ne.id === e.id)));
+    }, 600);
     
     return destroyedCount;
   };
@@ -809,58 +832,80 @@ export const Match3 = () => {
         {grid.length > 0 && (
           <Card>
             <CardContent className="p-4">
-              <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
-                {grid.map((row, rowIndex) =>
-                  row.map((cell, colIndex) => (
-                    <button
-                      key={cell.id}
-                      draggable={!isAnimating && !cell.matched}
-                      onClick={() => handleCellClick(rowIndex, colIndex)}
-                      onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
-                      onDragEnd={handleDragEnd}
-                      className={`
-                        aspect-square text-4xl flex items-center justify-center relative
-                        rounded-lg transition-all duration-200 cursor-move
-                        ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
-                        ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
-                          ? "opacity-50 scale-90"
-                          : ""
-                        }
-                        ${selectedCell?.row === rowIndex && selectedCell?.col === colIndex
-                          ? "ring-4 ring-primary scale-110"
-                          : "hover:scale-105 hover:bg-accent/50"
-                        }
-                        ${isAnimating ? "pointer-events-none" : ""}
-                        ${cell.special ? "ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 animate-pulse" : ""}
-                        bg-accent/20
-                      `}
-                      disabled={isAnimating}
-                    >
-                      {cell.type}
-                      {cell.special && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          {cell.special === "horizontal" && (
-                            <div className="absolute w-full h-0.5 bg-yellow-400" />
-                          )}
-                          {cell.special === "vertical" && (
-                            <div className="absolute h-full w-0.5 bg-yellow-400" />
-                          )}
-                          {cell.special === "bomb" && (
-                            <>
+              <div className="relative">
+                <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
+                  {grid.map((row, rowIndex) =>
+                    row.map((cell, colIndex) => (
+                      <button
+                        key={cell.id}
+                        draggable={!isAnimating && !cell.matched}
+                        onClick={() => handleCellClick(rowIndex, colIndex)}
+                        onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                        onDragEnd={handleDragEnd}
+                        className={`
+                          aspect-square text-4xl flex items-center justify-center relative
+                          rounded-lg transition-all duration-200 cursor-move
+                          ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
+                          ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
+                            ? "opacity-50 scale-90"
+                            : ""
+                          }
+                          ${selectedCell?.row === rowIndex && selectedCell?.col === colIndex
+                            ? "ring-4 ring-primary scale-110"
+                            : "hover:scale-105 hover:bg-accent/50"
+                          }
+                          ${isAnimating ? "pointer-events-none" : ""}
+                          ${cell.special ? "ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 animate-pulse" : ""}
+                          bg-accent/20
+                        `}
+                        disabled={isAnimating}
+                      >
+                        {cell.type}
+                        {cell.special && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            {cell.special === "horizontal" && (
                               <div className="absolute w-full h-0.5 bg-yellow-400" />
+                            )}
+                            {cell.special === "vertical" && (
                               <div className="absolute h-full w-0.5 bg-yellow-400" />
-                            </>
-                          )}
-                          {cell.special === "area" && (
-                            <div className="absolute inset-2 border-2 border-yellow-400 rounded" />
-                          )}
-                        </div>
-                      )}
-                    </button>
-                  ))
-                )}
+                            )}
+                            {cell.special === "bomb" && (
+                              <>
+                                <div className="absolute w-full h-0.5 bg-yellow-400" />
+                                <div className="absolute h-full w-0.5 bg-yellow-400" />
+                              </>
+                            )}
+                            {cell.special === "area" && (
+                              <div className="absolute inset-2 border-2 border-yellow-400 rounded" />
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+                {/* Explosion effects */}
+                {explosions.map(explosion => (
+                  <div
+                    key={explosion.id}
+                    className="absolute pointer-events-none"
+                    style={{
+                      gridColumn: explosion.col + 1,
+                      gridRow: explosion.row + 1,
+                      left: `${(explosion.col * 100) / GRID_SIZE}%`,
+                      top: `${(explosion.row * 100) / GRID_SIZE}%`,
+                      width: `${100 / GRID_SIZE}%`,
+                      height: `${100 / GRID_SIZE}%`,
+                    }}
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-full h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-ping" />
+                      <div className="absolute w-full h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 opacity-75 animate-pulse" />
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -916,58 +961,80 @@ export const Match3 = () => {
 
       <Card className={`${challengeComplete ? "border-green-500" : challengeFailed ? "border-red-500" : ""}`}>
         <CardContent className="p-4">
-          <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
-            {grid.map((row, rowIndex) =>
-              row.map((cell, colIndex) => (
-                <button
-                  key={cell.id}
-                  draggable={!isAnimating && !cell.matched && !challengeComplete && !challengeFailed}
-                  onClick={() => handleCellClick(rowIndex, colIndex)}
-                  onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
-                  onDragEnd={handleDragEnd}
-                  className={`
-                    aspect-square text-4xl flex items-center justify-center relative
-                    rounded-lg transition-all duration-200 cursor-move
-                    ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
-                    ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
-                      ? "opacity-50 scale-90"
-                      : ""
-                    }
-                    ${selectedCell?.row === rowIndex && selectedCell?.col === colIndex
-                      ? "ring-4 ring-primary scale-110"
-                      : "hover:scale-105 hover:bg-accent/50"
-                    }
-                    ${isAnimating || challengeComplete || challengeFailed ? "pointer-events-none" : ""}
-                    ${cell.special ? "ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 animate-pulse" : ""}
-                    bg-accent/20
-                  `}
-                  disabled={isAnimating || challengeComplete || challengeFailed}
-                >
-                  {cell.type}
-                  {cell.special && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      {cell.special === "horizontal" && (
-                        <div className="absolute w-full h-0.5 bg-yellow-400" />
-                      )}
-                      {cell.special === "vertical" && (
-                        <div className="absolute h-full w-0.5 bg-yellow-400" />
-                      )}
-                      {cell.special === "bomb" && (
-                        <>
+          <div className="relative">
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
+              {grid.map((row, rowIndex) =>
+                row.map((cell, colIndex) => (
+                  <button
+                    key={cell.id}
+                    draggable={!isAnimating && !cell.matched && !challengeComplete && !challengeFailed}
+                    onClick={() => handleCellClick(rowIndex, colIndex)}
+                    onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                    onDragEnd={handleDragEnd}
+                    className={`
+                      aspect-square text-4xl flex items-center justify-center relative
+                      rounded-lg transition-all duration-200 cursor-move
+                      ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
+                      ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
+                        ? "opacity-50 scale-90"
+                        : ""
+                      }
+                      ${selectedCell?.row === rowIndex && selectedCell?.col === colIndex
+                        ? "ring-4 ring-primary scale-110"
+                        : "hover:scale-105 hover:bg-accent/50"
+                      }
+                      ${isAnimating || challengeComplete || challengeFailed ? "pointer-events-none" : ""}
+                      ${cell.special ? "ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50 animate-pulse" : ""}
+                      bg-accent/20
+                    `}
+                    disabled={isAnimating || challengeComplete || challengeFailed}
+                  >
+                    {cell.type}
+                    {cell.special && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        {cell.special === "horizontal" && (
                           <div className="absolute w-full h-0.5 bg-yellow-400" />
+                        )}
+                        {cell.special === "vertical" && (
                           <div className="absolute h-full w-0.5 bg-yellow-400" />
-                        </>
-                      )}
-                      {cell.special === "area" && (
-                        <div className="absolute inset-2 border-2 border-yellow-400 rounded" />
-                      )}
-                    </div>
-                  )}
-                </button>
-              ))
-            )}
+                        )}
+                        {cell.special === "bomb" && (
+                          <>
+                            <div className="absolute w-full h-0.5 bg-yellow-400" />
+                            <div className="absolute h-full w-0.5 bg-yellow-400" />
+                          </>
+                        )}
+                        {cell.special === "area" && (
+                          <div className="absolute inset-2 border-2 border-yellow-400 rounded" />
+                        )}
+                      </div>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+            {/* Explosion effects */}
+            {explosions.map(explosion => (
+              <div
+                key={explosion.id}
+                className="absolute pointer-events-none"
+                style={{
+                  gridColumn: explosion.col + 1,
+                  gridRow: explosion.row + 1,
+                  left: `${(explosion.col * 100) / GRID_SIZE}%`,
+                  top: `${(explosion.row * 100) / GRID_SIZE}%`,
+                  width: `${100 / GRID_SIZE}%`,
+                  height: `${100 / GRID_SIZE}%`,
+                }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-full h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-ping" />
+                  <div className="absolute w-full h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 opacity-75 animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
