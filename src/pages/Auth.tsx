@@ -55,8 +55,6 @@ const Auth = () => {
   const logoUrl = logoData || joyHouseLogo;
 
   useEffect(() => {
-    console.log('🎬 Auth page mounted, setting up redirect logic');
-    
     const redirectPath = searchParams.get('redirect');
     const bestieId = searchParams.get('bestieId');
     
@@ -73,7 +71,6 @@ const Auth = () => {
         // Vendors can navigate to their dashboard manually
         navigate("/community", { replace: true });
       } catch (err) {
-        console.error('Error in checkAndRedirect:', err);
         navigate("/community", { replace: true });
       }
     };
@@ -85,7 +82,6 @@ const Auth = () => {
       
       if (pendingAcceptance) {
         try {
-          console.log('📝 Recording terms acceptance for new user', { userId, retryCount });
           const { error } = await supabase.functions.invoke("record-terms-acceptance", {
             body: {
               termsVersion: "1.0",
@@ -97,17 +93,11 @@ const Auth = () => {
 
           // Success - clear the flag
           localStorage.removeItem('pendingTermsAcceptance');
-          console.log('✅ Terms acceptance recorded successfully');
         } catch (error) {
-          console.error('❌ Error recording terms acceptance:', error);
-          
           // Retry with exponential backoff
           if (retryCount < maxRetries) {
             const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-            console.log(`🔄 Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
             setTimeout(() => recordTermsForNewUser(userId, retryCount + 1), delay);
-          } else {
-            console.warn('⚠️ Max retries reached, terms will be prompted on next check');
           }
         }
       }

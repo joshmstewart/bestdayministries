@@ -135,6 +135,7 @@ export default function GuardianLinks() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
+        setLoading(false);
         navigate("/auth");
         return;
       }
@@ -150,6 +151,7 @@ export default function GuardianLinks() {
 
       // Allow caregivers, supporters, besties, admins, and owners
       if (!roleData || !['caregiver', 'supporter', 'bestie', 'admin', 'owner'].includes(roleData.role)) {
+        setLoading(false);
         toast({
           title: "Access denied",
           description: "You don't have permission to access this page",
@@ -172,11 +174,13 @@ export default function GuardianLinks() {
       // Load sponsorships for all roles
       await loadSponsorships(user.id);
     } catch (error: any) {
+      setLoading(false);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+      navigate("/community");
     } finally {
       setLoading(false);
     }
@@ -246,7 +250,7 @@ export default function GuardianLinks() {
         setLinkedBesties(besties as LinkedBestie[]);
       }
     } catch (error: any) {
-      console.error("Error loading linked besties:", error);
+      // Silently handle error
     }
   };
 
@@ -297,7 +301,7 @@ export default function GuardianLinks() {
 
       setVendorLinks(vendorLinksMap);
     } catch (error: any) {
-      console.error("Error loading vendor links:", error);
+      // Silently handle error
     }
   };
 

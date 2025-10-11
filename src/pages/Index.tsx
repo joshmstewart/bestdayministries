@@ -61,7 +61,7 @@ const Index = () => {
         .order("display_order", { ascending: true });
 
       if (error) {
-        console.error("Error fetching sections:", error);
+        // Use default sections on error
         setLoading(false);
         return;
       }
@@ -71,7 +71,7 @@ const Index = () => {
       }
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching sections:", error);
+      // Silently fall back to default sections
       setLoading(false);
     }
   };
