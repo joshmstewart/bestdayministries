@@ -40,7 +40,9 @@ export const useTermsCheck = (userId: string | undefined) => {
     }
   };
 
-  const recordAcceptance = async () => {
+  const recordAcceptance = async (retryCount = 0): Promise<void> => {
+    const maxRetries = 3;
+    
     try {
       const { error } = await supabase.functions.invoke("record-terms-acceptance", {
         body: {
@@ -52,12 +54,26 @@ export const useTermsCheck = (userId: string | undefined) => {
       if (error) throw error;
 
       setNeedsAcceptance(false);
+      // Clear any pending flags
+      localStorage.removeItem('pendingTermsAcceptance');
+      localStorage.removeItem('signupTimestamp');
+      
       toast({
         title: "Terms Accepted",
         description: "Thank you for accepting our updated terms.",
       });
     } catch (error) {
       console.error("Error recording acceptance:", error);
+      
+      // Retry with exponential backoff
+      if (retryCount < maxRetries) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`Retrying terms acceptance in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return recordAcceptance(retryCount + 1);
+      }
+      
       toast({
         title: "Error",
         description: "Failed to record acceptance. Please try again.",

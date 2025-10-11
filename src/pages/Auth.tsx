@@ -78,6 +78,41 @@ const Auth = () => {
       }
     };
 
+    // Record terms acceptance for new signups
+    const recordTermsForNewUser = async (userId: string, retryCount = 0) => {
+      const maxRetries = 3;
+      const pendingAcceptance = localStorage.getItem('pendingTermsAcceptance');
+      
+      if (pendingAcceptance) {
+        try {
+          console.log('📝 Recording terms acceptance for new user', { userId, retryCount });
+          const { error } = await supabase.functions.invoke("record-terms-acceptance", {
+            body: {
+              termsVersion: "1.0",
+              privacyVersion: "1.0",
+            },
+          });
+
+          if (error) throw error;
+
+          // Success - clear the flag
+          localStorage.removeItem('pendingTermsAcceptance');
+          console.log('✅ Terms acceptance recorded successfully');
+        } catch (error) {
+          console.error('❌ Error recording terms acceptance:', error);
+          
+          // Retry with exponential backoff
+          if (retryCount < maxRetries) {
+            const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+            console.log(`🔄 Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+            setTimeout(() => recordTermsForNewUser(userId, retryCount + 1), delay);
+          } else {
+            console.warn('⚠️ Max retries reached, terms will be prompted on next check');
+          }
+        }
+      }
+    };
+
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -87,6 +122,10 @@ const Auth = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
+        // Record terms for new signups when session is confirmed
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          recordTermsForNewUser(session.user.id);
+        }
         checkAndRedirect(session.user.id);
       }
     });
@@ -127,18 +166,9 @@ const Auth = () => {
 
         if (error) throw error;
 
-        // Record terms acceptance after successful signup
-        try {
-          await supabase.functions.invoke("record-terms-acceptance", {
-            body: {
-              termsVersion: "1.0",
-              privacyVersion: "1.0",
-            },
-          });
-        } catch (termsError) {
-          console.error("Error recording terms acceptance:", termsError);
-          // Don't block signup if terms recording fails
-        }
+        // Set flag to record terms acceptance once session is confirmed
+        localStorage.setItem('pendingTermsAcceptance', 'true');
+        localStorage.setItem('signupTimestamp', Date.now().toString());
 
         toast({
           title: "Welcome to Best Day Ministries!",

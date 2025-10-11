@@ -22,10 +22,17 @@ serve(async (req) => {
       }
     );
 
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
-      throw new Error("Not authenticated");
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError) {
+      console.error("Auth error:", authError);
+      throw new Error(`Authentication failed: ${authError.message}`);
     }
+    if (!user) {
+      console.error("No user found in session");
+      throw new Error("Not authenticated - no user in session");
+    }
+
+    console.log(`Recording terms acceptance for user: ${user.id}`);
 
     const { termsVersion, privacyVersion } = await req.json();
 
@@ -33,8 +40,10 @@ serve(async (req) => {
     const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
 
+    console.log(`Terms version: ${termsVersion}, Privacy version: ${privacyVersion}`);
+
     // Record acceptance with upsert to handle duplicate attempts
-    const { error } = await supabaseClient
+    const { error: dbError } = await supabaseClient
       .from("terms_acceptance")
       .upsert({
         user_id: user.id,
@@ -47,19 +56,27 @@ serve(async (req) => {
         ignoreDuplicates: false
       });
 
-    if (error) throw error;
+    if (dbError) {
+      console.error("Database error:", dbError);
+      throw dbError;
+    }
+
+    console.log(`✅ Successfully recorded terms acceptance for user: ${user.id}`);
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, userId: user.id }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       }
     );
   } catch (error: any) {
-    console.error("Error recording terms acceptance:", error);
+    console.error("❌ Error recording terms acceptance:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        errorCode: error.code || 'UNKNOWN_ERROR'
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
