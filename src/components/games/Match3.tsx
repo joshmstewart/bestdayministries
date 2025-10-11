@@ -195,6 +195,12 @@ export const Match3 = () => {
   const handleCellClick = (row: number, col: number) => {
     if (isAnimating) return;
 
+    // If clicking a special item, activate it directly
+    if (grid[row][col].special) {
+      activateSpecialDirectly(row, col);
+      return;
+    }
+
     if (!selectedCell) {
       setSelectedCell({ row, col });
     } else {
@@ -207,6 +213,41 @@ export const Match3 = () => {
       }
       setSelectedCell(null);
     }
+  };
+
+  const activateSpecialDirectly = async (row: number, col: number) => {
+    setIsAnimating(true);
+    const newGrid = grid.map(r => [...r]);
+    const special = newGrid[row][col].special;
+    
+    if (special) {
+      const destroyedCount = activateSpecial(row, col, special, newGrid);
+      
+      const newMoves = moves + 1;
+      setMoves(newMoves);
+      setGrid(newGrid);
+      
+      const pointsEarned = destroyedCount * DIFFICULTY_CONFIG[difficulty].pointsPerMatch * 2;
+      setScore(prev => prev + pointsEarned);
+      setIconsDestroyed(prev => prev + destroyedCount);
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await dropCells(newGrid);
+      
+      // Check challenge fail condition
+      if (gameMode === "challenge" && currentChallenge) {
+        if (newMoves >= currentChallenge.maxMoves && iconsDestroyed + destroyedCount < currentChallenge.targetIcons) {
+          setChallengeFailed(true);
+          toast({
+            title: "Challenge Failed! 😔",
+            description: "You ran out of moves. Try again!",
+            variant: "destructive",
+          });
+        }
+      }
+    }
+    
+    setIsAnimating(false);
   };
 
   const handleDragStart = (e: React.DragEvent, row: number, col: number) => {
