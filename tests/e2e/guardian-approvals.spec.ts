@@ -52,7 +52,7 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
     
-    const postsTab = page.locator('text=/posts/i, button:has-text("Posts"), [role="tab"]:has-text("Posts")').first();
+    const postsTab = page.locator('button:has-text("Posts"), [role="tab"]:has-text("Posts")').first();
     const hasPostsTab = await postsTab.count() > 0;
     
     expect(hasPostsTab || !hasPostsTab).toBeTruthy();
@@ -63,7 +63,7 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
     
-    const commentsTab = page.locator('text=/comments/i, button:has-text("Comments"), [role="tab"]:has-text("Comments")').first();
+    const commentsTab = page.locator('button:has-text("Comments"), [role="tab"]:has-text("Comments")').first();
     const hasCommentsTab = await commentsTab.count() > 0;
     
     expect(hasCommentsTab || !hasCommentsTab).toBeTruthy();
@@ -74,7 +74,7 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
     
-    const vendorsTab = page.locator('text=/vendors/i, button:has-text("Vendors"), [role="tab"]:has-text("Vendors")').first();
+    const vendorsTab = page.locator('button:has-text("Vendors"), [role="tab"]:has-text("Vendors")').first();
     const hasVendorsTab = await vendorsTab.count() > 0;
     
     expect(hasVendorsTab || !hasVendorsTab).toBeTruthy();
@@ -85,7 +85,7 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
     
-    const messagesTab = page.locator('text=/messages/i, button:has-text("Messages"), [role="tab"]:has-text("Messages")').first();
+    const messagesTab = page.locator('button:has-text("Messages"), [role="tab"]:has-text("Messages")').first();
     const hasMessagesTab = await messagesTab.count() > 0;
     
     expect(hasMessagesTab || !hasMessagesTab).toBeTruthy();
@@ -132,7 +132,7 @@ test.describe('Guardian Approvals - Pending Items', () => {
     await page.waitForTimeout(2000);
     
     // Switch to comments tab
-    const commentsTab = page.locator('text=/comments/i, button:has-text("Comments")').first();
+    const commentsTab = page.locator('button:has-text("Comments"), [role="tab"]:has-text("Comments")').first();
     const hasTab = await commentsTab.count() > 0;
     
     if (hasTab) {
@@ -154,7 +154,7 @@ test.describe('Guardian Approvals - Pending Items', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
     
-    const vendorsTab = page.locator('text=/vendors/i, button:has-text("Vendors")').first();
+    const vendorsTab = page.locator('button:has-text("Vendors"), [role="tab"]:has-text("Vendors")').first();
     const hasTab = await vendorsTab.count() > 0;
     
     if (hasTab) {
@@ -176,7 +176,7 @@ test.describe('Guardian Approvals - Pending Items', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
     
-    const messagesTab = page.locator('text=/messages/i, button:has-text("Messages")').first();
+    const messagesTab = page.locator('button:has-text("Messages"), [role="tab"]:has-text("Messages")').first();
     const hasTab = await messagesTab.count() > 0;
     
     if (hasTab) {
@@ -307,8 +307,9 @@ test.describe('Guardian Approvals - Content Display', () => {
     await page.waitForTimeout(2000);
     
     // Look for time indicators
-    const timestamps = page.locator('time, [datetime], text=/ago|minutes|hours|days/i');
-    const hasTimestamps = await timestamps.count() > 0;
+    const timeElements = await page.locator('time, [datetime]').count();
+    const timeText = await page.locator('text=/ago|minutes|hours|days/i').count();
+    const hasTimestamps = (timeElements + timeText) > 0;
     
     expect(hasTimestamps || !hasTimestamps).toBeTruthy();
   });
