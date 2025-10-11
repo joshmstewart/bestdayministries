@@ -1,7 +1,9 @@
-# Automated Testing System
+# Automated Testing System (Option 1 - Basic)
 
 ## Overview
 The application includes automated end-to-end (E2E) testing using Playwright that runs on every push/PR via GitHub Actions. Test results are automatically logged to the database and viewable in the Admin dashboard.
+
+**NOTE:** For the full testing suite including unit tests and visual regression, see [TESTING_OPTION_2.md](./TESTING_OPTION_2.md).
 
 ## Components
 
