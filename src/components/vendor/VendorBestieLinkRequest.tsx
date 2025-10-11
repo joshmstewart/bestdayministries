@@ -41,9 +41,12 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
       // Look up bestie by friend code
       const { data: profile, error: profileError } = await supabase
         .from('profiles_public')
-        .select('id, display_name, friend_code')
+        .select('id, display_name, friend_code, role')
         .eq('friend_code', friendCode)
         .maybeSingle();
+
+      console.log('🔍 Searching for friend code:', friendCode, 'Length:', friendCode.length);
+      console.log('🔍 Search result:', { profile, error: profileError });
 
       if (profileError || !profile) {
         toast.error("Friend code not found");
@@ -51,19 +54,15 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
         return;
       }
 
-      // Verify the user has bestie role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', profile.id)
-        .eq('role', 'bestie')
-        .maybeSingle();
-
-      if (roleError || !roleData) {
+      // Check if the profile has bestie role (from profiles_public view which includes role)
+      if (profile.role !== 'bestie') {
+        console.log('❌ Not a bestie. Role:', profile.role);
         toast.error("This friend code doesn't belong to a bestie");
         setLoading(false);
         return;
       }
+
+      console.log('✅ Bestie found:', profile.display_name);
 
       // Create link request
       const { error: requestError } = await supabase
