@@ -474,7 +474,7 @@ export const Match3 = () => {
       setIconsDestroyed(prev => prev + destroyedCount);
       
       await new Promise(resolve => setTimeout(resolve, 300));
-      await dropCells(newGrid);
+      await dropCells(newGrid, difficulty);
       
       // Check challenge fail condition
       if (gameMode === "challenge" && currentChallenge) {
@@ -558,7 +558,7 @@ export const Match3 = () => {
       setIconsDestroyed(prev => prev + totalDestroyed);
       
       await new Promise(resolve => setTimeout(resolve, 300));
-      await dropCells(newGrid);
+      await dropCells(newGrid, difficulty);
       setIsAnimating(false);
       return;
     }
@@ -572,7 +572,7 @@ export const Match3 = () => {
     setMoves(newMoves);
 
     // Check for matches
-    await checkMatches(newGrid);
+    await checkMatches(newGrid, difficulty);
 
     // Check challenge fail condition
     if (gameMode === "challenge" && currentChallenge) {
@@ -734,7 +734,7 @@ export const Match3 = () => {
     return null;
   };
 
-  const checkMatches = async (currentGrid: Cell[][]) => {
+  const checkMatches = async (currentGrid: Cell[][], diff: Difficulty) => {
     setIsAnimating(true);
     let hasMatches = false;
     let matchCount = 0;
@@ -899,13 +899,13 @@ export const Match3 = () => {
         }
       }
       
-      await dropCells(newGrid);
+      await dropCells(newGrid, diff);
     }
 
     setIsAnimating(false);
   };
 
-  const dropCells = async (currentGrid: Cell[][]) => {
+  const dropCells = async (currentGrid: Cell[][], diff: Difficulty) => {
     const newGrid = currentGrid.map(row => [...row]);
 
     // For each column, drop cells down to fill gaps
@@ -928,13 +928,13 @@ export const Match3 = () => {
       
       // Fill empty spaces at the top with new cells
       for (let row = 0; row <= writePos; row++) {
-        newGrid[row][col] = createCell(row, col, difficulty);
+        newGrid[row][col] = createCell(row, col, diff);
       }
     }
 
     setGrid(newGrid);
     await new Promise(resolve => setTimeout(resolve, 300));
-    await checkMatches(newGrid);
+    await checkMatches(newGrid, diff);
   };
 
   const saveGameSession = async () => {
