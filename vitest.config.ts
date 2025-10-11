@@ -9,6 +9,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     css: true,
+    clearMocks: true,
+    restoreMocks: true,
     include: ['tests/unit/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['tests/*.spec.ts', 'tests/visual.spec.ts'],
     coverage: {
