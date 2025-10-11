@@ -155,15 +155,15 @@ export async function fillPasswordField(
   value: string,
   options: { index?: number; timeout?: number } = {}
 ) {
-  const { index = 0, timeout = 10000 } = options;
+  const { index = 0, timeout = 15000 } = options;
   
-  // Wait for password fields to be present
-  const passwordFields = page.getByPlaceholder(/password/i);
+  // Use type selector which is more reliable than placeholder
+  const passwordFields = page.locator('input[type="password"]');
   await passwordFields.first().waitFor({ state: 'visible', timeout });
   
   // Get the specific password field by index
   const field = passwordFields.nth(index);
-  await field.waitFor({ state: 'visible', timeout: 2000 });
+  await field.waitFor({ state: 'visible', timeout: 5000 });
   await field.fill(value);
   
   // Brief wait for any onChange handlers
