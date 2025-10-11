@@ -39,10 +39,11 @@ FILES:ErrorBoundary.tsx|HeaderSkeleton.tsx|useRetryFetch.ts
 
 ## BESTIE_LINKING
 FRIEND-CODE:3-emoji[20-set=8k-combos]|UUID-based-links-preserved
-GUARDIAN:caregiver_bestie_links→3-emoji→search→link+approval-flags
+GUARDIAN:caregiver_bestie_links→3-emoji→search→role-verify→link+approval-flags
 VENDOR:vendor_bestie_requests→guardian-approve→feature-ONE
 SPONSOR:sponsorships+sponsorship_shares→Stripe→share-access
 SECURITY:is_guardian_of()
+RLS-CRITICAL:user_roles[SELECT-auth-required-for-role-verify]
 
 ## EVENTS
 TYPES:single|recurring-multi|recurring-template
@@ -87,7 +88,7 @@ ROLES:supporter|bestie|caregiver|moderator|admin|owner
 AVATAR:1-12→composite-{n}.png
 TERMS:Guard+Dialog→versions-in-useTermsCheck
 SECURITY:handle_new_user()[DEFINER]|has_role()[DEFINER]
-RLS:profiles[own+guardians-linked+admins-all]
+RLS:profiles[own+guardians-linked+admins-all]|user_roles[SELECT-auth|INSERT-UPDATE-DELETE-admins]
 
 ## BUTTON_STYLING
 VARIANTS:default[gradient-CTAs]|outline[border-secondary]|secondary[solid-supporting]|ghost[transparent-tertiary]

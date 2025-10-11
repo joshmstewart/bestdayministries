@@ -16,8 +16,9 @@
 
 **Flow:**
 1. Guardian enters 3 emojis at `/guardian-links`
-2. System searches `profiles_public` by `friend_code` + `role = 'bestie'`
-3. Creates link with approval settings (posts, comments, featured posts)
+2. System searches `profiles_public` by `friend_code`
+3. Verifies user has 'bestie' role via `user_roles` table (requires SELECT policy)
+4. Creates link with approval settings (posts, comments, featured posts)
 
 **Guardian Can:**
 - View/unlink besties
@@ -97,12 +98,21 @@
 | Issue | Fix |
 |-------|-----|
 | Code not found | Verify emoji order, bestie has code |
+| "Not a bestie" error | Ensure user_roles table has SELECT policy for authenticated users |
 | Link exists | Check existing links first |
 | Vendor stuck pending | Guardian approves at `/guardian-approvals` |
 
-## Security Functions
+## Security Functions & RLS Requirements
 ```sql
 is_guardian_of(_guardian_id, _bestie_id) -- Check guardian access
+```
+
+**Critical RLS Policy:**
+```sql
+-- user_roles table MUST have SELECT policy for authenticated users
+-- Required for role verification during friend code linking
+CREATE POLICY "Anyone authenticated can view user roles"
+ON user_roles FOR SELECT TO authenticated USING (true);
 ```
 
 ## Not Implemented

@@ -109,7 +109,8 @@ SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = _user_id AND role = _rol
 - Admins see all
 
 **user_roles:**
-- Uses `has_admin_access()` function
+- SELECT: Authenticated users can view all roles (required for friend code verification)
+- INSERT/UPDATE/DELETE: Uses `has_admin_access()` function
 - Only admins can modify roles
 
 ## Common Issues

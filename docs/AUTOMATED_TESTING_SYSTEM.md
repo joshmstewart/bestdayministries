@@ -9,7 +9,12 @@ The application includes automated end-to-end (E2E) testing using Playwright tha
 
 ### 1. Test Framework (Playwright)
 - **Config**: `playwright.config.ts`
-- **Tests**: `tests/basic.spec.ts`
+- **Tests**: 
+  - `tests/e2e/basic.spec.ts` - Basic navigation and page loads
+  - `tests/e2e/auth.spec.ts` - **Comprehensive signup/login tests for all roles**
+  - `tests/e2e/guardian-linking.spec.ts` - **Friend code linking and role verification**
+  - `tests/e2e/vendor-linking.spec.ts` - **Vendor-bestie linking and approval flow**
+  - Other E2E tests for forms, community, store, etc.
 - **Browsers**: Chrome, Firefox, Safari
 - **Features**: Screenshots on failure, retries on CI, HTML reports
 
