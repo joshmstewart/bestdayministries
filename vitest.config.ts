@@ -12,7 +12,7 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     include: ['tests/unit/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['tests/*.spec.ts', 'tests/visual.spec.ts'],
+    exclude: ['tests/e2e/**/*', 'node_modules/**/*'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
