@@ -46,6 +46,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Notifications from "./pages/Notifications";
 import MemoryMatchPage from "./pages/MemoryMatchPage";
+import Match3Page from "./pages/Match3Page";
 import VirtualPetPage from "./pages/VirtualPetPage";
 import StorePage from "./pages/Store";
 import NotFound from "./pages/NotFound";
@@ -178,6 +179,7 @@ const App = () => {
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/notifications" element={<Notifications />} />
           <Route path="/games/memory-match" element={<MemoryMatchPage />} />
+          <Route path="/games/match3" element={<Match3Page />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
