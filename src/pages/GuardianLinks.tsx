@@ -585,6 +585,12 @@ export default function GuardianLinks() {
         return;
       }
 
+      console.log("🔗 Creating link:", {
+        caregiver_id: currentUserId,
+        bestie_id: bestie.id,
+        relationship: relationship.trim(),
+      });
+
       const { error: insertError } = await supabase
         .from("caregiver_bestie_links")
         .insert({
@@ -592,6 +598,8 @@ export default function GuardianLinks() {
           bestie_id: bestie.id,
           relationship: relationship.trim(),
         });
+
+      console.log("🔗 Insert result:", { error: insertError });
 
       if (insertError) throw insertError;
 
@@ -609,9 +617,10 @@ export default function GuardianLinks() {
       await loadLinks(currentUserId);
       await loadLinkedBesties(currentUserId);
     } catch (error: any) {
+      console.error("❌ Error creating link:", error);
       toast({
         title: "Error creating link",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
