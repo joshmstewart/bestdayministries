@@ -13,21 +13,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - uses: actions/setup-node@v4
+    - uses: oven-sh/setup-bun@v2
       with:
-        node-version: 20
+        bun-version: latest
         
     - name: Install dependencies
-      run: npm ci
+      run: bun install --frozen-lockfile
       
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
       
     - name: Build project
-      run: npm run build
+      run: bun run build
       
     - name: Run unit tests
-      run: npm run test:unit
+      run: bun run test:unit
       
     - name: Run Playwright tests
       run: npx playwright test
