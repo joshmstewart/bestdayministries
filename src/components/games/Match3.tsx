@@ -793,7 +793,7 @@ export const Match3 = () => {
 
   if (gameMode === "free") {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-warm bg-clip-text text-transparent">
             Match-3 Game
@@ -846,7 +846,7 @@ export const Match3 = () => {
                         onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
                         onDragEnd={handleDragEnd}
                         className={`
-                          aspect-square text-4xl flex items-center justify-center relative
+                          aspect-square text-3xl flex items-center justify-center relative
                           rounded-lg transition-all duration-200 cursor-move
                           ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
                           ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
@@ -982,7 +982,7 @@ export const Match3 = () => {
                     onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
                     onDragEnd={handleDragEnd}
                     className={`
-                      aspect-square text-4xl flex items-center justify-center relative
+                      aspect-square text-3xl flex items-center justify-center relative
                       rounded-lg transition-all duration-200 cursor-move
                       ${cell.matched ? "opacity-0 scale-50" : "opacity-100 scale-100"}
                       ${draggedCell?.row === rowIndex && draggedCell?.col === colIndex
