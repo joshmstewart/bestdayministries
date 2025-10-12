@@ -311,7 +311,17 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
     const context = page.context();
     await context.addInitScript((sessionData) => {
       localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
+      
+      // ✅ COMPREHENSIVE FIX: Trigger storage event to notify Supabase client of session
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'supabase.auth.token',
+        newValue: JSON.stringify(sessionData),
+        url: window.location.href,
+      }));
     }, session);
+
+    // ✅ COMPREHENSIVE FIX: Wait for Supabase client to initialize from storage
+    await page.waitForTimeout(100);
 
     await route.fulfill({
       status: 200,
@@ -559,6 +569,41 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
         contentType: 'application/json',
         body: JSON.stringify(results),
       });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // ✅ COMPREHENSIVE FIX: Mock terms_acceptance table for proper auth testing
+  await page.route('**/rest/v1/terms_acceptance*', async (route) => {
+    const method = route.request().method();
+    
+    if (method === 'POST') {
+      const body = await route.request().postDataJSON();
+      const authHeader = route.request().headers()['authorization'];
+      const userId = state.getUserIdFromToken(authHeader);
+      
+      if (userId) {
+        // Mock successful database insert
+        state.termsAcceptance.add(userId);
+        
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            user_id: userId,
+            terms_version: body.terms_version,
+            privacy_version: body.privacy_version,
+            accepted_at: new Date().toISOString()
+          }]),
+        });
+      } else {
+        await route.fulfill({ 
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Unauthorized' })
+        });
+      }
     } else {
       await route.continue();
     }
@@ -835,10 +880,21 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ success: true }),
+          body: JSON.stringify({ success: true, userId }),
         });
       } else {
-        await route.fulfill({ status: 401 });
+        // ✅ COMPREHENSIVE FIX: Log authentication failure for debugging
+        console.log('[TEST MOCK] record-terms-acceptance called without valid auth token');
+        console.log('[TEST MOCK] Auth header:', authHeader ? 'present but invalid' : 'missing');
+        
+        await route.fulfill({ 
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ 
+            error: 'Not authenticated - no user in session',
+            errorCode: 'UNAUTHENTICATED'
+          })
+        });
       }
     } else if (url.includes('text-to-speech')) {
       await route.fulfill({
