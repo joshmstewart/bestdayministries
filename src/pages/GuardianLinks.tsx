@@ -952,12 +952,17 @@ export default function GuardianLinks() {
                       <div>
                         <Label>First Emoji</Label>
                         <Select value={emoji1} onValueChange={setEmoji1}>
-                          <SelectTrigger className="h-20 text-4xl">
+                          <SelectTrigger className="h-20 text-4xl" data-testid="emoji-1-trigger">
                             <SelectValue placeholder="?" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent data-testid="emoji-1-content">
                             {FRIEND_CODE_EMOJIS.map((item) => (
-                              <SelectItem key={`1-${item.emoji}`} value={item.emoji} className="text-3xl">
+                              <SelectItem 
+                                key={`1-${item.emoji}`} 
+                                value={item.emoji} 
+                                className="text-3xl"
+                                data-testid={`emoji-1-option-${item.emoji}`}
+                              >
                                 {item.emoji}
                               </SelectItem>
                             ))}
@@ -967,12 +972,17 @@ export default function GuardianLinks() {
                       <div>
                         <Label>Second Emoji</Label>
                         <Select value={emoji2} onValueChange={setEmoji2}>
-                          <SelectTrigger className="h-20 text-4xl">
+                          <SelectTrigger className="h-20 text-4xl" data-testid="emoji-2-trigger">
                             <SelectValue placeholder="?" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent data-testid="emoji-2-content">
                             {FRIEND_CODE_EMOJIS.map((item) => (
-                              <SelectItem key={`2-${item.emoji}`} value={item.emoji} className="text-3xl">
+                              <SelectItem 
+                                key={`2-${item.emoji}`} 
+                                value={item.emoji} 
+                                className="text-3xl"
+                                data-testid={`emoji-2-option-${item.emoji}`}
+                              >
                                 {item.emoji}
                               </SelectItem>
                             ))}
@@ -982,12 +992,17 @@ export default function GuardianLinks() {
                       <div>
                         <Label>Third Emoji</Label>
                         <Select value={emoji3} onValueChange={setEmoji3}>
-                          <SelectTrigger className="h-20 text-4xl">
+                          <SelectTrigger className="h-20 text-4xl" data-testid="emoji-3-trigger">
                             <SelectValue placeholder="?" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent data-testid="emoji-3-content">
                             {FRIEND_CODE_EMOJIS.map((item) => (
-                              <SelectItem key={`3-${item.emoji}`} value={item.emoji} className="text-3xl">
+                              <SelectItem 
+                                key={`3-${item.emoji}`} 
+                                value={item.emoji} 
+                                className="text-3xl"
+                                data-testid={`emoji-3-option-${item.emoji}`}
+                              >
                                 {item.emoji}
                               </SelectItem>
                             ))}
@@ -1007,6 +1022,7 @@ export default function GuardianLinks() {
                       <Label htmlFor="relationship">Your Relationship</Label>
                       <Input
                         id="relationship"
+                        data-testid="relationship-input"
                         placeholder="e.g., Parent, Sibling, Friend"
                         value={relationship}
                         onChange={(e) => setRelationship(e.target.value)}
@@ -1023,7 +1039,11 @@ export default function GuardianLinks() {
                     }}>
                       Cancel
                     </Button>
-                    <Button onClick={handleAddLink} disabled={isSearching}>
+                    <Button 
+                      onClick={handleAddLink} 
+                      disabled={isSearching}
+                      data-testid="create-link-button"
+                    >
                       {isSearching ? (
                         <>
                           <div className="w-4 h-4 mr-2 rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />

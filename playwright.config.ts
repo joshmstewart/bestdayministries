@@ -17,8 +17,14 @@ export default defineConfig({
     navigationTimeout: 30000,
   },
 
-  // Increase default test timeout for slower CI
+  // Default test timeout - fast tests will use this
   timeout: 60000,
+
+  // Grep patterns for running specific test types
+  // Run only fast tests: npx playwright test --grep @fast
+  // Run only slow tests: npx playwright test --grep @slow
+  // Run all tests: npx playwright test
+  grep: process.env.TEST_FILTER ? new RegExp(process.env.TEST_FILTER) : undefined,
 
   projects: [
     {
