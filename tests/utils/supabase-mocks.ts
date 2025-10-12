@@ -306,13 +306,12 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
     const user = state.users.get(userId);
     const session = state.sessions.get(userId);
 
-    // ✅ FIX: Use addInitScript to set localStorage before any page loads
-    // This avoids SecurityError by letting Playwright inject the script at the right time
-    const context = page.context();
-    await context.addInitScript((sessionData) => {
+    // ✅ DEFINITIVE FIX: Inject session into current page immediately using page.evaluate
+    // page.evaluate runs NOW on the current page, not on next navigation like addInitScript
+    await page.evaluate((sessionData) => {
       localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
       
-      // ✅ COMPREHENSIVE FIX: Trigger storage event to notify Supabase client of session
+      // Trigger storage event to notify Supabase client
       window.dispatchEvent(new StorageEvent('storage', {
         key: 'supabase.auth.token',
         newValue: JSON.stringify(sessionData),
@@ -320,8 +319,8 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
       }));
     }, session);
 
-    // ✅ COMPREHENSIVE FIX: Wait for Supabase client to initialize from storage
-    await page.waitForTimeout(100);
+    // Give Supabase client a moment to process the storage event
+    await page.waitForTimeout(50);
 
     await route.fulfill({
       status: 200,
