@@ -21,7 +21,7 @@ test.describe('Authentication and Signup Flow', () => {
     // Elements should already be visible after beforeEach waits
     await expect(page.locator('h1, h2').filter({ hasText: /sign in|log in|welcome/i }).first()).toBeVisible();
     await expect(page.getByPlaceholder(/email/i)).toBeVisible();
-    await expect(page.getByPlaceholder(/password/i)).toBeVisible();
+    await expect(page.getByLabel(/password/i)).toBeVisible();
   });
 
   test('should toggle between sign-in and sign-up modes', async ({ page }) => {
@@ -61,7 +61,7 @@ test.describe('Authentication and Signup Flow', () => {
       
       // ✅ Fill ALL required fields FIRST
       await page.getByPlaceholder(/email/i).fill('supporter@test.com');
-      await page.getByPlaceholder(/password/i).fill('TestPass123!');
+      await page.getByLabel(/password/i).fill('TestPass123!');
       await page.getByPlaceholder(/name|display name/i).fill('Test Supporter');
       
       // Select supporter role
@@ -116,7 +116,7 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Fill in required fields
       await page.getByPlaceholder(/email/i).fill('bestie@test.com');
-      await page.getByPlaceholder(/password/i).fill('TestPass123!');
+      await page.getByLabel(/password/i).fill('TestPass123!');
       await page.getByPlaceholder(/name|display name/i).fill('Test Bestie');
       
       // Select bestie role
@@ -173,7 +173,7 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Fill in required fields
       await page.getByPlaceholder(/email/i).fill('caregiver@test.com');
-      await page.getByPlaceholder(/password/i).fill('TestPass123!');
+      await page.getByLabel(/password/i).fill('TestPass123!');
       await page.getByPlaceholder(/name|display name/i).fill('Test Caregiver');
       
       // Select caregiver role
@@ -222,7 +222,7 @@ test.describe('Authentication and Signup Flow', () => {
     
     // Fill in ALL OTHER required fields
     await page.getByPlaceholder(/email/i).fill('test@test.com');
-    await page.getByPlaceholder(/password/i).fill('TestPass123!');
+    await page.getByLabel(/password/i).fill('TestPass123!');
     await page.getByPlaceholder(/name|display name/i).fill('Test User');
     
     // Select avatar
@@ -276,7 +276,7 @@ test.describe('Authentication and Signup Flow', () => {
 
     test('should show error for invalid credentials', async ({ page }) => {
       await page.getByPlaceholder(/email/i).fill('invalid@example.com');
-      await page.getByPlaceholder(/password/i).fill('wrongpassword');
+      await page.getByLabel(/password/i).fill('wrongpassword');
       
       const signInButton = page.locator('button[type="submit"]').filter({ hasText: /sign in|log in/i }).first();
       
@@ -303,7 +303,7 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Sign in
       await page.getByPlaceholder(/email/i).fill('existing@test.com');
-      await page.getByPlaceholder(/password/i).fill('password123');
+      await page.getByLabel(/password/i).fill('password123');
       
       const signInButton = page.locator('button[type="submit"]').filter({ hasText: /sign in|log in/i }).first();
       
