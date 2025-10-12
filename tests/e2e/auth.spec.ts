@@ -62,7 +62,7 @@ test.describe('Authentication and Signup Flow', () => {
       await expect(emailInput).toHaveAttribute('required', '');
     });
 
-    test.only('should successfully sign up as Supporter', async ({ page }) => {
+    test('should successfully sign up as Supporter', async ({ page }) => {
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
       await page.waitForTimeout(500);
