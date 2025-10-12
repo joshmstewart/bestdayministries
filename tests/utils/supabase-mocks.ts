@@ -808,6 +808,19 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
     });
   });
 
+  // Mock RPC check_terms_acceptance (prevents Terms dialog in tests)
+  await page.route('**/rest/v1/rpc/check_terms_acceptance*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        needs_acceptance: false,
+        current_terms_version: '1.0',
+        current_privacy_version: '1.0'
+      })
+    });
+  });
+
   // Mock edge functions
   await page.route('**/functions/v1/**', async (route) => {
     const url = route.request().url();

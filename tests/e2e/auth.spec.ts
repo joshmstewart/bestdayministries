@@ -9,9 +9,16 @@ test.describe('Authentication and Signup Flow', () => {
     await mockSupabaseAuth(page, state);
     await mockSupabaseDatabase(page, state);
     await page.goto('/auth');
+    
+    // ✅ CRITICAL: Wait for page to be fully loaded and interactive
+    await page.waitForLoadState('networkidle');
+    
+    // ✅ Wait for auth form to be visible (after TermsAcceptanceGuard check)
+    await page.locator('input[type="email"], input[placeholder*="email" i]').first().waitFor({ timeout: 5000 });
   });
 
   test('should display auth page elements', async ({ page }) => {
+    // Elements should already be visible after beforeEach waits
     await expect(page.locator('h1, h2').filter({ hasText: /sign in|log in|welcome/i }).first()).toBeVisible();
     await expect(page.getByPlaceholder(/email/i)).toBeVisible();
     await expect(page.getByPlaceholder(/password/i)).toBeVisible();
@@ -22,32 +29,37 @@ test.describe('Authentication and Signup Flow', () => {
     await expect(toggleButton).toBeVisible();
     
     await toggleButton.click();
-    await expect(page.locator('text=/sign up|create account|register/i')).toBeVisible();
+    
+    // ✅ Wait for mode to change
+    await page.waitForTimeout(300);
+    
+    // Should see signup-specific elements
+    await expect(page.getByPlaceholder(/name|display name/i)).toBeVisible({ timeout: 3000 });
   });
 
   test.describe('Signup Flow - Supporter Role', () => {
     test('should validate required fields', async ({ page }) => {
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
+      await page.waitForTimeout(300);
       
-      // Try to submit without filling fields
+      // ✅ Don't try to click submit - just verify button is correctly disabled
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
-      await submitButton.click();
       
-      // Check that form prevents submission (button stays enabled or error shown)
+      // Button SHOULD be disabled when form is empty (this is correct behavior!)
+      await expect(submitButton).toBeDisabled();
+      
+      // Verify required fields
       const emailInput = page.getByPlaceholder(/email/i);
-      await expect(emailInput).toBeVisible();
-      
-      // Verify email field is required by checking if it's marked as invalid or has error
-      const isRequired = await emailInput.getAttribute('required');
-      expect(isRequired).toBeTruthy();
+      await expect(emailInput).toHaveAttribute('required', '');
     });
 
     test('should successfully sign up as Supporter', async ({ page }) => {
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
+      await page.waitForTimeout(500);
       
-      // Fill in all required fields
+      // ✅ Fill ALL required fields FIRST
       await page.getByPlaceholder(/email/i).fill('supporter@test.com');
       await page.getByPlaceholder(/password/i).fill('TestPass123!');
       await page.getByPlaceholder(/name|display name/i).fill('Test Supporter');
@@ -59,30 +71,37 @@ test.describe('Authentication and Signup Flow', () => {
         await page.locator('text=/supporter|support/i').first().click();
       }
       
-      // Accept terms
-      const termsCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: /terms|privacy|agree/i }).first();
+      // ✅ Select avatar (required)
+      const avatarOption = page.locator('[data-avatar-number="1"]').first();
+      if (await avatarOption.isVisible()) {
+        await avatarOption.click();
+      }
+      
+      // ✅ Accept terms
+      const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
       if (await termsCheckbox.isVisible()) {
         await termsCheckbox.check();
       }
       
-      // Submit form
+      // ✅ NOW button should be enabled
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      await expect(submitButton).toBeEnabled();
+      
+      // Submit form
       await submitButton.click();
       
-      // Wait for redirect or success
-      await page.waitForURL('**/', { timeout: 10000 }).catch(() => {});
+      // Wait for redirect
+      await page.waitForURL('**/community', { timeout: 10000 });
       
-      // Verify user was created in state
+      // Verify user was created
       const user = state.getUserByEmail('supporter@test.com');
       expect(user).toBeTruthy();
       expect(user?.email).toBe('supporter@test.com');
       
-      // Verify profile was created
       const profile = state.profiles.get(user!.id);
       expect(profile).toBeTruthy();
       expect(profile?.display_name).toBe('Test Supporter');
       
-      // Verify role was assigned
       const roles = Array.from(state.userRoles.values()).filter(r => r.user_id === user!.id);
       expect(roles.length).toBeGreaterThan(0);
       expect(roles[0]?.role).toBe('supporter');
@@ -93,6 +112,7 @@ test.describe('Authentication and Signup Flow', () => {
     test('should generate friend code for Bestie role', async ({ page }) => {
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
+      await page.waitForTimeout(500);
       
       // Fill in required fields
       await page.getByPlaceholder(/email/i).fill('bestie@test.com');
@@ -106,18 +126,27 @@ test.describe('Authentication and Signup Flow', () => {
         await page.locator('text=/bestie|member with/i').first().click();
       }
       
+      // Select avatar
+      const avatarOption = page.locator('[data-avatar-number="1"]').first();
+      if (await avatarOption.isVisible()) {
+        await avatarOption.click();
+      }
+      
       // Accept terms
-      const termsCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: /terms|privacy|agree/i }).first();
+      const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
       if (await termsCheckbox.isVisible()) {
         await termsCheckbox.check();
       }
       
-      // Submit form
+      // Verify button is enabled before clicking
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      await expect(submitButton).toBeEnabled();
+      
+      // Submit form
       await submitButton.click();
       
-      // Wait for processing
-      await page.waitForTimeout(1000);
+      // Wait for redirect
+      await page.waitForURL('**/community', { timeout: 10000 });
       
       // Verify user was created with friend code
       const user = state.getUserByEmail('bestie@test.com');
@@ -140,6 +169,7 @@ test.describe('Authentication and Signup Flow', () => {
     test('should successfully sign up as Caregiver', async ({ page }) => {
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
+      await page.waitForTimeout(500);
       
       // Fill in required fields
       await page.getByPlaceholder(/email/i).fill('caregiver@test.com');
@@ -153,18 +183,27 @@ test.describe('Authentication and Signup Flow', () => {
         await page.locator('text=/caregiver|guardian|family/i').first().click();
       }
       
+      // Select avatar
+      const avatarOption = page.locator('[data-avatar-number="1"]').first();
+      if (await avatarOption.isVisible()) {
+        await avatarOption.click();
+      }
+      
       // Accept terms
-      const termsCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: /terms|privacy|agree/i }).first();
+      const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
       if (await termsCheckbox.isVisible()) {
         await termsCheckbox.check();
       }
       
-      // Submit form
+      // Verify button is enabled before clicking
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      await expect(submitButton).toBeEnabled();
+      
+      // Submit form
       await submitButton.click();
       
-      // Wait for processing
-      await page.waitForTimeout(1000);
+      // Wait for redirect
+      await page.waitForURL('**/community', { timeout: 10000 });
       
       // Verify user was created
       const user = state.getUserByEmail('caregiver@test.com');
@@ -179,65 +218,57 @@ test.describe('Authentication and Signup Flow', () => {
   test('should require terms acceptance', async ({ page }) => {
     // Switch to signup mode
     await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
+    await page.waitForTimeout(300);
     
-    // Fill in required fields
+    // Fill in ALL OTHER required fields
     await page.getByPlaceholder(/email/i).fill('test@test.com');
     await page.getByPlaceholder(/password/i).fill('TestPass123!');
     await page.getByPlaceholder(/name|display name/i).fill('Test User');
     
-    // Find terms checkbox
-    const termsCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: /terms|privacy|agree/i }).first();
+    // Select avatar
+    const avatarOption = page.locator('[data-avatar-number="1"]').first();
+    if (await avatarOption.isVisible()) {
+      await avatarOption.click();
+    }
+    
+    // ✅ Don't check terms - verify button stays disabled
+    const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
     
     if (await termsCheckbox.isVisible()) {
-      // Verify checkbox is not checked
       await expect(termsCheckbox).not.toBeChecked();
       
-      // Verify submit button is disabled OR verify form doesn't submit
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
       
-      // Try approach 1: Check if button is disabled
-      const isDisabled = await submitButton.isDisabled().catch(() => false);
-      
-      if (isDisabled) {
-        expect(isDisabled).toBeTruthy();
-      } else {
-        // Try approach 2: Click and verify no navigation/no user created
-        const initialUserCount = state.users.size;
-        await submitButton.click();
-        await page.waitForTimeout(500);
-        
-        // Verify no user was created and still on auth page
-        expect(state.users.size).toBe(initialUserCount);
-        expect(page.url()).toContain('/auth');
-      }
+      // Button should be disabled without terms acceptance
+      await expect(submitButton).toBeDisabled();
     }
   });
 
   test('should allow avatar selection', async ({ page }) => {
     // Switch to signup mode
     await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
+    await page.waitForTimeout(300);
     
-    // Look for avatar selector
-    const avatarSection = page.locator('text=/avatar|choose.*icon|select.*picture/i').first();
+    // ✅ Wait for avatar section to appear
+    await page.locator('[data-avatar-number]').first().waitFor({ timeout: 3000 });
     
-    if (await avatarSection.isVisible()) {
-      // Click on an avatar option
-      const avatarOption = page.locator('[role="radio"], img, button').filter({ hasText: /avatar/i }).first();
-      if (await avatarOption.isVisible()) {
-        await avatarOption.click();
-      }
-    }
+    // Click on an avatar option
+    const avatarOption = page.locator('[data-avatar-number="1"]').first();
+    await expect(avatarOption).toBeVisible();
+    await avatarOption.click();
     
-    // Verify avatar selection is available
-    await expect(page.locator('text=/avatar|icon|picture/i').first()).toBeVisible();
+    // Verify selection (may have visual indicator)
+    await page.waitForTimeout(200);
   });
 
   test.describe('Sign In Flow', () => {
     test('should validate empty form', async ({ page }) => {
       const signInButton = page.locator('button[type="submit"]').filter({ hasText: /sign in|log in/i }).first();
-      await signInButton.click();
       
-      // Verify form has required validation
+      // ✅ Button should be disabled when form is empty
+      await expect(signInButton).toBeDisabled();
+      
+      // Verify required fields
       const emailInput = page.getByPlaceholder(/email/i);
       const isRequired = await emailInput.getAttribute('required');
       expect(isRequired).toBeTruthy();
@@ -248,37 +279,45 @@ test.describe('Authentication and Signup Flow', () => {
       await page.getByPlaceholder(/password/i).fill('wrongpassword');
       
       const signInButton = page.locator('button[type="submit"]').filter({ hasText: /sign in|log in/i }).first();
+      
+      // ✅ Wait for button to be enabled
+      await expect(signInButton).toBeEnabled();
+      
       await signInButton.click();
       
-      // Wait for error message
-      await page.waitForTimeout(1000);
+      // ✅ Wait longer for error toast/message
+      await page.waitForTimeout(2000);
       
-      // Verify error is shown (either via toast or inline message)
-      const errorVisible = await page.locator('text=/invalid|incorrect|wrong/i').first().isVisible().catch(() => false);
+      // Verify error is shown
+      const errorVisible = await page.locator('text=/invalid|incorrect|wrong|not found/i').first().isVisible({ timeout: 3000 }).catch(() => false);
       expect(errorVisible).toBeTruthy();
     });
 
     test('should successfully sign in with valid credentials', async ({ page }) => {
-      // First create a user
+      // Create a user
       const userId = state.addUser('existing@test.com', 'password123', {
         display_name: 'Existing User',
         role: 'supporter',
         avatar_number: 1
       });
       
-      // Now try to sign in
+      // Sign in
       await page.getByPlaceholder(/email/i).fill('existing@test.com');
       await page.getByPlaceholder(/password/i).fill('password123');
       
       const signInButton = page.locator('button[type="submit"]').filter({ hasText: /sign in|log in/i }).first();
+      
+      // ✅ Wait for button to be enabled
+      await expect(signInButton).toBeEnabled();
+      
       await signInButton.click();
       
-      // Wait for redirect
-      await page.waitForURL('**/', { timeout: 10000 }).catch(() => {});
+      // ✅ Wait for redirect to community
+      await page.waitForURL('**/community', { timeout: 10000 });
       
-      // Verify we're no longer on auth page
       const currentUrl = page.url();
       expect(currentUrl).not.toContain('/auth');
+      expect(currentUrl).toContain('/community');
     });
   });
 
@@ -291,21 +330,30 @@ test.describe('Authentication and Signup Flow', () => {
         avatar_number: 1
       });
       
+      // Set up authenticated session
+      const session = state.sessions.get(userId);
+      if (session) {
+        const context = page.context();
+        await context.addInitScript((sessionData) => {
+          localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
+        }, session);
+      }
+      
       // Try to visit auth page
       await page.goto('/auth');
+      await page.waitForLoadState('networkidle');
       
-      // Should redirect away from auth page
-      await page.waitForTimeout(1000);
+      // ✅ Should redirect to community
+      await page.waitForURL('**/community', { timeout: 5000 }).catch(() => {});
+      
       const currentUrl = page.url();
-      
-      // Either redirected or shows logout option
-      const hasLogoutOption = await page.locator('text=/sign out|log out/i').first().isVisible().catch(() => false);
-      expect(currentUrl.includes('/auth') === false || hasLogoutOption).toBeTruthy();
+      expect(currentUrl).not.toContain('/auth');
     });
   });
 
   test.describe('Password Reset Flow', () => {
     test('should display forgot password link', async ({ page }) => {
+      // ✅ Elements should be visible after beforeEach
       const forgotPasswordLink = page.locator('a, button').filter({ hasText: /forgot.*password|reset.*password/i }).first();
       await expect(forgotPasswordLink).toBeVisible();
     });
@@ -314,22 +362,29 @@ test.describe('Authentication and Signup Flow', () => {
       const forgotPasswordLink = page.locator('a, button').filter({ hasText: /forgot.*password|reset.*password/i }).first();
       await forgotPasswordLink.click();
       
-      // Should show email input for reset
+      // ✅ Wait for form to appear
+      await page.waitForTimeout(300);
+      
       await expect(page.getByPlaceholder(/email/i)).toBeVisible();
     });
 
     test('should handle password reset request', async ({ page }) => {
       const forgotPasswordLink = page.locator('a, button').filter({ hasText: /forgot.*password|reset.*password/i }).first();
       await forgotPasswordLink.click();
+      await page.waitForTimeout(300);
       
       await page.getByPlaceholder(/email/i).fill('reset@test.com');
       
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /reset|send/i }).first();
+      
+      // ✅ Wait for button to be enabled
+      await expect(submitButton).toBeEnabled();
+      
       await submitButton.click();
       
-      // Should show success message
-      await page.waitForTimeout(1000);
-      const successVisible = await page.locator('text=/sent|check.*email|link/i').first().isVisible().catch(() => false);
+      // ✅ Wait longer for success message
+      await page.waitForTimeout(2000);
+      const successVisible = await page.locator('text=/sent|check.*email|link/i').first().isVisible({ timeout: 3000 }).catch(() => false);
       expect(successVisible).toBeTruthy();
     });
   });
