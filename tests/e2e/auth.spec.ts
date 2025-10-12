@@ -173,8 +173,8 @@ test.describe('Authentication and Signup Flow', () => {
       expect(profile).toBeTruthy();
       expect(profile?.friend_code).toBeTruthy();
       expect(profile?.friend_code.length).toBeGreaterThan(0);
-      // Friend code should be exactly 3 emojis
-      expect(profile!.friend_code.length).toBe(3);
+      // Friend code should be exactly 3 emojis (use spread to count emojis correctly)
+      expect([...profile!.friend_code].length).toBe(3);
       
       // Verify role is bestie
       const roles = Array.from(state.userRoles.values()).filter(r => r.user_id === user!.id);
