@@ -125,23 +125,37 @@ export class MockSupabaseState {
     this.appSettings.set('app_name', { setting_key: 'app_name', setting_value: 'Best Day Ministries' });
     
     // Initialize with default community sections (so pages render properly)
-    this.communityPageSections.set('featured_carousel', {
+    // Community page uses community_sections table
+    this.communityPageSections.set('welcome', {
       id: 'section-1',
-      section_key: 'featured_carousel',
-      section_name: 'Featured Carousel',
+      section_key: 'welcome',
+      section_name: 'Welcome',
       display_order: 1,
       is_visible: true,
       content: {}
     });
     
-    // Initialize with default support sections
-    this.supportPageSections.set('ways_to_give', {
+    this.communityPageSections.set('quick_links', {
       id: 'section-2',
-      section_key: 'ways_to_give',
-      section_name: 'Ways to Give',
-      display_order: 1,
+      section_key: 'quick_links',
+      section_name: 'Quick Links',
+      display_order: 9,
       is_visible: true,
       content: {}
+    });
+    
+    // Initialize with default support sections (with content structure matching the page)
+    this.supportPageSections.set('header', {
+      id: 'section-3',
+      section_key: 'header',
+      section_name: 'Header',
+      display_order: 1,
+      is_visible: true,
+      content: {
+        badge_text: 'Support Our Mission',
+        heading: 'Make a Difference',
+        subtitle: 'Your support helps us create amazing experiences'
+      }
     });
   }
 
@@ -454,10 +468,23 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
     });
   });
 
-  // Mock session endpoint
+  // Mock session endpoint - check localStorage for session (getSession() doesn't send auth headers)
   await page.route('**/auth/v1/session*', async (route) => {
+    // First try to get user from auth header (for signIn)
     const authHeader = route.request().headers()['authorization'];
-    const user = state.getUserByToken(authHeader?.replace('Bearer ', ''));
+    let user = state.getUserByToken(authHeader?.replace('Bearer ', ''));
+
+    // If no auth header, check localStorage (this is what getSession() does)
+    if (!user) {
+      const storageSession = await page.evaluate(() => {
+        const stored = localStorage.getItem('supabase.auth.token');
+        return stored ? JSON.parse(stored) : null;
+      }).catch(() => null);
+      
+      if (storageSession?.user?.id) {
+        user = state.users.get(storageSession.user.id) || null;
+      }
+    }
 
     if (user) {
       const token = Array.from(state.tokens.entries()).find(([_, id]) => id === user.id)?.[0];
@@ -465,9 +492,15 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          access_token: token,
-          refresh_token: `refresh-${token}`,
-          user,
+          data: {
+            session: {
+              access_token: token,
+              refresh_token: `refresh-${token}`,
+              user,
+            },
+            user,
+          },
+          error: null,
         }),
       });
     } else {
@@ -475,8 +508,11 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          access_token: null,
-          refresh_token: null,
+          data: {
+            session: null,
+            user: null,
+          },
+          error: null,
         }),
       });
     }
@@ -556,7 +592,14 @@ export async function mockAuthenticatedSession(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        data: { session, user },
+        data: { 
+          session: {
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            user,
+          },
+          user 
+        },
         error: null
       }),
     });
@@ -874,13 +917,32 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
     }
   });
 
+  // Mock community_sections (used by Community.tsx to determine section order)
+  await page.route('**/rest/v1/community_sections*', async (route) => {
+    const sections = Array.from(state.communityPageSections.values()).map(s => ({
+      section_key: s.section_key,
+      is_visible: s.is_visible
+    }));
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(sections),
+      headers: {
+        'Content-Range': `0-${sections.length > 0 ? sections.length - 1 : 0}/${sections.length}`,
+      },
+    });
+  });
+
   // Mock community_page_sections
   await page.route('**/rest/v1/community_page_sections*', async (route) => {
     const sections = Array.from(state.communityPageSections.values());
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(sections.length > 0 ? sections : [])
+      body: JSON.stringify(sections.length > 0 ? sections : []),
+      headers: {
+        'Content-Range': `0-${sections.length > 0 ? sections.length - 1 : 0}/${sections.length}`,
+      },
     });
   });
 
@@ -890,7 +952,22 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(sections.length > 0 ? sections : [])
+      body: JSON.stringify(sections.length > 0 ? sections : []),
+      headers: {
+        'Content-Range': `0-${sections.length > 0 ? sections.length - 1 : 0}/${sections.length}`,
+      },
+    });
+  });
+
+  // Mock ways_to_give endpoint for support page
+  await page.route('**/rest/v1/ways_to_give*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+      headers: {
+        'Content-Range': '0-0/0',
+      },
     });
   });
 
@@ -914,6 +991,52 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
         current_terms_version: '1.0',
         current_privacy_version: '1.0'
       })
+    });
+  });
+
+  // Mock community_quick_links for Community page
+  await page.route('**/rest/v1/community_quick_links*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: '1',
+          label: 'Sponsor a Bestie',
+          href: '/sponsor-bestie',
+          icon: 'Gift',
+          color: 'from-primary/20 to-secondary/5',
+          is_active: true,
+          display_order: 1
+        }
+      ]),
+      headers: {
+        'Content-Range': '0-0/1',
+      },
+    });
+  });
+
+  // Mock discussion_posts for Community page
+  await page.route('**/rest/v1/discussion_posts*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+      headers: {
+        'Content-Range': '0-0/0',
+      },
+    });
+  });
+
+  // Mock events for Community page
+  await page.route('**/rest/v1/events*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+      headers: {
+        'Content-Range': '0-0/0',
+      },
     });
   });
 

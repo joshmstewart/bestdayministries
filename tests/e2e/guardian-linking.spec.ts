@@ -35,13 +35,24 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       await page.waitForTimeout(500);
       console.log('🔍 TEST 90-92: Page loaded');
       
-      // Look for form elements - emoji labels or link button
+      // First, check if there's a "Link Bestie" button and click it to open the dialog
+      const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
+      const linkButtonVisible = await linkButton.isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 90-92: Link button visible:', linkButtonVisible);
+      
+      if (linkButtonVisible) {
+        await linkButton.click();
+        await page.waitForTimeout(500);
+        console.log('🔍 TEST 90-92: Clicked Link Bestie button - dialog should be open');
+      }
+      
+      // Now look for form elements inside the dialog
       const hasEmojiLabels = await page.getByText(/first emoji|second emoji|third emoji/i).first().isVisible({ timeout: 3000 }).catch(() => false);
       console.log('🔍 TEST 90-92: Has emoji labels:', hasEmojiLabels);
-      const hasLinkButton = await page.locator('button').filter({ hasText: /link.*bestie|connect|add/i }).first().isVisible().catch(() => false);
-      console.log('🔍 TEST 90-92: Has link button:', hasLinkButton);
+      const hasRelationshipField = await page.getByText(/relationship/i).isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 90-92: Has relationship field:', hasRelationshipField);
       
-      expect(hasEmojiLabels || hasLinkButton).toBeTruthy();
+      expect(hasEmojiLabels || hasRelationshipField).toBeTruthy();
     });
 
     test('should show emoji selectors for friend code entry', async ({ page }) => {
@@ -51,7 +62,17 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       await page.waitForTimeout(500);
       console.log('🔍 TEST 93-95: Page loaded');
       
-      // Check for the three emoji selector labels
+      // Open the link dialog first
+      const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
+      const linkButtonVisible = await linkButton.isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 93-95: Link button visible:', linkButtonVisible);
+      if (linkButtonVisible) {
+        await linkButton.click();
+        await page.waitForTimeout(500);
+        console.log('🔍 TEST 93-95: Opened link dialog');
+      }
+      
+      // Check for the three emoji selector labels inside the dialog
       const firstEmoji = await page.getByText('First Emoji').isVisible({ timeout: 3000 }).catch(() => false);
       console.log('🔍 TEST 93-95: First emoji visible:', firstEmoji);
       const secondEmoji = await page.getByText('Second Emoji').isVisible({ timeout: 3000 }).catch(() => false);
