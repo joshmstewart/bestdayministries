@@ -622,7 +622,7 @@ export async function mockAuthenticatedSession(
  * Mock all database operations with full state management
  */
 export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState) {
-  // Mock profile operations
+  // Mock profile operations (both profiles and profiles_public)
   await page.route('**/rest/v1/profiles*', async (route) => {
     const method = route.request().method();
     const url = route.request().url();
@@ -647,6 +647,7 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
       });
     } else if (method === 'GET') {
       const userId = extractQueryParam(url, 'user_id');
+      const id = extractQueryParam(url, 'id');
       const friendCode = extractQueryParam(url, 'friend_code');
       
       let results = Array.from(state.profiles.values());
@@ -654,14 +655,26 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
       if (userId) {
         results = results.filter(p => p.user_id === userId);
       }
+      if (id) {
+        results = results.filter(p => p.id === id);
+      }
       if (friendCode) {
         results = results.filter(p => p.friend_code === friendCode);
       }
       
+      // Add role from user_roles for profiles_public view
+      const enrichedResults = results.map(profile => {
+        const userRole = Array.from(state.userRoles.values()).find(r => r.user_id === profile.user_id);
+        return {
+          ...profile,
+          role: userRole?.role || 'supporter'
+        };
+      });
+      
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(results),
+        body: JSON.stringify(enrichedResults),
       });
     } else {
       await route.continue();
@@ -790,8 +803,12 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
       });
     } else if (method === 'DELETE') {
       const linkId = extractQueryParam(url, 'id');
+      console.log('🗑️ MOCK DELETE: Deleting link ID:', linkId);
+      console.log('🗑️ Links before delete:', state.caregiverBestieLinks.size);
       if (linkId) {
-        state.caregiverBestieLinks.delete(linkId);
+        const deleted = state.caregiverBestieLinks.delete(linkId);
+        console.log('🗑️ Delete successful:', deleted);
+        console.log('🗑️ Links after delete:', state.caregiverBestieLinks.size);
       }
       await route.fulfill({ status: 204 });
     } else if (method === 'PATCH') {
@@ -992,6 +1009,32 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
         current_privacy_version: '1.0'
       })
     });
+  });
+
+  // Mock app_settings endpoint for support page
+  await page.route('**/rest/v1/app_settings*', async (route) => {
+    const method = route.request().method();
+    const url = route.request().url();
+    
+    if (method === 'GET') {
+      const settingKey = extractQueryParam(url, 'setting_key');
+      let results = Array.from(state.appSettings.values());
+      
+      if (settingKey) {
+        results = results.filter((s: any) => s.setting_key === settingKey);
+      }
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(results),
+        headers: {
+          'Content-Range': `0-${results.length > 0 ? results.length - 1 : 0}/${results.length}`,
+        },
+      });
+    } else {
+      await route.continue();
+    }
   });
 
   // Mock community_quick_links for Community page

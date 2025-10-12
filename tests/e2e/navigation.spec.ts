@@ -16,7 +16,7 @@ test.describe('Page Navigation', () => {
     { path: '/community', name: 'Community' },
     { path: '/events', name: 'Events' },
     { path: '/partners', name: 'Partners' },
-    { path: '/support-us', name: 'Support Us' },
+    { path: '/support', name: 'Support Us' },
     { path: '/videos', name: 'Videos' },
     { path: '/gallery', name: 'Gallery' },
     { path: '/help', name: 'Help Center' },
