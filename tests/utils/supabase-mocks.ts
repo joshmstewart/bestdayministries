@@ -306,8 +306,10 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
     const user = state.users.get(userId);
     const session = state.sessions.get(userId);
 
-    // Store session in page's localStorage to simulate auth state
-    await page.evaluate((sessionData) => {
+    // ✅ FIX: Use addInitScript to set localStorage before any page loads
+    // This avoids SecurityError by letting Playwright inject the script at the right time
+    const context = page.context();
+    await context.addInitScript((sessionData) => {
       localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
     }, session);
 
@@ -458,12 +460,25 @@ export async function mockAuthenticatedSession(
     throw new Error(`Session not found for user ${userId}`);
   }
 
-  // Store session in localStorage (app checks this on load)
-  await page.evaluate((sessionData) => {
+  // ✅ FIX 1: Use addInitScript to set localStorage before any page loads
+  // This avoids the SecurityError by letting Playwright inject the script at the right time
+  const context = page.context();
+  await context.addInitScript((sessionData) => {
     localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
   }, session);
 
-  // Mock auth endpoints to return this session
+  // ✅ FIX 2: Also set authentication cookie as fallback
+  await context.addCookies([{
+    name: 'sb-access-token',
+    value: session.access_token,
+    domain: 'localhost',
+    path: '/',
+    httpOnly: false,
+    secure: false,
+    sameSite: 'Lax'
+  }]);
+
+  // ✅ FIX 3: Mock auth endpoints to return this session
   await page.route('**/auth/v1/user*', async (route) => {
     await route.fulfill({
       status: 200,
