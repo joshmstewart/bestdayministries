@@ -319,8 +319,14 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
       }));
     }, session);
 
-    // Give Supabase client a moment to process the storage event
-    await page.waitForTimeout(50);
+    // Wait for localStorage to actually have the session data
+    await page.waitForFunction(() => {
+      return localStorage.getItem('supabase.auth.token') !== null;
+    }, { timeout: 1000 });
+
+    // Give Supabase client adequate time to internally process and load the session
+    // This ensures getSession() will return the session when edge functions are called
+    await page.waitForTimeout(200);
 
     await route.fulfill({
       status: 200,
