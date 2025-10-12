@@ -304,6 +304,17 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
       full_body: body
     });
     
+    // 🔍 BROWSER LOG: Log in browser console what data was submitted
+    await page.evaluate((bodyData) => {
+      console.log('🔍 SIGNUP REQUEST - Data being submitted:', {
+        email: bodyData.email,
+        display_name: bodyData.data?.display_name,
+        role: bodyData.data?.role,
+        avatar_url: bodyData.data?.avatar_url,
+        avatar_number: bodyData.data?.avatar_number
+      });
+    }, body);
+    
     // Extract avatar_number from avatar_url (sent as "avatar-1", "avatar-2", etc.)
     let avatarNumber = 1;
     if (body.data?.avatar_url) {
@@ -321,10 +332,13 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
 
     const user = state.users.get(userId);
     const session = state.sessions.get(userId);
+    
+    console.log('✅ MOCK CREATED - User:', { id: userId, email: body.email, role: body.data?.role });
 
     // ✅ DEFINITIVE FIX: Inject session into current page immediately using page.evaluate
     // page.evaluate runs NOW on the current page, not on next navigation like addInitScript
     await page.evaluate((sessionData) => {
+      console.log('🔍 SESSION STORED - Session injected into localStorage');
       localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
       
       // Trigger storage event to notify Supabase client
@@ -333,6 +347,7 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
         newValue: JSON.stringify(sessionData),
         url: window.location.href,
       }));
+      console.log('🔍 STORAGE EVENT DISPATCHED');
     }, session);
 
     // Brief wait for StorageEvent to propagate to React components
@@ -353,8 +368,19 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
   await page.route('**/auth/v1/token?grant_type=password', async (route) => {
     const body = await route.request().postDataJSON();
     
+    console.log('📥 SIGNIN REQUEST - Email:', body.email);
+    
+    // 🔍 BROWSER LOG: Log sign-in attempt in browser console
+    await page.evaluate((email) => {
+      console.log('🔍 SIGNIN ATTEMPT - Email:', email);
+    }, body.email);
+    
     // Simulate invalid credentials
     if (body.email === 'invalid@example.com') {
+      console.log('❌ SIGNIN FAILED - Invalid credentials');
+      await page.evaluate(() => {
+        console.log('🔍 SIGNIN FAILED - Invalid credentials returned by mock');
+      });
       await route.fulfill({
         status: 400,
         contentType: 'application/json',
@@ -368,6 +394,10 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
 
     const user = state.getUserByEmail(body.email);
     if (!user) {
+      console.log('❌ SIGNIN FAILED - User not found');
+      await page.evaluate(() => {
+        console.log('🔍 SIGNIN FAILED - User not found in mock state');
+      });
       await route.fulfill({
         status: 400,
         contentType: 'application/json',
@@ -380,6 +410,11 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
     }
 
     const token = Array.from(state.tokens.entries()).find(([_, id]) => id === user.id)?.[0];
+    
+    console.log('✅ SIGNIN SUCCESS - User:', user.email);
+    await page.evaluate((email) => {
+      console.log('🔍 SIGNIN SUCCESS - User authenticated:', email);
+    }, user.email);
 
     await route.fulfill({
       status: 200,

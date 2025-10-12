@@ -24,18 +24,24 @@ test.describe('Page Navigation', () => {
 
   for (const page of pages) {
     test(`should load ${page.name} page`, async ({ page: browser }) => {
+      console.log(`🔍 NAV TEST: Starting ${page.name} page test - ${page.path}`);
       // Increase timeout for Firefox compatibility
       await browser.goto(page.path, { timeout: 30000 });
+      console.log(`🔍 NAV TEST: Navigated to ${page.path}`);
       await browser.waitForLoadState('domcontentloaded');
       await browser.waitForTimeout(1000);
+      console.log(`🔍 NAV TEST: Page loaded for ${page.name}`);
       
       // Verify page loaded successfully (200 status or content visible)
       const body = browser.locator('body');
+      const bodyVisible = await body.isVisible();
+      console.log(`🔍 NAV TEST: Body visible for ${page.name}:`, bodyVisible);
       await expect(body).toBeVisible();
       
       // Check for any content (header, nav, main, or container)
       const content = browser.locator('header, nav, main, [role="banner"], [role="main"], .container').first();
       const contentVisible = await content.isVisible({ timeout: 10000 }).catch(() => false);
+      console.log(`🔍 NAV TEST: Content visible for ${page.name}:`, contentVisible);
       
       expect(contentVisible).toBeTruthy();
     });

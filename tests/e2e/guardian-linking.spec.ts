@@ -29,26 +29,35 @@ test.describe('Guardian-Bestie Linking Flow', () => {
     });
 
     test('should display link bestie form', async ({ page }) => {
+      console.log('🔍 TEST 90-92: Starting link bestie form test');
       // Wait for page to fully load
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(500);
+      console.log('🔍 TEST 90-92: Page loaded');
       
       // Look for form elements - emoji labels or link button
       const hasEmojiLabels = await page.getByText(/first emoji|second emoji|third emoji/i).first().isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 90-92: Has emoji labels:', hasEmojiLabels);
       const hasLinkButton = await page.locator('button').filter({ hasText: /link.*bestie|connect|add/i }).first().isVisible().catch(() => false);
+      console.log('🔍 TEST 90-92: Has link button:', hasLinkButton);
       
       expect(hasEmojiLabels || hasLinkButton).toBeTruthy();
     });
 
     test('should show emoji selectors for friend code entry', async ({ page }) => {
+      console.log('🔍 TEST 93-95: Starting emoji selectors test');
       // Wait for page to fully load
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(500);
+      console.log('🔍 TEST 93-95: Page loaded');
       
       // Check for the three emoji selector labels
       const firstEmoji = await page.getByText('First Emoji').isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 93-95: First emoji visible:', firstEmoji);
       const secondEmoji = await page.getByText('Second Emoji').isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 93-95: Second emoji visible:', secondEmoji);
       const thirdEmoji = await page.getByText('Third Emoji').isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 93-95: Third emoji visible:', thirdEmoji);
       
       // Should have all 3 emoji selectors visible
       expect(firstEmoji && secondEmoji && thirdEmoji).toBeTruthy();
@@ -72,75 +81,98 @@ test.describe('Guardian-Bestie Linking Flow', () => {
   test.describe('Full Interaction Tests @slow', () => {
     test('should successfully link to bestie using friend code', async ({ page }) => {
       test.slow(); // Mark as slow - gives 3x timeout
+      console.log('🔍 TEST 97: Starting successful link test');
       
       // Create a bestie with a known friend code
       const { userId: bestieId, friendCode } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
-      console.log('Created bestie with friend code:', friendCode);
+      console.log('🔍 TEST 97: Created bestie with friend code:', friendCode);
+      console.log('🔍 TEST 97: Bestie ID:', bestieId);
       
       // Wait for page to load
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000);
+      console.log('🔍 TEST 97: Page loaded');
       
       // Open the link dialog if needed
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
-      if (await linkButton.isVisible()) {
+      const linkButtonVisible = await linkButton.isVisible();
+      console.log('🔍 TEST 97: Link button visible:', linkButtonVisible);
+      if (linkButtonVisible) {
         await linkButton.click();
         await page.waitForTimeout(500);
+        console.log('🔍 TEST 97: Clicked link button');
       }
       
       // Select emojis using data-testid
       const emojis = Array.from(friendCode);
+      console.log('🔍 TEST 97: Emojis to select:', emojis);
       
       // Select first emoji
+      console.log('🔍 TEST 97: Selecting first emoji...');
       await page.getByTestId('emoji-1-trigger').click();
       await page.waitForTimeout(300);
+      console.log('🔍 TEST 97: Selected first emoji');
       await page.getByTestId(`emoji-1-option-${emojis[0]}`).click();
       await page.waitForTimeout(300);
       
       // Select second emoji
+      console.log('🔍 TEST 97: Selecting second emoji...');
       await page.getByTestId('emoji-2-trigger').click();
       await page.waitForTimeout(300);
+      console.log('🔍 TEST 97: Selected second emoji');
       await page.getByTestId(`emoji-2-option-${emojis[1]}`).click();
       await page.waitForTimeout(300);
       
       // Select third emoji
+      console.log('🔍 TEST 97: Selecting third emoji...');
       await page.getByTestId('emoji-3-trigger').click();
       await page.waitForTimeout(300);
+      console.log('🔍 TEST 97: Selected third emoji');
       await page.getByTestId(`emoji-3-option-${emojis[2]}`).click();
       await page.waitForTimeout(500);
       
       // Enter relationship
+      console.log('🔍 TEST 97: Filling relationship input...');
       await page.getByTestId('relationship-input').fill('Parent');
       await page.waitForTimeout(300);
+      console.log('🔍 TEST 97: Filled relationship');
       
       // Submit
+      console.log('🔍 TEST 97: Clicking submit button...');
       await page.getByTestId('create-link-button').click();
       
       // Wait for processing
       await page.waitForTimeout(2000);
+      console.log('🔍 TEST 97: Waiting for link creation...');
       
       // Verify link was created in state
       const links = Array.from(state.caregiverBestieLinks.values()).filter(
         link => link.caregiver_id === caregiverId && link.bestie_id === bestieId
       );
+      console.log('🔍 TEST 97: Links found:', links.length);
+      console.log('🔍 TEST 97: Link details:', links[0]);
       expect(links.length).toBeGreaterThan(0);
       expect(links[0]?.relationship).toBe('Parent');
     });
 
     test('should handle invalid friend code', async ({ page }) => {
       test.slow();
+      console.log('🔍 TEST 130: Starting invalid friend code test');
       
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000);
+      console.log('🔍 TEST 130: Page loaded');
       
       // Open dialog if needed
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
       if (await linkButton.isVisible()) {
         await linkButton.click();
         await page.waitForTimeout(500);
+        console.log('🔍 TEST 130: Opened link dialog');
       }
       
       // Select invalid friend code (all same emoji that doesn't exist)
+      console.log('🔍 TEST 130: Selecting invalid friend code...');
       await page.getByTestId('emoji-1-trigger').click();
       await page.waitForTimeout(300);
       await page.getByTestId('emoji-1-option-🌟').click();
@@ -155,39 +187,50 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       await page.waitForTimeout(300);
       await page.getByTestId('emoji-3-option-🌟').click();
       await page.waitForTimeout(500);
+      console.log('🔍 TEST 130: Selected all emojis');
       
       // Enter relationship
       await page.getByTestId('relationship-input').fill('Parent');
       await page.waitForTimeout(300);
+      console.log('🔍 TEST 130: Filled relationship');
       
       // Submit
       const initialLinkCount = state.caregiverBestieLinks.size;
+      console.log('🔍 TEST 130: Initial link count:', initialLinkCount);
       await page.getByTestId('create-link-button').click();
       await page.waitForTimeout(2000);
       
       // Should show error and not create link
       const errorVisible = await page.locator('text=/not found|invalid|doesn\'t exist/i').first().isVisible({ timeout: 3000 }).catch(() => false);
+      const finalLinkCount = state.caregiverBestieLinks.size;
+      console.log('🔍 TEST 130: Error visible:', errorVisible);
+      console.log('🔍 TEST 130: Final link count:', finalLinkCount);
       expect(errorVisible || state.caregiverBestieLinks.size === initialLinkCount).toBeTruthy();
     });
 
     test('should require relationship field', async ({ page }) => {
       test.slow();
+      console.log('🔍 TEST 173: Starting relationship required test');
       
       // Create a bestie
       const { friendCode } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
+      console.log('🔍 TEST 173: Created bestie with friend code:', friendCode);
       
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000);
+      console.log('🔍 TEST 173: Page loaded');
       
       // Open dialog
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
       if (await linkButton.isVisible()) {
         await linkButton.click();
         await page.waitForTimeout(500);
+        console.log('🔍 TEST 173: Opened link dialog');
       }
       
       // Select friend code but NOT relationship
       const emojis = Array.from(friendCode);
+      console.log('🔍 TEST 173: Selecting friend code...');
       
       await page.getByTestId('emoji-1-trigger').click();
       await page.waitForTimeout(300);
@@ -203,55 +246,71 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       await page.waitForTimeout(300);
       await page.getByTestId(`emoji-3-option-${emojis[2]}`).click();
       await page.waitForTimeout(500);
+      console.log('🔍 TEST 173: Selected all emojis');
       
       // Leave relationship empty - try to submit
       const initialLinkCount = state.caregiverBestieLinks.size;
+      console.log('🔍 TEST 173: Initial link count:', initialLinkCount);
       const submitButton = page.getByTestId('create-link-button');
       
       // Button should be clickable but should show validation error
       await submitButton.click();
       await page.waitForTimeout(1000);
+      console.log('🔍 TEST 173: Clicked submit without relationship');
       
       // Should not create link without relationship
+      const finalLinkCount = state.caregiverBestieLinks.size;
+      console.log('🔍 TEST 173: Final link count:', finalLinkCount);
       expect(state.caregiverBestieLinks.size).toBe(initialLinkCount);
     });
 
     test('should display linked besties after linking', async ({ page }) => {
       test.slow();
+      console.log('🔍 TEST 219: Starting display linked besties test');
       
       // Create a bestie and link them
       const { userId: bestieId } = createMockBestie(state, 'linked-bestie@test.com', 'Linked Bestie');
       linkCaregiverToBestie(state, caregiverId, bestieId, 'Parent');
+      console.log('🔍 TEST 219: Created and linked bestie');
       
       // Reload page to see linked besties
       await page.reload();
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000);
+      console.log('🔍 TEST 219: Page reloaded');
       
       // Should show the linked bestie
       const bestieVisible = await page.locator('text=/Linked Bestie/i').first().isVisible({ timeout: 5000 }).catch(() => false);
+      console.log('🔍 TEST 219: Bestie name visible:', bestieVisible);
       const hasLinkedSection = await page.locator('text=/guardian relationship/i').first().isVisible().catch(() => false);
+      console.log('🔍 TEST 219: Has linked section:', hasLinkedSection);
       
       expect(bestieVisible || hasLinkedSection).toBeTruthy();
     });
 
     test('should allow unlinking a bestie', async ({ page }) => {
       test.slow();
+      console.log('🔍 TEST 238: Starting unlink bestie test');
       
       // Create a bestie and link them
       const { userId: bestieId } = createMockBestie(state, 'unlink-bestie@test.com', 'Unlink Bestie');
       linkCaregiverToBestie(state, caregiverId, bestieId, 'Parent');
+      console.log('🔍 TEST 238: Created and linked bestie');
       
       // Reload page
       await page.reload();
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000);
+      console.log('🔍 TEST 238: Page reloaded');
       
       // Look for unlink button (trash icon)
       const unlinkButton = page.locator('button').filter({ hasText: '' }).first(); // Trash icon button
+      const unlinkVisible = await unlinkButton.isVisible();
+      console.log('🔍 TEST 238: Unlink button visible:', unlinkVisible);
       
-      if (await unlinkButton.isVisible()) {
+      if (unlinkVisible) {
         const initialLinkCount = state.caregiverBestieLinks.size;
+        console.log('🔍 TEST 238: Initial link count:', initialLinkCount);
         await unlinkButton.click();
         
         // Confirm in dialog
@@ -259,11 +318,14 @@ test.describe('Guardian-Bestie Linking Flow', () => {
         const confirmButton = page.locator('button').filter({ hasText: /remove link/i }).first();
         if (await confirmButton.isVisible()) {
           await confirmButton.click();
+          console.log('🔍 TEST 238: Clicked confirm button');
         }
         
         await page.waitForTimeout(1000);
         
         // Verify link was removed
+        const finalLinkCount = state.caregiverBestieLinks.size;
+        console.log('🔍 TEST 238: Final link count:', finalLinkCount);
         expect(state.caregiverBestieLinks.size).toBeLessThan(initialLinkCount);
       }
     });
