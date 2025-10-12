@@ -297,10 +297,19 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
   await page.route('**/auth/v1/signup*', async (route) => {
     const body = await route.request().postDataJSON();
     
+    // Extract avatar_number from avatar_url (sent as "avatar-1", "avatar-2", etc.)
+    let avatarNumber = 1;
+    if (body.options?.data?.avatar_url) {
+      const match = body.options.data.avatar_url.match(/avatar-(\d+)/);
+      if (match) avatarNumber = parseInt(match[1]);
+    } else if (body.options?.data?.avatar_number) {
+      avatarNumber = body.options.data.avatar_number;
+    }
+    
     const userId = state.addUser(body.email, body.password, {
       display_name: body.options?.data?.display_name || 'New User',
       role: body.options?.data?.role || 'supporter',
-      avatar_number: body.options?.data?.avatar_number || 1
+      avatar_number: avatarNumber
     });
 
     const user = state.users.get(userId);
