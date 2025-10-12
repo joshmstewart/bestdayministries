@@ -167,9 +167,12 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Verify user was created with friend code
       const user = state.getUserByEmail('bestie@test.com');
+      console.log('🔍 TEST 13-15: User found:', user ? 'YES' : 'NO', user);
       expect(user).toBeTruthy();
       
       const profile = state.profiles.get(user!.id);
+      console.log('🔍 TEST 13-15: Profile found:', profile ? 'YES' : 'NO', profile);
+      console.log('🔍 TEST 13-15: Friend code:', profile?.friend_code, 'Length:', profile?.friend_code?.length, 'Emoji count:', profile?.friend_code ? [...profile.friend_code].length : 0);
       expect(profile).toBeTruthy();
       expect(profile?.friend_code).toBeTruthy();
       expect(profile?.friend_code.length).toBeGreaterThan(0);
@@ -178,6 +181,7 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Verify role is bestie
       const roles = Array.from(state.userRoles.values()).filter(r => r.user_id === user!.id);
+      console.log('🔍 TEST 13-15: Roles found:', roles);
       expect(roles[0]?.role).toBe('bestie');
     });
   });
@@ -279,6 +283,9 @@ test.describe('Authentication and Signup Flow', () => {
     await page.waitForTimeout(300);
     
     // ✅ Wait for avatar section to appear
+    const avatarExists = await page.locator('[data-avatar-number]').first().isVisible().catch(() => false);
+    console.log('🔍 TEST 18-20: Avatar selector visible:', avatarExists);
+    console.log('🔍 TEST 18-20: Avatar count:', await page.locator('[data-avatar-number]').count());
     await page.locator('[data-avatar-number]').first().waitFor({ timeout: 5000 });
     
     // Click on an avatar option
@@ -288,12 +295,14 @@ test.describe('Authentication and Signup Flow', () => {
     
     // Verify selection (may have visual indicator)
     await page.waitForTimeout(200);
+    console.log('🔍 TEST 18-20: Avatar clicked successfully');
   });
 
   test.describe('Sign In Flow', () => {
     test('should validate empty form', async ({ page }) => {
       const signInButton = page.locator('button[type="submit"]').filter({ hasText: /sign in|log in/i }).first();
       
+      console.log('🔍 TEST 21-23: Sign-in button visible:', await signInButton.isVisible());
       // ✅ Sign-in button is NOT disabled by default (HTML5 validation handles required fields)
       // The form will show browser validation errors when submitted
       await expect(signInButton).toBeVisible();
@@ -301,6 +310,7 @@ test.describe('Authentication and Signup Flow', () => {
       // Verify required fields exist
       const emailInput = page.getByPlaceholder(/email/i);
       const isRequired = await emailInput.getAttribute('required');
+      console.log('🔍 TEST 21-23: Email required attribute:', isRequired);
       expect(isRequired).toBeTruthy();
     });
 
@@ -363,6 +373,8 @@ test.describe('Authentication and Signup Flow', () => {
       
       const session = state.sessions.get(userId);
       const user = state.users.get(userId);
+      console.log('🔍 TEST 26-28: Created user:', user);
+      console.log('🔍 TEST 26-28: Created session:', session ? 'YES' : 'NO');
       
       // ✅ Set session in page context BEFORE navigating to /auth
       await page.evaluate((sessionData) => {
@@ -387,6 +399,7 @@ test.describe('Authentication and Signup Flow', () => {
       });
       
       // Now navigate to /auth - should redirect
+      console.log('🔍 TEST 26-28: Navigating to /auth with authenticated session');
       await page.goto('/auth');
       await page.waitForLoadState('networkidle');
       
@@ -394,6 +407,7 @@ test.describe('Authentication and Signup Flow', () => {
       await page.waitForTimeout(2000);
       
       const currentUrl = page.url();
+      console.log('🔍 TEST 26-28: Current URL after navigation:', currentUrl);
       expect(currentUrl).not.toContain('/auth');
     });
   });
