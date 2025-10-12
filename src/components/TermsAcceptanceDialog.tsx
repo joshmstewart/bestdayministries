@@ -35,27 +35,57 @@ export const TermsAcceptanceDialog = ({ isOpen, onAccepted }: TermsAcceptanceDia
     }
 
     setLoading(true);
+    
     try {
-      const { error } = await supabase.functions.invoke("record-terms-acceptance", {
-        body: {
-          termsVersion: CURRENT_TERMS_VERSION,
-          privacyVersion: CURRENT_PRIVACY_VERSION,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Terms Accepted",
-        description: "Thank you for accepting our updated terms.",
-      });
+      // 🚀 PRODUCTION FIX: Ensure session is stable before calling edge function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      onAccepted();
+      if (sessionError || !session) {
+        throw new Error("Session not available. Please try logging in again.");
+      }
+
+      // Retry logic with exponential backoff (3 attempts)
+      const maxRetries = 3;
+      let lastError: any = null;
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const { error } = await supabase.functions.invoke("record-terms-acceptance", {
+            body: {
+              termsVersion: CURRENT_TERMS_VERSION,
+              privacyVersion: CURRENT_PRIVACY_VERSION,
+            },
+          });
+
+          if (error) throw error;
+
+          // Success!
+          toast({
+            title: "Terms Accepted",
+            description: "Thank you for accepting our updated terms.",
+          });
+          
+          onAccepted();
+          return; // Exit successfully
+          
+        } catch (error) {
+          lastError = error;
+          
+          // If not the last attempt, wait before retrying
+          if (attempt < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          }
+        }
+      }
+      
+      // All retries failed
+      throw lastError;
+      
     } catch (error) {
       console.error("Error recording acceptance:", error);
       toast({
-        title: "Error",
-        description: "Failed to record acceptance. Please try again.",
+        title: "Failed to Record Acceptance",
+        description: "Please try again. If the problem persists, contact support.",
         variant: "destructive",
       });
     } finally {

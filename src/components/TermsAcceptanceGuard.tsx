@@ -31,11 +31,13 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
   }, []);
 
   const handleAccepted = async () => {
-    // Clear signup flags
+    // 🚀 PRODUCTION FIX: Just clear flags, let React re-render naturally
+    // No page reload needed since TermsAcceptanceDialog now handles recording reliably
     localStorage.removeItem('pendingTermsAcceptance');
     localStorage.removeItem('signupTimestamp');
-    // Reload the page to refresh all data
-    window.location.reload();
+    
+    // Force a re-check of terms status
+    window.location.href = '/community';
   };
 
   // Don't show dialog on auth pages or terms/privacy pages

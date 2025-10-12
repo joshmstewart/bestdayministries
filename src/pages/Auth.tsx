@@ -28,7 +28,6 @@ const Auth = () => {
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState<any>(null);
 
   // Fetch the logo from database
   const { data: logoData } = useQuery({
@@ -55,34 +54,9 @@ const Auth = () => {
 
   const logoUrl = logoData || joyHouseLogo;
 
-  // Separate effect to handle terms recording after session is fully initialized
-  useEffect(() => {
-    const recordTermsForNewUser = async (userId: string) => {
-      const pendingAcceptance = localStorage.getItem('pendingTermsAcceptance');
-      
-      if (pendingAcceptance) {
-        try {
-          const { error } = await supabase.functions.invoke("record-terms-acceptance", {
-            body: {
-              termsVersion: "1.0",
-              privacyVersion: "1.0",
-            },
-          });
-
-          if (error) throw error;
-
-          // Success - clear the flag
-          localStorage.removeItem('pendingTermsAcceptance');
-        } catch (error) {
-          console.error('Failed to record terms acceptance:', error);
-        }
-      }
-    };
-
-    if (session?.user) {
-      recordTermsForNewUser(session.user.id);
-    }
-  }, [session]);
+  // 🚀 PRODUCTION FIX: Removed terms recording from Auth.tsx
+  // Terms are now ONLY recorded through TermsAcceptanceDialog for reliability
+  // This eliminates the race condition where edge function was called before session was stable
 
   useEffect(() => {
     const redirectPath = searchParams.get('redirect');
@@ -108,13 +82,11 @@ const Auth = () => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setSession(session);
         checkAndRedirect(session.user.id);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
       if (session?.user) {
         checkAndRedirect(session.user.id);
       }
