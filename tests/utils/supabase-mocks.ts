@@ -123,6 +123,26 @@ export class MockSupabaseState {
     // Initialize with default app settings
     this.appSettings.set('logo_url', { setting_key: 'logo_url', setting_value: null });
     this.appSettings.set('app_name', { setting_key: 'app_name', setting_value: 'Best Day Ministries' });
+    
+    // Initialize with default community sections (so pages render properly)
+    this.communityPageSections.set('featured_carousel', {
+      id: 'section-1',
+      section_key: 'featured_carousel',
+      section_name: 'Featured Carousel',
+      display_order: 1,
+      is_visible: true,
+      content: {}
+    });
+    
+    // Initialize with default support sections
+    this.supportPageSections.set('ways_to_give', {
+      id: 'section-2',
+      section_key: 'ways_to_give',
+      section_name: 'Ways to Give',
+      display_order: 1,
+      is_visible: true,
+      content: {}
+    });
   }
 
   // Helper methods
@@ -448,7 +468,10 @@ export async function mockAuthenticatedSession(
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(user),
+      body: JSON.stringify({
+        data: { user },
+        error: null
+      }),
     });
   });
 
