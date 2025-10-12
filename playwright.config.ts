@@ -10,8 +10,9 @@ export default defineConfig({
   
   use: {
     baseURL: 'http://localhost:8080',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
     // Increase timeout for CI environment
     actionTimeout: 15000,
     navigationTimeout: 30000,
