@@ -26,39 +26,57 @@ test.describe('Authentication and Signup Flow', () => {
   });
 
   test('should display auth page elements', async ({ page }) => {
+    console.log('🔍 TEST 9: Starting auth page elements test');
     // Elements should already be visible after beforeEach waits
-    await expect(page.locator('h1, h2').filter({ hasText: /sign in|log in|welcome/i }).first()).toBeVisible();
+    const header = page.locator('h1, h2').filter({ hasText: /sign in|log in|welcome/i }).first();
+    const headerVisible = await header.isVisible();
+    console.log('🔍 TEST 9: Header visible:', headerVisible);
+    await expect(header).toBeVisible();
     await expect(page.getByPlaceholder(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
+    console.log('🔍 TEST 9: All elements visible');
   });
 
   test('should toggle between sign-in and sign-up modes', async ({ page }) => {
+    console.log('🔍 TEST 10: Starting toggle test');
     const toggleButton = page.locator('button').filter({ hasText: /sign up|create account|register/i }).first();
+    const toggleVisible = await toggleButton.isVisible();
+    console.log('🔍 TEST 10: Toggle button visible:', toggleVisible);
     await expect(toggleButton).toBeVisible();
     
     await toggleButton.click();
+    console.log('🔍 TEST 10: Toggle button clicked');
     
     // ✅ Wait for mode to change
     await page.waitForTimeout(300);
     
     // Should see signup-specific elements
-    await expect(page.getByPlaceholder(/name|display name/i)).toBeVisible({ timeout: 3000 });
+    const nameInput = page.getByPlaceholder(/name|display name/i);
+    const nameVisible = await nameInput.isVisible({ timeout: 3000 });
+    console.log('🔍 TEST 10: Name input visible after toggle:', nameVisible);
+    await expect(nameInput).toBeVisible({ timeout: 3000 });
   });
 
   test.describe('Signup Flow - Supporter Role', () => {
     test('should validate required fields', async ({ page }) => {
+      console.log('🔍 TEST 11: Starting required fields validation test');
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
       await page.waitForTimeout(300);
+      console.log('🔍 TEST 11: Switched to signup mode');
       
       // ✅ Don't try to click submit - just verify button is correctly disabled
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      const isDisabled = await submitButton.isDisabled();
+      console.log('🔍 TEST 11: Submit button disabled:', isDisabled);
       
       // Button SHOULD be disabled when form is empty (this is correct behavior!)
       await expect(submitButton).toBeDisabled();
       
       // Verify required fields
       const emailInput = page.getByPlaceholder(/email/i);
+      const requiredAttr = await emailInput.getAttribute('required');
+      console.log('🔍 TEST 11: Email required attribute:', requiredAttr);
       await expect(emailInput).toHaveAttribute('required', '');
     });
 
@@ -245,28 +263,36 @@ test.describe('Authentication and Signup Flow', () => {
   });
 
   test('should require terms acceptance', async ({ page }) => {
+    console.log('🔍 TEST 17: Starting terms acceptance test');
     // Switch to signup mode
     await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
     await page.waitForTimeout(300);
+    console.log('🔍 TEST 17: Switched to signup mode');
     
     // Fill in ALL OTHER required fields
     await page.getByPlaceholder(/email/i).fill('test@test.com');
     await page.getByLabel(/password/i).fill('TestPass123!');
     await page.getByPlaceholder(/name|display name/i).fill('Test User');
+    console.log('🔍 TEST 17: Filled required fields');
     
     // Select avatar
     const avatarOption = page.locator('[data-avatar-number="1"]').first();
     if (await avatarOption.isVisible()) {
       await avatarOption.click();
+      console.log('🔍 TEST 17: Avatar selected');
     }
     
     // ✅ Don't check terms - verify button stays disabled
     const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
     
     if (await termsCheckbox.isVisible()) {
+      const isChecked = await termsCheckbox.isChecked();
+      console.log('🔍 TEST 17: Terms checkbox checked:', isChecked);
       await expect(termsCheckbox).not.toBeChecked();
       
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      const isDisabled = await submitButton.isDisabled();
+      console.log('🔍 TEST 17: Submit button disabled without terms:', isDisabled);
       
       // Button should be disabled without terms acceptance
       await expect(submitButton).toBeDisabled();
@@ -315,50 +341,63 @@ test.describe('Authentication and Signup Flow', () => {
     });
 
     test('should show error for invalid credentials', async ({ page }) => {
+      console.log('🔍 TEST 24: Starting invalid credentials test');
       await page.getByPlaceholder(/email/i).fill('invalid@example.com');
       await page.getByLabel(/password/i).fill('wrongpassword');
+      console.log('🔍 TEST 24: Filled invalid credentials');
       
       const signInButton = page.locator('button[type="submit"]').filter({ hasText: /sign in|log in/i }).first();
       
       // ✅ Wait for button to be enabled
+      const isEnabled = await signInButton.isEnabled();
+      console.log('🔍 TEST 24: Sign-in button enabled:', isEnabled);
       await expect(signInButton).toBeEnabled();
       
       await signInButton.click();
+      console.log('🔍 TEST 24: Sign-in button clicked');
       
       // ✅ Wait longer for error toast/message
       await page.waitForTimeout(2000);
       
       // Verify error is shown
       const errorVisible = await page.locator('text=/invalid|incorrect|wrong|not found/i').first().isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 24: Error message visible:', errorVisible);
       expect(errorVisible).toBeTruthy();
     });
 
     test('should successfully sign in with valid credentials', async ({ page }) => {
+      console.log('🔍 TEST 25: Starting valid sign-in test');
       // Create a user
       const userId = state.addUser('existing@test.com', 'password123', {
         display_name: 'Existing User',
         role: 'supporter',
         avatar_number: 1
       });
+      console.log('🔍 TEST 25: Created test user:', userId);
       
       // Sign in
       await page.getByPlaceholder(/email/i).fill('existing@test.com');
       await page.getByLabel(/password/i).fill('password123');
+      console.log('🔍 TEST 25: Filled valid credentials');
       
       const signInButton = page.locator('button[type="submit"]').filter({ hasText: /sign in|log in/i }).first();
       
       // ✅ Wait for button to be enabled
       await expect(signInButton).toBeEnabled();
+      console.log('🔍 TEST 25: Sign-in button enabled');
       
       await signInButton.click({ noWaitAfter: true });
+      console.log('🔍 TEST 25: Sign-in button clicked');
       
       // Wait for sign-in to process
       await page.waitForTimeout(1000);
       
       // Verify session exists
       const session = state.sessions.get(userId);
+      console.log('🔍 TEST 25: Session created:', session ? 'YES' : 'NO');
       expect(session).toBeTruthy();
       expect(session?.user.email).toBe('existing@test.com');
+      console.log('🔍 TEST 25: Sign-in successful');
     });
   });
 
@@ -414,38 +453,52 @@ test.describe('Authentication and Signup Flow', () => {
 
   test.describe('Password Reset Flow', () => {
     test('should display forgot password link', async ({ page }) => {
+      console.log('🔍 TEST 29: Starting forgot password link test');
       // ✅ Elements should be visible after beforeEach
       const forgotPasswordLink = page.locator('a, button').filter({ hasText: /forgot.*password|reset.*password/i }).first();
+      const linkVisible = await forgotPasswordLink.isVisible();
+      console.log('🔍 TEST 29: Forgot password link visible:', linkVisible);
       await expect(forgotPasswordLink).toBeVisible();
     });
 
     test('should show password reset form', async ({ page }) => {
+      console.log('🔍 TEST 30: Starting password reset form test');
       const forgotPasswordLink = page.locator('a, button').filter({ hasText: /forgot.*password|reset.*password/i }).first();
       await forgotPasswordLink.click();
+      console.log('🔍 TEST 30: Clicked forgot password link');
       
       // ✅ Wait for form to appear
       await page.waitForTimeout(300);
       
+      const emailVisible = await page.getByPlaceholder(/email/i).isVisible();
+      console.log('🔍 TEST 30: Email input visible:', emailVisible);
       await expect(page.getByPlaceholder(/email/i)).toBeVisible();
     });
 
     test('should handle password reset request', async ({ page }) => {
+      console.log('🔍 TEST 31: Starting password reset request test');
       const forgotPasswordLink = page.locator('a, button').filter({ hasText: /forgot.*password|reset.*password/i }).first();
       await forgotPasswordLink.click();
       await page.waitForTimeout(300);
+      console.log('🔍 TEST 31: Opened password reset form');
       
       await page.getByPlaceholder(/email/i).fill('reset@test.com');
+      console.log('🔍 TEST 31: Filled email for reset');
       
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /reset|send/i }).first();
       
       // ✅ Wait for button to be enabled
+      const isEnabled = await submitButton.isEnabled();
+      console.log('🔍 TEST 31: Submit button enabled:', isEnabled);
       await expect(submitButton).toBeEnabled();
       
       await submitButton.click();
+      console.log('🔍 TEST 31: Clicked submit button');
       
       // ✅ Wait longer for success message
       await page.waitForTimeout(2000);
       const successVisible = await page.locator('text=/sent|check.*email|link/i').first().isVisible({ timeout: 3000 }).catch(() => false);
+      console.log('🔍 TEST 31: Success message visible:', successVisible);
       expect(successVisible).toBeTruthy();
     });
   });
