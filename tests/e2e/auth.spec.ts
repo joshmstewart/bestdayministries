@@ -5,6 +5,14 @@ test.describe('Authentication and Signup Flow', () => {
   let state: MockSupabaseState;
 
   test.beforeEach(async ({ page }) => {
+    // 🔍 DIAGNOSTIC: Capture browser console logs
+    page.on('console', msg => {
+      const text = msg.text();
+      if (text.includes('🚀 FORM SUBMIT') || text.includes('📥 MOCK RECEIVED')) {
+        console.log('BROWSER CONSOLE:', text);
+      }
+    });
+    
     state = new MockSupabaseState();
     await mockSupabaseAuth(page, state);
     await mockSupabaseDatabase(page, state);
@@ -54,7 +62,7 @@ test.describe('Authentication and Signup Flow', () => {
       await expect(emailInput).toHaveAttribute('required', '');
     });
 
-    test('should successfully sign up as Supporter', async ({ page }) => {
+    test.only('should successfully sign up as Supporter', async ({ page }) => {
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
       await page.waitForTimeout(500);
