@@ -306,16 +306,16 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
     
     // Extract avatar_number from avatar_url (sent as "avatar-1", "avatar-2", etc.)
     let avatarNumber = 1;
-    if (body.options?.data?.avatar_url) {
-      const match = body.options.data.avatar_url.match(/avatar-(\d+)/);
+    if (body.data?.avatar_url) {
+      const match = body.data.avatar_url.match(/avatar-(\d+)/);
       if (match) avatarNumber = parseInt(match[1]);
-    } else if (body.options?.data?.avatar_number) {
-      avatarNumber = body.options.data.avatar_number;
+    } else if (body.data?.avatar_number) {
+      avatarNumber = body.data.avatar_number;
     }
     
     const userId = state.addUser(body.email, body.password, {
-      display_name: body.options?.data?.display_name || 'New User',
-      role: body.options?.data?.role || 'supporter',
+      display_name: body.data?.display_name || 'New User',
+      role: body.data?.role || 'supporter',
       avatar_number: avatarNumber
     });
 
