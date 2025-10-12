@@ -88,7 +88,7 @@ test.describe('Authentication and Signup Flow', () => {
       await expect(submitButton).toBeEnabled();
       
       // Submit form
-      await submitButton.click();
+      await submitButton.click({ noWaitAfter: true });
       
       // Wait for form submission to complete
       await page.waitForTimeout(1000);
@@ -143,7 +143,7 @@ test.describe('Authentication and Signup Flow', () => {
       await expect(submitButton).toBeEnabled();
       
       // Submit form
-      await submitButton.click();
+      await submitButton.click({ noWaitAfter: true });
       
       // Wait for form submission to complete
       await page.waitForTimeout(1000);
@@ -200,7 +200,7 @@ test.describe('Authentication and Signup Flow', () => {
       await expect(submitButton).toBeEnabled();
       
       // Submit form
-      await submitButton.click();
+      await submitButton.click({ noWaitAfter: true });
       
       // Wait for form submission to complete
       await page.waitForTimeout(1000);
@@ -310,7 +310,7 @@ test.describe('Authentication and Signup Flow', () => {
       // ✅ Wait for button to be enabled
       await expect(signInButton).toBeEnabled();
       
-      await signInButton.click();
+      await signInButton.click({ noWaitAfter: true });
       
       // Wait for sign-in to process
       await page.waitForTimeout(1000);
