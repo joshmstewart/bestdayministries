@@ -297,6 +297,13 @@ export async function mockSupabaseAuth(page: Page, state: MockSupabaseState) {
   await page.route('**/auth/v1/signup*', async (route) => {
     const body = await route.request().postDataJSON();
     
+    // 🔍 DEBUG: Log what mock receives
+    console.log('📥 MOCK RECEIVED - Request body:', {
+      email: body.email,
+      options_data: body.options?.data,
+      full_body: body
+    });
+    
     // Extract avatar_number from avatar_url (sent as "avatar-1", "avatar-2", etc.)
     let avatarNumber = 1;
     if (body.options?.data?.avatar_url) {

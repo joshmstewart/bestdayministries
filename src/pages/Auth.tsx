@@ -101,6 +101,15 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
+    // 🔍 DEBUG: Log state values before submission
+    console.log('🚀 FORM SUBMIT - State values:', {
+      displayName,
+      role,
+      selectedAvatar,
+      email,
+      isSignUp
+    });
+
     try {
       if (isSignUp) {
         if (!acceptedTerms) {
