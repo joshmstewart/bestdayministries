@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mockSupabaseAuth, mockSupabaseDatabase, MockSupabaseState } from '../utils/supabase-mocks';
+import { mockSupabaseAuth, mockSupabaseDatabase, mockAuthenticatedSession, MockSupabaseState } from '../utils/supabase-mocks';
 
 test.describe('Page Navigation', () => {
   let state: MockSupabaseState;
@@ -25,6 +25,12 @@ test.describe('Page Navigation', () => {
   for (const page of pages) {
     test(`should load ${page.name} page`, async ({ page: browser }) => {
       console.log(`🔍 NAV TEST: Starting ${page.name} page test - ${page.path}`);
+      
+      // Community page requires authentication
+      if (page.path === '/community') {
+        await mockAuthenticatedSession(browser, state, 'test@example.com', 'supporter');
+      }
+      
       // Increase timeout for Firefox compatibility
       await browser.goto(page.path, { timeout: 30000 });
       console.log(`🔍 NAV TEST: Navigated to ${page.path}`);
