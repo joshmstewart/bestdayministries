@@ -370,11 +370,15 @@ test.describe('Authentication and Signup Flow', () => {
       // The form will show browser validation errors when submitted
       await expect(signInButton).toBeVisible();
       
-      // Verify required fields exist
+      // Verify required fields exist (getAttribute returns "" for boolean attributes)
       const emailInput = page.getByPlaceholder(/email/i);
-      const isRequired = await emailInput.getAttribute('required');
-      console.log('🔍 TEST 21-23: Email required attribute:', isRequired);
-      expect(isRequired).toBeTruthy();
+      const hasRequired = await emailInput.getAttribute('required');
+      console.log('🔍 TEST 21-23: Email required attribute:', hasRequired);
+      expect(hasRequired).not.toBeNull(); // Boolean attribute exists
+      
+      const passwordInput = page.getByLabel(/password/i);
+      const hasPasswordRequired = await passwordInput.getAttribute('required');
+      expect(hasPasswordRequired).not.toBeNull();
     });
 
     test('should show error for invalid credentials', async ({ page }) => {
@@ -452,39 +456,28 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 26-28: Created user:', user);
       console.log('🔍 TEST 26-28: Created session:', session ? 'YES' : 'NO');
       
-      // ✅ Set session in page context BEFORE navigating to /auth
+      // Navigate to auth first (so localStorage is available)
+      await page.goto('/auth');
+      console.log('🔍 TEST 26-28: Initial navigation to /auth');
+      
+      // Set session in localStorage
       await page.evaluate((sessionData) => {
         localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
       }, session);
+      console.log('🔍 TEST 26-28: Set session in localStorage');
       
-      // Also set up mock to return this session
-      await page.route('**/auth/v1/user*', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ user }),
-        });
-      });
-      
-      await page.route('**/auth/v1/session*', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(session),
-        });
-      });
-      
-      // Now navigate to /auth - should redirect
-      console.log('🔍 TEST 26-28: Navigating to /auth with authenticated session');
-      await page.goto('/auth');
+      // Reload page to trigger auth check
+      await page.reload();
       await page.waitForLoadState('networkidle');
+      console.log('🔍 TEST 26-28: Page reloaded');
       
-      // Wait for redirect
+      // Wait for redirect to complete
       await page.waitForTimeout(2000);
       
       const currentUrl = page.url();
-      console.log('🔍 TEST 26-28: Current URL after navigation:', currentUrl);
+      console.log('🔍 TEST 26-28: Current URL after reload:', currentUrl);
       expect(currentUrl).not.toContain('/auth');
+      expect(currentUrl).toContain('/community');
     });
   });
 
