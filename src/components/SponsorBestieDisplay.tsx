@@ -10,7 +10,7 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import { useNavigate } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { SponsorshipBreakdownDialog } from "@/components/SponsorshipBreakdownDialog";
-import { OptimizedImage } from "@/components/OptimizedImage";
+
 
 interface TextSection {
   header: string;
@@ -262,13 +262,17 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           <div className="grid md:grid-cols-2 gap-0">
             {/* Left side - Image */}
             <div className="relative overflow-hidden flex items-center justify-center bg-muted" style={{ maxHeight: '450px' }}>
-              <OptimizedImage
+              <img
                 src={bestie.image_url}
                 alt={bestie.bestie_name}
                 className="object-contain w-full h-full"
-                priority={true}
-                objectFit="contain"
-                onLoad={() => console.log('Image loaded:', bestie.bestie_name)}
+                style={{ maxHeight: '450px' }}
+                loading="eager"
+                onError={(e) => {
+                  console.error('Failed to load bestie image:', bestie.bestie_name, bestie.image_url);
+                  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23f0f0f0" width="400" height="400"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="18" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EImage not found%3C/text%3E%3C/svg%3E';
+                }}
+                onLoad={() => console.log('Image loaded successfully:', bestie.bestie_name)}
               />
               <div className="absolute top-4 left-4">
                 <div className="bg-gradient-warm px-4 py-1.5 rounded-full shadow-lg">
