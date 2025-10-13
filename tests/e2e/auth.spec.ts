@@ -469,20 +469,6 @@ test.describe('Authentication and Signup Flow', () => {
           console.log('🔍 TEST 26-28: SESSION RESPONSE:', response.status(), body.substring(0, 200));
         }
       });
-          body: JSON.stringify({
-            data: {
-              session: {
-                access_token: session.access_token,
-                refresh_token: session.refresh_token,
-                user,
-              },
-              user,
-            },
-            error: null,
-          }),
-        });
-      });
-      console.log('🔍 TEST 26-28: Set up session endpoint intercept');
       
       // Navigate to /auth - getSession() will hit our intercept and get the session immediately
       await page.goto('/auth');
