@@ -137,51 +137,81 @@ test.describe('Authentication and Signup Flow', () => {
 
   test.describe('Signup Flow - Bestie Role', () => {
     test('should generate friend code for Bestie role', async ({ page }) => {
+      console.log('🔍 TEST 13-15: Starting Bestie signup test');
+      
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
       await page.waitForTimeout(500);
+      console.log('🔍 TEST 13-15: Clicked signup button');
       
       // Fill in required fields
       await page.getByPlaceholder(/email/i).fill('bestie@test.com');
       await page.getByLabel(/password/i).fill('TestPass123!');
       await page.getByPlaceholder(/name|display name/i).fill('Test Bestie');
+      console.log('🔍 TEST 13-15: Filled basic fields');
       
       // ✅ Wait for name input to blur and state to update
       await page.waitForTimeout(200);
       
       // Select bestie role
       const roleSelector = page.getByRole('combobox').first();
+      console.log('🔍 TEST 13-15: Found role selector:', await roleSelector.isVisible());
       await roleSelector.click();
       await page.waitForTimeout(300); // Wait for dropdown to open
+      console.log('🔍 TEST 13-15: Clicked role selector');
       
-      // Click on the bestie option (use getByRole for better reliability)
-      const bestieOption = page.getByRole('option', { name: /bestie|community member/i });
+      // Try to find the bestie option with different strategies
+      const bestieOption = page.getByRole('option').filter({ hasText: /bestie/i }).first();
+      const optionExists = await bestieOption.isVisible().catch(() => false);
+      console.log('🔍 TEST 13-15: Bestie option visible:', optionExists);
+      
+      if (!optionExists) {
+        // List all available options for debugging
+        const allOptions = await page.getByRole('option').all();
+        console.log('🔍 TEST 13-15: Available options count:', allOptions.length);
+        for (let i = 0; i < allOptions.length; i++) {
+          const text = await allOptions[i].textContent();
+          console.log(`🔍 TEST 13-15: Option ${i}:`, text);
+        }
+      }
+      
       await bestieOption.click();
       await page.waitForTimeout(300); // Wait for selection to complete
+      console.log('🔍 TEST 13-15: Clicked bestie option');
       
       // Select avatar
       const avatarOption = page.locator('[data-avatar-number="1"]').first();
-      if (await avatarOption.isVisible()) {
+      const avatarVisible = await avatarOption.isVisible().catch(() => false);
+      console.log('🔍 TEST 13-15: Avatar visible:', avatarVisible);
+      if (avatarVisible) {
         await avatarOption.click();
         await page.waitForTimeout(200);
+        console.log('🔍 TEST 13-15: Clicked avatar');
       }
       
       // Accept terms
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
-      if (await termsCheckbox.isVisible()) {
+      const termsVisible = await termsCheckbox.isVisible().catch(() => false);
+      console.log('🔍 TEST 13-15: Terms checkbox visible:', termsVisible);
+      if (termsVisible) {
         await termsCheckbox.check();
         await page.waitForTimeout(200);
+        console.log('🔍 TEST 13-15: Checked terms');
       }
       
       // Verify button is enabled before clicking
       const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      const buttonEnabled = await submitButton.isEnabled().catch(() => false);
+      console.log('🔍 TEST 13-15: Submit button enabled:', buttonEnabled);
       await expect(submitButton).toBeEnabled();
       
       // Submit form
+      console.log('🔍 TEST 13-15: About to click submit');
       await submitButton.click({ noWaitAfter: true });
       
       // Wait for form submission to complete
       await page.waitForTimeout(1000);
+      console.log('🔍 TEST 13-15: Form submitted, checking results');
       
       // Verify user was created with friend code
       const user = state.getUserByEmail('bestie@test.com');
