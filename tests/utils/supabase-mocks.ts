@@ -941,16 +941,48 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
       });
     } else if (method === 'GET') {
       const vendorId = extractQueryParam(url, 'vendor_id');
+      const bestieId = extractQueryParam(url, 'bestie_id');
+      const status = extractQueryParam(url, 'status');
+      
       let results = Array.from(state.vendorBestieRequests.values());
       
       if (vendorId) {
         results = results.filter(r => r.vendor_id === vendorId);
       }
+      if (bestieId) {
+        results = results.filter(r => r.bestie_id === bestieId);
+      }
+      if (status) {
+        results = results.filter(r => r.status === status);
+      }
+      
+      // Enrich with vendor and bestie data
+      const enrichedResults = results.map(request => ({
+        ...request,
+        vendor: state.vendors.get(request.vendor_id) || { business_name: 'Unknown Vendor', description: null, logo_url: null },
+        bestie: state.profiles.get(request.bestie_id) || { display_name: 'Unknown Bestie' }
+      }));
       
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(results),
+        body: JSON.stringify(enrichedResults),
+      });
+    } else if (method === 'PATCH') {
+      const requestId = extractQueryParam(url, 'id');
+      const body = await route.request().postDataJSON();
+      
+      if (requestId) {
+        const request = state.vendorBestieRequests.get(requestId);
+        if (request) {
+          Object.assign(request, body);
+        }
+      }
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
       });
     } else {
       await route.continue();

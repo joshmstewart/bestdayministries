@@ -58,10 +58,16 @@ const VendorDashboard = () => {
           loadStats(vendor.id);
         }
       } else {
+        // User is not a vendor - they can apply
         setVendorStatus('none');
       }
     } catch (error) {
       console.error('Error checking vendor status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check vendor status",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

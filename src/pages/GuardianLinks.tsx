@@ -149,8 +149,9 @@ export default function GuardianLinks() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // Allow caregivers, supporters, besties, admins, and owners
-      if (!roleData || !['caregiver', 'supporter', 'bestie', 'admin', 'owner'].includes(roleData.role)) {
+      // Only allow caregivers to access guardian-specific features
+      // Supporters, besties, admins, and owners can access for sponsorships only
+      if (!['caregiver', 'supporter', 'bestie', 'admin', 'owner'].includes(roleData.role)) {
         setLoading(false);
         toast({
           title: "Access denied",
