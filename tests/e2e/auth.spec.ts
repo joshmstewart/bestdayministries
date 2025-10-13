@@ -444,46 +444,14 @@ test.describe('Authentication and Signup Flow', () => {
 
   test.describe('Session Management', () => {
     test('should redirect authenticated users away from auth page', async ({ page }) => {
-      // Create and authenticate a user
-      const userId = state.addUser('authenticated@test.com', 'password123', {
-        display_name: 'Authenticated User',
-        role: 'supporter',
-        avatar_number: 1
-      });
+      // Create authenticated user and inject session into browser
+      await mockAuthenticatedSession(page, state, 'authenticated@test.com', 'supporter');
       
-      const session = state.sessions.get(userId);
-      const user = state.users.get(userId);
-      console.log('🔍 TEST 26-28: Created user:', user);
-      console.log('🔍 TEST 26-28: Created session:', session ? 'YES' : 'NO');
+      // Navigate to auth page - should redirect away
+      await page.goto('/auth');
       
-      // Add network listeners to debug
-      page.on('request', request => {
-        if (request.url().includes('session')) {
-          console.log('🔍 TEST 26-28: SESSION REQUEST:', request.url(), request.method());
-        }
-      });
-      
-      page.on('response', async response => {
-        if (response.url().includes('session')) {
-          const body = await response.text().catch(() => 'Could not read');
-          console.log('🔍 TEST 26-28: SESSION RESPONSE:', response.status(), body.substring(0, 200));
-        }
-      });
-      
-      // CRITICAL: Wait for ALL session routes to be fully registered
-      await page.waitForTimeout(500);
-      
-      // Navigate to /auth - getSession() will hit our intercept and get the session immediately
-      await page.goto('/auth', { waitUntil: 'networkidle' });
-      console.log('🔍 TEST 26-28: Navigated to /auth');
-      
-      // Wait for redirect - should happen quickly since session is available
-      await page.waitForURL(url => !url.toString().includes('/auth'), { timeout: 5000 });
-      
-      const currentUrl = page.url();
-      console.log('🔍 TEST 26-28: Current URL after redirect:', currentUrl);
-      expect(currentUrl).not.toContain('/auth');
-      expect(currentUrl).toContain('/community');
+      // Should redirect to community page
+      await page.waitForURL('/community', { timeout: 5000 });
     });
   });
 

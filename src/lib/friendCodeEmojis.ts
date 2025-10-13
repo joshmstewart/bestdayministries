@@ -19,7 +19,7 @@ export const FRIEND_CODE_EMOJIS = [
   { emoji: "🐉", name: "Dragon" },
   { emoji: "🎯", name: "Target" },
   { emoji: "🎺", name: "Trumpet" },
-  { emoji: "🏖️", name: "Beach" },
+  { emoji: "🏝️", name: "Desert Island" },
 ] as const;
 
 export const getRandomEmoji = () => {
