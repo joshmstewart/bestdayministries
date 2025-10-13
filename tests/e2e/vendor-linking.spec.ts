@@ -23,15 +23,17 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       // Navigate to Settings tab where vendor-bestie linking is located
       await page.getByRole('tab', { name: /settings/i }).click();
       
-      // Wait for Settings tab content to load by checking for profile settings section
-      await page.waitForSelector('text=/profile settings|vendor profile|business information/i', { 
-        timeout: 10000,
+      // Wait for the "Link to Besties" section to fully load
+      await page.waitForSelector('text=/Link to Besties/i', { 
+        timeout: 15000,
         state: 'visible' 
       });
       
-      // Look for link bestie option
-      const linkOption = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
-      await page.waitForTimeout(500); // Small wait for content to fully render
+      // Additional wait for the form components to render
+      await page.waitForTimeout(1000);
+      
+      // Look for link bestie option (button to submit the friend code)
+      const linkOption = page.locator('button').filter({ hasText: /link.*bestie|send.*request|submit/i }).first();
       const isVisible = await linkOption.isVisible().catch(() => false);
       
       expect(isVisible).toBeTruthy();
@@ -180,11 +182,14 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       // Navigate to Settings tab where pending requests are displayed
       await page.getByRole('tab', { name: /settings/i }).click();
       
-      // Wait for Settings tab content to load
-      await page.waitForSelector('text=/profile settings|vendor profile|business information/i', { 
-        timeout: 10000,
+      // Wait for the "Link to Besties" section to load
+      await page.waitForSelector('text=/Link to Besties/i', { 
+        timeout: 15000,
         state: 'visible' 
       });
+      
+      // Additional wait for the form to render
+      await page.waitForTimeout(1000);
       
       // Should show pending status
       const pendingVisible = await page.locator('text=/pending|waiting/i').first().isVisible().catch(() => false);
