@@ -645,6 +645,28 @@ export async function mockAuthenticatedSession(
     },
   ]);
 
+  // ✅ CRITICAL: Force Supabase client to recognize the session immediately
+  // This bypasses the SDK's internal cache and ensures getSession() returns our mocked session
+  await page.evaluate(async (sessionData) => {
+    try {
+      // @ts-ignore - accessing window module system
+      const { supabase } = await import('/src/integrations/supabase/client.ts');
+      
+      // Set the session programmatically to bypass cache issues
+      await supabase.auth.setSession({
+        access_token: sessionData.access_token,
+        refresh_token: sessionData.refresh_token
+      });
+      
+      console.log('🔍 MOCK: Forced Supabase client session initialization for user:', sessionData.user.email);
+    } catch (error) {
+      console.error('🔍 MOCK ERROR: Failed to set session:', error);
+    }
+  }, fullSessionData);
+
+  // Small wait to ensure session propagation through the SDK
+  await page.waitForTimeout(200);
+
   return { userId, token: session.access_token };
 }
 
