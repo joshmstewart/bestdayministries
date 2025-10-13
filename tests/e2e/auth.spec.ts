@@ -482,7 +482,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 26-28: Navigated to /auth');
       
       // Wait for redirect - should happen quickly since session is available
-      await page.waitForURL(url => !url.includes('/auth'), { timeout: 5000 });
+      await page.waitForURL(url => !url.toString().includes('/auth'), { timeout: 5000 });
       
       const currentUrl = page.url();
       console.log('🔍 TEST 26-28: Current URL after redirect:', currentUrl);

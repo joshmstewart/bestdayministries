@@ -738,6 +738,8 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
     } else if (method === 'GET') {
       const userId = extractQueryParam(url, 'user_id');
       const role = extractQueryParam(url, 'role');
+      const headers = route.request().headers();
+      const isSingle = headers['prefer']?.includes('return=representation');
       
       let results = Array.from(state.userRoles.values());
       
@@ -748,11 +750,20 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
         results = results.filter(r => r.role === role);
       }
       
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(results),
-      });
+      // Handle .maybeSingle() queries - return single object or null
+      if (isSingle || url.includes('limit=1')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(results[0] || null),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(results),
+        });
+      }
     } else {
       await route.continue();
     }
