@@ -20,6 +20,10 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       await page.goto('/vendor-dashboard');
       await page.waitForLoadState('networkidle');
       
+      // Navigate to Settings tab where vendor-bestie linking is located
+      await page.getByRole('tab', { name: /settings/i }).click();
+      await page.waitForTimeout(500);
+      
       // Look for link bestie option
       const linkOption = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
       const isVisible = await linkOption.isVisible().catch(() => false);
@@ -165,6 +169,11 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       
       await mockAuthenticatedSession(page, state, 'vendor@test.com', 'supporter');
       await page.goto('/vendor-dashboard');
+      await page.waitForLoadState('networkidle');
+      
+      // Navigate to Settings tab where pending requests are displayed
+      await page.getByRole('tab', { name: /settings/i }).click();
+      await page.waitForTimeout(500);
       
       // Should show pending status
       const pendingVisible = await page.locator('text=/pending|waiting/i').first().isVisible().catch(() => false);
