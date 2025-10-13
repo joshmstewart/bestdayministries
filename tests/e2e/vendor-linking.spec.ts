@@ -190,12 +190,14 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(500);
       
-      // Click the vendors tab to show vendor requests
-      const vendorsTab = page.locator('button[role="tab"]').filter({ hasText: /vendors/i }).first();
+      // Click the "Vendor Links" tab to show vendor requests
+      const vendorsTab = page.locator('button[role="tab"]').filter({ hasText: /vendor links/i }).first();
       const tabVisible = await vendorsTab.isVisible().catch(() => false);
+      console.log('🔍 TEST 15/150: Vendor Links tab visible:', tabVisible);
       if (tabVisible) {
         await vendorsTab.click();
         await page.waitForTimeout(500);
+        console.log('🔍 TEST 15/150: Clicked Vendor Links tab');
       }
       
       // Should see vendor request
