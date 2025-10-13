@@ -67,11 +67,11 @@ npm run test:unit -- tests/unit/lib/validation.test.ts
 
 ### E2E Tests
 ```bash
-# Run all Playwright tests
-npx playwright test
+# Run all Playwright tests (excludes visual tests)
+npx playwright test tests/e2e/
 
 # Run specific test file
-npx playwright test tests/basic.spec.ts
+npx playwright test tests/e2e/basic.spec.ts
 
 # Run in UI mode
 npx playwright test --ui
@@ -82,11 +82,14 @@ npx playwright show-report
 
 ### Visual Regression Tests
 ```bash
-# Set Percy token
+# Set Percy token (get from percy.io project settings)
 export PERCY_TOKEN=your_token_here
 
-# Run visual tests
-npx percy exec -- npx playwright test tests/visual.spec.ts
+# Run visual tests with Percy
+npx percy exec -- npx playwright test tests/e2e/visual.spec.ts
+
+# Note: Percy must be running for snapshots to be captured
+# If Percy token is not set, tests will pass but skip snapshots
 ```
 
 ## Percy Setup
@@ -156,14 +159,30 @@ test('page appearance', async ({ page }) => {
 
 ## CI/CD Integration
 
-The GitHub Actions workflow (`.github/workflows/test.yml`) automatically:
-1. Installs dependencies
-2. Builds the project
-3. Runs unit tests with coverage
-4. Runs E2E tests
-5. Runs visual regression tests (if Percy token is set)
-6. Uploads coverage and test reports
-7. Logs results to database
+The GitHub Actions workflow (`.github/workflows/test.yml`) has three separate jobs:
+
+1. **Unit Tests**: Runs Vitest tests with coverage
+2. **E2E Tests**: Runs Playwright tests (sharded across 4 parallel jobs, excludes visual tests)
+3. **Visual Tests**: Runs Percy visual regression tests separately (only if `PERCY_TOKEN` is configured)
+4. **Log Results**: Logs all test results to database
+
+### Why Visual Tests Are Separate
+
+Percy doesn't work with test sharding, so visual tests run in a dedicated job using:
+```bash
+npx percy exec -- npx playwright test tests/e2e/visual.spec.ts
+```
+
+The visual tests job only runs if:
+- `run_visual_tests` input is true (default)
+- `PERCY_TOKEN` secret is configured
+
+### Workflow Inputs
+
+When manually triggering the workflow, you can choose which test suites to run:
+- `run_unit_tests` (default: true)
+- `run_e2e_tests` (default: true)  
+- `run_visual_tests` (default: true)
 
 ## Coverage Reports
 
@@ -237,9 +256,11 @@ Coverage reports show which code is tested:
 - Ensure components have proper test IDs or accessible roles
 
 ### Percy Not Running
-- Verify `PERCY_TOKEN` is set in GitHub Secrets
-- Check that Percy package is installed
-- Ensure token has correct permissions
+- Verify `PERCY_TOKEN` is set in GitHub Secrets (Settings → Secrets → Actions → New repository secret)
+- Check that Percy package is installed (`@percy/playwright` in package.json)
+- Ensure token has correct permissions (copy from percy.io project settings)
+- Visual tests run in separate job - check "visual-tests" job in GitHub Actions
+- If Percy is not configured, visual tests are skipped (not failed)
 
 ### Coverage Too Low
 - Add tests for untested files

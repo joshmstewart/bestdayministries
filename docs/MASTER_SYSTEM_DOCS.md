@@ -225,10 +225,11 @@ DB:test_runs[status|workflow|commit|branch|duration|url|test_count|passed|failed
 EDGE:github-test-webhook[receive-GH→parse→insert-db]
 FRONTEND:TestRunsManager[list-realtime-status-badges-links-to-GH]
 WORKFLOW:1)push-code→2)GH-Actions-run→3)webhook-log→4)admin-view
-SETUP:GH-secrets[VITE_SUPABASE_URL+VITE_SUPABASE_PUBLISHABLE_KEY]
+SETUP:GH-secrets[VITE_SUPABASE_URL+VITE_SUPABASE_PUBLISHABLE_KEY+PERCY_TOKEN]
 TESTS:playwright.config.ts|tests/basic.spec.ts[homepage|nav|auth]|3-browsers[Chrome-Firefox-Safari]
+VISUAL:Percy-separate-job[no-sharding|npx-percy-exec]|PERCY_TOKEN-required|skip-if-missing
 STATUSES:success✅|failure❌|pending⏱|cancelled🚫
-RUN-LOCAL:npx-playwright-test|--ui[interactive]|show-report[view-results]
+RUN-LOCAL:npx-playwright-test|--ui[interactive]|show-report[view-results]|percy[export-PERCY_TOKEN→percy-exec]
 E2E-RELIABILITY-PATTERNS:
 LAYERED-WAITS:tab-click→section-heading-wait-15s→component-title-wait-10s→button-wait-5s
 SELECTORS:verify-component-code→exact-text-NOT-generic-patterns

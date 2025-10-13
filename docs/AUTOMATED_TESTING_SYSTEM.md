@@ -20,9 +20,13 @@ The application includes automated end-to-end (E2E) testing using Playwright tha
 
 ### 2. GitHub Actions Workflow
 - **File**: `.github/workflows/test.yml`
-- **Triggers**: Push to main/master, pull requests
-- **Steps**: Install deps → Build → Run tests → Upload reports → Log to DB
-- **Artifacts**: Test reports stored for 30 days
+- **Triggers**: Manual workflow dispatch with optional test suites
+- **Jobs**:
+  1. **unit-tests**: Vitest with coverage (if enabled)
+  2. **e2e-tests**: Playwright across 4 shards, excludes visual tests (if enabled)
+  3. **visual-tests**: Percy snapshots, requires PERCY_TOKEN (if enabled)
+  4. **log-results**: Aggregates and logs all results to database
+- **Artifacts**: Test reports and coverage stored for 30 days
 
 ### 3. Database Logging
 - **Table**: `test_runs`
@@ -46,6 +50,7 @@ Add these secrets to your GitHub repository (Settings → Secrets and variables 
 
 1. `VITE_SUPABASE_URL` - Your Supabase project URL
 2. `VITE_SUPABASE_PUBLISHABLE_KEY` - Your Supabase anon/public key
+3. `PERCY_TOKEN` - (Optional) Percy.io token for visual regression tests
 
 ### First Test Run
 1. Commit and push code to trigger workflow
@@ -174,14 +179,45 @@ npx playwright show-report
 - Reduce retries in config for local runs
 - Use `test.only()` to run specific tests during development
 
+## Visual Regression Testing (Percy)
+
+### Setup
+1. Sign up at [percy.io](https://percy.io)
+2. Create a new project
+3. Get project token from Settings
+4. Add to GitHub Secrets as `PERCY_TOKEN`
+
+### How It Works
+- Percy runs in separate CI job (doesn't work with test sharding)
+- Captures screenshots during test execution  
+- Compares with approved baseline images
+- Comments on PRs with visual diffs
+- Only runs if `PERCY_TOKEN` is configured (skipped otherwise)
+
+### Running Locally
+```bash
+export PERCY_TOKEN=your_token_here
+npx percy exec -- npx playwright test tests/e2e/visual.spec.ts
+```
+
+### Writing Percy Tests
+```typescript
+import { test } from '@playwright/test';
+import percySnapshot from '@percy/playwright';
+
+test('page appearance', async ({ page }) => {
+  await page.goto('/my-page');
+  await page.waitForLoadState('networkidle');
+  await percySnapshot(page, 'My Page Name');
+});
+```
+
 ## Future Enhancements
 
 ### Potential Additions
-- Visual regression testing (Percy, Applitools)
-- Unit tests with Vitest
 - Integration tests for edge functions
 - Performance testing with Lighthouse
-- Test coverage reporting
+- Accessibility testing (axe-core)
 - Slack/Discord notifications on failures
 - Test metrics dashboard (pass rate trends, flakiness detection)
 
