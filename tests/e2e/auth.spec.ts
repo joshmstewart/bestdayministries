@@ -456,9 +456,24 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 26-28: Created user:', user);
       console.log('🔍 TEST 26-28: Created session:', session ? 'YES' : 'NO');
       
+      // Add network listeners to debug
+      await page.on('request', request => {
+        if (request.url().includes('session')) {
+          console.log('🔍 TEST 26-28: SESSION REQUEST:', request.url(), request.method());
+        }
+      });
+      
+      await page.on('response', async response => {
+        if (response.url().includes('session')) {
+          const body = await response.text().catch(() => 'Could not read');
+          console.log('🔍 TEST 26-28: SESSION RESPONSE:', response.status(), body.substring(0, 200));
+        }
+      });
+      
       // CRITICAL: Set up route intercept BEFORE any navigation
       // Store session in closure so it's returned synchronously
       await page.route('**/auth/v1/session*', async (route) => {
+        console.log('🔍 TEST 26-28: MOCK INTERCEPT TRIGGERED for session endpoint');
         await route.fulfill({
           status: 200,
           contentType: 'application/json',

@@ -81,7 +81,9 @@ const Auth = () => {
 
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔍 AUTH PAGE: getSession result:', session ? 'HAS SESSION' : 'NO SESSION', session?.user?.email);
       if (session?.user) {
+        console.log('🔍 AUTH PAGE: Redirecting authenticated user:', session.user.id);
         checkAndRedirect(session.user.id);
       }
     });
