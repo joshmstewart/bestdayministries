@@ -23,18 +23,22 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       // Navigate to Settings tab where vendor-bestie linking is located
       await page.getByRole('tab', { name: /settings/i }).click();
       
-      // Wait for the "Link to Besties" section to fully load
+      // Wait for the "Link to Besties" section heading to appear
       await page.waitForSelector('text=/Link to Besties/i', { 
         timeout: 15000,
         state: 'visible' 
       });
       
-      // Additional wait for the form components to render
-      await page.waitForTimeout(1000);
+      // Wait for the specific Card component to fully load with its title
+      await page.waitForSelector('text=/Link Your Store to a Bestie/i', { 
+        timeout: 10000,
+        state: 'visible' 
+      });
       
-      // Look for link bestie option (button to submit the friend code)
-      const linkOption = page.locator('button').filter({ hasText: /link.*bestie|send.*request|submit/i }).first();
-      const isVisible = await linkOption.isVisible().catch(() => false);
+      // Look for the submit button with exact text
+      const linkOption = page.locator('button').filter({ hasText: /Send Link Request/i });
+      await linkOption.waitFor({ state: 'visible', timeout: 5000 });
+      const isVisible = await linkOption.isVisible();
       
       expect(isVisible).toBeTruthy();
     });
@@ -182,14 +186,17 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       // Navigate to Settings tab where pending requests are displayed
       await page.getByRole('tab', { name: /settings/i }).click();
       
-      // Wait for the "Link to Besties" section to load
+      // Wait for the "Link to Besties" section heading to appear
       await page.waitForSelector('text=/Link to Besties/i', { 
         timeout: 15000,
         state: 'visible' 
       });
       
-      // Additional wait for the form to render
-      await page.waitForTimeout(1000);
+      // Wait for the Card component to fully load
+      await page.waitForSelector('text=/Link Your Store to a Bestie/i', { 
+        timeout: 10000,
+        state: 'visible' 
+      });
       
       // Should show pending status
       const pendingVisible = await page.locator('text=/pending|waiting/i').first().isVisible().catch(() => false);
