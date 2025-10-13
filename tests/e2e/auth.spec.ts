@@ -470,11 +470,11 @@ test.describe('Authentication and Signup Flow', () => {
         }
       });
       
-      // CRITICAL: Wait for session route to be fully registered
-      await page.waitForTimeout(300);
+      // CRITICAL: Wait for ALL session routes to be fully registered
+      await page.waitForTimeout(500);
       
       // Navigate to /auth - getSession() will hit our intercept and get the session immediately
-      await page.goto('/auth', { waitUntil: 'domcontentloaded' });
+      await page.goto('/auth', { waitUntil: 'networkidle' });
       console.log('🔍 TEST 26-28: Navigated to /auth');
       
       // Wait for redirect - should happen quickly since session is available

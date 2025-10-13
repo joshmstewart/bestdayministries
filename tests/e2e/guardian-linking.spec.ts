@@ -41,14 +41,14 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       }
     });
     
-    // CRITICAL: Wait for session route to be fully registered before navigation
-    await page.waitForTimeout(500);
+    // CRITICAL: Wait for ALL session routes to be fully registered before navigation
+    await page.waitForTimeout(1000);
     
-    // Navigate and wait for content to load
+    // Navigate and wait for everything to fully load INCLUDING network requests
     await page.goto('/guardian-links', { waitUntil: 'networkidle' });
     
-    // Wait for page to fully load
-    await page.waitForLoadState('domcontentloaded');
+    // Additional wait for auth state to fully propagate
+    await page.waitForTimeout(500);
   });
 
   // ============================================

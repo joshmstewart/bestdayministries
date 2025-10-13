@@ -625,6 +625,16 @@ export async function mockAuthenticatedSession(
     });
   });
 
+  // ✅ CRITICAL: Also intercept /auth/v1/user endpoint to return the user immediately
+  await page.route('**/auth/v1/user*', async (route) => {
+    console.log('🔍 MOCK: User endpoint intercepted, returning user:', user.email);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(user)
+    });
+  });
+
   // Set session cookie
   await page.context().addCookies([
     {
