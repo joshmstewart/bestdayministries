@@ -187,6 +187,16 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       
       await mockAuthenticatedSession(page, state, 'guardian@test.com', 'caregiver');
       await page.goto('/guardian-approvals');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(500);
+      
+      // Click the vendors tab to show vendor requests
+      const vendorsTab = page.locator('button[role="tab"]').filter({ hasText: /vendors/i }).first();
+      const tabVisible = await vendorsTab.isVisible().catch(() => false);
+      if (tabVisible) {
+        await vendorsTab.click();
+        await page.waitForTimeout(500);
+      }
       
       // Should see vendor request
       const requestVisible = await page.locator('text=/vendor|partnership|request/i').first().isVisible().catch(() => false);

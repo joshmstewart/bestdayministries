@@ -850,10 +850,22 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
         body: JSON.stringify(enrichedResults),
       });
     } else if (method === 'DELETE') {
-      const linkId = extractQueryParam(url, 'id');
-      console.log('🗑️ MOCK DELETE: Deleting link ID:', linkId);
+      // Handle both query parameter and path-based DELETE formats
+      let linkId = extractQueryParam(url, 'id');
+      
+      // If not in query params, try to extract from URL path
+      if (!linkId) {
+        const pathMatch = url.match(/caregiver_bestie_links[?&]id=eq\.([^&]+)/);
+        if (pathMatch) {
+          linkId = pathMatch[1];
+        }
+      }
+      
+      console.log('🗑️ MOCK DELETE: Full URL:', url);
+      console.log('🗑️ MOCK DELETE: Extracted link ID:', linkId);
       console.log('🗑️ Links before delete:', state.caregiverBestieLinks.size);
       console.log('🗑️ All link IDs:', Array.from(state.caregiverBestieLinks.keys()));
+      
       if (linkId) {
         const deleted = state.caregiverBestieLinks.delete(linkId);
         console.log('🗑️ Delete successful:', deleted);

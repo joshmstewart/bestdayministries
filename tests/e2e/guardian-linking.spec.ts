@@ -393,8 +393,8 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       await page.waitForTimeout(1000);
       console.log('🔍 TEST 238: Page reloaded');
       
-      // Look for unlink button (trash icon)
-      const unlinkButton = page.locator('button').filter({ hasText: '' }).first(); // Trash icon button
+      // Look for unlink button (trash icon) - find by the trash icon SVG
+      const unlinkButton = page.locator('button').filter({ has: page.locator('svg.lucide-trash-2') }).first();
       const unlinkVisible = await unlinkButton.isVisible();
       console.log('🔍 TEST 238: Unlink button visible:', unlinkVisible);
       
@@ -403,16 +403,23 @@ test.describe('Guardian-Bestie Linking Flow', () => {
         console.log('🔍 TEST 238: Initial link count:', initialLinkCount);
         await unlinkButton.click();
         
-        // Confirm in dialog
+        // Wait for AlertDialog to appear
+        await page.waitForSelector('[role="alertdialog"]', { timeout: 2000 }).catch(() => {});
         await page.waitForTimeout(500);
-        const confirmButton = page.locator('button').filter({ hasText: /remove link/i }).first();
-        if (await confirmButton.isVisible()) {
+        console.log('🔍 TEST 238: AlertDialog appeared');
+        
+        // Click the "Remove Link" button in the AlertDialog
+        const confirmButton = page.locator('[role="alertdialog"] button').filter({ hasText: /remove link/i }).first();
+        const confirmVisible = await confirmButton.isVisible().catch(() => false);
+        console.log('🔍 TEST 238: Confirm button visible:', confirmVisible);
+        
+        if (confirmVisible) {
           await confirmButton.click();
           console.log('🔍 TEST 238: Clicked confirm button');
         }
         
-        // Wait longer for UI refresh and state update
-        await page.waitForTimeout(2000);
+        // Wait for DELETE operation to complete
+        await page.waitForTimeout(1500);
         
         // Verify link was removed from state
         const finalLinkCount = state.caregiverBestieLinks.size;
