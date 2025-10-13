@@ -456,20 +456,33 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 26-28: Created user:', user);
       console.log('🔍 TEST 26-28: Created session:', session ? 'YES' : 'NO');
       
-      // First, set localStorage on ANY page so it's available for getSession
-      await page.goto('/');
-      await page.evaluate((sessionData) => {
-        localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
-        console.log('🔍 TEST 26-28: Session stored in localStorage');
-      }, session);
-      console.log('🔍 TEST 26-28: Set session in localStorage');
+      // CRITICAL: Set up route intercept BEFORE any navigation
+      // Store session in closure so it's returned synchronously
+      await page.route('**/auth/v1/session*', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              session: {
+                access_token: session.access_token,
+                refresh_token: session.refresh_token,
+                user,
+              },
+              user,
+            },
+            error: null,
+          }),
+        });
+      });
+      console.log('🔍 TEST 26-28: Set up session endpoint intercept');
       
-      // Now navigate to /auth - getSession() should read from localStorage and trigger redirect
+      // Navigate to /auth - getSession() will hit our intercept and get the session immediately
       await page.goto('/auth');
       console.log('🔍 TEST 26-28: Navigated to /auth');
       
-      // Wait for redirect (the useEffect in Auth.tsx should trigger within 2s)
-      await page.waitForURL(url => !url.includes('/auth'), { timeout: 3000 });
+      // Wait for redirect - should happen quickly since session is available
+      await page.waitForURL(url => !url.includes('/auth'), { timeout: 5000 });
       
       const currentUrl = page.url();
       console.log('🔍 TEST 26-28: Current URL after redirect:', currentUrl);

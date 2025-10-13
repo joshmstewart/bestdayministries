@@ -30,21 +30,21 @@ test.describe('Guardian-Bestie Linking Flow', () => {
 
     test('should display link bestie form', async ({ page }) => {
       console.log('🔍 TEST 90-92: Starting link bestie form test');
-      // Wait for page to fully load
+      
+      // Wait for network idle AND for role to load
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
-      console.log('🔍 TEST 90-92: Page loaded');
+      console.log('🔍 TEST 90-92: Network idle');
       
-      // First, check if there's a "Link Bestie" button and click it to open the dialog
+      // Wait for Link Bestie button to appear
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
-      const linkButtonVisible = await linkButton.isVisible({ timeout: 3000 }).catch(() => false);
-      console.log('🔍 TEST 90-92: Link button visible:', linkButtonVisible);
+      console.log('🔍 TEST 90-92: Waiting for Link Bestie button...');
+      await linkButton.waitFor({ state: 'visible', timeout: 10000 });
+      console.log('🔍 TEST 90-92: Link button visible');
       
-      if (linkButtonVisible) {
-        await linkButton.click();
-        await page.waitForTimeout(500);
-        console.log('🔍 TEST 90-92: Clicked Link Bestie button - dialog should be open');
-      }
+      // Click to open dialog
+      await linkButton.click();
+      await page.waitForTimeout(500);
+      console.log('🔍 TEST 90-92: Clicked Link Bestie button - dialog should be open');
       
       // Now look for form elements inside the dialog
       const hasEmojiLabels = await page.getByText(/first emoji|second emoji|third emoji/i).first().isVisible({ timeout: 3000 }).catch(() => false);
@@ -57,20 +57,21 @@ test.describe('Guardian-Bestie Linking Flow', () => {
 
     test('should show emoji selectors for friend code entry', async ({ page }) => {
       console.log('🔍 TEST 93-95: Starting emoji selectors test');
-      // Wait for page to fully load
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
-      console.log('🔍 TEST 93-95: Page loaded');
       
-      // Open the link dialog first
+      // Wait for network idle AND for role to load
+      await page.waitForLoadState('networkidle');
+      console.log('🔍 TEST 93-95: Network idle');
+      
+      // Wait for Link Bestie button to appear (proves role loaded as caregiver)
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
-      const linkButtonVisible = await linkButton.isVisible({ timeout: 3000 }).catch(() => false);
-      console.log('🔍 TEST 93-95: Link button visible:', linkButtonVisible);
-      if (linkButtonVisible) {
-        await linkButton.click();
-        await page.waitForTimeout(500);
-        console.log('🔍 TEST 93-95: Opened link dialog');
-      }
+      console.log('🔍 TEST 93-95: Waiting for Link Bestie button...');
+      await linkButton.waitFor({ state: 'visible', timeout: 10000 });
+      console.log('🔍 TEST 93-95: Link button visible');
+      
+      // Click to open dialog
+      await linkButton.click();
+      await page.waitForTimeout(500);
+      console.log('🔍 TEST 93-95: Opened link dialog');
       
       // Check for the three emoji selector labels inside the dialog
       const firstEmoji = await page.getByText('First Emoji').isVisible({ timeout: 3000 }).catch(() => false);
@@ -109,20 +110,24 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       console.log('🔍 TEST 97: Created bestie with friend code:', friendCode);
       console.log('🔍 TEST 97: Bestie ID:', bestieId);
       
-      // Wait for page to load
+      // Wait for page to load AND for async role fetch to complete
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
-      console.log('🔍 TEST 97: Page loaded');
+      console.log('🔍 TEST 97: Network idle');
       
-      // Open the link dialog if needed
+      // CRITICAL: Wait for the Link Bestie button to appear (proves role loaded as caregiver)
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
-      const linkButtonVisible = await linkButton.isVisible();
-      console.log('🔍 TEST 97: Link button visible:', linkButtonVisible);
-      if (linkButtonVisible) {
-        await linkButton.click();
-        await page.waitForTimeout(500);
-        console.log('🔍 TEST 97: Clicked link button');
-      }
+      console.log('🔍 TEST 97: Waiting for Link Bestie button...');
+      await linkButton.waitFor({ state: 'visible', timeout: 10000 });
+      console.log('🔍 TEST 97: Link button is now visible');
+      
+      // Click to open dialog
+      await linkButton.click();
+      await page.waitForTimeout(500);
+      console.log('🔍 TEST 97: Clicked link button - dialog should be open');
+      
+      // Wait for dialog content to render
+      await page.waitForSelector('[data-testid="emoji-1-trigger"]', { timeout: 5000 });
+      console.log('🔍 TEST 97: Emoji selectors are visible');
       
       // Select emojis using data-testid
       const emojis = Array.from(friendCode);
@@ -180,17 +185,23 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       test.slow();
       console.log('🔍 TEST 130: Starting invalid friend code test');
       
+      // Wait for network idle AND for role to load
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
-      console.log('🔍 TEST 130: Page loaded');
+      console.log('🔍 TEST 130: Network idle');
       
-      // Open dialog if needed
+      // Wait for Link Bestie button
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
-      if (await linkButton.isVisible()) {
-        await linkButton.click();
-        await page.waitForTimeout(500);
-        console.log('🔍 TEST 130: Opened link dialog');
-      }
+      console.log('🔍 TEST 130: Waiting for Link Bestie button...');
+      await linkButton.waitFor({ state: 'visible', timeout: 10000 });
+      console.log('🔍 TEST 130: Link button visible');
+      
+      // Open dialog
+      await linkButton.click();
+      await page.waitForTimeout(500);
+      console.log('🔍 TEST 130: Opened link dialog');
+      
+      // Wait for emoji selectors
+      await page.waitForSelector('[data-testid="emoji-1-trigger"]', { timeout: 5000 });
       
       // Select invalid friend code (all same emoji that doesn't exist)
       console.log('🔍 TEST 130: Selecting invalid friend code...');
@@ -237,17 +248,23 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       const { friendCode } = createMockBestie(state, 'bestie@test.com', 'Test Bestie');
       console.log('🔍 TEST 173: Created bestie with friend code:', friendCode);
       
+      // Wait for network idle AND for role to load
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
-      console.log('🔍 TEST 173: Page loaded');
+      console.log('🔍 TEST 173: Network idle');
+      
+      // Wait for Link Bestie button
+      const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
+      console.log('🔍 TEST 173: Waiting for Link Bestie button...');
+      await linkButton.waitFor({ state: 'visible', timeout: 10000 });
+      console.log('🔍 TEST 173: Link button visible');
       
       // Open dialog
-      const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
-      if (await linkButton.isVisible()) {
-        await linkButton.click();
-        await page.waitForTimeout(500);
-        console.log('🔍 TEST 173: Opened link dialog');
-      }
+      await linkButton.click();
+      await page.waitForTimeout(500);
+      console.log('🔍 TEST 173: Opened link dialog');
+      
+      // Wait for emoji selectors
+      await page.waitForSelector('[data-testid="emoji-1-trigger"]', { timeout: 5000 });
       
       // Select friend code but NOT relationship
       const emojis = Array.from(friendCode);
