@@ -191,6 +191,44 @@ Coverage reports show which code is tested:
 - Test critical paths first
 - Keep tests stable and reliable
 
+#### E2E Reliability Patterns (Critical)
+**Flaky tests are often caused by timing issues. Follow these patterns:**
+
+1. **Layered Waiting Strategy**
+   ```typescript
+   // Navigate to tab
+   await page.getByRole('tab', { name: /settings/i }).click();
+   
+   // Wait for section to load
+   await page.waitForSelector('text=/Section Heading/i', { 
+     timeout: 15000, 
+     state: 'visible' 
+   });
+   
+   // Wait for component to render
+   await page.waitForSelector('text=/Component Title/i', { 
+     timeout: 10000, 
+     state: 'visible' 
+   });
+   
+   // Wait for interactive element
+   const button = page.locator('button').filter({ hasText: /Exact Text/i });
+   await button.waitFor({ state: 'visible', timeout: 5000 });
+   ```
+
+2. **Verify Component Text Before Writing Tests**
+   - Open the actual component file
+   - Find exact button text, headings, labels
+   - Use exact patterns instead of generic ones
+   
+3. **Avoid Common Pitfalls**
+   - ❌ Don't use `waitForTimeout()` - creates flaky tests
+   - ❌ Don't use generic text patterns like `/link|submit/i`
+   - ❌ Don't assume tab content is loaded after clicking tab
+   - ✅ Use `waitForSelector()` with specific targets
+   - ✅ Use exact text from component code
+   - ✅ Wait for content within tabs to be visible
+
 ## Common Issues
 
 ### Unit Tests Failing

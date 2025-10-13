@@ -67,11 +67,57 @@ test.describe('Feature Name', () => {
 ```
 
 ### Best Practices
+
+#### General Practices
 - Group related tests with `test.describe()`
 - Use clear, descriptive test names
 - Test critical user journeys first
 - Keep tests independent and isolated
 - Use proper selectors (prefer role/text over class names)
+
+#### Waiting Strategies (CRITICAL for reliability)
+**Problem**: Tests fail because content hasn't loaded when assertions run.
+
+**Solution**: Implement layered waiting strategy:
+1. **Wait for navigation/tab**: `await page.click('tab'); await page.waitForLoadState('networkidle');`
+2. **Wait for section heading**: `await page.waitForSelector('text=/Section Name/i', { timeout: 15000, state: 'visible' });`
+3. **Wait for card/component**: `await page.waitForSelector('text=/Component Title/i', { timeout: 10000, state: 'visible' });`
+4. **Wait for interactive elements**: `await button.waitFor({ state: 'visible', timeout: 5000 });`
+
+**AVOID**: `waitForTimeout()` - creates flaky tests. Always prefer `waitForSelector()` with specific targets.
+
+#### Selector Best Practices
+**Problem**: Generic selectors match wrong elements or fail when text changes.
+
+**Solution**: Verify exact component text before writing tests:
+1. **View the component code** to find exact button text, headings, labels
+2. **Use specific patterns**: `hasText: /Send Link Request/i` instead of `/link.*bestie|send.*request/i`
+3. **Layer specificity**: `page.locator('button').filter({ hasText: /Exact Text/i })`
+
+**Example from vendor-linking tests**:
+```typescript
+// ❌ FLAKY - Generic pattern, no waiting
+const button = page.locator('button').filter({ hasText: /link|submit/i }).first();
+await button.click();
+
+// ✅ RELIABLE - Layered waits, exact text
+await page.waitForSelector('text=/Link to Besties/i', { timeout: 15000, state: 'visible' });
+await page.waitForSelector('text=/Link Your Store to a Bestie/i', { timeout: 10000, state: 'visible' });
+const button = page.locator('button').filter({ hasText: /Send Link Request/i });
+await button.waitFor({ state: 'visible', timeout: 5000 });
+await button.click();
+```
+
+#### Tab Content Loading
+**Problem**: Clicking a tab doesn't guarantee content is rendered.
+
+**Solution**: Always wait for specific content within the tab:
+```typescript
+await page.getByRole('tab', { name: /settings/i }).click();
+// ❌ await page.waitForTimeout(1000); // Flaky!
+// ✅ Wait for actual content
+await page.waitForSelector('text=/Section Heading/i', { timeout: 15000, state: 'visible' });
+```
 
 ### Running Tests Locally
 ```bash

@@ -229,6 +229,11 @@ SETUP:GH-secrets[VITE_SUPABASE_URL+VITE_SUPABASE_PUBLISHABLE_KEY]
 TESTS:playwright.config.ts|tests/basic.spec.ts[homepage|nav|auth]|3-browsers[Chrome-Firefox-Safari]
 STATUSES:success✅|failure❌|pending⏱|cancelled🚫
 RUN-LOCAL:npx-playwright-test|--ui[interactive]|show-report[view-results]
+E2E-RELIABILITY-PATTERNS:
+LAYERED-WAITS:tab-click→section-heading-wait-15s→component-title-wait-10s→button-wait-5s
+SELECTORS:verify-component-code→exact-text-NOT-generic-patterns
+TAB-CONTENT:ALWAYS-wait-for-specific-content-within-tab-NEVER-waitForTimeout
+CRITICAL:waitForSelector[specific-targets]+exact-component-text+layered-waits=stable-tests
 
 ## INTERNAL_PAGES
 FILE:lib/internalPages.ts
