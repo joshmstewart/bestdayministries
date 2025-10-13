@@ -645,26 +645,34 @@ export async function mockAuthenticatedSession(
     },
   ]);
 
-  // ✅ CRITICAL: Trigger storage event to force Supabase SDK to re-read session
-  // The Supabase SDK listens for storage events to detect session changes in other tabs
-  // By dispatching this event, we force the SDK to call its internal _recoverAndRefresh() method
-  await page.evaluate(() => {
-    // Dispatch a storage event for the auth token key
-    const event = new StorageEvent('storage', {
-      key: 'sb-nbvijawmjkycyweioglk-auth-token',
-      newValue: localStorage.getItem('sb-nbvijawmjkycyweioglk-auth-token'),
-      oldValue: null,
-      storageArea: localStorage,
-      url: window.location.href
+  // ✅ CRITICAL: Add persistent /auth/v1/session endpoint mock
+  // This ensures ANY request to check session returns our mocked data immediately
+  // Works across all browsers (Chromium, Firefox, Webkit)
+  await page.route('**/auth/v1/session*', async (route) => {
+    console.log('🔍 MOCK: Intercepting /auth/v1/session request');
+    
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(fullSessionData),
     });
-    
-    window.dispatchEvent(event);
-    
-    console.log('🔍 MOCK: Dispatched storage event to trigger Supabase session sync');
   });
 
-  // Small wait to ensure SDK processes the storage event
-  await page.waitForTimeout(300);
+  // Also intercept /auth/v1/user for user data
+  await page.route('**/auth/v1/user*', async (route) => {
+    console.log('🔍 MOCK: Intercepting /auth/v1/user request');
+    
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(fullSessionData.user),
+    });
+  });
+
+  console.log('🔍 MOCK: Session endpoint mocks installed');
+
+  // Small wait to ensure routes are registered
+  await page.waitForTimeout(200);
 
   return { userId, token: session.access_token };
 }
