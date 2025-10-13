@@ -28,7 +28,9 @@ test.describe('Page Navigation', () => {
       
       // Community page requires authentication
       if (page.path === '/community') {
+        console.log(`🔍 NAV TEST: Setting up auth for Community page`);
         await mockAuthenticatedSession(browser, state, 'test@example.com', 'supporter');
+        console.log(`🔍 NAV TEST: Auth session set up`);
       }
       
       // Increase timeout for Firefox compatibility
@@ -38,6 +40,16 @@ test.describe('Page Navigation', () => {
       
       // For Community page, wait for content to load after authentication
       if (page.path === '/community') {
+        console.log(`🔍 NAV TEST: Waiting for Community content to render...`);
+        
+        // Additional wait for React to hydrate
+        await browser.waitForTimeout(2000);
+        
+        // Check for any HTML content first
+        const htmlContent = await browser.content();
+        console.log(`🔍 NAV TEST: Page HTML length:`, htmlContent.length);
+        console.log(`🔍 NAV TEST: Has main tag:`, htmlContent.includes('<main'));
+        
         // Wait for either the featured content or a section to appear
         await browser.waitForSelector('main, .container, [class*="featured"], [class*="section"]', { 
           timeout: 15000,

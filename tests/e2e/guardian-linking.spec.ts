@@ -35,9 +35,18 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       await page.waitForLoadState('networkidle');
       console.log('🔍 TEST 90-92: Network idle');
       
+      // Add delay for checkAccess to complete
+      await page.waitForTimeout(2000);
+      console.log('🔍 TEST 90-92: Waited 2s for checkAccess');
+      
       // Wait for Link Bestie button to appear
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
       console.log('🔍 TEST 90-92: Waiting for Link Bestie button...');
+      
+      // Check if button exists at all
+      const buttonCount = await linkButton.count();
+      console.log('🔍 TEST 90-92: Button count:', buttonCount);
+      
       await linkButton.waitFor({ state: 'visible', timeout: 10000 });
       console.log('🔍 TEST 90-92: Link button visible');
       

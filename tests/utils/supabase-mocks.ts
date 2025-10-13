@@ -739,7 +739,17 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
       const userId = extractQueryParam(url, 'user_id');
       const role = extractQueryParam(url, 'role');
       const headers = route.request().headers();
-      const isSingle = headers['prefer']?.includes('return=representation');
+      
+      // Log all headers for debugging
+      console.log('🔍 USER_ROLES GET - Headers:', JSON.stringify(headers));
+      console.log('🔍 USER_ROLES GET - URL:', url);
+      
+      // Check for .maybeSingle() indicators (case-insensitive header check)
+      const preferHeader = Object.keys(headers).find(k => k.toLowerCase() === 'prefer');
+      const isSingle = preferHeader && headers[preferHeader]?.includes('return=representation');
+      const hasLimit1 = url.includes('limit=1');
+      
+      console.log('🔍 USER_ROLES GET - isSingle:', isSingle, 'hasLimit1:', hasLimit1);
       
       let results = Array.from(state.userRoles.values());
       
@@ -751,13 +761,16 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
       }
       
       // Handle .maybeSingle() queries - return single object or null
-      if (isSingle || url.includes('limit=1')) {
+      if (isSingle || hasLimit1) {
+        const result = results[0] || null;
+        console.log('🔍 USER_ROLES GET - Returning SINGLE:', result);
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(results[0] || null),
+          body: JSON.stringify(result),
         });
       } else {
+        console.log('🔍 USER_ROLES GET - Returning ARRAY:', results.length, 'items');
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
