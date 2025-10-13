@@ -405,7 +405,7 @@ test.describe('Guardian-Bestie Linking Flow', () => {
         // Verify link was removed from state
         const finalLinkCount = state.caregiverBestieLinks.size;
         console.log('🔍 TEST 238: Final link count:', finalLinkCount);
-        expect(state.caregiverBestieLinks.size).toBeLessThan(initialLinkCount);
+        expect(finalLinkCount).toBe(0); // Should have 0 links after deletion
       }
     });
   });

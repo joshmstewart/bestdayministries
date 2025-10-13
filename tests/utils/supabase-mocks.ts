@@ -8,7 +8,7 @@ import { Page } from '@playwright/test';
 // Friend code emoji set (matches src/lib/friendCodeEmojis.ts)
 const FRIEND_CODE_EMOJIS = [
   '🌟', '🌈', '🔥', '🌊', '🌸', '🍕', '🎸', '🚀', '🏆', '⚡',
-  '🎨', '🎭', '🎪', '🏰', '🌵', '🦋', '🐉', '🎯', '🎺', '🏝️'
+  '🎨', '🎭', '🎪', '🏰', '🌵', '🦋', '🐉', '🎯', '🎺', '🏝'
 ];
 
 function generateMockFriendCode(): string {
@@ -79,6 +79,7 @@ export class MockSupabaseState {
     bestie_id: string;
     message: string;
     status: string;
+    requested_at: string;
     created_at: string;
   }>();
 
@@ -931,6 +932,7 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
         bestie_id: body.bestie_id,
         message: body.message || '',
         status: body.status || 'pending',
+        requested_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
       });
       
