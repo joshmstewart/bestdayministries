@@ -126,13 +126,13 @@ test.describe('Guardian-Bestie Linking Flow', () => {
     });
 
     test('should display approval and sponsorship settings', async ({ page }) => {
-      // Look for settings section
+      // Look for settings section  
       const settingsVisible = await page.locator('text=/settings|approval|sponsorship/i').first().isVisible().catch(() => false);
       
       if (settingsVisible) {
-        // Should have checkboxes for various settings
-        const checkboxes = await page.locator('input[type="checkbox"]').count();
-        expect(checkboxes).toBeGreaterThan(0);
+        // Should have switches for various settings (component uses Switch not checkbox)
+        const switches = await page.locator('button[role="switch"]').count();
+        expect(switches).toBeGreaterThan(0);
       }
     });
   });
@@ -399,9 +399,10 @@ test.describe('Guardian-Bestie Linking Flow', () => {
           console.log('🔍 TEST 238: Clicked confirm button');
         }
         
-        await page.waitForTimeout(1000);
+        // Wait longer for UI refresh and state update
+        await page.waitForTimeout(2000);
         
-        // Verify link was removed
+        // Verify link was removed from state
         const finalLinkCount = state.caregiverBestieLinks.size;
         console.log('🔍 TEST 238: Final link count:', finalLinkCount);
         expect(state.caregiverBestieLinks.size).toBeLessThan(initialLinkCount);
