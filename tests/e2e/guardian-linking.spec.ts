@@ -126,25 +126,35 @@ test.describe('Guardian-Bestie Linking Flow', () => {
     });
 
     test('should display approval and sponsorship settings', async ({ page }) => {
-      // Look for settings section - these are in accordion items that need to be expanded
+      console.log('🔍 TEST 128: Starting approval settings test');
+      
+      // Look for settings section text to verify we're on the right page
       const settingsVisible = await page.locator('text=/Content Moderation|Vendor Relationships|Sponsor Communication/i').first().isVisible().catch(() => false);
       console.log('🔍 TEST 128: Settings section visible:', settingsVisible);
       
-      if (settingsVisible) {
-        // Expand the first accordion to reveal switches
-        const firstAccordion = page.locator('button[type="button"]').filter({ hasText: /Content Moderation|settings|approval/i }).first();
-        const accordionVisible = await firstAccordion.isVisible();
-        console.log('🔍 TEST 128: Accordion button visible:', accordionVisible);
+      // Find and expand the "Content Moderation" accordion
+      const contentModerationTrigger = page.locator('button').filter({ hasText: 'Content Moderation' }).first();
+      const triggerVisible = await contentModerationTrigger.isVisible().catch(() => false);
+      console.log('🔍 TEST 128: Content Moderation trigger visible:', triggerVisible);
+      
+      if (triggerVisible) {
+        // Check if already expanded by looking for data-state attribute
+        const dataState = await contentModerationTrigger.getAttribute('data-state').catch(() => 'closed');
+        console.log('🔍 TEST 128: Accordion state before click:', dataState);
         
-        if (accordionVisible) {
-          await firstAccordion.click();
+        // Click to expand if closed
+        if (dataState === 'closed') {
+          await contentModerationTrigger.click();
+          console.log('🔍 TEST 128: Clicked to expand accordion');
           await page.waitForTimeout(500); // Wait for accordion animation
-          
-          // Now check for switches (component uses Switch not checkbox)
-          const switches = await page.locator('button[role="switch"]').count();
-          console.log('🔍 TEST 128: Switch count:', switches);
-          expect(switches).toBeGreaterThan(0);
         }
+        
+        // Now check for switches (component uses Switch not checkbox)
+        const switches = await page.locator('button[role="switch"]').count();
+        console.log('🔍 TEST 128: Switch count:', switches);
+        expect(switches).toBeGreaterThan(0);
+      } else {
+        console.log('🔍 TEST 128: Accordion trigger not found, skipping switch count');
       }
     });
   });
