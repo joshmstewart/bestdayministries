@@ -456,26 +456,23 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 26-28: Created user:', user);
       console.log('🔍 TEST 26-28: Created session:', session ? 'YES' : 'NO');
       
-      // Navigate to auth first (so localStorage is available)
-      await page.goto('/auth');
-      console.log('🔍 TEST 26-28: Initial navigation to /auth');
-      
-      // Set session in localStorage
+      // First, set localStorage on ANY page so it's available for getSession
+      await page.goto('/');
       await page.evaluate((sessionData) => {
         localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
+        console.log('🔍 TEST 26-28: Session stored in localStorage');
       }, session);
       console.log('🔍 TEST 26-28: Set session in localStorage');
       
-      // Reload page to trigger auth check
-      await page.reload();
-      await page.waitForLoadState('networkidle');
-      console.log('🔍 TEST 26-28: Page reloaded');
+      // Now navigate to /auth - getSession() should read from localStorage and trigger redirect
+      await page.goto('/auth');
+      console.log('🔍 TEST 26-28: Navigated to /auth');
       
-      // Wait for redirect to complete
-      await page.waitForTimeout(2000);
+      // Wait for redirect (the useEffect in Auth.tsx should trigger within 2s)
+      await page.waitForURL(url => !url.includes('/auth'), { timeout: 3000 });
       
       const currentUrl = page.url();
-      console.log('🔍 TEST 26-28: Current URL after reload:', currentUrl);
+      console.log('🔍 TEST 26-28: Current URL after redirect:', currentUrl);
       expect(currentUrl).not.toContain('/auth');
       expect(currentUrl).toContain('/community');
     });
