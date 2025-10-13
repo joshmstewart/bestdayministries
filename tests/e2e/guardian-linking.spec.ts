@@ -41,11 +41,14 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       }
     });
     
-    // Navigate and wait for content to load
-    await page.goto('/guardian-links', { waitUntil: 'domcontentloaded' });
+    // CRITICAL: Wait for session route to be fully registered before navigation
+    await page.waitForTimeout(500);
     
-    // Wait a bit for auth checks to complete
-    await page.waitForTimeout(1500);
+    // Navigate and wait for content to load
+    await page.goto('/guardian-links', { waitUntil: 'networkidle' });
+    
+    // Wait for page to fully load
+    await page.waitForLoadState('domcontentloaded');
   });
 
   // ============================================

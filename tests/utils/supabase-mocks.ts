@@ -560,19 +560,23 @@ export async function mockAuthenticatedSession(
   // ✅ FIX 1: Use addInitScript to set localStorage before any page loads
   // This avoids the SecurityError by letting Playwright inject the script at the right time
   const context = page.context();
+  
+  // CRITICAL: Build the complete session object that Supabase expects
+  const fullSessionData = {
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+    user,
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: 'bearer',
+  };
+  
   await context.addInitScript((sessionData) => {
     // Set both the session data AND the full auth structure that Supabase expects
     localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
-    localStorage.setItem(`sb-nbvijawmjkycyweioglk-auth-token`, JSON.stringify({
-      access_token: sessionData.access_token,
-      refresh_token: sessionData.refresh_token,
-      user: sessionData.user,
-      expires_in: 3600,
-      expires_at: Date.now() / 1000 + 3600,
-      token_type: 'bearer',
-    }));
+    localStorage.setItem(`sb-nbvijawmjkycyweioglk-auth-token`, JSON.stringify(sessionData));
     console.log('🔍 MOCK: Injected session into localStorage for user:', sessionData.user.email);
-  }, { ...session, user });
+  }, fullSessionData);
 
   // ✅ FIX 2: Also set authentication cookie as fallback
   await context.addCookies([{
@@ -597,7 +601,10 @@ export async function mockAuthenticatedSession(
     });
   });
 
+  // ✅ CRITICAL: Intercept session endpoint BEFORE any navigation
+  // This ensures getSession() returns immediately with our mocked session
   await page.route('**/auth/v1/session*', async (route) => {
+    console.log('🔍 MOCK: Session endpoint intercepted, returning user:', user.email);
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -607,6 +614,9 @@ export async function mockAuthenticatedSession(
             access_token: session.access_token,
             refresh_token: session.refresh_token,
             user,
+            expires_in: 3600,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+            token_type: 'bearer',
           },
           user 
         },
