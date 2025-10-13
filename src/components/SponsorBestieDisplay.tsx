@@ -267,12 +267,7 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
                 alt={bestie.bestie_name}
                 className="object-contain w-full h-full"
                 style={{ maxHeight: '450px' }}
-                loading="eager"
-                onError={(e) => {
-                  console.error('Failed to load bestie image:', bestie.bestie_name, bestie.image_url);
-                  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23f0f0f0" width="400" height="400"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="18" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EImage not found%3C/text%3E%3C/svg%3E';
-                }}
-                onLoad={() => console.log('Image loaded successfully:', bestie.bestie_name)}
+                crossOrigin="anonymous"
               />
               <div className="absolute top-4 left-4">
                 <div className="bg-gradient-warm px-4 py-1.5 rounded-full shadow-lg">
