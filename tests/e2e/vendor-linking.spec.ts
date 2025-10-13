@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { mockSupabaseAuth, mockSupabaseDatabase, mockAuthenticatedSession, MockSupabaseState } from '../utils/supabase-mocks';
-import { createMockVendor, createMockBestie, createMockCaregiver } from '../utils/test-helpers';
+import { createMockVendor, createMockBestie, createMockCaregiver, createVendorBestieRequest } from '../utils/test-helpers';
 
 test.describe('Vendor-Bestie Linking Flow', () => {
   let state: MockSupabaseState;
@@ -183,15 +183,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       state.addCaregiverLink(caregiverId, bestieId, 'Parent');
       
       // Create vendor request
-      const requestId = `request-${Date.now()}`;
-      state.vendorBestieRequests.set(requestId, {
-        id: requestId,
-        vendor_id: vendorId,
-        bestie_id: bestieId,
-        message: 'Partnership request',
-        status: 'pending',
-        created_at: new Date().toISOString()
-      });
+      createVendorBestieRequest(state, vendorId, bestieId, 'Partnership request', 'pending');
       
       await mockAuthenticatedSession(page, state, 'guardian@test.com', 'caregiver');
       await page.goto('/guardian-approvals');
@@ -209,15 +201,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       
       state.addCaregiverLink(caregiverId, bestieId, 'Parent');
       
-      const requestId = `request-${Date.now()}`;
-      state.vendorBestieRequests.set(requestId, {
-        id: requestId,
-        vendor_id: vendorId,
-        bestie_id: bestieId,
-        message: 'Partnership request',
-        status: 'pending',
-        created_at: new Date().toISOString()
-      });
+      const requestId = createVendorBestieRequest(state, vendorId, bestieId, 'Partnership request', 'pending');
       
       await mockAuthenticatedSession(page, state, 'guardian@test.com', 'caregiver');
       await page.goto('/guardian-approvals');
@@ -242,15 +226,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       
       state.addCaregiverLink(caregiverId, bestieId, 'Parent');
       
-      const requestId = `request-${Date.now()}`;
-      state.vendorBestieRequests.set(requestId, {
-        id: requestId,
-        vendor_id: vendorId,
-        bestie_id: bestieId,
-        message: 'Partnership request',
-        status: 'pending',
-        created_at: new Date().toISOString()
-      });
+      const requestId = createVendorBestieRequest(state, vendorId, bestieId, 'Partnership request', 'pending');
       
       await mockAuthenticatedSession(page, state, 'guardian@test.com', 'caregiver');
       await page.goto('/guardian-approvals');
