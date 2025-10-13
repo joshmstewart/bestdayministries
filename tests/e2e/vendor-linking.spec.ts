@@ -22,10 +22,16 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       
       // Navigate to Settings tab where vendor-bestie linking is located
       await page.getByRole('tab', { name: /settings/i }).click();
-      await page.waitForTimeout(500);
+      
+      // Wait for Settings tab content to load by checking for profile settings section
+      await page.waitForSelector('text=/profile settings|vendor profile|business information/i', { 
+        timeout: 10000,
+        state: 'visible' 
+      });
       
       // Look for link bestie option
       const linkOption = page.locator('button, a').filter({ hasText: /link.*bestie|connect.*bestie/i }).first();
+      await page.waitForTimeout(500); // Small wait for content to fully render
       const isVisible = await linkOption.isVisible().catch(() => false);
       
       expect(isVisible).toBeTruthy();
@@ -173,7 +179,12 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       
       // Navigate to Settings tab where pending requests are displayed
       await page.getByRole('tab', { name: /settings/i }).click();
-      await page.waitForTimeout(500);
+      
+      // Wait for Settings tab content to load
+      await page.waitForSelector('text=/profile settings|vendor profile|business information/i', { 
+        timeout: 10000,
+        state: 'visible' 
+      });
       
       // Should show pending status
       const pendingVisible = await page.locator('text=/pending|waiting/i').first().isVisible().catch(() => false);
