@@ -333,23 +333,30 @@ test.describe('Authentication and Signup Flow', () => {
     // Switch to signup mode
     await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
     await page.waitForTimeout(500);
+    console.log('🔍 TEST 18-20: Switched to signup mode');
     
     // Fill in name first (avatar picker appears after name is filled)
     await page.getByPlaceholder(/name|display name/i).fill('Test User');
     await page.waitForTimeout(300);
+    console.log('🔍 TEST 18-20: Filled display name');
     
-    // ✅ Wait for avatar section to appear
+    // Click the collapsible trigger to expand avatar picker
+    const avatarLabel = page.getByText('Choose Your Avatar (Optional)');
+    const labelVisible = await avatarLabel.isVisible().catch(() => false);
+    console.log('🔍 TEST 18-20: Avatar label visible:', labelVisible);
+    await avatarLabel.click();
+    await page.waitForTimeout(500);
+    console.log('🔍 TEST 18-20: Clicked avatar collapsible');
+    
+    // Wait for avatars to load and appear
     const avatarExists = await page.locator('[data-avatar-number]').first().isVisible().catch(() => false);
     console.log('🔍 TEST 18-20: Avatar selector visible:', avatarExists);
     console.log('🔍 TEST 18-20: Avatar count:', await page.locator('[data-avatar-number]').count());
-    await page.locator('[data-avatar-number]').first().waitFor({ timeout: 5000 });
     
     // Click on an avatar option
     const avatarOption = page.locator('[data-avatar-number="1"]').first();
     await expect(avatarOption).toBeVisible();
     await avatarOption.click();
-    
-    // Verify selection (may have visual indicator)
     await page.waitForTimeout(200);
     console.log('🔍 TEST 18-20: Avatar clicked successfully');
   });

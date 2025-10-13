@@ -264,6 +264,7 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
                     key={avatarNum}
                     type="button"
                     onClick={() => onSelectAvatar(avatarNum)}
+                    data-avatar-number={avatarNum}
                     className={cn(
                       "relative aspect-square rounded-lg transition-all border-2 overflow-hidden",
                       isSelected 
