@@ -561,8 +561,18 @@ export async function mockAuthenticatedSession(
   // This avoids the SecurityError by letting Playwright inject the script at the right time
   const context = page.context();
   await context.addInitScript((sessionData) => {
+    // Set both the session data AND the full auth structure that Supabase expects
     localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
-  }, session);
+    localStorage.setItem(`sb-nbvijawmjkycyweioglk-auth-token`, JSON.stringify({
+      access_token: sessionData.access_token,
+      refresh_token: sessionData.refresh_token,
+      user: sessionData.user,
+      expires_in: 3600,
+      expires_at: Date.now() / 1000 + 3600,
+      token_type: 'bearer',
+    }));
+    console.log('🔍 MOCK: Injected session into localStorage for user:', sessionData.user.email);
+  }, { ...session, user });
 
   // ✅ FIX 2: Also set authentication cookie as fallback
   await context.addCookies([{

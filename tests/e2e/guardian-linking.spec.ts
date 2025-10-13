@@ -20,21 +20,32 @@ test.describe('Guardian-Bestie Linking Flow', () => {
     console.log('🔍 SETUP: Created caregiver user:', caregiverId);
     console.log('🔍 SETUP: User roles in state:', Array.from(state.userRoles.values()).filter(r => r.user_id === caregiverId));
     
-    // Log all network requests to debug user_roles query
-    await page.on('request', request => {
+    // Log all network requests to debug user_roles AND session queries
+    page.on('request', request => {
       if (request.url().includes('user_roles')) {
         console.log('🔍 NETWORK: user_roles REQUEST:', request.url(), request.method());
       }
+      if (request.url().includes('/auth/v1/session')) {
+        console.log('🔍 NETWORK: SESSION REQUEST:', request.url(), request.method());
+      }
     });
     
-    await page.on('response', async response => {
+    page.on('response', async response => {
       if (response.url().includes('user_roles')) {
         const body = await response.text().catch(() => 'Could not read body');
         console.log('🔍 NETWORK: user_roles RESPONSE:', response.status(), body);
       }
+      if (response.url().includes('/auth/v1/session')) {
+        const body = await response.text().catch(() => 'Could not read body');
+        console.log('🔍 NETWORK: SESSION RESPONSE:', response.status(), body.substring(0, 300));
+      }
     });
     
-    await page.goto('/guardian-links');
+    // Navigate and wait for content to load
+    await page.goto('/guardian-links', { waitUntil: 'domcontentloaded' });
+    
+    // Wait a bit for auth checks to complete
+    await page.waitForTimeout(1500);
   });
 
   // ============================================
