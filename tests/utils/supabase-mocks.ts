@@ -557,9 +557,8 @@ export async function mockAuthenticatedSession(
     throw new Error(`Session not found for user ${userId}`);
   }
 
-  // ✅ FIX 1: Use addInitScript to set localStorage before any page loads
-  // This avoids the SecurityError by letting Playwright inject the script at the right time
-  const context = page.context();
+  // ✅ STEP 1: Register route intercepts FIRST (before any localStorage/navigation)
+  // This ensures the mocks are active before the page makes auth requests
   
   // CRITICAL: Build the complete session object that Supabase expects
   const fullSessionData = {
@@ -570,6 +569,39 @@ export async function mockAuthenticatedSession(
     expires_at: Math.floor(Date.now() / 1000) + 3600,
     token_type: 'bearer',
   };
+
+  // Register session endpoint mock FIRST
+  await page.route('**/auth/v1/session*', async (route) => {
+    console.log('🔍 MOCK: /auth/v1/session intercepted, returning session for:', user.email);
+    
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: { 
+          session: fullSessionData,
+          user 
+        },
+        error: null
+      }),
+    });
+  });
+
+  // Register user endpoint mock
+  await page.route('**/auth/v1/user*', async (route) => {
+    console.log('🔍 MOCK: /auth/v1/user intercepted, returning user:', user.email);
+    
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(user),
+    });
+  });
+
+  console.log('🔍 MOCK: Route intercepts registered for user:', user.email);
+
+  // ✅ STEP 2: NOW set localStorage and cookies (after routes are registered)
+  const context = page.context();
   
   await context.addInitScript((sessionData) => {
     // Set both the session data AND the full auth structure that Supabase expects
@@ -578,101 +610,29 @@ export async function mockAuthenticatedSession(
     console.log('🔍 MOCK: Injected session into localStorage for user:', sessionData.user.email);
   }, fullSessionData);
 
-  // ✅ FIX 2: Also set authentication cookie as fallback
-  await context.addCookies([{
-    name: 'sb-access-token',
-    value: session.access_token,
-    domain: 'localhost',
-    path: '/',
-    httpOnly: false,
-    secure: false,
-    sameSite: 'Lax'
-  }]);
-
-  // ✅ FIX 3: Mock auth endpoints to return this session
-  await page.route('**/auth/v1/user*', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: { user },
-        error: null
-      }),
-    });
-  });
-
-  // ✅ CRITICAL: Intercept session endpoint BEFORE any navigation
-  // This ensures getSession() returns immediately with our mocked session
-  await page.route('**/auth/v1/session*', async (route) => {
-    console.log('🔍 MOCK: Session endpoint intercepted, returning user:', user.email);
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: { 
-          session: {
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-            user,
-            expires_in: 3600,
-            expires_at: Math.floor(Date.now() / 1000) + 3600,
-            token_type: 'bearer',
-          },
-          user 
-        },
-        error: null
-      }),
-    });
-  });
-
-  // ✅ CRITICAL: Also intercept /auth/v1/user endpoint to return the user immediately
-  await page.route('**/auth/v1/user*', async (route) => {
-    console.log('🔍 MOCK: User endpoint intercepted, returning user:', user.email);
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(user)
-    });
-  });
-
-  // Set session cookie
-  await page.context().addCookies([
+  // Set authentication cookies
+  await context.addCookies([
+    {
+      name: 'sb-access-token',
+      value: session.access_token,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: false,
+      secure: false,
+      sameSite: 'Lax'
+    },
     {
       name: 'sb-nbvijawmjkycyweioglk-auth-token',
-      value: JSON.stringify(session),
+      value: JSON.stringify(fullSessionData),
       domain: 'localhost',
       path: '/',
     },
   ]);
 
-  // ✅ CRITICAL: Add persistent /auth/v1/session endpoint mock
-  // This ensures ANY request to check session returns our mocked data immediately
-  // Works across all browsers (Chromium, Firefox, Webkit)
-  await page.route('**/auth/v1/session*', async (route) => {
-    console.log('🔍 MOCK: Intercepting /auth/v1/session request');
-    
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(fullSessionData),
-    });
-  });
+  console.log('🔍 MOCK: Session setup complete for user:', user.email);
 
-  // Also intercept /auth/v1/user for user data
-  await page.route('**/auth/v1/user*', async (route) => {
-    console.log('🔍 MOCK: Intercepting /auth/v1/user request');
-    
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(fullSessionData.user),
-    });
-  });
-
-  console.log('🔍 MOCK: Session endpoint mocks installed');
-
-  // Small wait to ensure routes are registered
-  await page.waitForTimeout(200);
+  // Small wait to ensure everything is registered
+  await page.waitForTimeout(100);
 
   return { userId, token: session.access_token };
 }
