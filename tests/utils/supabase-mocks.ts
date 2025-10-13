@@ -809,6 +809,8 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
     const method = route.request().method();
     const url = route.request().url();
     
+    console.log(`🔍 NETWORK caregiver_bestie_links: ${method} ${url}`);
+    
     if (method === 'POST') {
       const body = await route.request().postDataJSON();
       const linkId = state.addCaregiverLink(
@@ -851,10 +853,13 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
       const linkId = extractQueryParam(url, 'id');
       console.log('🗑️ MOCK DELETE: Deleting link ID:', linkId);
       console.log('🗑️ Links before delete:', state.caregiverBestieLinks.size);
+      console.log('🗑️ All link IDs:', Array.from(state.caregiverBestieLinks.keys()));
       if (linkId) {
         const deleted = state.caregiverBestieLinks.delete(linkId);
         console.log('🗑️ Delete successful:', deleted);
         console.log('🗑️ Links after delete:', state.caregiverBestieLinks.size);
+      } else {
+        console.log('🗑️ WARNING: No link ID found in DELETE URL!');
       }
       await route.fulfill({ status: 204 });
     } else if (method === 'PATCH') {

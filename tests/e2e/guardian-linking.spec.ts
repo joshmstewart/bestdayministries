@@ -126,13 +126,25 @@ test.describe('Guardian-Bestie Linking Flow', () => {
     });
 
     test('should display approval and sponsorship settings', async ({ page }) => {
-      // Look for settings section  
-      const settingsVisible = await page.locator('text=/settings|approval|sponsorship/i').first().isVisible().catch(() => false);
+      // Look for settings section - these are in accordion items that need to be expanded
+      const settingsVisible = await page.locator('text=/Content Moderation|Vendor Relationships|Sponsor Communication/i').first().isVisible().catch(() => false);
+      console.log('🔍 TEST 128: Settings section visible:', settingsVisible);
       
       if (settingsVisible) {
-        // Should have switches for various settings (component uses Switch not checkbox)
-        const switches = await page.locator('button[role="switch"]').count();
-        expect(switches).toBeGreaterThan(0);
+        // Expand the first accordion to reveal switches
+        const firstAccordion = page.locator('button[type="button"]').filter({ hasText: /Content Moderation|settings|approval/i }).first();
+        const accordionVisible = await firstAccordion.isVisible();
+        console.log('🔍 TEST 128: Accordion button visible:', accordionVisible);
+        
+        if (accordionVisible) {
+          await firstAccordion.click();
+          await page.waitForTimeout(500); // Wait for accordion animation
+          
+          // Now check for switches (component uses Switch not checkbox)
+          const switches = await page.locator('button[role="switch"]').count();
+          console.log('🔍 TEST 128: Switch count:', switches);
+          expect(switches).toBeGreaterThan(0);
+        }
       }
     });
   });
