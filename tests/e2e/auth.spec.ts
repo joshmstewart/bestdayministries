@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mockSupabaseAuth, mockSupabaseDatabase, MockSupabaseState } from '../utils/supabase-mocks';
+import { mockSupabaseAuth, mockSupabaseDatabase, mockAuthenticatedSession, MockSupabaseState } from '../utils/supabase-mocks';
 
 test.describe('Authentication and Signup Flow', () => {
   let state: MockSupabaseState;
