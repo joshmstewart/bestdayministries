@@ -8,7 +8,7 @@ import { Page } from '@playwright/test';
 // Friend code emoji set (matches src/lib/friendCodeEmojis.ts)
 const FRIEND_CODE_EMOJIS = [
   '🌟', '🌈', '🔥', '🌊', '🌸', '🍕', '🎸', '🚀', '🏆', '⚡',
-  '🎨', '🎭', '🎪', '🏰', '🌵', '🦋', '🐉', '🎯', '🎺', '🏝'
+  '🎨', '🎭', '🎪', '🏰', '🌵', '🦋', '🐉', '🎯', '🎺', '🎵'
 ];
 
 function generateMockFriendCode(): string {
