@@ -409,7 +409,18 @@ const SponsorBestie = () => {
                           <CardContent className="p-4" onClick={() => setSelectedBestie(bestie.id)}>
                             <div className="flex items-start gap-4">
                               <RadioGroupItem value={bestie.id} id={bestie.id} className="mt-1" />
-                              <img src={bestie.image_url} alt={bestie.bestie_name} className="w-20 h-20 rounded-lg object-cover" />
+                              <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                <img 
+                                  src={bestie.image_url} 
+                                  alt={bestie.bestie_name} 
+                                  className="w-full h-full object-cover"
+                                  loading="eager"
+                                  onError={(e) => {
+                                    console.error('Failed to load image:', bestie.image_url);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
                               <div className="flex-1">
                                 <Label htmlFor={bestie.id} className="text-lg font-bold cursor-pointer">
                                   {bestie.bestie_name}

@@ -10,6 +10,7 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import { useNavigate } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { SponsorshipBreakdownDialog } from "@/components/SponsorshipBreakdownDialog";
+import { OptimizedImage } from "@/components/OptimizedImage";
 
 interface TextSection {
   header: string;
@@ -261,11 +262,13 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           <div className="grid md:grid-cols-2 gap-0">
             {/* Left side - Image */}
             <div className="relative overflow-hidden flex items-center justify-center bg-muted" style={{ maxHeight: '450px' }}>
-              <img
+              <OptimizedImage
                 src={bestie.image_url}
                 alt={bestie.bestie_name}
                 className="object-contain w-full h-full"
-                style={{ maxHeight: '450px' }}
+                priority={true}
+                objectFit="contain"
+                onLoad={() => console.log('Image loaded:', bestie.bestie_name)}
               />
               <div className="absolute top-4 left-4">
                 <div className="bg-gradient-warm px-4 py-1.5 rounded-full shadow-lg">
