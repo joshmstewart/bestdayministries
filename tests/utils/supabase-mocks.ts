@@ -718,6 +718,8 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
 
   // Mock user_roles operations
   await page.route('**/rest/v1/user_roles*', async (route) => {
+    console.log('🔍 MOCK INTERCEPT: user_roles route triggered!', route.request().url(), route.request().method());
+    
     const method = route.request().method();
     const url = route.request().url();
     

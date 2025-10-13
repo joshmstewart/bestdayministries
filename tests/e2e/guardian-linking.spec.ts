@@ -17,6 +17,23 @@ test.describe('Guardian-Bestie Linking Flow', () => {
     caregiverId = auth.userId;
     caregiverToken = auth.token;
     
+    console.log('🔍 SETUP: Created caregiver user:', caregiverId);
+    console.log('🔍 SETUP: User roles in state:', Array.from(state.userRoles.values()).filter(r => r.user_id === caregiverId));
+    
+    // Log all network requests to debug user_roles query
+    await page.on('request', request => {
+      if (request.url().includes('user_roles')) {
+        console.log('🔍 NETWORK: user_roles REQUEST:', request.url(), request.method());
+      }
+    });
+    
+    await page.on('response', async response => {
+      if (response.url().includes('user_roles')) {
+        const body = await response.text().catch(() => 'Could not read body');
+        console.log('🔍 NETWORK: user_roles RESPONSE:', response.status(), body);
+      }
+    });
+    
     await page.goto('/guardian-links');
   });
 
