@@ -956,12 +956,23 @@ export async function mockSupabaseDatabase(page: Page, state: MockSupabaseState)
         results = results.filter(r => r.status === status);
       }
       
-      // Enrich with vendor and bestie data
-      const enrichedResults = results.map(request => ({
-        ...request,
-        vendor: state.vendors.get(request.vendor_id) || { business_name: 'Unknown Vendor', description: null, logo_url: null },
-        bestie: state.profiles.get(request.bestie_id) || { display_name: 'Unknown Bestie' }
-      }));
+      // Enrich with vendor and bestie data - ensure vendor object has all expected fields
+      const enrichedResults = results.map(request => {
+        const vendor = state.vendors.get(request.vendor_id);
+        const profile = state.profiles.get(request.bestie_id);
+        
+        return {
+          ...request,
+          vendor: {
+            business_name: vendor?.business_name || 'Unknown Vendor',
+            description: vendor?.description || null,
+            logo_url: vendor?.logo_url || null
+          },
+          bestie: {
+            display_name: profile?.display_name || 'Unknown Bestie'
+          }
+        };
+      });
       
       await route.fulfill({
         status: 200,

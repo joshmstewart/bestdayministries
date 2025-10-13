@@ -246,19 +246,19 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       // Select invalid friend code (all same emoji that doesn't exist)
       console.log('🔍 TEST 130: Selecting invalid friend code...');
       await page.getByTestId('emoji-1-trigger').click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(500);
       await page.getByTestId('emoji-1-option-🌟').click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(500);
       
       await page.getByTestId('emoji-2-trigger').click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(500);
       await page.getByTestId('emoji-2-option-🌟').click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(500);
       
       await page.getByTestId('emoji-3-trigger').click();
-      await page.waitForTimeout(300);
-      await page.getByTestId('emoji-3-option-🌟').click();
       await page.waitForTimeout(500);
+      await page.getByTestId('emoji-3-option-🌟').click();
+      await page.waitForTimeout(800);
       console.log('🔍 TEST 130: Selected all emojis');
       
       // Enter relationship

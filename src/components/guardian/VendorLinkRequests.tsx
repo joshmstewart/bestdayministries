@@ -97,7 +97,7 @@ export const VendorLinkRequests = ({ onRequestsChange }: VendorLinkRequestsProps
       const [vendorsResponse, bestiesResponse] = await Promise.all([
         supabase
           .from('vendors')
-          .select('id, business_name, description')
+          .select('id, business_name, description, logo_url')
           .in('id', vendorIds),
         supabase
           .from('profiles')
@@ -119,7 +119,7 @@ export const VendorLinkRequests = ({ onRequestsChange }: VendorLinkRequestsProps
         vendor: {
           business_name: vendorsMap.get(item.vendor_id)?.business_name || 'Unknown Vendor',
           description: vendorsMap.get(item.vendor_id)?.description || null,
-          logo_url: null
+          logo_url: vendorsMap.get(item.vendor_id)?.logo_url || null
         },
         bestie: {
           display_name: bestiesMap.get(item.bestie_id)?.display_name || 'Bestie'

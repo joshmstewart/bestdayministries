@@ -58,8 +58,10 @@ const VendorDashboard = () => {
           loadStats(vendor.id);
         }
       } else {
-        // User is not a vendor - they can apply
+        // User is not a vendor - redirect to application page
         setVendorStatus('none');
+        navigate('/vendor-auth');
+        return;
       }
     } catch (error) {
       console.error('Error checking vendor status:', error);
