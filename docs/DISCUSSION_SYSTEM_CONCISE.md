@@ -157,9 +157,40 @@ Community discussion board (`/discussions`) where guardians create posts, users 
     ))}
     
     {/* Add Comment Form */}
-    <CommentInput /> {audioRecorder}
+    <CommentInput />
+    
+    {/* Audio Recording Buttons - RED MICROPHONE STANDARD */}
+    <div className="flex gap-3">
+      <Button variant="outline">
+        <Mic className="w-5 h-5 mr-2 text-red-500" strokeWidth={2.5} />
+        Record Audio Comment
+      </Button>
+      <Button>Post Comment</Button>
+    </div>
   </DialogContent>
 </Dialog>
+```
+
+### Audio Recording Standard (ALL recording buttons)
+**CRITICAL**: All audio recording buttons MUST use this styling for accessibility:
+
+```tsx
+<Mic className="w-5 h-5 mr-2 text-red-500" strokeWidth={2.5} />
+```
+
+**Properties:**
+- Size: `w-5 h-5` (larger for visibility)
+- Color: `text-red-500` (red = record association)
+- Stroke: `strokeWidth={2.5}` (bolder for clarity)
+- Spacing: `mr-2` (consistent margin)
+
+**Rationale:**
+- Non-readers can identify by distinctive red microphone
+- Larger size aids visual impairment
+- Bold strokes ensure clarity at all screen sizes
+- Consistent across all recording contexts
+
+See: `docs/AUDIO_RECORDING_STANDARD.md`
 ```
 
 ### Role Badge Styling (Consistent Across UI)

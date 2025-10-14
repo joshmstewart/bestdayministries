@@ -35,6 +35,14 @@ COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)
 DB:videos|about_sections.youtube_channel|storage:videos-bucket
 ADMIN:VideoManager|YouTube-Channel-config
 
+## AUDIO_RECORDING_STANDARD
+ICON:Mic[w-5-h-5+text-red-500+strokeWidth-2.5+mr-2]
+PURPOSE:accessibility→non-readers-identify-by-red-mic
+LOCATIONS:DiscussionDetailDialog|FeaturedBestieManager|SponsorBestieManager|BestieSponsorMessenger|GuardianSponsorMessenger|AlbumManagement|EventManagement|AudioRecorder
+PATTERN:Button[variant=outline]+red-Mic+text
+RATIONALE:red=record-association|larger-size=visibility|bold-strokes=clarity|consistency=familiarity
+DOC:AUDIO_RECORDING_STANDARD.md
+
 ## VISIBILITY_TOGGLE
 PATTERN:Button[variant=outline+size=icon]|ACTIVE[green-Eye]|INACTIVE[red-EyeOff]
 FILES:17-locations-use-pattern
@@ -175,6 +183,7 @@ MEDIA:images[4.5MB-crop]|videos[select-or-YT]|albums[link]|events[link]|audio[co
 UI:DiscussionPostCard[list-card-16:9-media-preview]|DiscussionDetailDialog[full-post-comments-edit]
 EDIT:posts[open-create-form-pre-filled]|comments[inline-textarea-save-cancel]
 EDITED-INDICATOR:(edited)→shows-if[updated_at>created_at+60s]
+AUDIO-RECORDING:red-microphone-standard[w-5-h-5+text-red-500+strokeWidth-2.5]→accessibility
 ROLE-BADGE:UserCircle2-icon+bg-primary/10+border-primary/20+text-primary+capitalize
 REALTIME:subscribe-posts+comments
 RLS:SELECT[approved-visible-or-own-pending]|UPDATE[author-guardian-admin-for-posts|author-only-for-comments]|INSERT[guardians-admins]

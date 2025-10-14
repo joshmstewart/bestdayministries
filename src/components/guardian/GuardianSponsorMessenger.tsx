@@ -567,7 +567,7 @@ export const GuardianSponsorMessenger = () => {
                 onClick={() => setMessageType('audio')}
                 className="flex-1"
               >
-                <Mic className="w-4 h-4 mr-2" />
+                <Mic className="w-5 h-5 mr-2 text-red-500" strokeWidth={2.5} />
                 Audio
               </Button>
               <Button

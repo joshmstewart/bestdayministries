@@ -120,7 +120,7 @@ export default function AudioRecorder({ onRecordingComplete, onRecordingCancel }
             className="gap-2"
             variant="outline"
           >
-            <Mic className="w-4 h-4" />
+            <Mic className="w-5 h-5 text-red-500" strokeWidth={2.5} />
             Record Audio
           </Button>
         )}
