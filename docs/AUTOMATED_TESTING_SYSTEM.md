@@ -59,10 +59,20 @@ Add these secrets to your GitHub repository (Settings → Secrets and variables 
 2. `VITE_SUPABASE_PUBLISHABLE_KEY` - Your Supabase anon/public key
 3. `PERCY_TOKEN` - (Optional) Percy.io token for visual regression tests
 
+### Test Account Setup (Required)
+**CRITICAL**: Visual and E2E tests require a test account to access authenticated pages.
+
+1. Create a test user in your app:
+   - Email: `test@example.com`
+   - Password: `testpassword123`
+2. Assign appropriate roles (supporter, caregiver, etc.)
+3. This account is used by Percy and E2E tests to log in automatically
+
 ### First Test Run
-1. Commit and push code to trigger workflow
-2. Go to GitHub → Actions to see test execution
-3. Check Admin → Testing tab to see logged results
+1. Create test account (see above)
+2. Commit and push code to trigger workflow
+3. Go to GitHub → Actions to see test execution
+4. Check Admin → Testing tab to see logged results
 
 ## Writing Tests
 
@@ -204,10 +214,12 @@ npx playwright show-report
 
 ### How It Works
 - Percy runs in separate CI job (doesn't work with test sharding)
+- **Logs in automatically** using test account (test@example.com) to capture authenticated pages
 - Captures screenshots during test execution using viewport simulation (not paid mobile browsers)
 - Compares with approved baseline images
 - Comments on PRs with visual diffs
 - Only runs if `PERCY_TOKEN` is configured (skipped otherwise)
+- Homepage/Auth pages tested without login; Community/Events/Store/Discussions tested with login
 
 ### Running Locally
 ```bash

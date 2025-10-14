@@ -221,13 +221,14 @@ FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry
 
 ## AUTOMATED_TESTING
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
+TEST-ACCOUNT:test@example.com|testpassword123|REQUIRED-for-auth-pages
 DB:test_runs[status|workflow|commit|branch|duration|url|test_count|passed|failed|skipped|error|metadata]
 EDGE:github-test-webhook[receive-GH→parse→insert-db]
 FRONTEND:TestRunsManager[list-realtime-status-badges-links-to-GH]
 WORKFLOW:1)push-code→2)GH-Actions-run→3)webhook-log→4)admin-view
 SETUP:GH-secrets[VITE_SUPABASE_URL+VITE_SUPABASE_PUBLISHABLE_KEY+PERCY_TOKEN]
 TESTS:playwright.config.ts|17-E2E-files[basic|auth|navigation|community|forms|guardian-approvals|guardian-linking|sponsorship|store|vendor-linking|discussions|events-interactions|shopping-cart|notifications|video|help-center|performance]|3-browsers[Chrome-Firefox-Safari]
-VISUAL:Percy-24-snapshots[desktop-9|mobile-6|tablet-5]|@percy/cli|npx-@percy/cli-exec|PERCY_TOKEN-secret|viewport-simulation[FREE-vs-paid-mobile-browsers]
+VISUAL:Percy-24-snapshots[desktop-9|mobile-6|tablet-5]|@percy/cli|npx-@percy/cli-exec|PERCY_TOKEN-secret|viewport-simulation[FREE-vs-paid-mobile-browsers]|auto-login[community-events-store-discussions]|public-pages[homepage-auth-support-help-NO-login]
 PERFORMANCE:@slow-tag|load-times[<5s-pages|<6s-images]|core-web-vitals[LCP<4s|CLS<0.25]|resource-checks
 STATUSES:success✅|failure❌|pending⏱|cancelled🚫
 RUN-LOCAL:npx-playwright-test|--ui[interactive]|show-report[view-results]|--grep-@slow[performance]|--grep-@fast[default]
