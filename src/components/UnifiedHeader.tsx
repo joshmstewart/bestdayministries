@@ -457,7 +457,7 @@ export const UnifiedHeader = () => {
                       <ChevronDown className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-card border-border z-[52]">
+                  <DropdownMenuContent align="end" className="w-56 bg-card border-border z-[100]">
                     <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
                       <Settings className="w-4 h-4 mr-2" />
                       Settings

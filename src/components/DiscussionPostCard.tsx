@@ -70,7 +70,14 @@ export const DiscussionPostCard = ({ post, onClick }: DiscussionPostCardProps) =
           {/* Media Preview */}
           {hasMedia && (
             <div className="md:w-72 flex-shrink-0">
-              <AspectRatio ratio={16/9} className="bg-muted overflow-hidden">
+              <AspectRatio 
+                ratio={(() => {
+                  const ratio = (post as any).aspect_ratio || '16:9';
+                  const [w, h] = ratio.split(':').map(Number);
+                  return w / h;
+                })()} 
+                className="bg-muted overflow-hidden"
+              >
                 {post.image_url ? (
                   <img 
                     src={post.image_url} 

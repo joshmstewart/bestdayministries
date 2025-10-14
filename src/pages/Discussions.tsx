@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Image as ImageIcon, X, Edit, Search, ArrowUpDown, Calendar } from "lucide-react";
+import { MessageSquare, Send, Image as ImageIcon, X, Edit, Search, ArrowUpDown, Calendar, Crop } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -111,6 +111,7 @@ const Discussions = () => {
   const [allowOwnerClaim, setAllowOwnerClaim] = useState(false);
   const [allowAdminEdit, setAllowAdminEdit] = useState(false);
   const [allowOwnerEdit, setAllowOwnerEdit] = useState(false);
+  const [aspectRatioKey, setAspectRatioKey] = useState<string>('16:9');
 
   useEffect(() => {
     checkUser();
@@ -566,6 +567,7 @@ const Discussions = () => {
         allow_owner_claim: allowOwnerClaim,
         allow_admin_edit: allowAdminEdit,
         allow_owner_edit: allowOwnerEdit,
+        aspect_ratio: aspectRatioKey,
       }]);
 
       if (error) throw error;
@@ -720,6 +722,7 @@ const Discussions = () => {
     setAllowOwnerClaim((post as any).allow_owner_claim || false);
     setAllowAdminEdit((post as any).allow_admin_edit || false);
     setAllowOwnerEdit((post as any).allow_owner_edit || false);
+    setAspectRatioKey((post as any).aspect_ratio || '16:9');
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -830,29 +833,50 @@ const Discussions = () => {
                     )}
                   </div>
                   {imagePreview && (
-                    <div className="relative inline-block">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview" 
-                        className="max-w-xs max-h-48 rounded-lg"
-                      />
-                      <div className="absolute top-2 right-2 flex gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="icon"
-                          onClick={() => setCropDialogOpen(true)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          onClick={removeImage}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                    <div className="relative space-y-3">
+                      <div className="relative inline-block">
+                        <img 
+                          src={imagePreview} 
+                          alt="Preview" 
+                          className="max-w-xs max-h-48 rounded-lg"
+                        />
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            onClick={() => setCropDialogOpen(true)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={removeImage}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Aspect Ratio Selection */}
+                      <div className="space-y-2">
+                        <Label>Aspect Ratio</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'].map((ratio) => (
+                            <Button
+                              key={ratio}
+                              type="button"
+                              variant={aspectRatioKey === ratio ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setAspectRatioKey(ratio)}
+                              className="min-w-[60px]"
+                            >
+                              {ratio}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1000,6 +1024,7 @@ const Discussions = () => {
                     setAllowOwnerClaim(false);
                     setAllowAdminEdit(false);
                     setAllowOwnerEdit(false);
+                    setAspectRatioKey('16:9');
                   }}>
                     Cancel
                   </Button>
@@ -1231,9 +1256,11 @@ const Discussions = () => {
           onOpenChange={setCropDialogOpen}
           imageUrl={imageToCrop || imagePreview || ""}
           onCropComplete={handleCropComplete}
-          aspectRatio={16 / 9}
           title="Crop Post Image"
-          description="Adjust the image to show what will be visible in the post (16:9 format)"
+          description="Adjust the crop area and try different aspect ratios"
+          allowAspectRatioChange={true}
+          selectedRatioKey={aspectRatioKey as any}
+          onAspectRatioKeyChange={(key) => setAspectRatioKey(key)}
         />
       )}
     </div>
