@@ -467,42 +467,49 @@ export const DiscussionDetailDialog = ({
                         rows={3}
                       />
                       
-                      {/* Audio Recorder */}
-                      {showAudioRecorder ? (
-                        <div className="space-y-2">
-                          <AudioRecorder
-                            onRecordingComplete={(blob) => setCommentAudio(blob)}
-                            onRecordingCancel={() => {
-                              setShowAudioRecorder(false);
-                              setCommentAudio(null);
-                            }}
-                          />
-                          {commentAudio && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setCommentAudio(null)}
-                            >
-                              <X className="w-4 h-4 mr-2" />
-                              Remove Audio
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowAudioRecorder(true)}
-                        >
-                          <Mic className="w-4 h-4 mr-2" />
-                          Record Audio Comment
-                        </Button>
-                      )}
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        {/* Audio Recorder */}
+                        {showAudioRecorder ? (
+                          <div className="flex-1 space-y-2">
+                            <AudioRecorder
+                              onRecordingComplete={(blob) => setCommentAudio(blob)}
+                              onRecordingCancel={() => {
+                                setShowAudioRecorder(false);
+                                setCommentAudio(null);
+                              }}
+                            />
+                            {commentAudio && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setCommentAudio(null)}
+                                className="w-full"
+                              >
+                                <X className="w-4 h-4 mr-2" />
+                                Remove Audio
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowAudioRecorder(true)}
+                            className="flex-1 h-11"
+                          >
+                            <Mic className="w-4 h-4 mr-2" />
+                            Record Audio Comment
+                          </Button>
+                        )}
 
-                      <Button onClick={handleCommentSubmit} disabled={!newComment.trim() && !commentAudio}>
-                        <Send className="w-4 h-4 mr-2" />
-                        Post Comment
-                      </Button>
+                        <Button 
+                          onClick={handleCommentSubmit} 
+                          disabled={!newComment.trim() && !commentAudio}
+                          className="flex-1 h-11"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          Post Comment
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
