@@ -476,7 +476,7 @@ const Discussions = () => {
         video_id: newPost.video_id || null,
         youtube_url: newPost.youtube_url || null,
         event_id: newPost.event_id || null,
-        visible_to_roles: visibleToRoles,
+        visible_to_roles: visibleToRoles as any,
         is_moderated: textIsApproved && imageModerationStatus !== 'pending',
         moderation_status: finalModerationStatus,
         moderation_severity: finalModerationSeverity,

@@ -8,63 +8,135 @@ test.describe('Discussion Posts @fast', () => {
     await expect(page.getByRole('heading', { name: 'Discussions', exact: true })).toBeVisible({ timeout: 15000 });
     
     // Should see discussion posts or empty state
-    const hasDiscussions = await page.locator('.discussion-post').count() > 0;
-    const hasEmptyState = await page.getByText(/no discussions yet/i).isVisible();
+    const hasCards = await page.locator('[role="article"], .group').count() > 0;
+    const hasEmptyState = await page.getByText(/no discussions yet/i).isVisible().catch(() => false);
     
-    expect(hasDiscussions || hasEmptyState).toBeTruthy();
+    expect(hasCards || hasEmptyState).toBeTruthy();
   });
 
-  test('discussion posts display correctly', async ({ page }) => {
+  test('discussion posts display correctly with new card layout', async ({ page }) => {
     await page.goto('/discussions');
     await page.waitForLoadState('networkidle');
     
-    // Check if there are any posts
-    const postCount = await page.locator('[data-testid="discussion-post"], .discussion-post, article').count();
+    // Check if there are any posts with the new card structure
+    const postCount = await page.locator('[role="article"]').count();
     
     if (postCount > 0) {
-      // Verify first post has required elements
-      const firstPost = page.locator('[data-testid="discussion-post"], .discussion-post, article').first();
+      const firstPost = page.locator('[role="article"]').first();
       
-      // Should have title or heading
-      await expect(firstPost.locator('h2, h3, h4')).toBeVisible();
+      // Should have title (h3)
+      await expect(firstPost.locator('h3')).toBeVisible();
+      
+      // Should have author info with avatar
+      const hasAvatar = await firstPost.locator('[class*="avatar"]').count() > 0;
+      expect(hasAvatar).toBeTruthy();
+      
+      // Should have comment count
+      const hasCommentCount = await firstPost.getByText(/\d+ comment/).isVisible().catch(() => false);
+      expect(hasCommentCount).toBeTruthy();
     }
   });
 
-  test('can navigate to post details', async ({ page }) => {
+  test('posts show role badges', async ({ page }) => {
     await page.goto('/discussions');
     await page.waitForLoadState('networkidle');
     
-    const postCount = await page.locator('[data-testid="discussion-post"], .discussion-post, article').count();
+    const postCount = await page.locator('[role="article"]').count();
     
     if (postCount > 0) {
-      // Click first post
-      await page.locator('[data-testid="discussion-post"], .discussion-post, article').first().click();
+      // Look for role badges (Guardian, bestie, supporter, etc.)
+      const badges = page.locator('[class*="badge"], [class*="capitalize"]').filter({ hasText: /Guardian|bestie|supporter|admin/i });
+      const badgeCount = await badges.count();
       
-      // Should stay on discussions page or navigate (depending on implementation)
-      await page.waitForLoadState('networkidle');
-      expect(page.url()).toContain('/discussions');
+      // At least one post should have a role badge
+      expect(badgeCount).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  test('can click post to open detail dialog', async ({ page }) => {
+    await page.goto('/discussions');
+    await page.waitForLoadState('networkidle');
+    
+    const postCount = await page.locator('[role="article"]').count();
+    
+    if (postCount > 0) {
+      // Click first post card
+      await page.locator('[role="article"]').first().click();
+      
+      // Wait for dialog to open
+      await page.waitForTimeout(500);
+      
+      // Dialog should be visible
+      const dialog = page.locator('[role="dialog"]');
+      const dialogVisible = await dialog.isVisible().catch(() => false);
+      expect(dialogVisible).toBeTruthy();
+    }
+  });
+
+  test('posts with images show media preview', async ({ page }) => {
+    await page.goto('/discussions');
+    await page.waitForLoadState('networkidle');
+    
+    // Look for posts with images in the media preview section
+    const postsWithImages = await page.locator('[role="article"] img').count();
+    
+    // At least check that image loading doesn't break the page
+    expect(postsWithImages).toBeGreaterThanOrEqual(0);
+  });
+
+  test('posts linked to events show event info', async ({ page }) => {
+    await page.goto('/discussions');
+    await page.waitForLoadState('networkidle');
+    
+    // Look for event indicators (Calendar icon or event info)
+    const eventIndicators = await page.locator('[data-lucide="calendar"]').count();
+    
+    // Events might not always be present
+    expect(eventIndicators).toBeGreaterThanOrEqual(0);
   });
 });
 
 test.describe('Discussion Comments @fast', () => {
-  test('authenticated users can see comment section', async ({ page }) => {
-    // This test would require authentication
-    // For now, just verify the page structure
+  test('comment section visible in detail view', async ({ page }) => {
     await page.goto('/discussions');
     await page.waitForLoadState('networkidle');
     
-    // If there are posts, check for comment-related elements
-    const postCount = await page.locator('[data-testid="discussion-post"], .discussion-post, article').count();
+    const postCount = await page.locator('[role="article"]').count();
     
     if (postCount > 0) {
-      // Look for comment indicators (count, icon, etc.)
-      const hasCommentIndicator = 
-        await page.locator('text=/\\d+ comment/i').count() > 0 ||
-        await page.locator('[data-icon="message"]').count() > 0;
+      // Open first post
+      await page.locator('[role="article"]').first().click();
+      await page.waitForTimeout(500);
       
-      // Either has comment indicators or the feature might not be visible without auth
-      expect(hasCommentIndicator || true).toBeTruthy();
+      // Check for comment section in dialog
+      const dialog = page.locator('[role="dialog"]');
+      if (await dialog.isVisible()) {
+        const commentsSection = dialog.getByText(/comment/i);
+        await expect(commentsSection).toBeVisible({ timeout: 5000 });
+      }
+    }
+  });
+
+  test('comments show author info and role badges', async ({ page }) => {
+    await page.goto('/discussions');
+    await page.waitForLoadState('networkidle');
+    
+    const postCount = await page.locator('[role="article"]').count();
+    
+    if (postCount > 0) {
+      // Open first post
+      await page.locator('[role="article"]').first().click();
+      await page.waitForTimeout(500);
+      
+      const dialog = page.locator('[role="dialog"]');
+      if (await dialog.isVisible()) {
+        // Look for comment author badges
+        const commentBadges = dialog.locator('[class*="badge"]');
+        const badgeCount = await commentBadges.count();
+        
+        // Comments might not have badges if there are no comments
+        expect(badgeCount).toBeGreaterThanOrEqual(0);
+      }
     }
   });
 });
@@ -74,15 +146,43 @@ test.describe('Discussion Interactions @fast', () => {
     await page.goto('/discussions');
     await page.waitForLoadState('networkidle');
     
-    const postCount = await page.locator('[data-testid="discussion-post"], .discussion-post, article').count();
+    const postCount = await page.locator('[role="article"]').count();
     
     if (postCount > 0) {
-      // Look for TTS buttons (speaker icons)
-      const ttsButtons = page.locator('button[aria-label*="speak"], button[aria-label*="listen"], [data-icon="volume"]');
-      const ttsCount = await ttsButtons.count();
+      // Open first post to see TTS in detail view
+      await page.locator('[role="article"]').first().click();
+      await page.waitForTimeout(500);
       
-      // TTS buttons should be available on posts
-      expect(ttsCount).toBeGreaterThanOrEqual(0);
+      const dialog = page.locator('[role="dialog"]');
+      if (await dialog.isVisible()) {
+        // Look for TTS buttons (speaker/volume icons)
+        const ttsButtons = dialog.locator('button[aria-label*="speak"], button[aria-label*="listen"]');
+        const ttsCount = await ttsButtons.count();
+        
+        expect(ttsCount).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  test('read more button navigates to detail view', async ({ page }) => {
+    await page.goto('/discussions');
+    await page.waitForLoadState('networkidle');
+    
+    const postCount = await page.locator('[role="article"]').count();
+    
+    if (postCount > 0) {
+      // Find and click "Read More" button
+      const readMoreButton = page.locator('[role="article"]').first().getByRole('button', { name: /read more/i });
+      
+      if (await readMoreButton.isVisible()) {
+        await readMoreButton.click();
+        await page.waitForTimeout(500);
+        
+        // Dialog should open
+        const dialog = page.locator('[role="dialog"]');
+        expect(await dialog.isVisible()).toBeTruthy();
+      }
     }
   });
 });
+

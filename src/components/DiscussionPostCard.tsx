@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { MessageSquare, Calendar, Image as ImageIcon } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -45,8 +46,9 @@ interface DiscussionPostCardProps {
 }
 
 export const DiscussionPostCard = ({ post, onClick }: DiscussionPostCardProps) => {
-  const getRoleBadgeColor = (role: string) => {
-    return "text-xs px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 text-primary font-semibold capitalize";
+  const getRoleDisplay = (role: string) => {
+    if (role === "caregiver") return "Guardian";
+    return role;
   };
 
   const hasMedia = post.image_url || post.video || post.youtube_url || post.album;
@@ -111,9 +113,11 @@ export const DiscussionPostCard = ({ post, onClick }: DiscussionPostCardProps) =
                   <span className="text-sm font-medium text-foreground">
                     {post.author?.display_name || "Unknown"}
                   </span>
-                  <span className={getRoleBadgeColor(post.author?.role || "")}>
-                    {post.author?.role === "caregiver" ? "Guardian" : post.author?.role}
-                  </span>
+                  {post.author?.role && (
+                    <Badge variant="secondary" className="capitalize">
+                      {getRoleDisplay(post.author.role)}
+                    </Badge>
+                  )}
                   {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
                     <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
                   )}
@@ -121,9 +125,9 @@ export const DiscussionPostCard = ({ post, onClick }: DiscussionPostCardProps) =
                     {new Date(post.created_at).toLocaleDateString()}
                   </span>
                   {post.approval_status === 'pending_approval' && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30">
+                    <Badge variant="outline" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30">
                       Pending
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>

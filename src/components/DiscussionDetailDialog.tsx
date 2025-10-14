@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -147,8 +148,9 @@ export const DiscussionDetailDialog = ({
     setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    return "text-xs px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 text-primary font-semibold capitalize";
+  const getRoleDisplay = (role: string) => {
+    if (role === "caregiver") return "Guardian";
+    return role;
   };
 
   // Check delete permission when post changes
@@ -197,9 +199,11 @@ export const DiscussionDetailDialog = ({
                         <span className="text-sm font-medium text-foreground">
                           {post.author?.display_name || "Unknown"}
                         </span>
-                        <span className={getRoleBadgeColor(post.author?.role || "")}>
-                          {post.author?.role === "caregiver" ? "Guardian" : post.author?.role}
-                        </span>
+                        {post.author?.role && (
+                          <Badge variant="secondary" className="capitalize">
+                            {getRoleDisplay(post.author.role)}
+                          </Badge>
+                        )}
                         {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
                           <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
                         )}
@@ -335,17 +339,25 @@ export const DiscussionDetailDialog = ({
                           size="sm"
                         />
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
                             <span className="text-sm font-medium">
                               {comment.author?.display_name || "Unknown"}
                             </span>
+                            {comment.author?.role && (
+                              <Badge variant="secondary" className="capitalize">
+                                {getRoleDisplay(comment.author.role)}
+                              </Badge>
+                            )}
+                            {comment.author_id && (comment.author?.role === 'bestie' || comment.author?.role === 'caregiver') && (
+                              <VendorStoreLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
+                            )}
                             <span className="text-xs text-muted-foreground">
                               {new Date(comment.created_at).toLocaleDateString()}
                             </span>
                             {comment.approval_status === 'pending_approval' && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-700">
+                              <Badge variant="outline" className="bg-yellow-500/20 text-yellow-700">
                                 Pending
-                              </span>
+                              </Badge>
                             )}
                           </div>
                           {comment.content && (
