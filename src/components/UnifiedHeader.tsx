@@ -646,7 +646,7 @@ export const UnifiedHeader = () => {
 
               {/* Desktop Navigation */}
               <nav 
-                className={`hidden md:block absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-[51] shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}
+                className={`hidden md:block absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-[51] shadow-sm ${showNav ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'}`}
                 data-tour-target="navigation-bar"
               >
                 <div className="container mx-auto px-4 flex items-center justify-between">
