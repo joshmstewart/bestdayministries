@@ -236,7 +236,6 @@ const Discussions = () => {
         video:videos(id, title, video_url, youtube_url, video_type),
         event:events(id, title, event_date, location)
       `)
-      .eq("is_moderated", true)
       .order("created_at", { ascending: false});
 
     if (postsError) {
