@@ -104,6 +104,7 @@ export default function GuardianLinks() {
   const [links, setLinks] = useState<BestieLink[]>([]);
   const [linkedBesties, setLinkedBesties] = useState<LinkedBestie[]>([]);
   const [sponsorships, setSponsorships] = useState<Sponsorship[]>([]);
+  const [bestiesInSponsorProgram, setBestiesInSponsorProgram] = useState<Set<string>>(new Set());
   const [userRole, setUserRole] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [emoji1, setEmoji1] = useState("");
@@ -218,6 +219,20 @@ export default function GuardianLinks() {
       }));
 
       setLinks(transformedData as BestieLink[]);
+      
+      // Check which besties are in the sponsor program
+      if (transformedData.length > 0) {
+        const bestieIds = transformedData.map(link => link.bestie_id);
+        const { data: sponsorBesties } = await supabase
+          .from("sponsor_besties")
+          .select("bestie_id")
+          .in("bestie_id", bestieIds)
+          .eq("is_active", true);
+        
+        if (sponsorBesties) {
+          setBestiesInSponsorProgram(new Set(sponsorBesties.map(sb => sb.bestie_id)));
+        }
+      }
     } catch (error: any) {
       toast({
         title: "Error loading links",
@@ -1190,103 +1205,108 @@ export default function GuardianLinks() {
                               </AccordionContent>
                             </AccordionItem>
 
-                            {/* Vendor Relationships */}
-                            <AccordionItem value="vendor-relationships">
-                              <AccordionTrigger className="hover:no-underline">
-                                <div className="flex items-center gap-2">
-                                  <ShoppingBag className="w-4 h-4" />
-                                  <span className="font-medium">Vendor Relationships</span>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="space-y-4 pt-2">
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-sm font-medium">
-                                        Require Vendor Asset Approval
-                                      </Label>
-                                      <p className="text-sm text-muted-foreground">
-                                        Vendors need approval before using bestie's photos, videos, or other assets
-                                      </p>
-                                    </div>
-                                    <Switch
-                                      checked={link.require_vendor_asset_approval}
-                                      onCheckedChange={() => handleToggleApproval(link.id, 'require_vendor_asset_approval', link.require_vendor_asset_approval)}
-                                    />
+                            {/* Vendor Relationships - Admin Only */}
+                            {(userRole === 'admin' || userRole === 'owner') && (
+                              <AccordionItem value="vendor-relationships">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2">
+                                    <ShoppingBag className="w-4 h-4" />
+                                    <span className="font-medium">Vendor Relationships</span>
+                                    <Badge variant="outline" className="ml-2 text-xs">Admin Only</Badge>
                                   </div>
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-sm font-medium">
-                                        Show Vendor Store Link on Bestie Profile
-                                      </Label>
-                                      <p className="text-sm text-muted-foreground">
-                                        Display link to vendor store when bestie posts or comments
-                                      </p>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-4 pt-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="space-y-0.5">
+                                        <Label className="text-sm font-medium">
+                                          Require Vendor Asset Approval
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                          Vendors need approval before using bestie's photos, videos, or other assets
+                                        </p>
+                                      </div>
+                                      <Switch
+                                        checked={link.require_vendor_asset_approval}
+                                        onCheckedChange={() => handleToggleApproval(link.id, 'require_vendor_asset_approval', link.require_vendor_asset_approval)}
+                                      />
                                     </div>
-                                    <Switch
-                                      checked={link.show_vendor_link_on_bestie}
-                                      onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_bestie', link.show_vendor_link_on_bestie)}
-                                    />
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-sm font-medium">
-                                        Show Vendor Store Link on Your Profile
-                                      </Label>
-                                      <p className="text-sm text-muted-foreground">
-                                        Display link to vendor store when you post or comment
-                                      </p>
+                                    <div className="flex items-center justify-between">
+                                      <div className="space-y-0.5">
+                                        <Label className="text-sm font-medium">
+                                          Show Vendor Store Link on Bestie Profile
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                          Display link to vendor store when bestie posts or comments
+                                        </p>
+                                      </div>
+                                      <Switch
+                                        checked={link.show_vendor_link_on_bestie}
+                                        onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_bestie', link.show_vendor_link_on_bestie)}
+                                      />
                                     </div>
-                                    <Switch
-                                      checked={link.show_vendor_link_on_guardian}
-                                      onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_guardian', link.show_vendor_link_on_guardian)}
-                                    />
+                                    <div className="flex items-center justify-between">
+                                      <div className="space-y-0.5">
+                                        <Label className="text-sm font-medium">
+                                          Show Vendor Store Link on Your Profile
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                          Display link to vendor store when you post or comment
+                                        </p>
+                                      </div>
+                                      <Switch
+                                        checked={link.show_vendor_link_on_guardian}
+                                        onCheckedChange={() => handleToggleApproval(link.id, 'show_vendor_link_on_guardian', link.show_vendor_link_on_guardian)}
+                                      />
+                                    </div>
                                   </div>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
+                                </AccordionContent>
+                              </AccordionItem>
+                            )}
 
                             {/* Sponsor Communication */}
-                            <AccordionItem value="sponsor-communication">
-                              <AccordionTrigger className="hover:no-underline">
-                                <div className="flex items-center gap-2">
-                                  <FileCheck className="w-4 h-4" />
-                                  <span className="font-medium">Sponsor Communication</span>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="space-y-4 pt-2">
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-sm font-medium">
-                                        Allow Sponsor Messages
-                                      </Label>
-                                      <p className="text-sm text-muted-foreground">
-                                        Allow bestie to send messages to their sponsors
-                                      </p>
-                                    </div>
-                                    <Switch
-                                      checked={link.allow_sponsor_messages}
-                                      onCheckedChange={() => handleToggleApproval(link.id, 'allow_sponsor_messages', link.allow_sponsor_messages)}
-                                    />
+                            {bestiesInSponsorProgram.has(link.bestie_id) && (
+                              <AccordionItem value="sponsor-communication">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2">
+                                    <FileCheck className="w-4 h-4" />
+                                    <span className="font-medium">Sponsor Communication</span>
                                   </div>
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label className="text-sm font-medium">
-                                        Require Message Approval
-                                      </Label>
-                                      <p className="text-sm text-muted-foreground">
-                                        Review and approve messages before they're sent to sponsors
-                                      </p>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-4 pt-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="space-y-0.5">
+                                        <Label className="text-sm font-medium">
+                                          Allow Sponsor Messages
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                          Allow bestie to send messages to their sponsors
+                                        </p>
+                                      </div>
+                                      <Switch
+                                        checked={link.allow_sponsor_messages}
+                                        onCheckedChange={() => handleToggleApproval(link.id, 'allow_sponsor_messages', link.allow_sponsor_messages)}
+                                      />
                                     </div>
-                                    <Switch
-                                      checked={link.require_message_approval}
-                                      onCheckedChange={() => handleToggleApproval(link.id, 'require_message_approval', link.require_message_approval)}
-                                    />
+                                    <div className="flex items-center justify-between">
+                                      <div className="space-y-0.5">
+                                        <Label className="text-sm font-medium">
+                                          Require Message Approval
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                          Review and approve messages before they're sent to sponsors
+                                        </p>
+                                      </div>
+                                      <Switch
+                                        checked={link.require_message_approval}
+                                        onCheckedChange={() => handleToggleApproval(link.id, 'require_message_approval', link.require_message_approval)}
+                                      />
+                                    </div>
                                   </div>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
+                                </AccordionContent>
+                              </AccordionItem>
+                            )}
                           </Accordion>
 
                           {/* Linked Vendors Section */}
@@ -1344,8 +1364,8 @@ export default function GuardianLinks() {
             </div>
           )}
 
-          {/* Send Messages to Sponsors Section - For caregivers, admins, and owners */}
-          {['caregiver', 'admin', 'owner'].includes(userRole) && links.length > 0 && (
+          {/* Send Messages to Sponsors Section - For caregivers, admins, and owners with besties in sponsor program */}
+          {['caregiver', 'admin', 'owner'].includes(userRole) && bestiesInSponsorProgram.size > 0 && (
             <div className="space-y-4">
               <h2 className="text-2xl font-bold">Send Messages to Sponsors</h2>
               <GuardianSponsorMessenger />
