@@ -165,8 +165,8 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <SEOHead
-        title="Joy House Community | Spreading Joy Through Special Needs Community"
-        description="Building a supportive community for adults with special needs by sharing their creativity through unique gifts, giving them confidence, independence, and JOY!"
+        title="Best Day Ministries | Spreading Joy, Hope & Purpose"
+        description="Best Day Ministries empowers individuals with disabilities through faith, community, and inclusive work programs that spread JOY, hope, and purpose!"
         structuredData={getOrganizationStructuredData()}
       />
       <UnifiedHeader />
