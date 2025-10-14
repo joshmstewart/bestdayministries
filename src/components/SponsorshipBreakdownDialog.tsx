@@ -95,10 +95,10 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
+        <div className="space-y-3 py-3">
           {breakdownItems.map((item, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+            <div key={index} className="space-y-1.5">
+              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/50">
                 <div className={`${item.color} mt-1`}>
                   <item.icon className="w-5 h-5" />
                 </div>
@@ -112,7 +112,7 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
               </div>
               
               {item.subItems && item.subItems.length > 0 && (
-                <div className="ml-8 space-y-2">
+                <div className="ml-8 space-y-1.5">
                   {item.subItems.map((subItem, subIndex) => (
                     <div key={subIndex} className="flex items-start gap-2 p-2 rounded-lg bg-background border border-muted">
                       <div className={`${subItem.color} mt-0.5`}>
@@ -133,16 +133,13 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
           ))}
         </div>
 
-        <div className="border-t pt-4 mt-2 space-y-2">
+        <div className="border-t pt-3 mt-2 space-y-1.5">
           <p className="text-xs text-muted-foreground text-center">
             Every dollar you contribute helps create meaningful opportunities and a supportive
             environment where our Besties can thrive.
           </p>
-          <p className="text-xs text-muted-foreground text-center font-medium">
-            Note: All product costs (coffee, food, etc.) are covered by revenue from sales.
-          </p>
-          <p className="text-xs text-muted-foreground text-center italic">
-            Mentor support represents the portion of their time dedicated to instruction and oversight. Revenue from operations covers their remaining compensation.
+          <p className="text-xs text-muted-foreground text-center">
+            <span className="font-medium">Note:</span> All product costs are covered by revenue from sales. Mentor support represents the portion of their time dedicated to instruction and oversight.
           </p>
         </div>
       </DialogContent>
