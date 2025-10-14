@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { mockSupabaseAuth, mockSupabaseTables } from '../utils/supabase-mocks';
+import { mockSupabaseAuth, mockSupabaseDatabase, MockSupabaseState } from '../utils/supabase-mocks';
 
 test.describe('Scroll Interactions', () => {
+  let state: MockSupabaseState;
+
   test.beforeEach(async ({ page }) => {
-    await mockSupabaseAuth(page);
-    await mockSupabaseTables(page);
+    state = new MockSupabaseState();
+    await mockSupabaseAuth(page, state);
+    await mockSupabaseDatabase(page, state);
   });
 
   test('header buttons remain clickable after scrolling down', async ({ page }) => {
