@@ -8,14 +8,16 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   
+  // Environment variables for email testing
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: process.env.BASE_URL || 'http://localhost:8080',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    // Increase timeout for CI environment
     actionTimeout: 15000,
     navigationTimeout: 30000,
+    // Make Mailtrap credentials available to tests
+    extraHTTPHeaders: {},
   },
 
   // Default test timeout - fast tests will use this
