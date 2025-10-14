@@ -716,8 +716,8 @@ const Discussions = () => {
       <main className="container mx-auto px-4 pt-20 pb-12">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
               <h1 className="text-4xl font-black text-foreground">
                 Community <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">Discussions</span>
               </h1>
@@ -726,7 +726,7 @@ const Discussions = () => {
               </p>
             </div>
             {canCreatePosts && (
-              <Button onClick={() => setShowNewPost(!showNewPost)} size="lg">
+              <Button onClick={() => setShowNewPost(!showNewPost)} size="lg" className="w-full sm:w-auto">
                 <MessageSquare className="w-4 h-4 mr-2" />
                 New Post
               </Button>
@@ -939,20 +939,22 @@ const Discussions = () => {
           )}
 
           {/* Search and Sort */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search discussions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11"
               />
             </div>
             <Select value={sortOrder} onValueChange={(value: "newest" | "oldest") => setSortOrder(value)}>
-              <SelectTrigger className="w-full sm:w-48">
-                <ArrowUpDown className="w-4 h-4 mr-2" />
-                <SelectValue />
+              <SelectTrigger className="w-full sm:w-[200px] h-11">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="w-4 h-4" />
+                  <SelectValue />
+                </div>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="newest">Newest First</SelectItem>
