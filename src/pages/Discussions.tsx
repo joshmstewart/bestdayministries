@@ -143,13 +143,16 @@ const Discussions = () => {
   }, [searchParams, posts]);
 
   const checkUser = async () => {
+    console.log('👤 checkUser called');
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
+      console.log('❌ No session, redirecting to auth');
       navigate("/auth");
       return;
     }
 
+    console.log('✅ Session found:', session.user.id);
     setUser(session.user);
     await fetchProfile(session.user.id);
     await loadPosts();
@@ -157,6 +160,7 @@ const Discussions = () => {
   };
 
   const fetchProfile = async (userId: string) => {
+    console.log('👤 fetchProfile called for:', userId);
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
@@ -178,6 +182,12 @@ const Discussions = () => {
       ...profileData,
       role: roleData?.role || "supporter"
     };
+
+    console.log('✅ Profile loaded:', { 
+      id: profile.id, 
+      role: profile.role,
+      display_name: profile.display_name 
+    });
 
     setProfile(profile);
     setCanCreatePosts(['caregiver', 'admin', 'owner'].includes(profile.role));
@@ -210,6 +220,7 @@ const Discussions = () => {
   };
 
   const loadPosts = async () => {
+      console.log('📚 loadPosts called');
       const { data: postsData, error: postsError } = await supabase
       .from("discussion_posts")
       .select(`
@@ -295,10 +306,19 @@ const Discussions = () => {
       })
     );
 
+    console.log('📚 Posts loaded:', postsWithComments.length);
     setPosts(postsWithComments);
+    
+    console.log('🔐 Checking profile before loadEditablePostIds:', { 
+      hasProfile: !!profile, 
+      profileId: profile?.id,
+      profileRole: profile?.role 
+    });
     
     if (profile) {
       await loadEditablePostIds(postsWithComments);
+    } else {
+      console.warn('⚠️ Profile is null, skipping loadEditablePostIds');
     }
   };
 
