@@ -112,6 +112,7 @@ const Discussions = () => {
   const [allowAdminEdit, setAllowAdminEdit] = useState(false);
   const [allowOwnerEdit, setAllowOwnerEdit] = useState(false);
   const [aspectRatioKey, setAspectRatioKey] = useState<string>('16:9');
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -466,7 +467,7 @@ const Discussions = () => {
         return;
       }
 
-      let imageUrl: string | null = null;
+      let imageUrl: string | null = imagePreview ? imagePreview : null;
       let imageModerationStatus: string | null = null;
       let imageModerationSeverity: string | null = null;
       let imageModerationReason: string | null = null;
@@ -540,7 +541,7 @@ const Discussions = () => {
       const finalModerationSeverity = !textIsApproved ? textSeverity : imageModerationSeverity;
 
       let approvalStatus = 'approved';
-      if (profile?.role === 'bestie') {
+      if (profile?.role === 'bestie' && !editingPostId) {
         const { data: guardianLinks } = await supabase
           .from('caregiver_bestie_links')
           .select('require_post_approval')
@@ -551,10 +552,9 @@ const Discussions = () => {
         }
       }
 
-      const { error } = await supabase.from("discussion_posts").insert([{
+      const postData = {
         title: validation.data!.title,
         content: validation.data!.content,
-        author_id: user?.id,
         image_url: imageUrl,
         video_id: newPost.video_id || null,
         youtube_url: newPost.youtube_url || null,
@@ -565,27 +565,46 @@ const Discussions = () => {
         moderation_severity: finalModerationSeverity,
         moderation_notes: finalModerationNotes,
         moderation_reason: finalModerationNotes,
-        approval_status: approvalStatus,
         allow_owner_claim: allowOwnerClaim,
         allow_admin_edit: allowAdminEdit,
         allow_owner_edit: allowOwnerEdit,
         aspect_ratio: aspectRatioKey,
-      }]);
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
+      if (editingPostId) {
+        // Update existing post
+        const { error } = await supabase
+          .from("discussion_posts")
+          .update(postData)
+          .eq("id", editingPostId);
 
-      if (approvalStatus === 'pending_approval') {
-        toast({ 
-          title: "Post pending approval",
-          description: "Your guardian will review this post before it's published.",
-        });
-      } else if (textIsApproved && imageModerationStatus !== 'pending') {
-        toast({ title: "Post created successfully!" });
+        if (error) throw error;
+
+        toast({ title: "Post updated successfully!" });
       } else {
-        toast({ 
-          title: "Post submitted for review",
-          description: "Your post will be reviewed by moderators before being published.",
-        });
+        // Create new post
+        const { error } = await supabase.from("discussion_posts").insert([{
+          ...postData,
+          author_id: user?.id,
+          approval_status: approvalStatus,
+        }]);
+
+        if (error) throw error;
+
+        if (approvalStatus === 'pending_approval') {
+          toast({ 
+            title: "Post pending approval",
+            description: "Your guardian will review this post before it's published.",
+          });
+        } else if (textIsApproved && imageModerationStatus !== 'pending') {
+          toast({ title: "Post created successfully!" });
+        } else {
+          toast({ 
+            title: "Post submitted for review",
+            description: "Your post will be reviewed by moderators before being published.",
+          });
+        }
       }
 
       setNewPost({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
@@ -595,11 +614,15 @@ const Discussions = () => {
       setVideoInputType("none");
       setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
       setAllowOwnerClaim(false);
+      setAllowAdminEdit(false);
+      setAllowOwnerEdit(false);
+      setAspectRatioKey('16:9');
+      setEditingPostId(null);
       loadPosts();
     } catch (error: any) {
-      console.error("Error creating post:", error);
+      console.error(`Error ${editingPostId ? 'updating' : 'creating'} post:`, error);
       toast({
-        title: "Error creating post",
+        title: `Error ${editingPostId ? 'updating' : 'creating'} post`,
         description: error.message,
         variant: "destructive",
       });
@@ -720,11 +743,13 @@ const Discussions = () => {
       setImagePreview(post.image_url);
     }
 
+    setVisibleToRoles(post.visible_to_roles || ['caregiver', 'bestie', 'supporter']);
     setShowNewPost(true);
     setAllowOwnerClaim((post as any).allow_owner_claim || false);
     setAllowAdminEdit((post as any).allow_admin_edit || false);
     setAllowOwnerEdit((post as any).allow_owner_edit || false);
     setAspectRatioKey((post as any).aspect_ratio || '16:9');
+    setEditingPostId(post.id);
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1015,7 +1040,7 @@ const Discussions = () => {
 
                 <div className="flex gap-2">
                   <Button onClick={handleCreatePost} disabled={uploadingImage || !newPost.title || !newPost.content}>
-                    {uploadingImage ? "Creating..." : "Create Post"}
+                    {uploadingImage ? (editingPostId ? "Updating..." : "Creating...") : (editingPostId ? "Update Post" : "Create Post")}
                   </Button>
                   <Button variant="outline" onClick={() => {
                     setShowNewPost(false);
@@ -1027,6 +1052,7 @@ const Discussions = () => {
                     setAllowAdminEdit(false);
                     setAllowOwnerEdit(false);
                     setAspectRatioKey('16:9');
+                    setEditingPostId(null);
                   }}>
                     Cancel
                   </Button>

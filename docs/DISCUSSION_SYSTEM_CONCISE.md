@@ -63,8 +63,9 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 ### Images
 - Upload to `discussion-images` bucket
 - Compressed to 4.5MB max
-- Crop dialog before upload (aspect ratio selection)
+- Crop dialog before upload with aspect ratio selection (1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3)
 - Max 20MB before compression
+- Aspect ratio saved to `aspect_ratio` field and applied in display
 
 ### Videos
 - **Option 1:** Select from `videos` table (admin-uploaded)
@@ -91,8 +92,8 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 ### DiscussionPostCard (List View)
 ```tsx
 <Card> {/* Horizontal layout with optional media preview */}
-  {/* Left: Media Preview (16:9) - if image/video/album */}
-  <AspectRatio ratio={16/9}>
+  {/* Left: Media Preview (dynamic aspect ratio from post.aspect_ratio) */}
+  <AspectRatio ratio={aspectRatio}>
     {image || album.cover || video placeholder}
   </AspectRatio>
   
@@ -206,11 +207,12 @@ See: `docs/AUDIO_RECORDING_STANDARD.md`
 ### Create Post Form
 - Title (required, max 200 chars)
 - Content (required, max 2000 chars)
-- Image upload (optional, with crop)
+- Image upload (optional, with crop and aspect ratio selection)
 - Video selection (none/select/youtube)
 - Event link (optional dropdown)
 - Visibility roles (checkboxes: caregiver, bestie, supporter)
 - **Allow Owner Claim** (admins and owners) - Checkbox to consent to owner changing authorship
+- Button text: "Create Post" when creating, "Update Post" when editing
 
 ### Comment Input
 - Text OR Audio (mutually exclusive)
@@ -226,7 +228,9 @@ See: `docs/AUDIO_RECORDING_STANDARD.md`
 
 ### Posts
 - **Who can edit:** Author, Guardian (of bestie author), Admin, Owner
-- **Edit mode:** Opens create form with existing data pre-filled
+- **Edit mode:** Opens create form with existing data pre-filled, button says "Update Post"
+- **Edit action:** Clicking edit populates form with post data, sets `editingPostId`, changes button to "Update Post"
+- **Save action:** If `editingPostId` exists, updates existing post; otherwise creates new post
 - **Updated timestamp:** `updated_at` auto-updates on save
 - **"Edited" indicator:** Shows "(edited)" next to date if `updated_at > created_at + 60s`
 - **Delete:** Confirmation dialog, cascades to comments
@@ -299,3 +303,5 @@ See: `docs/AUDIO_RECORDING_STANDARD.md`
 | "Claim Post" not showing | Verify: owner role + admin created post + `allow_owner_claim = true` |
 | Edit button not showing | Verify `currentUserId === author_id` for comments |
 | "(edited)" not showing | Check `updated_at > created_at + 60000ms` (60 seconds) |
+| Button says "Create Post" when editing | Check that `editingPostId` state is set when clicking edit button |
+| Image aspect ratio wrong | Check `aspect_ratio` field is saved and applied in `AspectRatio` component |
