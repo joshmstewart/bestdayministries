@@ -122,10 +122,12 @@ When updating a dialog:
 - [ ] Update Percy snapshots if visual changes
 
 ## Components Using This Standard
-- ✅ `DiscussionDetailDialog.tsx` - Delete post + close
-- ⏳ `EventDetailDialog.tsx` - Close only (no delete)
-- ⏳ `ImageCropDialog.tsx` - Close only (has footer buttons)
-- ⏳ Other dialogs as needed
+- ✅ `DiscussionDetailDialog.tsx` - Delete post + close (header buttons)
+- ✅ `EventDetailDialog.tsx` - Close only (header button)
+- ➖ `ImageCropDialog.tsx` - Uses footer buttons (Apply/Cancel) - not applicable
+- ➖ `PasswordChangeDialog.tsx` - Uses footer buttons (Update/Cancel) - not applicable
+
+**Note:** Dialogs with primary actions in footer (e.g., forms with Submit/Cancel) don't need header close buttons as the footer provides clear dismissal options.
 
 ## Benefits
 1. **Visual Consistency:** All dialogs have same button alignment

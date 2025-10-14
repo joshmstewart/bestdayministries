@@ -189,6 +189,15 @@ REALTIME:subscribe-posts+comments
 RLS:SELECT[approved-visible-or-own-pending]|UPDATE[author-guardian-admin-for-posts|author-only-for-comments]|INSERT[guardians-admins]
 VALIDATION:title[1-200]|content[1-2000]|image[20MB]
 
+## DIALOG_BUTTON_STANDARD
+LAYOUT:flex-items-start-gap-3[content-flex-1-min-w-0|buttons-flex-shrink-0]
+DELETE:ghost-icon-Trash2-w-5-h-5-destructive-hover
+CLOSE:ghost-icon-X-w-5-h-5-hover-bg-accent
+APPLICABLE:header-only-dialogs-NOT-footer-action-dialogs
+COMPONENTS:DiscussionDetailDialog[delete+close]|EventDetailDialog[close-only]
+TESTS:discussions.spec.ts-button-alignment|visual.spec.ts-Percy
+DOC:DIALOG_BUTTON_STANDARD.md
+
 ## DONATION
 ROUTE:/support
 DB:donations

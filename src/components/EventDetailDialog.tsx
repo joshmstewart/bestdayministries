@@ -43,12 +43,30 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between gap-4 pr-8">
-            <span className="text-2xl font-bold">{event.title}</span>
-            <TextToSpeech text={`${event.title}. ${event.description}`} />
-          </DialogTitle>
+          <div className="flex items-start gap-3">
+            {/* Content area - takes up remaining space */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <DialogTitle className="text-2xl flex-shrink-0">{event.title}</DialogTitle>
+                <TextToSpeech text={`${event.title}. ${event.description}`} />
+              </div>
+            </div>
+            
+            {/* Action buttons container - aligned to right */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onOpenChange(false)}
+                className="hover:bg-accent"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
