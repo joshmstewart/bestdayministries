@@ -177,22 +177,25 @@ export const DiscussionDetailDialog = ({
               <DialogHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <DialogTitle className="text-2xl">{post.title}</DialogTitle>
-                      <TextToSpeech text={`${post.title}. ${post.content}`} />
-                      {isEditablePost && onEditPost && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            onEditPost(post);
-                            onOpenChange(false);
-                          }}
-                          className="h-8 w-8 hover:bg-primary/10"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      )}
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <DialogTitle className="text-2xl flex-shrink-0">{post.title}</DialogTitle>
+                      <div className="flex items-center gap-2">
+                        <TextToSpeech text={`${post.title}. ${post.content}`} />
+                        {isEditablePost && onEditPost && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              onEditPost(post);
+                              onOpenChange(false);
+                            }}
+                            className="flex-shrink-0"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Author Info */}
@@ -219,7 +222,9 @@ export const DiscussionDetailDialog = ({
                         )}
                         <span className="text-xs text-muted-foreground">
                           {new Date(post.created_at).toLocaleDateString()}
-                          {post.updated_at && new Date(post.updated_at).getTime() > new Date(post.created_at).getTime() + 60000 && (
+                          {post.updated_at && 
+                           post.created_at !== post.updated_at && 
+                           new Date(post.updated_at).getTime() > new Date(post.created_at).getTime() + 300000 && (
                             <span className="ml-1 italic">(edited)</span>
                           )}
                         </span>
@@ -369,7 +374,9 @@ export const DiscussionDetailDialog = ({
                             )}
                             <span className="text-xs text-muted-foreground">
                               {new Date(comment.created_at).toLocaleDateString()}
-                              {comment.updated_at && new Date(comment.updated_at).getTime() > new Date(comment.created_at).getTime() + 60000 && (
+                              {comment.updated_at && 
+                               comment.created_at !== comment.updated_at && 
+                               new Date(comment.updated_at).getTime() > new Date(comment.created_at).getTime() + 300000 && (
                                 <span className="ml-1 italic">(edited)</span>
                               )}
                             </span>
