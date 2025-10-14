@@ -14,6 +14,7 @@ interface InboundEmailPayload {
   reply_to?: string;
   in_reply_to?: string;
   references?: string;
+  raw?: string; // Cloudflare Email Worker sends raw email
 }
 
 Deno.serve(async (req) => {
@@ -32,7 +33,14 @@ Deno.serve(async (req) => {
       subject: payload.subject,
       has_html: !!payload.html,
       has_text: !!payload.text,
+      has_raw: !!payload.raw,
     });
+
+    // Parse raw email if provided (Cloudflare format)
+    let emailText = payload.text || payload.html || '';
+    if (payload.raw && !emailText) {
+      emailText = parseRawEmail(payload.raw);
+    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -87,7 +95,7 @@ Deno.serve(async (req) => {
     console.log('[process-inbound-email] Matched submission:', matchedSubmission.id);
 
     // Extract clean message content
-    const messageContent = extractMessageContent(payload.text || payload.html || '');
+    const messageContent = extractMessageContent(emailText);
     if (!messageContent || messageContent.trim().length === 0) {
       throw new Error('No message content found in email');
     }
@@ -159,6 +167,23 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+/**
+ * Parse raw email content (from Cloudflare Email Worker)
+ */
+function parseRawEmail(raw: string): string {
+  try {
+    // Simple parsing - extract body after headers
+    const bodyMatch = raw.match(/\r?\n\r?\n([\s\S]+)/);
+    if (bodyMatch) {
+      return bodyMatch[1];
+    }
+    return raw;
+  } catch (error) {
+    console.error('[parseRawEmail] Error:', error);
+    return raw;
+  }
+}
 
 /**
  * Extract email address from "Name <email@example.com>" format

@@ -255,10 +255,10 @@ bg-muted border-l-4 border-primary
 - Settings + Submissions in single view
 - Quick actions in table rows
 
-## Email Reply Handling (CURRENT APPROACH)
+## Email Reply Handling
 
-### Manual User Reply Entry
-**Current workflow** that's working now:
+### Current: Manual User Reply Entry
+**Quick setup** for immediate use:
 1. User submits contact form → saved to database ✅
 2. Admin replies from UI → email sent via Resend ✅
 3. User replies via email → goes to admin's inbox 📧
@@ -272,34 +272,164 @@ bg-muted border-l-4 border-primary
 4. Copy/paste user's email response
 5. Save - appears in thread with blue styling
 
-### Future: Automatic Email Reply Capture
+### Recommended: Automatic Email Reply Capture (FREE with Cloudflare)
 
-**Note:** The `process-inbound-email` edge function exists but requires additional email service setup beyond Resend (which only handles sending).
+**Why Cloudflare Email Routing?**
+- ✅ **FREE** - No monthly cost
+- ✅ Full email threading with nonprofit domain
+- ✅ Automatic reply capture
+- ✅ Professional appearance
+- ✅ Easy setup (15 minutes)
 
-**To enable automatic capture, you would need:**
+**Complete Setup Guide:**
 
-**Option 1: Email Forwarding Service**
-- Use a service like SendGrid Inbound Parse, Mailgun Routes, or AWS SES
-- Configure to forward incoming emails to the edge function
-- Webhook URL: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/process-inbound-email`
+### Step 1: Set Up Cloudflare Email Routing
 
-**Option 2: Email Server with MX Records**
-- Set up custom email server with MX records
-- Forward incoming mail to edge function webhook
-- More complex infrastructure required
+1. **Add your domain to Cloudflare** (if not already)
+   - Go to [dash.cloudflare.com](https://dash.cloudflare.com)
+   - Click "Add a Site"
+   - Enter your nonprofit domain
+   - Follow DNS migration steps
 
-**The edge function includes:**
+2. **Enable Email Routing**
+   - Navigate to Email → Email Routing
+   - Click "Enable Email Routing"
+   - Add MX records (Cloudflare provides these):
+     ```
+     Priority: 1  |  Name: @  |  Value: route1.mx.cloudflare.net
+     Priority: 2  |  Name: @  |  Value: route2.mx.cloudflare.net
+     Priority: 3  |  Name: @  |  Value: route3.mx.cloudflare.net
+     ```
+
+3. **Verify DNS Records**
+   - Wait 5-10 minutes for DNS propagation
+   - Cloudflare will verify automatically
+
+### Step 2: Create Cloudflare Email Worker
+
+1. **Navigate to Workers & Pages**
+   - In Cloudflare Dashboard
+   - Click "Create Application"
+   - Select "Create Worker"
+   - Name it: `email-processor`
+
+2. **Add Worker Code**
+   ```javascript
+   export default {
+     async email(message, env, ctx) {
+       try {
+         // Extract email content
+         const rawText = await new Response(message.raw).text();
+         
+         // Forward to Supabase edge function
+         const response = await fetch(
+           'https://nbvijawmjkycyweioglk.supabase.co/functions/v1/process-inbound-email',
+           {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+             },
+             body: JSON.stringify({
+               from: message.from,
+               to: message.to,
+               subject: message.headers.get('subject') || '',
+               text: rawText,
+               raw: rawText,
+             }),
+           }
+         );
+         
+         console.log('Forwarded to edge function:', response.status);
+       } catch (error) {
+         console.error('Error processing email:', error);
+       }
+     }
+   };
+   ```
+
+3. **Deploy Worker**
+   - Click "Save and Deploy"
+
+### Step 3: Configure Email Routing Rules
+
+1. **Add Routing Rule**
+   - Go back to Email → Email Routing
+   - Click "Routing Rules"
+   - Click "Create Address"
+
+2. **Create contact@ address**
+   - Destination address: `contact@yournonprofit.org`
+   - Action: "Send to a Worker"
+   - Select your `email-processor` worker
+   - Click "Save"
+
+### Step 4: Update Contact Form Settings
+
+1. **In your app, go to Admin > Contact**
+2. **Update these settings:**
+   - Reply From Email: `contact@yournonprofit.org`
+   - Reply From Name: `Your Nonprofit Name`
+3. **Save settings**
+
+### Step 5: Verify Resend Domain
+
+1. **Go to [resend.com/domains](https://resend.com/domains)**
+2. **Add your nonprofit domain** (if not already)
+3. **Add DNS records** provided by Resend:
+   - SPF record
+   - DKIM records (2-3 records)
+4. **Wait for verification** (5-30 minutes)
+
+### Step 6: Test the Full Flow
+
+1. **Submit test contact form** from a personal email
+2. **Reply from Admin panel** - email sent via Resend
+3. **Check your personal email** - should receive reply from `contact@yournonprofit.org`
+4. **Reply to that email** - should go to Cloudflare
+5. **Check Admin > Contact** - reply should appear automatically in thread! ✅
+
+### Troubleshooting
+
+**Email not received by Cloudflare:**
+- Check MX records are set correctly
+- Wait 30 minutes for DNS propagation
+- Test with Cloudflare's email routing test tool
+
+**Worker not triggering:**
+- Check Worker logs in Cloudflare dashboard
+- Ensure routing rule points to correct worker
+- Verify worker is deployed
+
+**Reply not appearing in thread:**
+- Check edge function logs: Admin > Backend > Functions > process-inbound-email
+- Verify sender email matches original submission
+- Check that submission exists in database
+
+**Resend not sending:**
+- Verify domain is verified in Resend
+- Check SPF/DKIM records are correct
+- Review Resend API logs
+
+### How It Works
+
+```mermaid
+graph LR
+    A[User Replies via Email] --> B[Cloudflare Email Routing]
+    B --> C[Email Worker]
+    C --> D[Supabase Edge Function]
+    D --> E[Parse & Match Email]
+    E --> F[Save to Database]
+    F --> G[Notify Admins]
+    G --> H[Thread Updates in UI]
+```
+
+**Edge Function Features:**
 - Email parsing (removes quotes, signatures)
 - Sender matching to original submission
 - Automatic threading
 - Admin notifications
 - Content sanitization
-
-**Why not included by default:**
-- Resend focuses on sending, not receiving emails
-- Requires additional third-party service
-- Adds complexity and potential costs
-- Manual entry works well for moderate volume
+- Handles both Cloudflare and standard formats
 
 ### Potential Additional Features
 - Rich text editor for admin replies

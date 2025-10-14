@@ -156,12 +156,12 @@ CRITICAL-RULES:7-rules→profiles_public|is_moderated-only|client-filter|height-
 DB:contact_form_settings|contact_form_submissions|contact_form_replies[threaded-conversation]
 FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactFormManager[admin-settings+submissions+badge-realtime+threaded-view+add-user-reply]
 VALIDATION:client-Zod|server-edge
-EDGE:notify-admin|send-reply[saves-to-replies-table]|process-inbound-email[requires-external-email-service]
+EDGE:notify-admin|send-reply[saves-to-replies-table]|process-inbound-email[Cloudflare-Email-Worker]
 THREADING:contact_form_replies[admin-replies-green|user-replies-blue|chronological-display]
-REPLY-CURRENT:manual-add-user-reply[working-method-copy-paste-from-inbox]
-REPLY-FUTURE:automatic-capture[requires-SendGrid-Mailgun-or-AWS-SES-forwarding]
-SETUP:Resend[verify-domain-SPF-DKIM+send-only-no-inbound]
-WORKFLOW:submit→admin-reply-via-UI→user-email-reply-to-inbox→admin-manual-add→continues
+REPLY-MANUAL:add-user-reply[copy-paste-from-inbox]
+REPLY-AUTOMATIC:Cloudflare-Email-Routing[FREE-MX-records]→Worker→Edge-Function→Auto-Thread
+SETUP:Resend[send-verify-domain-SPF-DKIM]|Cloudflare[receive-MX-records-email-worker-routing-rules]
+WORKFLOW-AUTO:submit→admin-reply→user-email→Cloudflare→parse→auto-add-to-thread→notify-admin
 UI:View-Dialog[original-msg+thread-history+reply-btn+add-user-reply]|Reply-Dialog[show-thread+compose-new]
 MIGRATION:existing-replies-auto-migrated-to-new-table
 
