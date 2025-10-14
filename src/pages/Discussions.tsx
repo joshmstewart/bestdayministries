@@ -232,6 +232,13 @@ const Discussions = () => {
 
     const postsWithComments = await Promise.all(
       (postsData || []).map(async (post) => {
+        // Fetch author role
+        const { data: authorRole } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", post.author_id)
+          .maybeSingle();
+
         const { data: commentsData } = await supabase
           .from("discussion_comments")
           .select(`
@@ -241,6 +248,25 @@ const Discussions = () => {
           .eq("post_id", post.id)
           .eq("is_moderated", true)
           .order("created_at", { ascending: true });
+
+        // Fetch roles for all comment authors
+        const commentsWithRoles = await Promise.all(
+          (commentsData || []).map(async (comment) => {
+            const { data: commentAuthorRole } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", comment.author_id)
+              .maybeSingle();
+
+            return {
+              ...comment,
+              author: comment.author ? {
+                ...comment.author,
+                role: commentAuthorRole?.role
+              } : undefined
+            };
+          })
+        );
 
         let albumImages = [];
         if ((post as any).album_id) {
@@ -253,7 +279,15 @@ const Discussions = () => {
           albumImages = imagesData || [];
         }
 
-        return { ...post, comments: commentsData || [], album_images: albumImages };
+        return { 
+          ...post, 
+          author: post.author ? {
+            ...post.author,
+            role: authorRole?.role
+          } : undefined,
+          comments: commentsWithRoles, 
+          album_images: albumImages 
+        };
       })
     );
 
