@@ -25,9 +25,9 @@ export const SEOHead = ({
   const currentUrl = canonicalUrl || `${window.location.origin}${location.pathname}`;
   
   const [seoSettings, setSeoSettings] = useState({
-    title: propTitle || "Joy House Community | Spreading Joy Through Special Needs Community",
-    description: propDescription || "Joy House builds a supportive community for adults with special needs by sharing their creativity through unique gifts, giving them confidence, independence, and JOY!",
-    image: propImage || "https://lovable.dev/opengraph-image-p98pqg.png",
+    title: propTitle || "Best Day Ministries | Spreading Joy, Hope & Purpose",
+    description: propDescription || "Best Day Ministries empowers individuals with disabilities through faith, community, and inclusive work programs that spread JOY, hope, and purpose!",
+    image: propImage || "https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/meta-tags/og-image-1760027987782.jpg",
     twitterHandle: "",
   });
 
