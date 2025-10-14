@@ -375,3 +375,11 @@ DATA:useNotifications[notifications+loading+methods]|filter[search-type-date]
 TYPES-MAP:{all|pending_approval:Approvals|moderation_needed:Moderation|comment_on_post:Comments|new_sponsor_message:Messages|vendor_application:Vendors|product_update:Updates}
 MOBILE:filters-stack-vertical|tabs-grid-adjust|search-full-width|max-w-90vw
 WORKFLOWS:view-all[bell→View-All→page]|filter[search-type-date]|bulk[mark-all-clear]|individual[click→nav+mark-read|hover→del]
+
+## MULTI_TENANT_CONVERSION
+DOC:MULTI_TENANT_CONVERSION_PLAN.md
+OVERVIEW:convert-single-tenant→multi-tenant-SaaS|seat-based-billing|10-12-weeks
+STRATEGY:dark-launch-main-branch|feature-flags|phased-approach|zero-downtime
+ARCHITECTURE:row-level-tenancy|organization_id-all-tables|RLS-data-isolation
+BILLING:Stripe-subscriptions|Starter-$99|Professional-$299|Enterprise-$799|$20-per-seat
+STATUS:PLANNING-PHASE|NOT-IMPLEMENTED
