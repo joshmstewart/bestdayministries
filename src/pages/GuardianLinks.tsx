@@ -164,8 +164,8 @@ export default function GuardianLinks() {
       setUserRole(roleData.role);
       setCurrentUserId(user.id);
       
-      // Only caregivers have guardian links
-      if (roleData.role === "caregiver") {
+      // Caregivers, admins, and owners can have guardian links
+      if (['caregiver', 'admin', 'owner'].includes(roleData.role)) {
         await loadLinks(user.id);
         await loadLinkedBesties(user.id);
         await loadVendorLinks(user.id);
@@ -932,7 +932,7 @@ export default function GuardianLinks() {
                   : "Manage the besties you sponsor"}
               </p>
             </div>
-            {userRole === "caregiver" && (
+            {['caregiver', 'admin', 'owner'].includes(userRole) && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2">
@@ -1059,8 +1059,8 @@ export default function GuardianLinks() {
             )}
           </div>
 
-          {/* Guardian Links Section - Only for caregivers */}
-          {userRole === "caregiver" && (
+          {/* Guardian Links Section - For caregivers, admins, and owners */}
+          {['caregiver', 'admin', 'owner'].includes(userRole) && (
             <div className="space-y-4" data-tour-target="bestie-links">
               <h2 className="text-2xl font-bold">Guardian Relationships</h2>
               {links.length === 0 ? (
@@ -1350,8 +1350,8 @@ export default function GuardianLinks() {
             </div>
           )}
 
-          {/* Send Messages to Sponsors Section - Only for caregivers */}
-          {userRole === "caregiver" && links.length > 0 && (
+          {/* Send Messages to Sponsors Section - For caregivers, admins, and owners */}
+          {['caregiver', 'admin', 'owner'].includes(userRole) && links.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-2xl font-bold">Send Messages to Sponsors</h2>
               <GuardianSponsorMessenger />
