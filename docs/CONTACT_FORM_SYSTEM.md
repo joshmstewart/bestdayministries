@@ -255,59 +255,51 @@ bg-muted border-l-4 border-primary
 - Settings + Submissions in single view
 - Quick actions in table rows
 
-## Automatic Email Reply Capture (IMPLEMENTED)
+## Email Reply Handling (CURRENT APPROACH)
 
-### Edge Function: process-inbound-email
-Automatically captures incoming email replies and adds them to conversation threads.
+### Manual User Reply Entry
+**Current workflow** that's working now:
+1. User submits contact form → saved to database ✅
+2. Admin replies from UI → email sent via Resend ✅
+3. User replies via email → goes to admin's inbox 📧
+4. Admin manually adds reply using "Add User Reply" button ✅
+5. Reply appears in threaded conversation ✅
 
-**Functionality:**
-1. Receives webhook from Resend when user replies via email
-2. Extracts sender email and matches to original submission
-3. Parses email content, removing quoted text and signatures
-4. Saves as user-type reply in contact_form_replies table
-5. Notifies admins about new user reply
+**How to add user replies:**
+1. Open submission in Admin > Contact
+2. Click "View" to see conversation
+3. Click "Add User Reply"
+4. Copy/paste user's email response
+5. Save - appears in thread with blue styling
 
-**Matching Logic:**
-- Primary: Match by sender email address
-- Secondary: If subject contains original subject, prefer that submission
-- Fallback: Use most recent submission from that email
+### Future: Automatic Email Reply Capture
 
-**Content Extraction:**
-- Removes HTML tags and decodes entities
-- Strips quoted replies ("> " lines, "On X wrote:" patterns)
-- Removes email signatures and footers
-- Cleans whitespace for readability
+**Note:** The `process-inbound-email` edge function exists but requires additional email service setup beyond Resend (which only handles sending).
 
-**Security:**
-- Validates sender email format
-- Sanitizes all email content
-- Returns 200 status to prevent Resend retries
-- Notifications sent to admins only
+**To enable automatic capture, you would need:**
 
-### Setup Instructions
+**Option 1: Email Forwarding Service**
+- Use a service like SendGrid Inbound Parse, Mailgun Routes, or AWS SES
+- Configure to forward incoming emails to the edge function
+- Webhook URL: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/process-inbound-email`
 
-**1. Enable Inbound Email in Resend:**
-   - Go to https://resend.com/settings/domains
-   - Select your verified domain
-   - Click "Inbound" tab
-   - Add inbound email address (e.g., contact@yourdomain.com)
-   - Configure forwarding to Supabase edge function
+**Option 2: Email Server with MX Records**
+- Set up custom email server with MX records
+- Forward incoming mail to edge function webhook
+- More complex infrastructure required
 
-**2. Add Webhook URL:**
-   - Webhook URL: `https://[PROJECT-ID].supabase.co/functions/v1/process-inbound-email`
-   - Method: POST
-   - No authentication required (function verifies sender)
+**The edge function includes:**
+- Email parsing (removes quotes, signatures)
+- Sender matching to original submission
+- Automatic threading
+- Admin notifications
+- Content sanitization
 
-**3. Update Contact Form Settings:**
-   - Set reply_from_email to your inbound email address
-   - Ensure it matches the email configured in Resend
-
-**4. Test the Flow:**
-   1. Submit contact form from user email
-   2. Reply from admin panel (emails user)
-   3. User replies via their email client
-   4. Reply automatically appears in admin contact thread
-   5. Admin receives notification of new reply
+**Why not included by default:**
+- Resend focuses on sending, not receiving emails
+- Requires additional third-party service
+- Adds complexity and potential costs
+- Manual entry works well for moderate volume
 
 ### Potential Additional Features
 - Rich text editor for admin replies
