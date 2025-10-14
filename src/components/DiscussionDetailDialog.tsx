@@ -181,20 +181,28 @@ export const DiscussionDetailDialog = ({
                       <DialogTitle className="text-2xl flex-shrink-0">{post.title}</DialogTitle>
                       <div className="flex items-center gap-2">
                         <TextToSpeech text={`${post.title}. ${post.content}`} />
-                        {isEditablePost && onEditPost && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              onEditPost(post);
-                              onOpenChange(false);
-                            }}
-                            className="flex-shrink-0"
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit
-                          </Button>
-                        )}
+                        {(() => {
+                          console.log('🎯 Edit button render check:', { 
+                            isEditablePost, 
+                            hasOnEditPost: !!onEditPost,
+                            postId: post.id 
+                          });
+                          return isEditablePost && onEditPost ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                console.log('✏️ Edit button clicked');
+                                onEditPost(post);
+                                onOpenChange(false);
+                              }}
+                              className="flex-shrink-0"
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                     

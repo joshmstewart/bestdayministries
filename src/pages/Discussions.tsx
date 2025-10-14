@@ -305,11 +305,26 @@ const Discussions = () => {
   const loadEditablePostIds = async (postsToCheck: Post[]) => {
     if (!profile || !user) return;
     
+    console.log('🔍 Loading editable post IDs', { 
+      profileRole: profile.role, 
+      profileId: profile.id,
+      totalPosts: postsToCheck.length 
+    });
+    
     const editable = new Set<string>();
     
     for (const post of postsToCheck) {
+      console.log('📝 Checking post:', {
+        postId: post.id,
+        postTitle: post.title,
+        authorId: post.author_id,
+        isOwn: profile.id === post.author_id,
+        isAdminOwner: ['admin', 'owner'].includes(profile.role)
+      });
+      
       if (profile.id === post.author_id || ['admin', 'owner'].includes(profile.role)) {
         editable.add(post.id);
+        console.log('✅ Added to editable');
         continue;
       }
       
@@ -323,10 +338,12 @@ const Discussions = () => {
         
         if (guardianLinks) {
           editable.add(post.id);
+          console.log('✅ Added to editable (guardian)');
         }
       }
     }
     
+    console.log('📋 Final editable post IDs:', Array.from(editable));
     setEditablePostIds(editable);
   };
 
@@ -1000,7 +1017,15 @@ const Discussions = () => {
       {/* Discussion Detail Dialog */}
       <DiscussionDetailDialog
         open={detailDialogOpen}
-        onOpenChange={setDetailDialogOpen}
+        onOpenChange={(open) => {
+          console.log('🔧 Dialog state change:', { 
+            open, 
+            selectedPostId: selectedPost?.id,
+            isEditable: selectedPost ? editablePostIds.has(selectedPost.id) : false,
+            editableIds: Array.from(editablePostIds)
+          });
+          setDetailDialogOpen(open);
+        }}
         post={selectedPost}
         onComment={async (postId, content, audioBlob) => {
           // Handle comment submission
