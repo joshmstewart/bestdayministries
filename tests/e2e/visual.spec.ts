@@ -43,7 +43,23 @@ test.describe('Visual Regression Tests - Desktop', () => {
     await login(page);
     await page.goto('/discussions');
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000); // Wait for any animations
     await percySnapshot(page, 'Discussions Page');
+  });
+
+  test('discussion detail dialog appearance', async ({ page }) => {
+    await login(page);
+    await page.goto('/discussions');
+    await page.waitForLoadState('networkidle');
+    
+    // Click first post to open dialog
+    const postCard = page.locator('[role="article"], .group').first();
+    if (await postCard.isVisible()) {
+      await postCard.click();
+      await page.waitForSelector('[role="dialog"]', { timeout: 10000 });
+      await page.waitForTimeout(500); // Wait for dialog animation
+      await percySnapshot(page, 'Discussion Detail Dialog');
+    }
   });
 
   test('store page appearance', async ({ page }) => {
@@ -150,7 +166,22 @@ test.describe('Visual Regression Tests - Tablet (768x1024)', () => {
     await login(page);
     await page.goto('/discussions');
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
     await percySnapshot(page, 'Discussions - Tablet');
+  });
+
+  test('discussion dialog - tablet', async ({ page }) => {
+    await login(page);
+    await page.goto('/discussions');
+    await page.waitForLoadState('networkidle');
+    
+    const postCard = page.locator('[role="article"], .group').first();
+    if (await postCard.isVisible()) {
+      await postCard.click();
+      await page.waitForSelector('[role="dialog"]', { timeout: 10000 });
+      await page.waitForTimeout(500);
+      await percySnapshot(page, 'Discussion Dialog - Tablet');
+    }
   });
 
   test('store - tablet', async ({ page }) => {

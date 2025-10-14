@@ -122,12 +122,27 @@ Community discussion board (`/discussions`) where guardians create posts, users 
 ```tsx
 <Dialog>
   <DialogHeader>
-    {title} <TextToSpeech /> {editButton}
-    {/* Author info with role badge */}
-    <AvatarDisplay /> {authorName}
-    <RoleBadge /> {/* Same styling as card */}
-    <Date /> {/* with (edited) indicator */}
-    {deleteButton}
+    {/* Standardized button layout - See DIALOG_BUTTON_STANDARD.md */}
+    <div className="flex items-start gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <DialogTitle>{title}</DialogTitle>
+          <TextToSpeech />
+          {editButton}
+        </div>
+        
+        {/* Author info with role badge */}
+        <AvatarDisplay /> {authorName}
+        <RoleBadge /> {/* Same styling as card */}
+        <Date /> {/* with (edited) indicator if updated_at !== created_at */}
+      </div>
+      
+      {/* Action buttons - standardized positioning */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {deleteButton} {/* Trash2 icon, destructive styling */}
+        {closeButton}  {/* X icon, accent hover */}
+      </div>
+    </div>
   </DialogHeader>
   
   <DialogContent>
@@ -171,6 +186,14 @@ Community discussion board (`/discussions`) where guardians create posts, users 
   </DialogContent>
 </Dialog>
 ```
+
+**Dialog Button Standard:**
+- Delete and close buttons are in the same flex container
+- Positioned on the right side with `flex-shrink-0`
+- Both use `size="icon"` and `w-5 h-5` icons
+- Delete uses destructive styling, close uses accent hover
+- See: `docs/DIALOG_BUTTON_STANDARD.md` for full specification
+
 
 ### Audio Recording Standard (ALL recording buttons)
 **CRITICAL**: All audio recording buttons MUST use this styling for accessibility:
@@ -227,13 +250,14 @@ See: `docs/AUDIO_RECORDING_STANDARD.md`
 ## Edit & Delete
 
 ### Posts
-- **Who can edit:** Author, Guardian (of bestie author), Admin, Owner
+- **Who can edit:** Author, Guardian (of bestie author), Admin, Owner (based on allow_admin_edit/allow_owner_edit flags)
 - **Edit mode:** Opens create form with existing data pre-filled, button says "Update Post"
 - **Edit action:** Clicking edit populates form with post data, sets `editingPostId`, changes button to "Update Post"
 - **Save action:** If `editingPostId` exists, updates existing post; otherwise creates new post
-- **Updated timestamp:** `updated_at` auto-updates on save
-- **"Edited" indicator:** Shows "(edited)" next to date if `updated_at > created_at + 60s`
+- **Updated timestamp:** `updated_at` auto-updates on ANY table update (including approval status changes)
+- **"Edited" indicator:** Shows "(edited)" next to date if `updated_at !== created_at` (timestamps differ)
 - **Delete:** Confirmation dialog, cascades to comments
+- **Delete button:** Located in dialog header, right-aligned with close button, uses destructive styling
 
 ### Comments  
 - **Who can edit:** Author only (comment.author_id === currentUserId)
@@ -288,9 +312,15 @@ See: `docs/AUDIO_RECORDING_STANDARD.md`
 - `src/pages/Discussions.tsx` - Main page with list view
 - `src/components/DiscussionPostCard.tsx` - Card component for list view
 - `src/components/DiscussionDetailDialog.tsx` - Full post view with comments and editing
+- `src/components/ui/dialog.tsx` - Base dialog component (close button removed, handled manually)
 - `supabase/functions/moderate-content/index.ts` - Text moderation
 - `supabase/functions/moderate-image/index.ts` - Image moderation
 - `src/lib/validation.ts` - Input validation schemas
+- `docs/DIALOG_BUTTON_STANDARD.md` - Dialog button positioning standard
+
+## Related Documentation
+- **Dialog Buttons:** `docs/DIALOG_BUTTON_STANDARD.md` - Standardized delete/close button layout
+- **Audio Recording:** `docs/AUDIO_RECORDING_STANDARD.md` - Red microphone button standard
 
 ## Common Issues
 | Issue | Solution |
@@ -302,6 +332,8 @@ See: `docs/AUDIO_RECORDING_STANDARD.md`
 | Guardian can't edit bestie post | UI loads editable posts on page load, check `caregiver_bestie_links` |
 | "Claim Post" not showing | Verify: owner role + admin created post + `allow_owner_claim = true` |
 | Edit button not showing | Verify `currentUserId === author_id` for comments |
-| "(edited)" not showing | Check `updated_at > created_at + 60000ms` (60 seconds) |
+| "(edited)" not showing | Check `updated_at !== created_at` (any update triggers this) |
 | Button says "Create Post" when editing | Check that `editingPostId` state is set when clicking edit button |
 | Image aspect ratio wrong | Check `aspect_ratio` field is saved and applied in `AspectRatio` component |
+| Delete/close buttons misaligned | Follow `DIALOG_BUTTON_STANDARD.md` - use flex layout with flex-shrink-0 |
+| "(edited)" shows on unedited post | `updated_at` changes on ANY table update (e.g., approval status) - this is expected |
