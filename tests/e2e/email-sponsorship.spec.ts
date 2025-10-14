@@ -109,8 +109,8 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     // Wait to ensure no email arrives
     await new Promise((resolve) => setTimeout(resolve, 10000));
     
-    const { fetchAllMessages } = await import('../utils/mailtrap-helper');
-    const messages = await fetchAllMessages();
+    const mailtrapHelper = await import('../utils/mailtrap-helper');
+    const messages = await mailtrapHelper.fetchAllMessages();
     
     // Should be empty - no receipt for failed payment
     expect(messages.length).toBe(0);

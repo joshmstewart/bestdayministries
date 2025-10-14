@@ -145,12 +145,12 @@ test.describe('Notification Email Tests', () => {
     }
 
     // Trigger notification
-    // Verify no email sent
+    // Verify no email was sent
 
     await new Promise((resolve) => setTimeout(resolve, 10000));
     
-    const { fetchAllMessages } = await import('../utils/mailtrap-helper');
-    const messages = await fetchAllMessages();
+    const mailtrapHelper = await import('../utils/mailtrap-helper');
+    const messages = await mailtrapHelper.fetchAllMessages();
     
     // Should respect preferences
     console.log(`✅ Found ${messages.length} messages (respecting preferences)`);

@@ -89,8 +89,8 @@ test.describe('Digest Email Tests', () => {
     // Wait to ensure no digest sent
     await new Promise((resolve) => setTimeout(resolve, 10000));
     
-    const { fetchAllMessages } = await import('../utils/mailtrap-helper');
-    const messages = await fetchAllMessages();
+    const mailtrapHelper = await import('../utils/mailtrap-helper');
+    const messages = await mailtrapHelper.fetchAllMessages();
     
     const digestMessages = messages.filter((m) => 
       m.subject.toLowerCase().includes('digest') || 
@@ -110,8 +110,8 @@ test.describe('Digest Email Tests', () => {
     
     await new Promise((resolve) => setTimeout(resolve, 10000));
     
-    const { fetchAllMessages } = await import('../utils/mailtrap-helper');
-    const messages = await fetchAllMessages();
+    const mailtrapHelper = await import('../utils/mailtrap-helper');
+    const messages = await mailtrapHelper.fetchAllMessages();
     
     const emptyDigests = messages.filter((m) =>
       m.to_email === testEmail &&
