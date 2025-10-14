@@ -39,6 +39,7 @@ interface Comment {
   id: string;
   content: string;
   created_at: string;
+  updated_at: string;
   author_id: string;
   audio_url?: string | null;
   approval_status?: string;
@@ -75,6 +76,7 @@ interface DiscussionDetailDialogProps {
     title: string;
     content: string;
     created_at: string;
+    updated_at: string;
     author_id: string;
     image_url?: string | null;
     video_id?: string | null;
@@ -95,6 +97,7 @@ interface DiscussionDetailDialogProps {
   onComment: (postId: string, content: string, audioBlob: Blob | null) => Promise<void>;
   onDeletePost?: (postId: string) => void;
   onDeleteComment?: (commentId: string, postId: string) => void;
+  onEditComment?: (commentId: string, newContent: string) => Promise<void>;
   onEditPost?: (post: any) => void;
   canDelete?: (authorId: string) => Promise<boolean>;
   isEditablePost?: boolean;
@@ -108,6 +111,7 @@ export const DiscussionDetailDialog = ({
   onComment,
   onDeletePost,
   onDeleteComment,
+  onEditComment,
   onEditPost,
   canDelete,
   isEditablePost,
@@ -121,6 +125,8 @@ export const DiscussionDetailDialog = ({
   const [lightboxImages, setLightboxImages] = useState<Array<{ id?: string; image_url: string; caption?: string | null; display_order?: number }>>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [canDeletePost, setCanDeletePost] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
 
   if (!post) return null;
 
@@ -213,6 +219,9 @@ export const DiscussionDetailDialog = ({
                         )}
                         <span className="text-xs text-muted-foreground">
                           {new Date(post.created_at).toLocaleDateString()}
+                          {post.updated_at && new Date(post.updated_at).getTime() > new Date(post.created_at).getTime() + 60000 && (
+                            <span className="ml-1 italic">(edited)</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -360,6 +369,9 @@ export const DiscussionDetailDialog = ({
                             )}
                             <span className="text-xs text-muted-foreground">
                               {new Date(comment.created_at).toLocaleDateString()}
+                              {comment.updated_at && new Date(comment.updated_at).getTime() > new Date(comment.created_at).getTime() + 60000 && (
+                                <span className="ml-1 italic">(edited)</span>
+                              )}
                             </span>
                             {comment.approval_status === 'pending_approval' && (
                               <Badge variant="outline" className="bg-yellow-500/20 text-yellow-700">
@@ -367,27 +379,77 @@ export const DiscussionDetailDialog = ({
                               </Badge>
                             )}
                           </div>
-                          {comment.content && (
-                            <p className="text-sm text-foreground">{comment.content}</p>
-                          )}
-                          {comment.audio_url && (
-                            <AudioPlayer src={comment.audio_url} />
-                          )}
-                          {onDeleteComment && canDelete && comment.author_id && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={async () => {
-                                const canDel = await canDelete(comment.author_id);
-                                if (canDel) {
-                                  onDeleteComment(comment.id, post.id);
-                                }
-                              }}
-                              className="mt-2 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Delete
-                            </Button>
+                          {editingCommentId === comment.id ? (
+                            <div className="space-y-2">
+                              <Textarea
+                                value={editingCommentContent}
+                                onChange={(e) => setEditingCommentContent(e.target.value)}
+                                rows={3}
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (onEditComment && editingCommentContent.trim()) {
+                                      await onEditComment(comment.id, editingCommentContent);
+                                      setEditingCommentId(null);
+                                    }
+                                  }}
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingCommentId(null);
+                                    setEditingCommentContent("");
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              {comment.content && (
+                                <p className="text-sm text-foreground">{comment.content}</p>
+                              )}
+                              {comment.audio_url && (
+                                <AudioPlayer src={comment.audio_url} />
+                              )}
+                              <div className="flex gap-2 mt-2">
+                                {currentUserId === comment.author_id && comment.content && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingCommentId(comment.id);
+                                      setEditingCommentContent(comment.content);
+                                    }}
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                )}
+                                {onDeleteComment && canDelete && comment.author_id && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      const canDel = await canDelete(comment.author_id);
+                                      if (canDel) {
+                                        onDeleteComment(comment.id, post.id);
+                                      }
+                                    }}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-3 h-3 mr-1" />
+                                    Delete
+                                  </Button>
+                                )}
+                              </div>
+                            </>
                           )}
                         </div>
                       </div>

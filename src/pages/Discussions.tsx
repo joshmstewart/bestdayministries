@@ -32,6 +32,7 @@ interface Comment {
   id: string;
   content: string;
   created_at: string;
+  updated_at: string;
   author_id: string;
   audio_url?: string | null;
   approval_status?: string;
@@ -51,6 +52,7 @@ interface Post {
   title: string;
   content: string;
   created_at: string;
+  updated_at: string;
   author_id: string;
   image_url?: string | null;
   video_id?: string | null;
@@ -260,6 +262,7 @@ const Discussions = () => {
 
             return {
               ...comment,
+              updated_at: (comment as any).updated_at || comment.created_at,
               author: comment.author ? {
                 ...comment.author,
                 role: commentAuthorRole?.role
@@ -280,7 +283,8 @@ const Discussions = () => {
         }
 
         return { 
-          ...post, 
+          ...post,
+          updated_at: post.updated_at || post.created_at,
           author: post.author ? {
             ...post.author,
             role: authorRole?.role
@@ -599,6 +603,28 @@ const Discussions = () => {
     }
 
     toast({ title: "Comment deleted successfully" });
+    loadPosts();
+  };
+
+  const handleEditComment = async (commentId: string, newContent: string) => {
+    const { error } = await supabase
+      .from("discussion_comments")
+      .update({ 
+        content: newContent,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", commentId);
+
+    if (error) {
+      toast({
+        title: "Error updating comment",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Comment updated successfully" });
     loadPosts();
   };
 
@@ -1097,6 +1123,14 @@ const Discussions = () => {
           await handleDeleteComment(commentId, postId);
           await loadPosts();
           const updatedPost = posts.find(p => p.id === postId);
+          if (updatedPost) {
+            setSelectedPost(updatedPost);
+          }
+        }}
+        onEditComment={async (commentId, newContent) => {
+          await handleEditComment(commentId, newContent);
+          await loadPosts();
+          const updatedPost = posts.find(p => p.id === selectedPost?.id);
           if (updatedPost) {
             setSelectedPost(updatedPost);
           }
