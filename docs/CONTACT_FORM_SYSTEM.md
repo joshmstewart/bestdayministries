@@ -1,534 +1,333 @@
-# CONTACT FORM SYSTEM - COMPLETE DOCUMENTATION
+# Contact Form System Documentation
 
-## OVERVIEW
-Complete contact form system with database storage, admin email notifications, admin reply functionality, and comprehensive input validation for security.
+## Overview
+The contact form system provides a comprehensive solution for managing user inquiries, bug reports, and feature requests with full conversation threading capabilities.
 
----
-
-## DATABASE SCHEMA
+## Database Schema
 
 ### contact_form_settings
-Stores global configuration for the contact form.
-
-**Columns:**
-- `id` (uuid) - Primary key
-- `is_enabled` (boolean, default: true) - Toggle form visibility
-- `title` (text, default: "Contact Us") - Form header title
-- `description` (text, default: "Have questions? We'd love to hear from you.") - Form description
-- `recipient_email` (text) - Where submissions are sent
-- `success_message` (text, default: "Thank you for contacting us! We'll get back to you soon.") - Toast message on successful submission
-- `created_at`, `updated_at` (timestamps)
-
-**RLS Policies:**
-- Public SELECT (when `is_enabled = true`)
-- Admins ALL
+- `id` - UUID primary key
+- `is_enabled` - Boolean (show/hide form)
+- `title` - Text (form heading)
+- `description` - Text (form subheading)
+- `recipient_email` - Text (where notifications are sent)
+- `reply_from_email` - Text (email address replies come from)
+- `reply_from_name` - Text (sender name for replies)
+- `success_message` - Text (shown after submission)
+- `created_at`, `updated_at` - Timestamps
 
 ### contact_form_submissions
-Stores all form submissions for admin review.
+- `id` - UUID primary key
+- `name` - Text (required)
+- `email` - Text (required)
+- `subject` - Text (optional)
+- `message` - Text (required)
+- `message_type` - Text (general | bug_report | feature_request)
+- `image_url` - Text (optional attachment)
+- `status` - Text (new | read)
+- `replied_at` - Timestamp (first reply time)
+- `replied_by` - UUID (admin who first replied)
+- `reply_message` - Text (first reply message for backward compatibility)
+- `admin_notes` - Text (internal notes)
+- `created_at` - Timestamp
 
-**Columns:**
-- `id` (uuid) - Primary key
-- `name` (text) - Sender name
-- `email` (text) - Sender email (validated)
-- `subject` (text, nullable) - Optional subject line
-- `message` (text) - Message content
-- `message_type` (text) - Type of message (general, bug_report, feature_request, etc.)
-- `image_url` (text, nullable) - Optional attached image
-- `status` (text, default: 'new') - Submission status ('new', 'read')
-- `replied_at` (timestamp, nullable) - When admin sent reply
-- `replied_by` (uuid, nullable) - Admin who sent reply
-- `reply_message` (text, nullable) - Admin's reply content
-- `admin_notes` (text, nullable) - Internal admin notes (not sent to user)
-- `created_at` (timestamp)
+### contact_form_replies (NEW - Added 2025-01-14)
+**Purpose:** Store threaded conversation history for back-and-forth communication
 
-**RLS Policies:**
-- **INSERT:** Anyone can create submissions (both authenticated and anonymous users)
-  - Policy: `TO public WITH CHECK (true)`
-  - Critical: Must allow anonymous users for public contact form
-- **SELECT:** Admins only (prevents users from viewing other submissions)
-- **UPDATE:** Admins only (for status management and replies)
-- **DELETE:** Admins only (for submission removal)
+- `id` - UUID primary key
+- `submission_id` - UUID (references contact_form_submissions)
+- `sender_type` - Text ('admin' | 'user')
+- `sender_id` - UUID (references auth.users, null for user replies)
+- `sender_name` - Text
+- `sender_email` - Text
+- `message` - Text
+- `created_at` - Timestamp
 
----
+**Migration:** Existing replies from `contact_form_submissions.reply_message` were automatically migrated to this table
 
-## FRONTEND COMPONENTS
+## Edge Functions
 
-### ContactForm Component
-**Location:** `src/components/ContactForm.tsx`
+### send-contact-reply
+**Purpose:** Send reply email and save to conversation thread
 
-**Purpose:** Public-facing form displayed at bottom of all pages (via Footer component)
-
-**Key Features:**
-- Auto-loads settings on mount via `useEffect`
-- **Autofills email** for logged-in users (fetches from auth.users)
-- Validates input with Zod schema
-- Saves to database (always succeeds)
-- Sends email notification (optional, graceful failure)
-- Shows custom success message from settings
-- Hides entirely if `is_enabled = false`
-
-**Validation Schema:**
+**Input:**
 ```typescript
 {
-  name: z.string().min(2).max(100),
-  email: z.string().email().max(255),
-  subject: z.string().max(200).optional(),
-  message: z.string().min(10).max(2000)
+  submissionId: string (uuid),
+  replyMessage: string (1-5000 chars),
+  adminNotes?: string (max 1000 chars)
 }
 ```
 
-**Submission Flow:**
-1. User fills form (email auto-filled for logged-in users)
-2. Client-side validation (Zod)
-3. Insert into `contact_form_submissions` table (no SELECT after insert)
-4. Call `notify-admin-new-contact` edge function with user email (non-blocking)
-5. Edge function queries latest submission by email using service role key
-6. Show success toast with custom message
-7. Reset form
+**Process:**
+1. Validate input with Zod schema
+2. Verify admin authorization
+3. Fetch submission details
+4. Get admin profile for signature
+5. Build HTML email with app branding
+6. Send email via Resend
+7. **Save reply to `contact_form_replies` table**
+8. Update admin notes if provided
+9. Trigger updates submission table (replied_at, status)
 
-**Critical Implementation Details:**
-- Form does NOT attempt to SELECT submission after INSERT (RLS would block this)
-- Edge function uses service role key to query submission by email
-- Works for both authenticated and anonymous users
-
-**Error Handling:**
-- Database insert failure → shows error toast, does not proceed
-- Email send failure → logs to console, form still succeeds
-- Missing email config → logs warning, form still succeeds
-
-### ContactFormManager Component
-**Location:** `src/components/admin/ContactFormManager.tsx`
-
-**Purpose:** Admin interface for managing form settings and viewing submissions
-
-**Sections:**
-
-#### 1. Settings Card
-- Enable/disable form globally
-- Edit title, description, success message
-- Set recipient email address
-- All fields update both existing record or create new one
-
-#### 2. Submissions Table
-**Columns:**
-- Name (sender)
-- Email (with copy-to-clipboard icon)
-- Subject (if provided)
-- Status badge (new/read)
-- Date received
-- Actions (View, Mark as Read/New, Delete)
-
-**Actions:**
-- **View:** Opens dialog with full submission details
-- **Mark as Read:** Changes status to 'read', updates badge
-- **Mark as New:** Changes status back to 'new'
-- **Delete:** Removes submission (with confirmation)
-- **Email link:** Click email address to open in default email client
-- **Copy email:** Click mail icon to copy email to clipboard
-
-**Badge Count:**
-- Shows count of `status = 'new'` submissions
-- Updates in real-time via `useContactFormCount` hook
-- Displayed in Admin panel "Contact" tab header
-
----
-
-## EDGE FUNCTIONS
+**Security:**
+- Requires authentication
+- Admin/owner role verified
+- HTML sanitization for reply message
+- Input validation (Zod)
 
 ### notify-admin-new-contact
-**Location:** `supabase/functions/notify-admin-new-contact/index.ts`
+**Purpose:** Send notification email to admin when new submission arrives
 
-**Purpose:** Sends email notification to admin when new contact form submission is received
+**Trigger:** Automatic on contact form submission
 
-**Trigger:** Automatically called after contact form submission
+## Frontend Components
 
-**Input Parameters:**
-- `userEmail` (string) - Email of the submitter
-- `submissionId` (string, optional) - Direct submission ID (fallback)
+### ContactForm
+**Location:** Site footer (all pages when enabled)
 
-**How It Works:**
-1. Receives user email from frontend
-2. Uses service role key to query latest submission by email
-3. Fetches submission details from database
-4. Sends formatted email to admin
+**Features:**
+- Auto-loads settings from database
+- Client-side validation (Zod)
+- Message type selection
+- Optional image upload
+- Optional subject line
+- Graceful email handling
 
-**Email Template:**
-- Includes submission details (name, email, type, subject, message)
-- Shows attached image if present
-- Color-coded message type badges (bug report = red, feature request = blue)
-- "View in Admin Panel" button linking to Admin → Contact tab
-- Reply-to header set to submitter's email
+### ContactFormManager
+**Location:** Admin > Contact tab
 
-### send-contact-reply
-**Location:** `supabase/functions/send-contact-reply/index.ts`
+**Features:**
+- Settings configuration
+- Submissions table with status badges
+- **Threaded conversation view**
+- Reply composition
+- Manual user reply entry
+- Admin notes (internal)
+- Status management (new/read)
+- Email quick actions
 
-**Purpose:** Sends admin's reply back to the contact form submitter
+## Conversation Threading System (NEW)
 
-**Authentication:** Requires JWT (admin must be logged in)
+### View Dialog
+**Shows:**
+1. **Original Message** - User's initial submission with blue accent
+2. **Conversation Thread** - All replies in chronological order:
+   - Admin replies: Green background, green border
+   - User replies: Blue background, blue border
+   - Each shows: sender name, type badge, timestamp, message
+3. **Admin Notes** - Internal notes in amber box
+4. **Actions:**
+   - "Reply" - Compose new reply
+   - "Add User Reply" - Manually add incoming email
+   - "Mark Unread" - Change status
 
-**Security Features:**
-1. **Input Validation:**
-   - Server-side Zod validation (mirrors client schema)
-   - Name regex: Only letters, spaces, hyphens, apostrophes
-   - Email lowercase + valid format
-   - Character limits enforced
+### Reply Dialog
+**Shows:**
+1. **Conversation Context** - Full thread history with original message
+2. **Compose Area** - Text area for new reply
+3. **Admin Notes** - Optional internal notes field
+4. **Actions:**
+   - "Send Reply" - Email and save to thread
+   - "Cancel" - Close without sending
 
-2. **XSS Prevention:**
-   - HTML escapes all user input: `<` → `&lt;`, `>` → `&gt;`
-   - Line breaks converted to `<br>` tags safely
+### Add User Reply Dialog
+**Purpose:** Manually add incoming email replies to the conversation
 
-3. **CORS Headers:**
-   - `Access-Control-Allow-Origin: *`
-   - `Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type`
-   - Handles OPTIONS preflight requests
+**Process:**
+1. Admin receives reply via email (outside system)
+2. Admin clicks "Add User Reply" in view dialog
+3. Pastes the user's email content
+4. Saves as user-type reply in thread
+5. Appears in conversation history
 
-**Email Template:**
-```html
-<h2>New Contact Form Submission</h2>
-<p><strong>From:</strong> {sanitizedName} ({email})</p>
-<p><strong>Subject:</strong> {subject}</p>
-<p><strong>Message:</strong></p>
-<p>{sanitizedMessage}</p>
-<hr>
-<p><em>This message was sent via the Best Day Ministries contact form.</em></p>
-```
+**Note:** This is manual because automatic email parsing requires:
+- Inbound email webhook setup with Resend
+- Email parsing logic
+- Verification of sender identity
+- More complex infrastructure
 
-**Configuration:**
-- **From:** "Best Day Ministries <marla@joyhousestore.com>"
-- **To:** Uses `recipient_email` from settings (or env var fallback)
-- **Reply-To:** Sender's email address (admins can reply directly in their email client)
+## UI Patterns
 
-**How Reply-To Works:**
-When an admin receives the email notification in their inbox (Gmail, Outlook, etc.), they can simply click "Reply" and it will automatically address the response to the person who submitted the form. No manual copying of email addresses needed.
-
-**Alternative Reply Methods (Admin Panel):**
-If email notifications aren't working:
-1. **Click email in table** - Opens `mailto:` link in default email client
-2. **Copy button** - Copies email address to clipboard
-3. **View dialog** - Shows full details including email address
-
-**Required Secrets:**
-- `RESEND_API_KEY` - Resend API key for sending emails
-- `CONTACT_RECIPIENT_EMAIL` (optional) - Fallback recipient if not in DB
-
-**Error Handling:**
-- Returns 400 for validation errors with detailed feedback
-- Returns 500 for email send failures
-- Logs all errors for debugging
-
----
-
-## ADMIN ACCESS
-
-### Location in Admin Panel
-**Path:** Admin → Contact tab
-
-**Visibility:**
-- Tab shows badge with count of new submissions
-- Badge count updates in real-time via `useContactFormCount` hook
-
-### Permissions
-- **View Settings/Submissions:** Admin or Owner role
-- **Edit Settings:** Admin or Owner role
-- **Manage Submissions:** Admin or Owner role
-
----
-
-## INTEGRATION POINTS
-
-### Footer Component
-**Location:** `src/components/Footer.tsx`
-
-Includes `<ContactForm />` at the bottom of every page. Form automatically hides if `is_enabled = false` in settings.
-
-### UnifiedHeader Component
-**Location:** `src/components/UnifiedHeader.tsx`
-
-Shows badge count on Admin button when there are new contact form submissions:
+### Thread Message Styling
 ```typescript
-{(moderationCount + pendingVendorsCount + messageModerationCount + contactFormCount) > 0 && (
-  <Badge>{moderationCount + pendingVendorsCount + messageModerationCount + contactFormCount}</Badge>
-)}
+// User messages (original + incoming)
+bg-blue-50 border-l-4 border-blue-500
+
+// Admin messages (outgoing replies)
+bg-green-50 border-l-4 border-green-500
+
+// Original submission
+bg-muted border-l-4 border-primary
 ```
 
----
+### Status Badges
+- **New** - Blue badge, red dot indicator
+- **Read** - Gray badge
+- **Replied** - Green checkmark indicator
 
-## HOOKS
+### Button States
+- Button shows "Continue Conversation" after first reply
+- Opens reply dialog with full thread context
+- No longer disabled after first reply
 
-### useContactFormCount
-**Location:** `src/hooks/useContactFormCount.ts`
+## RLS Policies
 
-**Purpose:** Real-time count of new contact form submissions
+### contact_form_submissions
+- **INSERT:** Anyone (including anonymous) can submit
+- **SELECT:** Admins/owners only
+- **UPDATE:** Admins/owners only
 
-**Returns:** `{ count: number, loading: boolean }`
+### contact_form_replies
+- **INSERT:** Admins/owners only
+- **SELECT:** Admins/owners only
 
-**Query:**
-```typescript
-.from("contact_form_submissions")
-.select("*", { count: "exact", head: true })
-.eq("status", "new")
-```
+### contact_form_settings
+- **SELECT:** Public can read if enabled
+- **UPDATE:** Admins/owners only
 
-**Realtime:** Subscribes to INSERT/UPDATE/DELETE events on `contact_form_submissions` table
+## Database Triggers
 
----
+### update_submission_on_first_reply()
+**Trigger:** After INSERT on contact_form_replies
 
-## SETUP INSTRUCTIONS
+**Purpose:** Maintain backward compatibility with submissions table
 
-### 1. Configure Resend (Email Sending)
+**Logic:**
+- When first admin reply is added to thread
+- Updates `contact_form_submissions`:
+  - `replied_at` - Set to reply timestamp
+  - `replied_by` - Set to admin user ID
+  - `reply_message` - Copy of first reply message
+  - `status` - Set to 'read'
 
-**Required Steps:**
-1. Sign up at [resend.com](https://resend.com)
-2. **CRITICAL:** Verify your email domain at [resend.com/domains](https://resend.com/domains)
-   - Add DNS records (SPF, DKIM) for your domain
-   - Wait for verification (usually 5-10 minutes)
-   - **Emails will NOT send without domain verification**
-3. Create API key at [resend.com/api-keys](https://resend.com/api-keys)
-4. Add API key as `RESEND_API_KEY` secret in Lovable Cloud
-5. Update edge function `from` address to use verified domain (line 82)
+## Workflow Examples
 
-**Common Issues:**
-- **"Domain is not verified" error** → Most common issue! Verify domain in Resend dashboard
-- Emails going to spam → Check SPF/DKIM records are configured correctly
-- API key invalid → Regenerate key and update secret
-- Domain not verified → Wait for DNS propagation (can take up to 24 hours)
+### Simple Reply (First Response)
+1. User submits form → Creates submission record
+2. Admin views submission → Status changes to "read"
+3. Admin clicks "Reply" → Opens reply dialog with original message
+4. Admin types reply and sends → Email sent + saved to replies table
+5. Trigger updates submission table with first reply info
+6. Submission shows "Continue Conversation" button
 
-### 2. Configure Contact Form Settings
+### Ongoing Conversation
+1. User replies via email → Admin receives in inbox
+2. Admin opens submission → Clicks "View"
+3. Views conversation thread
+4. Clicks "Add User Reply" → Pastes email content → Saves
+5. User reply appears in blue in thread
+6. Admin clicks "Reply" → Composes response with full context
+7. New admin reply sent and added to thread
+8. Repeat as needed
 
-**Via Admin Panel:**
-1. Navigate to Admin → Contact tab
-2. Toggle "Enable Contact Form" ON
-3. Set form title and description
-4. Enter recipient email address (where submissions will be sent)
-5. Customize success message
-6. Click "Save Settings"
+### Multiple Back-and-Forth
+- Thread displays all messages chronologically
+- Color coding distinguishes admin vs user
+- Full context always visible when replying
+- No limit on conversation length
 
-**Via Database (Manual):**
-```sql
-INSERT INTO contact_form_settings (
-  is_enabled,
-  title,
-  description,
-  recipient_email,
-  success_message
-) VALUES (
-  true,
-  'Contact Us',
-  'Have questions? We''d love to hear from you.',
-  'your@email.com',
-  'Thank you for contacting us! We''ll get back to you soon.'
-);
-```
+## Email Configuration
 
-### 3. Test the Form
+### Resend Setup
+1. Sign up at https://resend.com
+2. Add and verify domain (SPF, DKIM records)
+3. Create API key
+4. Add `RESEND_API_KEY` to secrets
+5. Update `reply_from_email` in settings
 
-1. Navigate to any page (form appears at bottom)
-2. Fill out the form completely
-3. Submit
-4. Check:
-   - Toast appears with success message
-   - Submission appears in Admin → Contact
-   - Email received at recipient address
+### Email Template Features
+- App logo in header (from app_settings)
+- Professional formatting
+- Original message quoted
+- Admin signature
+- Reply-to header set to admin email
 
----
+## Integration Points
 
-## VALIDATION RULES
+### Notification System
+- Admins receive notification on new submission
+- Badge counter in admin header
+- Real-time updates via Supabase subscriptions
 
-### Client-Side (Zod)
-- **Name:** 2-100 characters
-- **Email:** Valid email format, max 255 characters
-- **Subject:** Optional, max 200 characters
-- **Message:** 10-2000 characters
+### Admin Dashboard
+- Contact tab with badge counter
+- Settings + Submissions in single view
+- Quick actions in table rows
 
-### Server-Side (Edge Function)
-- **Name:** 1-100 characters, letters/spaces/hyphens/apostrophes only
-- **Email:** Valid email format, lowercase, max 255 characters
-- **Subject:** Optional, max 200 characters
-- **Message:** 1-5000 characters (more lenient than client)
+## Future Enhancements
 
-### Security Measures
-- HTML escaping on all user input
-- Email validation on both client and server
-- Rate limiting via Supabase (database-level)
-- CORS headers properly configured
-- No raw SQL queries (uses Supabase client methods)
+### Automatic Email Reply Capture
+To automatically capture incoming email replies:
 
----
+1. **Set up Resend Inbound Webhook**
+   ```typescript
+   // New edge function: process-inbound-email
+   // Parse incoming email from Resend webhook
+   // Match to submission by reply-to or subject
+   // Extract message content
+   // Save as user reply to thread
+   ```
 
-## TROUBLESHOOTING
+2. **Email Parsing Requirements**
+   - Parse plain text and HTML
+   - Extract message from quoted reply chain
+   - Verify sender matches original email
+   - Handle attachments if needed
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Form doesn't appear | `is_enabled = false` | Enable in Admin → Contact settings |
-| **Emails not sending** | **Domain not verified in Resend** | **Verify domain at resend.com/domains** |
-| Form submits but no email | Resend not configured | Add `RESEND_API_KEY` secret |
-| Email goes to spam | Domain not verified | Add SPF/DKIM records in DNS |
-| Can't reply to messages | Email notifications not working | Verify domain, then use reply-to in email |
-| Validation errors | Input doesn't meet rules | Check error messages, adjust input |
-| Can't access Admin panel | Not admin/owner role | Check `user_roles` table |
-| Badge count not updating | Realtime subscription issue | Check console for errors |
-| Settings won't save | RLS policy issue | Verify user has admin role |
-| Form loads but crashes | `useEffect` bug (was `useState`) | Fixed in current version |
-| **"Failed to send message" error** | **RLS policy blocking INSERT** | **Ensure RLS policy allows anonymous submissions with `TO public`** |
-| Submissions work in dev but fail in prod | RLS policy too restrictive | Check that INSERT policy uses `TO public WITH CHECK (true)` |
+3. **Security Considerations**
+   - Verify webhook signature from Resend
+   - Sanitize incoming email content
+   - Prevent spam/abuse
+   - Rate limiting for inbound emails
 
----
-
-## FUTURE ENHANCEMENTS
-
-**Not Yet Implemented:**
-- [ ] Email templates (currently plain HTML)
-- [ ] Attachment uploads (files/images)
-- [ ] Auto-responder emails to sender
-- [ ] Custom form fields (beyond name/email/subject/message)
-- [ ] Spam protection (reCAPTCHA integration)
-- [ ] Form analytics (submission rates, response times)
-- [ ] Webhook notifications (Slack, Discord)
-- [ ] Multi-language support
-- [ ] Custom CSS styling per page
-- [ ] A/B testing for form copy
-
----
-
-## HOW TO RESPOND TO CONTACT FORM MESSAGES
-
-**Method 1: Email Reply (Recommended)**
-When email notifications are working:
-1. Admin receives email notification at `recipient_email`
-2. Email has `reply-to` header set to sender's email
-3. Admin clicks "Reply" in their email client (Gmail, Outlook, etc.)
-4. Response goes directly to the person who submitted the form
-
-**Method 2: Manual Email (Fallback)**
-If email notifications aren't working:
-1. Admin views submission in Admin → Contact
-2. Click the email address to open in default email client
-3. OR click copy icon to copy email address to clipboard
-4. Compose response manually
-
-**Method 3: Admin Reply Interface (NEW)**
-Built-in reply functionality in the admin panel:
-1. Admin views submission in Admin → Contact
-2. Click "Reply" button in submission row or view dialog
-3. Compose reply message in dialog
-4. Add optional admin notes (internal only)
-5. Click "Send Reply" to email response to submitter
-6. Reply is tracked in database with timestamp and admin ID
-7. Original message shown in context for reference
-8. Submission automatically marked as "read"
-
-**Current Status:**
-- ✅ Admin email notifications working (via `notify-admin-new-contact`)
-- ✅ Reply functionality working (via `send-contact-reply`)
-- ✅ Reply tracking in database
-
-## CRITICAL BUG FIXES
-
-### Bug #1: Settings Loader (October 2025)
-**Issue:** Settings loader was using `useState` instead of `useEffect`
-**Impact:** Settings never loaded, form always hidden
-**Fixed:** Changed to `useEffect(() => { ... }, [])` on mount
-**File:** `src/components/ContactForm.tsx` line 44
-
-**Before (BROKEN):**
-```typescript
-useState(() => {
-  const loadSettings = async () => { ... };
-  loadSettings();
-});
-```
-
-**After (FIXED):**
-```typescript
-useEffect(() => {
-  const loadSettings = async () => { ... };
-  loadSettings();
-}, []);
-```
-
-### Bug #2: RLS Policy Blocking Submissions (October 2025)
-**Issue:** RLS policy on `contact_form_submissions` was too restrictive for anonymous users
-**Impact:** Form worked in dev (authenticated users) but failed in production for some users
-**Root Cause:** 
-- Original policy didn't explicitly allow public INSERT
-- Form tried to SELECT submission after INSERT, which RLS blocked even for authenticated users
-**Fixed:** 
-1. Updated RLS policy to explicitly allow public submissions: `TO public WITH CHECK (true)`
-2. Removed SELECT after INSERT in ContactForm component
-3. Modified edge function to query by email instead of submission ID
-
-**Migration:**
-```sql
-DROP POLICY IF EXISTS "Anyone can create submissions" ON public.contact_form_submissions;
-
-CREATE POLICY "Anyone can create submissions including anonymous"
-ON public.contact_form_submissions
-FOR INSERT
-TO public
-WITH CHECK (true);
-```
-
----
+### Additional Features
+- Email notifications to admin on user replies
+- Rich text editor for admin replies
+- File attachments in replies
+- Canned response templates
+- Search and filter conversation history
+- Export conversation as PDF
 
 ## Testing
 
-### E2E Tests (`tests/e2e/forms.spec.ts`)
+### Manual Testing Steps
+1. Submit contact form as user
+2. Verify admin receives notification
+3. Reply from admin panel
+4. Check email received correctly
+5. Add manual user reply
+6. Send another admin reply
+7. Verify full thread displays correctly
 
-**Coverage:**
-- ✅ Contact form display and validation
-- ✅ Required field validation
-- ✅ Email format validation
-- ✅ **Anonymous user submission** (tests RLS policy fix)
-- ✅ **Authenticated user submission** (tests email auto-fill)
-- ✅ Form reset after successful submission
-- ✅ Success toast/message display
+### E2E Tests (TODO)
+- Contact form submission
+- Admin reply sending
+- Thread display verification
+- Manual user reply addition
+- Multiple back-and-forth messages
 
-**Critical Tests:**
-1. **Anonymous Submission Test** - Verifies the RLS policy allows public submissions
-2. **Authenticated Submission Test** - Ensures logged-in users can submit with pre-filled email
+## Troubleshooting
 
-**Running Tests:**
-```bash
-# Run all E2E tests
-npm run test:e2e
+### Email Not Sending
+- Verify RESEND_API_KEY is set
+- Check domain is verified in Resend
+- Review SPF/DKIM records
+- Check edge function logs
 
-# Run only forms tests
-npx playwright test forms.spec.ts
+### Replies Not Appearing in Thread
+- Verify RLS policies allow admin access
+- Check edge function saved to replies table
+- Reload submissions list
+- Check browser console for errors
 
-# Run in UI mode (interactive)
-npx playwright test forms.spec.ts --ui
-```
+### User Reply Not Added
+- Verify admin role
+- Check RLS policy on insert
+- Ensure message is not empty
+- Review database logs
 
----
-
-**Last Updated:** After implementing admin reply functionality, email notifications, and RLS policy fix
-**Key Files:**
-- `src/components/ContactForm.tsx` - Public form
-- `src/components/admin/ContactFormManager.tsx` - Admin interface with reply dialog
-- `supabase/functions/notify-admin-new-contact/index.ts` - Admin email notifications
-- `supabase/functions/send-contact-reply/index.ts` - Reply email sender
-- `src/hooks/useContactFormCount.ts` - Badge count hook
-
-## NEW FEATURES (2025)
-
-### Admin Email Notifications
-- Automatic email sent to admin when new contact form submission received
-- Beautiful HTML template with logo, color-coded message types
-- Includes all submission details and attached images
-- Direct link to view in admin panel
-- Reply-to header for easy email responses
-
-### Reply Functionality
-- Built-in reply interface in admin panel
-- Reply button shows "Replied" state after sending
-- Reply dialog shows original message for context
-- Optional admin notes field (internal only, not sent to user)
-- Reply content and timestamp tracked in database
-- Professional email template for replies
-- Automatic status update to "read" on reply
-
-### Enhanced UI
-- Color-coded message type badges (bug reports, feature requests, etc.)
-- Image upload support with preview
-- Reply status indicators throughout admin interface
-- Message type dropdown for better categorization
+## Related Documentation
+- [NOTIFICATION_SYSTEM_COMPLETE.md](./NOTIFICATION_SYSTEM_COMPLETE.md) - Admin notifications
+- [ADMIN_DASHBOARD_CONCISE.md](./ADMIN_DASHBOARD_CONCISE.md) - Admin panel structure
+- [EMAIL_TESTING_MAILTRAP.md](./EMAIL_TESTING_MAILTRAP.md) - Email testing guide

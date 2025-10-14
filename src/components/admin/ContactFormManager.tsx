@@ -44,6 +44,17 @@ interface Submission {
   admin_notes: string | null;
 }
 
+interface Reply {
+  id: string;
+  submission_id: string;
+  sender_type: 'admin' | 'user';
+  sender_id: string | null;
+  sender_name: string;
+  sender_email: string;
+  message: string;
+  created_at: string;
+}
+
 export const ContactFormManager = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -54,6 +65,10 @@ export const ContactFormManager = () => {
   const [replyMessage, setReplyMessage] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [sending, setSending] = useState(false);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [addUserReplyDialogOpen, setAddUserReplyDialogOpen] = useState(false);
+  const [userReplyMessage, setUserReplyMessage] = useState("");
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -188,6 +203,68 @@ export const ContactFormManager = () => {
     setReplyMessage("");
     setAdminNotes(submission.admin_notes || "");
     setReplyDialogOpen(true);
+    loadReplies(submission.id);
+  };
+
+  const loadReplies = async (submissionId: string) => {
+    setLoadingReplies(true);
+    try {
+      const { data, error } = await supabase
+        .from("contact_form_replies")
+        .select("*")
+        .eq("submission_id", submissionId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      setReplies((data || []) as Reply[]);
+    } catch (error: any) {
+      console.error("Error loading replies:", error);
+      toast({
+        title: "Error loading conversation",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingReplies(false);
+    }
+  };
+
+  const addUserReply = async () => {
+    if (!selectedSubmission || !userReplyMessage.trim()) return;
+
+    setSending(true);
+    try {
+      const { error } = await supabase
+        .from("contact_form_replies")
+        .insert({
+          submission_id: selectedSubmission.id,
+          sender_type: "user",
+          sender_id: null,
+          sender_name: selectedSubmission.name,
+          sender_email: selectedSubmission.email,
+          message: userReplyMessage.trim(),
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "User Reply Added",
+        description: "The incoming reply has been added to the conversation",
+      });
+
+      setAddUserReplyDialogOpen(false);
+      setUserReplyMessage("");
+      loadReplies(selectedSubmission.id);
+    } catch (error: any) {
+      console.error("Error adding user reply:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   const sendReply = async () => {
@@ -212,7 +289,7 @@ export const ContactFormManager = () => {
 
       setReplyDialogOpen(false);
       setReplyMessage("");
-      setAdminNotes("");
+      loadReplies(selectedSubmission.id);
       loadSubmissions();
     } catch (error: any) {
       console.error("Error sending reply:", error);
@@ -480,10 +557,9 @@ export const ContactFormManager = () => {
                             openReplyDialog(submission);
                           }}
                           className="gap-1"
-                          disabled={!!submission.replied_at}
                         >
                           <Reply className="h-3 w-3" />
-                          {submission.replied_at ? "Replied" : "Reply"}
+                          {submission.replied_at ? "Continue Conversation" : "Reply"}
                         </Button>
                         {submission.status === "new" ? (
                           <Button
@@ -521,7 +597,7 @@ export const ContactFormManager = () => {
       </Card>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Contact Form Submission</DialogTitle>
           </DialogHeader>
@@ -559,12 +635,20 @@ export const ContactFormManager = () => {
                   <p className="text-sm text-muted-foreground">{selectedSubmission.subject}</p>
                 </div>
               )}
+              
+              {/* Original Message */}
               <div>
-                <label className="text-sm font-medium">Message</label>
-                <div className="mt-1 p-4 rounded-md bg-muted">
+                <label className="text-sm font-medium">Original Message</label>
+                <div className="mt-2 p-4 rounded-md bg-muted border-l-4 border-primary">
+                  <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                    <span className="font-medium">{selectedSubmission.name}</span>
+                    <span>•</span>
+                    <span>{format(new Date(selectedSubmission.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
+                  </div>
                   <p className="text-sm whitespace-pre-wrap">{selectedSubmission.message}</p>
                 </div>
               </div>
+              
               {selectedSubmission.image_url && (
                 <div>
                   <label className="text-sm font-medium">Attached Image</label>
@@ -577,6 +661,43 @@ export const ContactFormManager = () => {
                   </div>
                 </div>
               )}
+
+              {/* Conversation Thread */}
+              {replies.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium">Conversation History</label>
+                  <div className="mt-2 space-y-3">
+                    {replies.map((reply) => (
+                      <div 
+                        key={reply.id}
+                        className={`p-4 rounded-md border-l-4 ${
+                          reply.sender_type === 'admin' 
+                            ? 'bg-green-50 border-green-500' 
+                            : 'bg-blue-50 border-blue-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                          <span className="font-medium">{reply.sender_name}</span>
+                          <Badge variant={reply.sender_type === 'admin' ? 'default' : 'secondary'} className="text-xs">
+                            {reply.sender_type}
+                          </Badge>
+                          <span>•</span>
+                          <span>{format(new Date(reply.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedSubmission.admin_notes && (
+                <div className="p-3 rounded-md bg-amber-50 border border-amber-200">
+                  <p className="text-xs font-medium text-amber-900 mb-1">Admin Notes (Internal):</p>
+                  <p className="text-xs text-amber-700">{selectedSubmission.admin_notes}</p>
+                </div>
+              )}
+
               <div>
                 <label className="text-sm font-medium">Status</label>
                 <div className="mt-1">
@@ -585,42 +706,29 @@ export const ContactFormManager = () => {
                   </Badge>
                 </div>
               </div>
-              {selectedSubmission.replied_at && (
-                <div className="p-4 rounded-md bg-green-50 border border-green-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <label className="text-sm font-medium text-green-900">Reply Sent</label>
-                  </div>
-                  <p className="text-sm text-green-700">
-                    {format(new Date(selectedSubmission.replied_at), "MMMM d, yyyy 'at' h:mm a")}
-                  </p>
-                  {selectedSubmission.reply_message && (
-                    <div className="mt-2 p-3 rounded bg-white border border-green-100">
-                      <p className="text-sm whitespace-pre-wrap">{selectedSubmission.reply_message}</p>
-                    </div>
-                  )}
-                  {selectedSubmission.admin_notes && (
-                    <div className="mt-2">
-                      <p className="text-xs font-medium text-green-800">Admin Notes:</p>
-                      <p className="text-xs text-green-600 mt-1">{selectedSubmission.admin_notes}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="flex justify-end gap-2 pt-4">
-                {!selectedSubmission.replied_at && (
-                  <Button
-                    variant="default"
-                    onClick={() => {
-                      setViewDialogOpen(false);
-                      openReplyDialog(selectedSubmission);
-                    }}
-                    className="gap-2"
-                  >
-                    <Reply className="h-4 w-4" />
-                    Reply
-                  </Button>
-                )}
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setAddUserReplyDialogOpen(true);
+                  }}
+                  className="gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Add User Reply
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    setViewDialogOpen(false);
+                    openReplyDialog(selectedSubmission);
+                  }}
+                  className="gap-2"
+                >
+                  <Reply className="h-4 w-4" />
+                  Reply
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -640,7 +748,7 @@ export const ContactFormManager = () => {
       </Dialog>
 
       <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reply to {selectedSubmission?.name}</DialogTitle>
             <DialogDescription>
@@ -649,20 +757,55 @@ export const ContactFormManager = () => {
           </DialogHeader>
           {selectedSubmission && (
             <div className="space-y-4">
-              <div className="p-4 rounded-md bg-muted">
-                <p className="text-sm font-medium mb-2">Original Message:</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {selectedSubmission.message}
-                </p>
-              </div>
+              {/* Conversation Thread */}
+              {loadingReplies ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Original Message */}
+                  <div className="p-4 rounded-md bg-muted border-l-4 border-primary">
+                    <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                      <span className="font-medium">{selectedSubmission.name}</span>
+                      <Badge variant="secondary" className="text-xs">user</Badge>
+                      <span>•</span>
+                      <span>{format(new Date(selectedSubmission.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap">{selectedSubmission.message}</p>
+                  </div>
+
+                  {/* Replies Thread */}
+                  {replies.map((reply) => (
+                    <div 
+                      key={reply.id}
+                      className={`p-4 rounded-md border-l-4 ${
+                        reply.sender_type === 'admin' 
+                          ? 'bg-green-50 border-green-500' 
+                          : 'bg-blue-50 border-blue-500'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                        <span className="font-medium">{reply.sender_name}</span>
+                        <Badge variant={reply.sender_type === 'admin' ? 'default' : 'secondary'} className="text-xs">
+                          {reply.sender_type}
+                        </Badge>
+                        <span>•</span>
+                        <span>{format(new Date(reply.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
               
-              <div className="space-y-2">
+              <div className="space-y-2 pt-4 border-t">
                 <label className="text-sm font-medium">Your Reply *</label>
                 <Textarea
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
                   placeholder="Type your reply here..."
-                  className="min-h-[200px]"
+                  className="min-h-[150px]"
                   required
                 />
               </div>
@@ -673,7 +816,7 @@ export const ContactFormManager = () => {
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder="Internal notes (not sent to user)..."
-                  className="min-h-[100px]"
+                  className="min-h-[80px]"
                 />
               </div>
 
@@ -705,6 +848,60 @@ export const ContactFormManager = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add User Reply Dialog */}
+      <Dialog open={addUserReplyDialogOpen} onOpenChange={setAddUserReplyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add User Reply</DialogTitle>
+            <DialogDescription>
+              Manually add an incoming reply from {selectedSubmission?.name} that you received via email
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">User's Reply *</label>
+              <Textarea
+                value={userReplyMessage}
+                onChange={(e) => setUserReplyMessage(e.target.value)}
+                placeholder="Paste the user's reply here..."
+                className="min-h-[200px]"
+                required
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAddUserReplyDialogOpen(false);
+                  setUserReplyMessage("");
+                }}
+                disabled={sending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={addUserReply}
+                disabled={sending || !userReplyMessage.trim()}
+                className="gap-2"
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Add Reply
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

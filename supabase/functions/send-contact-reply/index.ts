@@ -208,21 +208,33 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
 
     console.log("[send-contact-reply] Email sent successfully:", emailData);
 
-    // Update submission with reply details
-    const { error: updateError } = await supabase
-      .from("contact_form_submissions")
-      .update({
-        replied_at: new Date().toISOString(),
-        replied_by: user.id,
-        reply_message: replyMessage,
-        admin_notes: adminNotes || null,
-        status: "read",
-      })
-      .eq("id", submissionId);
+    // Save reply to the threaded conversation table
+    const { error: replyError } = await supabase
+      .from("contact_form_replies")
+      .insert({
+        submission_id: submissionId,
+        sender_type: "admin",
+        sender_id: user.id,
+        sender_name: adminName,
+        sender_email: fromEmail,
+        message: replyMessage,
+      });
 
-    if (updateError) {
-      console.error("[send-contact-reply] Error updating submission:", updateError);
+    if (replyError) {
+      console.error("[send-contact-reply] Error saving reply:", replyError);
       // Don't fail the request since email was sent successfully
+    }
+
+    // Update admin notes if provided
+    if (adminNotes) {
+      const { error: notesError } = await supabase
+        .from("contact_form_submissions")
+        .update({ admin_notes: adminNotes })
+        .eq("id", submissionId);
+
+      if (notesError) {
+        console.error("[send-contact-reply] Error updating admin notes:", notesError);
+      }
     }
 
     return new Response(

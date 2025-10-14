@@ -153,12 +153,15 @@ TTS:stopPropagation|Discussion[title+content]|Event[title+desc+date+location]
 CRITICAL-RULES:7-rules→profiles_public|is_moderated-only|client-filter|height-limit|stop-propagation|visibility-check|empty-states
 
 ## CONTACT_FORM
-DB:contact_form_settings|contact_form_submissions
+DB:contact_form_settings|contact_form_submissions|contact_form_replies[NEW:threaded-conversations]
 FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactFormManager[admin-settings+submissions+badge-realtime]
 VALIDATION:client-Zod|server-edge
-EDGE:notify-admin|send-reply
-REPLY:3-methods[email-reply|manual-email|admin-interface]
+EDGE:notify-admin|send-reply[saves-to-replies-table]
+THREADING:contact_form_replies[sender_type:admin|user]→chronological-display→manual-user-reply-entry
+REPLY:3-methods[email-reply|manual-email|admin-interface-thread]
 SETUP:Resend[verify-domain-SPF-DKIM]
+UI:View-Dialog[original-msg+thread-history+reply-btn+add-user-reply]|Reply-Dialog[show-thread+compose-new]
+MIGRATION:existing-replies-auto-migrated-to-new-table
 
 ## DISCUSSION
 ROUTE:/discussions

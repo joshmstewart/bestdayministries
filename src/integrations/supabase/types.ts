@@ -506,6 +506,47 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_form_replies: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          sender_email: string
+          sender_id: string | null
+          sender_name: string
+          sender_type: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          sender_email: string
+          sender_id?: string | null
+          sender_name: string
+          sender_type: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          sender_email?: string
+          sender_id?: string | null
+          sender_name?: string
+          sender_type?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_form_replies_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "contact_form_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_form_settings: {
         Row: {
           created_at: string
