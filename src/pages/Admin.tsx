@@ -47,6 +47,7 @@ import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
 import CoffeeShopManager from "@/components/admin/CoffeeShopManager";
+import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
 import { TTSVoiceManager } from "@/components/admin/TTSVoiceManager";
 import { CoinsManager } from "@/components/admin/CoinsManager";
 import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
@@ -599,6 +600,7 @@ const Admin = () => {
                 <Tabs defaultValue="app" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="app">App Settings</TabsTrigger>
+                    <TabsTrigger value="stripe">Stripe Mode</TabsTrigger>
                     <TabsTrigger value="social-sharing">Social Sharing</TabsTrigger>
                     <TabsTrigger value="static-meta">Static Meta Tags</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
@@ -612,6 +614,10 @@ const Admin = () => {
 
                   <TabsContent value="app">
                     <AppSettingsManager />
+                  </TabsContent>
+
+                  <TabsContent value="stripe">
+                    <StripeModeSwitcher />
                   </TabsContent>
 
                   <TabsContent value="social-sharing">

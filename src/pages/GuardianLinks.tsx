@@ -23,7 +23,6 @@ import { FundingProgressBar } from "@/components/FundingProgressBar";
 import AudioPlayer from "@/components/AudioPlayer";
 import { GuardianFeaturedBestieManager } from "@/components/GuardianFeaturedBestieManager";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
 import { GuardianSponsorMessenger } from "@/components/guardian/GuardianSponsorMessenger";
 import { SponsorMessageInbox } from "@/components/sponsor/SponsorMessageInbox";
 import { DonationHistory } from "@/components/sponsor/DonationHistory";
@@ -916,11 +915,6 @@ export default function GuardianLinks() {
       
       <main className="flex-1 container mx-auto px-4 pt-20 pb-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* Stripe Mode Switcher - Admin/Owner only */}
-          {(userRole === "admin" || userRole === "owner") && (
-            <StripeModeSwitcher />
-          )}
-
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">My Besties</h1>
