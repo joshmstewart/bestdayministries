@@ -197,7 +197,7 @@ npx playwright show-report
 ### Running Locally
 ```bash
 export PERCY_TOKEN=your_token_here
-npx percy exec -- npx playwright test tests/e2e/visual.spec.ts
+npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts
 ```
 
 ### Writing Percy Tests

@@ -86,7 +86,7 @@ npx playwright show-report
 export PERCY_TOKEN=your_token_here
 
 # Run visual tests with Percy
-npx percy exec -- npx playwright test tests/e2e/visual.spec.ts
+npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts
 
 # Note: Percy must be running for snapshots to be captured
 # If Percy token is not set, tests will pass but skip snapshots
@@ -101,6 +101,7 @@ Percy provides visual regression testing by capturing screenshots and comparing 
 2. Create a new project
 3. Get your project token from Settings
 4. Add the token to GitHub Secrets as `PERCY_TOKEN`
+5. Ensure `@percy/cli` is installed (already in package.json devDependencies)
 
 ### How It Works
 - Percy captures screenshots during test runs
@@ -170,12 +171,12 @@ The GitHub Actions workflow (`.github/workflows/test.yml`) has three separate jo
 
 Percy doesn't work with test sharding, so visual tests run in a dedicated job using:
 ```bash
-npx percy exec -- npx playwright test tests/e2e/visual.spec.ts
+npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts
 ```
 
 The visual tests job only runs if:
 - `run_visual_tests` input is true (default)
-- `PERCY_TOKEN` secret is configured
+- Percy executes (no secret check in workflow - Percy CLI handles missing token gracefully)
 
 ### Workflow Inputs
 
@@ -257,10 +258,13 @@ Coverage reports show which code is tested:
 
 ### Percy Not Running
 - Verify `PERCY_TOKEN` is set in GitHub Secrets (Settings → Secrets → Actions → New repository secret)
-- Check that Percy package is installed (`@percy/playwright` in package.json)
+- Check that Percy CLI is installed (`@percy/cli` in package.json devDependencies)
 - Ensure token has correct permissions (copy from percy.io project settings)
 - Visual tests run in separate job - check "visual-tests" job in GitHub Actions
-- If Percy is not configured, visual tests are skipped (not failed)
+- If Percy token is missing, visual tests will fail (Percy CLI requires token)
+- **Common Error**: "Heads up! It looks like @percy/cli is not installed!" means:
+  - The workflow is using `npx percy` instead of `npx @percy/cli`
+  - Or `@percy/cli` is not in devDependencies
 
 ### Coverage Too Low
 - Add tests for untested files

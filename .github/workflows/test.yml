@@ -100,7 +100,7 @@ jobs:
       
     - name: Run Percy visual tests
       if: ${{ env.PERCY_TOKEN != '' }}
-      run: npx percy exec -- npx playwright test tests/e2e/visual.spec.ts --project=chromium
+      run: npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts --project=chromium
       env:
         PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
         
