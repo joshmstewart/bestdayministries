@@ -129,10 +129,11 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       console.log('🔍 TEST 128: Starting approval settings test');
       
       // Look for settings section text to verify we're on the right page
+      // Note: Vendor Relationships and Sponsor Communication are conditional
       const settingsVisible = await page.locator('text=/Content Moderation|Vendor Relationships|Sponsor Communication/i').first().isVisible().catch(() => false);
       console.log('🔍 TEST 128: Settings section visible:', settingsVisible);
       
-      // Find and expand the "Content Moderation" accordion
+      // Find and expand the "Content Moderation" accordion (always visible)
       const contentModerationTrigger = page.locator('button').filter({ hasText: 'Content Moderation' }).first();
       const triggerVisible = await contentModerationTrigger.isVisible().catch(() => false);
       console.log('🔍 TEST 128: Content Moderation trigger visible:', triggerVisible);

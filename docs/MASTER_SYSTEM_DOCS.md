@@ -69,6 +69,21 @@ SPONSOR:sponsorships+sponsorship_shares→Stripe→share-access
 SECURITY:is_guardian_of()
 RLS-CRITICAL:user_roles[SELECT-auth-required-for-role-verify]
 
+## GUARDIAN_LINKS_PAGE
+ROUTE:/guardian-links|ACCESS:caregiver+admin+owner
+SECTIONS:Your-Besties[list]|Send-Messages-to-Sponsors[conditional]|My-Sponsorships[if-any]
+ACCORDION-SECTIONS:
+  Content-Moderation[always-visible]→require_post_approval|require_comment_approval|allow_featured_posts
+  Vendor-Relationships[admin-only-badge]→require_vendor_asset_approval|show_vendor_link_on_bestie|show_vendor_link_on_guardian
+  Sponsor-Communication[if-bestie-in-sponsor-program]→allow_sponsor_messages|require_message_approval
+DB:caregiver_bestie_links|sponsor_besties[check-is_active]|sponsorships
+CONDITIONAL-DISPLAY:
+  Vendor-section[admin|owner-only]→Badge[Admin-Only]
+  Sponsor-section[bestie-in-sponsor_besties-table]→check-is_active=true
+  Send-Messages[any-linked-bestie-in-sponsor-program]→GuardianSponsorMessenger
+STATE:bestiesInSponsorProgram[Set<string>]→loaded-on-mount→filters-accordion-visibility
+COMPONENTS:GuardianFeaturedBestieManager|GuardianSponsorMessenger|SponsorMessageInbox|DonationHistory
+
 ## EVENTS
 TYPES:single|recurring-multi|recurring-template
 DISPLAY:upcoming|past|role-filter-client
@@ -102,7 +117,8 @@ DESIGN:Documentary[outline-white]|BDE[solid-brown-NO-gradient-HSL]
 
 ## ADMIN_DASH
 ROUTE:/admin|ACCESS:admin-owner|REDIRECT:non-admins→/community
-TABS:Analytics|Users|Events|Albums|Videos|Besties[subs:Featured+Sponsors+Page+Content+Receipts+Trans+YE-Settings+History]|Partners|Donations|Featured|Vendors[badge-subs:Vendors+Products+Orders]|Format[subs:Homepage+Community+About+Footer+Quick+Nav+Locations]|Moderation[badge-subs:Content+Messages+Policies]|Contact[badge]|Help[subs:Tours+Guides+FAQs]|Updates|Notifications|Settings[subs:App+Avatars+Impersonation]
+TABS:Analytics|Users|Events|Albums|Videos|Besties[subs:Featured+Sponsors+Page+Content+Receipts+Trans+YE-Settings+History]|Partners|Donations|Featured|Vendors[badge-subs:Vendors+Products+Orders]|Format[subs:Homepage+Community+About+Footer+Quick+Nav+Locations]|Moderation[badge-subs:Content+Messages+Policies]|Contact[badge]|Help[subs:Tours+Guides+FAQs]|Updates|Notifications|Settings[subs:App+Stripe-Mode+Social-Sharing+Static-Meta+Avatars+TTS+Coins+Store+Pet-Types+Locations+Impersonation]
+STRIPE-MODE:Settings→Stripe-Mode-tab→StripeModeSwitcher[test|live-toggle]|MOVED-from[/guardian-links+/sponsor-bestie]
 
 ## AUTH
 ROUTE:/auth
