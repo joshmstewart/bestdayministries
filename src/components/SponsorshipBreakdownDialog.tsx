@@ -141,6 +141,9 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
           <p className="text-xs text-muted-foreground text-center font-medium">
             Note: All product costs (coffee, food, etc.) are covered by revenue from sales.
           </p>
+          <p className="text-xs text-muted-foreground text-center italic">
+            Mentor support represents the portion of their time dedicated to instruction and oversight. Revenue from operations covers their remaining compensation.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
