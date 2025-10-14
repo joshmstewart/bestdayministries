@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -161,11 +161,11 @@ export const DiscussionDetailDialog = ({
   };
 
   // Check delete permission when post changes
-  useState(() => {
+  useEffect(() => {
     if (canDelete && post.author_id) {
       canDelete(post.author_id).then(setCanDeletePost);
     }
-  });
+  }, [canDelete, post.author_id]);
 
   return (
     <>
