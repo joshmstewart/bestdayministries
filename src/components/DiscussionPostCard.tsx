@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
-import { MessageSquare, Calendar, Image as ImageIcon } from "lucide-react";
+import { MessageSquare, Calendar, Image as ImageIcon, UserCircle2 } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { VendorStoreLinkBadge } from "@/components/VendorStoreLinkBadge";
 
@@ -114,8 +114,22 @@ export const DiscussionPostCard = ({ post, onClick }: DiscussionPostCardProps) =
                     {post.author?.display_name || "Unknown"}
                   </span>
                   {post.author?.role && (
-                    <Badge variant="secondary" className="capitalize">
-                      {getRoleDisplay(post.author.role)}
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+                      <UserCircle2 className="w-3 h-3 text-primary" />
+                      <span className="text-xs font-semibold text-primary capitalize">
+                        {getRoleDisplay(post.author.role)}
+                      </span>
+                    </div>
+                  )}
+                  {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
+                    <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(post.created_at).toLocaleDateString()}
+                  </span>
+                  {post.approval_status === 'pending_approval' && (
+                    <Badge variant="outline" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30">
+                      Pending
                     </Badge>
                   )}
                   {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (

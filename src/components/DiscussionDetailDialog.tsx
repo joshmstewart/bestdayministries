@@ -21,7 +21,8 @@ import {
   Mic, 
   Send,
   Image as ImageIcon,
-  X
+  X,
+  UserCircle2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -200,9 +201,12 @@ export const DiscussionDetailDialog = ({
                           {post.author?.display_name || "Unknown"}
                         </span>
                         {post.author?.role && (
-                          <Badge variant="secondary" className="capitalize">
-                            {getRoleDisplay(post.author.role)}
-                          </Badge>
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+                            <UserCircle2 className="w-3 h-3 text-primary" />
+                            <span className="text-xs font-semibold text-primary capitalize">
+                              {getRoleDisplay(post.author.role)}
+                            </span>
+                          </div>
                         )}
                         {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
                           <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
@@ -344,9 +348,12 @@ export const DiscussionDetailDialog = ({
                               {comment.author?.display_name || "Unknown"}
                             </span>
                             {comment.author?.role && (
-                              <Badge variant="secondary" className="capitalize">
-                                {getRoleDisplay(comment.author.role)}
-                              </Badge>
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+                                <UserCircle2 className="w-3 h-3 text-primary" />
+                                <span className="text-xs font-semibold text-primary capitalize">
+                                  {getRoleDisplay(comment.author.role)}
+                                </span>
+                              </div>
                             )}
                             {comment.author_id && (comment.author?.role === 'bestie' || comment.author?.role === 'caregiver') && (
                               <VendorStoreLinkBadge userId={comment.author_id} userRole={comment.author?.role} variant="badge" />
