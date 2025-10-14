@@ -93,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Send email via Resend
         const { data: emailData, error: emailError } = await resend.emails.send({
-          from: "Notifications <notifications@resend.dev>",
+          from: "Notifications <notifications@bestdayministries.org>",
           to: [user.user_email],
           subject: `Your ${frequency === 'daily' ? 'Daily' : 'Weekly'} Notification Digest - ${notifications.length} unread notifications`,
           html: emailHtml,

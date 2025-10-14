@@ -253,7 +253,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Notifications <notifications@resend.dev>",
+      from: "Notifications <notifications@bestdayministries.org>",
       to: [profile.email],
       subject: requestData.subject,
       html,

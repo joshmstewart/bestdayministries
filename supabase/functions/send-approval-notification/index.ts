@@ -146,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "Community Notifications <onboarding@resend.dev>",
+      from: "Community Notifications <notifications@bestdayministries.org>",
       to: [guardian.email],
       subject: subject,
       html: html,

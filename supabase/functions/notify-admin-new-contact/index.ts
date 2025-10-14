@@ -173,7 +173,7 @@ ${submission.message}
 
     // Send email
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Contact Form <notifications@resend.dev>",
+      from: "Contact Form <notifications@bestdayministries.org>",
       to: [adminEmail],
       reply_to: submission.email,
       subject: `New ${messageType} submission from ${submission.name}`,
