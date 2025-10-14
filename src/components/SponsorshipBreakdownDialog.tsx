@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Info, DollarSign, Users, Home, Sparkles, Heart } from "lucide-react";
+import { Info, DollarSign, Users, Home, Sparkles, Heart, GraduationCap, Wallet } from "lucide-react";
 
 interface SponsorshipBreakdownDialogProps {
   className?: string;
@@ -21,29 +21,45 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
     {
       icon: DollarSign,
       title: "Direct Compensation",
-      description: "Paycheck for the Bestie's work and participation",
-      percentage: "35%",
+      description: "Supporting our Besties and their dedicated mentors",
+      percentage: "50%",
       color: "text-primary",
+      subItems: [
+        {
+          icon: Wallet,
+          title: "Bestie Compensation",
+          description: "Paycheck for the Bestie's work and participation",
+          percentage: "70%",
+          color: "text-primary",
+        },
+        {
+          icon: GraduationCap,
+          title: "Mentor Support",
+          description: "Dedicated guidance, coaching, and encouragement for our Besties' success",
+          percentage: "30%",
+          color: "text-primary",
+        },
+      ],
     },
     {
       icon: Home,
       title: "Rent",
       description: "Venue space and facility costs",
-      percentage: "15%",
+      percentage: "12%",
       color: "text-secondary",
     },
     {
       icon: Users,
       title: "Taxes",
       description: "Payroll taxes and business taxes",
-      percentage: "25%",
+      percentage: "18%",
       color: "text-accent",
     },
     {
       icon: Sparkles,
       title: "Consumables",
       description: "Straws, cups, napkins, and other supplies",
-      percentage: "20%",
+      percentage: "15%",
       color: "text-burnt-orange",
     },
     {
@@ -81,17 +97,38 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
         
         <div className="space-y-4 py-4">
           {breakdownItems.map((item, index) => (
-            <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-              <div className={`${item.color} mt-1`}>
-                <item.icon className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="font-semibold text-sm">{item.title}</h4>
-                  <span className="text-sm font-bold text-primary">{item.percentage}</span>
+            <div key={index} className="space-y-2">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                <div className={`${item.color} mt-1`}>
+                  <item.icon className="w-5 h-5" />
                 </div>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="font-semibold text-sm">{item.title}</h4>
+                    <span className="text-sm font-bold text-primary">{item.percentage}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                </div>
               </div>
+              
+              {item.subItems && item.subItems.length > 0 && (
+                <div className="ml-8 space-y-2">
+                  {item.subItems.map((subItem, subIndex) => (
+                    <div key={subIndex} className="flex items-start gap-2 p-2 rounded-lg bg-background border border-muted">
+                      <div className={`${subItem.color} mt-0.5`}>
+                        <subItem.icon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <h5 className="font-medium text-xs">{subItem.title}</h5>
+                          <span className="text-xs font-semibold text-muted-foreground">{subItem.percentage}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-tight">{subItem.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
