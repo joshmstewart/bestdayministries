@@ -182,13 +182,13 @@ export const DiscussionDetailDialog = ({
                       <TextToSpeech text={`${post.title}. ${post.content}`} />
                       {isEditablePost && onEditPost && (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="icon"
                           onClick={() => {
                             onEditPost(post);
                             onOpenChange(false);
                           }}
-                          className="h-8 w-8"
+                          className="h-8 w-8 hover:bg-primary/10"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
