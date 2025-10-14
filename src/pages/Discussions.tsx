@@ -474,7 +474,9 @@ const Discussions = () => {
 
       if (selectedImage && imagePreview) {
         const compressedImage = await compressImage(selectedImage, 4.5);
-        const fileName = `${user?.id}/${Date.now()}_${selectedImage.name}`;
+        // Sanitize filename: remove spaces and special characters
+        const sanitizedFileName = selectedImage.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileName = `${user?.id}/${Date.now()}_${sanitizedFileName}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('discussion-images')
           .upload(fileName, compressedImage);
