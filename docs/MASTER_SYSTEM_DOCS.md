@@ -193,8 +193,9 @@ VALIDATION:title[1-200]|content[1-2000]|image[20MB]
 LAYOUT:flex-items-start-gap-3[content-flex-1-min-w-0|buttons-flex-shrink-0]
 DELETE:ghost-icon-Trash2-w-5-h-5-destructive-hover
 CLOSE:ghost-icon-X-w-5-h-5-hover-bg-accent
-APPLICABLE:header-only-dialogs-NOT-footer-action-dialogs
-COMPONENTS:DiscussionDetailDialog[delete+close]|EventDetailDialog[close-only]
+APPLICABLE:content-view-dialogs[NOT-form-dialogs-with-footer-actions]
+COMPONENTS:DiscussionDetailDialog[delete+close]|EventDetailDialog[close]|GuideViewer[close]|SponsorshipBreakdownDialog[close]
+NOT-APPLICABLE:forms[ImageCrop|PasswordChange|ReportIssue]|special[ImageLightbox-fullscreen]
 TESTS:discussions.spec.ts-button-alignment|visual.spec.ts-Percy
 DOC:DIALOG_BUTTON_STANDARD.md
 

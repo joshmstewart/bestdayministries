@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Info, DollarSign, Users, Home, Sparkles, Heart, GraduationCap, Wallet } from "lucide-react";
+import { Info, DollarSign, Users, Home, Sparkles, Heart, GraduationCap, Wallet, X } from "lucide-react";
 
 interface SponsorshipBreakdownDialogProps {
   className?: string;
@@ -83,16 +83,34 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
           Where does the money go?
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg" aria-describedby="sponsorship-description">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Heart className="w-5 h-5 text-primary" />
-            Sponsorship Breakdown
-          </DialogTitle>
-          <DialogDescription>
-            Your sponsorship supports more than just a paycheck—it creates opportunities
-            and builds community.
-          </DialogDescription>
+          <div className="flex items-start gap-3">
+            {/* Content area - takes up remaining space */}
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="flex items-center gap-2 text-xl mb-2">
+                <Heart className="w-5 h-5 text-primary" />
+                Sponsorship Breakdown
+              </DialogTitle>
+              <DialogDescription id="sponsorship-description">
+                Your sponsorship supports more than just a paycheck—it creates opportunities
+                and builds community.
+              </DialogDescription>
+            </div>
+            
+            {/* Action buttons container - aligned to right */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpen(false)}
+                className="hover:bg-accent"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
         
         <div className="space-y-3 py-3">

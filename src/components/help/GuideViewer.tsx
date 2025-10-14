@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, Users, X } from "lucide-react";
 
 interface Guide {
   id: string;
@@ -183,25 +184,43 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh]" aria-describedby={undefined}>
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <Badge variant="secondary">{guide.category.replace("-", " ")}</Badge>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              {guide.reading_time_minutes && (
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {guide.reading_time_minutes} min read
+          <div className="flex items-start gap-3">
+            {/* Content area - takes up remaining space */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <Badge variant="secondary">{guide.category.replace("-", " ")}</Badge>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  {guide.reading_time_minutes && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      {guide.reading_time_minutes} min read
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    {guide.visible_to_roles.join(", ")}
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {guide.visible_to_roles.join(", ")}
               </div>
+              <DialogTitle className="text-2xl">{guide.title}</DialogTitle>
+              <p className="text-muted-foreground">{guide.description}</p>
+            </div>
+            
+            {/* Action buttons container - aligned to right */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="hover:bg-accent"
+              >
+                <X className="w-5 h-5" />
+              </Button>
             </div>
           </div>
-          <DialogTitle className="text-2xl">{guide.title}</DialogTitle>
-          <p className="text-muted-foreground">{guide.description}</p>
         </DialogHeader>
 
         <ScrollArea className="h-[60vh] pr-4">

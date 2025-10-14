@@ -124,10 +124,14 @@ When updating a dialog:
 ## Components Using This Standard
 - ✅ `DiscussionDetailDialog.tsx` - Delete post + close (header buttons)
 - ✅ `EventDetailDialog.tsx` - Close only (header button)
+- ✅ `GuideViewer.tsx` - Close only (header button)
+- ✅ `SponsorshipBreakdownDialog.tsx` - Close only (header button)
 - ➖ `ImageCropDialog.tsx` - Uses footer buttons (Apply/Cancel) - not applicable
 - ➖ `PasswordChangeDialog.tsx` - Uses footer buttons (Update/Cancel) - not applicable
+- ➖ `ReportIssueDialog.tsx` - Uses footer buttons (Submit/Cancel) - not applicable
+- ➖ `ImageLightbox.tsx` - Custom fullscreen viewer with absolute positioned close - special case
 
-**Note:** Dialogs with primary actions in footer (e.g., forms with Submit/Cancel) don't need header close buttons as the footer provides clear dismissal options.
+**Note:** Dialogs with primary actions in footer (e.g., forms with Submit/Cancel) don't need header close buttons as the footer provides clear dismissal options. Special UI patterns like fullscreen image viewers may use custom positioning as appropriate for their use case.
 
 ## Benefits
 1. **Visual Consistency:** All dialogs have same button alignment
