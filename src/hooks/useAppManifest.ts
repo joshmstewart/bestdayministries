@@ -32,9 +32,6 @@ export const useAppManifest = () => {
           }
         });
 
-        // Update document title
-        document.title = appName;
-
         // Remove any existing manifest links to avoid conflicts
         const existingManifests = document.querySelectorAll('link[rel="manifest"]');
         existingManifests.forEach(link => link.remove());
