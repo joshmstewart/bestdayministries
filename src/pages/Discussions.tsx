@@ -347,15 +347,42 @@ const Discussions = () => {
         postTitle: post.title,
         authorId: post.author_id,
         isOwn: profileToUse.id === post.author_id,
-        isAdminOwner: ['admin', 'owner'].includes(profileToUse.role)
+        allowAdminEdit: (post as any).allow_admin_edit,
+        allowOwnerEdit: (post as any).allow_owner_edit,
+        userRole: profileToUse.role
       });
       
-      if (profileToUse.id === post.author_id || ['admin', 'owner'].includes(profileToUse.role)) {
+      // Can edit if it's their own post
+      if (profileToUse.id === post.author_id) {
         editable.add(post.id);
-        console.log('✅ Added to editable');
+        console.log('✅ Added to editable (own post)');
         continue;
       }
       
+      // Can edit if admin and allow_admin_edit is true (and author is not owner)
+      if (profileToUse.role === 'admin' && (post as any).allow_admin_edit) {
+        // Check if post author is not an owner
+        const { data: authorRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', post.author_id)
+          .maybeSingle();
+        
+        if (authorRole?.role !== 'owner') {
+          editable.add(post.id);
+          console.log('✅ Added to editable (admin with permission)');
+          continue;
+        }
+      }
+      
+      // Can edit if owner and allow_owner_edit is true
+      if (profileToUse.role === 'owner' && (post as any).allow_owner_edit) {
+        editable.add(post.id);
+        console.log('✅ Added to editable (owner with permission)');
+        continue;
+      }
+      
+      // Can edit if guardian of the bestie
       if (profileToUse.role === 'caregiver') {
         const { data: guardianLinks } = await supabase
           .from('caregiver_bestie_links')
