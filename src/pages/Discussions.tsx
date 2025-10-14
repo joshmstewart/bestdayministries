@@ -109,6 +109,8 @@ const Discussions = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [allowOwnerClaim, setAllowOwnerClaim] = useState(false);
+  const [allowAdminEdit, setAllowAdminEdit] = useState(false);
+  const [allowOwnerEdit, setAllowOwnerEdit] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -562,6 +564,8 @@ const Discussions = () => {
         moderation_reason: finalModerationNotes,
         approval_status: approvalStatus,
         allow_owner_claim: allowOwnerClaim,
+        allow_admin_edit: allowAdminEdit,
+        allow_owner_edit: allowOwnerEdit,
       }]);
 
       if (error) throw error;
@@ -714,6 +718,8 @@ const Discussions = () => {
 
     setShowNewPost(true);
     setAllowOwnerClaim((post as any).allow_owner_claim || false);
+    setAllowAdminEdit((post as any).allow_admin_edit || false);
+    setAllowOwnerEdit((post as any).allow_owner_edit || false);
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -947,15 +953,37 @@ const Discussions = () => {
                 </div>
 
                 {hasAdminAccess && (
-                  <div className="flex items-center space-x-2 pt-2 border-t">
-                    <Checkbox
-                      id="allow-owner-claim"
-                      checked={allowOwnerClaim}
-                      onCheckedChange={(checked) => setAllowOwnerClaim(!!checked)}
-                    />
-                    <label htmlFor="allow-owner-claim" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Allow owner to claim this post
-                    </label>
+                  <div className="space-y-3 pt-2 border-t">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="allow-admin-edit"
+                        checked={allowAdminEdit}
+                        onCheckedChange={(checked) => setAllowAdminEdit(!!checked)}
+                      />
+                      <label htmlFor="allow-admin-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Allow admin to edit this post
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="allow-owner-edit"
+                        checked={allowOwnerEdit}
+                        onCheckedChange={(checked) => setAllowOwnerEdit(!!checked)}
+                      />
+                      <label htmlFor="allow-owner-edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Allow owner to edit this post
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="allow-owner-claim"
+                        checked={allowOwnerClaim}
+                        onCheckedChange={(checked) => setAllowOwnerClaim(!!checked)}
+                      />
+                      <label htmlFor="allow-owner-claim" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Allow owner to claim this post
+                      </label>
+                    </div>
                   </div>
                 )}
 
@@ -970,6 +998,8 @@ const Discussions = () => {
                     setVideoInputType("none");
                     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
                     setAllowOwnerClaim(false);
+                    setAllowAdminEdit(false);
+                    setAllowOwnerEdit(false);
                   }}>
                     Cancel
                   </Button>
