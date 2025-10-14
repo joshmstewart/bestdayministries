@@ -11,12 +11,19 @@ The application includes automated end-to-end (E2E) testing using Playwright tha
 - **Config**: `playwright.config.ts`
 - **Tests**: 
   - `tests/e2e/basic.spec.ts` - Basic navigation and page loads
-  - `tests/e2e/auth.spec.ts` - **Comprehensive signup/login tests for all roles**
-  - `tests/e2e/guardian-linking.spec.ts` - **Friend code linking and role verification**
-  - `tests/e2e/vendor-linking.spec.ts` - **Vendor-bestie linking and approval flow**
+  - `tests/e2e/auth.spec.ts` - Comprehensive signup/login tests for all roles
+  - `tests/e2e/guardian-linking.spec.ts` - Friend code linking and role verification
+  - `tests/e2e/vendor-linking.spec.ts` - Vendor-bestie linking and approval flow
+  - `tests/e2e/discussions.spec.ts` - Discussion posts, comments, interactions
+  - `tests/e2e/events-interactions.spec.ts` - Event details, dialog, location links
+  - `tests/e2e/shopping-cart.spec.ts` - Marketplace products, store items, cart
+  - `tests/e2e/notifications.spec.ts` - Notification bell, center page, filtering
+  - `tests/e2e/video.spec.ts` - Video players, YouTube embeds, controls
+  - `tests/e2e/help-center.spec.ts` - Tours, guides, FAQs, search
+  - `tests/e2e/performance.spec.ts` - Load times, Core Web Vitals (@slow tag)
   - Other E2E tests for forms, community, store, etc.
 - **Browsers**: Chrome, Firefox, Safari
-- **Features**: Screenshots on failure, retries on CI, HTML reports
+- **Features**: Screenshots on failure, retries on CI, HTML reports, test tags (@fast/@slow)
 
 ### 2. GitHub Actions Workflow
 - **File**: `.github/workflows/test.yml`
@@ -184,12 +191,20 @@ npx playwright show-report
 ### Setup
 1. Sign up at [percy.io](https://percy.io)
 2. Create a new project
-3. Get project token from Settings
+3. Get project token from Settings (use copy button for full token!)
 4. Add to GitHub Secrets as `PERCY_TOKEN`
+5. Ensure `@percy/cli` is in devDependencies
+
+### Test Coverage
+**Desktop (1280x720)**: Homepage, Community, Events, Discussions, Store, Sponsor Bestie, Auth, Support, Help Center
+**Mobile (375x667)**: Homepage, Community, Events, Store, Auth, Sponsor Bestie
+**Tablet (768x1024)**: Homepage, Community, Events, Discussions, Store
+
+**Total**: 24 snapshots across 3 viewport sizes
 
 ### How It Works
 - Percy runs in separate CI job (doesn't work with test sharding)
-- Captures screenshots during test execution  
+- Captures screenshots during test execution using viewport simulation (not paid mobile browsers)
 - Compares with approved baseline images
 - Comments on PRs with visual diffs
 - Only runs if `PERCY_TOKEN` is configured (skipped otherwise)
@@ -205,18 +220,58 @@ npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts
 import { test } from '@playwright/test';
 import percySnapshot from '@percy/playwright';
 
+// Desktop test
 test('page appearance', async ({ page }) => {
   await page.goto('/my-page');
   await page.waitForLoadState('networkidle');
   await percySnapshot(page, 'My Page Name');
 });
+
+// Mobile test using viewport (free alternative to paid mobile browsers)
+test.describe('Mobile Tests', () => {
+  test.use({ viewport: { width: 375, height: 667 } });
+  
+  test('page - mobile', async ({ page }) => {
+    await page.goto('/my-page');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'My Page - Mobile');
+  });
+});
+```
+
+## Performance Testing
+
+### Load Time Tests (@slow tag)
+Tests measure page load times and verify they're within acceptable ranges:
+- Homepage: <5s
+- Community, Events: <5s  
+- Marketplace: <6s (image-heavy)
+
+### Core Web Vitals (@slow tag)
+Automated testing of Google's Core Web Vitals:
+- **LCP (Largest Contentful Paint)**: <4s target
+- **CLS (Cumulative Layout Shift)**: <0.25 target
+- **FID (First Input Delay)**: Interactive readiness check
+
+### Resource Loading
+- Image lazy loading verification
+- Console error detection
+- Render-blocking resource identification
+
+### Running Performance Tests
+```bash
+# Run only performance tests
+npx playwright test --grep @slow
+
+# Run everything except performance tests
+npx playwright test --grep-invert @slow
 ```
 
 ## Future Enhancements
 
 ### Potential Additions
 - Integration tests for edge functions
-- Performance testing with Lighthouse
+- Lighthouse CI integration with budgets
 - Accessibility testing (axe-core)
 - Slack/Discord notifications on failures
 - Test metrics dashboard (pass rate trends, flakiness detection)

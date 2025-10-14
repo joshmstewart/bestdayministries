@@ -25,7 +25,13 @@ export default defineConfig({
   // Run only fast tests: npx playwright test --grep @fast
   // Run only slow tests: npx playwright test --grep @slow
   // Run all tests: npx playwright test
+  // Run performance tests: npx playwright test --grep @slow
   grep: process.env.TEST_FILTER ? new RegExp(process.env.TEST_FILTER) : undefined,
+
+  // Expect assertions
+  expect: {
+    timeout: 10000
+  },
 
   projects: [
     {
