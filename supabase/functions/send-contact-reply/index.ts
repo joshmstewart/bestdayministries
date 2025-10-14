@@ -189,14 +189,20 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
       </html>
     `;
 
-    // Send email
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: `${fromName} <${fromEmail}>`,
+    // Send email via Resend with reply tracking
+    const emailHtml = html;
+    const replyFromEmail = replyToEmail;
+    const replyFromName = fromName;
+    
+    const emailResponse = await resend.emails.send({
+      from: `${replyFromName} <${fromEmail}>`,
       to: [submission.email],
-      reply_to: replyToEmail,
-      subject: `Re: ${submission.subject || "Your message"}`,
-      html,
+      reply_to: replyFromEmail,
+      subject: `Re: ${submission.subject || 'Your message'}`,
+      html: emailHtml,
     });
+
+    const { data: emailData, error: emailError } = emailResponse;
 
     if (emailError) {
       console.error("[send-contact-reply] Error sending email:", emailError);

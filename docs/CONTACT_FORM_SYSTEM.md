@@ -255,39 +255,67 @@ bg-muted border-l-4 border-primary
 - Settings + Submissions in single view
 - Quick actions in table rows
 
-## Future Enhancements
+## Automatic Email Reply Capture (IMPLEMENTED)
 
-### Automatic Email Reply Capture
-To automatically capture incoming email replies:
+### Edge Function: process-inbound-email
+Automatically captures incoming email replies and adds them to conversation threads.
 
-1. **Set up Resend Inbound Webhook**
-   ```typescript
-   // New edge function: process-inbound-email
-   // Parse incoming email from Resend webhook
-   // Match to submission by reply-to or subject
-   // Extract message content
-   // Save as user reply to thread
-   ```
+**Functionality:**
+1. Receives webhook from Resend when user replies via email
+2. Extracts sender email and matches to original submission
+3. Parses email content, removing quoted text and signatures
+4. Saves as user-type reply in contact_form_replies table
+5. Notifies admins about new user reply
 
-2. **Email Parsing Requirements**
-   - Parse plain text and HTML
-   - Extract message from quoted reply chain
-   - Verify sender matches original email
-   - Handle attachments if needed
+**Matching Logic:**
+- Primary: Match by sender email address
+- Secondary: If subject contains original subject, prefer that submission
+- Fallback: Use most recent submission from that email
 
-3. **Security Considerations**
-   - Verify webhook signature from Resend
-   - Sanitize incoming email content
-   - Prevent spam/abuse
-   - Rate limiting for inbound emails
+**Content Extraction:**
+- Removes HTML tags and decodes entities
+- Strips quoted replies ("> " lines, "On X wrote:" patterns)
+- Removes email signatures and footers
+- Cleans whitespace for readability
 
-### Additional Features
-- Email notifications to admin on user replies
+**Security:**
+- Validates sender email format
+- Sanitizes all email content
+- Returns 200 status to prevent Resend retries
+- Notifications sent to admins only
+
+### Setup Instructions
+
+**1. Enable Inbound Email in Resend:**
+   - Go to https://resend.com/settings/domains
+   - Select your verified domain
+   - Click "Inbound" tab
+   - Add inbound email address (e.g., contact@yourdomain.com)
+   - Configure forwarding to Supabase edge function
+
+**2. Add Webhook URL:**
+   - Webhook URL: `https://[PROJECT-ID].supabase.co/functions/v1/process-inbound-email`
+   - Method: POST
+   - No authentication required (function verifies sender)
+
+**3. Update Contact Form Settings:**
+   - Set reply_from_email to your inbound email address
+   - Ensure it matches the email configured in Resend
+
+**4. Test the Flow:**
+   1. Submit contact form from user email
+   2. Reply from admin panel (emails user)
+   3. User replies via their email client
+   4. Reply automatically appears in admin contact thread
+   5. Admin receives notification of new reply
+
+### Potential Additional Features
 - Rich text editor for admin replies
 - File attachments in replies
 - Canned response templates
 - Search and filter conversation history
 - Export conversation as PDF
+- Webhook signature verification (optional security layer)
 
 ## Testing
 
@@ -326,6 +354,13 @@ To automatically capture incoming email replies:
 - Check RLS policy on insert
 - Ensure message is not empty
 - Review database logs
+
+### Automatic Replies Not Working
+- Verify Resend inbound email is configured
+- Check webhook URL is correct
+- Review edge function logs
+- Confirm sender email matches original submission
+- Test webhook manually with sample payload
 
 ## Related Documentation
 - [NOTIFICATION_SYSTEM_COMPLETE.md](./NOTIFICATION_SYSTEM_COMPLETE.md) - Admin notifications
