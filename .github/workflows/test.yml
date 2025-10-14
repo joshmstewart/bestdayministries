@@ -82,7 +82,7 @@ jobs:
         retention-days: 30
 
   visual-tests:
-    if: ${{ inputs.run_visual_tests && secrets.PERCY_TOKEN != '' }}
+    if: ${{ inputs.run_visual_tests }}
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
@@ -99,6 +99,7 @@ jobs:
       run: npx playwright install --with-deps chromium
       
     - name: Run Percy visual tests
+      if: ${{ env.PERCY_TOKEN != '' }}
       run: npx percy exec -- npx playwright test tests/e2e/visual.spec.ts --project=chromium
       env:
         PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
