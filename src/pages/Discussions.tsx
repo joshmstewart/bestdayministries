@@ -154,8 +154,8 @@ const Discussions = () => {
 
     console.log('✅ Session found:', session.user.id);
     setUser(session.user);
-    await fetchProfile(session.user.id);
-    await loadPosts();
+    const userProfile = await fetchProfile(session.user.id);
+    await loadPosts(userProfile);
     setLoading(false);
   };
 
@@ -219,8 +219,8 @@ const Discussions = () => {
     if (data) setEvents(data);
   };
 
-  const loadPosts = async () => {
-      console.log('📚 loadPosts called');
+  const loadPosts = async (userProfile?: any) => {
+      console.log('📚 loadPosts called', { hasUserProfile: !!userProfile });
       const { data: postsData, error: postsError } = await supabase
       .from("discussion_posts")
       .select(`
@@ -309,25 +309,28 @@ const Discussions = () => {
     console.log('📚 Posts loaded:', postsWithComments.length);
     setPosts(postsWithComments);
     
+    const profileToUse = userProfile || profile;
     console.log('🔐 Checking profile before loadEditablePostIds:', { 
-      hasProfile: !!profile, 
-      profileId: profile?.id,
-      profileRole: profile?.role 
+      hasProfile: !!profileToUse, 
+      profileId: profileToUse?.id,
+      profileRole: profileToUse?.role 
     });
     
-    if (profile) {
-      await loadEditablePostIds(postsWithComments);
+    if (profileToUse) {
+      await loadEditablePostIds(postsWithComments, profileToUse);
     } else {
       console.warn('⚠️ Profile is null, skipping loadEditablePostIds');
     }
   };
 
-  const loadEditablePostIds = async (postsToCheck: Post[]) => {
-    if (!profile || !user) return;
+  const loadEditablePostIds = async (postsToCheck: Post[], userProfile?: any) => {
+    const profileToUse = userProfile || profile;
+    
+    if (!profileToUse || !user) return;
     
     console.log('🔍 Loading editable post IDs', { 
-      profileRole: profile.role, 
-      profileId: profile.id,
+      profileRole: profileToUse.role, 
+      profileId: profileToUse.id,
       totalPosts: postsToCheck.length 
     });
     
@@ -338,21 +341,21 @@ const Discussions = () => {
         postId: post.id,
         postTitle: post.title,
         authorId: post.author_id,
-        isOwn: profile.id === post.author_id,
-        isAdminOwner: ['admin', 'owner'].includes(profile.role)
+        isOwn: profileToUse.id === post.author_id,
+        isAdminOwner: ['admin', 'owner'].includes(profileToUse.role)
       });
       
-      if (profile.id === post.author_id || ['admin', 'owner'].includes(profile.role)) {
+      if (profileToUse.id === post.author_id || ['admin', 'owner'].includes(profileToUse.role)) {
         editable.add(post.id);
         console.log('✅ Added to editable');
         continue;
       }
       
-      if (profile.role === 'caregiver') {
+      if (profileToUse.role === 'caregiver') {
         const { data: guardianLinks } = await supabase
           .from('caregiver_bestie_links')
           .select('id')
-          .eq('caregiver_id', profile.id)
+          .eq('caregiver_id', profileToUse.id)
           .eq('bestie_id', post.author_id)
           .maybeSingle();
         
