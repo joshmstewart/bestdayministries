@@ -128,6 +128,13 @@ export const DiscussionDetailDialog = ({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
 
+  // Check delete permission when post changes
+  useEffect(() => {
+    if (canDelete && post?.author_id) {
+      canDelete(post.author_id).then(setCanDeletePost);
+    }
+  }, [canDelete, post?.author_id]);
+
   if (!post) return null;
 
   const handleCommentSubmit = async () => {
@@ -159,13 +166,6 @@ export const DiscussionDetailDialog = ({
     if (role === "caregiver") return "Guardian";
     return role;
   };
-
-  // Check delete permission when post changes
-  useEffect(() => {
-    if (canDelete && post.author_id) {
-      canDelete(post.author_id).then(setCanDeletePost);
-    }
-  }, [canDelete, post.author_id]);
 
   return (
     <>
