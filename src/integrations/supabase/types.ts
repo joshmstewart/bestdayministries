@@ -102,6 +102,8 @@ export type Database = {
       }
       albums: {
         Row: {
+          allow_admin_edit: boolean
+          allow_owner_edit: boolean
           audio_url: string | null
           cover_image_url: string | null
           created_at: string
@@ -117,6 +119,8 @@ export type Database = {
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
+          allow_admin_edit?: boolean
+          allow_owner_edit?: boolean
           audio_url?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -132,6 +136,8 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
+          allow_admin_edit?: boolean
+          allow_owner_edit?: boolean
           audio_url?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -737,7 +743,9 @@ export type Database = {
       discussion_posts: {
         Row: {
           album_id: string | null
+          allow_admin_edit: boolean
           allow_owner_claim: boolean
+          allow_owner_edit: boolean
           approval_status: string
           approved_at: string | null
           approved_by: string | null
@@ -757,13 +765,17 @@ export type Database = {
           moderation_status: string | null
           title: string
           updated_at: string
+          video_cover_timestamp: number | null
+          video_cover_url: string | null
           video_id: string | null
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
           youtube_url: string | null
         }
         Insert: {
           album_id?: string | null
+          allow_admin_edit?: boolean
           allow_owner_claim?: boolean
+          allow_owner_edit?: boolean
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -783,13 +795,17 @@ export type Database = {
           moderation_status?: string | null
           title: string
           updated_at?: string
+          video_cover_timestamp?: number | null
+          video_cover_url?: string | null
           video_id?: string | null
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
           youtube_url?: string | null
         }
         Update: {
           album_id?: string | null
+          allow_admin_edit?: boolean
           allow_owner_claim?: boolean
+          allow_owner_edit?: boolean
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -809,6 +825,8 @@ export type Database = {
           moderation_status?: string | null
           title?: string
           updated_at?: string
+          video_cover_timestamp?: number | null
+          video_cover_url?: string | null
           video_id?: string | null
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
           youtube_url?: string | null
@@ -1060,6 +1078,8 @@ export type Database = {
       }
       events: {
         Row: {
+          allow_admin_edit: boolean
+          allow_owner_edit: boolean
           aspect_ratio: string
           audio_url: string | null
           created_at: string
@@ -1087,6 +1107,8 @@ export type Database = {
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
+          allow_admin_edit?: boolean
+          allow_owner_edit?: boolean
           aspect_ratio?: string
           audio_url?: string | null
           created_at?: string
@@ -1114,6 +1136,8 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
+          allow_admin_edit?: boolean
+          allow_owner_edit?: boolean
           aspect_ratio?: string
           audio_url?: string | null
           created_at?: string
@@ -1254,6 +1278,8 @@ export type Database = {
       }
       featured_besties: {
         Row: {
+          allow_admin_edit: boolean
+          allow_owner_edit: boolean
           approval_status: string
           approved_at: string | null
           approved_by: string | null
@@ -1279,6 +1305,8 @@ export type Database = {
           voice_note_url: string | null
         }
         Insert: {
+          allow_admin_edit?: boolean
+          allow_owner_edit?: boolean
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -1304,6 +1332,8 @@ export type Database = {
           voice_note_url?: string | null
         }
         Update: {
+          allow_admin_edit?: boolean
+          allow_owner_edit?: boolean
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
@@ -3548,6 +3578,8 @@ export type Database = {
       videos: {
         Row: {
           category: string | null
+          cover_timestamp: number | null
+          cover_url: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -3564,6 +3596,8 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          cover_timestamp?: number | null
+          cover_url?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -3580,6 +3614,8 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          cover_timestamp?: number | null
+          cover_url?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
