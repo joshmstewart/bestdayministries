@@ -749,6 +749,7 @@ export type Database = {
           approval_status: string
           approved_at: string | null
           approved_by: string | null
+          aspect_ratio: string
           author_id: string
           category: string | null
           content: string
@@ -779,6 +780,7 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          aspect_ratio?: string
           author_id: string
           category?: string | null
           content: string
@@ -809,6 +811,7 @@ export type Database = {
           approval_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          aspect_ratio?: string
           author_id?: string
           category?: string | null
           content?: string
