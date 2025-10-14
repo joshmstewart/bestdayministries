@@ -167,14 +167,17 @@ MIGRATION:existing-replies-auto-migrated-to-new-table
 
 ## DISCUSSION
 ROUTE:/discussions
-DB:discussion_posts|discussion_comments
-PERMS:posts[guardians-admins-owners]|comment[all-auth]|change-author[owners]
+DB:discussion_posts[created_at+updated_at]|discussion_comments[created_at+updated_at]
+PERMS:posts[guardians-admins-owners]|comment[all-auth]|edit-post[author-guardian-admin]|edit-comment[author-only]|change-author[owners]
 APPROVAL:bestie→check-require_post_approval→pending→guardian-approve
 MODERATION:text[moderate-content]|image[moderate-image-policy]
 MEDIA:images[4.5MB-crop]|videos[select-or-YT]|albums[link]|events[link]|audio[comments]
-UI:Post-Card|Create-Form|Comment-Input[text-OR-audio]
+UI:DiscussionPostCard[list-card-16:9-media-preview]|DiscussionDetailDialog[full-post-comments-edit]
+EDIT:posts[open-create-form-pre-filled]|comments[inline-textarea-save-cancel]
+EDITED-INDICATOR:(edited)→shows-if[updated_at>created_at+60s]
+ROLE-BADGE:UserCircle2-icon+bg-primary/10+border-primary/20+text-primary+capitalize
 REALTIME:subscribe-posts+comments
-RLS:Posts-SELECT[approved-visible-or-own-pending]|UPDATE[author-guardian-admin]|INSERT[guardians-admins]
+RLS:SELECT[approved-visible-or-own-pending]|UPDATE[author-guardian-admin-for-posts|author-only-for-comments]|INSERT[guardians-admins]
 VALIDATION:title[1-200]|content[1-2000]|image[20MB]
 
 ## DONATION
