@@ -32,7 +32,8 @@
 ## Scroll Behavior (Desktop Only)
 - **Shows:** Within 150px of top OR scrolling UP
 - **Hides:** Past 150px AND scrolling DOWN
-- **CSS:** `translate-y-0 opacity-100` (visible) / `-translate-y-full opacity-0` (hidden)
+- **CSS:** `translate-y-0 opacity-100 pointer-events-auto` (visible) / `-translate-y-full opacity-0 pointer-events-none` (hidden)
+- **CRITICAL:** `pointer-events-none` when hidden prevents nav from blocking clicks on header buttons
 
 ## Page Layout Requirements
 
@@ -69,6 +70,7 @@
 | Nav covers page title | Missing top padding | Add `pt-24` to main element |
 | Title too close to nav | Insufficient padding | Increase to `pt-28` or `pt-32` |
 | Mobile overlap | Fixed padding doesn't scale | Test on mobile, adjust if needed |
+| Header buttons unclickable when scrolled | Missing pointer-events-none | Ensure nav has `pointer-events-none` when hidden |
 
 ## Navigation Links
 
@@ -100,7 +102,7 @@
 
 ## Physical Dimensions
 - **Height:** ~64px (header) + ~48px (nav) = ~112px total
-- **Z-index:** 50 (nav) ensures it stays above content
+- **Z-index:** 51 (nav) ensures it stays above content but below modals
 - **Backdrop blur:** Creates depth separation from content
 
 ## Real-Time Updates
@@ -114,8 +116,9 @@ Subscribes to `navigation_links` changes → auto-refreshes without page reload
 ## Positioning
 - Absolutely positioned below header (`absolute top-full`)
 - Overlays content (doesn't push down)
-- Full width (`left-0 right-0`), high z-index (`z-50`)
+- Full width (`left-0 right-0`), high z-index (`z-51`)
 - Backdrop blur effect
+- **Pointer events disabled when hidden** to allow header button clicks
 
 ## Why Vendors Don't See It
 - Vendors use `/vendor-dashboard` exclusively
@@ -130,3 +133,5 @@ Subscribes to `navigation_links` changes → auto-refreshes without page reload
 - [ ] Page has `pt-24` top padding
 - [ ] Smooth scroll transitions enabled
 - [ ] Real-time subscription cleanup on unmount
+- [ ] Nav has `pointer-events-none` when hidden
+- [ ] Nav has `pointer-events-auto` when visible

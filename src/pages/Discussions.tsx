@@ -172,7 +172,7 @@ const Discussions = () => {
 
     if (profileError) {
       console.error("Error fetching profile:", profileError);
-      return;
+      return null;
     }
 
     const { data: roleData } = await supabase
@@ -199,6 +199,8 @@ const Discussions = () => {
       loadVideos();
       loadEvents();
     }
+    
+    return profile;
   };
 
   const loadVideos = async () => {

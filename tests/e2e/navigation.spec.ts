@@ -179,18 +179,32 @@ test.describe('Accessibility', () => {
     expect(h1Count).toBeGreaterThanOrEqual(0);
   });
 
-  test('should have skip to main content link', async ({ page }) => {
+  test('navigation bar pointer-events work correctly', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    // Tab to first focusable element
-    await page.keyboard.press('Tab');
+    // Get the nav element
+    const nav = page.locator('nav[data-tour-target="navigation-bar"]');
     
-    // Check if first element is skip link (good practice but not required)
-    const skipLink = page.locator('a[href="#main"], a[href="#content"]').first();
-    const hasSkipLink = await skipLink.count() > 0;
+    // Verify nav has pointer-events-auto when visible (at top)
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(500);
     
-    // This is optional, so we just verify the check runs
-    expect(hasSkipLink || !hasSkipLink).toBeTruthy();
+    const visibleClasses = await nav.getAttribute('class');
+    expect(visibleClasses).toContain('pointer-events-auto');
+    
+    // Scroll down to hide nav
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await page.waitForTimeout(500);
+    
+    const hiddenClasses = await nav.getAttribute('class');
+    expect(hiddenClasses).toContain('pointer-events-none');
+    
+    // Verify header buttons are clickable when nav is hidden
+    const headerButton = page.locator('header button').first();
+    if (await headerButton.isVisible()) {
+      const isEnabled = await headerButton.isEnabled();
+      expect(isEnabled).toBeTruthy();
+    }
   });
 });
