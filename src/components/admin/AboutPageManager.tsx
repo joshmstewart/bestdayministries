@@ -270,7 +270,7 @@ const AboutPageManager = () => {
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>Note:</strong> The "About Content" section shares its content with the About section on the homepage. 
+            <strong>Note:</strong> The "About Content" section shares its content with the About section on the landing page. 
             Changes made here will reflect on both pages.
           </AlertDescription>
         </Alert>

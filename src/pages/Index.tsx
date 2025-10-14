@@ -50,7 +50,7 @@ const Index = () => {
 
   const checkVendorStatus = async () => {
     // No automatic redirects - users can navigate freely
-    // The Index page is the public homepage
+    // The Index page is the public landing page
   };
 
   const fetchSections = async () => {

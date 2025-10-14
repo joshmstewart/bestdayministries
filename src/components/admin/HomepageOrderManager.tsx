@@ -137,7 +137,7 @@ const SortableItem = ({ section, onToggleVisibility, onEdit, isLocked }: Sortabl
   );
 };
 
-const HomepageOrderManager = () => {
+const LandingPageOrderManager = () => {
   const [sections, setSections] = useState<HomepageSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -172,7 +172,7 @@ const HomepageOrderManager = () => {
       console.error("Error fetching sections:", error);
       toast({
         title: "Error",
-        description: "Failed to load homepage sections",
+        description: "Failed to load landing page sections",
         variant: "destructive",
       });
     } finally {
@@ -193,17 +193,6 @@ const HomepageOrderManager = () => {
   };
 
   const handleToggleVisibility = async (id: string, visible: boolean) => {
-    // Prevent toggling hero section
-    const section = sections.find(s => s.id === id);
-    if (section?.section_key === 'hero') {
-      toast({
-        title: "Cannot modify hero",
-        description: "The hero banner is locked and cannot be hidden",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from("homepage_sections")
@@ -252,7 +241,7 @@ const HomepageOrderManager = () => {
 
       toast({
         title: "Success",
-        description: "Homepage section order saved successfully",
+        description: "Landing page section order saved successfully",
       });
     } catch (error) {
       console.error("Error saving order:", error);
@@ -275,10 +264,9 @@ const HomepageOrderManager = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Homepage Section Order</CardTitle>
+            <CardTitle>Landing Page Section Order</CardTitle>
             <CardDescription>
               Drag sections to reorder them. Click the eye icon to show/hide sections.
-              The hero banner is locked in place and always visible.
               Changes are saved when you click "Save Order".
             </CardDescription>
           </div>
@@ -288,7 +276,7 @@ const HomepageOrderManager = () => {
             className="gap-2"
           >
             <ExternalLink className="w-4 h-4" />
-            Preview Homepage
+            Preview Landing Page
           </Button>
         </div>
       </CardHeader>
@@ -309,7 +297,6 @@ const HomepageOrderManager = () => {
                   section={section}
                   onToggleVisibility={handleToggleVisibility}
                   onEdit={setEditingSection}
-                  isLocked={section.section_key === 'hero'}
                 />
               ))}
             </div>
@@ -337,4 +324,4 @@ const HomepageOrderManager = () => {
   );
 };
 
-export default HomepageOrderManager;
+export default LandingPageOrderManager;

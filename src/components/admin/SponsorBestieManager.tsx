@@ -732,7 +732,7 @@ export const SponsorBestieManager = () => {
                   checked={isPublic}
                   onCheckedChange={setIsPublic}
                 />
-                <Label htmlFor="public">Public (visible on homepage and sponsor page)</Label>
+                <Label htmlFor="public">Public (visible on landing page and sponsor page)</Label>
               </div>
 
               <div className="flex gap-2 pt-6 border-t">

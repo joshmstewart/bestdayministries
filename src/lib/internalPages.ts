@@ -18,7 +18,7 @@ export interface InternalPage {
 }
 
 export const INTERNAL_PAGES: InternalPage[] = [
-  { value: "/", label: "Home" },
+  { value: "/", label: "Landing Page" },
   { value: "/community", label: "Community" },
   { value: "/discussions", label: "Discussions" },
   { value: "/events", label: "Events" },

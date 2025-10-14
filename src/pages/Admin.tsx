@@ -26,7 +26,7 @@ import { useModerationCount } from "@/hooks/useModerationCount";
 import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
 import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
 import { useContactFormCount } from "@/hooks/useContactFormCount";
-import HomepageOrderManager from "@/components/admin/HomepageOrderManager";
+import LandingPageOrderManager from "@/components/admin/HomepageOrderManager";
 import CommunityOrderManager from "@/components/admin/CommunityOrderManager";
 import AboutPageManager from "@/components/admin/AboutPageManager";
 import { FeaturedItemManager } from "@/components/admin/FeaturedItemManager";
@@ -432,12 +432,12 @@ const Admin = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Format Pages</CardTitle>
-                <CardDescription>Manage homepage sections, about page, community page, family organizations, footer links, and quick links. Click the edit button on Community Features to manage individual features.</CardDescription>
+                <CardDescription>Manage landing page sections, about page, community page, family organizations, footer links, and quick links. Click the edit button on Community Features to manage individual features.</CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="homepage" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto">
-                    <TabsTrigger value="homepage">Homepage</TabsTrigger>
+                    <TabsTrigger value="homepage">Landing Page</TabsTrigger>
                     <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
                     <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
@@ -448,7 +448,7 @@ const Admin = () => {
                   </TabsList>
 
                   <TabsContent value="homepage">
-                    <HomepageOrderManager />
+                    <LandingPageOrderManager />
                   </TabsContent>
 
                   <TabsContent value="about">

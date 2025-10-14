@@ -1011,7 +1011,7 @@ export default function AlbumManagement() {
                           <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          <p><strong>Public:</strong> Visible on homepage and community page</p>
+                          <p><strong>Public:</strong> Visible on landing page and community page</p>
                           <p className="mt-1"><strong>Private:</strong> Only visible on community page (logged-in users)</p>
                         </TooltipContent>
                       </Tooltip>

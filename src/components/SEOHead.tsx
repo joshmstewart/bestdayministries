@@ -142,7 +142,7 @@ export const SEOHead = ({
   return null;
 };
 
-// Organization structured data for homepage
+// Organization structured data for landing page
 export const getOrganizationStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",

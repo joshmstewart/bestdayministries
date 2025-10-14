@@ -116,12 +116,12 @@ function TourManager() {
 const DomainRouter = () => {
   const { isCoffeeShopDomain } = useDomainRouting();
   
-  // If on coffee shop domain, show coffee shop homepage
+  // If on coffee shop domain, show coffee shop landing page
   if (isCoffeeShopDomain) {
     return <CoffeeShopHome />;
   }
   
-  // Otherwise show main site homepage
+  // Otherwise show main site landing page
   return <Index />;
 };
 

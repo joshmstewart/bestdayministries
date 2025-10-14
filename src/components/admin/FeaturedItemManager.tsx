@@ -641,7 +641,7 @@ export const FeaturedItemManager = () => {
                       <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p><strong>Public:</strong> Visible on homepage</p>
+                      <p><strong>Public:</strong> Visible on landing page</p>
                       <p className="mt-1"><strong>Private:</strong> Only visible when logged in</p>
                     </TooltipContent>
                   </Tooltip>

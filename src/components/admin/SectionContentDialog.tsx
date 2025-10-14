@@ -1174,7 +1174,7 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
           <DialogDescription>
             {section.section_key === 'community_features' 
               ? 'Update section content and manage individual features'
-              : 'Update the content for this homepage section.'}
+              : 'Update the content for this landing page section.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
