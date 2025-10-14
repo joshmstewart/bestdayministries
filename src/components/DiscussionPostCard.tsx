@@ -139,17 +139,6 @@ export const DiscussionPostCard = ({ post, onClick }: DiscussionPostCardProps) =
                       Pending
                     </Badge>
                   )}
-                  {post.author_id && (post.author?.role === 'bestie' || post.author?.role === 'caregiver') && (
-                    <VendorStoreLinkBadge userId={post.author_id} userRole={post.author?.role} variant="badge" />
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(post.created_at).toLocaleDateString()}
-                  </span>
-                  {post.approval_status === 'pending_approval' && (
-                    <Badge variant="outline" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30">
-                      Pending
-                    </Badge>
-                  )}
                 </div>
               </div>
             </div>

@@ -175,7 +175,7 @@ export const DiscussionDetailDialog = ({
             <div className="p-6 space-y-6">
               {/* Header */}
               <DialogHeader>
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4 pr-10">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <DialogTitle className="text-2xl flex-shrink-0">{post.title}</DialogTitle>
@@ -230,9 +230,8 @@ export const DiscussionDetailDialog = ({
                         )}
                         <span className="text-xs text-muted-foreground">
                           {new Date(post.created_at).toLocaleDateString()}
-                          {post.updated_at && 
-                           post.created_at !== post.updated_at && 
-                           new Date(post.updated_at).getTime() > new Date(post.created_at).getTime() + 300000 && (
+                          {post.updated_at && post.created_at && 
+                           new Date(post.updated_at).getTime() !== new Date(post.created_at).getTime() && (
                             <span className="ml-1 italic">(edited)</span>
                           )}
                         </span>
@@ -247,9 +246,9 @@ export const DiscussionDetailDialog = ({
                         onDeletePost(post.id);
                         onOpenChange(false);
                       }}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5" />
                     </Button>
                   )}
                 </div>
