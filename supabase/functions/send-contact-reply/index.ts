@@ -111,9 +111,12 @@ const handler = async (req: Request): Promise<Response> => {
       .select("reply_from_email, reply_from_name, recipient_email")
       .single();
 
-    const fromEmail = contactSettings?.reply_from_email || "noreply@yourdomain.com";
+    // Use Resend's testing domain if no verified domain is configured
+    const fromEmail = contactSettings?.reply_from_email && !contactSettings.reply_from_email.includes('yourdomain.com') 
+      ? contactSettings.reply_from_email 
+      : "onboarding@resend.dev";
     const fromName = contactSettings?.reply_from_name || "Joy House";
-    const replyToEmail = contactSettings?.recipient_email || "contact@example.com";
+    const replyToEmail = contactSettings?.recipient_email || "stewart.m.joshua@gmail.com";
 
     // Sanitize HTML in reply message
     const sanitizedReply = replyMessage
