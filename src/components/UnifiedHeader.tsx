@@ -341,7 +341,7 @@ export const UnifiedHeader = () => {
       {!dataLoaded ? (
         <HeaderSkeleton />
       ) : (
-        <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
+        <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-0 relative">
         <div className="flex flex-col">
           <div className="flex items-center justify-between">
@@ -457,7 +457,7 @@ export const UnifiedHeader = () => {
                       <ChevronDown className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-card border-border z-50">
+                  <DropdownMenuContent align="end" className="w-56 bg-card border-border z-[52]">
                     <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
@@ -496,7 +496,7 @@ export const UnifiedHeader = () => {
           {user && profile && (
             <>
               {/* Mobile Menu Button */}
-              <div className={`md:hidden absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 z-50 shadow-sm transition-all duration-300 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+              <div className={`md:hidden absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 z-[51] shadow-sm transition-all duration-300 ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
                 <div className="container mx-auto px-4 flex items-center justify-between">
                   <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                     <SheetTrigger asChild>
@@ -646,7 +646,7 @@ export const UnifiedHeader = () => {
 
               {/* Desktop Navigation */}
               <nav 
-                className={`hidden md:block absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-50 shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}
+                className={`hidden md:block absolute top-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-b border-border/50 py-2 transition-all duration-300 z-[51] shadow-sm ${showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}
                 data-tour-target="navigation-bar"
               >
                 <div className="container mx-auto px-4 flex items-center justify-between">
