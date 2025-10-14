@@ -170,13 +170,13 @@ export const DiscussionDetailDialog = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0" aria-describedby={undefined}>
           <ScrollArea className="max-h-[90vh]">
             <div className="p-6 space-y-6">
               {/* Header */}
               <DialogHeader>
-                <div className="flex items-start gap-4 pr-10">
-                  <div className="flex-1">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <DialogTitle className="text-2xl flex-shrink-0">{post.title}</DialogTitle>
                       <div className="flex items-center gap-2">
@@ -238,19 +238,29 @@ export const DiscussionDetailDialog = ({
                       </div>
                     </div>
                   </div>
-                  {canDeletePost && onDeletePost && (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {canDeletePost && onDeletePost && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          onDeletePost(post.id);
+                          onOpenChange(false);
+                        }}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        onDeletePost(post.id);
-                        onOpenChange(false);
-                      }}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                      onClick={() => onOpenChange(false)}
+                      className="hover:bg-accent"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <X className="w-5 h-5" />
                     </Button>
-                  )}
+                  </div>
                 </div>
               </DialogHeader>
 
