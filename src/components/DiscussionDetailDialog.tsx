@@ -496,7 +496,7 @@ export const DiscussionDetailDialog = ({
                             onClick={() => setShowAudioRecorder(true)}
                             className="flex-1 h-11"
                           >
-                            <Mic className="w-4 h-4 mr-2" />
+                            <Mic className="w-4 h-4 mr-2 text-red-500" />
                             Record Audio Comment
                           </Button>
                         )}
