@@ -270,11 +270,11 @@ export const DiscussionDetailDialog = ({
 
                 {/* Image */}
                 {post.image_url && (
-                  <div className="rounded-lg overflow-hidden">
+                  <div className="rounded-lg overflow-hidden max-h-[600px] flex items-center justify-center bg-muted">
                     <img 
                       src={post.image_url} 
                       alt={post.title}
-                      className="w-full cursor-pointer hover:opacity-90 transition-opacity"
+                      className="max-h-[600px] w-auto max-w-full cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => handleImageClick([{ id: undefined, image_url: post.image_url!, caption: null, display_order: 0 }], 0)}
                     />
                   </div>

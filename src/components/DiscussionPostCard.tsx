@@ -69,7 +69,7 @@ export const DiscussionPostCard = ({ post, onClick }: DiscussionPostCardProps) =
         <div className="flex flex-col md:flex-row">
           {/* Media Preview */}
           {hasMedia && (
-            <div className="md:w-72 flex-shrink-0">
+            <div className="md:w-72 flex-shrink-0 max-h-96 overflow-hidden">
               <AspectRatio 
                 ratio={(() => {
                   const ratio = (post as any).aspect_ratio || '16:9';
