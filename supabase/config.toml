@@ -96,3 +96,18 @@ verify_jwt = false
 [functions.sentry-webhook]
 verify_jwt = false
 
+[functions.process-inbound-email]
+verify_jwt = false
+
+[functions.github-test-webhook]
+verify_jwt = false
+
+[functions.generate-sitemap]
+verify_jwt = false
+
+[functions.generate-meta-tags]
+verify_jwt = false
+
+[functions.broadcast-product-update]
+verify_jwt = false
+
