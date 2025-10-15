@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
           subject: subject || 'Email to Contact',
           message: messageContent,
           status: 'new',
-          message_type: 'email'
+          message_type: 'general'
         })
         .select()
         .single();
