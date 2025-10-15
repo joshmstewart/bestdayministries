@@ -42,6 +42,7 @@ interface Submission {
   replied_by: string | null;
   reply_message: string | null;
   admin_notes: string | null;
+  reply_count?: number; // New field for reply count
 }
 
 interface Reply {
@@ -86,7 +87,7 @@ export const ContactFormManager = () => {
     loadSubmissions();
     
     // Subscribe to realtime changes
-    const channel = supabase
+    const submissionsChannel = supabase
       .channel('contact_form_submissions_changes')
       .on(
         'postgres_changes',
@@ -102,8 +103,26 @@ export const ContactFormManager = () => {
       )
       .subscribe();
     
+    // Subscribe to replies changes
+    const repliesChannel = supabase
+      .channel('contact_form_replies_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_form_replies'
+        },
+        () => {
+          console.log('Contact form reply changed, reloading...');
+          loadSubmissions(); // Reload to update counts
+        }
+      )
+      .subscribe();
+    
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(submissionsChannel);
+      supabase.removeChannel(repliesChannel);
     };
   }, []);
 
@@ -126,7 +145,19 @@ export const ContactFormManager = () => {
       .limit(50);
 
     if (data) {
-      setSubmissions(data);
+      // Load reply counts for each submission
+      const submissionsWithCounts = await Promise.all(
+        data.map(async (submission) => {
+          const { count } = await supabase
+            .from("contact_form_replies")
+            .select("*", { count: 'exact', head: true })
+            .eq("submission_id", submission.id);
+          
+          return { ...submission, reply_count: count || 0 };
+        })
+      );
+      
+      setSubmissions(submissionsWithCounts);
     }
   };
 
@@ -586,7 +617,12 @@ export const ContactFormManager = () => {
                           className="gap-1"
                         >
                           <Reply className="h-3 w-3" />
-                          {submission.replied_at ? "Continue Conversation" : "Reply"}
+                          {submission.replied_at ? "Continue" : "Reply"}
+                          {submission.reply_count > 0 && (
+                            <Badge variant="secondary" className="ml-1">
+                              {submission.reply_count}
+                            </Badge>
+                          )}
                         </Button>
                         {submission.status === "new" ? (
                           <Button
