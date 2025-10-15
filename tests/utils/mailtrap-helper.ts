@@ -78,7 +78,7 @@ export async function fetchAllMessages(): Promise<MailtrapMessage[]> {
   
   const response = await fetch(url, {
     headers: {
-      'Api-Token': MAILTRAP_API_TOKEN!,
+      'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
     },
   });
 
@@ -102,7 +102,7 @@ export async function fetchEmail(emailId: number): Promise<MailtrapEmail> {
   
   const response = await fetch(url, {
     headers: {
-      'Api-Token': MAILTRAP_API_TOKEN!,
+      'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
     },
   });
 
@@ -206,6 +206,7 @@ export async function clearInbox(): Promise<void> {
 
   // Use Mailtrap V1 API endpoint for clearing inbox
   // V1 API: PATCH /api/v1/inboxes/{inbox_id}/clean
+  // Auth: Bearer token format
   const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/clean`;
   
   console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
@@ -213,7 +214,7 @@ export async function clearInbox(): Promise<void> {
   const response = await fetch(url, {
     method: 'PATCH',
     headers: {
-      'Api-Token': MAILTRAP_API_TOKEN!,
+      'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
     },
   });
 
