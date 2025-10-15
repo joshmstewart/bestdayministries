@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   
-  // Environment variables for email testing
+  // Test configuration
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:8080',
     trace: 'retain-on-failure',
@@ -16,7 +16,6 @@ export default defineConfig({
     video: 'retain-on-failure',
     actionTimeout: 15000,
     navigationTimeout: 30000,
-    // Make Mailtrap credentials available to tests
     extraHTTPHeaders: {},
   },
 

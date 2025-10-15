@@ -1,12 +1,52 @@
 # Test Utilities
 
-## Mailtrap Email Testing
+# Test Utilities
 
-Utilities for testing email functionality using Mailtrap's sandbox API.
+## Resend Email Testing (Production-Parity)
+
+Utilities for testing email functionality using database verification and direct Resend API testing.
 
 ### Setup
 
-1. Sign up for a free Mailtrap account at https://mailtrap.io
+All tests use the existing Supabase database - no additional configuration needed.
+
+### Usage
+
+```typescript
+import {
+  waitForSubmission,
+  waitForReply,
+  simulateInboundEmail,
+  verifySubmission,
+  verifyReply,
+  cleanupTestSubmissions,
+} from './utils/resend-test-helper';
+
+test('contact form creates submission', async ({ page }) => {
+  // Submit form
+  await submitContactForm(page, { email: 'test@example.com' });
+  
+  // Verify in database
+  const submission = await waitForSubmission('test@example.com');
+  expect(submission.status).toBe('new');
+});
+```
+
+### Available Functions
+
+#### Database Verification
+- `waitForSubmission(email)` - Wait for submission to appear in DB
+- `waitForReply(submissionId)` - Wait for reply to appear in DB
+- `verifySubmission(email, expected)` - Verify submission data
+- `verifyReply(submissionId, expected)` - Verify reply data
+
+#### Email Simulation
+- `simulateInboundEmail(payload)` - Simulate inbound email via edge function
+
+#### Cleanup
+- `cleanupTestSubmissions(emailPattern)` - Clean up test data
+
+See `EMAIL_TESTING_PRODUCTION_PARITY.md` for complete documentation.
 2. Create a testing inbox (Sandboxes → My Sandbox)
 3. Get your API credentials from the API tab
 4. Add secrets:

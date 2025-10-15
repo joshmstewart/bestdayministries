@@ -265,16 +265,6 @@ Tests verify these tables:
 - No external service quotas
 - Consistent across environments
 
-## Migration from Mailtrap
-
-If migrating from Mailtrap-based tests:
-
-1. ✅ Remove `tests/utils/mailtrap-helper.ts`
-2. ✅ Remove Mailtrap environment variables
-3. ✅ Update tests to use database verification
-4. ✅ Remove Mailtrap dependencies from CI/CD
-5. ✅ Update documentation
-
 ## Optional: Local Development with Mailpit
 
 For local development, you can use Mailpit to capture emails:

@@ -491,4 +491,6 @@ graph LR
 ## Related Documentation
 - [NOTIFICATION_SYSTEM_COMPLETE.md](./NOTIFICATION_SYSTEM_COMPLETE.md) - Admin notifications
 - [ADMIN_DASHBOARD_CONCISE.md](./ADMIN_DASHBOARD_CONCISE.md) - Admin panel structure
-- [EMAIL_TESTING_MAILTRAP.md](./EMAIL_TESTING_MAILTRAP.md) - Email testing guide
+- [EMAIL_TESTING_PRODUCTION_PARITY.md](./EMAIL_TESTING_PRODUCTION_PARITY.md) - Email testing with database verification
+- [CLOUDFLARE_EMAIL_ROUTING_SETUP.md](./CLOUDFLARE_EMAIL_ROUTING_SETUP.md) - CloudFlare email routing setup
+- [CONTACT_FORM_NOTIFICATIONS.md](./CONTACT_FORM_NOTIFICATIONS.md) - Notification system integration
