@@ -20,6 +20,17 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
       
+    - name: Seed test data
+      run: |
+        TEST_RUN_ID="${{ github.run_id }}"
+        curl -X POST "${VITE_SUPABASE_URL}/functions/v1/seed-email-test-data" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${VITE_SUPABASE_ANON_KEY}" \
+          -d "{\"testRunId\": \"${TEST_RUN_ID}\"}"
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        
     - name: Run email tests
       run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium
       env:

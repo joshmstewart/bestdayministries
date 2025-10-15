@@ -111,3 +111,9 @@ verify_jwt = false
 [functions.broadcast-product-update]
 verify_jwt = false
 
+[functions.test-contact-form-helper]
+verify_jwt = false
+
+[functions.seed-email-test-data]
+verify_jwt = false
+
