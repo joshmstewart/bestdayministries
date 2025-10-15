@@ -84,6 +84,27 @@ export const ContactFormManager = () => {
   useEffect(() => {
     loadSettings();
     loadSubmissions();
+    
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('contact_form_submissions_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_form_submissions'
+        },
+        () => {
+          console.log('Contact form submission changed, reloading...');
+          loadSubmissions();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadSettings = async () => {
@@ -189,7 +210,13 @@ export const ContactFormManager = () => {
       .delete()
       .eq("id", id);
 
-    if (!error) {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
       loadSubmissions();
       toast({
         title: "Deleted",
