@@ -108,11 +108,67 @@ Deno.serve(async (req) => {
     }
 
     if (!submissions || submissions.length === 0) {
-      console.log('[process-inbound-email] No matching submission found for email:', senderEmail);
+      console.log('[process-inbound-email] No matching submission found - creating new submission');
+      
+      // Extract clean message content for new submission
+      const messageContent = extractMessageContent(emailText);
+      if (!messageContent || messageContent.trim().length === 0) {
+        throw new Error('No message content found in email');
+      }
+      
+      // Extract sender name from email or use email as fallback
+      const senderName = payload.from.includes('<') 
+        ? payload.from.split('<')[0].trim().replace(/['"]/g, '')
+        : senderEmail.split('@')[0];
+      
+      // Create new contact form submission
+      const { data: newSubmission, error: insertError } = await supabase
+        .from('contact_form_submissions')
+        .insert({
+          email: senderEmail,
+          name: senderName,
+          subject: subject || 'Email to Contact',
+          message: messageContent,
+          status: 'new',
+          message_type: 'email'
+        })
+        .select()
+        .single();
+      
+      if (insertError) {
+        throw new Error(`Failed to create submission: ${insertError.message}`);
+      }
+      
+      console.log('[process-inbound-email] New submission created:', newSubmission.id);
+      
+      // Notify admins about new email submission
+      const { data: adminUsers, error: adminsError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['admin', 'owner']);
+
+      if (!adminsError && adminUsers) {
+        for (const admin of adminUsers) {
+          await supabase.from('notifications').insert({
+            user_id: admin.user_id,
+            type: 'contact_form_submission',
+            title: 'New Email Received',
+            message: `${senderName} (${senderEmail}) sent an email`,
+            link: '/admin?tab=contact',
+            metadata: {
+              submission_id: newSubmission.id,
+              sender_email: senderEmail,
+              source: 'email'
+            },
+          });
+        }
+      }
+      
       return new Response(
         JSON.stringify({ 
-          success: false, 
-          message: 'No matching submission found' 
+          success: true, 
+          submission_id: newSubmission.id,
+          created: true
         }),
         {
           status: 200,
