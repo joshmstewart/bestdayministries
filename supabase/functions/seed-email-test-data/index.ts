@@ -76,9 +76,7 @@ serve(async (req) => {
     console.log('📝 Ensuring profiles exist...');
     
     for (const [key, userId] of Object.entries(userIds)) {
-      // Generate unique friend code for each user using timestamp and random number
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 1000);
+      // Generate unique 3-emoji friend code for each user
       const emojiSet = ['🎯', '🎨', '🎭', '🎪', '🌟', '🌈', '🔥', '🌊', '🌸', '🍕'];
       const friendCode = 
         emojiSet[Math.floor(Math.random() * emojiSet.length)] +
@@ -91,7 +89,7 @@ serve(async (req) => {
           id: userId,
           display_name: `Test ${key.charAt(0).toUpperCase() + key.slice(1)}`,
           email: testUsers[key as keyof typeof testUsers].email,
-          friend_code: `${friendCode}-${timestamp}-${random}`
+          friend_code: friendCode
         }, { onConflict: 'id' });
 
       if (profileError) {
@@ -290,7 +288,7 @@ serve(async (req) => {
       .insert({
         user_id: userIds.vendor,
         business_name: 'Test Vendor Business',
-        contact_email: testUsers.vendor.email,
+        description: 'Test vendor for email testing',
         status: 'approved'
       })
       .select()
