@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply } from "lucide-react";
+import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -59,6 +59,7 @@ interface Reply {
 export const ContactFormManager = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -137,7 +138,11 @@ export const ContactFormManager = () => {
     }
   };
 
-  const loadSubmissions = async () => {
+  const loadSubmissions = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    }
+    
     const { data } = await supabase
       .from("contact_form_submissions")
       .select("*")
@@ -159,6 +164,9 @@ export const ContactFormManager = () => {
       
       setSubmissions(submissionsWithCounts);
     }
+    
+    setLoading(false);
+    setRefreshing(false);
   };
 
   const onSubmit = async (data: SettingsFormData) => {
@@ -507,10 +515,23 @@ export const ContactFormManager = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Contact Form Submissions</CardTitle>
-          <CardDescription>
-            View and manage messages received through the contact form
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Contact Form Submissions</CardTitle>
+              <CardDescription>
+                View and manage messages received through the contact form
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => loadSubmissions(true)}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {submissions.length === 0 ? (
