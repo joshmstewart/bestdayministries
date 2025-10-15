@@ -76,13 +76,17 @@ serve(async (req) => {
     console.log('📝 Ensuring profiles exist...');
     
     for (const [key, userId] of Object.entries(userIds)) {
+      // Generate unique friend code for each user
+      const friendCodes = ['🎯🎨🎭', '🎪🎯🎨', '🎭🎪🎯', '🎨🎭🎪'];
+      const friendCode = friendCodes[Object.keys(userIds).indexOf(key)] || '🎯🎯🎯';
+      
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .upsert({
           id: userId,
           display_name: `Test ${key.charAt(0).toUpperCase() + key.slice(1)}`,
           email: testUsers[key as keyof typeof testUsers].email,
-          friend_code: `🎯🎯🎯` // Test friend code
+          friend_code: friendCode
         }, { onConflict: 'id' });
 
       if (profileError) {
@@ -163,6 +167,8 @@ serve(async (req) => {
       .from('sponsor_besties')
       .insert({
         bestie_id: userIds.bestie,
+        bestie_name: 'Test Bestie',
+        description: 'Test bestie for email testing',
         is_active: true
       })
       .select()
