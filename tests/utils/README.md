@@ -1,14 +1,16 @@
 # Test Utilities
 
-# Test Utilities
-
 ## Resend Email Testing (Production-Parity)
 
 Utilities for testing email functionality using database verification and direct Resend API testing.
 
+### Overview
+
+This project uses production-parity testing where E2E tests verify the ACTUAL Resend email infrastructure by checking database state instead of relying on external email capture services.
+
 ### Setup
 
-All tests use the existing Supabase database - no additional configuration needed.
+No additional configuration needed - tests use the existing Supabase database.
 
 ### Usage
 
@@ -24,112 +26,107 @@ import {
 
 test('contact form creates submission', async ({ page }) => {
   // Submit form
-  await submitContactForm(page, { email: 'test@example.com' });
+  await page.goto('/');
+  await page.fill('input[name="email"]', 'test@example.com');
+  await page.fill('input[name="name"]', 'Test User');
+  await page.fill('textarea[name="message"]', 'Test message');
+  await page.click('button[type="submit"]');
   
   // Verify in database
   const submission = await waitForSubmission('test@example.com');
   expect(submission.status).toBe('new');
+  expect(submission.name).toBe('Test User');
+});
+
+test('inbound email reply saves to database', async ({ page }) => {
+  // Create submission
+  const submission = await waitForSubmission('user@example.com');
+  
+  // Simulate user replying to email
+  await simulateInboundEmail({
+    from: 'user@example.com',
+    to: 'contact@yourdomain.com',
+    subject: `Re: ${submission.subject}`,
+    text: 'Thanks for the quick response!',
+  });
+  
+  // Verify reply saved in database
+  const reply = await waitForReply(submission.id, { senderType: 'user' });
+  expect(reply.message).toContain('Thanks for the quick response!');
 });
 ```
 
 ### Available Functions
 
 #### Database Verification
-- `waitForSubmission(email)` - Wait for submission to appear in DB
-- `waitForReply(submissionId)` - Wait for reply to appear in DB
-- `verifySubmission(email, expected)` - Verify submission data
-- `verifyReply(submissionId, expected)` - Verify reply data
+
+##### `waitForSubmission(email, options?)`
+Wait for a contact form submission to appear in the database.
+
+**Parameters:**
+- `email` - User email to search for
+- `options.timeoutMs` - Maximum wait time (default: 30000)
+- `options.pollIntervalMs` - Poll interval (default: 1000)
+
+**Returns:** Submission object with id, email, name, subject, message, status, etc.
+
+##### `waitForReply(submissionId, options?)`
+Wait for a reply to appear in the database.
+
+**Parameters:**
+- `submissionId` - Submission UUID
+- `options.senderType` - Filter by 'admin' or 'user'
+- `options.timeoutMs` - Maximum wait time (default: 30000)
+
+**Returns:** Reply object with id, submission_id, sender_type, message, etc.
+
+##### `verifySubmission(email, expected)`
+Verify submission data matches expectations.
+
+**Expected fields:**
+- `name` - Expected name
+- `subject` - Expected subject
+- `message` - Expected message
+- `status` - Expected status ('new' | 'read')
+
+##### `verifyReply(submissionId, expected)`
+Verify reply data matches expectations.
+
+**Expected fields:**
+- `senderType` - 'admin' or 'user'
+- `messageContains` - String that should appear in message
+- `senderEmail` - Expected sender email
 
 #### Email Simulation
-- `simulateInboundEmail(payload)` - Simulate inbound email via edge function
+
+##### `simulateInboundEmail(payload)`
+Simulate an inbound email by calling the edge function directly.
+
+**Payload:**
+- `from` - Sender email
+- `to` - Recipient email (e.g., 'contact@yourdomain.com')
+- `subject` - Email subject
+- `text` - Email body text
+- `html` - Email body HTML (optional)
+
+This directly calls the `process-inbound-email` edge function to simulate CloudFlare email routing.
 
 #### Cleanup
-- `cleanupTestSubmissions(emailPattern)` - Clean up test data
 
-See `EMAIL_TESTING_PRODUCTION_PARITY.md` for complete documentation.
-2. Create a testing inbox (Sandboxes → My Sandbox)
-3. Get your API credentials from the API tab
-4. Add secrets:
-   - `MAILTRAP_API_TOKEN` - Your API token
-   - `MAILTRAP_INBOX_ID` - Your inbox ID (e.g., 4099857)
-   - `MAILTRAP_ACCOUNT_ID` - Your account ID (default: 3242583)
+##### `cleanupTestSubmissions(emailPattern)`
+Delete test submissions matching email pattern.
 
-### Usage
+**Parameters:**
+- `emailPattern` - SQL LIKE pattern (e.g., '%test-%@example.com')
 
+**Example:**
 ```typescript
-import {
-  waitForEmail,
-  verifyEmailContent,
-  clearInbox,
-  extractLinks,
-} from './utils/mailtrap-helper';
+// Clean up all test emails
+await cleanupTestSubmissions('%test-%@example.com');
 
-// Clear inbox before test
-await clearInbox();
-
-// Trigger email (e.g., submit contact form)
-await submitContactForm(page);
-
-// Wait for email to arrive
-const email = await waitForEmail({
-  to: 'test@example.com',
-  subject: 'Contact Form',
-});
-
-// Verify email content
-verifyEmailContent(email, {
-  subject: 'Thank you for contacting us',
-  htmlContains: ['We received your message', 'Reply within 24 hours'],
-  linksContain: ['/contact'],
-});
-
-// Extract all links from email
-const links = extractLinks(email);
-expect(links).toContain('https://yoursite.com/contact');
+// Clean up specific test run
+await cleanupTestSubmissions(`%${testRunId}%@example.com`);
 ```
-
-### Available Functions
-
-#### `isMailtrapConfigured()`
-Check if Mailtrap environment variables are set.
-
-#### `waitForEmail(criteria, options)`
-Wait for an email matching criteria to arrive.
-
-**Criteria:**
-- `to` - Recipient email address
-- `subject` - Subject line (partial match)
-- `from` - Sender email address
-
-**Options:**
-- `timeoutMs` - Maximum wait time (default: 30000)
-- `pollIntervalMs` - Poll interval (default: 2000)
-
-#### `fetchAllMessages()`
-Fetch all messages from the inbox.
-
-#### `fetchEmail(emailId)`
-Fetch a specific email with full body content.
-
-#### `findLatestEmail(criteria)`
-Find the most recent email matching criteria.
-
-#### `clearInbox()`
-Delete all emails from the inbox.
-
-#### `verifyEmailContent(email, expectations)`
-Verify email matches expectations.
-
-**Expectations:**
-- `subject` - Expected subject (string or regex)
-- `toEmail` - Expected recipient
-- `fromEmail` - Expected sender
-- `htmlContains` - Array of strings that should appear in HTML
-- `textContains` - Array of strings that should appear in plain text
-- `linksContain` - Array of URL fragments that should be in links
-
-#### `extractLinks(email)`
-Extract all href links from email HTML.
 
 ### Test Tags
 
@@ -143,43 +140,56 @@ Run email tests only:
 npx playwright test --grep @email
 ```
 
-### CI/CD Setup
-
-Add Mailtrap secrets to GitHub Actions:
-
-1. Go to repository Settings → Secrets and variables → Actions
-2. Add secrets:
-   - `MAILTRAP_API_TOKEN`
-   - `MAILTRAP_INBOX_ID`
-   - `MAILTRAP_ACCOUNT_ID`
-
-The tests will automatically use these in CI pipelines.
-
 ### Best Practices
 
-1. **Clear inbox before each test** - Prevents false positives from old emails
-2. **Use specific criteria** - Match on subject + recipient for accuracy
-3. **Set appropriate timeouts** - Email delivery can take 5-15 seconds
-4. **Verify critical content** - Check links, names, amounts are correct
-5. **Don't test in parallel** - Email tests should run sequentially
+1. **Use unique emails** - Include timestamp or test ID to avoid conflicts
+   ```typescript
+   const testEmail = `test-${Date.now()}@example.com`;
+   ```
+
+2. **Clean up after tests** - Use `test.afterEach` to delete test data
+   ```typescript
+   test.afterEach(async () => {
+     await cleanupTestSubmissions('%test-%@example.com');
+   });
+   ```
+
+3. **Set appropriate timeouts** - Database queries are fast but allow buffer
+   ```typescript
+   await waitForSubmission(email, { timeoutMs: 30000 });
+   ```
+
+4. **Verify critical fields** - Check that important data is saved correctly
+   ```typescript
+   expect(submission.email).toBe(testEmail);
+   expect(submission.status).toBe('new');
+   ```
+
+5. **Test real workflows** - Simulate full user journeys
+   ```typescript
+   // Submit → Admin Reply → User Reply → Verify Thread
+   ```
 
 ### Troubleshooting
 
-**Timeout waiting for email:**
-- Check that `MAILTRAP_API_TOKEN` and `MAILTRAP_INBOX_ID` are set
-- Verify inbox ID is correct (check Mailtrap dashboard)
-- Increase `timeoutMs` if email delivery is slow
-- Check that email is actually being sent (review edge function logs)
+**Timeout waiting for submission:**
+- Check that form validation passed (look for error messages)
+- Verify submission was saved (check database manually)
+- Increase timeout if needed
 
-**API errors:**
-- Verify API token has correct permissions
-- Check account ID is correct (default: 3242583)
-- Ensure you're not hitting rate limits (100 emails/month on free tier)
+**Reply not found in database:**
+- Verify edge function was called successfully
+- Check that sender email matches submission email
+- Review edge function logs for errors
 
-**Wrong inbox:**
-- Verify `MAILTRAP_INBOX_ID` matches your sandbox inbox
-- Clear old test emails from inbox
+**Test data not cleaned up:**
+- Ensure cleanup function uses correct email pattern
+- Check for foreign key constraints (delete replies before submissions)
 
-### Examples
+### Complete Documentation
 
-See `tests/e2e/email-contact-form.spec.ts` for complete examples.
+See `docs/EMAIL_TESTING_PRODUCTION_PARITY.md` for complete documentation including:
+- Architecture and design decisions
+- Test flow diagrams
+- CI/CD setup
+- Advanced examples

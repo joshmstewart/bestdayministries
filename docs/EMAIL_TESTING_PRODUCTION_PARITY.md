@@ -2,14 +2,14 @@
 
 ## Overview
 
-This project uses **production-parity email testing** where E2E tests verify the ACTUAL Resend email infrastructure by checking database state instead of relying on external email capture services like Mailtrap.
+This project uses **production-parity email testing** where E2E tests verify the ACTUAL Resend email infrastructure by checking database state instead of relying on external email capture services.
 
 ## Why This Approach?
 
 ### ❌ Anti-Pattern: Testing with Mock Services
 ```
 Development: Resend (real)
-Testing: Mailtrap (mock)
+Testing: Mock email service (fake)
 Production: Resend (real)
 ```
 **Problem**: You're testing infrastructure that doesn't match production.
@@ -247,9 +247,9 @@ Tests verify these tables:
 - Tests REAL edge function email parsing
 
 ### ✅ No External Dependencies
-- No Mailtrap account needed
+- No external email capture service needed
 - No API token management
-- No email capture polling
+- No email polling or waiting
 
 ### ✅ Fast & Reliable
 - Database queries are instant
