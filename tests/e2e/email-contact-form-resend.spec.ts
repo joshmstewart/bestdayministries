@@ -41,8 +41,8 @@ test.describe('Contact Form Email Tests (Resend)', () => {
     // Submit form
     await page.click('button[type="submit"]');
 
-    // Wait for success message
-    await expect(page.getByText(/thank you|success|sent/i)).toBeVisible({
+    // Wait for success message (use .first() to avoid strict mode violation)
+    await expect(page.getByText(/thank you|success|sent/i).first()).toBeVisible({
       timeout: 15000,
     });
 
@@ -75,7 +75,7 @@ test.describe('Contact Form Email Tests (Resend)', () => {
     await page.fill('textarea[name="message"]', testMessage);
     await page.click('button[type="submit"]');
 
-    await expect(page.getByText(/thank you|success/i)).toBeVisible();
+    await expect(page.getByText(/thank you|success/i).first()).toBeVisible();
 
     // Wait for submission to appear in database
     const submission = await waitForSubmission(testEmail);
@@ -117,7 +117,7 @@ test.describe('Contact Form Email Tests (Resend)', () => {
     await page.fill('textarea[name="message"]', testMessage);
     await page.click('button[type="submit"]');
 
-    await expect(page.getByText(/thank you|success/i)).toBeVisible();
+    await expect(page.getByText(/thank you|success/i).first()).toBeVisible();
 
     // Verify submission
     const submission = await waitForSubmission(testEmail);
@@ -176,7 +176,7 @@ test.describe('Contact Form Email Tests (Resend)', () => {
     await page.fill('textarea[name="message"]', 'Initial message');
     await page.click('button[type="submit"]');
 
-    await expect(page.getByText(/thank you|success/i)).toBeVisible();
+    await expect(page.getByText(/thank you|success/i).first()).toBeVisible();
 
     const submission = await waitForSubmission(testEmail);
 
