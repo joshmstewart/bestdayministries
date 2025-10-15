@@ -76,9 +76,14 @@ serve(async (req) => {
     console.log('📝 Ensuring profiles exist...');
     
     for (const [key, userId] of Object.entries(userIds)) {
-      // Generate unique friend code for each user
-      const friendCodes = ['🎯🎨🎭', '🎪🎯🎨', '🎭🎪🎯', '🎨🎭🎪'];
-      const friendCode = friendCodes[Object.keys(userIds).indexOf(key)] || '🎯🎯🎯';
+      // Generate unique friend code for each user using timestamp and random number
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000);
+      const emojiSet = ['🎯', '🎨', '🎭', '🎪', '🌟', '🌈', '🔥', '🌊', '🌸', '🍕'];
+      const friendCode = 
+        emojiSet[Math.floor(Math.random() * emojiSet.length)] +
+        emojiSet[Math.floor(Math.random() * emojiSet.length)] +
+        emojiSet[Math.floor(Math.random() * emojiSet.length)];
       
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
@@ -86,7 +91,7 @@ serve(async (req) => {
           id: userId,
           display_name: `Test ${key.charAt(0).toUpperCase() + key.slice(1)}`,
           email: testUsers[key as keyof typeof testUsers].email,
-          friend_code: friendCode
+          friend_code: `${friendCode}-${timestamp}-${random}`
         }, { onConflict: 'id' });
 
       if (profileError) {
@@ -198,9 +203,7 @@ serve(async (req) => {
         bestie_id: userIds.bestie,
         amount: 50,
         frequency: 'monthly',
-        status: 'active',
-        stripe_customer_id: 'test_cus_monthly',
-        stripe_subscription_id: 'test_sub_monthly'
+        status: 'active'
       })
       .select()
       .single();
@@ -217,8 +220,7 @@ serve(async (req) => {
         bestie_id: userIds.bestie,
         amount: 100,
         frequency: 'one-time',
-        status: 'completed',
-        stripe_customer_id: 'test_cus_onetime'
+        status: 'completed'
       })
       .select()
       .single();
