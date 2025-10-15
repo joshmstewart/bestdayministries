@@ -24,6 +24,14 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Detect test mode from query param
+    const url = new URL(req.url);
+    const isTestMode = url.searchParams.get('test') === 'true';
+    
+    if (isTestMode) {
+      console.log('[TEST MODE] Processing test email');
+    }
+
     console.log('[process-inbound-email] Received webhook');
 
     const payload: InboundEmailPayload = await req.json();
