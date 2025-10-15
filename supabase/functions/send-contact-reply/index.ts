@@ -231,16 +231,25 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
       // Don't fail the request since email was sent successfully
     }
 
-    // Update admin notes if provided
+    // Update the submission with reply timestamp and admin notes
+    const updateData: any = {
+      replied_at: new Date().toISOString(),
+      replied_by: user.id,
+      reply_message: replyMessage,
+      status: "read", // Mark as read when admin replies
+    };
+    
     if (adminNotes) {
-      const { error: notesError } = await supabase
-        .from("contact_form_submissions")
-        .update({ admin_notes: adminNotes })
-        .eq("id", submissionId);
+      updateData.admin_notes = adminNotes;
+    }
 
-      if (notesError) {
-        console.error("[send-contact-reply] Error updating admin notes:", notesError);
-      }
+    const { error: updateError } = await supabase
+      .from("contact_form_submissions")
+      .update(updateData)
+      .eq("id", submissionId);
+
+    if (updateError) {
+      console.error("[send-contact-reply] Error updating submission:", updateError);
     }
 
     return new Response(

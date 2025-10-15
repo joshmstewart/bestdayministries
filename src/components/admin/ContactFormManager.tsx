@@ -42,7 +42,8 @@ interface Submission {
   replied_by: string | null;
   reply_message: string | null;
   admin_notes: string | null;
-  reply_count?: number; // New field for reply count
+  reply_count?: number;
+  unread_user_replies?: number; // Count of user replies since last admin reply
 }
 
 interface Reply {
@@ -148,15 +149,28 @@ export const ContactFormManager = () => {
       .limit(50);
 
     if (data) {
-      // Load reply counts for each submission
+      // Load reply counts and unread user reply counts for each submission
       const submissionsWithCounts = await Promise.all(
         data.map(async (submission) => {
-          const { count } = await supabase
+          // Total reply count
+          const { count: totalReplies } = await supabase
             .from("contact_form_replies")
             .select("*", { count: 'exact', head: true })
             .eq("submission_id", submission.id);
           
-          return { ...submission, reply_count: count || 0 };
+          // Count of user replies since last admin reply
+          const { count: unreadUserReplies } = await supabase
+            .from("contact_form_replies")
+            .select("*", { count: 'exact', head: true })
+            .eq("submission_id", submission.id)
+            .eq("sender_type", "user")
+            .gte("created_at", submission.replied_at || "1970-01-01");
+          
+          return { 
+            ...submission, 
+            reply_count: totalReplies || 0,
+            unread_user_replies: unreadUserReplies || 0
+          };
         })
       );
       
@@ -268,6 +282,22 @@ export const ContactFormManager = () => {
     setAdminNotes(submission.admin_notes || "");
     setReplyDialogOpen(true);
     loadReplies(submission.id);
+    
+    // Mark related contact form notifications as read
+    markContactNotificationsAsRead(submission.id);
+  };
+
+  const markContactNotificationsAsRead = async (submissionId: string) => {
+    try {
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .in("type", ["contact_form_submission", "contact_form_reply"])
+        .eq("metadata->>submission_id", submissionId)
+        .eq("is_read", false);
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    }
   };
 
   const loadReplies = async (submissionId: string) => {
@@ -527,8 +557,10 @@ export const ContactFormManager = () => {
                   >
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center">
-                        {submission.status === "new" && (
-                          <div className="w-2 h-2 rounded-full bg-destructive" title="New submission" />
+                        {(submission.status === "new" || (submission.unread_user_replies && submission.unread_user_replies > 0)) && (
+                          <div className="w-2 h-2 rounded-full bg-destructive" title={
+                            submission.status === "new" ? "New submission" : "New reply"
+                          } />
                         )}
                       </div>
                     </TableCell>
@@ -602,6 +634,11 @@ export const ContactFormManager = () => {
                           {submission.reply_count > 0 && (
                             <Badge variant="secondary" className="ml-1">
                               {submission.reply_count}
+                            </Badge>
+                          )}
+                          {submission.unread_user_replies && submission.unread_user_replies > 0 && (
+                            <Badge variant="destructive" className="ml-1">
+                              {submission.unread_user_replies} new
                             </Badge>
                           )}
                         </Button>
