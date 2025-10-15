@@ -1,0 +1,193 @@
+/**
+ * E2E Email Tests - Sponsorship Receipts
+ * 
+ * Tests sponsorship receipt email functionality via database verification.
+ */
+
+import { test, expect } from '@playwright/test';
+import { supabase } from '../utils/test-helpers';
+
+test.describe('Sponsorship Receipt Email Tests', () => {
+  test('sends receipt email for new monthly sponsorship @email @receipts', async () => {
+    test.setTimeout(90000);
+
+    // Get an active sponsorship
+    const { data: sponsorships } = await supabase
+      .from('sponsorships')
+      .select('*, sponsor_besties(*)')
+      .eq('status', 'active')
+      .eq('frequency', 'monthly')
+      .limit(1);
+
+    if (!sponsorships || sponsorships.length === 0) {
+      console.log('⚠️ No active monthly sponsorships found');
+      test.skip();
+      return;
+    }
+
+    const sponsorship = sponsorships[0];
+
+    // Trigger receipt generation
+    const { error } = await supabase.functions.invoke('send-sponsorship-receipt', {
+      body: {
+        sponsorshipId: sponsorship.id
+      }
+    });
+
+    expect(error).toBeNull();
+
+    // Wait for receipt processing
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Verify receipt created
+    const { data: receipt } = await supabase
+      .from('sponsorship_receipts')
+      .select('*')
+      .eq('sponsorship_id', sponsorship.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    expect(receipt).toBeTruthy();
+    expect(receipt!.length).toBeGreaterThan(0);
+    expect(receipt![0].receipt_number).toBeTruthy();
+    expect(receipt![0].amount).toBeGreaterThan(0);
+
+    console.log('✅ Monthly sponsorship receipt test passed');
+  });
+
+  test('sends receipt email for one-time sponsorship @email @receipts', async () => {
+    test.setTimeout(90000);
+
+    const { data: sponsorships } = await supabase
+      .from('sponsorships')
+      .select('*, sponsor_besties(*)')
+      .eq('status', 'completed')
+      .eq('frequency', 'one-time')
+      .limit(1);
+
+    if (!sponsorships || sponsorships.length === 0) {
+      console.log('⚠️ No one-time sponsorships found');
+      test.skip();
+      return;
+    }
+
+    const sponsorship = sponsorships[0];
+
+    const { error } = await supabase.functions.invoke('send-sponsorship-receipt', {
+      body: {
+        sponsorshipId: sponsorship.id
+      }
+    });
+
+    expect(error).toBeNull();
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    const { data: receipt } = await supabase
+      .from('sponsorship_receipts')
+      .select('*')
+      .eq('sponsorship_id', sponsorship.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    expect(receipt).toBeTruthy();
+    expect(receipt!.length).toBeGreaterThan(0);
+
+    console.log('✅ One-time sponsorship receipt test passed');
+  });
+
+  test('receipt includes correct organization information @email @receipts', async () => {
+    test.setTimeout(90000);
+
+    const { data: sponsorships } = await supabase
+      .from('sponsorships')
+      .select('*')
+      .eq('status', 'active')
+      .limit(1);
+
+    if (!sponsorships || sponsorships.length === 0) {
+      test.skip();
+      return;
+    }
+
+    const sponsorship = sponsorships[0];
+
+    // Get receipt settings
+    const { data: settings } = await supabase
+      .from('receipt_settings')
+      .select('*')
+      .single();
+
+    await supabase.functions.invoke('send-sponsorship-receipt', {
+      body: {
+        sponsorshipId: sponsorship.id
+      }
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    const { data: receipt } = await supabase
+      .from('sponsorship_receipts')
+      .select('*')
+      .eq('sponsorship_id', sponsorship.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    expect(receipt).toBeTruthy();
+    expect(receipt![0].organization_name).toBe(settings?.organization_name);
+    expect(receipt![0].organization_ein).toBe(settings?.ein);
+
+    console.log('✅ Receipt organization info test passed');
+  });
+
+  test('generates missing receipts for existing sponsorships @email @receipts', async () => {
+    test.setTimeout(90000);
+
+    // Find sponsorships without receipts
+    const { data: sponsorships } = await supabase
+      .from('sponsorships')
+      .select('id')
+      .eq('status', 'active')
+      .limit(5);
+
+    if (!sponsorships || sponsorships.length === 0) {
+      test.skip();
+      return;
+    }
+
+    // Get sponsorships that don't have receipts
+    const { data: existingReceipts } = await supabase
+      .from('sponsorship_receipts')
+      .select('sponsorship_id')
+      .in('sponsorship_id', sponsorships.map(s => s.id));
+
+    const existingIds = new Set(existingReceipts?.map(r => r.sponsorship_id) || []);
+    const missingReceipts = sponsorships.filter(s => !existingIds.has(s.id));
+
+    if (missingReceipts.length === 0) {
+      console.log('⚠️ All sponsorships have receipts');
+      test.skip();
+      return;
+    }
+
+    // Trigger missing receipt generation
+    const { error } = await supabase.functions.invoke('generate-missing-receipts', {
+      body: {}
+    });
+
+    expect(error).toBeNull();
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Verify receipts were created
+    const { data: newReceipts } = await supabase
+      .from('sponsorship_receipts')
+      .select('*')
+      .in('sponsorship_id', missingReceipts.map(s => s.id));
+
+    expect(newReceipts).toBeTruthy();
+    expect(newReceipts!.length).toBeGreaterThan(0);
+
+    console.log('✅ Missing receipts generation test passed');
+  });
+});

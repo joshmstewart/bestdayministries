@@ -18,6 +18,11 @@ on:
         required: true
         default: 'true'
         type: boolean
+      run_email_tests:
+        description: 'Run email tests'
+        required: true
+        default: 'false'
+        type: boolean
 
 jobs:
   unit-tests:
@@ -114,18 +119,49 @@ jobs:
           playwright-report/
         retention-days: 30
 
+  email-tests:
+    if: ${{ inputs.run_email_tests }}
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps chromium
+      
+    - name: Run email tests
+      run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        
+    - name: Upload email test report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: email-test-report
+        path: playwright-report/
+        retention-days: 30
+
   log-results:
     timeout-minutes: 10
     runs-on: ubuntu-latest
-    needs: [unit-tests, e2e-tests, visual-tests]
-    if: always() && (inputs.run_unit_tests || inputs.run_e2e_tests || inputs.run_visual_tests)
+    needs: [unit-tests, e2e-tests, visual-tests, email-tests]
+    if: always() && (inputs.run_unit_tests || inputs.run_e2e_tests || inputs.run_visual_tests || inputs.run_email_tests)
     steps:
     - name: Log test results to database
       env:
         SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       run: |
-        STATUS="${{ (needs.unit-tests.result == 'success' && needs.e2e-tests.result == 'success' && (needs.visual-tests.result == 'success' || needs.visual-tests.result == 'skipped')) && 'success' || 'failure' }}"
+        STATUS="${{ (needs.unit-tests.result == 'success' && needs.e2e-tests.result == 'success' && (needs.visual-tests.result == 'success' || needs.visual-tests.result == 'skipped') && (needs.email-tests.result == 'success' || needs.email-tests.result == 'skipped')) && 'success' || 'failure' }}"
         curl -X POST "${SUPABASE_URL}/functions/v1/github-test-webhook" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
