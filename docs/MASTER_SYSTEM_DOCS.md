@@ -161,17 +161,17 @@ TTS:stopPropagation|Discussion[title+content]|Event[title+desc+date+location]
 CRITICAL-RULES:7-rules→profiles_public|is_moderated-only|client-filter|height-limit|stop-propagation|visibility-check|empty-states
 
 ## CONTACT_FORM
-DB:contact_form_settings|contact_form_submissions|contact_form_replies[threaded-conversation]
-FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactFormManager[admin-settings+submissions+badge-realtime+threaded-view+add-user-reply]
+DB:contact_form_settings|contact_form_submissions|contact_form_replies
+FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactFormManager[admin-settings+submissions+badge-realtime]
 VALIDATION:client-Zod|server-edge
-EDGE:notify-admin|send-reply[saves-to-replies-table]|process-inbound-email[Cloudflare-Email-Worker]
-THREADING:contact_form_replies[admin-replies-green|user-replies-blue|chronological-display]
-REPLY-MANUAL:add-user-reply[copy-paste-from-inbox]
-REPLY-AUTOMATIC:Cloudflare-Email-Routing[FREE-MX-records]→Worker→Edge-Function→Auto-Thread
-SETUP:Resend[send-verify-domain-SPF-DKIM]|Cloudflare[receive-MX-records-email-worker-routing-rules]
-WORKFLOW-AUTO:submit→admin-reply→user-email→Cloudflare→parse→auto-add-to-thread→notify-admin
-UI:View-Dialog[original-msg+thread-history+reply-btn+add-user-reply]|Reply-Dialog[show-thread+compose-new]
-MIGRATION:existing-replies-auto-migrated-to-new-table
+EDGE:notify-admin|send-reply|process-inbound-email
+NOTIFICATIONS:contact_form_submission[new-submissions]|contact_form_reply[user-replies]
+BADGE:useContactFormCount→new-submissions+unread-replies→realtime
+UI-INDICATORS:red-dot[new-OR-unread-replies]|reply-button-badge[unread-count]|clear-on-open-dialog
+CLOUDFLARE:email-routing→worker→process-inbound-email→auto-thread+notify
+REPLY:auto[CloudFlare-routing]|manual[admin-interface]
+SETUP:Resend[verify-domain-SPF-DKIM]+CloudFlare[email-routing+worker+webhook-secret]
+DOC:CONTACT_FORM_SYSTEM.md|CONTACT_FORM_NOTIFICATIONS.md|CLOUDFLARE_EMAIL_ROUTING_SETUP.md
 
 ## DISCUSSION
 ROUTE:/discussions

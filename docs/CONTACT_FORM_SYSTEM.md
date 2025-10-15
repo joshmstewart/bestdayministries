@@ -107,7 +107,7 @@ The contact form system provides a comprehensive solution for managing user inqu
 - Status management (new/read)
 - Email quick actions
 
-## Conversation Threading System (NEW)
+## Conversation Threading System
 
 ### View Dialog
 **Shows:**
@@ -118,8 +118,7 @@ The contact form system provides a comprehensive solution for managing user inqu
    - Each shows: sender name, type badge, timestamp, message
 3. **Admin Notes** - Internal notes in amber box
 4. **Actions:**
-   - "Reply" - Compose new reply
-   - "Add User Reply" - Manually add incoming email
+   - "Reply" - Compose new reply (clears related notifications on open)
    - "Mark Unread" - Change status
 
 ### Reply Dialog
@@ -128,24 +127,15 @@ The contact form system provides a comprehensive solution for managing user inqu
 2. **Compose Area** - Text area for new reply
 3. **Admin Notes** - Optional internal notes field
 4. **Actions:**
-   - "Send Reply" - Email and save to thread
+   - "Send Reply" - Email and save to thread (updates replied_at timestamp)
    - "Cancel" - Close without sending
 
-### Add User Reply Dialog
-**Purpose:** Manually add incoming email replies to the conversation
-
-**Process:**
-1. Admin receives reply via email (outside system)
-2. Admin clicks "Add User Reply" in view dialog
-3. Pastes the user's email content
-4. Saves as user-type reply in thread
-5. Appears in conversation history
-
-**Note:** This is manual because automatic email parsing requires:
-- Inbound email webhook setup with Resend
-- Email parsing logic
-- Verification of sender identity
-- More complex infrastructure
+### Automatic Email Reply Capture
+With CloudFlare Email Routing configured (see CLOUDFLARE_EMAIL_ROUTING_SETUP.md):
+- User replies via email automatically appear in conversation thread
+- No manual entry needed
+- Notifications sent to admins for new replies
+- Real-time updates in admin dashboard
 
 ## UI Patterns
 
@@ -204,28 +194,31 @@ bg-muted border-l-4 border-primary
 ## Workflow Examples
 
 ### Simple Reply (First Response)
-1. User submits form → Creates submission record
-2. Admin views submission → Status changes to "read"
-3. Admin clicks "Reply" → Opens reply dialog with original message
+1. User submits form → Creates submission record + notifies admins
+2. Admin sees notification badge in header and Contact tab
+3. Admin clicks "Reply" → Notifications cleared, dialog opens
 4. Admin types reply and sends → Email sent + saved to replies table
-5. Trigger updates submission table with first reply info
+5. Trigger updates submission table with first reply info (replied_at timestamp)
 6. Submission shows "Continue Conversation" button
 
-### Ongoing Conversation
-1. User replies via email → Admin receives in inbox
-2. Admin opens submission → Clicks "View"
-3. Views conversation thread
-4. Clicks "Add User Reply" → Pastes email content → Saves
-5. User reply appears in blue in thread
-6. Admin clicks "Reply" → Composes response with full context
-7. New admin reply sent and added to thread
-8. Repeat as needed
+### Ongoing Conversation (with CloudFlare)
+1. User replies via email → CloudFlare routes to edge function
+2. Edge function saves reply to database + notifies admins
+3. Admin sees notification badge increment + red dot on submission row
+4. Admin opens submission → Badge on "Reply" button shows unread count
+5. Admin clicks "Reply" → All notifications cleared, dialog opens with full thread
+6. Admin composes response with full context → Sends
+7. New admin reply saved + email sent + replied_at updated
+8. User receives email and can reply again
 
 ### Multiple Back-and-Forth
 - Thread displays all messages chronologically
 - Color coding distinguishes admin vs user
 - Full context always visible when replying
 - No limit on conversation length
+- Notifications only for new user replies (not admin replies)
+- Red dot appears on submission when user replies
+- Cleared when admin opens reply dialog
 
 ## Email Configuration
 
@@ -246,33 +239,44 @@ bg-muted border-l-4 border-primary
 ## Integration Points
 
 ### Notification System
+**New Submission Notifications:**
 - Admins receive notification on new submission
-- Badge counter in admin header
-- Real-time updates via Supabase subscriptions
+- Type: `contact_form_submission`
+- Badge counter increments in admin header and Contact tab
+- Notification created when email arrives via CloudFlare routing
+
+**User Reply Notifications:**
+- Admins receive notification when user replies via email
+- Type: `contact_form_reply`
+- Badge counter increments for both new submissions AND new replies
+- Red dot indicator on submission row in admin table
+- Badge on "Reply" button shows count of unread user replies
+
+**Notification Clearing:**
+- Opening reply dialog marks all related notifications as read
+- Includes both submission and reply notifications for that thread
+- Badge counters update in real-time via Supabase subscriptions
+
+**Badge Counter Logic:**
+```typescript
+// Counts both:
+// 1. New submissions (status === 'new')
+// 2. Submissions with unread user replies (replied_at < latest_user_reply.created_at)
+const totalCount = newSubmissionsCount + submissionsWithUnreadRepliesCount;
+```
 
 ### Admin Dashboard
-- Contact tab with badge counter
+- Contact tab with badge counter (submissions + unread replies)
+- Badge also appears in header navigation
 - Settings + Submissions in single view
 - Quick actions in table rows
+- Visual indicators:
+  - Red dot: New submission OR unread user replies
+  - Red badge on "Reply" button: Count of unread replies
 
 ## Email Reply Handling
 
-### Current: Manual User Reply Entry
-**Quick setup** for immediate use:
-1. User submits contact form → saved to database ✅
-2. Admin replies from UI → email sent via Resend ✅
-3. User replies via email → goes to admin's inbox 📧
-4. Admin manually adds reply using "Add User Reply" button ✅
-5. Reply appears in threaded conversation ✅
-
-**How to add user replies:**
-1. Open submission in Admin > Contact
-2. Click "View" to see conversation
-3. Click "Add User Reply"
-4. Copy/paste user's email response
-5. Save - appears in thread with blue styling
-
-### Recommended: Automatic Email Reply Capture (FREE with Cloudflare)
+### Automatic Email Reply Capture (Recommended - FREE with CloudFlare)
 
 **Why Cloudflare Email Routing?**
 - ✅ **FREE** - No monthly cost

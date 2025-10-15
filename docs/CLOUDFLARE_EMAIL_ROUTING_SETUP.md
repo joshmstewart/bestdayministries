@@ -207,6 +207,10 @@ Before testing, you MUST add the webhook secret:
 2. User clicks "Reply" in their email client
 3. User types response and sends
 4. **Within seconds**, the reply appears in your Admin Dashboard under the same conversation thread!
+5. Admin sees notification badge increment in header and Contact tab
+6. Red dot indicator appears on the submission row
+7. "Reply" button shows badge with count of unread replies
+8. Opening reply dialog clears all related notifications
 
 ---
 
