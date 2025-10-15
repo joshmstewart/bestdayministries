@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, email, submissionId } = await req.json();
+    const { action, email, submissionId, from, to, subject, text } = await req.json();
     
     // Create admin client using service role key (available in edge functions)
     const supabaseAdmin = createClient(
@@ -125,6 +125,35 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'simulateInboundEmail') {
+      // Call the process-inbound-email edge function with the webhook secret
+      const webhookSecret = Deno.env.get('CLOUDFLARE_EMAIL_WEBHOOK_SECRET');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/process-inbound-email?test=true`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': webhookSecret || '',
+        },
+        body: JSON.stringify({ from, to, subject, text }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        return new Response(
+          JSON.stringify({ success: false, error: result }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, result }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

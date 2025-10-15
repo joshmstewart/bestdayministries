@@ -114,31 +114,16 @@ export async function simulateInboundEmail(params: {
   subject: string;
   text: string;
 }): Promise<void> {
-  const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/process-inbound-email?test=true`;
-  
   console.log(`📧 Simulating inbound email from ${params.from}`);
 
-  const response = await fetch(edgeFunctionUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({
-      from: params.from,
-      to: params.to,
-      subject: params.subject,
-      text: params.text,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to simulate inbound email: ${response.status} ${error}`);
+  // Call through the test helper edge function which has the webhook secret
+  const result = await callTestHelper('simulateInboundEmail', params);
+  
+  if (!result.success) {
+    throw new Error(`Failed to simulate inbound email: ${JSON.stringify(result.error)}`);
   }
 
-  const result = await response.json();
-  console.log(`✅ Inbound email processed:`, result);
+  console.log(`✅ Inbound email processed:`, result.result);
 }
 
 /**
