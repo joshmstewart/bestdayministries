@@ -6,12 +6,17 @@
  * without exposing the service role key to GitHub Actions.
  */
 
+import { createClient } from '@supabase/supabase-js';
+
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Missing Supabase environment variables for email testing');
 }
+
+// Export Supabase client for direct database queries in tests
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Helper function to call the test edge function
 async function callTestHelper(action: string, params: Record<string, any>) {
