@@ -40,6 +40,7 @@ jobs:
         env:
           MAILTRAP_API_TOKEN: ${{ secrets.MAILTRAP_API_TOKEN }}
           MAILTRAP_INBOX_ID: ${{ secrets.MAILTRAP_INBOX_ID }}
+          MAILTRAP_ACCOUNT_ID: ${{ secrets.MAILTRAP_ACCOUNT_ID }}
           BASE_URL: http://localhost:8080
         run: |
           npx playwright test --grep @email --project=chromium

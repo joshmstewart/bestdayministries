@@ -2,11 +2,11 @@
  * Mailtrap Email Testing Helper
  * 
  * Utilities for verifying emails in E2E tests using Mailtrap's Sandbox API.
- * Requires MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID environment variables.
+ * Requires MAILTRAP_API_TOKEN, MAILTRAP_INBOX_ID, and MAILTRAP_ACCOUNT_ID environment variables.
  * 
- * IMPORTANT: Uses Mailtrap Sandbox API V1 at mailtrap.io
- * - API Base: https://mailtrap.io/api/v1/
- * - Authentication: HTTP Basic Auth (username=token, password=empty)
+ * IMPORTANT: Uses Mailtrap Sandbox API V2 at mailtrap.io
+ * - API Base: https://mailtrap.io/api/accounts/{account_id}/
+ * - Authentication: Api-Token header
  * - Documentation: https://api-docs.mailtrap.io/
  */
 
@@ -49,11 +49,12 @@ interface MailtrapMessage {
   text_body?: string;
 }
 
-// Mailtrap Sandbox API V1 Configuration
-// Using V1 API at mailtrap.io with /api/v1/ path
-// V1 API docs: https://api-docs.mailtrap.io/
+// Mailtrap Sandbox API V2 Configuration
+// Using V2 API at mailtrap.io with /api/accounts/{account_id}/ path
+// V2 API docs: https://api-docs.mailtrap.io/
 const MAILTRAP_API_TOKEN = process.env.MAILTRAP_API_TOKEN;
 const MAILTRAP_INBOX_ID = process.env.MAILTRAP_INBOX_ID;
+const MAILTRAP_ACCOUNT_ID = process.env.MAILTRAP_ACCOUNT_ID;
 
 if (!MAILTRAP_API_TOKEN) {
   console.warn('⚠️  MAILTRAP_API_TOKEN not set - email tests will be skipped');
@@ -61,6 +62,10 @@ if (!MAILTRAP_API_TOKEN) {
 
 if (!MAILTRAP_INBOX_ID) {
   console.warn('⚠️  MAILTRAP_INBOX_ID not set - email tests will be skipped');
+}
+
+if (!MAILTRAP_ACCOUNT_ID) {
+  console.warn('⚠️  MAILTRAP_ACCOUNT_ID not set - email tests will be skipped');
 }
 
 /**
@@ -88,61 +93,66 @@ export function debugMailtrapConfig(): void {
     console.log(`✅ Inbox ID: ${MAILTRAP_INBOX_ID}`);
   }
   
-  console.log('\n📍 Where to get your token:');
+  if (!MAILTRAP_ACCOUNT_ID) {
+    console.error('❌ MAILTRAP_ACCOUNT_ID is not set');
+  } else {
+    console.log(`✅ Account ID: ${MAILTRAP_ACCOUNT_ID}`);
+  }
+  
+  console.log('\n📍 Where to get your credentials:');
   console.log('   1. Go to https://mailtrap.io/inboxes');
   console.log('   2. Select your SANDBOX inbox (not Email Sending)');
   console.log('   3. Click the "API" tab');
   console.log('   4. Copy the "API Token" shown there');
-  console.log('   5. Make sure it matches the inbox ID above');
+  console.log('   5. Account ID is in the URL or API settings');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
 /**
- * Test Mailtrap API connectivity with HTTP Basic Auth
+ * Test Mailtrap API connectivity with Api-Token header
  */
 export async function testMailtrapConnectivity(): Promise<{
   success: boolean;
-  method?: 'basic-auth';
+  method?: 'api-token';
   error?: string;
 }> {
   if (!isMailtrapConfigured()) {
     return { success: false, error: 'Mailtrap not configured' };
   }
 
-  // Test Sandbox API V1 (correct domain: mailtrap.io)
-  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  // Test Sandbox API V2 (correct domain: mailtrap.io)
+  const url = `https://mailtrap.io/api/accounts/${MAILTRAP_ACCOUNT_ID}/inboxes/${MAILTRAP_INBOX_ID}/messages`;
   
   console.log('\n🔌 Testing Mailtrap API connectivity...');
-  console.log(`📍 Testing Sandbox API V1: ${url}\n`);
+  console.log(`📍 Testing Sandbox API V2: ${url}\n`);
 
-  // HTTP Basic Auth (username=token, password=empty)
+  // Api-Token header authentication
   try {
-    console.log('Testing HTTP Basic Auth for Sandbox API V1');
-    const authString = Buffer.from(`${MAILTRAP_API_TOKEN}:`).toString('base64');
+    console.log('Testing Api-Token header for Sandbox API V2');
     const response = await fetch(url, {
       headers: {
-        'Authorization': `Basic ${authString}`,
+        'Api-Token': MAILTRAP_API_TOKEN!,
         'Accept': 'application/json',
       },
     });
 
     if (response.ok) {
-      console.log('✅ HTTP Basic Auth WORKS!\n');
-      return { success: true, method: 'basic-auth' };
+      console.log('✅ Api-Token authentication WORKS!\n');
+      return { success: true, method: 'api-token' };
     } else {
       const errorText = await response.text();
-      console.log(`❌ HTTP Basic Auth failed: ${response.status} ${response.statusText}`);
+      console.log(`❌ Api-Token failed: ${response.status} ${response.statusText}`);
       console.log(`   Response: ${errorText}\n`);
       return { 
         success: false, 
-        error: `HTTP Basic Auth failed: ${response.status} ${response.statusText}` 
+        error: `Api-Token failed: ${response.status} ${response.statusText}` 
       };
     }
   } catch (error) {
-    console.log(`❌ HTTP Basic Auth failed with exception: ${error}\n`);
+    console.log(`❌ Api-Token failed with exception: ${error}\n`);
     return { 
       success: false, 
-      error: `HTTP Basic Auth exception: ${error}` 
+      error: `Api-Token exception: ${error}` 
     };
   }
 }
@@ -151,7 +161,7 @@ export async function testMailtrapConnectivity(): Promise<{
  * Check if Mailtrap is configured for testing
  */
 export function isMailtrapConfigured(): boolean {
-  return !!(MAILTRAP_API_TOKEN && MAILTRAP_INBOX_ID);
+  return !!(MAILTRAP_API_TOKEN && MAILTRAP_INBOX_ID && MAILTRAP_ACCOUNT_ID);
 }
 
 /**
@@ -162,7 +172,7 @@ export async function validateMailtrapSetup(): Promise<void> {
   debugMailtrapConfig();
   
   if (!isMailtrapConfigured()) {
-    throw new Error('Mailtrap is not configured. Please set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID environment variables.');
+    throw new Error('Mailtrap is not configured. Please set MAILTRAP_API_TOKEN, MAILTRAP_INBOX_ID, and MAILTRAP_ACCOUNT_ID environment variables.');
   }
 
   const connectivityTest = await testMailtrapConnectivity();
@@ -172,11 +182,11 @@ export async function validateMailtrapSetup(): Promise<void> {
       `Mailtrap API connectivity test failed.\n\n` +
       `${connectivityTest.error}\n\n` +
       `Common issues:\n` +
-      `  1. Using wrong token type (must be Email Sandbox API token, not Email Sending)\n` +
-      `  2. Token doesn't have access to inbox ${MAILTRAP_INBOX_ID}\n` +
-      `  3. Token was copied with extra spaces/characters\n` +
-      `  4. Token is from a different Mailtrap account\n\n` +
-      `Please verify your token at: https://mailtrap.io/inboxes/${MAILTRAP_INBOX_ID}`
+      `  1. Missing MAILTRAP_ACCOUNT_ID environment variable\n` +
+      `  2. Using wrong token type (must be Email Sandbox API token, not Email Sending)\n` +
+      `  3. Token doesn't have access to account ${MAILTRAP_ACCOUNT_ID} or inbox ${MAILTRAP_INBOX_ID}\n` +
+      `  4. Token was copied with extra spaces/characters\n\n` +
+      `Please verify your credentials at: https://mailtrap.io/inboxes/${MAILTRAP_INBOX_ID}`
     );
   }
   
@@ -188,16 +198,15 @@ export async function validateMailtrapSetup(): Promise<void> {
  */
 export async function fetchAllMessages(): Promise<MailtrapMessage[]> {
   if (!isMailtrapConfigured()) {
-    throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
+    throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN, MAILTRAP_INBOX_ID, and MAILTRAP_ACCOUNT_ID.');
   }
 
-  // Use Mailtrap Sandbox API (V1) - correct domain is mailtrap.io
-  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  // Use Mailtrap Sandbox API V2 with account_id in path
+  const url = `https://mailtrap.io/api/accounts/${MAILTRAP_ACCOUNT_ID}/inboxes/${MAILTRAP_INBOX_ID}/messages`;
   
-  const authString = Buffer.from(`${MAILTRAP_API_TOKEN}:`).toString('base64');
   const response = await fetch(url, {
     headers: {
-      'Authorization': `Basic ${authString}`,
+      'Api-Token': MAILTRAP_API_TOKEN!,
       'Accept': 'application/json',
     },
   });
@@ -218,16 +227,15 @@ export async function fetchAllMessages(): Promise<MailtrapMessage[]> {
  */
 export async function fetchEmail(emailId: number): Promise<MailtrapEmail> {
   if (!isMailtrapConfigured()) {
-    throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
+    throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN, MAILTRAP_INBOX_ID, and MAILTRAP_ACCOUNT_ID.');
   }
 
-  // Use Mailtrap Sandbox API (V1) - correct domain is mailtrap.io
-  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages/${emailId}`;
+  // Use Mailtrap Sandbox API V2 with account_id in path
+  const url = `https://mailtrap.io/api/accounts/${MAILTRAP_ACCOUNT_ID}/inboxes/${MAILTRAP_INBOX_ID}/messages/${emailId}`;
   
-  const authString = Buffer.from(`${MAILTRAP_API_TOKEN}:`).toString('base64');
   const response = await fetch(url, {
     headers: {
-      'Authorization': `Basic ${authString}`,
+      'Api-Token': MAILTRAP_API_TOKEN!,
       'Accept': 'application/json',
     },
   });
@@ -328,22 +336,21 @@ export async function findLatestEmail(criteria: {
  */
 export async function clearInbox(): Promise<void> {
   if (!isMailtrapConfigured()) {
-    throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
+    throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN, MAILTRAP_INBOX_ID, and MAILTRAP_ACCOUNT_ID.');
   }
 
   try {
-    // Use Mailtrap Sandbox API (V1) - correct domain is mailtrap.io
-    // V1 API: PATCH /api/v1/inboxes/{inbox_id}/clean
-    const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/clean`;
+    // Use Mailtrap Sandbox API V2 with account_id in path
+    // V2 API: PATCH /api/accounts/{account_id}/inboxes/{inbox_id}/clean
+    const url = `https://mailtrap.io/api/accounts/${MAILTRAP_ACCOUNT_ID}/inboxes/${MAILTRAP_INBOX_ID}/clean`;
     
     console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
     console.log(`   URL: ${url}`);
     
-    const authString = Buffer.from(`${MAILTRAP_API_TOKEN}:`).toString('base64');
     const response = await fetch(url, {
       method: 'PATCH',
       headers: {
-        'Authorization': `Basic ${authString}`,
+        'Api-Token': MAILTRAP_API_TOKEN!,
       },
     });
 

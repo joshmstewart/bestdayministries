@@ -23,8 +23,9 @@ Email testing infrastructure is fully implemented and ready to use!
 3. Click the **"API"** tab inside that inbox
 4. Copy the **"API Token"** displayed there
 5. Copy the **Inbox ID** (shown in the URL or API tab)
+6. Copy the **Account ID** (shown in the URL: `https://mailtrap.io/accounts/{account_id}/inboxes` or in settings)
 
-**The token MUST be from the same inbox as the Inbox ID.**
+**All three values (token, inbox ID, account ID) MUST be from the same account.**
 
 ### Run Email Tests Locally
 
@@ -32,6 +33,7 @@ Email testing infrastructure is fully implemented and ready to use!
 # Set environment variables
 export MAILTRAP_API_TOKEN="your-token-from-sandbox-api-tab"
 export MAILTRAP_INBOX_ID="your-inbox-id"
+export MAILTRAP_ACCOUNT_ID="your-account-id"
 
 # First, validate your setup (recommended)
 npx playwright test email-setup-validation.spec.ts
@@ -70,6 +72,7 @@ Email tests run automatically on push to `main` when email-related files change.
 GitHub Actions secrets required:
 - ✅ `MAILTRAP_API_TOKEN` - Get from Sandbox inbox → API tab
 - ✅ `MAILTRAP_INBOX_ID` - Your inbox ID
+- ✅ `MAILTRAP_ACCOUNT_ID` - Your account ID (from URL or settings)
 
 ## Overview
 Implement automated E2E email testing using Mailtrap's free tier to verify that emails are sent correctly via Resend and contain the expected content.
@@ -95,6 +98,7 @@ Implement automated E2E email testing using Mailtrap's free tier to verify that 
 Add these secrets via the Lovable secrets manager:
 - `MAILTRAP_API_TOKEN` - Your Mailtrap API token
 - `MAILTRAP_INBOX_ID` - Your testing inbox ID
+- `MAILTRAP_ACCOUNT_ID` - Your Mailtrap account ID
 
 ### Step 3: Test Infrastructure (I'll Build This)
 ```
