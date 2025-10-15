@@ -557,7 +557,7 @@ export const ContactFormManager = () => {
                   >
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center">
-                        {(submission.status === "new" || (submission.unread_user_replies && submission.unread_user_replies > 0)) && (
+                        {(submission.status === "new" || (submission.unread_user_replies || 0) > 0) && (
                           <div className="w-2 h-2 rounded-full bg-destructive" title={
                             submission.status === "new" ? "New submission" : "New reply"
                           } />
