@@ -6,7 +6,7 @@
  * 
  * IMPORTANT: Uses Mailtrap Sandbox API V1 at mailtrap.io
  * - API Base: https://mailtrap.io/api/v1/
- * - Authentication: Api-Token header (Bearer token as fallback)
+ * - Authentication: HTTP Basic Auth (username=token, password=empty)
  * - Documentation: https://api-docs.mailtrap.io/
  */
 
@@ -98,11 +98,11 @@ export function debugMailtrapConfig(): void {
 }
 
 /**
- * Test Mailtrap API connectivity with both authentication methods
+ * Test Mailtrap API connectivity with HTTP Basic Auth
  */
 export async function testMailtrapConnectivity(): Promise<{
   success: boolean;
-  method?: 'bearer' | 'api-token';
+  method?: 'basic-auth';
   error?: string;
 }> {
   if (!isMailtrapConfigured()) {
@@ -115,54 +115,36 @@ export async function testMailtrapConnectivity(): Promise<{
   console.log('\n🔌 Testing Mailtrap API connectivity...');
   console.log(`📍 Testing Sandbox API V1: ${url}\n`);
 
-  // Test Method 1: Api-Token header (preferred for Sandbox API)
+  // HTTP Basic Auth (username=token, password=empty)
   try {
-    console.log('Testing method 1: Sandbox API V1 with Api-Token header');
+    console.log('Testing HTTP Basic Auth for Sandbox API V1');
+    const authString = Buffer.from(`${MAILTRAP_API_TOKEN}:`).toString('base64');
     const response = await fetch(url, {
       headers: {
-        'Api-Token': MAILTRAP_API_TOKEN,
+        'Authorization': `Basic ${authString}`,
         'Accept': 'application/json',
       },
     });
 
     if (response.ok) {
-      console.log('✅ Sandbox API V1 with Api-Token header WORKS!\n');
-      return { success: true, method: 'api-token' };
+      console.log('✅ HTTP Basic Auth WORKS!\n');
+      return { success: true, method: 'basic-auth' };
     } else {
       const errorText = await response.text();
-      console.log(`❌ Api-Token failed: ${response.status} ${response.statusText}`);
+      console.log(`❌ HTTP Basic Auth failed: ${response.status} ${response.statusText}`);
       console.log(`   Response: ${errorText}\n`);
+      return { 
+        success: false, 
+        error: `HTTP Basic Auth failed: ${response.status} ${response.statusText}` 
+      };
     }
   } catch (error) {
-    console.log(`❌ Api-Token failed with exception: ${error}\n`);
+    console.log(`❌ HTTP Basic Auth failed with exception: ${error}\n`);
+    return { 
+      success: false, 
+      error: `HTTP Basic Auth exception: ${error}` 
+    };
   }
-
-  // Test Method 2: Bearer token (fallback)
-  try {
-    console.log('Testing method 2: Sandbox API V1 with Bearer token');
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
-        'Accept': 'application/json',
-      },
-    });
-
-    if (response.ok) {
-      console.log('✅ Sandbox API V1 with Bearer token WORKS!\n');
-      return { success: true, method: 'bearer' };
-    } else {
-      const errorText = await response.text();
-      console.log(`❌ Bearer token failed: ${response.status} ${response.statusText}`);
-      console.log(`   Response: ${errorText}\n`);
-    }
-  } catch (error) {
-    console.log(`❌ Bearer token failed with exception: ${error}\n`);
-  }
-
-  return { 
-    success: false, 
-    error: 'Both authentication methods failed. Please verify your API token and inbox ID.' 
-  };
 }
 
 /**
@@ -212,9 +194,10 @@ export async function fetchAllMessages(): Promise<MailtrapMessage[]> {
   // Use Mailtrap Sandbox API (V1) - correct domain is mailtrap.io
   const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
   
+  const authString = Buffer.from(`${MAILTRAP_API_TOKEN}:`).toString('base64');
   const response = await fetch(url, {
     headers: {
-      'Api-Token': MAILTRAP_API_TOKEN,
+      'Authorization': `Basic ${authString}`,
       'Accept': 'application/json',
     },
   });
@@ -241,9 +224,10 @@ export async function fetchEmail(emailId: number): Promise<MailtrapEmail> {
   // Use Mailtrap Sandbox API (V1) - correct domain is mailtrap.io
   const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages/${emailId}`;
   
+  const authString = Buffer.from(`${MAILTRAP_API_TOKEN}:`).toString('base64');
   const response = await fetch(url, {
     headers: {
-      'Api-Token': MAILTRAP_API_TOKEN,
+      'Authorization': `Basic ${authString}`,
       'Accept': 'application/json',
     },
   });
@@ -355,10 +339,11 @@ export async function clearInbox(): Promise<void> {
     console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
     console.log(`   URL: ${url}`);
     
+    const authString = Buffer.from(`${MAILTRAP_API_TOKEN}:`).toString('base64');
     const response = await fetch(url, {
       method: 'PATCH',
       headers: {
-        'Api-Token': MAILTRAP_API_TOKEN,
+        'Authorization': `Basic ${authString}`,
       },
     });
 
