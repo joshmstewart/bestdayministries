@@ -307,7 +307,7 @@ serve(async (req) => {
       .insert({
         vendor_id: vendor.id,
         bestie_id: userIds.bestie,
-        request_status: 'approved'
+        status: 'approved'
       })
       .select()
       .single();
