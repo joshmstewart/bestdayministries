@@ -168,8 +168,17 @@ serve(async (req) => {
       .insert({
         bestie_id: userIds.bestie,
         bestie_name: 'Test Bestie',
-        description: 'Test bestie for email testing',
-        is_active: true
+        image_url: 'https://example.com/test.jpg',
+        aspect_ratio: '9:16',
+        monthly_goal: 100,
+        is_active: true,
+        is_fully_funded: false,
+        created_by: userIds.guardian,
+        approval_status: 'approved',
+        is_public: true,
+        text_sections: {
+          intro: 'Test bestie for email testing'
+        }
       })
       .select()
       .single();
