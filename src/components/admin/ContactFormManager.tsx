@@ -69,8 +69,6 @@ export const ContactFormManager = () => {
   const [sending, setSending] = useState(false);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
-  const [addUserReplyDialogOpen, setAddUserReplyDialogOpen] = useState(false);
-  const [userReplyMessage, setUserReplyMessage] = useState("");
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -292,44 +290,6 @@ export const ContactFormManager = () => {
       });
     } finally {
       setLoadingReplies(false);
-    }
-  };
-
-  const addUserReply = async () => {
-    if (!selectedSubmission || !userReplyMessage.trim()) return;
-
-    setSending(true);
-    try {
-      const { error } = await supabase
-        .from("contact_form_replies")
-        .insert({
-          submission_id: selectedSubmission.id,
-          sender_type: "user",
-          sender_id: null,
-          sender_name: selectedSubmission.name,
-          sender_email: selectedSubmission.email,
-          message: userReplyMessage.trim(),
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "User Reply Added",
-        description: "The incoming reply has been added to the conversation",
-      });
-
-      setAddUserReplyDialogOpen(false);
-      setUserReplyMessage("");
-      loadReplies(selectedSubmission.id);
-    } catch (error: any) {
-      console.error("Error adding user reply:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setSending(false);
     }
   };
 
@@ -793,16 +753,6 @@ export const ContactFormManager = () => {
 
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button
-                  variant="outline"
-                  onClick={() => {
-                    setAddUserReplyDialogOpen(true);
-                  }}
-                  className="gap-2"
-                >
-                  <Mail className="h-4 w-4" />
-                  Add User Reply
-                </Button>
-                <Button
                   variant="default"
                   onClick={() => {
                     setViewDialogOpen(false);
@@ -932,60 +882,6 @@ export const ContactFormManager = () => {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Add User Reply Dialog */}
-      <Dialog open={addUserReplyDialogOpen} onOpenChange={setAddUserReplyDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add User Reply</DialogTitle>
-            <DialogDescription>
-              Manually add an incoming reply from {selectedSubmission?.name} that you received via email
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">User's Reply *</label>
-              <Textarea
-                value={userReplyMessage}
-                onChange={(e) => setUserReplyMessage(e.target.value)}
-                placeholder="Paste the user's reply here..."
-                className="min-h-[200px]"
-                required
-              />
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setAddUserReplyDialogOpen(false);
-                  setUserReplyMessage("");
-                }}
-                disabled={sending}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={addUserReply}
-                disabled={sending || !userReplyMessage.trim()}
-                className="gap-2"
-              >
-                {sending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Add Reply
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
