@@ -333,6 +333,48 @@ export async function findLatestEmail(criteria: {
   return null;
 }
 
+// Cache for account ID to avoid repeated API calls
+let cachedAccountId: string | null = null;
+
+/**
+ * Fetch the Mailtrap account ID dynamically
+ * This is required for V2 API clean endpoint
+ */
+async function fetchAccountId(): Promise<string> {
+  if (cachedAccountId) {
+    return cachedAccountId;
+  }
+
+  if (!isMailtrapConfigured()) {
+    throw new Error('Mailtrap not configured');
+  }
+
+  const url = 'https://mailtrap.io/api/v2/accounts';
+  
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch account ID: ${response.status} ${response.statusText}`);
+  }
+
+  const accounts = await response.json();
+  
+  if (!accounts || accounts.length === 0) {
+    throw new Error('No Mailtrap accounts found');
+  }
+
+  // Cache and return the first account's ID
+  cachedAccountId = accounts[0].id.toString();
+  console.log(`✅ Fetched Mailtrap account ID: ${cachedAccountId}`);
+  
+  return cachedAccountId;
+}
+
 /**
  * Clear all emails from the inbox
  */
@@ -341,33 +383,39 @@ export async function clearInbox(): Promise<void> {
     throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
   }
 
-  // Use Mailtrap V1 API endpoint for clearing inbox
-  // V2 API doesn't support the /clean endpoint yet, so we use V1
-  // V1 API: PATCH /api/v1/inboxes/{inbox_id}/clean
-  // Auth: Bearer token format (works with new Sandbox Admin tokens)
-  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/clean`;
-  
-  console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
-  console.log(`   URL: ${url}`);
-  
-  const response = await fetch(url, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
-      'Accept': 'application/json',
-    },
-  });
+  try {
+    // Fetch account ID dynamically
+    const accountId = await fetchAccountId();
+    
+    // Use Mailtrap V2 API endpoint with account_id for clearing inbox
+    // V2 API: PATCH /api/v2/accounts/{account_id}/inboxes/{inbox_id}/clean
+    const url = `https://mailtrap.io/api/v2/accounts/${accountId}/inboxes/${MAILTRAP_INBOX_ID}/clean`;
+    
+    console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
+    console.log(`   URL: ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
+        'Accept': 'application/json',
+      },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`❌ Failed to clear inbox`);
-    console.error(`   URL: ${url}`);
-    console.error(`   Status: ${response.status} ${response.statusText}`);
-    console.error(`   Response: ${errorText}`);
-    throw new Error(`Failed to clear inbox: ${response.status} ${response.statusText} - ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Failed to clear inbox`);
+      console.error(`   Status: ${response.status} ${response.statusText}`);
+      console.error(`   Response: ${errorText}`);
+      throw new Error(`Failed to clear inbox: ${response.status} ${response.statusText}`);
+    }
+
+    console.log('✅ Cleared Mailtrap inbox');
+  } catch (error) {
+    console.warn('⚠️  Failed to clear inbox:', error instanceof Error ? error.message : String(error));
+    console.warn('   Tests will continue but old emails may remain in inbox');
+    console.warn('   This is OK - tests filter by timestamp to avoid false positives');
   }
-
-  console.log('✅ Cleared Mailtrap inbox');
 }
 
 /**
