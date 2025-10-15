@@ -13,6 +13,9 @@ serve(async (req) => {
 
   try {
     console.log('🌱 Starting email test data seeding...');
+    
+    // Track critical errors that should cause seeding to fail
+    const criticalErrors: string[] = [];
 
     const { testRunId = 'default' } = await req.json();
     const emailPrefix = `emailtest-${testRunId}`;
@@ -324,7 +327,7 @@ serve(async (req) => {
       .from('vendor_bestie_assets')
       .insert({
         vendor_id: vendor.id,
-        vendor_bestie_request_id: vendorRequest.id,
+        bestie_id: userIds.bestie,
         asset_type: 'image',
         asset_url: 'https://example.com/test-asset.jpg',
         approval_status: 'pending'
@@ -332,6 +335,7 @@ serve(async (req) => {
 
     if (assetError) {
       console.error('Error creating vendor asset:', assetError);
+      criticalErrors.push(`Vendor asset: ${assetError.message}`);
     }
 
     // Step 12: Create notifications for digest tests
@@ -367,6 +371,7 @@ serve(async (req) => {
 
     if (notifError) {
       console.error('Error creating notifications:', notifError);
+      criticalErrors.push(`Notifications: ${notifError.message}`);
     }
 
     // Step 13: Create notification preferences
@@ -374,8 +379,30 @@ serve(async (req) => {
     
     const preferences = Object.values(userIds).map(userId => ({
       user_id: userId,
-      enable_email_notifications: true,
-      enable_digest_emails: true,
+      email_on_pending_approval: true,
+      email_on_approval_decision: true,
+      email_on_new_sponsor_message: true,
+      email_on_message_approved: true,
+      email_on_message_rejected: true,
+      email_on_new_event: true,
+      email_on_event_update: true,
+      email_on_new_sponsorship: true,
+      email_on_sponsorship_update: true,
+      email_on_comment_on_post: true,
+      email_on_comment_on_thread: true,
+      email_on_product_update: true,
+      inapp_on_pending_approval: true,
+      inapp_on_approval_decision: true,
+      inapp_on_new_sponsor_message: true,
+      inapp_on_message_approved: true,
+      inapp_on_message_rejected: true,
+      inapp_on_new_event: true,
+      inapp_on_event_update: true,
+      inapp_on_new_sponsorship: true,
+      inapp_on_sponsorship_update: true,
+      inapp_on_comment_on_post: true,
+      inapp_on_comment_on_thread: true,
+      inapp_on_product_update: true,
       digest_frequency: 'daily'
     }));
 
@@ -385,6 +412,7 @@ serve(async (req) => {
 
     if (prefsError) {
       console.error('Error creating preferences:', prefsError);
+      criticalErrors.push(`Preferences: ${prefsError.message}`);
     }
 
     // Step 14: Ensure receipt settings exist
@@ -394,15 +422,23 @@ serve(async (req) => {
       .from('receipt_settings')
       .upsert({
         organization_name: 'Test Organization',
-        ein: '12-3456789',
-        address: '123 Test St',
-        city: 'Test City',
-        state: 'TS',
-        zip: '12345'
+        tax_id: '12-3456789',
+        organization_address: '123 Test St, Test City, TS 12345',
+        from_email: 'receipts@testorg.com',
+        reply_to_email: 'support@testorg.com',
+        receipt_message: 'Thank you for your sponsorship!',
+        tax_deductible_notice: 'Your donation is tax-deductible to the extent allowed by law.'
       }, { onConflict: 'id', ignoreDuplicates: true });
 
     if (receiptError) {
       console.error('Error creating receipt settings:', receiptError);
+      criticalErrors.push(`Receipt settings: ${receiptError.message}`);
+    }
+
+    // Check for critical errors before returning success
+    if (criticalErrors.length > 0) {
+      console.error('❌ Critical errors occurred during seeding:', criticalErrors);
+      throw new Error(`Seeding failed with ${criticalErrors.length} critical error(s): ${criticalErrors.join('; ')}`);
     }
 
     console.log('✅ Email test data seeding complete!');
