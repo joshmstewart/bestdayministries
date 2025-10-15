@@ -4,8 +4,8 @@
  * Utilities for verifying emails in E2E tests using Mailtrap's Sandbox API.
  * Requires MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID environment variables.
  * 
- * IMPORTANT: Uses Mailtrap Sandbox API V1 at api.mailtrap.io
- * - API Base: https://api.mailtrap.io/api/v1/
+ * IMPORTANT: Uses Mailtrap Sandbox API V1 at mailtrap.io
+ * - API Base: https://mailtrap.io/api/v1/
  * - Authentication: Api-Token header (Bearer token as fallback)
  * - Documentation: https://api-docs.mailtrap.io/
  */
@@ -50,7 +50,7 @@ interface MailtrapMessage {
 }
 
 // Mailtrap Sandbox API V1 Configuration
-// Using V1 API at api.mailtrap.io (NOT mailtrap.io)
+// Using V1 API at mailtrap.io with /api/v1/ path
 // V1 API docs: https://api-docs.mailtrap.io/
 const MAILTRAP_API_TOKEN = process.env.MAILTRAP_API_TOKEN;
 const MAILTRAP_INBOX_ID = process.env.MAILTRAP_INBOX_ID;
@@ -109,8 +109,8 @@ export async function testMailtrapConnectivity(): Promise<{
     return { success: false, error: 'Mailtrap not configured' };
   }
 
-  // Test Sandbox API V1 (correct domain: api.mailtrap.io)
-  const url = `https://api.mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  // Test Sandbox API V1 (correct domain: mailtrap.io)
+  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
   
   console.log('\n🔌 Testing Mailtrap API connectivity...');
   console.log(`📍 Testing Sandbox API V1: ${url}\n`);
@@ -209,8 +209,8 @@ export async function fetchAllMessages(): Promise<MailtrapMessage[]> {
     throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
   }
 
-  // Use Mailtrap Sandbox API (V1) - correct domain is api.mailtrap.io
-  const url = `https://api.mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  // Use Mailtrap Sandbox API (V1) - correct domain is mailtrap.io
+  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
   
   const response = await fetch(url, {
     headers: {
@@ -238,8 +238,8 @@ export async function fetchEmail(emailId: number): Promise<MailtrapEmail> {
     throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
   }
 
-  // Use Mailtrap Sandbox API (V1) - correct domain is api.mailtrap.io
-  const url = `https://api.mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages/${emailId}`;
+  // Use Mailtrap Sandbox API (V1) - correct domain is mailtrap.io
+  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages/${emailId}`;
   
   const response = await fetch(url, {
     headers: {
@@ -348,9 +348,9 @@ export async function clearInbox(): Promise<void> {
   }
 
   try {
-    // Use Mailtrap Sandbox API (V1) - correct domain is api.mailtrap.io
+    // Use Mailtrap Sandbox API (V1) - correct domain is mailtrap.io
     // V1 API: PATCH /api/v1/inboxes/{inbox_id}/clean
-    const url = `https://api.mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/clean`;
+    const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/clean`;
     
     console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
     console.log(`   URL: ${url}`);
