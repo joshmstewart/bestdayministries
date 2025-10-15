@@ -341,10 +341,11 @@ export async function clearInbox(): Promise<void> {
     throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
   }
 
-  // Use Mailtrap V2 API endpoint for clearing inbox (new token standard)
-  // V2 API: PATCH /api/v2/inboxes/{inbox_id}/clean
-  // Auth: Bearer token format
-  const url = `https://mailtrap.io/api/v2/inboxes/${MAILTRAP_INBOX_ID}/clean`;
+  // Use Mailtrap V1 API endpoint for clearing inbox
+  // V2 API doesn't support the /clean endpoint yet, so we use V1
+  // V1 API: PATCH /api/v1/inboxes/{inbox_id}/clean
+  // Auth: Bearer token format (works with new Sandbox Admin tokens)
+  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/clean`;
   
   console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
   console.log(`   URL: ${url}`);
