@@ -14,12 +14,27 @@ Email testing infrastructure is fully implemented and ready to use!
 
 ## Quick Start
 
+### Getting Your Mailtrap Credentials
+
+**⚠️ IMPORTANT**: You must use an **Email Sandbox** API token, not an Email Sending token.
+
+1. Go to https://mailtrap.io/inboxes
+2. Select your **Sandbox** inbox (or create one)
+3. Click the **"API"** tab inside that inbox
+4. Copy the **"API Token"** displayed there
+5. Copy the **Inbox ID** (shown in the URL or API tab)
+
+**The token MUST be from the same inbox as the Inbox ID.**
+
 ### Run Email Tests Locally
 
 ```bash
 # Set environment variables
-export MAILTRAP_API_TOKEN="your-token"
-export MAILTRAP_INBOX_ID="4099857"
+export MAILTRAP_API_TOKEN="your-token-from-sandbox-api-tab"
+export MAILTRAP_INBOX_ID="your-inbox-id"
+
+# First, validate your setup (recommended)
+npx playwright test email-setup-validation.spec.ts
 
 # Run all email tests
 npx playwright test --grep @email
@@ -28,14 +43,33 @@ npx playwright test --grep @email
 npx playwright test email-contact-form.spec.ts
 ```
 
+### Troubleshooting Setup
+
+If you're getting authentication errors:
+
+1. **Run the validation test first**:
+   ```bash
+   npx playwright test email-setup-validation.spec.ts
+   ```
+   This will show you detailed debug information about your token and test both authentication methods.
+
+2. **Verify token source**: 
+   - Token must be from "Email Sandbox" section, NOT "Email Sending"
+   - Token must be from the SAME inbox as your Inbox ID
+   - Check for extra spaces when copying the token
+
+3. **Common errors**:
+   - `401 Unauthorized` → Wrong token or token from wrong inbox
+   - `404 Not Found` → Wrong Inbox ID
+   - `Incorrect API token` → Token is from Email Sending instead of Sandbox
+
 ### Run Email Tests in CI
 
 Email tests run automatically on push to `main` when email-related files change.
 
 GitHub Actions secrets required:
-- ✅ `MAILTRAP_API_TOKEN`
-- ✅ `MAILTRAP_INBOX_ID`
-- ✅ `MAILTRAP_ACCOUNT_ID` (optional, defaults to 3242583)
+- ✅ `MAILTRAP_API_TOKEN` - Get from Sandbox inbox → API tab
+- ✅ `MAILTRAP_INBOX_ID` - Your inbox ID
 
 ## Overview
 Implement automated E2E email testing using Mailtrap's free tier to verify that emails are sent correctly via Resend and contain the expected content.

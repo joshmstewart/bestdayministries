@@ -59,10 +59,138 @@ if (!MAILTRAP_INBOX_ID) {
 }
 
 /**
+ * Debug and validate Mailtrap configuration
+ */
+export function debugMailtrapConfig(): void {
+  console.log('\n🔍 Mailtrap Configuration Debug:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  if (!MAILTRAP_API_TOKEN) {
+    console.error('❌ MAILTRAP_API_TOKEN is not set');
+  } else {
+    const tokenLength = MAILTRAP_API_TOKEN.length;
+    const tokenPrefix = MAILTRAP_API_TOKEN.substring(0, 4);
+    const hasWhitespace = /\s/.test(MAILTRAP_API_TOKEN);
+    
+    console.log(`✅ Token present: ${tokenLength} characters`);
+    console.log(`   First 4 chars: "${tokenPrefix}..."`);
+    console.log(`   Has whitespace: ${hasWhitespace ? '❌ YES (PROBLEM!)' : '✅ No'}`);
+  }
+  
+  if (!MAILTRAP_INBOX_ID) {
+    console.error('❌ MAILTRAP_INBOX_ID is not set');
+  } else {
+    console.log(`✅ Inbox ID: ${MAILTRAP_INBOX_ID}`);
+  }
+  
+  console.log('\n📍 Where to get your token:');
+  console.log('   1. Go to https://mailtrap.io/inboxes');
+  console.log('   2. Select your SANDBOX inbox (not Email Sending)');
+  console.log('   3. Click the "API" tab');
+  console.log('   4. Copy the "API Token" shown there');
+  console.log('   5. Make sure it matches the inbox ID above');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+}
+
+/**
+ * Test Mailtrap API connectivity with both authentication methods
+ */
+export async function testMailtrapConnectivity(): Promise<{
+  success: boolean;
+  method?: 'bearer' | 'api-token';
+  error?: string;
+}> {
+  if (!isMailtrapConfigured()) {
+    return { success: false, error: 'Mailtrap not configured' };
+  }
+
+  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  
+  console.log('\n🔌 Testing Mailtrap API connectivity...');
+  console.log(`📍 URL: ${url}\n`);
+
+  // Test Method 1: Bearer token (current standard for Sandbox API)
+  try {
+    console.log('Testing method 1: Authorization: Bearer token');
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
+      },
+    });
+
+    if (response.ok) {
+      console.log('✅ Bearer token authentication WORKS!\n');
+      return { success: true, method: 'bearer' };
+    } else {
+      const errorText = await response.text();
+      console.log(`❌ Bearer token failed: ${response.status} ${response.statusText}`);
+      console.log(`   Response: ${errorText}\n`);
+    }
+  } catch (error) {
+    console.log(`❌ Bearer token failed with exception: ${error}\n`);
+  }
+
+  // Test Method 2: Api-Token header (older V1 API method)
+  try {
+    console.log('Testing method 2: Api-Token header');
+    const response = await fetch(url, {
+      headers: {
+        'Api-Token': MAILTRAP_API_TOKEN!,
+      },
+    });
+
+    if (response.ok) {
+      console.log('✅ Api-Token header authentication WORKS!\n');
+      return { success: true, method: 'api-token' };
+    } else {
+      const errorText = await response.text();
+      console.log(`❌ Api-Token header failed: ${response.status} ${response.statusText}`);
+      console.log(`   Response: ${errorText}\n`);
+    }
+  } catch (error) {
+    console.log(`❌ Api-Token header failed with exception: ${error}\n`);
+  }
+
+  return { 
+    success: false, 
+    error: 'Both authentication methods failed. Please verify your API token and inbox ID.' 
+  };
+}
+
+/**
  * Check if Mailtrap is configured for testing
  */
 export function isMailtrapConfigured(): boolean {
   return !!(MAILTRAP_API_TOKEN && MAILTRAP_INBOX_ID);
+}
+
+/**
+ * Validate Mailtrap configuration and test connectivity
+ * Call this before running email tests
+ */
+export async function validateMailtrapSetup(): Promise<void> {
+  debugMailtrapConfig();
+  
+  if (!isMailtrapConfigured()) {
+    throw new Error('Mailtrap is not configured. Please set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID environment variables.');
+  }
+
+  const connectivityTest = await testMailtrapConnectivity();
+  
+  if (!connectivityTest.success) {
+    throw new Error(
+      `Mailtrap API connectivity test failed.\n\n` +
+      `${connectivityTest.error}\n\n` +
+      `Common issues:\n` +
+      `  1. Using wrong token type (must be Email Sandbox API token, not Email Sending)\n` +
+      `  2. Token doesn't have access to inbox ${MAILTRAP_INBOX_ID}\n` +
+      `  3. Token was copied with extra spaces/characters\n` +
+      `  4. Token is from a different Mailtrap account\n\n` +
+      `Please verify your token at: https://mailtrap.io/inboxes/${MAILTRAP_INBOX_ID}`
+    );
+  }
+  
+  console.log(`✅ Mailtrap setup validated successfully (using ${connectivityTest.method} auth)\n`);
 }
 
 /**
@@ -83,7 +211,11 @@ export async function fetchAllMessages(): Promise<MailtrapMessage[]> {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    console.error(`❌ Failed to fetch messages from ${url}`);
+    console.error(`   Status: ${response.status} ${response.statusText}`);
+    console.error(`   Response: ${errorText}`);
+    throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   return response.json();
@@ -210,6 +342,7 @@ export async function clearInbox(): Promise<void> {
   const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/clean`;
   
   console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
+  console.log(`   URL: ${url}`);
   
   const response = await fetch(url, {
     method: 'PATCH',
@@ -220,8 +353,11 @@ export async function clearInbox(): Promise<void> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`❌ Failed to clear inbox (${response.status}): ${errorText}`);
-    throw new Error(`Failed to clear inbox: ${response.status} ${response.statusText}`);
+    console.error(`❌ Failed to clear inbox`);
+    console.error(`   URL: ${url}`);
+    console.error(`   Status: ${response.status} ${response.statusText}`);
+    console.error(`   Response: ${errorText}`);
+    throw new Error(`Failed to clear inbox: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   console.log('✅ Cleared Mailtrap inbox');
