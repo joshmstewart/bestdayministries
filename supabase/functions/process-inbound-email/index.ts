@@ -15,6 +15,9 @@ interface InboundEmailPayload {
   in_reply_to?: string;
   references?: string;
   raw?: string; // Cloudflare Email Worker sends raw email
+  // Cloudflare format
+  headers?: Record<string, string>;
+  rawSize?: number;
 }
 
 Deno.serve(async (req) => {
@@ -35,13 +38,21 @@ Deno.serve(async (req) => {
     console.log('[process-inbound-email] Received webhook');
 
     const payload: InboundEmailPayload = await req.json();
+    
+    // Handle Cloudflare Email Worker format
+    let subject = payload.subject;
+    if (!subject && payload.headers?.subject) {
+      subject = payload.headers.subject;
+    }
+    
     console.log('[process-inbound-email] Payload:', {
       from: payload.from,
       to: payload.to,
-      subject: payload.subject,
+      subject: subject,
       has_html: !!payload.html,
       has_text: !!payload.text,
       has_raw: !!payload.raw,
+      source: payload.headers ? 'cloudflare' : 'resend'
     });
 
     // Parse raw email if provided (Cloudflare format)
@@ -91,9 +102,9 @@ Deno.serve(async (req) => {
 
     // Try to match submission by subject or use most recent
     let matchedSubmission = submissions[0];
-    if (payload.subject) {
+    if (subject) {
       const subjectMatch = submissions.find(s => 
-        s.subject && payload.subject.toLowerCase().includes(s.subject.toLowerCase())
+        s.subject && subject.toLowerCase().includes(s.subject.toLowerCase())
       );
       if (subjectMatch) {
         matchedSubmission = subjectMatch;

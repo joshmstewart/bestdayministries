@@ -24,7 +24,28 @@ Production: Resend
 
 ## Architecture
 
-### Test Flow
+### Production Email Flow (Cloudflare + Resend)
+```
+Outbound (Admin → User):
+1. Admin sends reply via UI
+   ↓
+2. Resend sends email
+   ↓
+3. User receives in inbox
+
+Inbound (User → Admin):
+1. User replies to email
+   ↓
+2. Cloudflare Email Worker catches reply
+   ↓
+3. Worker forwards to edge function
+   ↓
+4. Reply saved to database
+   ↓
+5. Admin sees reply in UI
+```
+
+### Test Flow (Database Verification)
 ```
 1. Test triggers email (e.g., contact form submission)
    ↓
@@ -34,7 +55,7 @@ Production: Resend
    ↓
 4. Test verifies database state
    ↓
-5. Test simulates inbound email (calls edge function)
+5. Test simulates inbound email (calls edge function directly)
    ↓
 6. Test verifies reply saved to database
 ```
