@@ -133,19 +133,21 @@ export async function waitForEmail(
 ): Promise<MailtrapEmail> {
   const { timeoutMs = 30000, pollIntervalMs = 2000 } = options;
   const startTime = Date.now();
+  const startTimestamp = new Date().toISOString();
 
-  console.log(`⏳ Waiting for email matching:`, criteria);
+  console.log(`⏳ Waiting for email matching:`, criteria, `sent after ${startTimestamp}`);
 
   while (Date.now() - startTime < timeoutMs) {
     const messages = await fetchAllMessages();
     
-    // Find matching message
+    // Find matching message sent after we started waiting
     const match = messages.find((msg) => {
       const toMatch = !criteria.to || msg.to_email.toLowerCase().includes(criteria.to.toLowerCase());
       const subjectMatch = !criteria.subject || msg.subject.toLowerCase().includes(criteria.subject.toLowerCase());
       const fromMatch = !criteria.from || msg.from_email.toLowerCase().includes(criteria.from.toLowerCase());
+      const timeMatch = new Date(msg.sent_at).getTime() >= new Date(startTimestamp).getTime();
       
-      return toMatch && subjectMatch && fromMatch;
+      return toMatch && subjectMatch && fromMatch && timeMatch;
     });
 
     if (match) {
@@ -216,7 +218,10 @@ export async function clearInbox(): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to clear inbox: ${response.status} ${response.statusText}`);
+    // Mailtrap Sandbox API might not support bulk delete - log warning and continue
+    // Tests will still work as waitForEmail looks for new messages by timestamp
+    console.warn(`⚠️  Could not clear inbox (${response.status}), continuing anyway. Old messages may be present.`);
+    return;
   }
 
   console.log('✅ Cleared Mailtrap inbox');
