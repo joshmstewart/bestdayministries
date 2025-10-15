@@ -1,30 +1,36 @@
 /**
  * Resend Production-Parity Email Testing Helper
  * 
- * Tests email functionality using database verification instead of external email capture.
- * This ensures tests verify the ACTUAL production email infrastructure (Resend).
- * 
- * IMPORTANT: Uses service role key to bypass RLS policies for test verification.
- * This allows tests to read submissions even though frontend uses anon key with RLS.
+ * Tests email functionality using database verification via edge function.
+ * This ensures tests verify the ACTUAL production email infrastructure (Resend)
+ * without exposing the service role key to GitHub Actions.
  */
 
-import { createClient } from '@supabase/supabase-js';
-
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Missing Supabase environment variables for email testing. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing Supabase environment variables for email testing');
 }
 
-// Use service role key to bypass RLS policies in test environment
-// This allows tests to verify that submissions are saved to database
-export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+// Helper function to call the test edge function
+async function callTestHelper(action: string, params: Record<string, any>) {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/test-contact-form-helper`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ action, ...params }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Test helper failed: ${response.status} ${error}`);
   }
-});
+
+  return response.json();
+}
 
 interface ContactFormSubmission {
   id: string;
@@ -59,31 +65,16 @@ export async function waitForSubmission(
     pollIntervalMs?: number;
   } = {}
 ): Promise<ContactFormSubmission> {
-  const { timeoutMs = 30000, pollIntervalMs = 2000 } = options;
-  const startTime = Date.now();
-  const startTimestamp = new Date().toISOString();
+  console.log(`⏳ Waiting for submission from ${email}`);
 
-  console.log(`⏳ Waiting for submission from ${email} after ${startTimestamp}`);
-
-  while (Date.now() - startTime < timeoutMs) {
-    const { data, error } = await supabase
-      .from('contact_form_submissions')
-      .select('*')
-      .eq('email', email)
-      .gte('created_at', startTimestamp)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!error && data) {
-      console.log(`✅ Found submission: ${data.id}`);
-      return data as ContactFormSubmission;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  const result = await callTestHelper('waitForSubmission', { email });
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to find submission');
   }
 
-  throw new Error(`Timeout waiting for submission from ${email}`);
+  console.log(`✅ Found submission: ${result.submission.id}`);
+  return result.submission as ContactFormSubmission;
 }
 
 /**
@@ -97,37 +88,16 @@ export async function waitForReply(
     pollIntervalMs?: number;
   } = {}
 ): Promise<ContactFormReply> {
-  const { senderType, timeoutMs = 30000, pollIntervalMs = 2000 } = options;
-  const startTime = Date.now();
-  const startTimestamp = new Date().toISOString();
+  console.log(`⏳ Waiting for reply to submission ${submissionId}`);
 
-  console.log(`⏳ Waiting for reply to submission ${submissionId} after ${startTimestamp}`);
-
-  while (Date.now() - startTime < timeoutMs) {
-    let query = supabase
-      .from('contact_form_replies')
-      .select('*')
-      .eq('submission_id', submissionId)
-      .gte('created_at', startTimestamp);
-
-    if (senderType) {
-      query = query.eq('sender_type', senderType);
-    }
-
-    const { data, error } = await query
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!error && data) {
-      console.log(`✅ Found reply: ${data.id} (${data.sender_type})`);
-      return data as ContactFormReply;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  const result = await callTestHelper('waitForReply', { submissionId });
+  
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to find reply');
   }
 
-  throw new Error(`Timeout waiting for reply to submission ${submissionId}`);
+  console.log(`✅ Found reply: ${result.reply.id}`);
+  return result.reply as ContactFormReply;
 }
 
 /**
@@ -178,19 +148,13 @@ export async function verifySubmission(
     status?: string;
   }
 ): Promise<ContactFormSubmission> {
-  const { data, error } = await supabase
-    .from('contact_form_submissions')
-    .select('*')
-    .eq('email', email)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (error || !data) {
+  const result = await callTestHelper('getSubmission', { email });
+  
+  if (!result.success) {
     throw new Error(`Submission not found for email: ${email}`);
   }
 
-  const submission = data as ContactFormSubmission;
+  const submission = result.submission as ContactFormSubmission;
 
   if (expectations.name && submission.name !== expectations.name) {
     throw new Error(`Name mismatch: expected "${expectations.name}", got "${submission.name}"`);
@@ -223,19 +187,13 @@ export async function verifyReply(
     senderEmail?: string;
   }
 ): Promise<ContactFormReply> {
-  const { data, error } = await supabase
-    .from('contact_form_replies')
-    .select('*')
-    .eq('submission_id', submissionId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (error || !data) {
+  const result = await callTestHelper('waitForReply', { submissionId });
+  
+  if (!result.success) {
     throw new Error(`Reply not found for submission: ${submissionId}`);
   }
 
-  const reply = data as ContactFormReply;
+  const reply = result.reply as ContactFormReply;
 
   if (expectations.senderType && reply.sender_type !== expectations.senderType) {
     throw new Error(`Sender type mismatch: expected "${expectations.senderType}", got "${reply.sender_type}"`);
@@ -259,25 +217,7 @@ export async function verifyReply(
 export async function cleanupTestSubmissions(emailPattern: string): Promise<void> {
   console.log(`🧹 Cleaning up test submissions matching: ${emailPattern}`);
   
-  // Delete replies first (foreign key constraint)
-  const { data: submissions } = await supabase
-    .from('contact_form_submissions')
-    .select('id')
-    .ilike('email', emailPattern);
-
-  if (submissions && submissions.length > 0) {
-    const submissionIds = submissions.map((s) => s.id);
-    
-    await supabase
-      .from('contact_form_replies')
-      .delete()
-      .in('submission_id', submissionIds);
-    
-    await supabase
-      .from('contact_form_submissions')
-      .delete()
-      .in('id', submissionIds);
-    
-    console.log(`✅ Cleaned up ${submissions.length} test submissions`);
-  }
+  await callTestHelper('cleanup', { email: emailPattern });
+  
+  console.log(`✅ Cleaned up test submissions`);
 }
