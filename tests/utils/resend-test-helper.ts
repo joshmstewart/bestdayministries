@@ -3,18 +3,28 @@
  * 
  * Tests email functionality using database verification instead of external email capture.
  * This ensures tests verify the ACTUAL production email infrastructure (Resend).
+ * 
+ * IMPORTANT: Uses service role key to bypass RLS policies for test verification.
+ * This allows tests to read submissions even though frontend uses anon key with RLS.
  */
 
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error('Missing Supabase environment variables for email testing');
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing Supabase environment variables for email testing. Need VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Use service role key to bypass RLS policies in test environment
+// This allows tests to verify that submissions are saved to database
+export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 interface ContactFormSubmission {
   id: string;
