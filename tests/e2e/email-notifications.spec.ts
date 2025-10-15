@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { supabase } from '../utils/test-helpers';
+import { supabase } from '../utils/resend-test-helper';
 
 test.describe('Notification Email Tests', () => {
   test('sends email for new comment notification @email @notifications', async () => {

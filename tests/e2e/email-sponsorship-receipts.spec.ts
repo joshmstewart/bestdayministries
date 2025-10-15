@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { supabase } from '../utils/test-helpers';
+import { supabase } from '../utils/resend-test-helper';
 
 test.describe('Sponsorship Receipt Email Tests', () => {
   test('sends receipt email for new monthly sponsorship @email @receipts', async () => {

@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { supabase } from '../utils/test-helpers';
+import { supabase } from '../utils/resend-test-helper';
 
 test.describe('Approval Notification Email Tests', () => {
   test('sends email when post is approved @email @approvals', async () => {
