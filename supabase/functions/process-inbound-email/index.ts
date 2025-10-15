@@ -30,6 +30,13 @@ Deno.serve(async (req) => {
   const webhookSecret = Deno.env.get('CLOUDFLARE_EMAIL_WEBHOOK_SECRET');
   const providedSecret = req.headers.get('x-webhook-secret');
   
+  console.log('[process-inbound-email] Secret check:', {
+    hasEnvSecret: !!webhookSecret,
+    hasProvidedSecret: !!providedSecret,
+    secretsMatch: webhookSecret === providedSecret,
+    providedSecretPreview: providedSecret ? providedSecret.substring(0, 10) + '...' : 'none'
+  });
+  
   if (!webhookSecret || providedSecret !== webhookSecret) {
     console.error('[process-inbound-email] Webhook secret verification failed');
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
