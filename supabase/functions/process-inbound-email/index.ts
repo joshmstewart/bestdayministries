@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     // Find matching submission by sender email
     const { data: submissions, error: submissionsError } = await supabase
       .from('contact_form_submissions')
-      .select('id, name, email, subject')
+      .select('id, name, email, subject, created_at')
       .eq('email', senderEmail)
       .order('created_at', { ascending: false })
       .limit(5);
@@ -107,7 +107,32 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to query submissions: ${submissionsError.message}`);
     }
 
-    if (!submissions || submissions.length === 0) {
+    // Check if this is a reply vs new email:
+    // - If subject contains "Re:" or "RE:" → it's a reply
+    // - If it matches an existing submission's subject → likely a reply
+    // - Otherwise → treat as new email
+    const isReply = subject && (
+      subject.toLowerCase().startsWith('re:') || 
+      subject.toLowerCase().startsWith('fwd:')
+    );
+    
+    let matchedSubmission = null;
+    
+    if (isReply && submissions && submissions.length > 0) {
+      // Try to match by subject for replies
+      if (subject) {
+        const cleanSubject = subject.replace(/^(re:|fwd:)\s*/i, '').toLowerCase();
+        matchedSubmission = submissions.find(s => 
+          s.subject && cleanSubject.includes(s.subject.toLowerCase())
+        );
+      }
+      // If no subject match, use most recent submission
+      if (!matchedSubmission) {
+        matchedSubmission = submissions[0];
+      }
+    }
+
+    if (!matchedSubmission) {
       console.log('[process-inbound-email] No matching submission found - creating new submission');
       
       // Extract clean message content for new submission
@@ -175,17 +200,6 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
-    }
-
-    // Try to match submission by subject or use most recent
-    let matchedSubmission = submissions[0];
-    if (subject) {
-      const subjectMatch = submissions.find(s => 
-        s.subject && subject.toLowerCase().includes(s.subject.toLowerCase())
-      );
-      if (subjectMatch) {
-        matchedSubmission = subjectMatch;
-      }
     }
 
     console.log('[process-inbound-email] Matched submission:', matchedSubmission.id);
