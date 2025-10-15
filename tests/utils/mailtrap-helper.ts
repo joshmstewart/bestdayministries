@@ -44,9 +44,9 @@ interface MailtrapMessage {
   text_body?: string;
 }
 
-// Mailtrap API V1 Configuration
-// Using V1 API which works with Api-Token authentication
-// V1 API docs: https://mailtrap.docs.apiary.io/
+// Mailtrap API V2 Configuration
+// Using V2 API which works with Bearer token authentication for new Sandbox Admin tokens
+// V2 API docs: https://api-docs.mailtrap.io/
 const MAILTRAP_API_TOKEN = process.env.MAILTRAP_API_TOKEN;
 const MAILTRAP_INBOX_ID = process.env.MAILTRAP_INBOX_ID;
 
@@ -104,51 +104,54 @@ export async function testMailtrapConnectivity(): Promise<{
     return { success: false, error: 'Mailtrap not configured' };
   }
 
-  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  // Test V2 API first (new token standard)
+  const v2Url = `https://mailtrap.io/api/v2/inboxes/${MAILTRAP_INBOX_ID}/messages`;
   
   console.log('\n🔌 Testing Mailtrap API connectivity...');
-  console.log(`📍 URL: ${url}\n`);
+  console.log(`📍 Testing V2 API: ${v2Url}\n`);
 
-  // Test Method 1: Bearer token (current standard for Sandbox API)
+  // Test Method 1: V2 API with Bearer token (for new Sandbox Admin tokens)
   try {
-    console.log('Testing method 1: Authorization: Bearer token');
-    const response = await fetch(url, {
+    console.log('Testing method 1: V2 API with Bearer token');
+    const response = await fetch(v2Url, {
+      headers: {
+        'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      console.log('✅ V2 API Bearer token authentication WORKS!\n');
+      return { success: true, method: 'bearer' };
+    } else {
+      const errorText = await response.text();
+      console.log(`❌ V2 Bearer token failed: ${response.status} ${response.statusText}`);
+      console.log(`   Response: ${errorText}\n`);
+    }
+  } catch (error) {
+    console.log(`❌ V2 Bearer token failed with exception: ${error}\n`);
+  }
+
+  // Test Method 2: V1 API with Bearer token (fallback for older tokens)
+  const v1Url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  try {
+    console.log('Testing method 2: V1 API with Bearer token (legacy)');
+    const response = await fetch(v1Url, {
       headers: {
         'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
       },
     });
 
     if (response.ok) {
-      console.log('✅ Bearer token authentication WORKS!\n');
+      console.log('✅ V1 API Bearer token authentication WORKS!\n');
       return { success: true, method: 'bearer' };
     } else {
       const errorText = await response.text();
-      console.log(`❌ Bearer token failed: ${response.status} ${response.statusText}`);
+      console.log(`❌ V1 Bearer token failed: ${response.status} ${response.statusText}`);
       console.log(`   Response: ${errorText}\n`);
     }
   } catch (error) {
-    console.log(`❌ Bearer token failed with exception: ${error}\n`);
-  }
-
-  // Test Method 2: Api-Token header (older V1 API method)
-  try {
-    console.log('Testing method 2: Api-Token header');
-    const response = await fetch(url, {
-      headers: {
-        'Api-Token': MAILTRAP_API_TOKEN!,
-      },
-    });
-
-    if (response.ok) {
-      console.log('✅ Api-Token header authentication WORKS!\n');
-      return { success: true, method: 'api-token' };
-    } else {
-      const errorText = await response.text();
-      console.log(`❌ Api-Token header failed: ${response.status} ${response.statusText}`);
-      console.log(`   Response: ${errorText}\n`);
-    }
-  } catch (error) {
-    console.log(`❌ Api-Token header failed with exception: ${error}\n`);
+    console.log(`❌ V1 Bearer token failed with exception: ${error}\n`);
   }
 
   return { 
@@ -201,12 +204,13 @@ export async function fetchAllMessages(): Promise<MailtrapMessage[]> {
     throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
   }
 
-  // Use Mailtrap V1 API endpoint for fetching messages
-  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  // Use Mailtrap V2 API endpoint for fetching messages (new token standard)
+  const url = `https://mailtrap.io/api/v2/inboxes/${MAILTRAP_INBOX_ID}/messages`;
   
   const response = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
+      'Accept': 'application/json',
     },
   });
 
@@ -229,12 +233,13 @@ export async function fetchEmail(emailId: number): Promise<MailtrapEmail> {
     throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
   }
 
-  // Use Mailtrap V1 API endpoint for fetching individual message
-  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/messages/${emailId}`;
+  // Use Mailtrap V2 API endpoint for fetching individual message (new token standard)
+  const url = `https://mailtrap.io/api/v2/inboxes/${MAILTRAP_INBOX_ID}/messages/${emailId}`;
   
   const response = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
+      'Accept': 'application/json',
     },
   });
 
@@ -336,10 +341,10 @@ export async function clearInbox(): Promise<void> {
     throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
   }
 
-  // Use Mailtrap V1 API endpoint for clearing inbox
-  // V1 API: PATCH /api/v1/inboxes/{inbox_id}/clean
+  // Use Mailtrap V2 API endpoint for clearing inbox (new token standard)
+  // V2 API: PATCH /api/v2/inboxes/{inbox_id}/clean
   // Auth: Bearer token format
-  const url = `https://mailtrap.io/api/v1/inboxes/${MAILTRAP_INBOX_ID}/clean`;
+  const url = `https://mailtrap.io/api/v2/inboxes/${MAILTRAP_INBOX_ID}/clean`;
   
   console.log(`🧹 Clearing inbox: ${MAILTRAP_INBOX_ID}`);
   console.log(`   URL: ${url}`);
@@ -348,6 +353,7 @@ export async function clearInbox(): Promise<void> {
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${MAILTRAP_API_TOKEN}`,
+      'Accept': 'application/json',
     },
   });
 
