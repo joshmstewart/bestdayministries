@@ -63,7 +63,7 @@ export async function waitForSubmission(
       .gte('created_at', startTimestamp)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       console.log(`✅ Found submission: ${data.id}`);
@@ -107,7 +107,7 @@ export async function waitForReply(
     const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       console.log(`✅ Found reply: ${data.id} (${data.sender_type})`);
