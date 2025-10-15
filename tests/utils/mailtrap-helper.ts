@@ -44,6 +44,9 @@ interface MailtrapMessage {
   text_body?: string;
 }
 
+// Note: Mailtrap has two different API bases:
+// 1. Testing/Sandbox API: https://mailtrap.io/api/accounts/{account_id}/inboxes/{inbox_id}
+// 2. Email Testing API v2: https://sandbox.api.mailtrap.io/api/send/{inbox_id}
 const MAILTRAP_API_BASE = 'https://mailtrap.io/api/accounts';
 const MAILTRAP_API_TOKEN = process.env.MAILTRAP_API_TOKEN;
 const MAILTRAP_INBOX_ID = process.env.MAILTRAP_INBOX_ID;
@@ -199,10 +202,14 @@ export async function clearInbox(): Promise<void> {
     throw new Error('Mailtrap not configured. Set MAILTRAP_API_TOKEN and MAILTRAP_INBOX_ID.');
   }
 
-  const url = `${MAILTRAP_API_BASE}/${MAILTRAP_ACCOUNT_ID}/inboxes/${MAILTRAP_INBOX_ID}/clean`;
+  // Try the updated Sandbox API endpoint structure
+  // Changed from /clean to /messages with DELETE method for clearing all messages
+  const url = `${MAILTRAP_API_BASE}/${MAILTRAP_ACCOUNT_ID}/inboxes/${MAILTRAP_INBOX_ID}/messages`;
+  
+  console.log(`🧹 Attempting to clear inbox at: ${url}`);
   
   const response = await fetch(url, {
-    method: 'PATCH',
+    method: 'DELETE',
     headers: {
       'Api-Token': MAILTRAP_API_TOKEN!,
     },
