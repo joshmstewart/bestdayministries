@@ -330,7 +330,7 @@ serve(async (req) => {
         bestie_id: userIds.bestie,
         asset_type: 'image',
         asset_url: 'https://example.com/test-asset.jpg',
-        approval_status: 'pending'
+        approval_status: 'pending_approval'
       });
 
     if (assetError) {

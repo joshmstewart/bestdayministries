@@ -162,7 +162,7 @@ test.describe('Approval Notification Email Tests', () => {
     const { data: requests } = await supabase
       .from('vendor_bestie_requests')
       .select('*, vendors(*), caregiver_bestie_links(*)')
-      .eq('request_status', 'approved')
+      .eq('status', 'approved')
       .limit(1);
 
     if (!requests || requests.length === 0) {
