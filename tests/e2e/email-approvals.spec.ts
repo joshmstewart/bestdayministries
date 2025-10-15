@@ -6,13 +6,53 @@
 
 import { test, expect } from '@playwright/test';
 import { supabase } from '../utils/resend-test-helper';
+import { createClient } from '@supabase/supabase-js';
+
+// Helper to create authenticated client
+async function getAuthenticatedClient(accessToken: string, refreshToken: string) {
+  const authClient = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+  
+  await authClient.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken
+  });
+  
+  return authClient;
+}
 
 test.describe('Approval Notification Email Tests', () => {
+  let seedData: any;
+  let guardianClient: any;
+
+  test.beforeAll(async () => {
+    // Seed test data once for all tests
+    const testRunId = Date.now().toString();
+    const { data, error } = await supabase.functions.invoke('seed-email-test-data', {
+      body: { testRunId }
+    });
+
+    if (error) {
+      throw new Error(`Failed to seed test data: ${error.message}`);
+    }
+
+    seedData = data;
+    console.log('✅ Seeded test data:', seedData);
+
+    // Create authenticated client for guardian
+    guardianClient = await getAuthenticatedClient(
+      seedData.authSessions.guardian.access_token,
+      seedData.authSessions.guardian.refresh_token
+    );
+  });
+
   test('sends email when post is approved @email @approvals', async () => {
     test.setTimeout(90000);
 
-    // Get a guardian-bestie link
-    const { data: links } = await supabase
+    // Get guardian-bestie link using authenticated client
+    const { data: links } = await guardianClient
       .from('caregiver_bestie_links')
       .select('*, profiles!caregiver_bestie_links_caregiver_id_fkey(email)')
       .eq('require_post_approval', true)
@@ -82,7 +122,7 @@ test.describe('Approval Notification Email Tests', () => {
   test('sends email when comment is approved @email @approvals', async () => {
     test.setTimeout(90000);
 
-    const { data: links } = await supabase
+    const { data: links } = await guardianClient
       .from('caregiver_bestie_links')
       .select('*')
       .eq('require_comment_approval', true)
@@ -158,8 +198,8 @@ test.describe('Approval Notification Email Tests', () => {
   test('sends email when vendor asset is approved @email @approvals', async () => {
     test.setTimeout(90000);
 
-    // Get a vendor-bestie relationship
-    const { data: requests } = await supabase
+    // Get a vendor-bestie relationship using authenticated client
+    const { data: requests } = await guardianClient
       .from('vendor_bestie_requests')
       .select('*, vendors(*), caregiver_bestie_links(*)')
       .eq('status', 'approved')

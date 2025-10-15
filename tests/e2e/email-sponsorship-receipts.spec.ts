@@ -6,13 +6,49 @@
 
 import { test, expect } from '@playwright/test';
 import { supabase } from '../utils/resend-test-helper';
+import { createClient } from '@supabase/supabase-js';
+
+// Helper to create authenticated client
+async function getAuthenticatedClient(accessToken: string, refreshToken: string) {
+  const authClient = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+  
+  await authClient.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken
+  });
+  
+  return authClient;
+}
 
 test.describe('Sponsorship Receipt Email Tests', () => {
+  let seedData: any;
+  let sponsorClient: any;
+
+  test.beforeAll(async () => {
+    const testRunId = Date.now().toString();
+    const { data, error } = await supabase.functions.invoke('seed-email-test-data', {
+      body: { testRunId }
+    });
+
+    if (error) {
+      throw new Error(`Failed to seed test data: ${error.message}`);
+    }
+
+    seedData = data;
+    sponsorClient = await getAuthenticatedClient(
+      seedData.authSessions.sponsor.access_token,
+      seedData.authSessions.sponsor.refresh_token
+    );
+  });
+
   test('sends receipt email for new monthly sponsorship @email @receipts', async () => {
     test.setTimeout(90000);
 
-    // Get an active sponsorship
-    const { data: sponsorships } = await supabase
+    // Get active sponsorship using authenticated client
+    const { data: sponsorships } = await sponsorClient
       .from('sponsorships')
       .select('*, sponsor_besties(*)')
       .eq('status', 'active')
@@ -58,7 +94,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
   test('sends receipt email for one-time sponsorship @email @receipts', async () => {
     test.setTimeout(90000);
 
-    const { data: sponsorships } = await supabase
+    const { data: sponsorships } = await sponsorClient
       .from('sponsorships')
       .select('*, sponsor_besties(*)')
       .eq('status', 'completed')
@@ -99,7 +135,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
   test('receipt includes correct organization information @email @receipts', async () => {
     test.setTimeout(90000);
 
-    const { data: sponsorships } = await supabase
+    const { data: sponsorships } = await sponsorClient
       .from('sponsorships')
       .select('*')
       .eq('status', 'active')
@@ -143,8 +179,8 @@ test.describe('Sponsorship Receipt Email Tests', () => {
   test('generates missing receipts for existing sponsorships @email @receipts', async () => {
     test.setTimeout(90000);
 
-    // Find sponsorships without receipts
-    const { data: sponsorships } = await supabase
+    // Find sponsorships using authenticated client
+    const { data: sponsorships } = await sponsorClient
       .from('sponsorships')
       .select('id')
       .eq('status', 'active')

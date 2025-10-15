@@ -441,6 +441,33 @@ serve(async (req) => {
       throw new Error(`Seeding failed with ${criticalErrors.length} critical error(s): ${criticalErrors.join('; ')}`);
     }
 
+    // Step 15: Generate auth tokens for tests
+    console.log('🔑 Generating auth tokens for tests...');
+    
+    const authSessions: Record<string, any> = {};
+    
+    for (const [key, email] of Object.entries({
+      guardian: testUsers.guardian.email,
+      bestie: testUsers.bestie.email,
+      sponsor: testUsers.sponsor.email,
+      vendor: testUsers.vendor.email
+    })) {
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: email
+      });
+      
+      if (linkError) {
+        console.error(`Error generating link for ${key}:`, linkError);
+      } else if (linkData) {
+        authSessions[key] = {
+          access_token: linkData.properties.hashed_token,
+          refresh_token: linkData.properties.hashed_token
+        };
+        console.log(`✅ Generated auth token for ${key}`);
+      }
+    }
+
     console.log('✅ Email test data seeding complete!');
     console.log('📊 Created test users:', Object.keys(userIds));
 
@@ -450,7 +477,8 @@ serve(async (req) => {
         message: 'Test data seeded successfully',
         userIds,
         testRunId,
-        emailPrefix
+        emailPrefix,
+        authSessions
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

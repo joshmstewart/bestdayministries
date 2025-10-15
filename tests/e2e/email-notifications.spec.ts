@@ -6,22 +6,46 @@
 
 import { test, expect } from '@playwright/test';
 import { supabase } from '../utils/resend-test-helper';
+import { createClient } from '@supabase/supabase-js';
+
+// Helper to create authenticated client
+async function getAuthenticatedClient(accessToken: string, refreshToken: string) {
+  const authClient = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+  
+  await authClient.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken
+  });
+  
+  return authClient;
+}
 
 test.describe('Notification Email Tests', () => {
+  let seedData: any;
+
+  test.beforeAll(async () => {
+    const testRunId = Date.now().toString();
+    const { data, error } = await supabase.functions.invoke('seed-email-test-data', {
+      body: { testRunId }
+    });
+
+    if (error) {
+      throw new Error(`Failed to seed test data: ${error.message}`);
+    }
+
+    seedData = data;
+  });
+
   test('sends email for new comment notification @email @notifications', async () => {
     test.setTimeout(60000);
 
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .limit(1);
-
-    if (!users || users.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const testUser = users[0];
+    const testUser = {
+      id: seedData.userIds.sponsor,
+      email: `${seedData.emailPrefix}-sponsor@test.com`
+    };
 
     // Send notification via edge function
     const { error } = await supabase.functions.invoke('send-notification-email', {
@@ -59,17 +83,10 @@ test.describe('Notification Email Tests', () => {
   test('sends email for sponsor message notification @email @notifications', async () => {
     test.setTimeout(60000);
 
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .limit(1);
-
-    if (!users || users.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const testUser = users[0];
+    const testUser = {
+      id: seedData.userIds.sponsor,
+      email: `${seedData.emailPrefix}-sponsor@test.com`
+    };
 
     const { error } = await supabase.functions.invoke('send-notification-email', {
       body: {
@@ -103,17 +120,10 @@ test.describe('Notification Email Tests', () => {
   test('sends email for product update notification @email @notifications', async () => {
     test.setTimeout(60000);
 
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .limit(1);
-
-    if (!users || users.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const testUser = users[0];
+    const testUser = {
+      id: seedData.userIds.sponsor,
+      email: `${seedData.emailPrefix}-sponsor@test.com`
+    };
 
     const { error } = await supabase.functions.invoke('send-notification-email', {
       body: {
@@ -147,17 +157,10 @@ test.describe('Notification Email Tests', () => {
   test('respects email notification preferences @email @notifications', async () => {
     test.setTimeout(60000);
 
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .limit(1);
-
-    if (!users || users.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const testUser = users[0];
+    const testUser = {
+      id: seedData.userIds.sponsor,
+      email: `${seedData.emailPrefix}-sponsor@test.com`
+    };
 
     // Disable email notifications
     await supabase

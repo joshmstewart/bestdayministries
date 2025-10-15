@@ -7,26 +7,55 @@
 
 import { test, expect } from '@playwright/test';
 import { supabase } from '../utils/resend-test-helper';
+import { createClient } from '@supabase/supabase-js';
+
+// Helper to create authenticated client
+async function getAuthenticatedClient(accessToken: string, refreshToken: string) {
+  const authClient = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+  
+  await authClient.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken
+  });
+  
+  return authClient;
+}
 
 test.describe('Digest Email Tests', () => {
+  let seedData: any;
+  let sponsorClient: any;
+
+  test.beforeAll(async () => {
+    // Seed test data once
+    const testRunId = Date.now().toString();
+    const { data, error } = await supabase.functions.invoke('seed-email-test-data', {
+      body: { testRunId }
+    });
+
+    if (error) {
+      throw new Error(`Failed to seed test data: ${error.message}`);
+    }
+
+    seedData = data;
+    sponsorClient = await getAuthenticatedClient(
+      seedData.authSessions.sponsor.access_token,
+      seedData.authSessions.sponsor.refresh_token
+    );
+  });
+
   test('daily digest email sends for users with unread notifications @email @digest', async () => {
     test.setTimeout(60000);
 
-    // Get a user with notification preferences
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .limit(1);
+    // Use seeded sponsor user
+    const testUser = {
+      id: seedData.userIds.sponsor,
+      email: `${seedData.emailPrefix}-sponsor@test.com`
+    };
 
-    if (!users || users.length === 0) {
-      console.log('⚠️ No users found, skipping test');
-      test.skip();
-      return;
-    }
-
-    const testUser = users[0];
-
-    // Create test notifications for the user
+    // Create test notifications for the user using authenticated client
     const notifications = [
       {
         user_id: testUser.id,
@@ -80,17 +109,10 @@ test.describe('Digest Email Tests', () => {
   test('weekly digest email aggregates multiple notifications @email @digest', async () => {
     test.setTimeout(60000);
 
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .limit(1);
-
-    if (!users || users.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const testUser = users[0];
+    const testUser = {
+      id: seedData.userIds.sponsor,
+      email: `${seedData.emailPrefix}-sponsor@test.com`
+    };
 
     // Create multiple unread notifications
     const notifications = Array.from({ length: 5 }, (_, i) => ({
@@ -129,17 +151,10 @@ test.describe('Digest Email Tests', () => {
   test('digest respects user notification preferences @email @digest', async () => {
     test.setTimeout(60000);
 
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-      .limit(1);
-
-    if (!users || users.length === 0) {
-      test.skip();
-      return;
-    }
-
-    const testUser = users[0];
+    const testUser = {
+      id: seedData.userIds.sponsor,
+      email: `${seedData.emailPrefix}-sponsor@test.com`
+    };
 
     // Disable digest emails for user
     await supabase
