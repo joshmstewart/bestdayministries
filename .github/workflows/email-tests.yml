@@ -2,12 +2,6 @@ name: Email Tests
 
 on:
   workflow_dispatch:
-    inputs:
-      test_filter:
-        description: 'Test filter (e.g., @digest, @notifications, @receipts)'
-        required: false
-        default: '@email'
-        type: string
 
 jobs:
   email-tests:
@@ -27,7 +21,7 @@ jobs:
       run: npx playwright install --with-deps chromium
       
     - name: Run email tests
-      run: npx playwright test --grep "${{ inputs.test_filter }}" tests/e2e/email-*.spec.ts --project=chromium
+      run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
