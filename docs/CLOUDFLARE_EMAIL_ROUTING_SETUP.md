@@ -89,99 +89,87 @@ You should see:
 ```javascript
 export default {
   async email(message, env, ctx) {
-    // Log incoming email
-    console.log('Received email from:', message.from);
-    console.log('To:', message.to);
-    console.log('Subject:', message.headers.get('subject'));
+    console.log('Received email to:', message.to);
+    
+    const WEBHOOK_SECRET = env.WEBHOOK_SECRET; // Environment variable
+    const EDGE_FUNCTION_URL = 'https://nbvijawmjkycyweioglk.supabase.co/functions/v1/process-inbound-email';
     
     try {
-      // Get email content
-      const rawEmail = await streamToString(message.raw);
+      // Extract email details
+      const from = message.from;
+      const to = message.to;
+      const subject = message.headers.get('subject') || '';
       
-      // Parse text content
-      let textContent = '';
-      try {
-        // Simple text extraction from raw email
-        const bodyMatch = rawEmail.match(/Content-Type: text\/plain[\s\S]*?\n\n([\s\S]*?)(?=\n--|\nContent-Type|$)/);
-        if (bodyMatch) {
-          textContent = bodyMatch[1].trim();
-        } else {
-          textContent = rawEmail;
+      // Read email content
+      const reader = message.raw.getReader();
+      const chunks = [];
+      let done = false;
+      
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          chunks.push(value);
         }
-      } catch (parseError) {
-        console.error('Error parsing email:', parseError);
-        textContent = rawEmail;
       }
       
-      // Send to Supabase edge function
-      const response = await fetch(
-        'https://nbvijawmjkycyweioglk.supabase.co/functions/v1/process-inbound-email',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: message.from,
-            to: message.to,
-            subject: message.headers.get('subject'),
-            text: textContent,
-            raw: rawEmail,
-            headers: {
-              subject: message.headers.get('subject'),
-              'message-id': message.headers.get('message-id'),
-              'in-reply-to': message.headers.get('in-reply-to'),
-              references: message.headers.get('references'),
-            },
-            rawSize: rawEmail.length,
-          })
-        }
+      // Convert to string
+      const rawEmail = new TextDecoder().decode(
+        new Uint8Array(chunks.reduce((acc, chunk) => [...acc, ...chunk], []))
       );
       
-      const result = await response.json();
-      console.log('Supabase response:', result);
+      console.log('Forwarding to Supabase edge function...');
+      
+      // Forward to Supabase edge function with webhook secret
+      const response = await fetch(EDGE_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Secret': WEBHOOK_SECRET, // Add secret header
+        },
+        body: JSON.stringify({
+          from,
+          to,
+          subject,
+          raw: rawEmail,
+          headers: Object.fromEntries(message.headers),
+        }),
+      });
       
       if (!response.ok) {
-        throw new Error(`Supabase returned ${response.status}: ${JSON.stringify(result)}`);
+        const errorText = await response.text();
+        console.error('Edge function error:', errorText);
+        throw new Error(`Edge function returned ${response.status}`);
       }
       
-      console.log('Email processed successfully');
+      const result = await response.json();
+      console.log('Successfully processed:', result);
       
     } catch (error) {
       console.error('Error processing email:', error);
-      // Don't throw - we don't want Cloudflare to retry
+      // Don't throw - this would cause the email to bounce
+      // Instead, log the error and accept the email
     }
   }
-}
-
-async function streamToString(stream) {
-  const chunks = [];
-  const reader = stream.getReader();
-  
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  
-  // Concatenate all chunks
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-  
-  return new TextDecoder().decode(result);
 }
 ```
 
 3. Click **Save and Deploy**
+
+### 3.3 Add Environment Variable (IMPORTANT!)
+
+Before testing, you MUST add the webhook secret:
+
+1. In the Worker editor, click **Settings** tab
+2. Go to **Variables and Secrets**
+3. Under **Environment Variables**, click **Add variable**
+4. Configure:
+   - **Variable name**: `WEBHOOK_SECRET`
+   - **Value**: `wh_email_cf_9k2mxP7nQ4vL8zBj3wY6tR5sC1hN`
+   - Click **"Encrypt"** to make it a secret
+5. Click **Deploy**
+
+**CRITICAL:** This value MUST match the `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` in Lovable.
 
 ---
 
@@ -265,6 +253,33 @@ ORDER BY created_at DESC
 LIMIT 5;
 ```
 
+### Webhook Secret Mismatch
+
+**Symptoms:**
+- Worker logs show: "Edge function returned 401"
+- Edge function logs show: "Webhook secret verification failed"
+
+**Solutions:**
+1. Verify the secrets match exactly:
+   - **Cloudflare**: Worker Settings → Variables → `WEBHOOK_SECRET`
+   - **Lovable**: Should be set as `CLOUDFLARE_EMAIL_WEBHOOK_SECRET`
+   - **Value**: `wh_email_cf_9k2mxP7nQ4vL8zBj3wY6tR5sC1hN`
+
+2. Re-deploy the Worker after updating environment variables:
+   - Go to Worker → Settings → Variables
+   - Click **Deploy** after any changes
+
+3. Test with curl to isolate the issue:
+```bash
+curl -X POST https://nbvijawmjkycyweioglk.supabase.co/functions/v1/process-inbound-email \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-Secret: wh_email_cf_9k2mxP7nQ4vL8zBj3wY6tR5sC1hN" \
+  -d '{"from":"test@example.com","to":"contact@bestdayministries.org","subject":"Test","text":"Test message"}'
+```
+
+Expected response: `{"success":true}` or `{"success":false,"message":"No matching submission found"}`
+If you get `{"error":"Unauthorized"}`, the secret doesn't match.
+
 ---
 
 ## Email Flow Diagram
@@ -289,36 +304,51 @@ Admin sees reply in UI
 
 ## Security Considerations
 
-### Current Setup
-- Edge function is **public** (no auth required)
-- This is safe because:
-  - Only Cloudflare can call the worker
-  - Worker is triggered by Cloudflare's email system
-  - No sensitive data exposed
+### Webhook Secret Protection ✅
 
-### Optional: Add Worker Secret Verification
-If you want extra security, you can add a shared secret:
+This setup now uses a shared secret to ensure only your Cloudflare Worker can call the edge function:
 
-1. **In Worker Code**, add at the top:
-```javascript
-const SHARED_SECRET = 'your-random-secret-key-here';
-```
+1. **Cloudflare Worker** sends `X-Webhook-Secret` header with each request
+2. **Edge Function** verifies the secret matches `CLOUDFLARE_EMAIL_WEBHOOK_SECRET`
+3. **Unauthorized requests** receive a 401 error
 
-2. **Update fetch call** to include secret:
+### How It Works
+
+**Worker Side:**
 ```javascript
 headers: {
   'Content-Type': 'application/json',
-  'X-Worker-Secret': SHARED_SECRET,
+  'X-Webhook-Secret': WEBHOOK_SECRET, // From environment variable
 }
 ```
 
-3. **Update Edge Function** to verify secret:
+**Edge Function Side:**
 ```typescript
-const workerSecret = req.headers.get('x-worker-secret');
-if (workerSecret !== Deno.env.get('WORKER_SECRET')) {
-  return new Response('Unauthorized', { status: 401 });
+const webhookSecret = Deno.env.get('CLOUDFLARE_EMAIL_WEBHOOK_SECRET');
+const providedSecret = req.headers.get('x-webhook-secret');
+
+if (!webhookSecret || providedSecret !== webhookSecret) {
+  return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    status: 401,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 }
 ```
+
+### Why This Is Secure
+
+- ✅ **Prevents spam**: Random bots can't POST fake emails to your edge function
+- ✅ **Validates source**: Only requests from your Cloudflare Worker are accepted
+- ✅ **Secret encryption**: The secret is encrypted in both Cloudflare and Lovable
+- ✅ **Header-based auth**: Simple and reliable authentication method
+
+### Secret Management
+
+- **Cloudflare Worker**: Environment variable `WEBHOOK_SECRET` (encrypted)
+- **Lovable Cloud**: Environment variable `CLOUDFLARE_EMAIL_WEBHOOK_SECRET` (encrypted)
+- **Value**: `wh_email_cf_9k2mxP7nQ4vL8zBj3wY6tR5sC1hN`
+
+**Important:** These values MUST match exactly for the system to work.
 
 ---
 

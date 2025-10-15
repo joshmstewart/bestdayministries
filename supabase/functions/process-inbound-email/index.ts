@@ -26,6 +26,20 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Verify webhook secret
+  const webhookSecret = Deno.env.get('CLOUDFLARE_EMAIL_WEBHOOK_SECRET');
+  const providedSecret = req.headers.get('x-webhook-secret');
+  
+  if (!webhookSecret || providedSecret !== webhookSecret) {
+    console.error('[process-inbound-email] Webhook secret verification failed');
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  
+  console.log('[process-inbound-email] Webhook secret verified');
+
   try {
     // Detect test mode from query param
     const url = new URL(req.url);
