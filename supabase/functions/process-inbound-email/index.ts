@@ -324,6 +324,18 @@ function extractMessageContent(content: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
   
+  // Handle MIME multipart boundaries
+  // Look for text/plain content between boundaries
+  const textPlainMatch = text.match(/Content-Type:\s*text\/plain[^\n]*\n\n([\s\S]*?)(?:--\d+|$)/i);
+  if (textPlainMatch && textPlainMatch[1]) {
+    text = textPlainMatch[1];
+  }
+  
+  // Remove MIME headers that might still be present
+  text = text.replace(/Content-Type:[^\n]*\n/gi, '');
+  text = text.replace(/Content-Transfer-Encoding:[^\n]*\n/gi, '');
+  text = text.replace(/--\d{10,}[^\n]*\n/g, ''); // Remove boundary markers
+  
   // Split by common reply separators
   const separators = [
     /^On .+ wrote:$/m,
