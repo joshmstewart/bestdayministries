@@ -49,6 +49,7 @@ import MemoryMatchPage from "./pages/MemoryMatchPage";
 import Match3Page from "./pages/Match3Page";
 import VirtualPetPage from "./pages/VirtualPetPage";
 import StorePage from "./pages/Store";
+import StickerAlbumPage from "./pages/StickerAlbumPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -182,6 +183,7 @@ const App = () => {
           <Route path="/games/match3" element={<Match3Page />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
+          <Route path="/sticker-album" element={<StickerAlbumPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

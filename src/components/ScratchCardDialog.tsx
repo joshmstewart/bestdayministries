@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 interface ScratchCardDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ const rarityColors = {
 
 export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: ScratchCardDialogProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isScratching, setIsScratching] = useState(false);
   const [scratched, setScratched] = useState(false);
@@ -221,8 +223,8 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
                   Close
                 </Button>
                 <Button onClick={() => {
-                  // Navigate to sticker album (to be implemented)
                   onOpenChange(false);
+                  navigate('/sticker-album');
                 }}>
                   View Collection
                 </Button>
