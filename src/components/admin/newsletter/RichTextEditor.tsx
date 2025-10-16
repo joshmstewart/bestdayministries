@@ -36,6 +36,7 @@ import {
   Link as LinkIcon,
   Image as ImageIcon,
   Youtube as YoutubeIcon,
+  Video as VideoIcon,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -64,7 +65,9 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -166,6 +169,42 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
     setYoutubeDialogOpen(false);
     setYoutubeUrl("");
+  };
+
+  const handleVideoUpload = async () => {
+    if (!videoFile || !editor) return;
+
+    setUploading(true);
+    try {
+      const fileExt = videoFile.name.split(".").pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `newsletter-videos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("videos")
+        .upload(filePath, videoFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("videos")
+        .getPublicUrl(filePath);
+
+      editor
+        .chain()
+        .focus()
+        .insertContent(`<video controls width="640"><source src="${publicUrl}" type="video/${fileExt}"></video>`)
+        .run();
+      
+      setVideoDialogOpen(false);
+      setVideoFile(null);
+      toast.success("Video uploaded successfully");
+      toast.info("Note: Most email clients don't support embedded videos. Consider using YouTube or a linked thumbnail.", { duration: 5000 });
+    } catch (error: any) {
+      toast.error("Failed to upload video: " + error.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (!editor) return null;
@@ -313,8 +352,18 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
           variant="ghost"
           size="sm"
           onClick={() => setYoutubeDialogOpen(true)}
+          title="YouTube video"
         >
           <YoutubeIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setVideoDialogOpen(true)}
+          title="Upload video"
+        >
+          <VideoIcon className="h-4 w-4" />
         </Button>
         <Button
           type="button"
@@ -485,6 +534,37 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
             </Button>
             <Button onClick={handleAddYoutube} disabled={!youtubeUrl}>
               Embed Video
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Upload Dialog */}
+      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Video</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="video-file">Choose Video</Label>
+              <Input
+                id="video-file"
+                type="file"
+                accept="video/*"
+                onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Note: Most email clients don't support embedded videos. Consider using YouTube for better compatibility.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVideoDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleVideoUpload} disabled={!videoFile || uploading}>
+              {uploading ? "Uploading..." : "Insert Video"}
             </Button>
           </DialogFooter>
         </DialogContent>
