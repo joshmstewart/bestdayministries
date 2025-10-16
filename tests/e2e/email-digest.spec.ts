@@ -60,6 +60,19 @@ test.describe('Digest Email Tests', () => {
     }
   });
 
+  test.afterAll(async () => {
+    // Cleanup all seeded test data
+    if (seedData) {
+      console.log('🧹 Cleaning up test users and related data...');
+      await supabase.functions.invoke('cleanup-email-test-data', {
+        body: { 
+          testRunId: seedData.testRunId,
+          emailPrefix: seedData.emailPrefix 
+        }
+      });
+    }
+  });
+
   test('daily digest email sends for users with unread notifications @email @digest', async () => {
     test.setTimeout(60000);
 

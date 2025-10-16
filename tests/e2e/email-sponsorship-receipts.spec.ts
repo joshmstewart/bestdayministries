@@ -53,6 +53,19 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     }
   });
 
+  test.afterAll(async () => {
+    // Cleanup all seeded test data
+    if (seedData) {
+      console.log('🧹 Cleaning up test users and related data...');
+      await supabase.functions.invoke('cleanup-email-test-data', {
+        body: { 
+          testRunId: seedData.testRunId,
+          emailPrefix: seedData.emailPrefix 
+        }
+      });
+    }
+  });
+
   test('sends receipt email for new monthly sponsorship @email @receipts', async () => {
     test.setTimeout(90000);
 

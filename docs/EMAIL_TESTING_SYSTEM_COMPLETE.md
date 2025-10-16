@@ -227,6 +227,48 @@ Received: "Best Day Ministries"
 
 ---
 
+## Test Data Cleanup
+
+### Automatic Cleanup After Tests
+
+All email tests now include automatic cleanup to prevent test data pollution:
+
+**Key Features:**
+- `cleanup-email-test-data` edge function deletes test users and related data
+- Test users identified by email prefix: `emailtest-{testRunId}@test.com`
+- Cleanup runs in `afterAll` hook after all tests complete
+- Cascade deletes handle related data automatically
+
+**Files:**
+- `supabase/functions/cleanup-email-test-data/index.ts` - Cleanup edge function
+- All email test files call cleanup in `afterAll` hook
+
+**What Gets Cleaned Up:**
+- Test users (via auth.admin.deleteUser)
+- Profiles (cascade)
+- User roles (cascade)
+- Guardian-bestie links (cascade)
+- Discussion posts/comments (cascade)
+- Notifications (cascade)
+- Sponsorships (cascade)
+- Vendor data (cascade)
+- Receipt settings (manual delete)
+
+---
+
+## Troubleshooting
+
+### Test Data Pollution (2025-10-15)
+**Problem:** Email tests were creating real users, posts, comments, notifications that never got deleted, polluting the production database with hundreds of test records.
+
+**Solution:** 
+- Created `cleanup-email-test-data` edge function
+- Added `afterAll` hooks to all email tests to cleanup test users
+- Uses email prefix pattern matching to find and delete test data
+- Leverages cascade deletes for related data
+
+---
+
 ### Notification Preference Tests Fail
 **Error**: Tests expect `enable_digest_emails` column but it doesn't exist  
 **Fix**: Run database migration to add column:

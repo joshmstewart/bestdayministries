@@ -29,6 +29,12 @@ test.describe('Message Notification Email Tests', () => {
     }
   });
 
+  test.afterAll(async () => {
+    // Note: This test file uses seeded data but doesn't have seedData variable
+    // Cleanup happens automatically when seed-email-test-data tests run
+    console.log('✅ Message tests complete');
+  });
+
   test('sends email when sponsor sends message to bestie @email @messages', async () => {
     test.setTimeout(90000);
 

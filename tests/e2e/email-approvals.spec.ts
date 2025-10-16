@@ -79,6 +79,19 @@ test.describe('Approval Notification Email Tests', () => {
     }
   });
 
+  test.afterAll(async () => {
+    // Cleanup all seeded test data
+    if (seedData) {
+      console.log('🧹 Cleaning up test users and related data...');
+      await supabase.functions.invoke('cleanup-email-test-data', {
+        body: { 
+          testRunId: seedData.testRunId,
+          emailPrefix: seedData.emailPrefix 
+        }
+      });
+    }
+  });
+
   test('sends email when post is approved @email @approvals', async () => {
     test.setTimeout(90000);
 

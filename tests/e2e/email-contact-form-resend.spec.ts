@@ -21,6 +21,11 @@ test.describe('Contact Form Email Tests (Resend)', () => {
     await cleanupTestSubmissions('%test-%@example.com');
   });
 
+  test.afterAll(async () => {
+    // Final cleanup to ensure no test data remains
+    await cleanupTestSubmissions('%test-%@example.com');
+  });
+
   test('contact form submission saves to database @email', async ({ page }) => {
     await page.goto('/');
 
