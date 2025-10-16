@@ -38,7 +38,24 @@ serve(async (req) => {
 
     console.log(`Found ${testUsers.length} test users to clean up`);
 
-    // Delete each test user (cascade will handle related data)
+    const testUserIds = testUsers.map(u => u.id);
+
+    // CRITICAL: Delete sponsorship records first (blocks user deletion)
+    if (testUserIds.length > 0) {
+      console.log('🧹 Deleting sponsor_besties records...');
+      const { error: sponsorBestiesError } = await supabaseAdmin
+        .from('sponsor_besties')
+        .delete()
+        .in('bestie_id', testUserIds);
+      
+      if (sponsorBestiesError) {
+        console.error('Error deleting sponsor_besties:', sponsorBestiesError);
+      } else {
+        console.log('✅ Deleted sponsor_besties records');
+      }
+    }
+
+    // Delete each test user (cascade will handle remaining related data)
     for (const user of testUsers) {
       console.log(`Deleting user: ${user.email}`);
       
