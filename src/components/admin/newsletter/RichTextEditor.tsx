@@ -11,7 +11,7 @@ import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
 
-// Custom Image extension with resize support
+// Custom Image extension with resize and alignment support
 const ResizableImage = Image.extend({
   addAttributes() {
     return {
@@ -30,6 +30,14 @@ const ResizableImage = Image.extend({
         renderHTML: attributes => {
           if (!attributes.height) return {};
           return { height: attributes.height };
+        },
+      },
+      style: {
+        default: null,
+        parseHTML: element => element.getAttribute('style'),
+        renderHTML: attributes => {
+          if (!attributes.style) return {};
+          return { style: attributes.style };
         },
       },
     };
@@ -295,6 +303,17 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     }
   };
 
+  const updateImageAlignment = (alignment: 'left' | 'center' | 'right') => {
+    if (isImageSelected) {
+      const styles = {
+        left: 'display: block; margin-left: 0; margin-right: auto;',
+        center: 'display: block; margin-left: auto; margin-right: auto;',
+        right: 'display: block; margin-left: auto; margin-right: 0;',
+      };
+      editor.chain().focus().updateAttributes('image', { style: styles[alignment] }).run();
+    }
+  };
+
   const imageSizePresets = [
     { label: 'XS', value: '100px' },
     { label: 'S', value: '200px' },
@@ -307,7 +326,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   return (
     <div className="border rounded-md">
       {isImageSelected && editor && (
-        <div className="bg-muted/90 border-b p-2 flex items-center gap-2">
+        <div className="bg-muted/90 border-b p-2 flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground mr-2">Image size:</span>
           <div className="flex items-center gap-1">
             {imageSizePresets.map((preset) => (
@@ -322,6 +341,40 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
                 {preset.label}
               </Button>
             ))}
+          </div>
+          <div className="w-px h-6 bg-border mx-2" />
+          <span className="text-xs text-muted-foreground mr-2">Align:</span>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => updateImageAlignment('left')}
+              title="Align left"
+              className="h-7"
+            >
+              <AlignLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => updateImageAlignment('center')}
+              title="Align center"
+              className="h-7"
+            >
+              <AlignCenter className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => updateImageAlignment('right')}
+              title="Align right"
+              className="h-7"
+            >
+              <AlignRight className="h-4 w-4" />
+            </Button>
           </div>
           <div className="w-px h-6 bg-border mx-2" />
           <Button
