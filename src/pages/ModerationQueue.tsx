@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Shield, CheckCircle, XCircle, AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 
@@ -47,6 +47,7 @@ const ModerationQueue = () => {
   const [flaggedPosts, setFlaggedPosts] = useState<FlaggedPost[]>([]);
   const [flaggedComments, setFlaggedComments] = useState<FlaggedComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
   const { canModerate, loading: permissionsLoading } = useUserPermissions();
 
   useEffect(() => {
@@ -179,6 +180,118 @@ const ModerationQueue = () => {
     loadFlaggedContent();
   };
 
+  const handleApproveAllPosts = async () => {
+    if (flaggedPosts.length === 0) return;
+    
+    setProcessing(true);
+    try {
+      const postIds = flaggedPosts.map(p => p.id);
+      const { error } = await supabase
+        .from("discussion_posts")
+        .update({ is_moderated: true, moderation_notes: "Approved by moderator" })
+        .in("id", postIds);
+
+      if (error) throw error;
+
+      toast({ title: `Approved ${postIds.length} posts` });
+      await loadFlaggedContent();
+    } catch (error: any) {
+      toast({
+        title: "Error approving posts",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectAllPosts = async () => {
+    if (flaggedPosts.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete all ${flaggedPosts.length} flagged posts? This cannot be undone.`)) {
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const postIds = flaggedPosts.map(p => p.id);
+      const { error } = await supabase
+        .from("discussion_posts")
+        .delete()
+        .in("id", postIds);
+
+      if (error) throw error;
+
+      toast({ title: `Deleted ${postIds.length} posts` });
+      await loadFlaggedContent();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting posts",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleApproveAllComments = async () => {
+    if (flaggedComments.length === 0) return;
+    
+    setProcessing(true);
+    try {
+      const commentIds = flaggedComments.map(c => c.id);
+      const { error } = await supabase
+        .from("discussion_comments")
+        .update({ is_moderated: true })
+        .in("id", commentIds);
+
+      if (error) throw error;
+
+      toast({ title: `Approved ${commentIds.length} comments` });
+      await loadFlaggedContent();
+    } catch (error: any) {
+      toast({
+        title: "Error approving comments",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectAllComments = async () => {
+    if (flaggedComments.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete all ${flaggedComments.length} flagged comments? This cannot be undone.`)) {
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const commentIds = flaggedComments.map(c => c.id);
+      const { error } = await supabase
+        .from("discussion_comments")
+        .delete()
+        .in("id", commentIds);
+
+      if (error) throw error;
+
+      toast({ title: `Deleted ${commentIds.length} comments` });
+      await loadFlaggedContent();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting comments",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const getSeverityColor = (notes: string | null) => {
     if (!notes) return "bg-gray-500";
     if (notes.includes("high")) return "bg-red-500";
@@ -243,7 +356,40 @@ const ModerationQueue = () => {
                   </CardContent>
                 </Card>
               ) : (
-                flaggedPosts.map((post) => (
+                <>
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <h3 className="text-lg font-semibold">Pending Posts ({flaggedPosts.length})</h3>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadFlaggedContent()}
+                        disabled={processing}
+                        className="gap-2"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Refresh
+                      </Button>
+                      <Button
+                        onClick={handleApproveAllPosts}
+                        disabled={processing}
+                        className="gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Approve All
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleRejectAllPosts}
+                        disabled={processing}
+                        className="gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Reject & Delete All
+                      </Button>
+                    </div>
+                  </div>
+                  {flaggedPosts.map((post) => (
                   <Card key={post.id} className="border-l-4 border-l-orange-500">
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -304,7 +450,8 @@ const ModerationQueue = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))
+                ))}
+                </>
               )}
             </TabsContent>
 
@@ -318,7 +465,40 @@ const ModerationQueue = () => {
                   </CardContent>
                 </Card>
               ) : (
-                flaggedComments.map((comment) => (
+                <>
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <h3 className="text-lg font-semibold">Pending Comments ({flaggedComments.length})</h3>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadFlaggedContent()}
+                        disabled={processing}
+                        className="gap-2"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Refresh
+                      </Button>
+                      <Button
+                        onClick={handleApproveAllComments}
+                        disabled={processing}
+                        className="gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Approve All
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleRejectAllComments}
+                        disabled={processing}
+                        className="gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Reject & Delete All
+                      </Button>
+                    </div>
+                  </div>
+                  {flaggedComments.map((comment) => (
                   <Card key={comment.id} className="border-l-4 border-l-orange-500">
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -367,7 +547,8 @@ const ModerationQueue = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))
+                ))}
+                </>
               )}
             </TabsContent>
           </Tabs>
