@@ -278,13 +278,36 @@ export const StickerCollectionManager = () => {
     }
   };
 
+  const resetDailyCards = async () => {
+    if (!confirm('This will reset all daily scratch cards for today. Users will be able to get new cards. Continue?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-daily-cards');
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: data.message || "All daily cards have been reset",
+      });
+    } catch (error: any) {
+      console.error('Error resetting cards:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset daily cards",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateToV2Stickers = async () => {
     if (!selectedCollection) {
-      toast({ 
-        title: "Error", 
-        description: "Please select the Halloween collection first", 
-        variant: "destructive" 
-      });
+      toast({ title: "Error", description: "Please select a collection first", variant: "destructive" });
       return;
     }
 
@@ -663,6 +686,15 @@ export const StickerCollectionManager = () => {
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <Sparkles className="mr-2 h-4 w-4" />
                   Update to V2 Kawaii Stickers
+                </Button>
+                <Button 
+                  onClick={resetDailyCards} 
+                  disabled={loading}
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Reset Daily Cards (Testing)
                 </Button>
               </div>
             </CardContent>
