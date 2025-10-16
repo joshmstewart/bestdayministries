@@ -8,32 +8,37 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Validation schema for receipt request
+// Validation schema for receipt request - flexible to accept just sponsorshipId
 const receiptRequestSchema = z.object({
   sponsorshipId: z.string().uuid().optional(),
   sponsorEmail: z.string()
     .email("Invalid email address")
-    .max(255, "Email too long"),
+    .max(255, "Email too long")
+    .optional(),
   sponsorName: z.string()
     .max(100, "Name too long")
     .optional(),
   bestieName: z.string()
     .min(1, "Bestie name is required")
-    .max(100, "Bestie name too long"),
+    .max(100, "Bestie name too long")
+    .optional(),
   amount: z.number()
     .positive("Amount must be positive")
-    .max(1000000, "Amount too large"),
+    .max(1000000, "Amount too large")
+    .optional(),
   frequency: z.enum(['monthly', 'one-time'], {
     errorMap: () => ({ message: "Frequency must be 'monthly' or 'one-time'" })
-  }),
+  }).optional(),
   transactionId: z.string()
     .min(1, "Transaction ID is required")
-    .max(255, "Transaction ID too long"),
+    .max(255, "Transaction ID too long")
+    .optional(),
   transactionDate: z.string()
     .min(1, "Transaction date is required")
     .refine((date) => !isNaN(Date.parse(date)), {
       message: "Invalid date format"
-    }),
+    })
+    .optional(),
   stripeMode: z.enum(['test', 'live'], {
     errorMap: () => ({ message: "Stripe mode must be 'test' or 'live'" })
   }).optional().default('live'),
@@ -83,7 +88,7 @@ serve(async (req) => {
       );
     }
     
-    const {
+    let {
       sponsorshipId,
       sponsorEmail,
       sponsorName,
@@ -94,6 +99,48 @@ serve(async (req) => {
       transactionDate,
       stripeMode = 'live'
     } = validationResult.data;
+
+    // If only sponsorshipId provided, fetch all other details from database
+    if (sponsorshipId && !sponsorEmail) {
+      console.log('[AUDIT] Fetching sponsorship details for ID:', sponsorshipId);
+      
+      const { data: sponsorshipData, error: sponsorshipError } = await supabaseAdmin
+        .from('sponsorships')
+        .select(`
+          *,
+          sponsor_besties (
+            bestie_name
+          ),
+          profiles!sponsorships_sponsor_id_fkey (
+            email,
+            display_name
+          )
+        `)
+        .eq('id', sponsorshipId)
+        .single();
+
+      if (sponsorshipError || !sponsorshipData) {
+        console.error('[AUDIT] Failed to fetch sponsorship:', sponsorshipError);
+        throw new Error('Sponsorship not found');
+      }
+
+      // Extract data from the joined query
+      sponsorEmail = (sponsorshipData as any).profiles?.email;
+      sponsorName = (sponsorshipData as any).profiles?.display_name;
+      bestieName = (sponsorshipData as any).sponsor_besties?.bestie_name;
+      amount = sponsorshipData.amount;
+      frequency = sponsorshipData.frequency;
+      transactionId = sponsorshipData.stripe_subscription_id || sponsorshipData.id;
+      transactionDate = new Date().toISOString();
+      stripeMode = sponsorshipData.stripe_mode || 'live';
+
+      console.log('[AUDIT] Successfully fetched sponsorship details');
+    }
+
+    // Validate that we have all required fields
+    if (!sponsorEmail || !bestieName || !amount || !frequency || !transactionId || !transactionDate) {
+      throw new Error('Missing required sponsorship data');
+    }
 
     console.log('[AUDIT] Receipt generation starting for:', sponsorEmail);
     
@@ -260,9 +307,9 @@ serve(async (req) => {
                       <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350F;">
                         ${settings.tax_deductible_notice}
                       </p>
-                      ${settings.tax_id ? `
+                      ${settings.organization_ein ? `
                         <p style="margin: 10px 0 0; font-size: 14px; color: #78350F;">
-                          <strong>Tax ID:</strong> ${settings.tax_id}
+                          <strong>Tax ID:</strong> ${settings.organization_ein}
                         </p>
                       ` : ''}
                     </div>
@@ -380,6 +427,7 @@ serve(async (req) => {
     const { data: receiptData, error: insertError } = await supabaseAdmin
       .from('sponsorship_receipts')
       .insert({
+        sponsorship_id: sponsorshipId || null,
         sponsor_email: sponsorEmail,
         sponsor_name: sponsorName,
         bestie_name: bestieName,
@@ -390,7 +438,9 @@ serve(async (req) => {
         receipt_number: receiptNumber,
         tax_year: new Date(transactionDate).getFullYear(),
         stripe_mode: stripeMode,
-        user_id: userData?.id || null
+        user_id: userData?.id || null,
+        organization_name: settings.organization_name,
+        organization_ein: settings.organization_ein
       })
       .select('id')
       .single();

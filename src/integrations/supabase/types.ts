@@ -1887,6 +1887,7 @@ export type Database = {
           email_on_pending_approval: boolean
           email_on_product_update: boolean | null
           email_on_sponsorship_update: boolean
+          enable_digest_emails: boolean
           id: string
           inapp_on_approval_decision: boolean
           inapp_on_comment_on_post: boolean
@@ -1919,6 +1920,7 @@ export type Database = {
           email_on_pending_approval?: boolean
           email_on_product_update?: boolean | null
           email_on_sponsorship_update?: boolean
+          enable_digest_emails?: boolean
           id?: string
           inapp_on_approval_decision?: boolean
           inapp_on_comment_on_post?: boolean
@@ -1951,6 +1953,7 @@ export type Database = {
           email_on_pending_approval?: boolean
           email_on_product_update?: boolean | null
           email_on_sponsorship_update?: boolean
+          enable_digest_emails?: boolean
           id?: string
           inapp_on_approval_decision?: boolean
           inapp_on_comment_on_post?: boolean
@@ -2761,6 +2764,8 @@ export type Database = {
           created_at: string | null
           frequency: string
           id: string
+          organization_ein: string | null
+          organization_name: string | null
           receipt_number: string
           sent_at: string | null
           sponsor_email: string
@@ -2778,6 +2783,8 @@ export type Database = {
           created_at?: string | null
           frequency: string
           id?: string
+          organization_ein?: string | null
+          organization_name?: string | null
           receipt_number: string
           sent_at?: string | null
           sponsor_email: string
@@ -2795,6 +2802,8 @@ export type Database = {
           created_at?: string | null
           frequency?: string
           id?: string
+          organization_ein?: string | null
+          organization_name?: string | null
           receipt_number?: string
           sent_at?: string | null
           sponsor_email?: string

@@ -382,6 +382,7 @@ serve(async (req) => {
     
     const preferences = Object.values(userIds).map(userId => ({
       user_id: userId,
+      enable_digest_emails: true,
       email_on_pending_approval: true,
       email_on_approval_decision: true,
       email_on_new_sponsor_message: true,

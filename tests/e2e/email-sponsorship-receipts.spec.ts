@@ -171,7 +171,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     expect(receipt).toBeTruthy();
     expect(receipt![0].organization_name).toBe(settings?.organization_name);
-    expect(receipt![0].organization_ein).toBe(settings?.ein);
+    expect(receipt![0].organization_ein).toBe(settings?.organization_ein);
 
     console.log('✅ Receipt organization info test passed');
   });
