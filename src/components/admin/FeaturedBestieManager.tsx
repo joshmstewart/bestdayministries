@@ -975,26 +975,37 @@ export const FeaturedBestieManager = () => {
         </Dialog>
       </div>
 
-      {selectedBesties.size > 0 && (
-        <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Checkbox
-              checked={selectedBesties.size === featuredBesties.length}
-              onCheckedChange={handleSelectAll}
-            />
-            <span className="font-medium">
-              {selectedBesties.size} selected
+      {/* Select All and Bulk Actions */}
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="select-all-besties"
+            checked={selectedBesties.size === featuredBesties.length && featuredBesties.length > 0}
+            onCheckedChange={handleSelectAll}
+          />
+          <label 
+            htmlFor="select-all-besties"
+            className="text-sm font-medium cursor-pointer"
+          >
+            Select All {featuredBesties.length > 0 && `(${featuredBesties.length})`}
+          </label>
+          {selectedBesties.size > 0 && (
+            <span className="text-sm text-muted-foreground">
+              • {selectedBesties.size} selected
             </span>
-          </div>
+          )}
+        </div>
+        {selectedBesties.size > 0 && (
           <Button
             variant="destructive"
+            size="sm"
             onClick={() => setBulkDeleteDialogOpen(true)}
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete Selected
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {featuredBesties.map((bestie) => (
