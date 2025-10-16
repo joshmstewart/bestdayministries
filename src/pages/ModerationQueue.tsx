@@ -124,6 +124,21 @@ const ModerationQueue = () => {
   };
 
   const handleRejectPost = async (postId: string) => {
+    // Check if this post has comments
+    const { data: relatedComments } = await supabase
+      .from("discussion_comments")
+      .select("id", { count: "exact" })
+      .eq("post_id", postId);
+    
+    const commentCount = relatedComments?.length || 0;
+    const warningMessage = commentCount > 0
+      ? `This post has ${commentCount} comment(s). Deleting the post will also delete these comments. Continue?`
+      : `Are you sure you want to delete this post?`;
+    
+    if (!confirm(warningMessage)) {
+      return;
+    }
+
     const { error } = await supabase
       .from("discussion_posts")
       .delete()
@@ -138,7 +153,10 @@ const ModerationQueue = () => {
       return;
     }
 
-    toast({ title: "Post rejected and deleted" });
+    const message = commentCount > 0
+      ? `Post and ${commentCount} comment(s) deleted`
+      : "Post rejected and deleted";
+    toast({ title: message });
     loadFlaggedContent();
   };
 
@@ -209,13 +227,24 @@ const ModerationQueue = () => {
   const handleRejectAllPosts = async () => {
     if (flaggedPosts.length === 0) return;
     
-    if (!confirm(`Are you sure you want to delete all ${flaggedPosts.length} flagged posts? This cannot be undone.`)) {
+    // Check if any of these posts have comments
+    const postIds = flaggedPosts.map(p => p.id);
+    const { data: relatedComments } = await supabase
+      .from("discussion_comments")
+      .select("id", { count: "exact" })
+      .in("post_id", postIds);
+    
+    const commentCount = relatedComments?.length || 0;
+    const warningMessage = commentCount > 0
+      ? `Are you sure you want to delete all ${flaggedPosts.length} flagged posts? This will also delete ${commentCount} associated comments. This cannot be undone.`
+      : `Are you sure you want to delete all ${flaggedPosts.length} flagged posts? This cannot be undone.`;
+    
+    if (!confirm(warningMessage)) {
       return;
     }
 
     setProcessing(true);
     try {
-      const postIds = flaggedPosts.map(p => p.id);
       const { error } = await supabase
         .from("discussion_posts")
         .delete()
@@ -223,7 +252,10 @@ const ModerationQueue = () => {
 
       if (error) throw error;
 
-      toast({ title: `Deleted ${postIds.length} posts` });
+      const message = commentCount > 0 
+        ? `Deleted ${postIds.length} posts and ${commentCount} associated comments`
+        : `Deleted ${postIds.length} posts`;
+      toast({ title: message });
       await loadFlaggedContent();
     } catch (error: any) {
       toast({
