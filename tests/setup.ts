@@ -1,9 +1,16 @@
-import { afterEach, vi } from 'vitest';
+import { afterEach, afterAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+});
+
+// Global cleanup after all tests complete
+afterAll(async () => {
+  console.log('🧹 Running final test data cleanup...');
+  // Note: Database cleanup is handled by the cleanup edge function
+  // which can be called manually if needed
 });
 
 // Mock window.matchMedia

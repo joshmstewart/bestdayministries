@@ -62,6 +62,39 @@ const TestRunsManager = () => {
     }
   };
 
+  const cleanupTestData = async () => {
+    try {
+      toast({
+        title: "Cleaning up test data...",
+        description: "Removing all test entries from the database",
+      });
+
+      const { data, error } = await supabase.functions.invoke('cleanup-test-data', {
+        body: {
+          removeTestProfiles: true,
+          removeTestSponsorships: true,
+          removeTestBesties: true,
+          removeTestPosts: true,
+          removeTestVendors: true,
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Cleanup Complete",
+        description: "All test data has been removed",
+      });
+    } catch (error: any) {
+      console.error('Error cleaning test data:', error);
+      toast({
+        title: "Cleanup Failed",
+        description: error.message || "Failed to clean test data",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchTestRuns();
 
@@ -141,10 +174,19 @@ const TestRunsManager = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Test Run History</CardTitle>
-          <Button onClick={fetchTestRuns} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={cleanupTestData} 
+              variant="destructive" 
+              size="sm"
+            >
+              Clean Test Data
+            </Button>
+            <Button onClick={fetchTestRuns} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {testRuns.length === 0 ? (

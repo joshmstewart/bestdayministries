@@ -282,7 +282,7 @@ FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
 TEST-ACCOUNT:test@example.com|testpassword123|REQUIRED-for-auth-pages
 DB:test_runs[status|workflow|commit|branch|duration|url|test_count|passed|failed|skipped|error|metadata]
-EDGE:github-test-webhook[receive-GH→parse→insert-db]
+EDGE:github-test-webhook[receive-GH→parse→insert-db]|cleanup-test-data[remove-all-test-data]
 FRONTEND:TestRunsManager[list-realtime-status-badges-links-to-GH]
 WORKFLOW:1)push-code→2)GH-Actions-run→3)webhook-log→4)admin-view
 SETUP:GH-secrets[VITE_SUPABASE_URL+VITE_SUPABASE_PUBLISHABLE_KEY+PERCY_TOKEN]
@@ -299,6 +299,14 @@ LAYERED-WAITS:tab-click→section-heading-wait-15s→component-title-wait-10s→
 SELECTORS:verify-component-code→exact-text-NOT-generic-patterns
 TAB-CONTENT:ALWAYS-wait-for-specific-content-within-tab-NEVER-waitForTimeout
 CRITICAL:waitForSelector[specific-targets]+exact-component-text+layered-waits=stable-tests
+CLEANUP:
+AUTOMATIC:globalTeardown[runs-after-all-tests]→cleanup-test-data-edge→removes-all-test-data
+PATTERNS:names[Test*|E2E*|*test*]|emails[*test@*]|metadata[is_test_data:true]
+REMOVES:profiles|sponsorships|featured_besties|discussion_posts|vendors|related-data
+NAMING:ALWAYS-prefix-test-data[Test-Sponsor|Test-Bestie|E2E-Post]
+HELPERS:cleanup-helpers.ts[markAsTestData|generateTestName|cleanupTestData]
+MANUAL:Admin-cleanup-button|SQL-queries|edge-function-invoke
+DOC:TEST_DATA_CLEANUP.md[full-guide]
 
 ## INTERNAL_PAGES
 FILE:lib/internalPages.ts

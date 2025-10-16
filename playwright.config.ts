@@ -8,6 +8,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   
+  // Global teardown to clean test data
+  globalTeardown: './tests/global-teardown.ts',
+  
   // Test configuration
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:8080',
