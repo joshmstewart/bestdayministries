@@ -1955,6 +1955,230 @@ export type Database = {
           },
         ]
       }
+      newsletter_analytics: {
+        Row: {
+          campaign_id: string
+          clicked_url: string | null
+          created_at: string
+          email: string
+          event_type: Database["public"]["Enums"]["newsletter_event_type"]
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          resend_event_id: string | null
+          subscriber_id: string | null
+          timezone: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          campaign_id: string
+          clicked_url?: string | null
+          created_at?: string
+          email: string
+          event_type: Database["public"]["Enums"]["newsletter_event_type"]
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          resend_event_id?: string | null
+          subscriber_id?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          clicked_url?: string | null
+          created_at?: string
+          email?: string
+          event_type?: Database["public"]["Enums"]["newsletter_event_type"]
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          resend_event_id?: string | null
+          subscriber_id?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_analytics_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_campaigns: {
+        Row: {
+          created_at: string
+          created_by: string
+          html_content: string
+          id: string
+          preview_text: string | null
+          scheduled_for: string | null
+          segment_filter: Json | null
+          sent_at: string | null
+          sent_to_count: number | null
+          status: Database["public"]["Enums"]["newsletter_campaign_status"]
+          subject: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          html_content: string
+          id?: string
+          preview_text?: string | null
+          scheduled_for?: string | null
+          segment_filter?: Json | null
+          sent_at?: string | null
+          sent_to_count?: number | null
+          status?: Database["public"]["Enums"]["newsletter_campaign_status"]
+          subject: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          html_content?: string
+          id?: string
+          preview_text?: string | null
+          scheduled_for?: string | null
+          segment_filter?: Json | null
+          sent_at?: string | null
+          sent_to_count?: number | null
+          status?: Database["public"]["Enums"]["newsletter_campaign_status"]
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_links: {
+        Row: {
+          campaign_id: string
+          click_count: number | null
+          created_at: string
+          id: string
+          original_url: string
+          short_code: string
+        }
+        Insert: {
+          campaign_id: string
+          click_count?: number | null
+          created_at?: string
+          id?: string
+          original_url: string
+          short_code: string
+        }
+        Update: {
+          campaign_id?: string
+          click_count?: number | null
+          created_at?: string
+          id?: string
+          original_url?: string
+          short_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_links_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          location_city: string | null
+          location_country: string | null
+          location_state: string | null
+          metadata: Json | null
+          source: string
+          status: Database["public"]["Enums"]["newsletter_status"]
+          subscribed_at: string
+          timezone: string | null
+          unsubscribed_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_state?: string | null
+          metadata?: Json | null
+          source?: string
+          status?: Database["public"]["Enums"]["newsletter_status"]
+          subscribed_at?: string
+          timezone?: string | null
+          unsubscribed_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          location_state?: string | null
+          metadata?: Json | null
+          source?: string
+          status?: Database["public"]["Enums"]["newsletter_status"]
+          subscribed_at?: string
+          timezone?: string | null
+          unsubscribed_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_subscribers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_subscribers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -4308,6 +4532,20 @@ export type Database = {
         | "sent"
         | "pending_moderation"
       moderation_policy: "all" | "flagged" | "none"
+      newsletter_campaign_status:
+        | "draft"
+        | "scheduled"
+        | "sending"
+        | "sent"
+        | "failed"
+      newsletter_event_type:
+        | "sent"
+        | "delivered"
+        | "opened"
+        | "clicked"
+        | "bounced"
+        | "complained"
+      newsletter_status: "active" | "unsubscribed" | "bounced" | "complained"
       order_status:
         | "pending"
         | "processing"
@@ -4467,6 +4705,22 @@ export const Constants = {
         "pending_moderation",
       ],
       moderation_policy: ["all", "flagged", "none"],
+      newsletter_campaign_status: [
+        "draft",
+        "scheduled",
+        "sending",
+        "sent",
+        "failed",
+      ],
+      newsletter_event_type: [
+        "sent",
+        "delivered",
+        "opened",
+        "clicked",
+        "bounced",
+        "complained",
+      ],
+      newsletter_status: ["active", "unsubscribed", "bounced", "complained"],
       order_status: [
         "pending",
         "processing",

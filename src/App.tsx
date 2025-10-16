@@ -44,6 +44,7 @@ import VendorProfile from "./pages/VendorProfile";
 import OrderHistory from "./pages/OrderHistory";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Newsletter from "./pages/Newsletter";
 import Notifications from "./pages/Notifications";
 import MemoryMatchPage from "./pages/MemoryMatchPage";
 import Match3Page from "./pages/Match3Page";
@@ -175,8 +176,9 @@ const App = () => {
             <Route path="/vendors/:id" element={<VendorProfile />} />
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />
             <Route path="/orders" element={<OrderHistory />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/newsletter" element={<Newsletter />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/notifications" element={<Notifications />} />
           <Route path="/games/memory-match" element={<MemoryMatchPage />} />

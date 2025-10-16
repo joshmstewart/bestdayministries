@@ -59,6 +59,7 @@ import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
 import IssueReportsManager from "@/components/admin/IssueReportsManager";
 import TestRunsManager from "@/components/admin/TestRunsManager";
 import { StickerCollectionManager } from "@/components/admin/StickerCollectionManager";
+import { NewsletterManager } from "@/components/admin/NewsletterManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -260,6 +261,7 @@ const Admin = () => {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
             <TabsTrigger value="format-pages">Format Pages</TabsTrigger>
             <TabsTrigger value="moderation" className="relative">
               Moderation
