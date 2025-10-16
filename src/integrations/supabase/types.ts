@@ -2420,11 +2420,11 @@ export type Database = {
           from_email: string
           id: string
           organization_address: string | null
+          organization_ein: string
           organization_name: string
           receipt_message: string
           reply_to_email: string | null
           tax_deductible_notice: string
-          tax_id: string
           updated_at: string | null
           updated_by: string | null
           website_url: string | null
@@ -2433,11 +2433,11 @@ export type Database = {
           from_email?: string
           id?: string
           organization_address?: string | null
+          organization_ein?: string
           organization_name?: string
           receipt_message?: string
           reply_to_email?: string | null
           tax_deductible_notice?: string
-          tax_id?: string
           updated_at?: string | null
           updated_by?: string | null
           website_url?: string | null
@@ -2446,11 +2446,11 @@ export type Database = {
           from_email?: string
           id?: string
           organization_address?: string | null
+          organization_ein?: string
           organization_name?: string
           receipt_message?: string
           reply_to_email?: string | null
           tax_deductible_notice?: string
-          tax_id?: string
           updated_at?: string | null
           updated_by?: string | null
           website_url?: string | null
@@ -3407,6 +3407,7 @@ export type Database = {
           created_at: string
           id: string
           updated_at: string
+          vendor_bestie_request_id: string | null
           vendor_id: string
         }
         Insert: {
@@ -3420,6 +3421,7 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+          vendor_bestie_request_id?: string | null
           vendor_id: string
         }
         Update: {
@@ -3433,9 +3435,17 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+          vendor_bestie_request_id?: string | null
           vendor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vendor_bestie_assets_vendor_bestie_request_id_fkey"
+            columns: ["vendor_bestie_request_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bestie_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vendor_bestie_assets_vendor_id_fkey"
             columns: ["vendor_id"]

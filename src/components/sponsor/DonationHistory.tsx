@@ -207,10 +207,10 @@ export const DonationHistory = () => {
                 <td>Tax Year:</td>
                 <td>${receipt.tax_year}</td>
               </tr>
-              ${settings?.tax_id ? `
+              ${settings?.organization_ein ? `
               <tr>
                 <td>Tax ID (EIN):</td>
-                <td>${settings.tax_id}</td>
+                <td>${settings.organization_ein}</td>
               </tr>
               ` : ''}
             </table>

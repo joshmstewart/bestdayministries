@@ -12,7 +12,7 @@ import { Loader2, Save, Eye } from "lucide-react";
 interface ReceiptSettings {
   id: string;
   organization_name: string;
-  tax_id: string;
+  organization_ein: string;
   receipt_message: string;
   tax_deductible_notice: string;
   from_email: string;
@@ -94,7 +94,7 @@ export const ReceiptSettingsManager = () => {
         .from('receipt_settings')
         .update({
           organization_name: settings.organization_name,
-          tax_id: settings.tax_id,
+          organization_ein: settings.organization_ein,
           receipt_message: settings.receipt_message,
           tax_deductible_notice: settings.tax_deductible_notice,
           from_email: settings.from_email,
@@ -233,11 +233,11 @@ export const ReceiptSettingsManager = () => {
                       <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350F;">
                         ${settings.tax_deductible_notice}
                       </p>
-                      ${settings.tax_id ? `
-                        <p style="margin: 10px 0 0; font-size: 14px; color: #78350F;">
-                          <strong>Tax ID:</strong> ${settings.tax_id}
-                        </p>
-                      ` : ''}
+                       ${settings.organization_ein ? `
+                         <p style="margin: 10px 0 0; font-size: 14px; color: #78350F;">
+                           <strong>Tax ID:</strong> ${settings.organization_ein}
+                         </p>
+                       ` : ''}
                     </div>
                   </td>
                 </tr>
@@ -335,11 +335,11 @@ export const ReceiptSettingsManager = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tax_id">Tax ID / EIN</Label>
+            <Label htmlFor="organization_ein">Tax ID / EIN</Label>
             <Input
-              id="tax_id"
-              value={settings.tax_id}
-              onChange={(e) => updateField('tax_id', e.target.value)}
+              id="organization_ein"
+              value={settings.organization_ein}
+              onChange={(e) => updateField('organization_ein', e.target.value)}
               placeholder="508(c)(1)(a) or your EIN"
             />
             <p className="text-xs text-muted-foreground">
