@@ -39,6 +39,21 @@ import glitterBat from "@/assets/stickers/halloween/23-glitter-bat.png";
 import dancingSkeleton from "@/assets/stickers/halloween/24-dancing-skeleton.png";
 import joyHouse from "@/assets/stickers/halloween/25-joy-house-halloween.png";
 
+// Import V2 kawaii stickers
+import hauntedHouseV2 from "@/assets/stickers/halloween/13-haunted-house-v2.png";
+import fullMoonV2 from "@/assets/stickers/halloween/14-full-moon-v2.png";
+import spookyTreeV2 from "@/assets/stickers/halloween/15-spooky-tree-v2.png";
+import witchV2 from "@/assets/stickers/halloween/16-classic-witch-v2.png";
+import graveyardV2 from "@/assets/stickers/halloween/17-creepy-graveyard-v2.png";
+import castleV2 from "@/assets/stickers/halloween/18-dark-castle-v2.png";
+import fogV2 from "@/assets/stickers/halloween/19-mysterious-fog-v2.png";
+import glitteryGhostV2 from "@/assets/stickers/halloween/20-glittery-ghost-v2.png";
+import sparklePumpkinV2 from "@/assets/stickers/halloween/21-sparkle-pumpkin-v2.png";
+import shimmerCauldronV2 from "@/assets/stickers/halloween/22-shimmer-cauldron-v2.png";
+import glitterBatV2 from "@/assets/stickers/halloween/23-glitter-bat-v2.png";
+import dancingSkeletonV2 from "@/assets/stickers/halloween/24-dancing-skeleton-v2.png";
+import joyHouseV2 from "@/assets/stickers/halloween/25-joy-house-halloween-v2.png";
+
 const halloweenStickers = [
   { path: pumpkin, name: "Smiling Pumpkin", description: "A cheerful pumpkin with rosy cheeks", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 1 },
   { path: ghost, name: "Friendly Ghost", description: "A sweet ghost with sparkly eyes", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 2 },
@@ -277,32 +292,29 @@ export const StickerCollectionManager = () => {
     try {
       toast({ title: "Updating Stickers", description: "Uploading kawaii versions with die-cut edges..." });
 
-      // Import the v2 sticker images dynamically
+      // Map sticker numbers to their imported v2 images
       const v2Stickers = [
-        { number: 13, name: '13-haunted-house-v2.png' },
-        { number: 14, name: '14-full-moon-v2.png' },
-        { number: 15, name: '15-spooky-tree-v2.png' },
-        { number: 16, name: '16-classic-witch-v2.png' },
-        { number: 17, name: '17-creepy-graveyard-v2.png' },
-        { number: 18, name: '18-dark-castle-v2.png' },
-        { number: 19, name: '19-mysterious-fog-v2.png' },
-        { number: 20, name: '20-glittery-ghost-v2.png' },
-        { number: 21, name: '21-sparkle-pumpkin-v2.png' },
-        { number: 22, name: '22-shimmer-cauldron-v2.png' },
-        { number: 23, name: '23-glitter-bat-v2.png' },
-        { number: 24, name: '24-dancing-skeleton-v2.png' },
-        { number: 25, name: '25-joy-house-halloween-v2.png' },
+        { number: 13, name: '13-haunted-house-v2.png', path: hauntedHouseV2 },
+        { number: 14, name: '14-full-moon-v2.png', path: fullMoonV2 },
+        { number: 15, name: '15-spooky-tree-v2.png', path: spookyTreeV2 },
+        { number: 16, name: '16-classic-witch-v2.png', path: witchV2 },
+        { number: 17, name: '17-creepy-graveyard-v2.png', path: graveyardV2 },
+        { number: 18, name: '18-dark-castle-v2.png', path: castleV2 },
+        { number: 19, name: '19-mysterious-fog-v2.png', path: fogV2 },
+        { number: 20, name: '20-glittery-ghost-v2.png', path: glitteryGhostV2 },
+        { number: 21, name: '21-sparkle-pumpkin-v2.png', path: sparklePumpkinV2 },
+        { number: 22, name: '22-shimmer-cauldron-v2.png', path: shimmerCauldronV2 },
+        { number: 23, name: '23-glitter-bat-v2.png', path: glitterBatV2 },
+        { number: 24, name: '24-dancing-skeleton-v2.png', path: dancingSkeletonV2 },
+        { number: 25, name: '25-joy-house-halloween-v2.png', path: joyHouseV2 },
       ];
 
       let updatedCount = 0;
       // Upload each v2 sticker and update database
       for (const sticker of v2Stickers) {
         try {
-          // Dynamically import the image
-          const module = await import(`@/assets/stickers/halloween/${sticker.name}`);
-          
           // Fetch the image as blob
-          const response = await fetch(module.default);
+          const response = await fetch(sticker.path);
           const blob = await response.blob();
           
           // Upload to storage with upsert to replace old one
