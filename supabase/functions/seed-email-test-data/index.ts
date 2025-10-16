@@ -441,30 +441,26 @@ serve(async (req) => {
       throw new Error(`Seeding failed with ${criticalErrors.length} critical error(s): ${criticalErrors.join('; ')}`);
     }
 
-    // Step 15: Generate auth tokens for tests
-    console.log('🔑 Generating auth tokens for tests...');
+    // Step 15: Generate real JWT auth tokens for tests
+    console.log('🔑 Generating JWT auth tokens for tests...');
     
     const authSessions: Record<string, any> = {};
     
-    for (const [key, email] of Object.entries({
-      guardian: testUsers.guardian.email,
-      bestie: testUsers.bestie.email,
-      sponsor: testUsers.sponsor.email,
-      vendor: testUsers.vendor.email
-    })) {
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: email
+    for (const [key, userData] of Object.entries(testUsers)) {
+      const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
+        email: userData.email,
+        password: userData.password
       });
       
-      if (linkError) {
-        console.error(`Error generating link for ${key}:`, linkError);
-      } else if (linkData) {
+      if (authError || !authData.session) {
+        console.error(`Error signing in ${key}:`, authError);
+        criticalErrors.push(`Failed to generate JWT for ${key}: ${authError?.message}`);
+      } else {
         authSessions[key] = {
-          access_token: linkData.properties.hashed_token,
-          refresh_token: linkData.properties.hashed_token
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token
         };
-        console.log(`✅ Generated auth token for ${key}`);
+        console.log(`✅ Generated JWT tokens for ${key}`);
       }
     }
 
