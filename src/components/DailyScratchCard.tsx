@@ -185,7 +185,6 @@ export const DailyScratchCard = () => {
             src={sampleSticker || kawaiiBat}
             alt="Daily sticker"
             className="w-full h-full object-contain bg-transparent"
-            style={{ imageRendering: 'crisp-edges' }}
           />
           
           {/* Status indicator */}
