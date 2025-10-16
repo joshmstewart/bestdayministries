@@ -49,6 +49,8 @@ export const UserManagement = () => {
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const [deletingUsers, setDeletingUsers] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 });
+  const [failedDeletions, setFailedDeletions] = useState<{ userId: string; displayName: string; error: string }[]>([]);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -522,6 +524,8 @@ export const UserManagement = () => {
   // Handle bulk delete
   const handleBulkDelete = async () => {
     setDeletingUsers(true);
+    setDeleteProgress({ current: 0, total: selectedUsers.size });
+    setFailedDeletions([]);
     
     try {
       const userIdsToDelete = Array.from(selectedUsers);
@@ -535,6 +539,19 @@ export const UserManagement = () => {
       }
 
       const results = data as { total: number; succeeded: number; failed: number; errors: { userId: string; error: string }[] };
+      
+      setDeleteProgress({ current: results.total, total: results.total });
+
+      // Map failed users to include display names
+      const failedUsers = results.errors.map(err => {
+        const user = users.find(u => u.id === err.userId);
+        return {
+          userId: err.userId,
+          displayName: user?.display_name || 'Unknown User',
+          error: err.error
+        };
+      });
+      setFailedDeletions(failedUsers);
 
       if (results.succeeded > 0) {
         toast({
@@ -547,12 +564,11 @@ export const UserManagement = () => {
         toast({
           variant: "destructive",
           title: "Some Deletions Failed",
-          description: `${results.failed} of ${results.total} user${results.total !== 1 ? 's' : ''} failed to delete. Check console for details.`,
+          description: `${results.failed} of ${results.total} user${results.total !== 1 ? 's' : ''} failed to delete. See details below.`,
+          duration: 10000,
         });
         
-        if (results.errors.length > 0) {
-          console.error("Deletion errors:", results.errors);
-        }
+        console.error("Deletion errors:", results.errors);
       }
 
       await loadUsers();
@@ -671,6 +687,69 @@ export const UserManagement = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Failed Deletions Card */}
+      {failedDeletions.length > 0 && (
+        <Card className="border-destructive border-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <CardTitle className="text-destructive">Failed to Delete {failedDeletions.length} Users</CardTitle>
+            </div>
+            <CardDescription>
+              These users could not be deleted due to database constraints. They may have data in linked tables preventing deletion.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {failedDeletions.map((failed, idx) => (
+                  <div key={failed.userId} className="p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{failed.displayName}</p>
+                        <p className="text-xs text-muted-foreground font-mono truncate">{failed.userId}</p>
+                        <p className="text-xs text-destructive mt-1">{failed.error}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(failed.userId)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <div className="mt-4 flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setFailedDeletions([])}
+                className="flex-1"
+              >
+                Dismiss
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  // Try to delete failed users again
+                  const failedIds = failedDeletions.map(f => f.userId);
+                  setSelectedUsers(new Set(failedIds));
+                  setFailedDeletions([]);
+                  setBulkDeleteDialogOpen(true);
+                }}
+                className="flex-1 gap-2"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                Retry Failed Users
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* User Management Card */}
       <Card>
@@ -1112,53 +1191,55 @@ export const UserManagement = () => {
           </AlertDialogHeader>
           
           <ScrollArea className="flex-1 pr-4">
-            <AlertDialogDescription className="space-y-4 text-base">
-              <p className="font-semibold text-foreground">
-                You are about to permanently delete {selectedUsers.size} user account{selectedUsers.size !== 1 ? 's' : ''}.
-              </p>
-              
-              <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-lg space-y-2">
-                <p className="font-semibold text-destructive">This action will PERMANENTLY remove:</p>
-                <ul className="list-disc list-inside space-y-1 text-sm text-destructive">
-                  <li>All user authentication credentials</li>
-                  <li>All user profiles and personal data</li>
-                  <li>All posts, comments, and content created by these users</li>
-                  <li>All relationships (guardian-bestie links, sponsorships, etc.)</li>
-                  <li>All vendor data and business information</li>
-                  <li>All permissions and role assignments</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg">
-                <p className="font-semibold text-yellow-700 dark:text-yellow-500">⚠️ CRITICAL WARNING:</p>
-                <p className="text-sm mt-1 text-yellow-700 dark:text-yellow-500">
-                  This action <span className="font-bold underline">CANNOT BE UNDONE</span>. All data will be permanently lost and cannot be recovered.
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-base">
+                <p className="font-semibold text-foreground">
+                  You are about to permanently delete {selectedUsers.size} user account{selectedUsers.size !== 1 ? 's' : ''}.
                 </p>
-              </div>
+                
+                <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-lg space-y-2">
+                  <p className="font-semibold text-destructive">This action will PERMANENTLY remove:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-destructive">
+                    <li>All user authentication credentials</li>
+                    <li>All user profiles and personal data</li>
+                    <li>All posts, comments, and content created by these users</li>
+                    <li>All relationships (guardian-bestie links, sponsorships, etc.)</li>
+                    <li>All vendor data and business information</li>
+                    <li>All permissions and role assignments</li>
+                  </ul>
+                </div>
 
-              <div className="text-sm">
-                <p className="font-semibold text-foreground mb-2">Selected users ({selectedUsers.size} total):</p>
-                {selectedUsers.size <= 10 ? (
-                  <p className="text-muted-foreground">
-                    {Array.from(selectedUsers).map(id => {
-                      const user = users.find(u => u.id === id);
-                      return user?.display_name;
-                    }).join(', ')}
+                <div className="p-4 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg">
+                  <p className="font-semibold text-yellow-700 dark:text-yellow-500">⚠️ CRITICAL WARNING:</p>
+                  <p className="text-sm mt-1 text-yellow-700 dark:text-yellow-500">
+                    This action <span className="font-bold underline">CANNOT BE UNDONE</span>. All data will be permanently lost and cannot be recovered.
                   </p>
-                ) : (
-                  <div className="space-y-2">
+                </div>
+
+                <div className="text-sm">
+                  <p className="font-semibold text-foreground mb-2">Selected users ({selectedUsers.size} total):</p>
+                  {selectedUsers.size <= 10 ? (
                     <p className="text-muted-foreground">
-                      {Array.from(selectedUsers).slice(0, 5).map(id => {
+                      {Array.from(selectedUsers).map(id => {
                         const user = users.find(u => u.id === id);
                         return user?.display_name;
                       }).join(', ')}
-                      {' '}... and {selectedUsers.size - 5} more
                     </p>
-                    <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
-                      💡 Tip: {selectedUsers.size} users is a large deletion. Consider reviewing your selection.
-                    </p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground">
+                        {Array.from(selectedUsers).slice(0, 5).map(id => {
+                          const user = users.find(u => u.id === id);
+                          return user?.display_name;
+                        }).join(', ')}
+                        {' '}... and {selectedUsers.size - 5} more
+                      </p>
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                        💡 Tip: {selectedUsers.size} users is a large deletion. Consider reviewing your selection.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </AlertDialogDescription>
           </ScrollArea>
@@ -1195,30 +1276,32 @@ export const UserManagement = () => {
           </AlertDialogHeader>
           
           <ScrollArea className="flex-1 pr-4">
-            <AlertDialogDescription className="space-y-4 text-base">
-              <div className="p-6 bg-destructive/20 border-4 border-destructive rounded-lg space-y-3">
-                <p className="text-xl font-bold text-destructive text-center">
-                  LAST CHANCE TO STOP!
-                </p>
-                <p className="font-semibold text-foreground text-center">
-                  You are about to DELETE {selectedUsers.size} user account{selectedUsers.size !== 1 ? 's' : ''} and ALL associated data.
-                </p>
-              </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-base">
+                <div className="p-6 bg-destructive/20 border-4 border-destructive rounded-lg space-y-3">
+                  <p className="text-xl font-bold text-destructive text-center">
+                    LAST CHANCE TO STOP!
+                  </p>
+                  <p className="font-semibold text-foreground text-center">
+                    You are about to DELETE {selectedUsers.size} user account{selectedUsers.size !== 1 ? 's' : ''} and ALL associated data.
+                  </p>
+                </div>
 
-              <div className="space-y-2 text-sm">
-                <p className="font-semibold text-destructive">Once you click "DELETE ALL USERS" below:</p>
-                <ul className="list-disc list-inside space-y-1 text-destructive ml-4">
-                  <li>All {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''} will be immediately and permanently deleted</li>
-                  <li>All their content, relationships, and data will be irreversibly destroyed</li>
-                  <li>Users will lose access immediately and cannot be restored</li>
-                  <li>This cannot be reversed by anyone, including system administrators</li>
-                </ul>
-              </div>
+                <div className="space-y-2 text-sm">
+                  <p className="font-semibold text-destructive">Once you click "DELETE ALL USERS" below:</p>
+                  <ul className="list-disc list-inside space-y-1 text-destructive ml-4">
+                    <li>All {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''} will be immediately and permanently deleted</li>
+                    <li>All their content, relationships, and data will be irreversibly destroyed</li>
+                    <li>Users will lose access immediately and cannot be restored</li>
+                    <li>This cannot be reversed by anyone, including system administrators</li>
+                  </ul>
+                </div>
 
-              <div className="p-4 bg-yellow-500/20 border-2 border-yellow-500 rounded-lg">
-                <p className="font-bold text-center text-lg">
-                  Are you ABSOLUTELY CERTAIN you want to proceed?
-                </p>
+                <div className="p-4 bg-yellow-500/20 border-2 border-yellow-500 rounded-lg">
+                  <p className="font-bold text-center text-lg">
+                    Are you ABSOLUTELY CERTAIN you want to proceed?
+                  </p>
+                </div>
               </div>
             </AlertDialogDescription>
           </ScrollArea>
@@ -1236,7 +1319,7 @@ export const UserManagement = () => {
               {deletingUsers ? (
                 <>
                   <div className="w-5 h-5 rounded-full bg-white animate-pulse" />
-                  Deleting {selectedUsers.size} Users...
+                  Deleting {deleteProgress.current > 0 ? `${deleteProgress.current}/${deleteProgress.total}` : selectedUsers.size} Users...
                 </>
               ) : (
                 <>

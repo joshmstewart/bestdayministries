@@ -93,7 +93,7 @@ serve(async (req) => {
       total: userIds.length,
       succeeded: 0,
       failed: 0,
-      errors: [] as { userId: string; error: string }[]
+      errors: [] as { userId: string; error: string; details?: string }[]
     };
 
     // Delete users in batches of 10 to avoid overwhelming the system
@@ -109,7 +109,7 @@ serve(async (req) => {
               .from('user_roles')
               .select('role')
               .eq('user_id', userId)
-              .single();
+              .maybeSingle();
 
             if (targetRole?.role === 'admin' && userRole.role !== 'owner') {
               throw new Error('Only owners can delete admin accounts');
@@ -119,24 +119,31 @@ serve(async (req) => {
             const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
             
             if (deleteError) {
+              console.error(`Delete error for ${userId}:`, {
+                message: deleteError.message,
+                code: deleteError.code,
+                status: deleteError.status
+              });
               throw deleteError;
             }
             
             results.succeeded++;
-            console.log(`Deleted user ${userId} (${i + batch.indexOf(userId) + 1}/${userIds.length})`);
+            console.log(`✅ Deleted user ${userId} (${i + batch.indexOf(userId) + 1}/${userIds.length})`);
           } catch (error: any) {
             results.failed++;
+            const errorMsg = error.message || 'Unknown error';
             results.errors.push({
               userId,
-              error: error.message || 'Unknown error'
+              error: errorMsg,
+              details: error.code || error.status
             });
-            console.error(`Failed to delete user ${userId}:`, error);
+            console.error(`❌ Failed to delete user ${userId}:`, errorMsg);
           }
         })
       );
     }
 
-    console.log(`Bulk delete complete: ${results.succeeded} succeeded, ${results.failed} failed`);
+    console.log(`🎯 Bulk delete complete: ${results.succeeded} succeeded, ${results.failed} failed`);
 
     return new Response(
       JSON.stringify(results),
