@@ -230,6 +230,13 @@ npx playwright test --grep "@email @receipts"
 - Email validation before saving
 - Multiple replies create conversation thread
 
+**Performance Notes:**
+- Uses optimized single-query pattern for reply counts
+- Tests verify no timeout errors when handling multiple submissions
+- Prevents N+1 query problem with batch fetching
+
+---
+
 ### Key Differences from E2E Tests
 
 | Aspect | E2E Tests | Email Tests |
@@ -330,6 +337,24 @@ expect(notification).toBeTruthy();
   - Database verification approach
   - Simulating inbound emails
   - Test helper utilities
+
+### Performance Optimizations (Added 2025-10-15)
+
+**Single-Query Pattern for Contact Form Counts:**
+- **Problem**: Original implementation made 100+ individual database queries to count replies for each submission
+- **Impact**: Caused timeout errors when deleting multiple submissions
+- **Solution**: Fetch all replies in single query, filter/count client-side with JavaScript
+- **Result**: Reduced from 100+ queries to 2-3 queries total
+- **Files Updated**: 
+  - `src/components/admin/ContactFormManager.tsx`
+  - `src/hooks/useContactFormCount.ts`
+
+**Benefits:**
+- Eliminates connection timeout errors during bulk operations
+- Real-time safe (efficient enough to run on every update)
+- Better scalability (no N+1 query problem)
+- Tests verify no regression of this optimization
+
 
 ### Troubleshooting
 

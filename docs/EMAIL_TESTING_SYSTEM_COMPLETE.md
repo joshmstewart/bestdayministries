@@ -525,6 +525,14 @@ expect(data![0].organization_ein).toBe(settings?.organization_ein);
 - **Cause**: Edge function doesn't query `notification_preferences.enable_digest_emails` before sending
 - **Fix**: `send-digest-email` now explicitly checks `enable_digest_emails` column and skips users who have disabled digests (lines 83-88)
 
+### 10. Contact Form Timeout on Bulk Delete (2025-10-15)
+- **Symptom**: Connection timeout error when deleting multiple contact form submissions
+- **Cause**: N+1 query problem - making 100+ individual queries to count replies for each submission
+- **Impact**: Unable to bulk delete submissions, admin workflow blocked
+- **Fix**: Implemented single-query pattern - fetch all replies once, filter/count client-side
+- **Result**: Reduced from 100+ queries to 2-3 queries total
+- **Files**: `ContactFormManager.tsx`, `useContactFormCount.ts`
+
 ---
 
 ## VERIFICATION CHECKLIST
@@ -672,12 +680,15 @@ When changing email functionality:
 
 ---
 
-**Last Updated**: 2025-01-16
+**Last Updated**: 2025-10-15
 **Test Count**: 22 (17 notification/approval/receipt + 5 contact form)
 **Status**: Active - MUST READ BEFORE ANY EMAIL TEST CHANGES
 
-**Recent Fixes** (2025-01-16):
-- ✅ Added graceful error handling for email log inserts (prevents silent failures)
-- ✅ Implemented digest preference validation (respects `enable_digest_emails` column)
-- ✅ Fixed receipt settings isolation (deletes production data before test insertion)
-- ✅ Fixed approval notification error logging bug (no longer re-parses request body)
+**Recent Fixes**:
+- ✅ 2025-10-15: Added single-query pattern for contact form counts (prevents timeout errors)
+- ✅ 2025-10-15: Implemented separate realtime event listeners (INSERT/UPDATE/DELETE) for immediate badge updates
+- ✅ 2025-10-15: Added cascade delete warnings for content moderation
+- ✅ 2025-01-16: Added graceful error handling for email log inserts
+- ✅ 2025-01-16: Implemented digest preference validation
+- ✅ 2025-01-16: Fixed receipt settings isolation
+- ✅ 2025-01-16: Fixed approval notification error logging bug

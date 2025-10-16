@@ -383,6 +383,19 @@ TYPES-MAP:{all|pending_approval:Approvals|moderation_needed:Moderation|comment_o
 MOBILE:filters-stack-vertical|tabs-grid-adjust|search-full-width|max-w-90vw
 WORKFLOWS:view-all[bell→View-All→page]|filter[search-type-date]|bulk[mark-all-clear]|individual[click→nav+mark-read|hover→del]
 
+## EMAIL_TESTING
+OVERVIEW:22-tests-across-6-files|production-parity-pattern|Resend-real-API|DB-state-verification
+CATEGORIES:contact-form[5-tests-production-parity]|other[17-tests-auth-client-pattern]
+PATTERN:seed-test-data→trigger-email→wait-DB-state→verify-NOT-email-capture
+FILES:email-approvals.spec.ts[3]|email-digest.spec.ts[3]|email-notifications.spec.ts[4]|email-sponsorship-receipts.spec.ts[4]|email-messages.spec.ts[3]|email-contact-form-resend.spec.ts[5]
+SEED:seed-email-test-data→4-users[guardian+bestie+sponsor+vendor]+relationships+JWT-tokens
+HELPERS:resend-test-helper.ts[waitForSubmission|waitForReply|simulateInboundEmail|verifySubmission|verifyReply|cleanupTestSubmissions]
+CI:manual-trigger[run_email_tests-input]|chromium-only|45-min-timeout|no-shard[shared-auth-clients]
+PERFORMANCE:single-query-pattern[fetch-all-once+client-filter]|prevents-timeout-100+-queries→2-3-queries
+CRITICAL-SCHEMA:sponsorship_receipts[sponsorship_id+organization_name+organization_ein]|notification_preferences[enable_digest_emails]|vendor_bestie_assets[vendor_bestie_request_id]
+VERIFICATION:DB-state-NOT-email-capture|Resend-API-real|5s-wait-async-processing
+DOC:EMAIL_TESTING_SYSTEM_COMPLETE.md|EMAIL_TESTING_PRODUCTION_PARITY.md
+
 ## MULTI_TENANT_CONVERSION
 DOC:MULTI_TENANT_CONVERSION_PLAN.md
 OVERVIEW:convert-single-tenant→multi-tenant-SaaS|seat-based-billing|10-12-weeks
