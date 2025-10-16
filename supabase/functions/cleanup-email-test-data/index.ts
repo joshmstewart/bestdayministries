@@ -32,9 +32,19 @@ serve(async (req) => {
       throw listError;
     }
 
-    const testUsers = authUsers.users.filter(user => 
-      user.email?.startsWith(prefix)
-    );
+    // Filter test users by email prefix OR generic test patterns
+    const testUsers = authUsers.users.filter(user => {
+      const email = user.email?.toLowerCase() || '';
+      return (
+        email.startsWith(prefix) ||
+        email.includes('emailtest-') ||
+        email === 'testbestie@example.com' ||
+        email === 'testguardian@example.com' ||
+        email === 'testsupporter@example.com' ||
+        email === 'testvendor@example.com' ||
+        (email.includes('test') && email.includes('@test.com'))
+      );
+    });
 
     console.log(`Found ${testUsers.length} test users to clean up`);
 
