@@ -174,17 +174,19 @@ export const DailyScratchCard = () => {
       <button
         onClick={() => !card.is_scratched && !isExpired && setShowDialog(true)}
         disabled={card.is_scratched || isExpired}
-        className="relative transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 bg-transparent"
+        className="relative transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
         style={{ 
-          filter: card.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))'
+          filter: card.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))',
+          background: 'transparent'
         }}
       >
         {/* Use preview sticker or fallback to kawaii bat */}
-        <div className="relative w-20 h-20 bg-transparent">
+        <div className="relative w-20 h-20" style={{ background: 'transparent' }}>
           <img
             src={sampleSticker || kawaiiBat}
             alt="Daily sticker"
-            className="w-full h-full object-contain bg-transparent"
+            className="w-full h-full object-contain"
+            style={{ background: 'transparent' }}
           />
           
           {/* Status indicator */}
