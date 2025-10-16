@@ -617,47 +617,54 @@ export const StickerCollectionManager = () => {
             </CardContent>
           </Card>
 
-          {selectedCollection && stickers.length > 0 && (
+          {selectedCollection && (
             <Card>
               <CardHeader>
                 <CardTitle>Stickers in Collection ({stickers.length}/25)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-5 gap-4">
-                  {stickers.map((sticker) => (
-                    <div key={sticker.id} className="relative group">
-                      <img
-                        src={sticker.image_url}
-                        alt={sticker.name}
-                        className="w-full aspect-square object-contain border rounded"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                        <div className="text-white text-sm text-center px-2">
-                          #{sticker.sticker_number} {sticker.name}
-                        </div>
-                        <Badge className={rarityConfig[sticker.rarity as keyof typeof rarityConfig].color}>
-                          {sticker.rarity}
-                        </Badge>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => toggleStickerActive(sticker.id, sticker.is_active)}
-                          >
-                            {sticker.is_active ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => deleteSticker(sticker.id, sticker.image_url)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                {stickers.length > 0 ? (
+                  <div className="grid grid-cols-5 gap-4">
+                    {stickers.map((sticker) => (
+                      <div key={sticker.id} className="relative group">
+                        <img
+                          src={sticker.image_url}
+                          alt={sticker.name}
+                          className="w-full aspect-square object-contain border rounded"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                          <div className="text-white text-sm text-center px-2">
+                            #{sticker.sticker_number} {sticker.name}
+                          </div>
+                          <Badge className={rarityConfig[sticker.rarity as keyof typeof rarityConfig].color}>
+                            {sticker.rarity}
+                          </Badge>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => toggleStickerActive(sticker.id, sticker.is_active)}
+                            >
+                              {sticker.is_active ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteSticker(sticker.id, sticker.image_url)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="mb-2">No stickers in this collection yet.</p>
+                    <p className="text-sm">Go to the Collections tab and click "Seed Halloween Collection" to add the pre-made stickers, or upload your own stickers above.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
