@@ -164,7 +164,7 @@ npx playwright show-report
 ## Email Testing Suite
 
 ### Overview
-The project includes **22 specialized email tests** across 5 test files that verify email infrastructure via database state verification. These tests interact with the actual Resend email service and verify results by checking database tables.
+The project includes **22 specialized email tests** across 6 test files that verify email infrastructure via database state verification. These tests interact with the actual Resend email service and verify results by checking database tables.
 
 ### Running Email Tests
 
@@ -334,7 +334,9 @@ expect(notification).toBeTruthy();
 ### Troubleshooting
 
 See `docs/EMAIL_TESTING_SYSTEM_COMPLETE.md` for detailed troubleshooting guidance, including:
-- Receipt organization name mismatches
+- Email log inserts failing silently (now fixed with graceful error handling)
+- Digest emails not respecting user preferences (now fixed with explicit check)
+- Receipt organization name mismatches (now fixed with test data isolation)
 - Seed function failures
 - CI vs local test differences
 - Missing database columns
