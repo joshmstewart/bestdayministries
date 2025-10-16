@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Check } from "lucide-react";
+import friendlyGhost from "@/assets/stickers/halloween/02-friendly-ghost.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
 
 export const DailyScratchCard = () => {
@@ -95,43 +96,34 @@ export const DailyScratchCard = () => {
 
   return (
     <>
-      {/* Floating sticker button in bottom-right corner */}
+      {/* Small sticker button */}
       <button
         onClick={() => !card.is_scratched && !isExpired && setShowDialog(true)}
         disabled={card.is_scratched || isExpired}
-        className="fixed bottom-6 right-6 z-50 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 group"
+        className="relative transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
         style={{ 
-          filter: card.is_scratched || isExpired ? 'grayscale(100%) opacity(0.5)' : 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3))'
+          filter: card.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))'
         }}
       >
-        {sampleSticker && (
-          <div className="relative">
-            {/* Actual sticker image with transparent background */}
-            <img
-              src={sampleSticker}
-              alt="Daily sticker"
-              className="w-24 h-24 object-contain transition-transform"
-            />
-            
-            {/* Pulsing ring indicator for unscratched cards */}
-            {!card.is_scratched && !isExpired && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-28 h-28 rounded-full bg-primary/20 animate-ping" />
-              </div>
-            )}
-            
-            {/* Status indicator */}
-            {card.is_scratched ? (
-              <div className="absolute -top-2 -right-2 bg-muted text-muted-foreground rounded-full p-1.5 shadow-lg">
-                <Check className="w-4 h-4" />
-              </div>
-            ) : !isExpired && (
-              <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg animate-bounce">
-                <Sparkles className="w-4 h-4" />
-              </div>
-            )}
-          </div>
-        )}
+        {/* Use kawaii ghost with transparent background */}
+        <div className="relative w-20 h-20">
+          <img
+            src={friendlyGhost}
+            alt="Daily sticker"
+            className="w-full h-full object-contain"
+          />
+          
+          {/* Status indicator */}
+          {card.is_scratched ? (
+            <div className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground rounded-full p-1 shadow-lg border-2 border-background">
+              <Check className="w-3 h-3" />
+            </div>
+          ) : !isExpired && (
+            <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1 shadow-lg animate-bounce border-2 border-background">
+              <Sparkles className="w-3 h-3" />
+            </div>
+          )}
+        </div>
       </button>
 
       <ScratchCardDialog

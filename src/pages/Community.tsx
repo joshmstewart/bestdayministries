@@ -322,9 +322,6 @@ const Community = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-20 pb-12">
-        {/* Daily Scratch Card - floating corner button */}
-        {user && <DailyScratchCard />}
-        
         <div className="max-w-6xl mx-auto space-y-6">
           {sectionOrder.map(({ key, visible }) => {
             if (!visible) return null;
@@ -332,17 +329,26 @@ const Community = () => {
             switch (key) {
               case 'welcome':
                 return (
-                  <div key={key} className="text-center space-y-4" data-tour-target="welcome-section">
-                    <h1 className="text-4xl md:text-5xl font-black text-foreground">
-                      Welcome to Your{" "}
-                      <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                        Best Day Ministries
-                      </span>{" "}
-                      Community
-                    </h1>
-                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                      Connect, share, and grow with our amazing community
-                    </p>
+                  <div key={key} className="relative" data-tour-target="welcome-section">
+                    {/* Daily Scratch Card Button - positioned in top right */}
+                    {user && (
+                      <div className="absolute top-0 right-0 -mt-4">
+                        <DailyScratchCard />
+                      </div>
+                    )}
+                    
+                    <div className="text-center space-y-4">
+                      <h1 className="text-4xl md:text-5xl font-black text-foreground">
+                        Welcome to Your{" "}
+                        <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                          Best Day Ministries
+                        </span>{" "}
+                        Community
+                      </h1>
+                      <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                        Connect, share, and grow with our amazing community
+                      </p>
+                    </div>
                   </div>
                 );
 
