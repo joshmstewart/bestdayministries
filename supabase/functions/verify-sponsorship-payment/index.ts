@@ -142,7 +142,8 @@ serve(async (req) => {
         stripe_subscription_id: stripeReferenceId || null,
         stripe_mode: mode,
       }, {
-        onConflict: userId ? 'sponsor_id,sponsor_bestie_id' : undefined,
+        // Use stripe_subscription_id for upsert to prevent duplicates for both auth and guest users
+        onConflict: stripeReferenceId ? 'stripe_subscription_id' : (userId ? 'sponsor_id,sponsor_bestie_id' : undefined),
       })
       .select()
       .single();
