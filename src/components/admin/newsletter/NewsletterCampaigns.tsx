@@ -64,6 +64,8 @@ export const NewsletterCampaigns = () => {
     switch (status) {
       case "draft":
         return "secondary";
+      case "scheduled":
+        return "outline";
       case "sent":
         return "default";
       case "sending":
@@ -109,6 +111,9 @@ export const NewsletterCampaigns = () => {
                   <p className="text-sm text-muted-foreground">{campaign.subject}</p>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
                     <span>Created {format(new Date(campaign.created_at), "MMM d, yyyy")}</span>
+                    {campaign.scheduled_for && campaign.status === 'scheduled' && (
+                      <span>Scheduled for {format(new Date(campaign.scheduled_for), "MMM d, yyyy 'at' h:mm a")}</span>
+                    )}
                     {campaign.sent_at && (
                       <span>Sent {format(new Date(campaign.sent_at), "MMM d, yyyy")}</span>
                     )}
@@ -118,7 +123,7 @@ export const NewsletterCampaigns = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {campaign.status === "draft" && (
+                  {(campaign.status === "draft" || campaign.status === "scheduled") && (
                     <>
                       <Button
                         variant="outline"
@@ -130,14 +135,16 @@ export const NewsletterCampaigns = () => {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => sendCampaignMutation.mutate(campaign.id)}
-                        disabled={sendCampaignMutation.isPending}
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Send
-                      </Button>
+                      {campaign.status === "draft" && (
+                        <Button
+                          size="sm"
+                          onClick={() => sendCampaignMutation.mutate(campaign.id)}
+                          disabled={sendCampaignMutation.isPending}
+                        >
+                          <Send className="h-4 w-4 mr-2" />
+                          Send Now
+                        </Button>
+                      )}
                     </>
                   )}
                   {campaign.status === "sent" && (
@@ -152,7 +159,7 @@ export const NewsletterCampaigns = () => {
                       View Stats
                     </Button>
                   )}
-                  {campaign.status === "draft" && (
+                  {(campaign.status === "draft" || campaign.status === "scheduled") && (
                     <Button
                       variant="ghost"
                       size="sm"

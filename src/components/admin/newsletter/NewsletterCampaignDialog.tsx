@@ -14,6 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { RichTextEditor } from "./RichTextEditor";
+import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
+import { Eye, Calendar } from "lucide-react";
+import { format } from "date-fns";
 
 const USER_ROLES = [
   { value: "supporter", label: "Supporters" },
@@ -42,6 +45,8 @@ export const NewsletterCampaignDialog = ({
   const [htmlContent, setHtmlContent] = useState("");
   const [targetAll, setTargetAll] = useState(true);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState<string>("");
 
   useEffect(() => {
     if (campaign) {
@@ -53,6 +58,7 @@ export const NewsletterCampaignDialog = ({
       const targetAudience = campaign.target_audience || { type: "all" };
       setTargetAll(targetAudience.type === "all");
       setSelectedRoles(targetAudience.roles || []);
+      setScheduledFor(campaign.scheduled_for ? format(new Date(campaign.scheduled_for), "yyyy-MM-dd'T'HH:mm") : "");
     } else {
       setTitle("");
       setSubject("");
@@ -60,6 +66,7 @@ export const NewsletterCampaignDialog = ({
       setHtmlContent("");
       setTargetAll(true);
       setSelectedRoles([]);
+      setScheduledFor("");
     }
   }, [campaign, open]);
 
@@ -79,6 +86,8 @@ export const NewsletterCampaignDialog = ({
         html_content: htmlContent,
         target_audience: targetAudience,
         created_by: user.id,
+        scheduled_for: scheduledFor ? new Date(scheduledFor).toISOString() : null,
+        status: (scheduledFor ? 'scheduled' : 'draft') as 'draft' | 'scheduled',
       };
 
       if (campaign) {
@@ -198,6 +207,31 @@ export const NewsletterCampaignDialog = ({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="scheduled">Schedule Send (Optional)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="scheduled"
+                type="datetime-local"
+                value={scheduledFor}
+                onChange={(e) => setScheduledFor(e.target.value)}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+              />
+              {scheduledFor && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setScheduledFor("")}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Leave empty to save as draft, or set a future date/time to schedule
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="content">Email Content</Label>
             <RichTextEditor
               content={htmlContent}
@@ -209,7 +243,15 @@ export const NewsletterCampaignDialog = ({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsPreviewOpen(true)}
+            disabled={!htmlContent}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Preview
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -217,10 +259,19 @@ export const NewsletterCampaignDialog = ({
             onClick={() => saveCampaignMutation.mutate()}
             disabled={!title || !subject || !htmlContent || saveCampaignMutation.isPending}
           >
-            {saveCampaignMutation.isPending ? "Saving..." : campaign ? "Update" : "Create"}
+            {scheduledFor && <Calendar className="h-4 w-4 mr-2" />}
+            {saveCampaignMutation.isPending ? "Saving..." : scheduledFor ? "Schedule" : campaign ? "Update" : "Create Draft"}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <NewsletterPreviewDialog
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        subject={subject}
+        previewText={previewText}
+        htmlContent={htmlContent}
+      />
     </Dialog>
   );
 };
