@@ -57,7 +57,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     // Cleanup all seeded test data
     if (seedData) {
       console.log('🧹 Cleaning up test users and related data...');
-      await supabase.functions.invoke('cleanup-email-test-data', {
+      await supabase.functions.invoke('cleanup-test-data-unified', {
         body: { 
           testRunId: seedData.testRunId,
           emailPrefix: seedData.emailPrefix 

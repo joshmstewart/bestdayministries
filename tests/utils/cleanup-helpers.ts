@@ -29,7 +29,7 @@ export async function cleanupTestData(
   console.log('🧹 Starting test data cleanup...');
 
   try {
-    // Call the cleanup edge function
+    // Call the unified cleanup edge function
     const response = await page.evaluate(async (opts) => {
       const { createClient } = await import('@supabase/supabase-js');
       const supabase = createClient(
@@ -37,8 +37,8 @@ export async function cleanupTestData(
         (window as any).VITE_SUPABASE_ANON_KEY || ''
       );
 
-      const { data, error } = await supabase.functions.invoke('cleanup-test-data', {
-        body: opts
+      const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
+        body: { namePatterns: ['Test', 'E2E'], ...opts }
       });
 
       if (error) {

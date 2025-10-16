@@ -20,19 +20,15 @@ async function globalTeardown() {
       return;
     }
 
-    // Call the cleanup edge function
-    const response = await fetch(`${supabaseUrl}/functions/v1/cleanup-test-data`, {
+    // Call the unified cleanup edge function
+    const response = await fetch(`${supabaseUrl}/functions/v1/cleanup-test-data-unified`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify({
-        removeTestProfiles: true,
-        removeTestSponsorships: true,
-        removeTestBesties: true,
-        removeTestPosts: true,
-        removeTestVendors: true,
+        namePatterns: ['Test', 'E2E']
       }),
     });
 

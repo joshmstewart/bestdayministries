@@ -69,13 +69,9 @@ const TestRunsManager = () => {
         description: "Removing all test entries from the database",
       });
 
-      const { data, error } = await supabase.functions.invoke('cleanup-test-data', {
+      const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
         body: {
-          removeTestProfiles: true,
-          removeTestSponsorships: true,
-          removeTestBesties: true,
-          removeTestPosts: true,
-          removeTestVendors: true,
+          namePatterns: ['Test', 'E2E']
         }
       });
 
