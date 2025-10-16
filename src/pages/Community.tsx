@@ -322,12 +322,9 @@ const Community = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-20 pb-12">
-        {/* Daily Scratch Card */}
-        {user && (
-          <div className="flex justify-center mb-8">
-            <DailyScratchCard />
-          </div>
-        )}
+        {/* Daily Scratch Card - floating corner button */}
+        {user && <DailyScratchCard />}
+        
         <div className="max-w-6xl mx-auto space-y-6">
           {sectionOrder.map(({ key, visible }) => {
             if (!visible) return null;

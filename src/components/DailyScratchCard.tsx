@@ -95,64 +95,44 @@ export const DailyScratchCard = () => {
 
   return (
     <>
-      <div className="relative group">
-        <Button
-          onClick={() => !card.is_scratched && !isExpired && setShowDialog(true)}
-          disabled={card.is_scratched || isExpired}
-          className="relative h-auto p-0 overflow-hidden rounded-3xl shadow-lg hover:shadow-xl transition-all hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
-          style={{
-            width: "280px",
-            height: "320px",
-            background: card.is_scratched 
-              ? "linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)"
-              : "linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%)",
-          }}
-        >
-          {/* Sticker-shaped background */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            {sampleSticker && !card.is_scratched && (
-              <img
-                src={sampleSticker}
-                alt="Sample sticker"
-                className="w-40 h-40 object-contain opacity-30 animate-pulse"
-              />
+      {/* Floating sticker button in bottom-right corner */}
+      <button
+        onClick={() => !card.is_scratched && !isExpired && setShowDialog(true)}
+        disabled={card.is_scratched || isExpired}
+        className="fixed bottom-6 right-6 z-50 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 group"
+        style={{ 
+          filter: card.is_scratched || isExpired ? 'grayscale(100%) opacity(0.5)' : 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3))'
+        }}
+      >
+        {sampleSticker && (
+          <div className="relative">
+            {/* Actual sticker image with transparent background */}
+            <img
+              src={sampleSticker}
+              alt="Daily sticker"
+              className="w-24 h-24 object-contain transition-transform"
+            />
+            
+            {/* Pulsing ring indicator for unscratched cards */}
+            {!card.is_scratched && !isExpired && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-28 h-28 rounded-full bg-primary/20 animate-ping" />
+              </div>
             )}
-          </div>
-
-          {/* Content */}
-          <div className="relative z-10 flex flex-col items-center justify-center h-full p-6 text-white">
+            
+            {/* Status indicator */}
             {card.is_scratched ? (
-              <>
-                <Check className="w-16 h-16 mb-4" />
-                <div className="text-2xl font-bold text-center">Scratched!</div>
-                <div className="text-sm mt-2 opacity-80">Come back tomorrow</div>
-              </>
-            ) : isExpired ? (
-              <>
-                <div className="text-2xl font-bold text-center">Expired</div>
-                <div className="text-sm mt-2 opacity-80">Come back tomorrow</div>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-16 h-16 mb-4 animate-pulse" />
-                <div className="text-3xl font-bold text-center mb-2">Today's Sticker!</div>
-                <div className="text-sm opacity-90">Scratch to reveal</div>
-                
-                {/* Animated peel corner effect */}
-                <div className="absolute top-2 right-2 w-12 h-12">
-                  <div className="absolute inset-0 bg-white/20 rounded-full animate-ping" />
-                  <div className="absolute inset-2 bg-white/40 rounded-full" />
-                </div>
-              </>
+              <div className="absolute -top-2 -right-2 bg-muted text-muted-foreground rounded-full p-1.5 shadow-lg">
+                <Check className="w-4 h-4" />
+              </div>
+            ) : !isExpired && (
+              <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg animate-bounce">
+                <Sparkles className="w-4 h-4" />
+              </div>
             )}
           </div>
-
-          {/* Shine effect */}
-          {!card.is_scratched && !isExpired && (
-            <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-          )}
-        </Button>
-      </div>
+        )}
+      </button>
 
       <ScratchCardDialog
         open={showDialog}
