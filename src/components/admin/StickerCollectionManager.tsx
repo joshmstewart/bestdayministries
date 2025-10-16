@@ -107,6 +107,7 @@ export const StickerCollectionManager = () => {
   const [collections, setCollections] = useState<any[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [stickers, setStickers] = useState<any[]>([]);
+  const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
   
   // Collection form
   const [collectionForm, setCollectionForm] = useState({
@@ -475,6 +476,22 @@ export const StickerCollectionManager = () => {
     fetchCollections();
   };
 
+  const updateCollectionRoles = async (collectionId: string, roles: UserRole[]) => {
+    const { error } = await supabase
+      .from('sticker_collections')
+      .update({ visible_to_roles: roles as any })
+      .eq('id', collectionId);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Success", description: "Role visibility updated!" });
+    fetchCollections();
+    setEditingRolesFor(null);
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -756,33 +773,76 @@ export const StickerCollectionManager = () => {
               <CardTitle>Existing Collections</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {collections.map((collection) => (
-                  <div key={collection.id} className="flex items-center justify-between p-4 border rounded">
-                    <div>
-                      <div className="font-semibold">{collection.name}</div>
-                      <div className="text-sm text-muted-foreground">{collection.theme}</div>
+                  <div key={collection.id} className="border rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between p-4 bg-muted/30">
+                      <div>
+                        <div className="font-semibold">{collection.name}</div>
+                        <div className="text-sm text-muted-foreground">{collection.theme}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={collection.is_active ? "default" : "secondary"}>
+                          {collection.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingRolesFor(editingRolesFor === collection.id ? null : collection.id)}
+                        >
+                          Edit Roles
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleCollectionActive(collection.id, collection.is_active)}
+                        >
+                          {collection.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteCollection(collection.id, collection.name)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={collection.is_active ? "default" : "secondary"}>
-                        {collection.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleCollectionActive(collection.id, collection.is_active)}
-                      >
-                        {collection.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => deleteCollection(collection.id, collection.name)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    
+                    {editingRolesFor === collection.id && (
+                      <div className="p-4 border-t bg-background">
+                        <Label className="text-sm mb-3 block font-semibold">Visible to Roles</Label>
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                          {USER_ROLES.map((role) => {
+                            const currentRoles = collection.visible_to_roles || ["admin", "owner"];
+                            return (
+                              <div key={role.value} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`${collection.id}-${role.value}`}
+                                  checked={currentRoles.includes(role.value)}
+                                  onCheckedChange={(checked) => {
+                                    const newRoles = checked
+                                      ? [...currentRoles, role.value]
+                                      : currentRoles.filter((r: string) => r !== role.value);
+                                    updateCollectionRoles(collection.id, newRoles);
+                                  }}
+                                />
+                                <label
+                                  htmlFor={`${collection.id}-${role.value}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize"
+                                >
+                                  {role.label}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Only users with selected roles will see and scratch cards from this collection
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
