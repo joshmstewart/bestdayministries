@@ -271,12 +271,37 @@ export const useNotifications = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'notifications',
         },
         (payload) => {
-          console.log('Notification change:', payload);
+          console.log('Notification inserted:', payload);
+          loadNotifications();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          console.log('Notification updated:', payload);
+          loadNotifications();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          console.log('Notification deleted:', payload);
+          // Immediately reload to update badge counts
           loadNotifications();
         }
       )

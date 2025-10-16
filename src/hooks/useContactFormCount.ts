@@ -8,13 +8,13 @@ export const useContactFormCount = () => {
   useEffect(() => {
     fetchCount();
     
-    // Subscribe to both submissions and replies changes
+    // Subscribe to both submissions and replies changes (including deletes)
     const submissionsChannel = supabase
       .channel("contact-form-count")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "contact_form_submissions",
         },
@@ -25,7 +25,52 @@ export const useContactFormCount = () => {
       .on(
         "postgres_changes",
         {
+          event: "UPDATE",
+          schema: "public",
+          table: "contact_form_submissions",
+        },
+        () => {
+          fetchCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "contact_form_submissions",
+        },
+        () => {
+          // Immediately refetch count when submissions are deleted
+          fetchCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
           event: "INSERT",
+          schema: "public",
+          table: "contact_form_replies",
+        },
+        () => {
+          fetchCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "contact_form_replies",
+        },
+        () => {
+          fetchCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
           schema: "public",
           table: "contact_form_replies",
         },
