@@ -103,7 +103,6 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const [linkText, setLinkText] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [imageWidth, setImageWidth] = useState<string>("");
 
   const editor = useEditor({
     extensions: [
@@ -280,7 +279,6 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   if (!editor) return null;
 
   const selectedImage = editor.isActive('image');
-  const currentImageWidth = selectedImage ? editor.getAttributes('image').width : '';
 
   const updateImageWidth = (width: string) => {
     if (selectedImage && width) {
@@ -288,45 +286,49 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     }
   };
 
+  const imageSizePresets = [
+    { label: 'Small', value: '300px' },
+    { label: 'Medium', value: '600px' },
+    { label: 'Large', value: '900px' },
+    { label: 'Full', value: '100%' },
+  ];
+
   return (
     <div className="border rounded-md">
+      {selectedImage && editor && (
+        <div className="bg-muted/90 border-b p-2 flex items-center gap-2">
+          <span className="text-xs text-muted-foreground mr-2">Image size:</span>
+          <div className="flex items-center gap-1">
+            {imageSizePresets.map((preset) => (
+              <Button
+                key={preset.value}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => updateImageWidth(preset.value)}
+                className="h-7 px-3 text-xs"
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+          <div className="w-px h-6 bg-border mx-2" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleRecropImage}
+            title="Re-crop image"
+            className="h-7"
+          >
+            <Crop className="h-4 w-4 mr-1" />
+            Re-crop
+          </Button>
+        </div>
+      )}
       <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
         {selectedImage && (
           <>
-            <div className="flex items-center gap-2 px-2 py-1 bg-background rounded border mr-2">
-              <Label htmlFor="image-width" className="text-xs whitespace-nowrap">
-                Width (px):
-              </Label>
-              <Input
-                id="image-width"
-                type="number"
-                className="h-7 w-24"
-                placeholder="600"
-                value={imageWidth || currentImageWidth || ''}
-                onChange={(e) => setImageWidth(e.target.value)}
-                onBlur={() => {
-                  if (imageWidth) {
-                    updateImageWidth(imageWidth);
-                    setImageWidth('');
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && imageWidth) {
-                    updateImageWidth(imageWidth);
-                    setImageWidth('');
-                  }
-                }}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => updateImageWidth('100%')}
-                title="Full width"
-              >
-                100%
-              </Button>
-            </div>
             <Button
               type="button"
               variant="ghost"
