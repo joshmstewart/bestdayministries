@@ -4,7 +4,7 @@
 
 ## System Overview
 
-This project has 23 email tests across 5 test files that verify production email infrastructure via database state, not mock services. Tests interact with the actual Resend service and verify results by checking database tables.
+This project has 22 email tests across 6 test files that verify production email infrastructure via database state, not mock services. Tests interact with the actual Resend service and verify results by checking database tables.
 
 ---
 
@@ -80,12 +80,22 @@ Email tests require the `seed-email-test-data` edge function to create:
 **Returns**: 
 ```typescript
 {
-  guardianUser: { userId, email, accessToken, refreshToken },
-  bestieUser: { userId, email, accessToken, refreshToken },
-  sponsorUser: { userId, email, accessToken, refreshToken },
-  vendorUser: { userId, email, accessToken, refreshToken },
+  success: boolean,
+  message: string,
+  userIds: {
+    guardian: string,
+    bestie: string,
+    sponsor: string,
+    vendor: string
+  },
   testRunId: string,
-  emailPrefix: string
+  emailPrefix: string,
+  authSessions: {
+    guardian: { access_token: string, refresh_token: string },
+    bestie: { access_token: string, refresh_token: string },
+    sponsor: { access_token: string, refresh_token: string },
+    vendor: { access_token: string, refresh_token: string }
+  }
 }
 ```
 
@@ -411,15 +421,21 @@ HAVING COUNT(*) > 0;
 ### Return Value:
 ```typescript
 {
-  success: true,
-  userIds: { guardian, bestie, sponsor, vendor },
+  success: boolean,
+  message: string,
+  userIds: {
+    guardian: string,
+    bestie: string,
+    sponsor: string,
+    vendor: string
+  },
   testRunId: string,
   emailPrefix: string,
   authSessions: {
-    guardian: { access_token, refresh_token },
-    bestie: { access_token, refresh_token },
-    sponsor: { access_token, refresh_token },
-    vendor: { access_token, refresh_token }
+    guardian: { access_token: string, refresh_token: string },
+    bestie: { access_token: string, refresh_token: string },
+    sponsor: { access_token: string, refresh_token: string },
+    vendor: { access_token: string, refresh_token: string }
   }
 }
 ```
@@ -509,7 +525,7 @@ expect(data![0].organization_ein).toBe(settings?.organization_ein);
 - [ ] Verify seed function creates ALL required data
 - [ ] Test edge functions handle test input patterns
 - [ ] Confirm database schema matches all code references
-- [ ] Run all 23 tests to verify no regressions
+- [ ] Run all 22 tests to verify no regressions
 
 ---
 
@@ -562,11 +578,11 @@ When adding new email tests:
 When changing email functionality:
 1. Update this document FIRST
 2. Then update code to match
-3. Verify all 23 tests still pass
+3. Verify all 22 tests still pass
 4. Update test counts if changed
 
 ---
 
-**Last Updated**: 2025-10-16
+**Last Updated**: 2025-01-16
 **Test Count**: 22 (17 notification/approval/receipt + 5 contact form)
 **Status**: Active - MUST READ BEFORE ANY EMAIL TEST CHANGES
