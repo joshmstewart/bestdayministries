@@ -19,17 +19,21 @@ export const DailyScratchCard = () => {
   const checkDailyCard = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      // Check if user has access to active sticker collections
-      const { data: activeCollection } = await supabase
+      // Check if user has access to any active sticker collections
+      // RLS policy will automatically filter based on visible_to_roles
+      const { data: activeCollections, error: collectionError } = await supabase
         .from('sticker_collections')
-        .select('visible_to_roles')
-        .eq('is_active', true)
-        .single();
+        .select('id, visible_to_roles')
+        .eq('is_active', true);
 
-      // If no active collection or user doesn't have permission, don't show card
-      if (!activeCollection) {
+      // If no collections returned (either none exist or user doesn't have permission), don't show card
+      if (collectionError || !activeCollections || activeCollections.length === 0) {
+        console.log('No accessible sticker collections found for user');
         setLoading(false);
         return;
       }
@@ -42,16 +46,17 @@ export const DailyScratchCard = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('date', today)
-        .single();
+        .maybeSingle();
 
       // If no card exists, generate one
-      if (cardError && cardError.code === 'PGRST116') {
+      if (!existingCard) {
         const { data: newCard, error: genError } = await supabase
           .rpc('generate_daily_scratch_card', { _user_id: user.id });
 
         if (genError) {
           console.error('Error generating card:', genError);
           setError('No active sticker collection found. Please contact an admin.');
+          setLoading(false);
           return;
         }
 
@@ -61,10 +66,17 @@ export const DailyScratchCard = () => {
             .from('daily_scratch_cards')
             .select('*')
             .eq('id', newCard)
-            .single();
+            .maybeSingle();
 
           existingCard = fetchedCard;
         }
+      }
+
+      // If still no card after generation attempt, don't show the feature
+      if (!existingCard) {
+        console.log('No scratch card available for user');
+        setLoading(false);
+        return;
       }
 
       setCard(existingCard);
