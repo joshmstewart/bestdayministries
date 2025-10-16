@@ -39,7 +39,7 @@ import glitterBat from "@/assets/stickers/halloween/23-glitter-bat.png";
 import dancingSkeleton from "@/assets/stickers/halloween/24-dancing-skeleton.png";
 import joyHouse from "@/assets/stickers/halloween/25-joy-house-halloween.png";
 
-// Import V2 kawaii stickers
+// Import V2 kawaii stickers (regenerated with proper rarities and transparent backgrounds)
 import hauntedHouseV2 from "@/assets/stickers/halloween/13-haunted-house-v2.png";
 import fullMoonV2 from "@/assets/stickers/halloween/14-full-moon-v2.png";
 import spookyTreeV2 from "@/assets/stickers/halloween/15-spooky-tree-v2.png";
