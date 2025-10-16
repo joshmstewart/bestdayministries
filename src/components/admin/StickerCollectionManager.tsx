@@ -682,6 +682,8 @@ export const StickerCollectionManager = () => {
                       setting_key: "stickers_enabled",
                       setting_value: checked,
                       updated_by: user?.id,
+                    }, {
+                      onConflict: 'setting_key'
                     });
 
                   if (error) throw error;
