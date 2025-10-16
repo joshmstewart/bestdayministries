@@ -24,6 +24,8 @@ export const DailyScratchCard = () => {
         return;
       }
 
+      console.log('DailyScratchCard: Checking for accessible collections...');
+
       // Check if user has access to any active sticker collections
       // RLS policy will automatically filter based on visible_to_roles
       const { data: activeCollections, error: collectionError } = await supabase
@@ -31,9 +33,15 @@ export const DailyScratchCard = () => {
         .select('id, visible_to_roles')
         .eq('is_active', true);
 
+      console.log('DailyScratchCard: Active collections result:', { 
+        count: activeCollections?.length || 0, 
+        collections: activeCollections,
+        error: collectionError 
+      });
+
       // If no collections returned (either none exist or user doesn't have permission), don't show card
       if (collectionError || !activeCollections || activeCollections.length === 0) {
-        console.log('No accessible sticker collections found for user');
+        console.log('DailyScratchCard: No accessible sticker collections - hiding feature');
         setLoading(false);
         return;
       }
@@ -47,6 +55,8 @@ export const DailyScratchCard = () => {
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
+
+      console.log('DailyScratchCard: Existing card check:', { existingCard, cardError });
 
       // If no card exists, generate one
       if (!existingCard) {
