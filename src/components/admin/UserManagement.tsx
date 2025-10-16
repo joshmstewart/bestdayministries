@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter } from "lucide-react";
+import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter, AlertTriangle } from "lucide-react";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Profile {
   id: string;
@@ -43,6 +44,10 @@ export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [vendorStatusFilter, setVendorStatusFilter] = useState<string>("all");
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [deletingUsers, setDeletingUsers] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -487,6 +492,80 @@ export const UserManagement = () => {
     return matchesSearch && matchesRole && matchesVendorStatus;
   });
 
+  // Handle select all checkbox
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const selectableUsers = filteredUsers.filter(user => canDeleteUser(user.role));
+      setSelectedUsers(new Set(selectableUsers.map(u => u.id)));
+    } else {
+      setSelectedUsers(new Set());
+    }
+  };
+
+  // Handle individual checkbox
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    const newSelected = new Set(selectedUsers);
+    if (checked) {
+      newSelected.add(userId);
+    } else {
+      newSelected.delete(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+
+  // Check if all selectable users are selected
+  const selectableUsers = filteredUsers.filter(user => canDeleteUser(user.role));
+  const allSelectableSelected = selectableUsers.length > 0 && 
+    selectableUsers.every(user => selectedUsers.has(user.id));
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    setDeletingUsers(true);
+    const usersToDelete = Array.from(selectedUsers);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const userId of usersToDelete) {
+      try {
+        const { error } = await supabase.functions.invoke("delete-user", {
+          body: { userId },
+        });
+
+        if (error) {
+          console.error(`Error deleting user ${userId}:`, error);
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      } catch (error: any) {
+        console.error(`Exception deleting user ${userId}:`, error);
+        errorCount++;
+      }
+    }
+
+    setDeletingUsers(false);
+    setSelectedUsers(new Set());
+    setBulkDeleteDialogOpen(false);
+    setConfirmDeleteDialogOpen(false);
+
+    if (successCount > 0) {
+      toast({
+        title: "Users deleted",
+        description: `Successfully deleted ${successCount} user(s).`,
+      });
+    }
+
+    if (errorCount > 0) {
+      toast({
+        title: "Some deletions failed",
+        description: `Failed to delete ${errorCount} user(s).`,
+        variant: "destructive",
+      });
+    }
+
+    await loadUsers();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -730,9 +809,37 @@ export const UserManagement = () => {
           </div>
         </div>
 
+        {/* Bulk Actions Bar */}
+        {selectedUsers.size > 0 && (
+          <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <span className="font-medium text-destructive">
+                {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''} selected
+              </span>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={() => setBulkDeleteDialogOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete Selected
+            </Button>
+          </div>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={allSelectableSelected}
+                  onCheckedChange={handleSelectAll}
+                  disabled={selectableUsers.length === 0}
+                  aria-label="Select all users"
+                />
+              </TableHead>
               <TableHead>Display Name</TableHead>
               <TableHead className="w-12"></TableHead>
               <TableHead>Role</TableHead>
@@ -746,13 +853,21 @@ export const UserManagement = () => {
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No users found matching your filters
                 </TableCell>
               </TableRow>
             ) : (
               filteredUsers.map((user) => (
-              <TableRow key={user.id}>
+              <TableRow key={user.id} className={selectedUsers.has(user.id) ? "bg-muted/50" : ""}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedUsers.has(user.id)}
+                    onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
+                    disabled={!canDeleteUser(user.role)}
+                    aria-label={`Select ${user.display_name}`}
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{user.display_name}</TableCell>
                 <TableCell>
                   <Button
@@ -978,6 +1093,130 @@ export const UserManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Delete Confirmation - First Warning */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 rounded-full bg-destructive/10">
+                <AlertTriangle className="w-6 h-6 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-2xl">⚠️ WARNING: Bulk User Deletion</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="space-y-4 text-base">
+              <p className="font-semibold text-foreground">
+                You are about to permanently delete {selectedUsers.size} user account{selectedUsers.size !== 1 ? 's' : ''}.
+              </p>
+              
+              <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-lg space-y-2">
+                <p className="font-semibold text-destructive">This action will PERMANENTLY remove:</p>
+                <ul className="list-disc list-inside space-y-1 text-sm text-destructive">
+                  <li>All user authentication credentials</li>
+                  <li>All user profiles and personal data</li>
+                  <li>All posts, comments, and content created by these users</li>
+                  <li>All relationships (guardian-bestie links, sponsorships, etc.)</li>
+                  <li>All vendor data and business information</li>
+                  <li>All permissions and role assignments</li>
+                </ul>
+              </div>
+
+              <div className="p-4 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg">
+                <p className="font-semibold text-yellow-700 dark:text-yellow-500">⚠️ CRITICAL WARNING:</p>
+                <p className="text-sm mt-1 text-yellow-700 dark:text-yellow-500">
+                  This action <span className="font-bold underline">CANNOT BE UNDONE</span>. All data will be permanently lost and cannot be recovered.
+                </p>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Selected users: {Array.from(selectedUsers).map(id => {
+                  const user = users.find(u => u.id === id);
+                  return user?.display_name;
+                }).join(', ')}
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel - Keep Users Safe</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setBulkDeleteDialogOpen(false);
+                setConfirmDeleteDialogOpen(true);
+              }}
+              className="gap-2"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              I Understand - Continue to Final Confirmation
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation - Second Warning (Final) */}
+      <AlertDialog open={confirmDeleteDialogOpen} onOpenChange={setConfirmDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-2xl border-4 border-destructive">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 rounded-full bg-destructive animate-pulse">
+                <AlertTriangle className="w-8 h-8 text-white" />
+              </div>
+              <AlertDialogTitle className="text-2xl text-destructive">
+                🛑 FINAL CONFIRMATION REQUIRED
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="space-y-4 text-base">
+              <div className="p-6 bg-destructive/20 border-4 border-destructive rounded-lg space-y-3">
+                <p className="text-xl font-bold text-destructive text-center">
+                  LAST CHANCE TO STOP!
+                </p>
+                <p className="font-semibold text-foreground text-center">
+                  You are about to DELETE {selectedUsers.size} user account{selectedUsers.size !== 1 ? 's' : ''} and ALL associated data.
+                </p>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <p className="font-semibold text-destructive">Once you click "DELETE ALL USERS" below:</p>
+                <ul className="list-disc list-inside space-y-1 text-destructive ml-4">
+                  <li>All {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''} will be immediately and permanently deleted</li>
+                  <li>All their content, relationships, and data will be irreversibly destroyed</li>
+                  <li>Users will lose access immediately and cannot be restored</li>
+                  <li>This cannot be reversed by anyone, including system administrators</li>
+                </ul>
+              </div>
+
+              <div className="p-4 bg-yellow-500/20 border-2 border-yellow-500 rounded-lg">
+                <p className="font-bold text-center text-lg">
+                  Are you ABSOLUTELY CERTAIN you want to proceed?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2">
+            <AlertDialogCancel className="w-full bg-primary hover:bg-primary/90">
+              🛡️ NO - Cancel and Keep All Users Safe
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={deletingUsers}
+              className="w-full gap-2 text-lg py-6"
+            >
+              {deletingUsers ? (
+                <>
+                  <div className="w-5 h-5 rounded-full bg-white animate-pulse" />
+                  Deleting {selectedUsers.size} Users...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-5 h-5" />
+                  YES - DELETE ALL {selectedUsers.size} USER{selectedUsers.size !== 1 ? 'S' : ''} PERMANENTLY
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
     </div>
   );
