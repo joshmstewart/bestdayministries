@@ -2,7 +2,13 @@
 
 ## Overview
 
-This project uses **production-parity email testing** where E2E tests verify the ACTUAL Resend email infrastructure by checking database state instead of relying on external email capture services.
+**⚠️ IMPORTANT: This production-parity approach applies ONLY to the 5 contact form email tests, NOT all 22 email tests in the project.**
+
+This project uses **production-parity email testing** where specific E2E tests verify the ACTUAL Resend email infrastructure by checking database state instead of relying on external email capture services.
+
+### Email Test Categories
+1. **Contact Form Tests (5 tests)** - Uses production-parity pattern (this doc)
+2. **Other Email Tests (17 tests)** - Uses authenticated client pattern (see EMAIL_TESTING_SYSTEM_COMPLETE.md)
 
 ## Why This Approach?
 
@@ -21,6 +27,74 @@ Testing: Resend + database verification
 Production: Resend
 ```
 **Benefit**: Same email service across all environments.
+
+---
+
+## SCOPE & APPLICABILITY
+
+### ✅ Tests Using Production-Parity Pattern (5 tests)
+**File**: `tests/e2e/email-contact-form-resend.spec.ts`
+
+**Characteristics**:
+- Public-facing functionality (no authentication required)
+- Direct database verification via helper functions
+- Simulates inbound email by calling edge function directly
+- Uses `waitForSubmission()`, `simulateInboundEmail()`, `cleanupTestSubmissions()`
+
+**Tests**:
+1. Contact form submission saves to database
+2. Inbound email reply saves to database
+3. Admin reply updates submission status
+4. Validates email format before saving
+5. Multiple replies create conversation thread
+
+---
+
+### ❌ Tests NOT Using Production-Parity Pattern (17 tests)
+**Files**: `email-approvals.spec.ts`, `email-digest.spec.ts`, `email-notifications.spec.ts`, `email-sponsorship-receipts.spec.ts`, `email-messages.spec.ts`
+
+**Characteristics**:
+- Role-based functionality (requires authentication)
+- Uses authenticated Supabase clients with JWT tokens
+- Verifies permission-based email sending
+- Depends on seed function for test data setup
+
+**Why Different?**
+- These tests verify emails sent to/from specific user roles
+- Require database relationships (guardian-bestie links, sponsorships, vendor links)
+- Test RLS policies and permission checks
+- Need authenticated clients to trigger edge functions that check `auth.uid()`
+
+**Pattern Used**:
+```typescript
+// Create authenticated client from seed function tokens
+const guardianClient = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+  global: {
+    headers: {
+      Authorization: `Bearer ${guardianAccessToken}`,
+    },
+  },
+});
+
+// Trigger notification
+await guardianClient
+  .from('discussion_posts')
+  .update({ approval_status: 'approved' })
+  .eq('id', postId);
+
+// Verify notification created
+const { data: notification } = await guardianClient
+  .from('notifications')
+  .select('*')
+  .eq('type', 'approval_decision')
+  .single();
+```
+
+---
 
 ## Architecture
 

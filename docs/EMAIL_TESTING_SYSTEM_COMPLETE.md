@@ -37,15 +37,57 @@ This project has 23 email tests across 5 test files that verify production email
 - Bestie sends message to sponsor
 - Guardian sends message to sponsor
 
-### 6. email-contact-form-resend.spec.ts (6 tests)
-- Form submission notifications
-- Admin reply functionality
-- Inbound email handling
-- Status transitions
-- Reply threading
-- Cleanup
+### 6. email-contact-form-resend.spec.ts (5 tests)
+- Form submission saves to database
+- Inbound email reply saves to database
+- Admin reply updates submission status
+- Email validation before saving
+- Multiple replies create conversation thread
 
-**TOTAL: 23 email tests (17 notification/approval/receipt + 6 contact form)**
+**TOTAL: 22 email tests (17 notification/approval/receipt + 5 contact form)**
+
+---
+
+## CI/CD WORKFLOW CONFIGURATION
+
+### GitHub Actions Setup
+- **File**: `.github/workflows/test.yml` (lines 122-151)
+- **Job**: `email-tests`
+- **Trigger**: Manual workflow dispatch with `run_email_tests` input (default: false)
+- **Browser**: Chromium only (not sharded)
+- **Timeout**: 45 minutes
+- **Command**: `npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium`
+
+### Test Execution Flow
+1. **Seed Test Data**: Each test file's `beforeAll` hook calls `seed-email-test-data` edge function
+2. **Run Tests**: Playwright executes all 22 tests with `@email` tag
+3. **Log Results**: Separate `log-results` job aggregates outcomes and logs to `test_runs` table
+
+### Why Email Tests Are Separate
+- **Manual trigger** prevents unnecessary Resend API calls (costs)
+- **No sharding** because tests share authenticated clients and can't run in parallel
+- **Longer timeout** because tests wait for database state changes (5s delays)
+- **Chromium only** to reduce test execution time (email flow is browser-agnostic)
+
+### Seed Function Dependency
+Email tests require the `seed-email-test-data` edge function to create:
+- 4 test users (guardian, bestie, sponsor, vendor) with known emails
+- All required database relationships (sponsorships, bestie links, etc.)
+- JWT access/refresh tokens for authenticated Supabase clients
+- Receipt settings with known organization details ('Test Organization', '12-3456789')
+
+**Location**: `supabase/functions/seed-email-test-data/index.ts`
+**Returns**: 
+```typescript
+{
+  guardianUser: { userId, email, accessToken, refreshToken },
+  bestieUser: { userId, email, accessToken, refreshToken },
+  sponsorUser: { userId, email, accessToken, refreshToken },
+  vendorUser: { userId, email, accessToken, refreshToken },
+  testRunId: string,
+  emailPrefix: string
+}
+```
 
 ---
 
@@ -123,6 +165,76 @@ This project has 23 email tests across 5 test files that verify production email
 - `approval_status` (text, DEFAULT 'pending_approval')
 - `is_public` (boolean, DEFAULT false)
 - `text_sections` (jsonb)
+
+---
+
+## TROUBLESHOOTING COMMON FAILURES
+
+### Receipt Organization Name Mismatch
+**Error**: 
+```
+Expected: undefined
+Received: "Best Day Ministries"
+```
+**Cause**: Test tried to fetch `receipt_settings` with unauthenticated client, failed RLS, got `undefined`  
+**Fix**: Assert against known seed values (`'Test Organization'`, `'12-3456789'`) instead of querying settings  
+**Status**: ✅ Fixed in email-sponsorship-receipts.spec.ts lines 168-169
+
+---
+
+### Database Error Creating New User
+**Error**: `Database error creating new user` during seed function execution  
+**Cause**: Race condition, constraint violation, or profile trigger timing issue  
+**Impact**: Tests fail randomly but succeed on retry  
+**Fix**: Seed function has built-in retry logic; tests should eventually succeed
+
+---
+
+### Failed to Seed Test Data
+**Error**: `Edge Function returned a non-2xx status code`  
+**Cause**: Seed function threw an error (see edge function logs for details)  
+**Common Reasons**:
+- Missing environment variables (RESEND_API_KEY, etc.)
+- Database schema mismatch (missing columns)
+- RLS policy blocking INSERT operations
+- Unique constraint violation (test data already exists)  
+**Fix**: Check edge function logs in Lovable backend for specific error message
+
+---
+
+### Tests Pass Locally But Fail in CI
+**Possible Causes**:
+- **Timing differences**: CI is slower, increase timeout values
+- **Rate limits**: Resend API rate limiting in CI environment
+- **Missing secrets**: Verify all GitHub Secrets are configured (VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, RESEND_API_KEY)
+- **Test isolation**: Tests aren't properly cleaning up data between runs
+
+**Fix**: 
+1. Check GitHub Actions logs for specific error messages
+2. Verify secrets are set in repository settings
+3. Ensure cleanup functions run in `afterEach` hooks
+4. Increase timeouts for flaky tests
+
+---
+
+### Notification Preference Tests Fail
+**Error**: Tests expect `enable_digest_emails` column but it doesn't exist  
+**Fix**: Run database migration to add column:
+```sql
+ALTER TABLE notification_preferences
+ADD COLUMN enable_digest_emails BOOLEAN NOT NULL DEFAULT true;
+```
+
+---
+
+### Receipt Tests Fail With Missing Organization Fields
+**Error**: `organization_name` or `organization_ein` not found in receipt  
+**Fix**: Run database migration:
+```sql
+ALTER TABLE sponsorship_receipts
+ADD COLUMN organization_name TEXT,
+ADD COLUMN organization_ein TEXT;
+```
 
 ---
 
@@ -456,5 +568,5 @@ When changing email functionality:
 ---
 
 **Last Updated**: 2025-10-16
-**Test Count**: 23 (17 notification/approval/receipt + 6 contact form)
+**Test Count**: 22 (17 notification/approval/receipt + 5 contact form)
 **Status**: Active - MUST READ BEFORE ANY EMAIL TEST CHANGES

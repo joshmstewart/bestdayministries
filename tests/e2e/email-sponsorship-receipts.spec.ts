@@ -148,12 +148,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     const sponsorship = sponsorships[0];
 
-    // Get receipt settings
-    const { data: settings } = await supabase
-      .from('receipt_settings')
-      .select('*')
-      .single();
-
+    // Invoke receipt generation
     await sponsorClient.functions.invoke('send-sponsorship-receipt', {
       body: {
         sponsorshipId: sponsorship.id
@@ -162,6 +157,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
+    // Verify receipt was created with organization info
     const { data: receipt } = await sponsorClient
       .from('sponsorship_receipts')
       .select('*')
@@ -170,8 +166,9 @@ test.describe('Sponsorship Receipt Email Tests', () => {
       .limit(1);
 
     expect(receipt).toBeTruthy();
-    expect(receipt![0].organization_name).toBe(settings?.organization_name);
-    expect(receipt![0].organization_ein).toBe(settings?.organization_ein);
+    // Assert against known seed values from seed-email-test-data (lines 428-429)
+    expect(receipt![0].organization_name).toBe('Test Organization');
+    expect(receipt![0].organization_ein).toBe('12-3456789');
 
     console.log('✅ Receipt organization info test passed');
   });

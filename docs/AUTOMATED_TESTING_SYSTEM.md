@@ -159,6 +159,189 @@ npx playwright test --ui
 npx playwright show-report
 ```
 
+---
+
+## Email Testing Suite
+
+### Overview
+The project includes **22 specialized email tests** across 5 test files that verify email infrastructure via database state verification. These tests interact with the actual Resend email service and verify results by checking database tables.
+
+### Running Email Tests
+
+#### In CI/CD
+Email tests are **disabled by default** to prevent unnecessary API usage. Enable via workflow dispatch:
+1. Go to GitHub Actions
+2. Select "Run Tests" workflow
+3. Click "Run workflow"
+4. Check "Run email tests" (run_email_tests: true)
+5. Click "Run workflow"
+
+#### Locally
+```bash
+# Run all email tests
+npx playwright test tests/e2e/email-*.spec.ts --project=chromium
+
+# Run specific email test file
+npx playwright test tests/e2e/email-approvals.spec.ts
+
+# Run tests with specific tag
+npx playwright test --grep "@email @receipts"
+```
+
+### Test Categories (22 Tests Total)
+
+#### 1. Approval Notifications (3 tests)
+**File**: `tests/e2e/email-approvals.spec.ts`
+- Post approval notification
+- Comment approval notification
+- Vendor asset approval notification
+
+#### 2. Digest Emails (3 tests)
+**File**: `tests/e2e/email-digest.spec.ts`
+- Daily digest aggregation
+- Weekly digest aggregation
+- Digest respects user preferences
+
+#### 3. Direct Notifications (4 tests)
+**File**: `tests/e2e/email-notifications.spec.ts`
+- Comment notification
+- Sponsor message notification
+- Product update notification
+- Respects email preferences
+
+#### 4. Sponsorship Receipts (4 tests)
+**File**: `tests/e2e/email-sponsorship-receipts.spec.ts`
+- Monthly sponsorship receipt
+- One-time sponsorship receipt
+- Receipt includes organization info
+- Generate missing receipts
+
+#### 5. Sponsor Messages (3 tests)
+**File**: `tests/e2e/email-messages.spec.ts`
+- Sponsor sends message to bestie
+- Bestie sends message to sponsor
+- Guardian sends message to sponsor
+
+#### 6. Contact Form (5 tests)
+**File**: `tests/e2e/email-contact-form-resend.spec.ts`
+- Form submission saves to database
+- Inbound email reply saves to database
+- Admin reply updates submission status
+- Email validation before saving
+- Multiple replies create conversation thread
+
+### Key Differences from E2E Tests
+
+| Aspect | E2E Tests | Email Tests |
+|--------|-----------|-------------|
+| **CI Trigger** | Automatic (push/PR) | Manual (workflow_dispatch) |
+| **Default State** | Enabled | Disabled (default: false) |
+| **Sharding** | 4 shards | No sharding |
+| **Browsers** | Chrome, Firefox, Safari | Chromium only |
+| **Timeout** | 60 minutes | 45 minutes |
+| **Parallelization** | Yes | No (shared auth clients) |
+| **Setup Required** | Test account | Seed function + auth tokens |
+
+### Why Email Tests Are Separate
+
+1. **Cost Management**: Each test run makes real Resend API calls, which count against your Resend quota
+2. **Longer Execution**: Tests include 5-second delays waiting for database state changes (notifications created, emails logged)
+3. **Shared State**: Tests use authenticated clients from seed function and can't run in parallel
+4. **External Dependencies**: Tests depend on Resend service availability and response times
+
+### Test Data Setup
+
+Email tests depend on the `seed-email-test-data` edge function, which is called in each test file's `beforeAll` hook:
+
+**Creates**:
+- 4 test users (guardian, bestie, sponsor, vendor)
+- All required relationships (sponsorships, bestie links, vendor approvals)
+- JWT access and refresh tokens for authenticated clients
+- Receipt settings with known organization details ('Test Organization', '12-3456789')
+
+**Returns**:
+```typescript
+{
+  guardianUser: { userId, email, accessToken, refreshToken },
+  bestieUser: { userId, email, accessToken, refreshToken },
+  sponsorUser: { userId, email, accessToken, refreshToken },
+  vendorUser: { userId, email, accessToken, refreshToken },
+  testRunId: string,
+  emailPrefix: string
+}
+```
+
+### Test Patterns
+
+#### Pattern 1: Production-Parity (Contact Form Tests)
+Used for public-facing functionality that doesn't require authentication.
+
+```typescript
+import { waitForSubmission, simulateInboundEmail } from '../utils/resend-test-helper';
+
+test('contact form submission', async ({ page }) => {
+  // User fills form
+  await page.goto('/');
+  await page.fill('input[name="email"]', testEmail);
+  await page.click('button[type="submit"]');
+  
+  // Verify submission in database
+  const submission = await waitForSubmission(testEmail);
+  expect(submission.email).toBe(testEmail);
+});
+```
+
+#### Pattern 2: Authenticated Clients (All Other Email Tests)
+Used for role-based functionality that requires specific permissions.
+
+```typescript
+// Create authenticated client with tokens from seed function
+const guardianClient = createClient(supabaseUrl, supabaseKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+  global: { headers: { Authorization: `Bearer ${guardianAccessToken}` } },
+});
+
+// Trigger action that sends email
+await guardianClient
+  .from('discussion_posts')
+  .update({ approval_status: 'approved' })
+  .eq('id', postId);
+
+// Verify notification created in database
+const { data: notification } = await guardianClient
+  .from('notifications')
+  .select('*')
+  .eq('type', 'approval_decision')
+  .single();
+
+expect(notification).toBeTruthy();
+```
+
+### Documentation References
+
+- **Complete System Reference**: `docs/EMAIL_TESTING_SYSTEM_COMPLETE.md`
+  - Detailed database schema requirements
+  - Edge function contracts
+  - Seed function specifications
+  - Common failure modes and troubleshooting
+
+- **Production-Parity Pattern**: `docs/EMAIL_TESTING_PRODUCTION_PARITY.md`
+  - Applies ONLY to 5 contact form tests
+  - Database verification approach
+  - Simulating inbound emails
+  - Test helper utilities
+
+### Troubleshooting
+
+See `docs/EMAIL_TESTING_SYSTEM_COMPLETE.md` for detailed troubleshooting guidance, including:
+- Receipt organization name mismatches
+- Seed function failures
+- CI vs local test differences
+- Missing database columns
+- RLS policy issues
+
+---
+
 ## Test Run Statuses
 
 - **success**: All tests passed ✅
