@@ -104,17 +104,43 @@ export const DailyScratchCard = () => {
 
       setCard(existingCard);
 
-      // Get a random sample sticker from the active collection
+      // Get the preview sticker from the collection, or fallback to any active sticker
       if (existingCard) {
-        const { data: stickers } = await supabase
-          .from('stickers')
-          .select('image_url')
-          .eq('collection_id', existingCard.collection_id)
-          .eq('is_active', true)
-          .limit(1);
+        // First try to get the preview sticker from the collection
+        const { data: collection } = await supabase
+          .from('sticker_collections')
+          .select('preview_sticker_id')
+          .eq('id', existingCard.collection_id)
+          .single();
+        
+        let stickerImageUrl = null;
+        
+        if (collection?.preview_sticker_id) {
+          const { data: previewSticker } = await supabase
+            .from('stickers')
+            .select('image_url')
+            .eq('id', collection.preview_sticker_id)
+            .single();
+          
+          stickerImageUrl = previewSticker?.image_url;
+        }
+        
+        // Fallback to any active sticker if no preview is set
+        if (!stickerImageUrl) {
+          const { data: stickers } = await supabase
+            .from('stickers')
+            .select('image_url')
+            .eq('collection_id', existingCard.collection_id)
+            .eq('is_active', true)
+            .limit(1);
 
-        if (stickers && stickers.length > 0) {
-          setSampleSticker(stickers[0].image_url);
+          if (stickers && stickers.length > 0) {
+            stickerImageUrl = stickers[0].image_url;
+          }
+        }
+        
+        if (stickerImageUrl) {
+          setSampleSticker(stickerImageUrl);
         }
       }
     } catch (error) {
@@ -153,10 +179,10 @@ export const DailyScratchCard = () => {
           filter: card.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))'
         }}
       >
-        {/* Use kawaii bat sticker with transparent background */}
+        {/* Use preview sticker or fallback to kawaii bat */}
         <div className="relative w-20 h-20 bg-transparent">
           <img
-            src={kawaiiBat}
+            src={sampleSticker || kawaiiBat}
             alt="Daily sticker"
             className="w-full h-full object-contain bg-transparent"
             style={{ imageRendering: 'crisp-edges' }}

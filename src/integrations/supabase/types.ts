@@ -3074,6 +3074,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          preview_sticker_id: string | null
           start_date: string
           theme: string
           updated_at: string
@@ -3088,6 +3089,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          preview_sticker_id?: string | null
           start_date?: string
           theme: string
           updated_at?: string
@@ -3102,6 +3104,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          preview_sticker_id?: string | null
           start_date?: string
           theme?: string
           updated_at?: string
@@ -3113,6 +3116,13 @@ export type Database = {
             columns: ["completion_badge_id"]
             isOneToOne: false
             referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sticker_collections_preview_sticker_id_fkey"
+            columns: ["preview_sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
             referencedColumns: ["id"]
           },
         ]
