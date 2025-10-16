@@ -282,9 +282,9 @@ FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
 TEST-ACCOUNT:test@example.com|testpassword123|REQUIRED-for-auth-pages
 DB:test_runs[status|workflow|commit|branch|duration|url|test_count|passed|failed|skipped|error|metadata]
-EDGE:github-test-webhook[receive-GH→parse→insert-db]|cleanup-test-data[remove-all-test-data]
-FRONTEND:TestRunsManager[list-realtime-status-badges-links-to-GH]
-WORKFLOW:1)push-code→2)GH-Actions-run→3)webhook-log→4)admin-view
+EDGE:github-test-webhook[receive-GH→parse→insert-db]|cleanup-test-data-unified[email+E2E-cleanup]
+FRONTEND:TestRunsManager[list-realtime-status-badges-links-to-GH-clean-button]
+WORKFLOW:1)push-code→2)GH-Actions-run→3)webhook-log→4)admin-view→5)cleanup-button
 SETUP:GH-secrets[VITE_SUPABASE_URL+VITE_SUPABASE_PUBLISHABLE_KEY+PERCY_TOKEN]
 TESTS:playwright.config.ts|17-E2E-files[basic|auth|navigation|community|forms|guardian-approvals|guardian-linking|sponsorship|store|vendor-linking|discussions|events-interactions|shopping-cart|notifications|video|help-center|performance]|3-browsers[Chrome-Firefox-Safari]
 VISUAL:Percy-24-snapshots[desktop-9|mobile-6|tablet-5]|@percy/cli|npx-@percy/cli-exec|PERCY_TOKEN-secret|viewport-simulation[FREE-vs-paid-mobile-browsers]|auto-login[community-events-store-discussions]|public-pages[homepage-auth-support-help-NO-login]
@@ -299,14 +299,11 @@ LAYERED-WAITS:tab-click→section-heading-wait-15s→component-title-wait-10s→
 SELECTORS:verify-component-code→exact-text-NOT-generic-patterns
 TAB-CONTENT:ALWAYS-wait-for-specific-content-within-tab-NEVER-waitForTimeout
 CRITICAL:waitForSelector[specific-targets]+exact-component-text+layered-waits=stable-tests
-CLEANUP:
-AUTOMATIC:globalTeardown[runs-after-all-tests]→cleanup-test-data-edge→removes-all-test-data
-PATTERNS:names[Test*|E2E*|*test*]|emails[*test@*]|metadata[is_test_data:true]
-REMOVES:profiles|sponsorships|featured_besties|discussion_posts|vendors|related-data
-NAMING:ALWAYS-prefix-test-data[Test-Sponsor|Test-Bestie|E2E-Post]
-HELPERS:cleanup-helpers.ts[markAsTestData|generateTestName|cleanupTestData]
-MANUAL:Admin-cleanup-button|SQL-queries|edge-function-invoke
-DOC:TEST_DATA_CLEANUP.md[full-guide]
+CLEANUP:cleanup-test-data-unified[email+E2E]→emailPrefix[emailtest-{testRunId}]|namePatterns[Test+E2E]→13-table-cascade→delete-users
+NAMING:Test-prefix|E2E-prefix|test@-email→auto-cleanup
+HELPERS:markAsTestData|generateTestName|cleanupTestData
+MANUAL:Admin→Testing-tab→Clean-Test-Data-button
+DOC:TEST_DATA_CLEANUP.md|EMAIL_TESTING_SYSTEM_COMPLETE.md
 
 ## INTERNAL_PAGES
 FILE:lib/internalPages.ts
