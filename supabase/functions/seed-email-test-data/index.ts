@@ -202,6 +202,7 @@ serve(async (req) => {
       .insert({
         sponsor_id: userIds.sponsor,
         bestie_id: userIds.bestie,
+        sponsor_bestie_id: sponsorBestie.id,
         amount: 50,
         frequency: 'monthly',
         status: 'active'
@@ -219,6 +220,7 @@ serve(async (req) => {
       .insert({
         sponsor_id: userIds.sponsor,
         bestie_id: userIds.bestie,
+        sponsor_bestie_id: sponsorBestie.id,
         amount: 100,
         frequency: 'one-time',
         status: 'completed'
@@ -328,6 +330,7 @@ serve(async (req) => {
       .insert({
         vendor_id: vendor.id,
         bestie_id: userIds.bestie,
+        vendor_bestie_request_id: vendorRequest.id,
         asset_type: 'image',
         asset_url: 'https://example.com/test-asset.jpg',
         approval_status: 'pending_approval'
@@ -422,13 +425,13 @@ serve(async (req) => {
       .from('receipt_settings')
       .upsert({
         organization_name: 'Test Organization',
-        tax_id: '12-3456789',
+        organization_ein: '12-3456789',
         organization_address: '123 Test St, Test City, TS 12345',
         from_email: 'receipts@testorg.com',
         reply_to_email: 'support@testorg.com',
         receipt_message: 'Thank you for your sponsorship!',
         tax_deductible_notice: 'Your donation is tax-deductible to the extent allowed by law.'
-      }, { onConflict: 'id', ignoreDuplicates: true });
+      }, { onConflict: 'id' });
 
     if (receiptError) {
       console.error('Error creating receipt settings:', receiptError);
