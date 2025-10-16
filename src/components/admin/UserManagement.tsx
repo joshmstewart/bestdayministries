@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter, AlertTriangle } from "lucide-react";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Profile {
   id: string;
@@ -1096,7 +1097,7 @@ export const UserManagement = () => {
 
       {/* Bulk Delete Confirmation - First Warning */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-        <AlertDialogContent className="max-w-2xl">
+        <AlertDialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-3 rounded-full bg-destructive/10">
@@ -1104,6 +1105,9 @@ export const UserManagement = () => {
               </div>
               <AlertDialogTitle className="text-2xl">⚠️ WARNING: Bulk User Deletion</AlertDialogTitle>
             </div>
+          </AlertDialogHeader>
+          
+          <ScrollArea className="flex-1 pr-4">
             <AlertDialogDescription className="space-y-4 text-base">
               <p className="font-semibold text-foreground">
                 You are about to permanently delete {selectedUsers.size} user account{selectedUsers.size !== 1 ? 's' : ''}.
@@ -1128,15 +1132,34 @@ export const UserManagement = () => {
                 </p>
               </div>
 
-              <p className="text-sm text-muted-foreground">
-                Selected users: {Array.from(selectedUsers).map(id => {
-                  const user = users.find(u => u.id === id);
-                  return user?.display_name;
-                }).join(', ')}
-              </p>
+              <div className="text-sm">
+                <p className="font-semibold text-foreground mb-2">Selected users ({selectedUsers.size} total):</p>
+                {selectedUsers.size <= 10 ? (
+                  <p className="text-muted-foreground">
+                    {Array.from(selectedUsers).map(id => {
+                      const user = users.find(u => u.id === id);
+                      return user?.display_name;
+                    }).join(', ')}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground">
+                      {Array.from(selectedUsers).slice(0, 5).map(id => {
+                        const user = users.find(u => u.id === id);
+                        return user?.display_name;
+                      }).join(', ')}
+                      {' '}... and {selectedUsers.size - 5} more
+                    </p>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                      💡 Tip: {selectedUsers.size} users is a large deletion. Consider reviewing your selection.
+                    </p>
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
+          </ScrollArea>
+          
+          <AlertDialogFooter className="mt-4">
             <AlertDialogCancel>Cancel - Keep Users Safe</AlertDialogCancel>
             <Button
               variant="destructive"
@@ -1155,7 +1178,7 @@ export const UserManagement = () => {
 
       {/* Bulk Delete Confirmation - Second Warning (Final) */}
       <AlertDialog open={confirmDeleteDialogOpen} onOpenChange={setConfirmDeleteDialogOpen}>
-        <AlertDialogContent className="max-w-2xl border-4 border-destructive">
+        <AlertDialogContent className="max-w-2xl max-h-[90vh] flex flex-col border-4 border-destructive">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-3 rounded-full bg-destructive animate-pulse">
@@ -1165,6 +1188,9 @@ export const UserManagement = () => {
                 🛑 FINAL CONFIRMATION REQUIRED
               </AlertDialogTitle>
             </div>
+          </AlertDialogHeader>
+          
+          <ScrollArea className="flex-1 pr-4">
             <AlertDialogDescription className="space-y-4 text-base">
               <div className="p-6 bg-destructive/20 border-4 border-destructive rounded-lg space-y-3">
                 <p className="text-xl font-bold text-destructive text-center">
@@ -1191,8 +1217,9 @@ export const UserManagement = () => {
                 </p>
               </div>
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-col gap-2">
+          </ScrollArea>
+          
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2 mt-4">
             <AlertDialogCancel className="w-full bg-primary hover:bg-primary/90">
               🛡️ NO - Cancel and Keep All Users Safe
             </AlertDialogCancel>
