@@ -9,8 +9,63 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Plus, Trash2, Upload, Eye, EyeOff } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
+// Import all Halloween stickers
+import pumpkin from "@/assets/stickers/halloween/01-smiling-pumpkin.png";
+import ghost from "@/assets/stickers/halloween/02-friendly-ghost.png";
+import candyCorn from "@/assets/stickers/halloween/03-candy-corn.png";
+import bat from "@/assets/stickers/halloween/04-happy-bat.png";
+import cat from "@/assets/stickers/halloween/05-kawaii-cat.png";
+import witchHat from "@/assets/stickers/halloween/06-witch-hat.png";
+import spider from "@/assets/stickers/halloween/07-friendly-spider.png";
+import skeleton from "@/assets/stickers/halloween/08-sweet-skeleton.png";
+import mummy from "@/assets/stickers/halloween/09-adorable-mummy.png";
+import cauldron from "@/assets/stickers/halloween/10-happy-cauldron.png";
+import vampire from "@/assets/stickers/halloween/11-cute-vampire.png";
+import monster from "@/assets/stickers/halloween/12-kawaii-monster.png";
+import hauntedHouse from "@/assets/stickers/halloween/13-haunted-house.png";
+import fullMoon from "@/assets/stickers/halloween/14-full-moon.png";
+import spookyTree from "@/assets/stickers/halloween/15-spooky-tree.png";
+import witch from "@/assets/stickers/halloween/16-classic-witch.png";
+import graveyard from "@/assets/stickers/halloween/17-creepy-graveyard.png";
+import castle from "@/assets/stickers/halloween/18-dark-castle.png";
+import fog from "@/assets/stickers/halloween/19-mysterious-fog.png";
+import glitteryGhost from "@/assets/stickers/halloween/20-glittery-ghost.png";
+import sparklePumpkin from "@/assets/stickers/halloween/21-sparkle-pumpkin.png";
+import shimmerCauldron from "@/assets/stickers/halloween/22-shimmer-cauldron.png";
+import glitterBat from "@/assets/stickers/halloween/23-glitter-bat.png";
+import dancingSkeleton from "@/assets/stickers/halloween/24-dancing-skeleton.png";
+import joyHouse from "@/assets/stickers/halloween/25-joy-house-halloween.png";
+
+const halloweenStickers = [
+  { path: pumpkin, name: "Smiling Pumpkin", description: "A cheerful pumpkin with rosy cheeks", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 1 },
+  { path: ghost, name: "Friendly Ghost", description: "A sweet ghost with sparkly eyes", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 2 },
+  { path: candyCorn, name: "Candy Corn Pile", description: "Adorable candy corn with smiling faces", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 3 },
+  { path: bat, name: "Happy Bat", description: "A friendly bat with big cute eyes", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 4 },
+  { path: cat, name: "Kawaii Black Cat", description: "A sweet black cat with sparkly eyes", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 5 },
+  { path: witchHat, name: "Cute Witch Hat", description: "A magical hat with stars and moons", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 6 },
+  { path: spider, name: "Friendly Spider", description: "An adorable spider with big eyes", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 7 },
+  { path: skeleton, name: "Sweet Skeleton", description: "A cheerful skeleton with a happy smile", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 8 },
+  { path: mummy, name: "Adorable Mummy", description: "A cute mummy peeking through bandages", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 9 },
+  { path: cauldron, name: "Happy Cauldron", description: "A bubbling cauldron with a smiling face", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 10 },
+  { path: vampire, name: "Cute Vampire", description: "An adorable vampire with tiny fangs", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.17, sticker_number: 11 },
+  { path: monster, name: "Kawaii Monster", description: "A friendly monster with colorful fur", rarity: "common", visual_style: "cute_kawaii", drop_rate: 4.16, sticker_number: 12 },
+  { path: hauntedHouse, name: "Haunted House", description: "A spooky house with glowing windows", rarity: "uncommon", visual_style: "spooky_classic", drop_rate: 4.29, sticker_number: 13 },
+  { path: fullMoon, name: "Full Moon", description: "A glowing moon with bat silhouettes", rarity: "uncommon", visual_style: "spooky_classic", drop_rate: 4.29, sticker_number: 14 },
+  { path: spookyTree, name: "Spooky Tree", description: "A twisted tree with gnarled branches", rarity: "uncommon", visual_style: "spooky_classic", drop_rate: 4.29, sticker_number: 15 },
+  { path: witch, name: "Classic Witch", description: "A witch flying on her broomstick", rarity: "uncommon", visual_style: "spooky_classic", drop_rate: 4.29, sticker_number: 16 },
+  { path: graveyard, name: "Creepy Graveyard", description: "A misty graveyard with tombstones", rarity: "uncommon", visual_style: "spooky_classic", drop_rate: 4.29, sticker_number: 17 },
+  { path: castle, name: "Dark Castle", description: "A gothic castle on a hilltop", rarity: "uncommon", visual_style: "spooky_classic", drop_rate: 4.27, sticker_number: 18 },
+  { path: fog, name: "Mysterious Fog", description: "Swirling ethereal mist", rarity: "uncommon", visual_style: "spooky_classic", drop_rate: 4.28, sticker_number: 19 },
+  { path: glitteryGhost, name: "Glittery Ghost", description: "A sparkling ghost with magical shimmer", rarity: "rare", visual_style: "glitter", drop_rate: 3.75, sticker_number: 20 },
+  { path: sparklePumpkin, name: "Sparkle Pumpkin", description: "A shimmering pumpkin with gold sparkles", rarity: "rare", visual_style: "glitter", drop_rate: 3.75, sticker_number: 21 },
+  { path: shimmerCauldron, name: "Shimmering Cauldron", description: "A magical cauldron with glitter bubbles", rarity: "rare", visual_style: "glitter", drop_rate: 3.75, sticker_number: 22 },
+  { path: glitterBat, name: "Glitter Bat", description: "A sparkling bat with shimmering wings", rarity: "rare", visual_style: "glitter", drop_rate: 3.75, sticker_number: 23 },
+  { path: dancingSkeleton, name: "Dancing Skeleton", description: "A skeleton in dynamic dancing pose", rarity: "epic", visual_style: "animated", drop_rate: 4.00, sticker_number: 24 },
+  { path: joyHouse, name: "Joy House Halloween", description: "Joy House community celebrating Halloween together", rarity: "legendary", visual_style: "joy_house", drop_rate: 1.00, sticker_number: 25 },
+];
 
 const rarityConfig = {
   common: { label: "Common", rate: 50, color: "bg-gray-500" },
@@ -84,6 +139,107 @@ export const StickerCollectionManager = () => {
     }
 
     setStickers(data || []);
+  };
+
+  const seedHalloweenCollection = async () => {
+    setLoading(true);
+    try {
+      toast({ title: "Creating Halloween Collection", description: "This may take a minute..." });
+
+      // Create badge first
+      const { data: badge, error: badgeError } = await supabase
+        .from('badges')
+        .insert({
+          name: 'Halloween Complete',
+          description: 'Collected all Halloween 2025 stickers!',
+          badge_type: 'collection_complete',
+          is_active: true,
+          requirements: { collection: 'halloween_2025' }
+        })
+        .select()
+        .single();
+
+      if (badgeError) throw badgeError;
+
+      // Create collection
+      const { data: collection, error: collectionError } = await supabase
+        .from('sticker_collections')
+        .insert({
+          name: 'Halloween 2025',
+          description: 'Spooky and sweet Halloween stickers to collect!',
+          theme: 'halloween',
+          is_active: true,
+          start_date: '2025-10-01',
+          end_date: null,
+          completion_badge_id: badge.id,
+          display_order: 1
+        })
+        .select()
+        .single();
+
+      if (collectionError) throw collectionError;
+
+      // Upload stickers one by one
+      let uploadedCount = 0;
+      for (const sticker of halloweenStickers) {
+        try {
+          // Fetch the image and convert to File
+          const response = await fetch(sticker.path);
+          const blob = await response.blob();
+          const fileName = `halloween/${sticker.sticker_number.toString().padStart(2, '0')}-${sticker.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+          
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('sticker-images')
+            .upload(fileName, blob, { upsert: true });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('sticker-images')
+            .getPublicUrl(fileName);
+
+          // Insert sticker record
+          const { error: stickerError } = await supabase
+            .from('stickers')
+            .insert([{
+              collection_id: collection.id,
+              name: sticker.name,
+              description: sticker.description,
+              image_url: publicUrl,
+              rarity: sticker.rarity as "common" | "uncommon" | "rare" | "epic" | "legendary",
+              visual_style: sticker.visual_style,
+              drop_rate: sticker.drop_rate,
+              sticker_number: sticker.sticker_number,
+              is_active: true
+            }]);
+
+          if (stickerError) throw stickerError;
+          
+          uploadedCount++;
+        } catch (err: any) {
+          console.error(`Error uploading sticker ${sticker.name}:`, err);
+        }
+      }
+
+      toast({ 
+        title: "Success!", 
+        description: `Created Halloween collection with ${uploadedCount} stickers` 
+      });
+      
+      await fetchCollections();
+      setSelectedCollection(collection.id);
+    } catch (error: any) {
+      console.error('Error seeding Halloween collection:', error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to create Halloween collection", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const createCollection = async () => {
@@ -302,11 +458,22 @@ export const StickerCollectionManager = () => {
                   />
                 </div>
               </div>
-              <Button onClick={createCollection} disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Plus className="mr-2 h-4 w-4" />
-                Create Collection
-              </Button>
+              <div className="flex gap-3">
+                <Button onClick={createCollection} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Collection
+                </Button>
+                <Button 
+                  onClick={seedHalloweenCollection} 
+                  disabled={loading}
+                  variant="secondary"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Seed Halloween Collection
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
