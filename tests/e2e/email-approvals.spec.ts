@@ -27,6 +27,10 @@ test.describe('Approval Notification Email Tests', () => {
   let seedData: any;
   let guardianClient: any;
   let bestieClient: any;
+  const createdNotificationIds: string[] = [];
+  const createdPostIds: string[] = [];
+  const createdCommentIds: string[] = [];
+  const createdVendorAssetIds: string[] = [];
 
   test.beforeAll(async () => {
     // Seed test data once for all tests
@@ -53,6 +57,26 @@ test.describe('Approval Notification Email Tests', () => {
       seedData.authSessions.bestie.access_token,
       seedData.authSessions.bestie.refresh_token
     );
+  });
+
+  test.afterEach(async () => {
+    // Cleanup test data
+    if (createdNotificationIds.length > 0) {
+      await supabase.from('notifications').delete().in('id', createdNotificationIds);
+      createdNotificationIds.length = 0;
+    }
+    if (createdPostIds.length > 0) {
+      await guardianClient.from('discussion_posts').delete().in('id', createdPostIds);
+      createdPostIds.length = 0;
+    }
+    if (createdCommentIds.length > 0) {
+      await bestieClient.from('discussion_comments').delete().in('id', createdCommentIds);
+      createdCommentIds.length = 0;
+    }
+    if (createdVendorAssetIds.length > 0) {
+      await supabase.from('vendor_bestie_assets').delete().in('id', createdVendorAssetIds);
+      createdVendorAssetIds.length = 0;
+    }
   });
 
   test('sends email when post is approved @email @approvals', async () => {
@@ -87,6 +111,7 @@ test.describe('Approval Notification Email Tests', () => {
       .single();
 
     expect(postError).toBeNull();
+    createdPostIds.push(post.id);
 
     // Approve the post
     const { error: updateError } = await guardianClient
@@ -122,6 +147,9 @@ test.describe('Approval Notification Email Tests', () => {
 
     expect(notification).toBeTruthy();
     expect(notification!.length).toBeGreaterThan(0);
+    if (notification && notification.length > 0) {
+      createdNotificationIds.push(notification[0].id);
+    }
 
     console.log('✅ Post approval notification test passed');
   });
@@ -167,6 +195,7 @@ test.describe('Approval Notification Email Tests', () => {
       .single();
 
     expect(commentError).toBeNull();
+    createdCommentIds.push(comment.id);
 
     // Approve comment
     await guardianClient
@@ -198,6 +227,9 @@ test.describe('Approval Notification Email Tests', () => {
       .limit(1);
 
     expect(notification).toBeTruthy();
+    if (notification && notification.length > 0) {
+      createdNotificationIds.push(notification[0].id);
+    }
 
     console.log('✅ Comment approval notification test passed');
   });
@@ -233,6 +265,7 @@ test.describe('Approval Notification Email Tests', () => {
       .single();
 
     expect(assetError).toBeNull();
+    createdVendorAssetIds.push(asset.id);
 
     // Approve asset
     await guardianClient
@@ -263,6 +296,9 @@ test.describe('Approval Notification Email Tests', () => {
       .limit(1);
 
     expect(notification).toBeTruthy();
+    if (notification && notification.length > 0) {
+      createdNotificationIds.push(notification[0].id);
+    }
 
     console.log('✅ Vendor asset approval notification test passed');
   });

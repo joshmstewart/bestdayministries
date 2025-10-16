@@ -8,6 +8,27 @@ import { test, expect } from '@playwright/test';
 import { supabase } from '../utils/resend-test-helper';
 
 test.describe('Message Notification Email Tests', () => {
+  const createdNotificationIds: string[] = [];
+  const createdMessageIds: string[] = [];
+
+  test.afterEach(async () => {
+    // Cleanup test data
+    if (createdNotificationIds.length > 0) {
+      await supabase
+        .from('notifications')
+        .delete()
+        .in('id', createdNotificationIds);
+      createdNotificationIds.length = 0;
+    }
+    if (createdMessageIds.length > 0) {
+      await supabase
+        .from('sponsor_messages')
+        .delete()
+        .in('id', createdMessageIds);
+      createdMessageIds.length = 0;
+    }
+  });
+
   test('sends email when sponsor sends message to bestie @email @messages', async () => {
     test.setTimeout(90000);
 
@@ -19,9 +40,7 @@ test.describe('Message Notification Email Tests', () => {
       .limit(1);
 
     if (!sponsorships || sponsorships.length === 0) {
-      console.log('⚠️ No active sponsorships found');
-      test.skip();
-      return;
+      throw new Error('❌ SEED DATA ERROR: No active sponsorships found. Seed function must create sponsorships.');
     }
 
     const sponsorship = sponsorships[0];
@@ -32,16 +51,18 @@ test.describe('Message Notification Email Tests', () => {
     const { data: message, error: messageError } = await supabase
       .from('sponsor_messages')
       .insert({
-        sponsor_bestie_id: sponsorship.sponsor_besties.id,
-        sender_type: 'sponsor',
-        sender_id: sponsorId,
-        message_text: 'Test message from sponsor',
-        approval_status: 'pending'
+        bestie_id: bestieId,
+        subject: 'Test Message',
+        message: 'Test message from sponsor',
+        status: 'pending_approval',
+        sent_by: sponsorId,
+        from_guardian: false
       })
       .select()
       .single();
 
     expect(messageError).toBeNull();
+    createdMessageIds.push(message.id);
 
     // Trigger message notification
     const { error } = await supabase.functions.invoke('send-message-notification', {
@@ -67,6 +88,9 @@ test.describe('Message Notification Email Tests', () => {
 
     expect(notification).toBeTruthy();
     expect(notification!.length).toBeGreaterThan(0);
+    if (notification && notification.length > 0) {
+      createdNotificationIds.push(notification[0].id);
+    }
 
     console.log('✅ Sponsor message notification test passed');
   });
@@ -81,8 +105,7 @@ test.describe('Message Notification Email Tests', () => {
       .limit(1);
 
     if (!sponsorships || sponsorships.length === 0) {
-      test.skip();
-      return;
+      throw new Error('❌ SEED DATA ERROR: No active sponsorships found. Seed function must create sponsorships.');
     }
 
     const sponsorship = sponsorships[0];
@@ -93,16 +116,18 @@ test.describe('Message Notification Email Tests', () => {
     const { data: message, error: messageError } = await supabase
       .from('sponsor_messages')
       .insert({
-        sponsor_bestie_id: sponsorship.sponsor_besties.id,
-        sender_type: 'bestie',
-        sender_id: bestieId,
-        message_text: 'Test message from bestie',
-        approval_status: 'approved'
+        bestie_id: bestieId,
+        subject: 'Test Message',
+        message: 'Test message from bestie',
+        status: 'approved',
+        sent_by: bestieId,
+        from_guardian: false
       })
       .select()
       .single();
 
     expect(messageError).toBeNull();
+    createdMessageIds.push(message.id);
 
     // Trigger notification to sponsor
     const { error } = await supabase.functions.invoke('send-message-notification', {
@@ -127,6 +152,9 @@ test.describe('Message Notification Email Tests', () => {
 
     expect(notification).toBeTruthy();
     expect(notification!.length).toBeGreaterThan(0);
+    if (notification && notification.length > 0) {
+      createdNotificationIds.push(notification[0].id);
+    }
 
     console.log('✅ Bestie message notification test passed');
   });
@@ -141,8 +169,7 @@ test.describe('Message Notification Email Tests', () => {
       .limit(1);
 
     if (!sponsorships || sponsorships.length === 0) {
-      test.skip();
-      return;
+      throw new Error('❌ SEED DATA ERROR: No active sponsorships found. Seed function must create sponsorships.');
     }
 
     const sponsorship = sponsorships[0];
@@ -157,24 +184,25 @@ test.describe('Message Notification Email Tests', () => {
       .single();
 
     if (!guardianLink) {
-      test.skip();
-      return;
+      throw new Error('❌ SEED DATA ERROR: No guardian link found for bestie. Seed function must create guardian-bestie links.');
     }
 
     // Create message from guardian
     const { data: message, error: messageError } = await supabase
       .from('sponsor_messages')
       .insert({
-        sponsor_bestie_id: sponsorship.sponsor_besties.id,
-        sender_type: 'guardian',
-        sender_id: guardianLink.caregiver_id,
-        message_text: 'Test message from guardian',
-        approval_status: 'approved'
+        bestie_id: sponsorship.sponsor_besties.bestie_id,
+        subject: 'Test Message',
+        message: 'Test message from guardian',
+        status: 'approved',
+        sent_by: guardianLink.caregiver_id,
+        from_guardian: true
       })
       .select()
       .single();
 
     expect(messageError).toBeNull();
+    createdMessageIds.push(message.id);
 
     const { error } = await supabase.functions.invoke('send-message-notification', {
       body: {
@@ -197,6 +225,9 @@ test.describe('Message Notification Email Tests', () => {
       .limit(1);
 
     expect(notification).toBeTruthy();
+    if (notification && notification.length > 0) {
+      createdNotificationIds.push(notification[0].id);
+    }
 
     console.log('✅ Guardian message notification test passed');
   });

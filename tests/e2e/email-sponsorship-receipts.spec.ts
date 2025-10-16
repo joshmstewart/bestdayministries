@@ -26,6 +26,7 @@ async function getAuthenticatedClient(accessToken: string, refreshToken: string)
 test.describe('Sponsorship Receipt Email Tests', () => {
   let seedData: any;
   let sponsorClient: any;
+  const createdReceiptIds: string[] = [];
 
   test.beforeAll(async () => {
     const testRunId = Date.now().toString();
@@ -42,6 +43,14 @@ test.describe('Sponsorship Receipt Email Tests', () => {
       seedData.authSessions.sponsor.access_token,
       seedData.authSessions.sponsor.refresh_token
     );
+  });
+
+  test.afterEach(async () => {
+    // Cleanup test data
+    if (createdReceiptIds.length > 0) {
+      await sponsorClient.from('sponsorship_receipts').delete().in('id', createdReceiptIds);
+      createdReceiptIds.length = 0;
+    }
   });
 
   test('sends receipt email for new monthly sponsorship @email @receipts', async () => {
@@ -87,6 +96,9 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     expect(receipt!.length).toBeGreaterThan(0);
     expect(receipt![0].receipt_number).toBeTruthy();
     expect(receipt![0].amount).toBeGreaterThan(0);
+    if (receipt && receipt.length > 0) {
+      createdReceiptIds.push(receipt[0].id);
+    }
 
     console.log('✅ Monthly sponsorship receipt test passed');
   });
@@ -128,6 +140,9 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     expect(receipt).toBeTruthy();
     expect(receipt!.length).toBeGreaterThan(0);
+    if (receipt && receipt.length > 0) {
+      createdReceiptIds.push(receipt[0].id);
+    }
 
     console.log('✅ One-time sponsorship receipt test passed');
   });
@@ -169,6 +184,9 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     // Assert against known seed values from seed-email-test-data (lines 428-429)
     expect(receipt![0].organization_name).toBe('Test Organization');
     expect(receipt![0].organization_ein).toBe('12-3456789');
+    if (receipt && receipt.length > 0) {
+      createdReceiptIds.push(receipt[0].id);
+    }
 
     console.log('✅ Receipt organization info test passed');
   });
@@ -220,6 +238,9 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     expect(newReceipts).toBeTruthy();
     expect(newReceipts!.length).toBeGreaterThan(0);
+    if (newReceipts) {
+      createdReceiptIds.push(...newReceipts.map(r => r.id));
+    }
 
     console.log('✅ Missing receipts generation test passed');
   });

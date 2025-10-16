@@ -26,6 +26,7 @@ async function getAuthenticatedClient(accessToken: string, refreshToken: string)
 test.describe('Notification Email Tests', () => {
   let seedData: any;
   let sponsorClient: any;
+  const createdEmailLogIds: string[] = [];
 
   test.beforeAll(async () => {
     const testRunId = Date.now().toString();
@@ -44,6 +45,14 @@ test.describe('Notification Email Tests', () => {
       seedData.authSessions.sponsor.access_token,
       seedData.authSessions.sponsor.refresh_token
     );
+  });
+
+  test.afterEach(async () => {
+    // Cleanup test data
+    if (createdEmailLogIds.length > 0) {
+      await supabase.from('email_notifications_log').delete().in('id', createdEmailLogIds);
+      createdEmailLogIds.length = 0;
+    }
   });
 
   test('sends email for new comment notification @email @notifications', async () => {
@@ -83,6 +92,9 @@ test.describe('Notification Email Tests', () => {
     expect(emailLog).toBeTruthy();
     expect(emailLog!.length).toBeGreaterThan(0);
     expect(emailLog![0].status).toBe('sent');
+    if (emailLog && emailLog.length > 0) {
+      createdEmailLogIds.push(emailLog[0].id);
+    }
 
     console.log('✅ Comment notification email test passed');
   });
@@ -120,6 +132,9 @@ test.describe('Notification Email Tests', () => {
 
     expect(emailLog).toBeTruthy();
     expect(emailLog!.length).toBeGreaterThan(0);
+    if (emailLog && emailLog.length > 0) {
+      createdEmailLogIds.push(emailLog[0].id);
+    }
 
     console.log('✅ Sponsor message notification email test passed');
   });
@@ -157,6 +172,9 @@ test.describe('Notification Email Tests', () => {
 
     expect(emailLog).toBeTruthy();
     expect(emailLog!.length).toBeGreaterThan(0);
+    if (emailLog && emailLog.length > 0) {
+      createdEmailLogIds.push(emailLog[0].id);
+    }
 
     console.log('✅ Product update notification email test passed');
   });

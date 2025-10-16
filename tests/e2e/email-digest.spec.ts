@@ -27,6 +27,8 @@ async function getAuthenticatedClient(accessToken: string, refreshToken: string)
 test.describe('Digest Email Tests', () => {
   let seedData: any;
   let sponsorClient: any;
+  const createdNotificationIds: string[] = [];
+  const createdDigestLogIds: string[] = [];
 
   test.beforeAll(async () => {
     // Seed test data once
@@ -44,6 +46,18 @@ test.describe('Digest Email Tests', () => {
       seedData.authSessions.sponsor.access_token,
       seedData.authSessions.sponsor.refresh_token
     );
+  });
+
+  test.afterEach(async () => {
+    // Cleanup test data
+    if (createdNotificationIds.length > 0) {
+      await sponsorClient.from('notifications').delete().in('id', createdNotificationIds);
+      createdNotificationIds.length = 0;
+    }
+    if (createdDigestLogIds.length > 0) {
+      await supabase.from('digest_emails_log').delete().in('id', createdDigestLogIds);
+      createdDigestLogIds.length = 0;
+    }
   });
 
   test('daily digest email sends for users with unread notifications @email @digest', async () => {
@@ -73,11 +87,15 @@ test.describe('Digest Email Tests', () => {
       },
     ];
 
-    const { error: notifError } = await sponsorClient
+    const { data: insertedNotifs, error: notifError } = await sponsorClient
       .from('notifications')
-      .insert(notifications);
+      .insert(notifications)
+      .select();
 
     expect(notifError).toBeNull();
+    if (insertedNotifs) {
+      createdNotificationIds.push(...insertedNotifs.map(n => n.id));
+    }
 
     // Trigger digest email via edge function
     const { data: digestData, error: digestError } = await sponsorClient.functions.invoke(
@@ -102,6 +120,9 @@ test.describe('Digest Email Tests', () => {
     expect(emailLog).toBeTruthy();
     expect(emailLog!.length).toBeGreaterThan(0);
     expect(emailLog![0].notification_count).toBeGreaterThanOrEqual(2);
+    if (emailLog && emailLog.length > 0) {
+      createdDigestLogIds.push(emailLog[0].id);
+    }
 
     console.log('✅ Daily digest email test passed');
   });
@@ -123,7 +144,10 @@ test.describe('Digest Email Tests', () => {
       is_read: false,
     }));
 
-    await sponsorClient.from('notifications').insert(notifications);
+    const { data: insertedNotifs2 } = await sponsorClient.from('notifications').insert(notifications).select();
+    if (insertedNotifs2) {
+      createdNotificationIds.push(...insertedNotifs2.map(n => n.id));
+    }
 
     // Trigger weekly digest
     await sponsorClient.functions.invoke('send-digest-email', {
@@ -144,6 +168,9 @@ test.describe('Digest Email Tests', () => {
     expect(emailLog).toBeTruthy();
     expect(emailLog!.length).toBeGreaterThan(0);
     expect(emailLog![0].notification_count).toBeGreaterThanOrEqual(5);
+    if (emailLog && emailLog.length > 0) {
+      createdDigestLogIds.push(emailLog[0].id);
+    }
 
     console.log('✅ Weekly digest email test passed');
   });
@@ -166,13 +193,16 @@ test.describe('Digest Email Tests', () => {
       });
 
     // Create notifications
-    await sponsorClient.from('notifications').insert({
+    const { data: insertedNotif3 } = await sponsorClient.from('notifications').insert({
       user_id: testUser.id,
       type: 'comment_on_post',
       title: 'Test',
       message: 'Test message',
       is_read: false,
-    });
+    }).select();
+    if (insertedNotif3) {
+      createdNotificationIds.push(insertedNotif3[0].id);
+    }
 
     const beforeCount = await sponsorClient
       .from('digest_emails_log')
