@@ -114,6 +114,13 @@
   height: auto;
   border-radius: 0.375rem;
   margin: 1em 0;
+  display: block;
+  cursor: pointer;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 2px;
 }
 
 .ProseMirror iframe {

@@ -10,6 +10,31 @@ import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
+
+// Custom Image extension with resize support
+const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: element => element.getAttribute('width'),
+        renderHTML: attributes => {
+          if (!attributes.width) return {};
+          return { width: attributes.width };
+        },
+      },
+      height: {
+        default: null,
+        parseHTML: element => element.getAttribute('height'),
+        renderHTML: attributes => {
+          if (!attributes.height) return {};
+          return { height: attributes.height };
+        },
+      },
+    };
+  },
+});
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -72,11 +97,12 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const [linkText, setLinkText] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [imageWidth, setImageWidth] = useState<string>("");
 
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Image,
+      ResizableImage,
       Youtube,
       Link.configure({
         openOnClick: false,
@@ -130,6 +156,10 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         .getPublicUrl(filePath);
 
       editor.chain().focus().setImage({ src: publicUrl }).run();
+      // Set width after image is inserted
+      setTimeout(() => {
+        editor.chain().focus().updateAttributes('image', { width: '600px' }).run();
+      }, 0);
       setImageDialogOpen(false);
       setImageFile(null);
       toast.success("Image uploaded successfully");
@@ -209,9 +239,57 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
   if (!editor) return null;
 
+  const selectedImage = editor.isActive('image');
+  const currentImageWidth = selectedImage ? editor.getAttributes('image').width : '';
+
+  const updateImageWidth = (width: string) => {
+    if (selectedImage && width) {
+      editor.chain().focus().updateAttributes('image', { width }).run();
+    }
+  };
+
   return (
     <div className="border rounded-md">
       <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
+        {selectedImage && (
+          <>
+            <div className="flex items-center gap-2 px-2 py-1 bg-background rounded border mr-2">
+              <Label htmlFor="image-width" className="text-xs whitespace-nowrap">
+                Width (px):
+              </Label>
+              <Input
+                id="image-width"
+                type="number"
+                className="h-7 w-24"
+                placeholder="600"
+                value={imageWidth || currentImageWidth || ''}
+                onChange={(e) => setImageWidth(e.target.value)}
+                onBlur={() => {
+                  if (imageWidth) {
+                    updateImageWidth(imageWidth);
+                    setImageWidth('');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && imageWidth) {
+                    updateImageWidth(imageWidth);
+                    setImageWidth('');
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => updateImageWidth('100%')}
+                title="Full width"
+              >
+                100%
+              </Button>
+            </div>
+            <div className="w-px h-6 bg-border mx-1" />
+          </>
+        )}
         <Button
           type="button"
           variant="ghost"
