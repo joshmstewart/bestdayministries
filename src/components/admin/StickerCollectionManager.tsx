@@ -144,7 +144,25 @@ export const StickerCollectionManager = () => {
   const seedHalloweenCollection = async () => {
     setLoading(true);
     try {
-      toast({ title: "Creating Halloween Collection", description: "This may take a minute..." });
+      toast({ title: "Checking for existing collection...", description: "This may take a minute..." });
+
+      // Check if Halloween 2025 collection already exists
+      const { data: existingCollections } = await supabase
+        .from('sticker_collections')
+        .select('id, name')
+        .eq('name', 'Halloween 2025');
+
+      if (existingCollections && existingCollections.length > 0) {
+        toast({ 
+          title: "Collection Already Exists", 
+          description: "Halloween 2025 collection has already been created. Please select it from the dropdown to view stickers.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      toast({ title: "Creating Halloween Collection", description: "Creating badge and collection..." });
 
       // Create badge first
       const { data: badge, error: badgeError } = await supabase
@@ -398,6 +416,44 @@ export const StickerCollectionManager = () => {
     fetchStickers(selectedCollection);
   };
 
+  const deleteCollection = async (collectionId: string, collectionName: string) => {
+    if (!confirm(`Are you sure you want to delete "${collectionName}"? This will also delete all stickers in this collection.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // First delete all stickers in the collection
+      const { error: stickersError } = await supabase
+        .from('stickers')
+        .delete()
+        .eq('collection_id', collectionId);
+
+      if (stickersError) throw stickersError;
+
+      // Then delete the collection
+      const { error: collectionError } = await supabase
+        .from('sticker_collections')
+        .delete()
+        .eq('id', collectionId);
+
+      if (collectionError) throw collectionError;
+
+      toast({ title: "Success", description: `Deleted "${collectionName}" collection` });
+      
+      if (selectedCollection === collectionId) {
+        setSelectedCollection("");
+        setStickers([]);
+      }
+      
+      await fetchCollections();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="collections">
@@ -499,6 +555,14 @@ export const StickerCollectionManager = () => {
                         onClick={() => toggleCollectionActive(collection.id, collection.is_active)}
                       >
                         {collection.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => deleteCollection(collection.id, collection.name)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
