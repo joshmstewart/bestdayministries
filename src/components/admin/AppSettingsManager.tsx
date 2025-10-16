@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Settings } from "lucide-react";
 
@@ -11,6 +12,7 @@ export const AppSettingsManager = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [stickersEnabled, setStickersEnabled] = useState(false);
   const [settings, setSettings] = useState({
     logo_url: "",
     mobile_app_name: "",
@@ -31,7 +33,7 @@ export const AppSettingsManager = () => {
       const { data, error } = await supabase
         .from("app_settings")
         .select("*")
-        .in("setting_key", ["logo_url", "mobile_app_name", "mobile_app_icon_url", "favicon_url", "site_title", "site_description", "og_image_url", "twitter_handle"]);
+        .in("setting_key", ["logo_url", "mobile_app_name", "mobile_app_icon_url", "favicon_url", "site_title", "site_description", "og_image_url", "twitter_handle", "stickers_enabled"]);
 
       if (error) throw error;
 
@@ -47,15 +49,19 @@ export const AppSettingsManager = () => {
       };
       
       data?.forEach((setting) => {
-        try {
-          // Handle both string and already-parsed JSON values
-          const value = typeof setting.setting_value === 'string' 
-            ? JSON.parse(setting.setting_value) 
-            : setting.setting_value;
-          settingsMap[setting.setting_key] = value;
-        } catch (e) {
-          // If JSON parse fails, use the value as-is
-          settingsMap[setting.setting_key] = setting.setting_value;
+        if (setting.setting_key === "stickers_enabled") {
+          setStickersEnabled(setting.setting_value === true);
+        } else {
+          try {
+            // Handle both string and already-parsed JSON values
+            const value = typeof setting.setting_value === 'string' 
+              ? JSON.parse(setting.setting_value) 
+              : setting.setting_value;
+            settingsMap[setting.setting_key] = value;
+          } catch (e) {
+            // If JSON parse fails, use the value as-is
+            settingsMap[setting.setting_key] = setting.setting_value;
+          }
         }
       });
 
@@ -201,6 +207,48 @@ export const AppSettingsManager = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Sticker Feature Toggle */}
+        <div className="space-y-3 pb-6 border-b">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-base font-semibold">Sticker Feature</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable or disable the daily scratch card sticker feature on the community page
+              </p>
+            </div>
+            <Switch
+              checked={stickersEnabled}
+              onCheckedChange={async (checked) => {
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  
+                  const { error } = await supabase
+                    .from("app_settings")
+                    .upsert({
+                      setting_key: "stickers_enabled",
+                      setting_value: checked,
+                      updated_by: user?.id,
+                    });
+
+                  if (error) throw error;
+
+                  setStickersEnabled(checked);
+                  toast({
+                    title: "Success",
+                    description: `Sticker feature ${checked ? 'enabled' : 'disabled'}`,
+                  });
+                } catch (error: any) {
+                  toast({
+                    title: "Error",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                }
+              }}
+            />
+          </div>
+        </div>
+
         {/* Header Logo */}
         <div className="space-y-3">
           <Label>Header Logo</Label>

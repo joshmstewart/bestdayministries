@@ -18,6 +18,19 @@ export const DailyScratchCard = () => {
 
   const checkDailyCard = async () => {
     try {
+      // Check if sticker feature is enabled globally
+      const { data: settings } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'stickers_enabled')
+        .single();
+
+      if (!settings || settings.setting_value === false) {
+        console.log('DailyScratchCard: Feature disabled globally');
+        setLoading(false);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
