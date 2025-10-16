@@ -57,7 +57,8 @@ export const NewsletterPreviewDialog = ({
           {/* Email content preview */}
           <div className="bg-white">
             <div 
-              className="prose prose-lg max-w-none p-6"
+              className="max-w-none p-6"
+              style={{ fontSize: '16px', lineHeight: '1.5' }}
               dangerouslySetInnerHTML={{ __html: htmlContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>' }}
             />
           </div>
