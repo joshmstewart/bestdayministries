@@ -129,7 +129,7 @@ export function ImageCropDialog({
           console.error("Failed to create blob");
         }
         setProcessing(false);
-      }, "image/jpeg", 0.95);
+      }, "image/png");
     } catch (error) {
       console.error("Error cropping image:", error);
       setProcessing(false);
