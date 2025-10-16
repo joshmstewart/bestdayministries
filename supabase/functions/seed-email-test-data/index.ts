@@ -419,12 +419,18 @@ serve(async (req) => {
       criticalErrors.push(`Preferences: ${prefsError.message}`);
     }
 
-    // Step 14: Ensure receipt settings exist
+    // Step 14: Ensure receipt settings exist (delete existing first to ensure test data is used)
     console.log('📝 Ensuring receipt settings...');
+    
+    // Delete all existing receipt settings to ensure test data is used
+    await supabaseAdmin
+      .from('receipt_settings')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all except dummy ID
     
     const { error: receiptError } = await supabaseAdmin
       .from('receipt_settings')
-      .upsert({
+      .insert({
         organization_name: 'Test Organization',
         organization_ein: '12-3456789',
         organization_address: '123 Test St, Test City, TS 12345',
@@ -432,7 +438,7 @@ serve(async (req) => {
         reply_to_email: 'support@testorg.com',
         receipt_message: 'Thank you for your sponsorship!',
         tax_deductible_notice: 'Your donation is tax-deductible to the extent allowed by law.'
-      }, { onConflict: 'id' });
+      });
 
     if (receiptError) {
       console.error('Error creating receipt settings:', receiptError);

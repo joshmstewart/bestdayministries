@@ -79,6 +79,18 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
+        // Check if user has digest emails enabled
+        const { data: userPrefs } = await supabase
+          .from("notification_preferences")
+          .select("enable_digest_emails")
+          .eq("user_id", user.user_id)
+          .single();
+
+        if (userPrefs?.enable_digest_emails === false) {
+          console.log(`Skipping digest for ${user.user_email} - digest emails disabled in preferences`);
+          continue;
+        }
+
         // Get app logo for email
         const { data: appSettings } = await supabase
           .from("app_settings")
@@ -102,15 +114,19 @@ const handler = async (req: Request): Promise<Response> => {
         if (emailError) {
           console.error(`Error sending email to ${user.user_email}:`, emailError);
           
-          // Log failed send
-          await supabase.from("digest_emails_log").insert({
-            user_id: user.user_id,
-            recipient_email: user.user_email,
-            frequency,
-            notification_count: notifications.length,
-            status: "failed",
-            error_message: emailError.message || "Unknown error",
-          });
+          // Log failed send (graceful handling - don't fail if logging fails)
+          try {
+            await supabase.from("digest_emails_log").insert({
+              user_id: user.user_id,
+              recipient_email: user.user_email,
+              frequency,
+              notification_count: notifications.length,
+              status: "failed",
+              error_message: emailError.message || "Unknown error",
+            });
+          } catch (logError) {
+            console.error(`Error logging digest failure for ${user.user_email}:`, logError);
+          }
           
           failCount++;
           continue;
@@ -124,15 +140,19 @@ const handler = async (req: Request): Promise<Response> => {
           .update({ last_digest_sent_at: new Date().toISOString() })
           .eq("user_id", user.user_id);
 
-        // Log successful send
-        await supabase.from("digest_emails_log").insert({
-          user_id: user.user_id,
-          recipient_email: user.user_email,
-          frequency,
-          notification_count: notifications.length,
-          status: "sent",
-          metadata: { email_id: emailData?.id },
-        });
+        // Log successful send (graceful handling - don't fail if logging fails)
+        try {
+          await supabase.from("digest_emails_log").insert({
+            user_id: user.user_id,
+            recipient_email: user.user_email,
+            frequency,
+            notification_count: notifications.length,
+            status: "sent",
+            metadata: { email_id: emailData?.id },
+          });
+        } catch (logError) {
+          console.error(`Error logging digest success for ${user.user_email}:`, logError);
+        }
 
         successCount++;
       } catch (userError: any) {

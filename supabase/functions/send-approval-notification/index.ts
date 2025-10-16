@@ -154,21 +154,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailResponse);
 
-    // Log the notification
-    await supabaseAdmin
-      .from("email_notifications_log")
-      .insert({
-        user_id: guardianId,
-        recipient_email: guardian.email,
-        notification_type: `approval_${contentType}`,
-        subject: subject,
-        status: "sent",
-        metadata: {
-          content_id: contentId,
-          bestie_name: bestieName,
-          content_type: contentType
-        }
-      });
+    // Log the notification (graceful handling - don't fail if logging fails)
+    try {
+      await supabaseAdmin
+        .from("email_notifications_log")
+        .insert({
+          user_id: guardianId,
+          recipient_email: guardian.email,
+          notification_type: `approval_${contentType}`,
+          subject: subject,
+          status: "sent",
+          metadata: {
+            content_id: contentId,
+            bestie_name: bestieName,
+            content_type: contentType
+          }
+        });
+    } catch (logError) {
+      console.error("Error logging approval notification:", logError);
+    }
 
     return new Response(
       JSON.stringify({ success: true, emailResponse }),
@@ -177,21 +181,8 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-approval-notification:", error);
     
-    // Log the error
-    try {
-      await supabaseAdmin
-        .from("email_notifications_log")
-        .insert({
-          user_id: (await req.json()).guardianId,
-          recipient_email: "error@unknown.com",
-          notification_type: "approval_error",
-          subject: "Error",
-          status: "failed",
-          error_message: error.message
-        });
-    } catch (logError) {
-      console.error("Error logging notification failure:", logError);
-    }
+    // Note: Cannot log error to database here since request body was already consumed
+    // Error details are already logged to console above
 
     return new Response(
       JSON.stringify({ error: error.message }),

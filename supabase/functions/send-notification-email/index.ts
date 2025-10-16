@@ -262,16 +262,20 @@ const handler = async (req: Request): Promise<Response> => {
     if (emailError) {
       console.error("Error sending email:", emailError);
       
-      // Log failure
-      await supabase.from("email_notifications_log").insert({
-        user_id: requestData.userId,
-        recipient_email: profile.email,
-        notification_type: requestData.notificationType,
-        subject: requestData.subject,
-        status: "failed",
-        error_message: emailError.message,
-        metadata: requestData.metadata,
-      });
+      // Log failure (graceful handling - don't fail if logging fails)
+      try {
+        await supabase.from("email_notifications_log").insert({
+          user_id: requestData.userId,
+          recipient_email: profile.email,
+          notification_type: requestData.notificationType,
+          subject: requestData.subject,
+          status: "failed",
+          error_message: emailError.message,
+          metadata: requestData.metadata,
+        });
+      } catch (logError) {
+        console.error("Error logging email failure:", logError);
+      }
 
       return new Response(
         JSON.stringify({ error: "Failed to send email", details: emailError }),
@@ -281,18 +285,22 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailData);
 
-    // Log success
-    await supabase.from("email_notifications_log").insert({
-      user_id: requestData.userId,
-      recipient_email: profile.email,
-      notification_type: requestData.notificationType,
-      subject: requestData.subject,
-      status: "sent",
-      metadata: {
-        ...requestData.metadata,
-        email_id: emailData?.id,
-      },
-    });
+    // Log success (graceful handling - don't fail if logging fails)
+    try {
+      await supabase.from("email_notifications_log").insert({
+        user_id: requestData.userId,
+        recipient_email: profile.email,
+        notification_type: requestData.notificationType,
+        subject: requestData.subject,
+        status: "sent",
+        metadata: {
+          ...requestData.metadata,
+          email_id: emailData?.id,
+        },
+      });
+    } catch (logError) {
+      console.error("Error logging email success:", logError);
+    }
 
     return new Response(
       JSON.stringify({ success: true, emailId: emailData?.id }),
