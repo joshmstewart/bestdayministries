@@ -330,9 +330,15 @@ const Community = () => {
               case 'welcome':
                 return (
                   <div key={key} className="relative" data-tour-target="welcome-section">
-                    {/* Daily Scratch Card Button - positioned in top right */}
+                    {/* Daily Scratch Card Button - positioned naturally in top right with slight rotation */}
                     {user && (
-                      <div className="absolute top-0 right-0 -mt-4">
+                      <div 
+                        className="absolute -top-2 right-8 z-10 animate-fade-in" 
+                        style={{ 
+                          transform: 'rotate(-8deg)',
+                          transformOrigin: 'center center'
+                        }}
+                      >
                         <DailyScratchCard />
                       </div>
                     )}
