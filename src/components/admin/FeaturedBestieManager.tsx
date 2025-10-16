@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Heart, Upload, Calendar, Mic, X } from "lucide-react";
+import { Plus, Edit, Trash2, Heart, Upload, Calendar, Mic, X, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -17,6 +17,9 @@ import { cn } from "@/lib/utils";
 import { compressImage, compressAudio } from "@/lib/imageUtils";
 import AudioRecorder from "../AudioRecorder";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FeaturedBestie {
   id: string;
@@ -66,6 +69,10 @@ export const FeaturedBestieManager = () => {
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
+  const [selectedBesties, setSelectedBesties] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [deletingBesties, setDeletingBesties] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -344,6 +351,61 @@ export const FeaturedBestieManager = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedBesties.size === featuredBesties.length) {
+      setSelectedBesties(new Set());
+    } else {
+      setSelectedBesties(new Set(featuredBesties.map(b => b.id)));
+    }
+  };
+
+  const handleSelectBestie = (id: string) => {
+    const newSelected = new Set(selectedBesties);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedBesties(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    setDeletingBesties(true);
+    setBulkDeleteDialogOpen(false);
+    setConfirmDeleteDialogOpen(false);
+    
+    try {
+      const deletePromises = Array.from(selectedBesties).map(id =>
+        supabase.from("featured_besties").delete().eq("id", id)
+      );
+      
+      const results = await Promise.allSettled(deletePromises);
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      
+      if (failed > 0) {
+        toast({
+          title: "Partial deletion",
+          description: `${succeeded} succeeded, ${failed} failed`,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: `${succeeded} featured bestie(s) deleted successfully` });
+      }
+      
+      setSelectedBesties(new Set());
+      loadData();
+    } catch (error: any) {
+      toast({
+        title: "Error during deletion",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingBesties(false);
     }
   };
 
@@ -913,11 +975,33 @@ export const FeaturedBestieManager = () => {
         </Dialog>
       </div>
 
+      {selectedBesties.size > 0 && (
+        <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Checkbox
+              checked={selectedBesties.size === featuredBesties.length}
+              onCheckedChange={handleSelectAll}
+            />
+            <span className="font-medium">
+              {selectedBesties.size} selected
+            </span>
+          </div>
+          <Button
+            variant="destructive"
+            onClick={() => setBulkDeleteDialogOpen(true)}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Selected
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {featuredBesties.map((bestie) => (
           <Card key={bestie.id} className={cn(
             "relative",
-            bestie.is_active && "ring-2 ring-primary",
+            selectedBesties.has(bestie.id) && "ring-2 ring-primary",
+            bestie.is_active && !selectedBesties.has(bestie.id) && "ring-2 ring-primary",
             bestie.approval_status === 'pending_approval' && "ring-2 ring-yellow-500"
           )}>
             {bestie.is_active && (
@@ -946,6 +1030,13 @@ export const FeaturedBestieManager = () => {
               </div>
             )}
             <CardHeader className="pb-3">
+              <div className="absolute top-2 left-2 z-20">
+                <Checkbox
+                  checked={selectedBesties.has(bestie.id)}
+                  onCheckedChange={() => handleSelectBestie(bestie.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
               <div className="aspect-video relative overflow-hidden rounded-lg mb-2">
                 <img
                   src={bestie.image_url}
@@ -1063,6 +1154,106 @@ export const FeaturedBestieManager = () => {
           </CardContent>
         </Card>
       )}
+      
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent className="max-h-[90vh] flex flex-col">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedBesties.size} Featured Bestie(s)?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="text-destructive font-semibold mb-4">
+                  ⚠️ WARNING: This action CANNOT BE UNDONE!
+                </p>
+                <p className="mb-4">
+                  You are about to permanently delete the following featured bestie posts and ALL associated data:
+                </p>
+                <ScrollArea className="flex-1 max-h-[200px]">
+                  <div className="space-y-2 pr-4">
+                    <ul className="list-disc list-inside space-y-1">
+                      {Array.from(selectedBesties).slice(0, 10).map(id => {
+                        const bestie = featuredBesties.find(b => b.id === id);
+                        return bestie ? (
+                          <li key={id} className="text-sm">
+                            {bestie.bestie_name} ({bestie.approval_status})
+                          </li>
+                        ) : null;
+                      })}
+                    </ul>
+                    {selectedBesties.size > 10 && (
+                      <p className="text-sm text-muted-foreground italic mt-2">
+                        ... and {selectedBesties.size - 10} more
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+                <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
+                  <p className="text-sm font-semibold mb-2">This will permanently delete:</p>
+                  <ul className="text-sm space-y-1 list-disc list-inside">
+                    <li>Featured bestie posts and all metadata</li>
+                    <li>Associated images from storage</li>
+                    <li>Voice notes from storage</li>
+                    <li>Heart reactions from users</li>
+                    <li>Display history and scheduling data</li>
+                  </ul>
+                </div>
+                {selectedBesties.size > 10 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💡 Tip: Review the selection carefully before proceeding
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel - Keep All</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setBulkDeleteDialogOpen(false);
+                setConfirmDeleteDialogOpen(true);
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Continue to Final Confirmation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDeleteDialogOpen} onOpenChange={setConfirmDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-6 h-6 text-destructive animate-pulse" />
+              LAST CHANCE TO STOP!
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="font-semibold text-destructive mb-2">
+                  You are about to PERMANENTLY DELETE {selectedBesties.size} featured bestie post(s)
+                </p>
+                <p className="mb-4">
+                  This will remove all images, voice notes, hearts, and metadata. This action is IRREVERSIBLE.
+                </p>
+                <p className="text-sm">
+                  Are you absolutely certain you want to proceed?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingBesties}>
+              No - Cancel Deletion
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={deletingBesties}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deletingBesties ? "Deleting..." : "YES - DELETE ALL PERMANENTLY"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       {(rawImageUrl || imagePreview) && (
         <ImageCropDialog
