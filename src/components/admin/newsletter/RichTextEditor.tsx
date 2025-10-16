@@ -98,6 +98,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [isRecropping, setIsRecropping] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('16:9');
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -603,9 +604,11 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         onOpenChange={setCropDialogOpen}
         imageUrl={imageToCrop}
         onCropComplete={handleCroppedImage}
-        aspectRatio={16 / 9}
+        allowAspectRatioChange={true}
+        selectedRatioKey={aspectRatioKey}
+        onAspectRatioKeyChange={setAspectRatioKey}
         title={isRecropping ? "Re-crop Image" : "Crop Image"}
-        description={isRecropping ? "Adjust the crop area for this image" : "Adjust the crop area for your newsletter image (16:9 aspect ratio)"}
+        description={isRecropping ? "Adjust the crop area for this image and select aspect ratio" : "Select aspect ratio and adjust the crop area for your newsletter image"}
       />
 
       {/* Link Dialog */}

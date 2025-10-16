@@ -43,6 +43,32 @@ PATTERN:Button[variant=outline]+red-Mic+text
 RATIONALE:red=record-association|larger-size=visibility|bold-strokes=clarity|consistency=familiarity
 DOC:AUDIO_RECORDING_STANDARD.md
 
+## IMAGE_CROP_DIALOG
+COMP:ImageCropDialog[reusable-component]
+FILE:src/components/ImageCropDialog.tsx
+ASPECT-RATIOS:1:1|16:9|9:16|4:3|3:4|3:2|2:3
+STANDARD-PATTERN:
+  STATE:aspectRatioKey[useState-AspectRatioKey-type]
+  PROPS:allowAspectRatioChange={true}|selectedRatioKey={aspectRatioKey}|onAspectRatioKeyChange={setAspectRatioKey}
+USAGE-LOCATIONS:FeaturedBestieManager|FeaturedItemManager|SponsorBestieManager|BestieSponsorMessages|Discussions|EventManagement|Newsletter-RichTextEditor
+FEATURES:drag-reposition|zoom-slider|aspect-ratio-selection|real-time-preview|CORS-safe
+CRITICAL:ALWAYS-use-all-3-props-for-aspect-ratio-selection|NEVER-hard-code-aspectRatio-prop-when-selection-needed
+EXAMPLE:
+```tsx
+const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('16:9');
+<ImageCropDialog
+  open={cropDialogOpen}
+  onOpenChange={setCropDialogOpen}
+  imageUrl={imageToCrop}
+  onCropComplete={handleCroppedImage}
+  allowAspectRatioChange={true}
+  selectedRatioKey={aspectRatioKey}
+  onAspectRatioKeyChange={setAspectRatioKey}
+  title="Crop Image"
+  description="Select aspect ratio and adjust the crop area"
+/>
+```
+
 ## VISIBILITY_TOGGLE
 PATTERN:Button[variant=outline+size=icon]|ACTIVE[green-Eye]|INACTIVE[red-EyeOff]
 FILES:17-locations-use-pattern
