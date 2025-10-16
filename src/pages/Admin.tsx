@@ -437,6 +437,10 @@ const Admin = () => {
             <VendorManagement />
           </TabsContent>
 
+          <TabsContent value="newsletter">
+            <NewsletterManager />
+          </TabsContent>
+
           <TabsContent value="format-pages">
             <Card>
               <CardHeader>
