@@ -72,6 +72,7 @@ import {
   Crop,
 } from "lucide-react";
 import { useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
@@ -103,6 +104,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const [linkText, setLinkText] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [isImageSelected, setIsImageSelected] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -139,7 +141,16 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    onSelectionUpdate: ({ editor }) => {
+      setIsImageSelected(editor.isActive('image'));
+    },
   });
+
+  useEffect(() => {
+    if (editor) {
+      setIsImageSelected(editor.isActive('image'));
+    }
+  }, [editor]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -278,10 +289,8 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
   if (!editor) return null;
 
-  const selectedImage = editor.isActive('image');
-
   const updateImageWidth = (width: string) => {
-    if (selectedImage && width) {
+    if (isImageSelected && width) {
       editor.chain().focus().updateAttributes('image', { width }).run();
     }
   };
@@ -295,7 +304,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
   return (
     <div className="border rounded-md">
-      {selectedImage && editor && (
+      {isImageSelected && editor && (
         <div className="bg-muted/90 border-b p-2 flex items-center gap-2">
           <span className="text-xs text-muted-foreground mr-2">Image size:</span>
           <div className="flex items-center gap-1">
@@ -327,7 +336,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         </div>
       )}
       <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
-        {selectedImage && (
+        {isImageSelected && (
           <>
             <Button
               type="button"
