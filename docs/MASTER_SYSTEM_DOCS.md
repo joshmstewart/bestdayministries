@@ -60,8 +60,10 @@ ORDERING:top-level[display_order]→children[display_order-within-parent]
 PARENT-LINKS:dropdown-parents-CAN-have-href[label-clicks→navigates|arrow→dropdown]|optional-href[empty→dropdown-only]
 
 ## NOTIF_BADGES
-LOCATIONS:UnifiedHeader[Approvals-red|Admin-red]|Admin-tabs|Guardian-tabs
-FEATURES:red-destructive+realtime+auto-update
+LOCATIONS:UnifiedHeader[Approvals-red|Admin-red|Bell-unread-count]|Admin-tabs|Guardian-tabs
+FEATURES:red-destructive+realtime+auto-update+DELETE-events-immediate-refresh
+REALTIME:separate-INSERT-UPDATE-DELETE-listeners→immediate-badge-updates-on-deletion
+HOOKS:useNotifications|useContactFormCount|useGuardianApprovalsCount|useModerationCount|usePendingVendorsCount
 
 ## ERROR_HANDLING
 COMPS:ErrorBoundary[catch-fallback-retry]|HeaderSkeleton[loading-prevent-shift]
@@ -127,6 +129,8 @@ DESIGN:Documentary[outline-white]|BDE[solid-brown-NO-gradient-HSL]
 ROUTE:/admin|ACCESS:admin-owner|REDIRECT:non-admins→/community
 TABS:Analytics|Users|Events|Albums|Videos|Besties[subs:Featured+Sponsors+Page+Content+Receipts+Trans+YE-Settings+History]|Partners|Donations|Featured|Vendors[badge-subs:Vendors+Products+Orders]|Format[subs:Homepage+Community+About+Footer+Quick+Nav+Locations]|Moderation[badge-subs:Content+Messages+Policies]|Contact[badge]|Help[subs:Tours+Guides+FAQs]|Updates|Notifications|Settings[subs:App+Stripe-Mode+Social-Sharing+Static-Meta+Avatars+TTS+Coins+Store+Pet-Types+Locations+Impersonation]
 STRIPE-MODE:Settings→Stripe-Mode-tab→StripeModeSwitcher[test|live-toggle]|MOVED-from[/guardian-links+/sponsor-bestie]
+CONTENT-MODERATION:Posts-tab[posts-only]|Comments-tab[comments-only]|cascade-delete-warnings[posts→comments]
+DOC:CONTENT_MODERATION_CASCADE_DELETES.md
 
 ## AUTH
 ROUTE:/auth
@@ -166,7 +170,8 @@ FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-grac
 VALIDATION:client-Zod|server-edge
 EDGE:notify-admin|send-reply|process-inbound-email
 NOTIFICATIONS:contact_form_submission[new-submissions]|contact_form_reply[user-replies]
-BADGE:useContactFormCount→new-submissions+unread-replies→realtime
+BADGE:useContactFormCount→new-submissions+unread-replies→realtime+single-query-optimization
+PERFORMANCE:single-query-pattern[fetch-all-replies-once]|client-side-filtering[JS-Map]|prevents-timeout-errors
 UI-INDICATORS:red-dot[new-OR-unread-replies]|reply-button-badge[unread-count]|clear-on-open-dialog
 CLOUDFLARE:email-routing→worker→process-inbound-email→auto-thread+notify
 REPLY:auto[CloudFlare-routing]|manual[admin-interface]
@@ -298,13 +303,15 @@ DB:notifications|rate_limits|notification_preferences|digest_emails_log|email_no
 FUNCS:get_prefs|get_needing_digest|check_rate_limit|cleanup_limits|cleanup_expired
 TRIGGERS:6-triggers[comment|pending|approval|sponsor-msg|msg-status|sponsorship]→rate-limited-1/hr
 EDGE:send-email|send-digest|broadcast-update
-FRONTEND:Bell[badge-popover]|List[scrollable-400px-grouping]
-HOOKS:useNotifications[notifications+grouped+unread+methods+realtime+cleanup]
+FRONTEND:Bell[badge-popover]|List[scrollable-400px-grouping]|NotificationCenter[/notifications-page]
+HOOKS:useNotifications[notifications+grouped+unread+methods+realtime-INSERT-UPDATE-DELETE+cleanup]
+REALTIME:separate-event-listeners[INSERT|UPDATE|DELETE]→immediate-badge-updates-on-any-change
 GROUPED:rules[by-type+target]|UI[single-or-count-badge+expand]
 RATE:1/endpoint/user/hr|window-60min|cleanup->1hr
 EXPIRY:30d-TTL|cleanup-daily-cron
 DIGEST:daily-weekly|50-unread|grouped-by-type|cron[8AM-daily|8AM-Mon-weekly]
 TYPES:11-types[pending|approval|sponsor-msg|msg-status|sponsorship|sponsorship-update|event|event-update|comment-post|comment-thread|product-update]
+DOC:NOTIFICATION_SYSTEM_COMPLETE.md|NOTIFICATION_BADGES_CONCISE.md|NOTIFICATION_CENTER_PAGE.md
 
 ## VENDOR_SYSTEM
 CHANGE-2025-10-08:vendor=STATUS-not-role

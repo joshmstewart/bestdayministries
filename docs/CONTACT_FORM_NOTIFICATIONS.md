@@ -47,26 +47,41 @@ The contact form system integrates with the notification system to alert admins 
 ### useContactFormCount Hook
 **Location:** `src/hooks/useContactFormCount.ts`
 
+**Performance Optimization:**
+- **Single Query Pattern:** Fetches ALL replies in ONE query instead of N individual queries per submission
+- **Client-side Filtering:** Uses JavaScript Map/filter operations to count replies for each submission
+- **Prevents Timeouts:** Eliminates database connection exhaustion from hundreds of individual queries
+- **Realtime Safe:** Efficient enough to run on every realtime update without performance issues
+
 **Counts:**
 1. **New submissions** - submissions with `status === 'new'`
 2. **Submissions with unread user replies** - where latest user reply timestamp > last admin interaction
 
 **Formula:**
 ```typescript
-// For each submission:
-// 1. Count if status is 'new' OR
-// 2. Count if has user replies created after last admin reply (replied_at)
+// Fetch all replies once:
+const { data: allReplies } = await supabase
+  .from("contact_form_replies")
+  .select("submission_id, sender_type, created_at")
+  .in("submission_id", submissionIds);
 
-const unreadUserReplies = userReplies.filter(reply => 
-  reply.sender_type === 'user' && 
-  (!submission.replied_at || new Date(reply.created_at) > new Date(submission.replied_at))
-).length;
+// Count client-side using JavaScript:
+submissionsWithReplies.forEach(submission => {
+  const repliedAt = submission.replied_at || "1970-01-01";
+  const hasUnreadReplies = allReplies?.some(
+    reply => reply.submission_id === submission.id && 
+             reply.sender_type === "user" && 
+             reply.created_at >= repliedAt
+  );
+  if (hasUnreadReplies) unreadRepliesCount++;
+});
 ```
 
 **Realtime subscriptions:**
-- Subscribes to `contact_form_submissions` table
-- Subscribes to `contact_form_replies` table
+- Subscribes to `contact_form_submissions` table (INSERT, UPDATE, DELETE events)
+- Subscribes to `contact_form_replies` table (INSERT, UPDATE, DELETE events)
 - Automatically recalculates count on any change
+- Separate listeners for each event type ensure deleted submissions/replies immediately update badge counts
 
 ## UI Indicators
 

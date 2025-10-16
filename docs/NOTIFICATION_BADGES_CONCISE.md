@@ -61,10 +61,26 @@
 
 ## Key Features
 - All use red "destructive" variant
-- Realtime subscriptions for auto-updates
+- Realtime subscriptions with separate INSERT, UPDATE, DELETE event listeners for immediate updates
+- Deleted notifications/submissions instantly update badge counts
 - Header badges aggregate multiple sources
 - **Auto-resolve system:** Database triggers automatically mark notifications as read when actions complete
 - **Visual history:** Resolved notifications remain visible with "✓ Resolved" badge
+
+## Realtime Implementation
+**Pattern:** Separate event listeners instead of wildcard ('*')
+```typescript
+// Example from useNotifications:
+.on('postgres_changes', { event: 'INSERT', ... }, reload)
+.on('postgres_changes', { event: 'UPDATE', ... }, reload)
+.on('postgres_changes', { event: 'DELETE', ... }, reload)
+```
+
+**Benefits:**
+- Immediate badge updates when notifications deleted
+- Fine-grained control over event handling
+- Better debugging (specific event logs)
+- Consistent across all badge hooks
 
 ## Auto-Resolve System
 

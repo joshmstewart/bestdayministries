@@ -13,7 +13,7 @@ Complete notification system with dual-channel delivery (in-app + email), user p
 **notifications**
 - `id`, `user_id`, `type`, `title`, `message`, `link`, `is_read`, `metadata`, `created_at`, `expires_at` (30 days default)
 - **RLS:** Users view/update/delete own, Admins create, System can create
-- **Realtime:** Enabled via `supabase_realtime` publication
+- **Realtime:** Enabled via `supabase_realtime` publication with separate listeners for INSERT, UPDATE, and DELETE events for immediate badge updates
 - **Cleanup:** Automatic deletion of expired notifications via `cleanup_expired_notifications()`
 
 **rate_limits**
@@ -198,6 +198,11 @@ Complete notification system with dual-channel delivery (in-app + email), user p
   - `deleteAllRead()` - Delete all read notifications (with toast)
   - `handleNotificationClick(notification)` - Mark read + navigate to link
   - `refreshNotifications()` - Manual reload
+- **Realtime:** Subscribes to INSERT, UPDATE, and DELETE events on `notifications` table for immediate badge updates
+  - Separate listeners for each event type ensure deleted notifications immediately update counts
+  - Auto-refreshes on any database change
+  - Handles auth state changes (SIGNED_IN, SIGNED_OUT)
+- **Performance:** Fetches all notifications once, groups client-side
 - **Realtime:** Subscribes to `notifications` table changes (INSERT/UPDATE/DELETE)
 - **Auth:** Auto-refreshes on sign in/out, clears state on sign out
 - **Cleanup:** Unsubscribes from channels on unmount

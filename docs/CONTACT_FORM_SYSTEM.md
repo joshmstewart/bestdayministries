@@ -137,6 +137,50 @@ With CloudFlare Email Routing configured (see CLOUDFLARE_EMAIL_ROUTING_SETUP.md)
 - Notifications sent to admins for new replies
 - Real-time updates in admin dashboard
 
+## Performance Optimizations
+
+### Single Query Pattern (Added 2025-10-15)
+**Problem:** Original implementation made N individual database queries to count replies for each submission, causing timeout errors when deleting multiple submissions (100+ queries).
+
+**Solution:** Implemented single-query pattern with client-side filtering.
+
+**Before:**
+```typescript
+// Made 100+ individual queries!
+for (const submission of submissions) {
+  const { count } = await supabase
+    .from("contact_form_replies")
+    .select("*", { count: 'exact' })
+    .eq("submission_id", submission.id);
+}
+```
+
+**After:**
+```typescript
+// Single query fetches ALL replies at once
+const { data: allReplies } = await supabase
+  .from("contact_form_replies")
+  .select("submission_id, sender_type, created_at")
+  .in("submission_id", submissionIds);
+
+// Count client-side using JavaScript
+submissions.forEach(submission => {
+  const count = allReplies?.filter(
+    r => r.submission_id === submission.id
+  ).length;
+});
+```
+
+**Benefits:**
+- **2-3 queries total** instead of 100+
+- Eliminates connection timeout errors
+- Real-time safe (efficient enough to run on every update)
+- Better scalability (no N+1 query problem)
+
+**Files Updated:**
+- `src/components/admin/ContactFormManager.tsx` - loadSubmissions function
+- `src/hooks/useContactFormCount.ts` - fetchCount function
+
 ## UI Patterns
 
 ### Thread Message Styling
