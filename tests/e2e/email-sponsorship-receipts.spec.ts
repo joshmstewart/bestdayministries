@@ -208,7 +208,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     // Trigger missing receipt generation
     const { error } = await supabase.functions.invoke('generate-missing-receipts', {
-      body: {}
+      body: { userId: seedData.userIds.sponsor }
     });
 
     expect(error).toBeNull();

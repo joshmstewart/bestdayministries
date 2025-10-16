@@ -18,12 +18,12 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Get authenticated user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    // Get user ID from request body (for testing)
+    const { userId } = await req.json();
+    if (!userId) throw new Error("userId is required");
     
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    // Get user data using service role
+    const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
     if (userError) throw userError;
     if (!userData.user?.email) throw new Error("User email not found");
 

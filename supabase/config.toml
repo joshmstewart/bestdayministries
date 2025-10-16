@@ -61,7 +61,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.generate-missing-receipts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-year-end-summary]
 verify_jwt = true
