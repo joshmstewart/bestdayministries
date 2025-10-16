@@ -127,6 +127,7 @@ export const StickerCollectionManager = () => {
   };
 
   const fetchStickers = async (collectionId: string) => {
+    console.log('Fetching stickers for collection:', collectionId);
     const { data, error } = await supabase
       .from('stickers')
       .select('*')
@@ -134,10 +135,12 @@ export const StickerCollectionManager = () => {
       .order('sticker_number');
 
     if (error) {
+      console.error('Error fetching stickers:', error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
 
+    console.log('Fetched stickers:', data?.length, 'stickers');
     setStickers(data || []);
   };
 
