@@ -152,30 +152,37 @@ export const ContactFormManager = () => {
       .limit(50);
 
     if (data) {
-      // Load reply counts and unread user reply counts for each submission
-      const submissionsWithCounts = await Promise.all(
-        data.map(async (submission) => {
-          // Total reply count
-          const { count: totalReplies } = await supabase
-            .from("contact_form_replies")
-            .select("*", { count: 'exact', head: true })
-            .eq("submission_id", submission.id);
-          
-          // Count of user replies since last admin reply
-          const { count: unreadUserReplies } = await supabase
-            .from("contact_form_replies")
-            .select("*", { count: 'exact', head: true })
-            .eq("submission_id", submission.id)
-            .eq("sender_type", "user")
-            .gte("created_at", submission.replied_at || "1970-01-01");
-          
-          return { 
-            ...submission, 
-            reply_count: totalReplies || 0,
-            unread_user_replies: unreadUserReplies || 0
-          };
-        })
-      );
+      // Fetch ALL replies in ONE query instead of N queries
+      const submissionIds = data.map(s => s.id);
+      const { data: allReplies } = await supabase
+        .from("contact_form_replies")
+        .select("submission_id, sender_type, created_at")
+        .in("submission_id", submissionIds);
+      
+      // Count replies client-side using JavaScript
+      const replyCounts = new Map<string, { total: number; unread: number }>();
+      
+      data.forEach(submission => {
+        const submissionReplies = allReplies?.filter(r => r.submission_id === submission.id) || [];
+        const totalReplies = submissionReplies.length;
+        
+        // Count user replies since last admin reply
+        const repliedAt = submission.replied_at || "1970-01-01";
+        const unreadUserReplies = submissionReplies.filter(
+          r => r.sender_type === "user" && r.created_at >= repliedAt
+        ).length;
+        
+        replyCounts.set(submission.id, {
+          total: totalReplies,
+          unread: unreadUserReplies
+        });
+      });
+      
+      const submissionsWithCounts = data.map(submission => ({
+        ...submission,
+        reply_count: replyCounts.get(submission.id)?.total || 0,
+        unread_user_replies: replyCounts.get(submission.id)?.unread || 0
+      }));
       
       setSubmissions(submissionsWithCounts);
     }

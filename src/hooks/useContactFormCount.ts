@@ -50,32 +50,39 @@ export const useContactFormCount = () => {
 
       if (submissionsError) throw submissionsError;
 
-      // Count submissions with new user replies (since last admin read)
+      // Fetch submissions with replied_at timestamps
       const { data: submissionsWithReplies, error: repliesError } = await supabase
         .from("contact_form_submissions")
-        .select(`
-          id,
-          replied_at
-        `);
+        .select("id, replied_at");
 
       if (repliesError) throw repliesError;
 
-      let unreadRepliesCount = 0;
-      if (submissionsWithReplies) {
-        for (const submission of submissionsWithReplies) {
-          // Check if there are user replies after the last admin reply
-          const { count: newRepliesCount, error: replyCountError } = await supabase
-            .from("contact_form_replies")
-            .select("*", { count: "exact", head: true })
-            .eq("submission_id", submission.id)
-            .eq("sender_type", "user")
-            .gte("created_at", submission.replied_at || "1970-01-01");
-
-          if (!replyCountError && newRepliesCount && newRepliesCount > 0) {
-            unreadRepliesCount++;
-          }
-        }
+      if (!submissionsWithReplies || submissionsWithReplies.length === 0) {
+        setCount(newSubmissions || 0);
+        return;
       }
+
+      // Fetch ALL user replies in ONE query
+      const submissionIds = submissionsWithReplies.map(s => s.id);
+      const { data: allUserReplies, error: userRepliesError } = await supabase
+        .from("contact_form_replies")
+        .select("submission_id, created_at")
+        .eq("sender_type", "user")
+        .in("submission_id", submissionIds);
+
+      if (userRepliesError) throw userRepliesError;
+
+      // Count submissions with unread user replies client-side
+      let unreadRepliesCount = 0;
+      submissionsWithReplies.forEach(submission => {
+        const repliedAt = submission.replied_at || "1970-01-01";
+        const hasUnreadReplies = allUserReplies?.some(
+          reply => reply.submission_id === submission.id && reply.created_at >= repliedAt
+        );
+        if (hasUnreadReplies) {
+          unreadRepliesCount++;
+        }
+      });
 
       setCount((newSubmissions || 0) + unreadRepliesCount);
     } catch (error) {
