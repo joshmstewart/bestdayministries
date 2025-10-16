@@ -26,6 +26,7 @@ async function getAuthenticatedClient(accessToken: string, refreshToken: string)
 test.describe('Approval Notification Email Tests', () => {
   let seedData: any;
   let guardianClient: any;
+  let bestieClient: any;
 
   test.beforeAll(async () => {
     // Seed test data once for all tests
@@ -45,6 +46,12 @@ test.describe('Approval Notification Email Tests', () => {
     guardianClient = await getAuthenticatedClient(
       seedData.authSessions.guardian.access_token,
       seedData.authSessions.guardian.refresh_token
+    );
+
+    // Create authenticated client for bestie
+    bestieClient = await getAuthenticatedClient(
+      seedData.authSessions.bestie.access_token,
+      seedData.authSessions.bestie.refresh_token
     );
   });
 
@@ -68,7 +75,7 @@ test.describe('Approval Notification Email Tests', () => {
     const guardianEmail = link.profiles.email;
 
     // Create a pending post
-    const { data: post, error: postError } = await supabase
+    const { data: post, error: postError } = await bestieClient
       .from('discussion_posts')
       .insert({
         author_id: link.bestie_id,
@@ -82,7 +89,7 @@ test.describe('Approval Notification Email Tests', () => {
     expect(postError).toBeNull();
 
     // Approve the post
-    const { error: updateError } = await supabase
+    const { error: updateError } = await guardianClient
       .from('discussion_posts')
       .update({ approval_status: 'approved' })
       .eq('id', post.id);
@@ -90,7 +97,7 @@ test.describe('Approval Notification Email Tests', () => {
     expect(updateError).toBeNull();
 
     // Trigger approval notification
-    const { error } = await supabase.functions.invoke('send-approval-notification', {
+    const { error } = await guardianClient.functions.invoke('send-approval-notification', {
       body: {
         contentType: 'post',
         contentId: post.id,
@@ -105,7 +112,7 @@ test.describe('Approval Notification Email Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Verify notification created
-    const { data: notification } = await supabase
+    const { data: notification } = await guardianClient
       .from('notifications')
       .select('*')
       .eq('user_id', link.bestie_id)
@@ -136,7 +143,7 @@ test.describe('Approval Notification Email Tests', () => {
     const link = links[0];
 
     // Get a post to comment on
-    const { data: posts } = await supabase
+    const { data: posts } = await guardianClient
       .from('discussion_posts')
       .select('id')
       .eq('approval_status', 'approved')
@@ -148,7 +155,7 @@ test.describe('Approval Notification Email Tests', () => {
     }
 
     // Create pending comment
-    const { data: comment, error: commentError } = await supabase
+    const { data: comment, error: commentError } = await bestieClient
       .from('discussion_comments')
       .insert({
         post_id: posts[0].id,
@@ -162,13 +169,13 @@ test.describe('Approval Notification Email Tests', () => {
     expect(commentError).toBeNull();
 
     // Approve comment
-    await supabase
+    await guardianClient
       .from('discussion_comments')
       .update({ approval_status: 'approved' })
       .eq('id', comment.id);
 
     // Trigger notification
-    const { error } = await supabase.functions.invoke('send-approval-notification', {
+    const { error } = await guardianClient.functions.invoke('send-approval-notification', {
       body: {
         contentType: 'comment',
         contentId: comment.id,
@@ -182,7 +189,7 @@ test.describe('Approval Notification Email Tests', () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const { data: notification } = await supabase
+    const { data: notification } = await guardianClient
       .from('notifications')
       .select('*')
       .eq('user_id', link.bestie_id)
@@ -213,7 +220,7 @@ test.describe('Approval Notification Email Tests', () => {
     const request = requests[0];
 
     // Create pending vendor asset
-    const { data: asset, error: assetError } = await supabase
+    const { data: asset, error: assetError } = await guardianClient
       .from('vendor_bestie_assets')
       .insert({
         vendor_id: request.vendor_id,
@@ -228,13 +235,13 @@ test.describe('Approval Notification Email Tests', () => {
     expect(assetError).toBeNull();
 
     // Approve asset
-    await supabase
+    await guardianClient
       .from('vendor_bestie_assets')
       .update({ approval_status: 'approved' })
       .eq('id', asset.id);
 
     // Trigger notification
-    const { error } = await supabase.functions.invoke('send-approval-notification', {
+    const { error } = await guardianClient.functions.invoke('send-approval-notification', {
       body: {
         contentType: 'vendor_asset',
         contentId: asset.id,
@@ -248,7 +255,7 @@ test.describe('Approval Notification Email Tests', () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const { data: notification } = await supabase
+    const { data: notification } = await guardianClient
       .from('notifications')
       .select('*')
       .eq('type', 'vendor_asset_approved')

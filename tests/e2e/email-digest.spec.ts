@@ -73,14 +73,14 @@ test.describe('Digest Email Tests', () => {
       },
     ];
 
-    const { error: notifError } = await supabase
+    const { error: notifError } = await sponsorClient
       .from('notifications')
       .insert(notifications);
 
     expect(notifError).toBeNull();
 
     // Trigger digest email via edge function
-    const { data: digestData, error: digestError } = await supabase.functions.invoke(
+    const { data: digestData, error: digestError } = await sponsorClient.functions.invoke(
       'send-digest-email',
       {
         body: { frequency: 'daily' }
@@ -91,7 +91,7 @@ test.describe('Digest Email Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Verify email was logged in digest_emails_log
-    const { data: emailLog } = await supabase
+    const { data: emailLog } = await sponsorClient
       .from('digest_emails_log')
       .select('*')
       .eq('user_id', testUser.id)
@@ -123,17 +123,17 @@ test.describe('Digest Email Tests', () => {
       is_read: false,
     }));
 
-    await supabase.from('notifications').insert(notifications);
+    await sponsorClient.from('notifications').insert(notifications);
 
     // Trigger weekly digest
-    await supabase.functions.invoke('send-digest-email', {
+    await sponsorClient.functions.invoke('send-digest-email', {
       body: { frequency: 'weekly' }
     });
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Verify weekly digest log
-    const { data: emailLog } = await supabase
+    const { data: emailLog } = await sponsorClient
       .from('digest_emails_log')
       .select('*')
       .eq('user_id', testUser.id)
@@ -157,7 +157,7 @@ test.describe('Digest Email Tests', () => {
     };
 
     // Disable digest emails for user
-    await supabase
+    await sponsorClient
       .from('notification_preferences')
       .upsert({
         user_id: testUser.id,
@@ -166,7 +166,7 @@ test.describe('Digest Email Tests', () => {
       });
 
     // Create notifications
-    await supabase.from('notifications').insert({
+    await sponsorClient.from('notifications').insert({
       user_id: testUser.id,
       type: 'comment_on_post',
       title: 'Test',
@@ -174,19 +174,19 @@ test.describe('Digest Email Tests', () => {
       is_read: false,
     });
 
-    const beforeCount = await supabase
+    const beforeCount = await sponsorClient
       .from('digest_emails_log')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', testUser.id);
 
     // Trigger digest
-    await supabase.functions.invoke('send-digest-email', {
+    await sponsorClient.functions.invoke('send-digest-email', {
       body: { frequency: 'daily' }
     });
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const afterCount = await supabase
+    const afterCount = await sponsorClient
       .from('digest_emails_log')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', testUser.id);

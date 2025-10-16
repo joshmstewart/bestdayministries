@@ -64,7 +64,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     const sponsorship = sponsorships[0];
 
     // Trigger receipt generation
-    const { error } = await supabase.functions.invoke('send-sponsorship-receipt', {
+    const { error } = await sponsorClient.functions.invoke('send-sponsorship-receipt', {
       body: {
         sponsorshipId: sponsorship.id
       }
@@ -76,7 +76,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Verify receipt created
-    const { data: receipt } = await supabase
+    const { data: receipt } = await sponsorClient
       .from('sponsorship_receipts')
       .select('*')
       .eq('sponsorship_id', sponsorship.id)
@@ -109,7 +109,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     const sponsorship = sponsorships[0];
 
-    const { error } = await supabase.functions.invoke('send-sponsorship-receipt', {
+    const { error } = await sponsorClient.functions.invoke('send-sponsorship-receipt', {
       body: {
         sponsorshipId: sponsorship.id
       }
@@ -119,7 +119,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const { data: receipt } = await supabase
+    const { data: receipt } = await sponsorClient
       .from('sponsorship_receipts')
       .select('*')
       .eq('sponsorship_id', sponsorship.id)
@@ -154,7 +154,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
       .select('*')
       .single();
 
-    await supabase.functions.invoke('send-sponsorship-receipt', {
+    await sponsorClient.functions.invoke('send-sponsorship-receipt', {
       body: {
         sponsorshipId: sponsorship.id
       }
@@ -162,7 +162,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const { data: receipt } = await supabase
+    const { data: receipt } = await sponsorClient
       .from('sponsorship_receipts')
       .select('*')
       .eq('sponsorship_id', sponsorship.id)
@@ -192,7 +192,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     }
 
     // Get sponsorships that don't have receipts
-    const { data: existingReceipts } = await supabase
+    const { data: existingReceipts } = await sponsorClient
       .from('sponsorship_receipts')
       .select('sponsorship_id')
       .in('sponsorship_id', sponsorships.map(s => s.id));
@@ -216,7 +216,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Verify receipts were created
-    const { data: newReceipts } = await supabase
+    const { data: newReceipts } = await sponsorClient
       .from('sponsorship_receipts')
       .select('*')
       .in('sponsorship_id', missingReceipts.map(s => s.id));

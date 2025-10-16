@@ -25,6 +25,7 @@ async function getAuthenticatedClient(accessToken: string, refreshToken: string)
 
 test.describe('Notification Email Tests', () => {
   let seedData: any;
+  let sponsorClient: any;
 
   test.beforeAll(async () => {
     const testRunId = Date.now().toString();
@@ -37,6 +38,12 @@ test.describe('Notification Email Tests', () => {
     }
 
     seedData = data;
+
+    // Create authenticated client for sponsor
+    sponsorClient = await getAuthenticatedClient(
+      seedData.authSessions.sponsor.access_token,
+      seedData.authSessions.sponsor.refresh_token
+    );
   });
 
   test('sends email for new comment notification @email @notifications', async () => {
@@ -48,7 +55,7 @@ test.describe('Notification Email Tests', () => {
     };
 
     // Send notification via edge function
-    const { error } = await supabase.functions.invoke('send-notification-email', {
+    const { error } = await sponsorClient.functions.invoke('send-notification-email', {
       body: {
         userId: testUser.id,
         notificationType: 'comment_on_post',
@@ -65,7 +72,7 @@ test.describe('Notification Email Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Verify email logged
-    const { data: emailLog } = await supabase
+    const { data: emailLog } = await sponsorClient
       .from('email_notifications_log')
       .select('*')
       .eq('user_id', testUser.id)
@@ -88,7 +95,7 @@ test.describe('Notification Email Tests', () => {
       email: `${seedData.emailPrefix}-sponsor@test.com`
     };
 
-    const { error } = await supabase.functions.invoke('send-notification-email', {
+    const { error } = await sponsorClient.functions.invoke('send-notification-email', {
       body: {
         userId: testUser.id,
         notificationType: 'new_sponsor_message',
@@ -103,7 +110,7 @@ test.describe('Notification Email Tests', () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const { data: emailLog } = await supabase
+    const { data: emailLog } = await sponsorClient
       .from('email_notifications_log')
       .select('*')
       .eq('user_id', testUser.id)
@@ -125,7 +132,7 @@ test.describe('Notification Email Tests', () => {
       email: `${seedData.emailPrefix}-sponsor@test.com`
     };
 
-    const { error } = await supabase.functions.invoke('send-notification-email', {
+    const { error } = await sponsorClient.functions.invoke('send-notification-email', {
       body: {
         userId: testUser.id,
         notificationType: 'product_update',
@@ -140,7 +147,7 @@ test.describe('Notification Email Tests', () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const { data: emailLog } = await supabase
+    const { data: emailLog } = await sponsorClient
       .from('email_notifications_log')
       .select('*')
       .eq('user_id', testUser.id)
@@ -163,20 +170,20 @@ test.describe('Notification Email Tests', () => {
     };
 
     // Disable email notifications
-    await supabase
+    await sponsorClient
       .from('notification_preferences')
       .upsert({
         user_id: testUser.id,
         enable_email_notifications: false
       });
 
-    const beforeCount = await supabase
+    const beforeCount = await sponsorClient
       .from('email_notifications_log')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', testUser.id);
 
     // Try to send notification
-    await supabase.functions.invoke('send-notification-email', {
+    await sponsorClient.functions.invoke('send-notification-email', {
       body: {
         userId: testUser.id,
         notificationType: 'comment_on_post',
@@ -189,7 +196,7 @@ test.describe('Notification Email Tests', () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const afterCount = await supabase
+    const afterCount = await sponsorClient
       .from('email_notifications_log')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', testUser.id);
