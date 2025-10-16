@@ -360,22 +360,29 @@ WHERE s.id = sponsorshipId
 
 **RPC Requirements:**
 ```sql
-SELECT 
-  n.user_id,
-  p.email,
-  COUNT(*) as unread_count
-FROM notifications n
-JOIN profiles p ON p.id = n.user_id
-JOIN notification_preferences np ON np.user_id = n.user_id
-WHERE n.is_read = false
-  AND np.digest_frequency = _frequency
-  AND np.enable_digest_emails = true  -- CRITICAL!
-  AND (
-    (_frequency = 'daily' AND ...) OR
-    (_frequency = 'weekly' AND ...)
-  )
-GROUP BY n.user_id, p.email
-HAVING COUNT(*) > 0;
+CREATE OR REPLACE FUNCTION public.get_users_needing_digest(_frequency text)
+RETURNS TABLE(user_id uuid, user_email text, unread_count bigint)
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT 
+    n.user_id,
+    p.email,
+    COUNT(*) as unread_count
+  FROM public.notifications n
+  JOIN public.profiles p ON p.id = n.user_id
+  JOIN public.notification_preferences np ON np.user_id = n.user_id
+  WHERE n.is_read = false
+    AND np.digest_frequency = _frequency
+    AND np.enable_digest_emails = true  -- CRITICAL!
+    AND (
+      (_frequency = 'daily' AND (np.last_digest_sent_at IS NULL OR np.last_digest_sent_at < now() - interval '23 hours')) OR
+      (_frequency = 'weekly' AND (np.last_digest_sent_at IS NULL OR np.last_digest_sent_at < now() - interval '6 days 23 hours'))
+    )
+  GROUP BY n.user_id, p.email
+  HAVING COUNT(*) > 0;
+$function$;
 ```
 
 ### send-notification-email
@@ -402,19 +409,22 @@ HAVING COUNT(*) > 0;
 **Input:**
 ```typescript
 {
-  contentType: 'post' | 'comment' | 'vendor_asset',
+  guardianId: string.uuid(),
+  contentType: 'post' | 'comment' | 'vendor_link' | 'message',
   contentId: string.uuid(),
-  bestieId?: string.uuid(),
-  guardianId?: string.uuid(),
-  vendorId?: string.uuid(),
-  status: 'approved' | 'rejected'
+  bestieName: string,      // REQUIRED
+  contentPreview?: string
 }
 ```
 
 **Behavior:**
-- Create notification record
+- Create notification record with type:
+  - 'approval_decision' for posts/comments
+  - 'vendor_asset_approved' for vendor assets
 - Send email via Resend
 - Auto-resolve related pending notifications
+
+**CRITICAL:** Tests must query for `bestieName` from profiles before calling this function.
 
 ### send-message-notification
 

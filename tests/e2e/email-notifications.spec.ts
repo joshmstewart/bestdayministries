@@ -205,7 +205,7 @@ test.describe('Notification Email Tests', () => {
       .from('notification_preferences')
       .upsert({
         user_id: testUser.id,
-        enable_email_notifications: false
+        enable_digest_emails: false
       });
 
     const beforeCount = await sponsorClient

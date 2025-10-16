@@ -134,14 +134,21 @@ test.describe('Approval Notification Email Tests', () => {
 
     expect(updateError).toBeNull();
 
+    // Get bestie profile for name
+    const { data: bestieProfile } = await guardianClient
+      .from('profiles')
+      .select('display_name')
+      .eq('id', link.bestie_id)
+      .single();
+
     // Trigger approval notification
     const { error } = await guardianClient.functions.invoke('send-approval-notification', {
       body: {
+        guardianId: link.caregiver_id,
         contentType: 'post',
         contentId: post.id,
-        bestieId: link.bestie_id,
-        guardianId: link.caregiver_id,
-        status: 'approved'
+        bestieName: bestieProfile?.display_name || 'Test Bestie',
+        contentPreview: post.title
       }
     });
 
@@ -154,7 +161,7 @@ test.describe('Approval Notification Email Tests', () => {
       .from('notifications')
       .select('*')
       .eq('user_id', link.bestie_id)
-      .eq('type', 'approval_status_changed')
+      .eq('type', 'approval_decision')
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -216,14 +223,21 @@ test.describe('Approval Notification Email Tests', () => {
       .update({ approval_status: 'approved' })
       .eq('id', comment.id);
 
+    // Get bestie profile for name
+    const { data: bestieProfile } = await guardianClient
+      .from('profiles')
+      .select('display_name')
+      .eq('id', link.bestie_id)
+      .single();
+
     // Trigger notification
     const { error } = await guardianClient.functions.invoke('send-approval-notification', {
       body: {
+        guardianId: link.caregiver_id,
         contentType: 'comment',
         contentId: comment.id,
-        bestieId: link.bestie_id,
-        guardianId: link.caregiver_id,
-        status: 'approved'
+        bestieName: bestieProfile?.display_name || 'Test Bestie',
+        contentPreview: comment.content
       }
     });
 
@@ -235,7 +249,7 @@ test.describe('Approval Notification Email Tests', () => {
       .from('notifications')
       .select('*')
       .eq('user_id', link.bestie_id)
-      .eq('type', 'approval_status_changed')
+      .eq('type', 'approval_decision')
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -286,14 +300,21 @@ test.describe('Approval Notification Email Tests', () => {
       .update({ approval_status: 'approved' })
       .eq('id', asset.id);
 
+    // Get bestie profile for name
+    const { data: bestieProfile } = await guardianClient
+      .from('profiles')
+      .select('display_name')
+      .eq('id', request.bestie_id)
+      .single();
+
     // Trigger notification
     const { error } = await guardianClient.functions.invoke('send-approval-notification', {
       body: {
+        guardianId: request.caregiver_bestie_links?.caregiver_id || seedData.userIds.guardian,
         contentType: 'vendor_asset',
         contentId: asset.id,
-        vendorId: request.vendor_id,
-        guardianId: request.caregiver_bestie_links.caregiver_id,
-        status: 'approved'
+        bestieName: bestieProfile?.display_name || 'Test Bestie',
+        contentPreview: 'Vendor asset approval'
       }
     });
 
