@@ -11,8 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { RichTextEditor } from "./RichTextEditor";
 
 interface NewsletterCampaignDialogProps {
   campaign: any;
@@ -122,16 +122,13 @@ export const NewsletterCampaignDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content">Email Content (HTML)</Label>
-            <Textarea
-              id="content"
-              value={htmlContent}
-              onChange={(e) => setHtmlContent(e.target.value)}
-              placeholder="<h1>Welcome!</h1><p>Your content here...</p>"
-              className="min-h-[300px] font-mono text-sm"
+            <Label htmlFor="content">Email Content</Label>
+            <RichTextEditor
+              content={htmlContent}
+              onChange={setHtmlContent}
             />
             <p className="text-xs text-muted-foreground">
-              You can use HTML to format your email. Links will be automatically tracked.
+              Use the formatting toolbar to style your email. Links will be automatically tracked.
             </p>
           </div>
         </div>
