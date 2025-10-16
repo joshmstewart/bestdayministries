@@ -522,49 +522,53 @@ export const UserManagement = () => {
   // Handle bulk delete
   const handleBulkDelete = async () => {
     setDeletingUsers(true);
-    const usersToDelete = Array.from(selectedUsers);
-    let successCount = 0;
-    let errorCount = 0;
+    
+    try {
+      const userIdsToDelete = Array.from(selectedUsers);
+      
+      const { data, error } = await supabase.functions.invoke("bulk-delete-users", {
+        body: { userIds: userIdsToDelete },
+      });
 
-    for (const userId of usersToDelete) {
-      try {
-        const { error } = await supabase.functions.invoke("delete-user", {
-          body: { userId },
-        });
-
-        if (error) {
-          console.error(`Error deleting user ${userId}:`, error);
-          errorCount++;
-        } else {
-          successCount++;
-        }
-      } catch (error: any) {
-        console.error(`Exception deleting user ${userId}:`, error);
-        errorCount++;
+      if (error) {
+        throw error;
       }
-    }
 
-    setDeletingUsers(false);
-    setSelectedUsers(new Set());
-    setBulkDeleteDialogOpen(false);
-    setConfirmDeleteDialogOpen(false);
+      const results = data as { total: number; succeeded: number; failed: number; errors: { userId: string; error: string }[] };
 
-    if (successCount > 0) {
+      if (results.succeeded > 0) {
+        toast({
+          title: "Users Deleted",
+          description: `Successfully deleted ${results.succeeded} of ${results.total} user${results.total !== 1 ? 's' : ''}${results.failed > 0 ? `. ${results.failed} failed.` : ''}`,
+        });
+      }
+      
+      if (results.failed > 0) {
+        toast({
+          variant: "destructive",
+          title: "Some Deletions Failed",
+          description: `${results.failed} of ${results.total} user${results.total !== 1 ? 's' : ''} failed to delete. Check console for details.`,
+        });
+        
+        if (results.errors.length > 0) {
+          console.error("Deletion errors:", results.errors);
+        }
+      }
+
+      await loadUsers();
+    } catch (error) {
+      console.error("Error in bulk delete:", error);
       toast({
-        title: "Users deleted",
-        description: `Successfully deleted ${successCount} user(s).`,
-      });
-    }
-
-    if (errorCount > 0) {
-      toast({
-        title: "Some deletions failed",
-        description: `Failed to delete ${errorCount} user(s).`,
         variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
       });
+    } finally {
+      setDeletingUsers(false);
+      setSelectedUsers(new Set());
+      setBulkDeleteDialogOpen(false);
+      setConfirmDeleteDialogOpen(false);
     }
-
-    await loadUsers();
   };
 
   if (loading) {
