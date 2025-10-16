@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Check } from "lucide-react";
-import friendlyGhost from "@/assets/stickers/halloween/02-friendly-ghost.png";
+import kawaiiBat from "@/assets/stickers/halloween/04-happy-bat.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
 
 export const DailyScratchCard = () => {
@@ -100,17 +100,18 @@ export const DailyScratchCard = () => {
       <button
         onClick={() => !card.is_scratched && !isExpired && setShowDialog(true)}
         disabled={card.is_scratched || isExpired}
-        className="relative transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+        className="relative transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 bg-transparent"
         style={{ 
           filter: card.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))'
         }}
       >
-        {/* Use kawaii ghost with transparent background */}
-        <div className="relative w-20 h-20">
+        {/* Use kawaii bat sticker with transparent background */}
+        <div className="relative w-20 h-20 bg-transparent">
           <img
-            src={friendlyGhost}
+            src={kawaiiBat}
             alt="Daily sticker"
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain bg-transparent"
+            style={{ imageRendering: 'crisp-edges' }}
           />
           
           {/* Status indicator */}
