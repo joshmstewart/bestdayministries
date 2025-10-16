@@ -313,35 +313,53 @@ export const StickerCollectionManager = () => {
       // Upload each v2 sticker and update database
       for (const sticker of v2Stickers) {
         try {
+          console.log(`🎃 Processing sticker ${sticker.number}: ${sticker.name}`);
+          
           // Fetch the image as blob
           const response = await fetch(sticker.path);
           const blob = await response.blob();
+          console.log(`📦 Fetched blob, size: ${blob.size} bytes`);
           
-          // Upload to storage with upsert to replace old one
-          const storageFileName = `halloween/${sticker.name}`;
+          // Upload to storage - replace the original, not create v2 version
+          const storageFileName = `halloween/${sticker.name.replace('-v2', '')}`;
+          console.log(`☁️ Uploading to: ${storageFileName}`);
+          
           const { error: uploadError } = await supabase.storage
             .from('sticker-images')
             .upload(storageFileName, blob, {
               contentType: 'image/png',
               upsert: true,
+              cacheControl: '0', // Disable caching
             });
 
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error(`❌ Upload error for sticker ${sticker.number}:`, uploadError);
+            throw uploadError;
+          }
+          
+          console.log(`✅ Successfully uploaded sticker ${sticker.number}`);
 
-          // Get public URL
+          // Get public URL with cache buster
           const { data: { publicUrl } } = supabase.storage
             .from('sticker-images')
             .getPublicUrl(storageFileName);
+          
+          const cacheBustedUrl = `${publicUrl}?v=${Date.now()}`;
+          console.log(`🔗 New URL: ${cacheBustedUrl}`);
 
           // Update sticker record in database
           const { error: updateError } = await supabase
             .from('stickers')
-            .update({ image_url: publicUrl })
+            .update({ image_url: cacheBustedUrl })
             .eq('sticker_number', sticker.number)
             .eq('collection_id', selectedCollection);
 
-          if (updateError) throw updateError;
+          if (updateError) {
+            console.error(`❌ Database update error for sticker ${sticker.number}:`, updateError);
+            throw updateError;
+          }
           
+          console.log(`✅ Successfully updated database for sticker ${sticker.number}`);
           updatedCount++;
         } catch (err: any) {
           console.error(`Error updating sticker ${sticker.number}:`, err);
