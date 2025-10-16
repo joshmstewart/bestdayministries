@@ -108,6 +108,7 @@ export const StickerCollectionManager = () => {
   const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [stickers, setStickers] = useState<any[]>([]);
   const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
+  const [stickersEnabled, setStickersEnabled] = useState(false);
   
   // Collection form
   const [collectionForm, setCollectionForm] = useState({
@@ -132,6 +133,7 @@ export const StickerCollectionManager = () => {
 
   useEffect(() => {
     fetchCollections();
+    loadStickerSetting();
   }, []);
 
   useEffect(() => {
@@ -152,6 +154,16 @@ export const StickerCollectionManager = () => {
     }
 
     setCollections(data || []);
+  };
+
+  const loadStickerSetting = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'stickers_enabled')
+      .single();
+    
+    setStickersEnabled(data?.setting_value === true);
   };
 
   const fetchStickers = async (collectionId: string) => {
@@ -644,6 +656,54 @@ export const StickerCollectionManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Feature Enable/Disable Toggle */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Sticker Feature Control</CardTitle>
+          <CardDescription>Enable or disable the entire sticker feature on the community page</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-base font-semibold">Enable Sticker Feature</Label>
+              <p className="text-sm text-muted-foreground">
+                Turn this off to completely hide the daily scratch card from all users
+              </p>
+            </div>
+            <Switch
+              checked={stickersEnabled}
+              onCheckedChange={async (checked) => {
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  
+                  const { error } = await supabase
+                    .from("app_settings")
+                    .upsert({
+                      setting_key: "stickers_enabled",
+                      setting_value: checked,
+                      updated_by: user?.id,
+                    });
+
+                  if (error) throw error;
+
+                  setStickersEnabled(checked);
+                  toast({
+                    title: "Success",
+                    description: `Sticker feature ${checked ? 'enabled' : 'disabled'}`,
+                  });
+                } catch (error: any) {
+                  toast({
+                    title: "Error",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                }
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="collections">
         <TabsList>
           <TabsTrigger value="collections">Collections</TabsTrigger>
