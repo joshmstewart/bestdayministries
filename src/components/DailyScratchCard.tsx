@@ -9,6 +9,7 @@ export const DailyScratchCard = () => {
   const [sampleSticker, setSampleSticker] = useState<string>("");
   const [showDialog, setShowDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     checkDailyCard();
@@ -34,7 +35,13 @@ export const DailyScratchCard = () => {
         const { data: newCard, error: genError } = await supabase
           .rpc('generate_daily_scratch_card', { _user_id: user.id });
 
-        if (!genError && newCard) {
+        if (genError) {
+          console.error('Error generating card:', genError);
+          setError('No active sticker collection found. Please contact an admin.');
+          return;
+        }
+
+        if (newCard) {
           // Fetch the newly created card
           const { data: fetchedCard } = await supabase
             .from('daily_scratch_cards')
@@ -68,7 +75,19 @@ export const DailyScratchCard = () => {
     }
   };
 
-  if (loading || !card) {
+  if (loading) {
+    return null;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-8 bg-muted rounded-lg">
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  if (!card) {
     return null;
   }
 
