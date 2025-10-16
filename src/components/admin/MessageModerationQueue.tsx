@@ -33,6 +33,7 @@ export const MessageModerationQueue = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
   const [messages, setMessages] = useState<PendingMessage[]>([]);
 
   useEffect(() => {
@@ -163,6 +164,79 @@ export const MessageModerationQueue = () => {
     }
   };
 
+  const handleApproveAll = async () => {
+    if (messages.length === 0) return;
+    
+    setBulkProcessing(true);
+    try {
+      const messageIds = messages.map(m => m.id);
+      
+      const { error } = await supabase
+        .from("sponsor_messages")
+        .update({ status: 'approved' })
+        .in("id", messageIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "All messages approved",
+        description: `${messageIds.length} messages will now be sent to sponsors`,
+      });
+
+      setMessages([]);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleRejectDeleteAll = async () => {
+    if (messages.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to reject and delete all ${messages.length} messages? This cannot be undone.`)) {
+      return;
+    }
+    
+    setBulkProcessing(true);
+    try {
+      const messageIds = messages.map(m => m.id);
+      
+      // First reject them
+      await supabase
+        .from("sponsor_messages")
+        .update({ status: 'rejected' })
+        .in("id", messageIds);
+      
+      // Then delete
+      const { error } = await supabase
+        .from("sponsor_messages")
+        .delete()
+        .in("id", messageIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "All messages rejected and deleted",
+        description: `${messageIds.length} messages have been removed`,
+      });
+
+      setMessages([]);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   const getSeverityColor = (severity: string | null) => {
     switch (severity) {
       case 'high':
@@ -217,10 +291,32 @@ export const MessageModerationQueue = () => {
             </CardTitle>
             <CardDescription>Review sponsor messages flagged by AI moderation</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={loadPendingMessages}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleApproveAll}
+              disabled={bulkProcessing}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Accept All
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRejectDeleteAll}
+              disabled={bulkProcessing}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              Reject & Delete All
+            </Button>
+            <Button variant="outline" size="sm" onClick={loadPendingMessages} disabled={bulkProcessing}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

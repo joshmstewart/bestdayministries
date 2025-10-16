@@ -11,8 +11,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw } from "lucide-react";
+import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -70,6 +71,8 @@ export const ContactFormManager = () => {
   const [sending, setSending] = useState(false);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -359,6 +362,88 @@ export const ContactFormManager = () => {
     }
   };
 
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === submissions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(submissions.map(s => s.id)));
+    }
+  };
+
+  const markSelectedAsRead = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setBulkProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("contact_form_submissions")
+        .update({ status: "read" })
+        .in("id", Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedIds.size} submission(s) marked as read`,
+      });
+
+      setSelectedIds(new Set());
+      loadSubmissions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} selected submission(s)? This cannot be undone.`)) {
+      return;
+    }
+    
+    setBulkProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("contact_form_submissions")
+        .delete()
+        .in("id", Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast({
+        title: "Deleted",
+        description: `${selectedIds.size} submission(s) have been deleted`,
+      });
+
+      setSelectedIds(new Set());
+      loadSubmissions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -505,22 +590,52 @@ export const ContactFormManager = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Contact Form Submissions</CardTitle>
-              <CardDescription>
-                View and manage messages received through the contact form
-              </CardDescription>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Contact Form Submissions</CardTitle>
+                <CardDescription>
+                  View and manage messages received through the contact form
+                </CardDescription>
+              </div>
+              <Button
+                onClick={() => loadSubmissions(true)}
+                disabled={refreshing || bulkProcessing}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
-            <Button
-              onClick={() => loadSubmissions(true)}
-              disabled={refreshing}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                <span className="text-sm font-medium">
+                  {selectedIds.size} selected
+                </span>
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={markSelectedAsRead}
+                    disabled={bulkProcessing}
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Mark as Read
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={deleteSelected}
+                    disabled={bulkProcessing}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -532,11 +647,19 @@ export const ContactFormManager = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === submissions.length && submissions.length > 0}
+                      onChange={toggleSelectAll}
+                      className="cursor-pointer"
+                    />
+                  </TableHead>
                   <TableHead className="w-12"></TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
@@ -555,6 +678,14 @@ export const ContactFormManager = () => {
                       }
                     }}
                   >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(submission.id)}
+                        onChange={() => toggleSelection(submission.id)}
+                        className="cursor-pointer"
+                      />
+                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center">
                         {(submission.status === "new" || (submission.unread_user_replies || 0) > 0) && (
