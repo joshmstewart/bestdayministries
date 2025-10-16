@@ -310,7 +310,23 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         center: 'display: block; margin-left: auto; margin-right: auto;',
         right: 'display: block; margin-left: auto; margin-right: 0;',
       };
-      editor.chain().focus().updateAttributes('image', { style: styles[alignment] }).run();
+      
+      // Get current image attributes to preserve them
+      const currentAttrs = editor.getAttributes('image');
+      
+      editor
+        .chain()
+        .focus()
+        .updateAttributes('image', { 
+          ...currentAttrs,
+          style: styles[alignment] 
+        })
+        .run();
+      
+      // Force re-render of selection state
+      setTimeout(() => {
+        setIsImageSelected(editor.isActive('image'));
+      }, 0);
     }
   };
 
