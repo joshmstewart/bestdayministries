@@ -3077,6 +3077,7 @@ export type Database = {
           start_date: string
           theme: string
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           completion_badge_id?: string | null
@@ -3090,6 +3091,7 @@ export type Database = {
           start_date?: string
           theme: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           completion_badge_id?: string | null
@@ -3103,6 +3105,7 @@ export type Database = {
           start_date?: string
           theme?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: [
           {

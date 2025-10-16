@@ -21,6 +21,19 @@ export const DailyScratchCard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if user has access to active sticker collections
+      const { data: activeCollection } = await supabase
+        .from('sticker_collections')
+        .select('visible_to_roles')
+        .eq('is_active', true)
+        .single();
+
+      // If no active collection or user doesn't have permission, don't show card
+      if (!activeCollection) {
+        setLoading(false);
+        return;
+      }
+
       const today = new Date().toISOString().split('T')[0];
 
       // Check if card exists for today

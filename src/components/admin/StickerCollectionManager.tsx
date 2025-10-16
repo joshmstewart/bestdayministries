@@ -11,6 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+
+type UserRole = "supporter" | "bestie" | "caregiver" | "moderator" | "admin" | "owner";
+
+const USER_ROLES = [
+  { value: "supporter" as UserRole, label: "Supporter" },
+  { value: "bestie" as UserRole, label: "Bestie" },
+  { value: "caregiver" as UserRole, label: "Caregiver" },
+  { value: "admin" as UserRole, label: "Admin" },
+  { value: "owner" as UserRole, label: "Owner" },
+];
 
 // Import all Halloween stickers
 import pumpkin from "@/assets/stickers/halloween/01-smiling-pumpkin.png";
@@ -104,6 +115,7 @@ export const StickerCollectionManager = () => {
     theme: "",
     start_date: new Date().toISOString().split('T')[0],
     end_date: "",
+    visible_to_roles: ["admin", "owner"] as UserRole[],
   });
 
   // Sticker form
@@ -417,10 +429,14 @@ export const StickerCollectionManager = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('sticker_collections')
-      .insert({
-        ...collectionForm,
+      .insert([{
+        name: collectionForm.name,
+        description: collectionForm.description,
+        theme: collectionForm.theme,
+        start_date: collectionForm.start_date,
         end_date: collectionForm.end_date || null,
-      })
+        visible_to_roles: collectionForm.visible_to_roles as any,
+      }])
       .select()
       .single();
 
@@ -432,7 +448,14 @@ export const StickerCollectionManager = () => {
     }
 
     toast({ title: "Success", description: "Collection created!" });
-    setCollectionForm({ name: "", description: "", theme: "", start_date: new Date().toISOString().split('T')[0], end_date: "" });
+    setCollectionForm({ 
+      name: "", 
+      description: "", 
+      theme: "", 
+      start_date: new Date().toISOString().split('T')[0], 
+      end_date: "",
+      visible_to_roles: ["admin", "owner"]
+    });
     fetchCollections();
     setSelectedCollection(data.id);
   };
@@ -661,6 +684,34 @@ export const StickerCollectionManager = () => {
                     onChange={(e) => setCollectionForm({ ...collectionForm, end_date: e.target.value })}
                   />
                 </div>
+              </div>
+              <div>
+                <Label className="text-sm mb-2 block">Visible to Roles (Who can see this sticker collection)</Label>
+                <div className="grid grid-cols-3 gap-3 p-4 border rounded-md bg-muted/30">
+                  {USER_ROLES.map((role) => (
+                    <div key={role.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`role-${role.value}`}
+                        checked={collectionForm.visible_to_roles.includes(role.value)}
+                        onCheckedChange={(checked) => {
+                          const newRoles = checked
+                            ? [...collectionForm.visible_to_roles, role.value]
+                            : collectionForm.visible_to_roles.filter(r => r !== role.value);
+                          setCollectionForm({ ...collectionForm, visible_to_roles: newRoles });
+                        }}
+                      />
+                      <label
+                        htmlFor={`role-${role.value}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize"
+                      >
+                        {role.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Only users with selected roles will be able to see and scratch cards from this collection
+                </p>
               </div>
               <div className="flex gap-3 flex-wrap">
                 <Button onClick={createCollection} disabled={loading}>
