@@ -69,11 +69,12 @@ import {
   Minus,
   Highlighter,
   RemoveFormatting,
+  Crop,
 } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import Cropper from "react-easy-crop";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 import {
   Dialog,
   DialogContent,
@@ -81,18 +82,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-
-interface CropArea {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-interface Point {
-  x: number;
-  y: number;
-}
 
 interface RichTextEditorProps {
   content: string;
@@ -106,10 +95,8 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageSrc, setImageSrc] = useState<string>("");
-  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
+  const [imageToCrop, setImageToCrop] = useState<string>("");
+  const [isRecropping, setIsRecropping] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
@@ -154,48 +141,6 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     },
   });
 
-  const onCropComplete = useCallback((croppedArea: CropArea, croppedAreaPixels: CropArea) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
-
-  const createImage = (url: string): Promise<HTMLImageElement> =>
-    new Promise((resolve, reject) => {
-      const image = new window.Image();
-      image.addEventListener("load", () => resolve(image));
-      image.addEventListener("error", (error) => reject(error));
-      image.src = url;
-    });
-
-  const getCroppedImg = async (imageSrc: string, pixelCrop: CropArea): Promise<Blob> => {
-    const image = await createImage(imageSrc);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) throw new Error("No 2d context");
-
-    canvas.width = pixelCrop.width;
-    canvas.height = pixelCrop.height;
-
-    ctx.drawImage(
-      image,
-      pixelCrop.x,
-      pixelCrop.y,
-      pixelCrop.width,
-      pixelCrop.height,
-      0,
-      0,
-      pixelCrop.width,
-      pixelCrop.height
-    );
-
-    return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("Canvas is empty"));
-      }, "image/jpeg");
-    });
-  };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -203,20 +148,30 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     setImageFile(file);
     const reader = new FileReader();
     reader.onload = () => {
-      setImageSrc(reader.result as string);
+      setImageToCrop(reader.result as string);
       setImageDialogOpen(false);
+      setIsRecropping(false);
       setCropDialogOpen(true);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleCropComplete = async () => {
-    if (!croppedAreaPixels || !imageSrc || !editor) return;
+  const handleRecropImage = () => {
+    if (!editor) return;
+    
+    const { src } = editor.getAttributes('image');
+    if (src) {
+      setImageToCrop(src);
+      setIsRecropping(true);
+      setCropDialogOpen(true);
+    }
+  };
+
+  const handleCroppedImage = async (croppedBlob: Blob) => {
+    if (!editor) return;
 
     setUploading(true);
     try {
-      const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
-      
       const fileExt = imageFile?.name.split(".").pop() || "jpg";
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `newsletter-images/${fileName}`;
@@ -231,17 +186,22 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         .from("app-assets")
         .getPublicUrl(filePath);
 
-      editor.chain().focus().setImage({ src: publicUrl }).run();
-      setTimeout(() => {
-        editor.chain().focus().updateAttributes('image', { width: '600px' }).run();
-      }, 0);
+      if (isRecropping) {
+        // Update existing image
+        editor.chain().focus().updateAttributes('image', { src: publicUrl }).run();
+      } else {
+        // Insert new image
+        editor.chain().focus().setImage({ src: publicUrl }).run();
+        setTimeout(() => {
+          editor.chain().focus().updateAttributes('image', { width: '600px' }).run();
+        }, 0);
+      }
       
       setCropDialogOpen(false);
       setImageFile(null);
-      setImageSrc("");
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      toast.success("Image uploaded successfully");
+      setImageToCrop("");
+      setIsRecropping(false);
+      toast.success(isRecropping ? "Image re-cropped successfully" : "Image uploaded successfully");
     } catch (error: any) {
       toast.error("Failed to upload image: " + error.message);
     } finally {
@@ -366,6 +326,15 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
                 100%
               </Button>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleRecropImage}
+              title="Re-crop image"
+            >
+              <Crop className="h-4 w-4" />
+            </Button>
             <div className="w-px h-6 bg-border mx-1" />
           </>
         )}
@@ -629,46 +598,15 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       </Dialog>
 
       {/* Image Crop Dialog */}
-      <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Crop Image</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="relative h-96 bg-muted">
-              <Cropper
-                image={imageSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={16 / 9}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Zoom</Label>
-              <input
-                type="range"
-                min={1}
-                max={3}
-                step={0.1}
-                value={zoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="w-full"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCropDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCropComplete} disabled={uploading}>
-              {uploading ? "Uploading..." : "Crop & Insert"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageUrl={imageToCrop}
+        onCropComplete={handleCroppedImage}
+        aspectRatio={16 / 9}
+        title={isRecropping ? "Re-crop Image" : "Crop Image"}
+        description={isRecropping ? "Adjust the crop area for this image" : "Adjust the crop area for your newsletter image (16:9 aspect ratio)"}
+      />
 
       {/* Link Dialog */}
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
