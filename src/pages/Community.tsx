@@ -17,6 +17,7 @@ import Footer from "@/components/Footer";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
+import { DailyScratchCard } from "@/components/DailyScratchCard";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -321,6 +322,12 @@ const Community = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-20 pb-12">
+        {/* Daily Scratch Card */}
+        {user && (
+          <div className="flex justify-center mb-8">
+            <DailyScratchCard />
+          </div>
+        )}
         <div className="max-w-6xl mx-auto space-y-6">
           {sectionOrder.map(({ key, visible }) => {
             if (!visible) return null;

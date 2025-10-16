@@ -58,6 +58,7 @@ import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
 import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
 import IssueReportsManager from "@/components/admin/IssueReportsManager";
 import TestRunsManager from "@/components/admin/TestRunsManager";
+import { StickerCollectionManager } from "@/components/admin/StickerCollectionManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -247,6 +248,7 @@ const Admin = () => {
             <TabsTrigger value="partners">Partners</TabsTrigger>
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
+            <TabsTrigger value="stickers">Stickers</TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
               Vendors
               {pendingVendorsCount > 0 && (
@@ -423,6 +425,10 @@ const Admin = () => {
 
           <TabsContent value="featured-item">
             <FeaturedItemManager />
+          </TabsContent>
+
+          <TabsContent value="stickers">
+            <StickerCollectionManager />
           </TabsContent>
 
           <TabsContent value="vendors">

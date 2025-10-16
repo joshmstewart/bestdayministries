@@ -10,6 +10,7 @@ import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, Chevr
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CoinsDisplay } from "@/components/CoinsDisplay";
+import { StickerBookButton } from "@/components/StickerBookButton";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { useGuardianApprovalsCount } from "@/hooks/useGuardianApprovalsCount";

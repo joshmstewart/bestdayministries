@@ -213,6 +213,39 @@ export type Database = {
         }
         Relationships: []
       }
+      badges: {
+        Row: {
+          badge_type: string
+          created_at: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          is_active: boolean
+          name: string
+          requirements: Json | null
+        }
+        Insert: {
+          badge_type?: string
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          requirements?: Json | null
+        }
+        Update: {
+          badge_type?: string
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          requirements?: Json | null
+        }
+        Relationships: []
+      }
       caregiver_bestie_links: {
         Row: {
           allow_featured_posts: boolean
@@ -639,6 +672,57 @@ export type Database = {
           subject?: string | null
         }
         Relationships: []
+      }
+      daily_scratch_cards: {
+        Row: {
+          collection_id: string
+          created_at: string
+          date: string
+          expires_at: string
+          id: string
+          is_scratched: boolean
+          revealed_sticker_id: string | null
+          scratched_at: string | null
+          user_id: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          date?: string
+          expires_at: string
+          id?: string
+          is_scratched?: boolean
+          revealed_sticker_id?: string | null
+          scratched_at?: string | null
+          user_id: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          date?: string
+          expires_at?: string
+          id?: string
+          is_scratched?: boolean
+          revealed_sticker_id?: string | null
+          scratched_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_scratch_cards_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "sticker_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_scratch_cards_revealed_sticker_id_fkey"
+            columns: ["revealed_sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       digest_emails_log: {
         Row: {
@@ -2980,6 +3064,109 @@ export type Database = {
           },
         ]
       }
+      sticker_collections: {
+        Row: {
+          completion_badge_id: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          end_date: string | null
+          id: string
+          is_active: boolean
+          name: string
+          start_date: string
+          theme: string
+          updated_at: string
+        }
+        Insert: {
+          completion_badge_id?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          start_date?: string
+          theme: string
+          updated_at?: string
+        }
+        Update: {
+          completion_badge_id?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          start_date?: string
+          theme?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_completion_badge"
+            columns: ["completion_badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stickers: {
+        Row: {
+          collection_id: string
+          created_at: string
+          description: string | null
+          drop_rate: number
+          id: string
+          image_url: string
+          is_active: boolean
+          metadata: Json | null
+          name: string
+          rarity: Database["public"]["Enums"]["sticker_rarity"]
+          sticker_number: number
+          visual_style: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          description?: string | null
+          drop_rate: number
+          id?: string
+          image_url: string
+          is_active?: boolean
+          metadata?: Json | null
+          name: string
+          rarity: Database["public"]["Enums"]["sticker_rarity"]
+          sticker_number: number
+          visual_style: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          description?: string | null
+          drop_rate?: number
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          metadata?: Json | null
+          name?: string
+          rarity?: Database["public"]["Enums"]["sticker_rarity"]
+          sticker_number?: number
+          visual_style?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stickers_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "sticker_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_items: {
         Row: {
           category: string
@@ -3210,6 +3397,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_permissions: {
         Row: {
           granted_at: string | null
@@ -3362,6 +3581,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_stickers: {
+        Row: {
+          collection_id: string
+          first_obtained_at: string
+          id: string
+          last_obtained_at: string
+          obtained_from: string
+          quantity: number
+          sticker_id: string
+          user_id: string
+        }
+        Insert: {
+          collection_id: string
+          first_obtained_at?: string
+          id?: string
+          last_obtained_at?: string
+          obtained_from?: string
+          quantity?: number
+          sticker_id: string
+          user_id: string
+        }
+        Update: {
+          collection_id?: string
+          first_obtained_at?: string
+          id?: string
+          last_obtained_at?: string
+          obtained_from?: string
+          quantity?: number
+          sticker_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stickers_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "sticker_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_stickers_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_store_purchases: {
         Row: {
@@ -3913,6 +4180,10 @@ export type Database = {
         Args: { _sponsorship_id: string; _user_id: string }
         Returns: boolean
       }
+      check_collection_completion: {
+        Args: { _collection_id: string; _user_id: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           _endpoint: string
@@ -3925,6 +4196,10 @@ export type Database = {
       cleanup_rate_limits: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_daily_scratch_card: {
+        Args: { _user_id: string }
+        Returns: string
       }
       get_notification_preferences: {
         Args: { _user_id: string }
@@ -4027,6 +4302,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "refunded"
+      sticker_rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"
       user_role:
         | "bestie"
         | "caregiver"
@@ -4186,6 +4462,7 @@ export const Constants = {
         "cancelled",
         "refunded",
       ],
+      sticker_rarity: ["common", "uncommon", "rare", "epic", "legendary"],
       user_role: [
         "bestie",
         "caregiver",
