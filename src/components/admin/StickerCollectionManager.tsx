@@ -263,6 +263,98 @@ export const StickerCollectionManager = () => {
     }
   };
 
+  const updateToV2Stickers = async () => {
+    if (!selectedCollection) {
+      toast({ 
+        title: "Error", 
+        description: "Please select the Halloween collection first", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      toast({ title: "Updating Stickers", description: "Uploading kawaii versions with die-cut edges..." });
+
+      // Import the v2 sticker images dynamically
+      const v2Stickers = [
+        { number: 13, name: '13-haunted-house-v2.png' },
+        { number: 14, name: '14-full-moon-v2.png' },
+        { number: 15, name: '15-spooky-tree-v2.png' },
+        { number: 16, name: '16-classic-witch-v2.png' },
+        { number: 17, name: '17-creepy-graveyard-v2.png' },
+        { number: 18, name: '18-dark-castle-v2.png' },
+        { number: 19, name: '19-mysterious-fog-v2.png' },
+        { number: 20, name: '20-glittery-ghost-v2.png' },
+        { number: 21, name: '21-sparkle-pumpkin-v2.png' },
+        { number: 22, name: '22-shimmer-cauldron-v2.png' },
+        { number: 23, name: '23-glitter-bat-v2.png' },
+        { number: 24, name: '24-dancing-skeleton-v2.png' },
+        { number: 25, name: '25-joy-house-halloween-v2.png' },
+      ];
+
+      let updatedCount = 0;
+      // Upload each v2 sticker and update database
+      for (const sticker of v2Stickers) {
+        try {
+          // Dynamically import the image
+          const module = await import(`@/assets/stickers/halloween/${sticker.name}`);
+          
+          // Fetch the image as blob
+          const response = await fetch(module.default);
+          const blob = await response.blob();
+          
+          // Upload to storage with upsert to replace old one
+          const storageFileName = `halloween/${sticker.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('sticker-images')
+            .upload(storageFileName, blob, {
+              contentType: 'image/png',
+              upsert: true,
+            });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('sticker-images')
+            .getPublicUrl(storageFileName);
+
+          // Update sticker record in database
+          const { error: updateError } = await supabase
+            .from('stickers')
+            .update({ image_url: publicUrl })
+            .eq('sticker_number', sticker.number)
+            .eq('collection_id', selectedCollection);
+
+          if (updateError) throw updateError;
+          
+          updatedCount++;
+        } catch (err: any) {
+          console.error(`Error updating sticker ${sticker.number}:`, err);
+        }
+      }
+
+      toast({
+        title: "Success!",
+        description: `Updated ${updatedCount} stickers with kawaii cutout versions!`,
+      });
+
+      // Refresh stickers display
+      fetchStickers(selectedCollection);
+    } catch (error: any) {
+      console.error('Error updating stickers:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update stickers",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createCollection = async () => {
     if (!collectionForm.name || !collectionForm.theme) {
       toast({ title: "Error", description: "Name and theme are required", variant: "destructive" });
@@ -517,7 +609,7 @@ export const StickerCollectionManager = () => {
                   />
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <Button onClick={createCollection} disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <Plus className="mr-2 h-4 w-4" />
@@ -531,6 +623,16 @@ export const StickerCollectionManager = () => {
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <Sparkles className="mr-2 h-4 w-4" />
                   Seed Halloween Collection
+                </Button>
+                <Button 
+                  onClick={updateToV2Stickers} 
+                  disabled={loading || !selectedCollection}
+                  variant="default"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Update to V2 Kawaii Stickers
                 </Button>
               </div>
             </CardContent>
