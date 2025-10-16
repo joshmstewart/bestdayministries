@@ -296,9 +296,11 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   };
 
   const imageSizePresets = [
+    { label: 'Tiny', value: '150px' },
     { label: 'Small', value: '300px' },
-    { label: 'Medium', value: '600px' },
-    { label: 'Large', value: '900px' },
+    { label: 'Medium', value: '500px' },
+    { label: 'Large', value: '700px' },
+    { label: 'X-Large', value: '900px' },
     { label: 'Full', value: '100%' },
   ];
 
