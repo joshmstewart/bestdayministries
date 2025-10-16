@@ -5,7 +5,9 @@ import Youtube from "@tiptap/extension-youtube";
 import Link from "@tiptap/extension-link";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
+import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "@/components/ui/button";
+import "./editor-styles.css";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -56,11 +58,23 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       Youtube,
       Link.configure({
         openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline',
+        },
       }),
       TextStyle,
       Color,
+      Placeholder.configure({
+        placeholder: 'Start typing your newsletter content here... Use the toolbar above to format text, add images, videos, and links.',
+      }),
     ],
     content,
+    editable: true,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[300px] p-4',
+      },
+    },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -246,10 +260,9 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         </Button>
       </div>
 
-      <EditorContent
-        editor={editor}
-        className="prose max-w-none p-4 min-h-[300px] focus:outline-none"
-      />
+      <div className="bg-background">
+        <EditorContent editor={editor} />
+      </div>
 
       {/* Image Upload Dialog */}
       <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
