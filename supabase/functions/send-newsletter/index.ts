@@ -61,29 +61,55 @@ serve(async (req) => {
       .update({ status: "sending" })
       .eq("id", campaignId);
 
-    // Fetch active subscribers (with optional segment filtering)
-    let subscribersQuery = supabaseClient
-      .from("newsletter_subscribers")
-      .select("*")
-      .eq("status", "active");
+    // Fetch subscribers based on target audience
+    const targetAudience = campaign.target_audience || { type: 'all' };
+    let subscribers = [];
 
-    // Apply segment filtering if exists
-    if (campaign.segment_filter) {
-      const filter = campaign.segment_filter as any;
-      if (filter.location_state) {
-        subscribersQuery = subscribersQuery.eq("location_state", filter.location_state);
+    if (targetAudience.type === 'all') {
+      // Get all active subscribers
+      const { data, error: subscribersError } = await supabaseClient
+        .from('newsletter_subscribers')
+        .select('email, id, user_id')
+        .eq('status', 'active');
+
+      if (subscribersError) {
+        console.error('Error fetching subscribers:', subscribersError);
+        throw subscribersError;
       }
-      if (filter.location_country) {
-        subscribersQuery = subscribersQuery.eq("location_country", filter.location_country);
+      subscribers = data || [];
+    } else if (targetAudience.type === 'roles' && targetAudience.roles?.length > 0) {
+      // Get subscribers with specific roles
+      const { data, error: subscribersError } = await supabaseClient
+        .from('newsletter_subscribers')
+        .select('email, id, user_id')
+        .eq('status', 'active')
+        .not('user_id', 'is', null);
+
+      if (subscribersError) {
+        console.error('Error fetching subscribers:', subscribersError);
+        throw subscribersError;
       }
-      if (filter.timezone) {
-        subscribersQuery = subscribersQuery.eq("timezone", filter.timezone);
-      }
+
+      // Filter by roles - fetch user roles for each subscriber
+      const subscribersWithRoles = await Promise.all(
+        (data || []).map(async (sub: any) => {
+          const { data: userRoles } = await supabaseClient
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', sub.user_id);
+          
+          const hasMatchingRole = userRoles?.some((ur: any) => 
+            targetAudience.roles.includes(ur.role)
+          );
+          
+          return hasMatchingRole ? sub : null;
+        })
+      );
+
+      subscribers = subscribersWithRoles.filter(Boolean);
     }
 
-    const { data: subscribers, error: subscribersError } = await subscribersQuery;
-
-    if (subscribersError || !subscribers || subscribers.length === 0) {
+    if (!subscribers || subscribers.length === 0) {
       await supabaseClient
         .from("newsletter_campaigns")
         .update({ status: "failed" })

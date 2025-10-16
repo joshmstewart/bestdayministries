@@ -2028,6 +2028,7 @@ export type Database = {
           sent_to_count: number | null
           status: Database["public"]["Enums"]["newsletter_campaign_status"]
           subject: string
+          target_audience: Json | null
           title: string
           updated_at: string
         }
@@ -2043,6 +2044,7 @@ export type Database = {
           sent_to_count?: number | null
           status?: Database["public"]["Enums"]["newsletter_campaign_status"]
           subject: string
+          target_audience?: Json | null
           title: string
           updated_at?: string
         }
@@ -2058,6 +2060,7 @@ export type Database = {
           sent_to_count?: number | null
           status?: Database["public"]["Enums"]["newsletter_campaign_status"]
           subject?: string
+          target_audience?: Json | null
           title?: string
           updated_at?: string
         }

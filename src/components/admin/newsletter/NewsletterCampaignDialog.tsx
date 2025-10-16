@@ -11,8 +11,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { RichTextEditor } from "./RichTextEditor";
+
+const USER_ROLES = [
+  { value: "supporter", label: "Supporters" },
+  { value: "bestie", label: "Besties" },
+  { value: "caregiver", label: "Caregivers" },
+  { value: "moderator", label: "Moderators" },
+  { value: "admin", label: "Admins" },
+  { value: "owner", label: "Owners" },
+];
 
 interface NewsletterCampaignDialogProps {
   campaign: any;
@@ -30,6 +40,8 @@ export const NewsletterCampaignDialog = ({
   const [subject, setSubject] = useState("");
   const [previewText, setPreviewText] = useState("");
   const [htmlContent, setHtmlContent] = useState("");
+  const [targetAll, setTargetAll] = useState(true);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   useEffect(() => {
     if (campaign) {
@@ -37,11 +49,17 @@ export const NewsletterCampaignDialog = ({
       setSubject(campaign.subject || "");
       setPreviewText(campaign.preview_text || "");
       setHtmlContent(campaign.html_content || "");
+      
+      const targetAudience = campaign.target_audience || { type: "all" };
+      setTargetAll(targetAudience.type === "all");
+      setSelectedRoles(targetAudience.roles || []);
     } else {
       setTitle("");
       setSubject("");
       setPreviewText("");
       setHtmlContent("");
+      setTargetAll(true);
+      setSelectedRoles([]);
     }
   }, [campaign, open]);
 
@@ -50,11 +68,16 @@ export const NewsletterCampaignDialog = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const targetAudience = targetAll
+        ? { type: "all" }
+        : { type: "roles", roles: selectedRoles };
+
       const campaignData = {
         title,
         subject,
         preview_text: previewText,
         html_content: htmlContent,
+        target_audience: targetAudience,
         created_by: user.id,
       };
 
@@ -119,6 +142,59 @@ export const NewsletterCampaignDialog = ({
               onChange={(e) => setPreviewText(e.target.value)}
               placeholder="Text shown in email preview"
             />
+          </div>
+
+          <div className="space-y-4">
+            <Label>Target Audience</Label>
+            <div className="space-y-3 rounded-lg border p-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="target-all"
+                  checked={targetAll}
+                  onCheckedChange={(checked) => {
+                    setTargetAll(checked as boolean);
+                    if (checked) setSelectedRoles([]);
+                  }}
+                />
+                <label
+                  htmlFor="target-all"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Send to all subscribers
+                </label>
+              </div>
+
+              {!targetAll && (
+                <div className="space-y-2 pl-6">
+                  <p className="text-sm text-muted-foreground">
+                    Select specific roles:
+                  </p>
+                  {USER_ROLES.map((role) => (
+                    <div key={role.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`role-${role.value}`}
+                        checked={selectedRoles.includes(role.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedRoles([...selectedRoles, role.value]);
+                          } else {
+                            setSelectedRoles(
+                              selectedRoles.filter((r) => r !== role.value)
+                            );
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`role-${role.value}`}
+                        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {role.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
