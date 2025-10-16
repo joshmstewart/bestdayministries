@@ -509,24 +509,35 @@ export const StickerCollectionManager = () => {
         </TabsContent>
 
         <TabsContent value="stickers" className="space-y-4">
+          {/* Collection Selector - Always visible at top */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Select Collection to View</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select value={selectedCollection} onValueChange={setSelectedCollection}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a collection" />
+                </SelectTrigger>
+                <SelectContent>
+                  {collections.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Upload Sticker</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Select Collection</Label>
-                <Select value={selectedCollection} onValueChange={setSelectedCollection}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a collection" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {collections.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!selectedCollection && (
+                <div className="text-sm text-muted-foreground mb-4">
+                  Please select a collection above first
+                </div>
+              )}
 
               {selectedCollection && (
                 <>
