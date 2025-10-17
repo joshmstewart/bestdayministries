@@ -27,6 +27,7 @@ import {
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
+  rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -149,64 +150,69 @@ const SortableStickerItem = ({
   };
 
   return (
-    <div
+    <Card
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 p-3 bg-muted rounded-lg border"
+      className="relative group"
     >
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing touch-none"
+        className="absolute top-2 left-2 p-1 rounded bg-background/80 cursor-grab active:cursor-grabbing touch-none z-10 opacity-0 group-hover:opacity-100 transition-opacity"
       >
-        <GripVertical className="h-5 w-5 text-muted-foreground" />
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
       </button>
       
-      <img
-        src={sticker.image_url}
-        alt={sticker.name}
-        className="w-16 h-16 object-contain border rounded"
-      />
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="truncate font-medium">{sticker.name}</span>
-          <Badge className={rarityConfig[sticker.rarity as keyof typeof rarityConfig].color}>
-            {sticker.rarity}
-          </Badge>
-          {isPreview && (
-            <Badge variant="default">Preview</Badge>
+      <CardContent className="p-4 flex flex-col items-center gap-3">
+        <img
+          src={sticker.image_url}
+          alt={sticker.name}
+          className="w-32 h-32 object-contain"
+        />
+        
+        <div className="w-full text-center space-y-2">
+          <div className="flex flex-col items-center gap-1">
+            <span className="font-medium text-sm">{sticker.name}</span>
+            <div className="flex gap-1 flex-wrap justify-center">
+              <Badge className={rarityConfig[sticker.rarity as keyof typeof rarityConfig].color}>
+                {sticker.rarity}
+              </Badge>
+              {isPreview && (
+                <Badge variant="default">Preview</Badge>
+              )}
+            </div>
+          </div>
+          {sticker.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2">{sticker.description}</p>
           )}
         </div>
-        {sticker.description && (
-          <p className="text-sm text-muted-foreground truncate">{sticker.description}</p>
-        )}
-      </div>
 
-      <div className="flex gap-1">
-        <Button
-          size="sm"
-          variant={isPreview ? "default" : "outline"}
-          onClick={onSetPreview}
-        >
-          Preview
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onToggleActive}
-        >
-          {sticker.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          onClick={onDelete}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+        <div className="flex gap-1 w-full">
+          <Button
+            size="sm"
+            variant={isPreview ? "default" : "outline"}
+            onClick={onSetPreview}
+            className="flex-1 text-xs"
+          >
+            Preview
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onToggleActive}
+          >
+            {sticker.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -1215,9 +1221,9 @@ export const StickerCollectionManager = () => {
                   >
                     <SortableContext
                       items={stickers.map(s => s.id)}
-                      strategy={verticalListSortingStrategy}
+                      strategy={rectSortingStrategy}
                     >
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         {stickers.map((sticker) => {
                           const currentCollection = collections.find(c => c.id === selectedCollection);
                           const isPreview = currentCollection?.preview_sticker_id === sticker.id;
