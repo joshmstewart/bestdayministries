@@ -4,21 +4,23 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { NewsletterHeaderFooterSettings } from "./NewsletterHeaderFooterSettings";
+import { NewsletterOrganizationSettings } from "./NewsletterOrganizationSettings";
 
 export const NewsletterSettings = () => {
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resend-webhook`;
 
   return (
     <div className="space-y-6">
+      <NewsletterOrganizationSettings />
       <NewsletterHeaderFooterSettings />
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">From Email Settings</h3>
+        <h3 className="text-lg font-semibold mb-4">Resend Integration</h3>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>From Name</Label>
-            <Input defaultValue="Best Day Ministries" disabled />
+            <Label>Webhook URL</Label>
+            <Input value={webhookUrl} readOnly />
             <p className="text-sm text-muted-foreground">
-              This name will appear in the "From" field of your emails
+              Configure this in your Resend dashboard for tracking opens and clicks
             </p>
           </div>
           <div className="space-y-2">

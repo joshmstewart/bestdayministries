@@ -64,6 +64,12 @@ serve(async (req) => {
       .eq("setting_key", "newsletter_footer")
       .single();
 
+    const { data: orgData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_organization")
+      .single();
+
     if (campaign.status !== "draft" && campaign.status !== "scheduled") {
       throw new Error("Campaign already sent or sending");
     }
@@ -173,12 +179,19 @@ serve(async (req) => {
       );
     }
 
+    // Get organization info
+    const orgInfo = orgData?.setting_value as any;
+    const orgName = orgInfo?.name || "Best Day Ministries";
+    const orgAddress = orgInfo?.address || "Your Address Here";
+    const fromEmail = orgInfo?.from_email || "newsletter@bestdayministries.org";
+    const fromName = orgInfo?.from_name || "Best Day Ministries";
+
     // Add unsubscribe link
     htmlContent += `
       <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
         <p>You're receiving this because you subscribed to our newsletter.</p>
         <p><a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/unsubscribe-newsletter?id={{subscriber_id}}" style="color: #666;">Unsubscribe</a></p>
-        <p>Best Day Ministries<br/>Your Address Here</p>
+        <p>${orgName}<br/>${orgAddress.replace(/\n/g, '<br/>')}</p>
       </div>
     `;
 
@@ -195,7 +208,7 @@ serve(async (req) => {
         
         try {
           const { error } = await resend.emails.send({
-            from: "Best Day Ministries <newsletter@bestdayministries.org>",
+            from: `${fromName} <${fromEmail}>`,
             to: subscriber.email,
             subject: campaign.subject,
             html: personalizedHtml,

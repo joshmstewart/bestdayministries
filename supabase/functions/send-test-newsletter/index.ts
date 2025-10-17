@@ -65,6 +65,12 @@ serve(async (req) => {
       .eq("setting_key", "newsletter_footer")
       .single();
 
+    const { data: orgData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_organization")
+      .single();
+
     // Construct final HTML with header and footer
     let htmlContent = "";
     
@@ -81,6 +87,13 @@ serve(async (req) => {
       htmlContent += footerData.setting_value.html;
     }
 
+    // Get organization info
+    const orgInfo = orgData?.setting_value as any;
+    const orgName = orgInfo?.name || "Best Day Ministries";
+    const orgAddress = orgInfo?.address || "Your Address Here";
+    const fromEmail = orgInfo?.from_email || "newsletter@bestdayministries.org";
+    const fromName = orgInfo?.from_name || "Best Day Ministries";
+
     // Add test notice and unsubscribe footer
     htmlContent = `
       <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; margin-bottom: 20px; border-radius: 4px; color: #856404;">
@@ -92,7 +105,7 @@ serve(async (req) => {
       <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
         <p>You're receiving this because you subscribed to our newsletter.</p>
         <p><a href="#" style="color: #666;">Unsubscribe</a></p>
-        <p>Best Day Ministries<br/>Your Address Here</p>
+        <p>${orgName}<br/>${orgAddress.replace(/\n/g, '<br/>')}</p>
       </div>
     `;
 
@@ -100,7 +113,7 @@ serve(async (req) => {
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
     const { error: sendError } = await resend.emails.send({
-      from: "Best Day Ministries <newsletter@bestdayministries.org>",
+      from: `${fromName} <${fromEmail}>`,
       to: testEmail,
       subject: `[TEST] ${campaign.subject}`,
       html: htmlContent,
