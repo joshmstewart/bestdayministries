@@ -5,14 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Mail, Power, PowerOff } from "lucide-react";
+import { Plus, Edit, Trash2, Mail, Power, PowerOff, Eye } from "lucide-react";
 import { CampaignTemplateDialog } from "./CampaignTemplateDialog";
+import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
 
 export const CampaignTemplates = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<any>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ["campaign-templates"],
@@ -153,8 +156,19 @@ export const CampaignTemplates = () => {
                     <Button
                       size="icon"
                       variant="ghost"
+                      onClick={() => {
+                        setPreviewTemplate(template);
+                        setIsPreviewOpen(true);
+                      }}
+                      title="Preview email"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       onClick={() => toggleActiveMutation.mutate({ id: template.id, is_active: template.is_active })}
-                      title={template.is_active ? "Deactivate" : "Activate"}
+                      title={template.is_active ? "Active - Click to deactivate" : "Inactive - Click to activate"}
                     >
                       {template.is_active ? (
                         <Power className="w-4 h-4 text-green-600" />
@@ -208,6 +222,16 @@ export const CampaignTemplates = () => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />
+
+      {previewTemplate && (
+        <NewsletterPreviewDialog
+          open={isPreviewOpen}
+          onOpenChange={setIsPreviewOpen}
+          subject={previewTemplate.subject || ""}
+          previewText=""
+          htmlContent={previewTemplate.content || ""}
+        />
+      )}
     </div>
   );
 };

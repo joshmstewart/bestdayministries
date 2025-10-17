@@ -1,11 +1,17 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Mail, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Mail, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const AutomatedSendsLog = () => {
+  const [selectedSend, setSelectedSend] = useState<any>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   const { data: sends, isLoading } = useQuery({
     queryKey: ["automated-campaign-sends"],
     queryFn: async () => {
@@ -15,7 +21,8 @@ export const AutomatedSendsLog = () => {
           *,
           campaign_templates (
             name,
-            subject
+            subject,
+            content
           )
         `)
         .order("sent_at", { ascending: false })
@@ -63,7 +70,21 @@ export const AutomatedSendsLog = () => {
                     <div className="font-medium">{send.campaign_templates?.name || "Unknown Template"}</div>
                     <div className="text-sm text-muted-foreground">{send.recipient_email}</div>
                   </div>
-                  {getStatusBadge(send.status)}
+                  <div className="flex gap-2">
+                    {send.campaign_templates?.content && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedSend(send);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {getStatusBadge(send.status)}
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span>Event: {send.trigger_event}</span>
@@ -80,6 +101,41 @@ export const AutomatedSendsLog = () => {
           </div>
         )}
       </CardContent>
+
+      {selectedSend && (
+        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>Email Details</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Template:</div>
+                <div className="text-sm">{selectedSend.campaign_templates?.name}</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Subject:</div>
+                <div className="text-sm">{selectedSend.campaign_templates?.subject}</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Recipient:</div>
+                <div className="text-sm">{selectedSend.recipient_email}</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Sent:</div>
+                <div className="text-sm">{format(new Date(selectedSend.sent_at), "MMM d, yyyy 'at' h:mm a")}</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Email Content:</div>
+                <div 
+                  className="border rounded-lg p-4 bg-white text-sm"
+                  dangerouslySetInnerHTML={{ __html: selectedSend.campaign_templates?.content || '<p class="text-muted-foreground">No content available</p>' }}
+                />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 };

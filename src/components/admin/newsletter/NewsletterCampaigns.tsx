@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
 import { CampaignStatsDialog } from "./CampaignStatsDialog";
+import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
 import { format } from "date-fns";
 import { Copy } from "lucide-react";
 
@@ -18,6 +19,8 @@ export const NewsletterCampaigns = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [statsCampaign, setStatsCampaign] = useState<any>(null);
+  const [previewCampaign, setPreviewCampaign] = useState<any>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["newsletter-campaigns"],
@@ -161,6 +164,16 @@ export const NewsletterCampaigns = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPreviewCampaign(campaign);
+                      setIsPreviewOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   {(campaign.status === "draft" || campaign.status === "scheduled") && (
                     <>
                       <Button
@@ -197,7 +210,6 @@ export const NewsletterCampaigns = () => {
                           setStatsDialogOpen(true);
                         }}
                       >
-                        <Eye className="h-4 w-4 mr-2" />
                         View Stats
                       </Button>
                       <Button
@@ -237,6 +249,16 @@ export const NewsletterCampaigns = () => {
           campaignTitle={statsCampaign.title}
           open={statsDialogOpen}
           onOpenChange={setStatsDialogOpen}
+        />
+      )}
+
+      {previewCampaign && (
+        <NewsletterPreviewDialog
+          open={isPreviewOpen}
+          onOpenChange={setIsPreviewOpen}
+          subject={previewCampaign.subject || ""}
+          previewText={previewCampaign.preview_text || ""}
+          htmlContent={previewCampaign.html_content || ""}
         />
       )}
     </div>
