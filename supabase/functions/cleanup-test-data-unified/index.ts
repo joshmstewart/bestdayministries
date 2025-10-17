@@ -50,15 +50,22 @@ serve(async (req) => {
     const prefix = options.emailPrefix || (options.testRunId ? `emailtest-${options.testRunId}` : null);
     const namePatterns = options.namePatterns || ['Test', 'E2E'];
 
-    // Filter test users by email prefix only (specific automated test patterns)
+    // Filter test users by email prefix OR generic test patterns
     const testUsers = authUsers.users.filter(user => {
       const email = user.email?.toLowerCase() || '';
       
-      // Email-based cleanup - only automated test patterns
+      // Email-based cleanup
       if (prefix && email.startsWith(prefix)) return true;
       
-      // Only cleanup emails with automated test prefixes
-      if (email.includes('emailtest-') || email.includes('e2etest@') || email.includes('automatedtest@')) {
+      // Generic email patterns
+      if (
+        email.includes('emailtest-') ||
+        email === 'testbestie@example.com' ||
+        email === 'testguardian@example.com' ||
+        email === 'testsupporter@example.com' ||
+        email === 'testvendor@example.com' ||
+        (email.includes('test') && email.includes('@test.com'))
+      ) {
         return true;
       }
       

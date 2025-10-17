@@ -132,12 +132,3 @@ verify_jwt = false
 [functions.resend-webhook]
 verify_jwt = false
 
-[functions.send-automated-campaign]
-verify_jwt = false
-
-[functions.cleanup-email-test-data]
-verify_jwt = false
-
-[functions.cleanup-test-data-unified]
-verify_jwt = false
-

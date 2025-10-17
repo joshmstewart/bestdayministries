@@ -38,7 +38,7 @@ export async function cleanupTestData(
       );
 
       const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
-        body: { namePatterns: ['E2E Test', 'Automated Test', 'Playwright Test'], ...opts }
+        body: { namePatterns: ['Test', 'E2E'], ...opts }
       });
 
       if (error) {
@@ -75,16 +75,17 @@ export function markAsTestData(metadata: Record<string, any> = {}): Record<strin
 }
 
 /**
- * Generate a test-friendly name with E2E Test prefix
+ * Generate test naming convention
  */
 export function generateTestName(baseName: string): string {
-  return `E2E Test ${baseName}`;
+  return `Test ${baseName}`;
 }
 
 /**
- * Check if a name follows automated test naming conventions
+ * Check if a name follows test naming convention
  */
 export function isTestName(name: string): boolean {
-  const automatedPatterns = ['E2E Test', 'Automated Test', 'Playwright Test'];
-  return automatedPatterns.some(pattern => name.includes(pattern));
+  return name.startsWith('Test ') || 
+         name.toLowerCase().includes('test') ||
+         name.startsWith('E2E ');
 }

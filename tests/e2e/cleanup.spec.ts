@@ -20,7 +20,7 @@ test.describe.serial('Test Data Cleanup', () => {
         
         const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
           body: {
-            namePatterns: ['E2E Test', 'Automated Test', 'Playwright Test']
+            namePatterns: ['Test', 'E2E']
           }
         });
 
