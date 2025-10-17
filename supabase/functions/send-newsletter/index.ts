@@ -104,6 +104,83 @@ serve(async (req) => {
         throw subscribersError;
       }
       subscribers = data || [];
+    } else if (targetAudience.type === 'all_site_members') {
+      // Get all site members from profiles
+      let query = supabaseClient
+        .from('profiles')
+        .select('email, id');
+
+      // In test mode, only send to test email addresses
+      if (testMode) {
+        query = query.or('email.like.emailtest-%,email.like.test@%,email.like.guardian@%,email.like.bestie@%,email.like.sponsor@%,email.like.vendor@%');
+      }
+
+      const { data, error: profilesError } = await query;
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+      
+      // Transform to match subscriber format
+      subscribers = (data || []).map(profile => ({
+        email: profile.email,
+        id: null,
+        user_id: profile.id
+      }));
+    } else if (targetAudience.type === 'non_subscribers') {
+      // Get all site members who are NOT active newsletter subscribers
+      const { data: allProfiles, error: profilesError } = await supabaseClient
+        .from('profiles')
+        .select('email, id');
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Get active newsletter subscribers
+      const { data: activeSubscribers, error: subsError } = await supabaseClient
+        .from('newsletter_subscribers')
+        .select('user_id, email')
+        .eq('status', 'active');
+
+      if (subsError) {
+        console.error('Error fetching subscribers:', subsError);
+        throw subsError;
+      }
+
+      // Create a Set of subscribed user IDs and emails for fast lookup
+      const subscribedUserIds = new Set(
+        (activeSubscribers || []).map(s => s.user_id).filter(Boolean)
+      );
+      const subscribedEmails = new Set(
+        (activeSubscribers || []).map(s => s.email).filter(Boolean)
+      );
+
+      // Filter out anyone who is subscribed
+      let nonSubscribers = (allProfiles || []).filter(profile => 
+        !subscribedUserIds.has(profile.id) && !subscribedEmails.has(profile.email)
+      );
+
+      // In test mode, only send to test email addresses
+      if (testMode) {
+        nonSubscribers = nonSubscribers.filter(profile => 
+          profile.email?.includes('emailtest-') || 
+          profile.email?.includes('test@') ||
+          profile.email?.includes('guardian@') ||
+          profile.email?.includes('bestie@') ||
+          profile.email?.includes('sponsor@') ||
+          profile.email?.includes('vendor@')
+        );
+      }
+
+      // Transform to match subscriber format
+      subscribers = nonSubscribers.map(profile => ({
+        email: profile.email,
+        id: null,
+        user_id: profile.id
+      }));
     } else if (targetAudience.type === 'roles' && targetAudience.roles?.length > 0) {
       // Get subscribers with specific roles
       let query = supabaseClient

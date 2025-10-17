@@ -87,7 +87,13 @@ export const NewsletterCampaignDialog = ({
       
       const targetAudience = campaign.target_audience || { type: "all" };
       setTargetAll(targetAudience.type === "all");
-      setSelectedRoles(targetAudience.roles || []);
+      if (targetAudience.type === "all_site_members") {
+        setSelectedRoles(['all_site_members']);
+      } else if (targetAudience.type === "non_subscribers") {
+        setSelectedRoles(['non_subscribers']);
+      } else {
+        setSelectedRoles(targetAudience.roles || []);
+      }
       setScheduledFor(campaign.scheduled_for ? format(new Date(campaign.scheduled_for), "yyyy-MM-dd'T'HH:mm") : "");
       
       // Load automation settings if exists
@@ -133,6 +139,10 @@ export const NewsletterCampaignDialog = ({
 
       const targetAudience = targetAll
         ? { type: "all" }
+        : selectedRoles.includes('all_site_members')
+        ? { type: "all_site_members" }
+        : selectedRoles.includes('non_subscribers')
+        ? { type: "non_subscribers" }
         : { type: "roles", roles: selectedRoles };
 
       const campaignData = {
@@ -243,14 +253,52 @@ export const NewsletterCampaignDialog = ({
                   htmlFor="target-all"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Send to all subscribers
+                  Send to all newsletter subscribers
                 </label>
               </div>
 
-              {!targetAll && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="target-all-members"
+                  checked={targetAll === false && selectedRoles.includes('all_site_members')}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setTargetAll(false);
+                      setSelectedRoles(['all_site_members']);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="target-all-members"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Send to all site members (whether subscribed or not)
+                </label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="target-non-subscribers"
+                  checked={targetAll === false && selectedRoles.includes('non_subscribers')}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setTargetAll(false);
+                      setSelectedRoles(['non_subscribers']);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="target-non-subscribers"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Send to non-subscribed members only
+                </label>
+              </div>
+
+              {!targetAll && !selectedRoles.includes('all_site_members') && !selectedRoles.includes('non_subscribers') && (
                 <div className="space-y-2 pl-6">
                   <p className="text-sm text-muted-foreground">
-                    Select specific roles:
+                    Or select specific roles:
                   </p>
                   {USER_ROLES.map((role) => (
                     <div key={role.value} className="flex items-center space-x-2">

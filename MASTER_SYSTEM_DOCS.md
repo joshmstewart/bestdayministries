@@ -60,7 +60,7 @@ CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[c
 - Link click tracking
 - Subscriber management (import/export TODO)
 - Email analytics (sent, opened, clicked)
-- Target audience by role (all/specific roles)
+- Target audience: all subscribers, all site members, non-subscribers only, or by specific roles
 - Batch sending (100 emails per batch with delays)
 
 **CRITICAL-PATTERNS:**
@@ -75,10 +75,15 @@ CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[c
 
 **DOC:** NEWSLETTER_SYSTEM.md
 
-## VIDEO
-COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)
-DB:videos|about_sections.youtube_channel|storage:videos-bucket
-ADMIN:VideoManager|YouTube-Channel-config
+## NEWSLETTER
+DB:newsletter_campaigns|newsletter_subscribers|newsletter_templates|newsletter_analytics|app_settings[newsletter_header|newsletter_footer|newsletter_organization]
+EDGE:send-newsletter|send-test-newsletter|unsubscribe-newsletter
+ADMIN:NewsletterManager[tabs:Campaigns|Templates|Subscribers|Analytics|Settings]
+TARGETING:all-subscribers|all-site-members|non-subscribers|role-based
+WORKFLOWS:create-campaign→compose-rich-text→select-target→send/schedule→track-analytics
+FEATURES:header/footer-injection|unsubscribe-links|test-emails|image-crop|scheduling|automation-triggers|sequences
+COMPATIBILITY:inline-styles|table-layouts|email-client-safe
+DOC:NEWSLETTER_SYSTEM.md
 
 ## AUDIO_RECORDING_STANDARD
 ICON:Mic[w-5-h-5+text-red-500+strokeWidth-2.5+mr-2]
