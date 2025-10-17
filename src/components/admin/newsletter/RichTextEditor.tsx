@@ -170,8 +170,10 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       if (editor) {
         editor.chain().focus().setImage({ src: url }).run();
         setTimeout(() => {
-          editor.chain().focus().updateAttributes('image', { width }).run();
-        }, 0);
+          editor.chain().focus().updateAttributes('image', { 
+            style: `width: ${width}; height: auto; display: block; margin: 0 auto;`
+          }).run();
+        }, 50);
       }
     },
   }));
