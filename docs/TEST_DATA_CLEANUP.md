@@ -41,23 +41,31 @@ Cleans up records where:
 - `title` contains "Test" or "E2E" (discussion_posts)
 - `business_name` contains "Test" or "E2E" (vendors)
 
-### 2. Comprehensive 13-Table Cascade
+### 2. Comprehensive 19-Step Cascade Cleanup
 
-The unified function performs cleanup in this exact order (inherited from email testing):
+The unified function performs cleanup in this exact order:
 
 1. **notifications** - Delete notifications for test users
 2. **notification_preferences** - Delete preferences for test users
-3. **discussion_comments** - Delete comments by test users OR matching patterns
-4. **discussion_posts** - Delete posts by test users OR matching patterns
-5. **featured_bestie_hearts** - Delete hearts from test users
-6. **featured_besties** - Delete besties for test users OR matching patterns
-7. **vendor_bestie_assets** - Delete vendor assets (based on vendor IDs)
-8. **vendor_bestie_requests** - Delete vendor requests
-9. **vendors** - Delete vendors by user OR matching patterns
-10. **sponsorships** - Delete sponsorships involving test users
-11. **sponsor_besties** - CRITICAL: Delete sponsor relationships (blocks user deletion)
-12. **caregiver_bestie_links** - Delete guardian-bestie links
-13. **auth.users** - Delete test user accounts (cascade handles remaining data)
+3. **email_notifications_log** - Delete email logs for test users
+4. **contact_form_replies** - Delete contact form replies (before submissions due to FK)
+5. **contact_form_submissions** - Delete submissions by test email patterns
+6. **discussion_comments** - Delete comments by test users OR matching patterns
+7. **discussion_posts** - Delete posts by test users OR matching patterns
+8. **moderation_queue** - Delete moderation items involving test users
+9. **featured_bestie_hearts** - Delete hearts from test users
+10. **featured_besties** - Delete besties for test users OR matching patterns
+11. **vendor_bestie_assets** + **vendor_bestie_requests** + **order_items** + **products** + **vendors** - Delete vendor-related data
+12. **vendors** (by name pattern) - Delete vendors matching test patterns
+13. **sponsorships** - Delete sponsorships involving test users
+14. **sponsor_besties** - CRITICAL: Delete sponsor relationships (blocks user deletion)
+15. **caregiver_bestie_links** - Delete guardian-bestie links
+16. **events** + **event_dates** + **event_attendees** - Delete events and related data
+17. **albums** + **album_images** - Delete albums and images
+18. **newsletter_subscribers** - Delete test email subscribers
+19. **newsletter_campaigns** + **newsletter_analytics** - Delete test campaigns and analytics
+
+**Then**: Nullify foreign key references and delete profiles and auth.users
 
 Plus: Cleanup orphaned `receipt_settings` with organization_name "Test Organization"
 
