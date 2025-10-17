@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -272,6 +272,35 @@ export const SponsorshipTransactionsManager = () => {
       toast({
         title: "Error",
         description: "Failed to delete test transactions",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteIndividualTransaction = async (sponsorshipId: string, sponsorName: string) => {
+    if (!confirm(`Are you sure you want to delete the test sponsorship for ${sponsorName}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('sponsorships')
+        .delete()
+        .eq('id', sponsorshipId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Test transaction has been deleted",
+      });
+      
+      await loadSponshorships();
+    } catch (error: any) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction",
         variant: "destructive",
       });
     }
@@ -574,6 +603,20 @@ export const SponsorshipTransactionsManager = () => {
                               No Subscription ID
                             </Badge>
                           ) : null}
+                          {sponsorship.stripe_mode === 'test' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteIndividualTransaction(
+                                sponsorship.id,
+                                sponsorship.sponsor_profile?.display_name || sponsorship.sponsor_email || 'this sponsor'
+                              )}
+                              title="Delete Test Transaction"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
