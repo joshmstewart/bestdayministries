@@ -26,32 +26,62 @@ test.describe('Newsletter System Tests', () => {
     if (error) throw new Error(`Failed to seed test data: ${error.message}`);
     
     seedData = data;
-    console.log('✅ Seeded newsletter test data');
+    console.log('✅ Seeded newsletter test data:', seedData);
 
-    // Create admin page with authentication
+    // PRIORITY 5 FIX: Properly set up authenticated admin session
+    // Create admin page with proper authentication context
     const context = await browser.newContext();
     adminPage = await context.newPage();
     
-    // Set admin auth tokens
+    // Navigate to the app first
     await adminPage.goto('/');
+    
+    // Wait for the page to fully load
+    await adminPage.waitForLoadState('networkidle');
+    
+    // Set admin auth session in localStorage with proper format
     await adminPage.evaluate(
-      ({ access_token, refresh_token }) => {
+      ({ access_token, refresh_token, admin_id }) => {
+        const projectId = 'nbvijawmjkycyweioglk'; // Your Supabase project ID
+        const authKey = `sb-${projectId}-auth-token`;
+        
         localStorage.setItem(
-          `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`,
+          authKey,
           JSON.stringify({
             access_token,
             refresh_token,
             expires_in: 3600,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
             token_type: 'bearer',
-            user: { id: 'admin-user-id' },
+            user: { 
+              id: admin_id,
+              email: `emailtest-newsletter-test-admin@test.com`,
+              role: 'authenticated'
+            },
           })
         );
+        
+        console.log('Set auth token for admin:', authKey);
       },
       {
         access_token: seedData.authSessions.admin.access_token,
         refresh_token: seedData.authSessions.admin.refresh_token,
+        admin_id: seedData.userIds.admin,
       }
     );
+    
+    // Reload to apply authentication
+    await adminPage.goto('/admin?tab=newsletter');
+    await adminPage.waitForLoadState('networkidle');
+    
+    // Wait for admin UI to confirm authentication
+    try {
+      await adminPage.waitForSelector('text=Newsletter', { timeout: 15000 });
+      console.log('✅ Admin authentication successful');
+    } catch (e) {
+      console.error('❌ Failed to authenticate admin user');
+      throw new Error('Admin authentication failed - Newsletter tab not visible');
+    }
   });
 
   test.afterAll(async () => {

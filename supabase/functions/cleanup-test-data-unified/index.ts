@@ -238,6 +238,41 @@ serve(async (req) => {
             console.log('✅ Deleted vendor bestie requests');
           }
           
+          // PRIORITY 2 FIX: Delete order_items BEFORE products to avoid FK violations
+          console.log('🧹 Deleting order items...');
+          const { data: orderRecords } = await supabaseAdmin
+            .from('orders')
+            .select('id')
+            .in('user_id', testUserIds);
+          
+          const orderIds = orderRecords?.map(o => o.id) || [];
+          
+          if (orderIds.length > 0) {
+            const { error: orderItemsError } = await supabaseAdmin
+              .from('order_items')
+              .delete()
+              .in('order_id', orderIds);
+            
+            if (orderItemsError) {
+              console.error('Error deleting order items:', orderItemsError);
+            } else {
+              console.log('✅ Deleted order items');
+            }
+          }
+          
+          // Now delete products (after order_items)
+          console.log('🧹 Deleting products...');
+          const { error: productsError } = await supabaseAdmin
+            .from('products')
+            .delete()
+            .in('vendor_id', vendorIds);
+          
+          if (productsError) {
+            console.error('Error deleting products:', productsError);
+          } else {
+            console.log('✅ Deleted products');
+          }
+          
           // 10. Delete vendors
           console.log('🧹 Deleting vendors...');
           const { error: vendorsError } = await supabaseAdmin
@@ -466,6 +501,43 @@ serve(async (req) => {
       console.log('✅ Deleted newsletter campaigns');
       
       console.log('✅ Completed comprehensive pre-user deletion cleanup');
+      
+      // PRIORITY 2 FIX: Nullify foreign key references BEFORE deleting users
+      console.log('🧹 Nullifying foreign key references...');
+      
+      // Get vendor IDs again (some may have been deleted in cleanup above)
+      const { data: remainingVendors } = await supabaseAdmin
+        .from('vendors')
+        .select('id')
+        .in('user_id', testUserIds);
+      
+      const remainingVendorIds = remainingVendors?.map(v => v.id) || [];
+      
+      if (remainingVendorIds.length > 0) {
+        // Nullify vendor featured_bestie_id references
+        const { error: vendorNullifyError } = await supabaseAdmin
+          .from('vendors')
+          .update({ featured_bestie_id: null })
+          .in('id', remainingVendorIds);
+
+        if (vendorNullifyError) {
+          console.error('Error nullifying vendor featured_bestie_id:', vendorNullifyError);
+        } else {
+          console.log('✅ Nullified vendor featured_bestie_id references');
+        }
+      }
+
+      // Nullify sponsor_messages approved_by references
+      const { error: messageNullifyError } = await supabaseAdmin
+        .from('sponsor_messages')
+        .update({ approved_by: null })
+        .in('approved_by', testUserIds);
+
+      if (messageNullifyError) {
+        console.error('Error nullifying sponsor_messages approved_by:', messageNullifyError);
+      } else {
+        console.log('✅ Nullified sponsor_messages approved_by references');
+      }
     }
 
     // Delete each test user (cascade will handle remaining related data)

@@ -152,6 +152,39 @@ const handler = async (req: Request): Promise<Response> => {
 
     const prefs = preferences?.[0] || {};
 
+    // PRIORITY 4 FIX: Check if instant email notifications are globally disabled FIRST
+    // Check for enable_instant_emails preference from notification_preferences table
+    const { data: notifPrefs } = await supabase
+      .from("notification_preferences")
+      .select("enable_instant_emails")
+      .eq("user_id", requestData.userId)
+      .maybeSingle();
+    
+    if (notifPrefs && notifPrefs.enable_instant_emails === false) {
+      console.log(`Instant email notifications globally disabled for user ${requestData.userId}`);
+      
+      // Log the skipped email
+      try {
+        await supabase
+          .from("email_notifications_log")
+          .insert({
+            user_id: requestData.userId,
+            recipient_email: profile.email,
+            notification_type: requestData.notificationType,
+            subject: requestData.subject,
+            status: "skipped",
+            metadata: { reason: "instant_emails_disabled" }
+          });
+      } catch (logError) {
+        console.error("Error logging skipped email:", logError);
+      }
+      
+      return new Response(
+        JSON.stringify({ success: true, skipped: true, reason: "Instant email notifications disabled" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Map notification type to preference field
     const preferenceMap: { [key: string]: string } = {
       pending_approval: "email_on_pending_approval",
@@ -172,6 +205,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!shouldSendEmail) {
       console.log(`Email notifications disabled for ${requestData.notificationType}`);
+      
+      // Log the skipped email
+      try {
+        await supabase
+          .from("email_notifications_log")
+          .insert({
+            user_id: requestData.userId,
+            recipient_email: profile.email,
+            notification_type: requestData.notificationType,
+            subject: requestData.subject,
+            status: "skipped",
+            metadata: { reason: "type_specific_disabled" }
+          });
+      } catch (logError) {
+        console.error("Error logging skipped email:", logError);
+      }
+      
       return new Response(
         JSON.stringify({ success: true, skipped: true, reason: "User preference" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
