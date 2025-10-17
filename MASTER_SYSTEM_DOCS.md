@@ -41,9 +41,9 @@ CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[c
 
 ## NEWSLETTER SYSTEM
 
-**OVERVIEW:** Complete email newsletter system with campaign management, subscriber lists, automatic header/footer injection, rich content editing, Stripe integration for sending via Resend, test emails, and working unsubscribe functionality.
+**OVERVIEW:** Complete email newsletter system with campaign management, subscriber lists, automatic header/footer injection, rich content editing, Stripe integration for sending via Resend, test emails, working unsubscribe functionality, and user self-service subscription management.
 
-**ROUTE:** /admin → Settings → Newsletter
+**ROUTE:** /admin → Settings → Newsletter | /profile-settings → Newsletter (user preferences)
 
 **DB:** newsletter_campaigns|newsletter_subscribers|newsletter_analytics|newsletter_links|app_settings[newsletter_header|newsletter_footer]
 

@@ -371,6 +371,9 @@ Newsletter sending respects Stripe mode settings but operates independently. Ema
 - ✅ Unsubscribe link functionality
 - ✅ Test email sending
 - ✅ Link tracking (click tracking)
+- ✅ User newsletter preferences (Profile Settings → Newsletter tab)
+- ✅ Subscribe/unsubscribe from profile
+- ✅ Subscription status management
 
 ## FUTURE ENHANCEMENTS
 - Email open tracking (pixel tracking implementation)
@@ -430,6 +433,21 @@ Newsletter sending respects Stripe mode settings but operates independently. Ema
 4. Check edge function logs
 
 ---
+
+## USER ACCESS
+**Profile Settings → Newsletter Tab**
+- Subscription toggle (subscribe/unsubscribe)
+- Email address display
+- Subscription status indicator
+- Subscription history (subscribed date, unsubscribed date)
+- Newsletter information card
+
+**Features:**
+- Users can manage their own subscription status
+- Linked to user account (user_id in newsletter_subscribers)
+- Shows current subscription status
+- Direct subscribe/unsubscribe without email confirmation
+- View subscription history
 
 ## ADMIN ACCESS
 Admin → Settings → Newsletter

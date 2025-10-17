@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Volume2, Copy, RefreshCw, Bell } from "lucide-react";
+import { Save, Volume2, Copy, RefreshCw, Bell, Mail } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { NewsletterPreferences } from "@/components/profile/NewsletterPreferences";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -460,10 +461,17 @@ const ProfileSettings = () => {
           </div>
 
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
               <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              <TabsTrigger value="tts">TTS</TabsTrigger>
+              <TabsTrigger value="notifications">
+                <Bell className="w-4 h-4 lg:hidden" />
+                <span className="hidden lg:inline">Notifications</span>
+              </TabsTrigger>
+              <TabsTrigger value="newsletter">
+                <Mail className="w-4 h-4 lg:hidden" />
+                <span className="hidden lg:inline">Newsletter</span>
+              </TabsTrigger>
               <TabsTrigger value="security" className="hidden lg:block">Security</TabsTrigger>
             </TabsList>
 
@@ -1103,6 +1111,16 @@ const ProfileSettings = () => {
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Newsletter Tab */}
+            <TabsContent value="newsletter" className="space-y-6 mt-6">
+              {user && (
+                <NewsletterPreferences 
+                  userId={user.id}
+                  userEmail={user.email || ''}
+                />
+              )}
             </TabsContent>
 
             {/* Security Tab */}
