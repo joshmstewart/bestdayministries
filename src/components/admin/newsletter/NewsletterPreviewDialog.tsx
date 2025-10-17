@@ -56,9 +56,24 @@ export const NewsletterPreviewDialog = ({
 
           {/* Email content preview */}
           <div className="bg-white">
+            <style>{`
+              .email-preview h1 { font-size: 2.5em; font-weight: bold; margin: 0.67em 0; line-height: 1.2; }
+              .email-preview h2 { font-size: 2em; font-weight: bold; margin: 0.75em 0; line-height: 1.3; }
+              .email-preview h3 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; line-height: 1.4; }
+              .email-preview h4 { font-size: 1.25em; font-weight: bold; margin: 1em 0; line-height: 1.4; }
+              .email-preview h5 { font-size: 1em; font-weight: bold; margin: 1.33em 0; line-height: 1.5; }
+              .email-preview h6 { font-size: 0.875em; font-weight: bold; margin: 1.67em 0; line-height: 1.5; }
+              .email-preview p { margin: 1em 0; line-height: 1.6; }
+              .email-preview ul, .email-preview ol { margin: 1em 0; padding-left: 2em; line-height: 1.6; }
+              .email-preview li { margin: 0.5em 0; }
+              .email-preview strong { font-weight: bold; }
+              .email-preview em { font-style: italic; }
+              .email-preview a { color: #0066cc; text-decoration: underline; }
+              .email-preview img { max-width: 100%; height: auto; }
+            `}</style>
             <div 
-              className="max-w-none p-6"
-              style={{ fontSize: '16px', lineHeight: '1.5' }}
+              className="email-preview max-w-none p-6"
+              style={{ fontSize: '16px' }}
               dangerouslySetInnerHTML={{ __html: htmlContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>' }}
             />
           </div>
