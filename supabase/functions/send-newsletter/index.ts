@@ -9,6 +9,7 @@ const corsHeaders = {
 
 interface SendNewsletterRequest {
   campaignId: string;
+  testMode?: boolean; // If true, only sends to test email addresses
 }
 
 serve(async (req) => {
@@ -38,7 +39,7 @@ serve(async (req) => {
       throw new Error("Admin access required");
     }
 
-    const { campaignId }: SendNewsletterRequest = await req.json();
+    const { campaignId, testMode = false }: SendNewsletterRequest = await req.json();
 
     // Fetch campaign details
     const { data: campaign, error: campaignError } = await supabaseClient
@@ -86,10 +87,17 @@ serve(async (req) => {
 
     if (targetAudience.type === 'all') {
       // Get all active subscribers
-      const { data, error: subscribersError } = await supabaseClient
+      let query = supabaseClient
         .from('newsletter_subscribers')
         .select('email, id, user_id')
         .eq('status', 'active');
+
+      // In test mode, only send to test email addresses
+      if (testMode) {
+        query = query.or('email.like.emailtest-%,email.like.sub1-%,email.like.sub2-%,email.like.active-%,email.like.unsub-%,email.like.newsletter-test-%');
+      }
+
+      const { data, error: subscribersError } = await query;
 
       if (subscribersError) {
         console.error('Error fetching subscribers:', subscribersError);
@@ -98,11 +106,18 @@ serve(async (req) => {
       subscribers = data || [];
     } else if (targetAudience.type === 'roles' && targetAudience.roles?.length > 0) {
       // Get subscribers with specific roles
-      const { data, error: subscribersError } = await supabaseClient
+      let query = supabaseClient
         .from('newsletter_subscribers')
         .select('email, id, user_id')
         .eq('status', 'active')
         .not('user_id', 'is', null);
+
+      // In test mode, only send to test email addresses
+      if (testMode) {
+        query = query.or('email.like.emailtest-%,email.like.sub1-%,email.like.sub2-%,email.like.active-%,email.like.unsub-%,email.like.newsletter-test-%');
+      }
+
+      const { data, error: subscribersError } = await query;
 
       if (subscribersError) {
         console.error('Error fetching subscribers:', subscribersError);

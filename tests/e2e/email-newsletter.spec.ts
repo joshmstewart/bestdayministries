@@ -264,9 +264,9 @@ test.describe('Newsletter System Tests', () => {
 
     expect(campaign).toBeTruthy();
 
-    // Trigger send via edge function
+    // Trigger send via edge function in test mode
     const { error: sendError } = await supabase.functions.invoke('send-newsletter', {
-      body: { campaignId: campaign.id }
+      body: { campaignId: campaign.id, testMode: true }
     });
 
     expect(sendError).toBeNull();
@@ -421,7 +421,7 @@ test.describe('Newsletter System Tests', () => {
       .single();
 
     await supabase.functions.invoke('send-newsletter', {
-      body: { campaignId: campaign.id }
+      body: { campaignId: campaign.id, testMode: true }
     });
 
     // Wait for send
