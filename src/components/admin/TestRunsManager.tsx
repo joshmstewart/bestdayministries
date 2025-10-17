@@ -66,12 +66,14 @@ const TestRunsManager = () => {
     try {
       toast({
         title: "Cleaning up test data...",
-        description: "Removing all test entries from the database",
+        description: "Removing all test entries from the database. This may take a moment...",
       });
 
+      // Call cleanup with both name patterns and email prefix to catch all test data
       const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
         body: {
-          namePatterns: ['Test', 'E2E']
+          emailPrefix: 'emailtest',  // Catches all emailtest-* users
+          namePatterns: ['Test', 'E2E']  // Catches name-based test data
         }
       });
 
@@ -79,13 +81,16 @@ const TestRunsManager = () => {
 
       toast({
         title: "Cleanup Complete",
-        description: "All test data has been removed",
+        description: data?.message || "All test data has been successfully removed",
       });
+
+      // Refresh the test runs list
+      await fetchTestRuns();
     } catch (error: any) {
       console.error('Error cleaning test data:', error);
       toast({
         title: "Cleanup Failed",
-        description: error.message || "Failed to clean test data",
+        description: error.message || "Failed to clean test data. Check console for details.",
         variant: "destructive",
       });
     }
