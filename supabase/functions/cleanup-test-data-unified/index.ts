@@ -108,7 +108,52 @@ serve(async (req) => {
         }
       }
       
-      // 3. Delete discussion comments by test users OR by name pattern
+      // 3. Delete contact form replies (must be before submissions due to FK)
+      console.log('🧹 Deleting contact form replies...');
+      if (testUserIds.length > 0) {
+        const { error: repliesError } = await supabaseAdmin
+          .from('contact_form_replies')
+          .delete()
+          .in('sender_id', testUserIds);
+        
+        if (repliesError) {
+          console.error('Error deleting contact form replies:', repliesError);
+        } else {
+          console.log('✅ Deleted contact form replies by user');
+        }
+      }
+      
+      // Also delete replies by email pattern
+      const testEmailPatterns = [
+        'test@%',
+        '%@test.com',
+        'emailtest-%',
+        'Test User%',
+        'E2E User%'
+      ];
+      
+      for (const pattern of testEmailPatterns) {
+        await supabaseAdmin
+          .from('contact_form_replies')
+          .delete()
+          .or(`sender_email.like.${pattern},sender_name.like.${pattern}`);
+      }
+      
+      // 4. Delete contact form submissions
+      console.log('🧹 Deleting contact form submissions...');
+      for (const pattern of testEmailPatterns) {
+        const { error: submissionsError } = await supabaseAdmin
+          .from('contact_form_submissions')
+          .delete()
+          .or(`email.like.${pattern},name.like.${pattern}`);
+        
+        if (submissionsError) {
+          console.error(`Error deleting contact form submissions with pattern ${pattern}:`, submissionsError);
+        }
+      }
+      console.log('✅ Deleted contact form submissions');
+      
+      // 5. Delete discussion comments by test users OR by name pattern
       console.log('🧹 Deleting discussion comments...');
       if (testUserIds.length > 0) {
         const { error: commentsError } = await supabaseAdmin
@@ -123,7 +168,7 @@ serve(async (req) => {
         }
       }
       
-      // 4. Delete discussion posts by test users OR by name pattern
+      // 6. Delete discussion posts by test users OR by name pattern
       console.log('🧹 Deleting discussion posts...');
       if (testUserIds.length > 0) {
         const { error: postsError } = await supabaseAdmin
@@ -154,7 +199,7 @@ serve(async (req) => {
         }
       }
       
-      // 5. Delete featured bestie hearts
+      // 7. Delete featured bestie hearts
       if (testUserIds.length > 0) {
         console.log('🧹 Deleting featured bestie hearts...');
         const { error: heartsError } = await supabaseAdmin
@@ -169,7 +214,7 @@ serve(async (req) => {
         }
       }
       
-      // 6. Delete featured besties for test users OR by name pattern
+      // 8. Delete featured besties for test users OR by name pattern
       console.log('🧹 Deleting featured besties...');
       if (testUserIds.length > 0) {
         const { error: featuredBestiesError } = await supabaseAdmin
@@ -200,7 +245,7 @@ serve(async (req) => {
         }
       }
       
-      // 7. Get vendor IDs before deleting vendor records
+      // 9. Get vendor IDs before deleting vendor records
       if (testUserIds.length > 0) {
         const { data: vendorRecords } = await supabaseAdmin
           .from('vendors')
@@ -212,7 +257,7 @@ serve(async (req) => {
         if (vendorIds.length > 0) {
           console.log(`Found ${vendorIds.length} vendor records to clean up`);
           
-          // 8. Delete vendor bestie assets
+          // 10. Delete vendor bestie assets
           console.log('🧹 Deleting vendor bestie assets...');
           const { error: assetsError } = await supabaseAdmin
             .from('vendor_bestie_assets')
@@ -225,7 +270,7 @@ serve(async (req) => {
             console.log('✅ Deleted vendor bestie assets');
           }
           
-          // 9. Delete vendor bestie requests
+          // 11. Delete vendor bestie requests
           console.log('🧹 Deleting vendor bestie requests...');
           const { error: requestsError } = await supabaseAdmin
             .from('vendor_bestie_requests')
@@ -238,7 +283,7 @@ serve(async (req) => {
             console.log('✅ Deleted vendor bestie requests');
           }
           
-          // PRIORITY 2 FIX: Delete order_items BEFORE products to avoid FK violations
+          // 12. PRIORITY 2 FIX: Delete order_items BEFORE products to avoid FK violations
           console.log('🧹 Deleting order items...');
           const { data: orderRecords } = await supabaseAdmin
             .from('orders')
@@ -273,7 +318,7 @@ serve(async (req) => {
             console.log('✅ Deleted products');
           }
           
-          // 10. Delete vendors
+          // 13. Delete vendors
           console.log('🧹 Deleting vendors...');
           const { error: vendorsError } = await supabaseAdmin
             .from('vendors')
@@ -288,7 +333,7 @@ serve(async (req) => {
         }
       }
       
-      // Also delete vendors by name pattern
+      // 14. Also delete vendors by name pattern
       if (namePatterns.length > 0) {
         for (const pattern of namePatterns) {
           const { error: vendorPatternError } = await supabaseAdmin
@@ -304,7 +349,7 @@ serve(async (req) => {
         }
       }
       
-      // 11. Delete sponsorships
+      // 15. Delete sponsorships
       console.log('🧹 Deleting sponsorships...');
       if (testUserIds.length > 0) {
         const { error: sponsorshipsError } = await supabaseAdmin
@@ -319,7 +364,7 @@ serve(async (req) => {
         }
       }
       
-      // 12. Delete sponsor_besties records (CRITICAL - blocks user deletion)
+      // 16. Delete sponsor_besties records (CRITICAL - blocks user deletion)
       console.log('🧹 Deleting sponsor_besties records...');
       if (testUserIds.length > 0) {
         const { error: sponsorBestiesError } = await supabaseAdmin
@@ -334,7 +379,7 @@ serve(async (req) => {
         }
       }
       
-      // 13. Delete guardian-bestie links
+      // 17. Delete guardian-bestie links
       console.log('🧹 Deleting guardian-bestie links...');
       if (testUserIds.length > 0) {
         const { error: linksError } = await supabaseAdmin
@@ -349,7 +394,7 @@ serve(async (req) => {
         }
       }
       
-      // 14. Delete events by test users OR name patterns
+      // 18. Delete events by test users OR name patterns
       console.log('🧹 Deleting events...');
       if (testUserIds.length > 0) {
         // First get event IDs to clean up related data
@@ -396,7 +441,7 @@ serve(async (req) => {
         }
       }
       
-      // 15. Delete albums by test users OR name patterns
+      // 19. Delete albums by test users OR name patterns
       console.log('🧹 Deleting albums...');
       if (testUserIds.length > 0) {
         // First get album IDs to clean up related data
@@ -441,7 +486,7 @@ serve(async (req) => {
         }
       }
       
-      // 16. Delete newsletter subscribers (test emails)
+      // 20. Delete newsletter subscribers (test emails)
       console.log('🧹 Deleting newsletter subscribers...');
       const newsletterPatterns = [
         'newsletter-test-%',
@@ -465,7 +510,7 @@ serve(async (req) => {
       }
       console.log('✅ Deleted newsletter subscribers');
       
-      // 17. Delete newsletter campaigns with test subjects
+      // 21. Delete newsletter campaigns with test subjects
       console.log('🧹 Deleting newsletter campaigns...');
       const campaignPatterns = ['Test Campaign %', 'Test Email Campaign %', 'Production Campaign %', 'Filter Test %'];
       
