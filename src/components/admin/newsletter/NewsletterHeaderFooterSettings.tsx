@@ -65,11 +65,57 @@ export const NewsletterHeaderFooterSettings = () => {
       }
 
       if (logoData?.setting_value) {
-        setLogoUrl(logoData.setting_value as string);
+        let url = '';
+        try {
+          const parsed = typeof logoData.setting_value === 'string' 
+            ? JSON.parse(logoData.setting_value)
+            : logoData.setting_value;
+          
+          if (typeof parsed === 'object' && parsed.url) {
+            url = parsed.url;
+          } else if (typeof parsed === 'string') {
+            url = parsed;
+          }
+          
+          // If it's a storage path, convert to public URL
+          if (url && !url.startsWith('http')) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('app-assets')
+              .getPublicUrl(url);
+            url = publicUrl;
+          }
+          
+          setLogoUrl(url);
+        } catch (error) {
+          console.error('Failed to parse logo URL:', error);
+        }
       }
 
       if (mobileLogoData?.setting_value) {
-        setMobileLogoUrl(mobileLogoData.setting_value as string);
+        let url = '';
+        try {
+          const parsed = typeof mobileLogoData.setting_value === 'string' 
+            ? JSON.parse(mobileLogoData.setting_value)
+            : mobileLogoData.setting_value;
+          
+          if (typeof parsed === 'object' && parsed.url) {
+            url = parsed.url;
+          } else if (typeof parsed === 'string') {
+            url = parsed;
+          }
+          
+          // If it's a storage path, convert to public URL
+          if (url && !url.startsWith('http')) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('app-assets')
+              .getPublicUrl(url);
+            url = publicUrl;
+          }
+          
+          setMobileLogoUrl(url);
+        } catch (error) {
+          console.error('Failed to parse mobile logo URL:', error);
+        }
       }
     } catch (error: any) {
       toast.error("Failed to load settings: " + error.message);
