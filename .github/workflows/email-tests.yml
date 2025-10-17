@@ -37,6 +37,18 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         
+    - name: Cleanup test data
+      if: always()
+      run: |
+        TEST_RUN_ID="${{ github.run_id }}"
+        curl -X POST "${VITE_SUPABASE_URL}/functions/v1/cleanup-test-data-unified" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${VITE_SUPABASE_ANON_KEY}" \
+          -d "{\"testRunId\": \"${TEST_RUN_ID}\", \"emailPrefix\": \"emailtest-${TEST_RUN_ID}\"}"
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        
     - name: Upload test report
       uses: actions/upload-artifact@v4
       if: always()

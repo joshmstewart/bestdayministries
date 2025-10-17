@@ -72,11 +72,14 @@ serve(async (req) => {
       // Email-based cleanup
       if (prefix && email.startsWith(prefix)) return true;
       
-      // Generic email patterns
+      // Enhanced generic email patterns
       if (
         email.includes('emailtest-') ||
         email === 'testvendor@example.com' ||
-        (email.includes('test') && email.includes('@test.com'))
+        (email.includes('test') && email.includes('@test.com')) ||
+        email.startsWith('test-') ||  // Matches test-{timestamp}@example.com
+        (email.includes('@example.com') && 
+         (email.includes('test-') || email.includes('-test')))  // More flexible matching
       ) {
         return true;
       }
@@ -647,6 +650,45 @@ serve(async (req) => {
       .from('receipt_settings')
       .delete()
       .eq('organization_name', 'Test Organization');
+
+    // Final sweep - catch any remaining test data by common patterns
+    console.log('🧹 Final sweep for orphaned test data...');
+
+    // Delete any remaining discussion posts with "Test" in title
+    const { error: orphanedPostsError } = await supabaseAdmin
+      .from('discussion_posts')
+      .delete()
+      .or('title.ilike.%Test%,title.ilike.%E2E%');
+    
+    if (orphanedPostsError) {
+      console.error('Error deleting orphaned posts:', orphanedPostsError);
+    } else {
+      console.log('✅ Cleaned orphaned test posts');
+    }
+
+    // Delete any remaining contact submissions with test patterns
+    const { error: orphanedSubmissionsError } = await supabaseAdmin
+      .from('contact_form_submissions')
+      .delete()
+      .or('email.like.%test-%@%,name.ilike.%Test%,name.ilike.%E2E%');
+    
+    if (orphanedSubmissionsError) {
+      console.error('Error deleting orphaned submissions:', orphanedSubmissionsError);
+    } else {
+      console.log('✅ Cleaned orphaned contact submissions');
+    }
+
+    // Delete any remaining notifications about test content
+    const { error: orphanedNotificationsError } = await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .or('title.ilike.%Test%,message.ilike.%Test%,title.ilike.%E2E%,message.ilike.%E2E%');
+    
+    if (orphanedNotificationsError) {
+      console.error('Error deleting orphaned notifications:', orphanedNotificationsError);
+    } else {
+      console.log('✅ Cleaned orphaned test notifications');
+    }
 
     console.log('✅ Unified test data cleanup complete!');
 

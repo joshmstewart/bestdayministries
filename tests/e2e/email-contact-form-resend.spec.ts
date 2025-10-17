@@ -24,6 +24,18 @@ test.describe('Contact Form Email Tests (Resend)', () => {
   test.afterAll(async () => {
     // Final cleanup to ensure no test data remains
     await cleanupTestSubmissions('%test-%@example.com');
+    
+    // Also clean up any users and related data created during tests
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { error } = await supabase.functions.invoke('cleanup-test-data-unified', {
+      body: {
+        namePatterns: ['Test User', 'Reply Test User', 'Admin Test User', 'Thread Test User']
+      }
+    });
+    
+    if (error) {
+      console.error('Error cleaning up test data:', error);
+    }
   });
 
   test('contact form submission saves to database @email', async ({ page }) => {
