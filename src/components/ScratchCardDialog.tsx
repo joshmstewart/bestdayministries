@@ -154,6 +154,9 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
           {!revealedSticker ? (
             <>
               <h2 className="text-2xl font-bold">Scratch to Reveal!</h2>
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                Scratch once per day to collect stickers and complete your collection! Each sticker has a different rarity level.
+              </p>
               <div className="relative">
                 <canvas
                   ref={canvasRef}
