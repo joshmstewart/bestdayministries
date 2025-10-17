@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, Image as ImageIcon } from "lucide-react";
-import { RichTextEditor } from "./RichTextEditor";
+import { RichTextEditor, RichTextEditorRef } from "./RichTextEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,8 +19,8 @@ export const NewsletterHeaderFooterSettings = () => {
   const [saving, setSaving] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
   const [mobileLogoUrl, setMobileLogoUrl] = useState("");
-  const headerEditorRef = useRef<any>(null);
-  const footerEditorRef = useRef<any>(null);
+  const headerEditorRef = useRef<RichTextEditorRef>(null);
+  const footerEditorRef = useRef<RichTextEditorRef>(null);
 
   useEffect(() => {
     loadSettings();
@@ -129,8 +129,7 @@ export const NewsletterHeaderFooterSettings = () => {
       toast.error("No logo available");
       return;
     }
-    const logoHtml = `<img src="${url}" alt="Logo" style="width: 200px; height: auto; display: block; margin: 0 auto;" />`;
-    setHeaderHtml(headerHtml + logoHtml);
+    headerEditorRef.current?.insertImage(url, '200px');
     toast.success("Logo inserted into header");
   };
 
@@ -139,8 +138,7 @@ export const NewsletterHeaderFooterSettings = () => {
       toast.error("No logo available");
       return;
     }
-    const logoHtml = `<img src="${url}" alt="Logo" style="width: 150px; height: auto; display: block; margin: 0 auto;" />`;
-    setFooterHtml(footerHtml + logoHtml);
+    footerEditorRef.current?.insertImage(url, '150px');
     toast.success("Logo inserted into footer");
   };
 
@@ -211,7 +209,7 @@ export const NewsletterHeaderFooterSettings = () => {
                         )}
                       </div>
                     </div>
-                    <RichTextEditor content={headerHtml} onChange={setHeaderHtml} />
+                    <RichTextEditor ref={headerEditorRef} content={headerHtml} onChange={setHeaderHtml} />
                   </div>
 
                   <div className="space-y-2">
@@ -282,7 +280,7 @@ export const NewsletterHeaderFooterSettings = () => {
                         )}
                       </div>
                     </div>
-                    <RichTextEditor content={footerHtml} onChange={setFooterHtml} />
+                    <RichTextEditor ref={footerEditorRef} content={footerHtml} onChange={setFooterHtml} />
                   </div>
 
                   <div className="space-y-2">

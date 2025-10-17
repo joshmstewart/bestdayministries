@@ -10,6 +10,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
+import { forwardRef, useImperativeHandle } from "react";
 
 // Custom Image extension with resize and alignment support
 const ResizableImage = Image.extend({
@@ -97,7 +98,11 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
 }
 
-export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
+export interface RichTextEditorRef {
+  insertImage: (url: string, width?: string) => void;
+}
+
+export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(({ content, onChange }, ref) => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
@@ -159,6 +164,17 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       setIsImageSelected(editor.isActive('image'));
     }
   }, [editor]);
+
+  useImperativeHandle(ref, () => ({
+    insertImage: (url: string, width = '200px') => {
+      if (editor) {
+        editor.chain().focus().setImage({ src: url }).run();
+        setTimeout(() => {
+          editor.chain().focus().updateAttributes('image', { width }).run();
+        }, 0);
+      }
+    },
+  }));
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -790,4 +806,4 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       </Dialog>
     </div>
   );
-};
+});
