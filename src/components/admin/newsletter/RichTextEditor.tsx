@@ -168,12 +168,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   useImperativeHandle(ref, () => ({
     insertImage: (url: string, width = '200px') => {
       if (editor) {
-        editor.chain().focus().setImage({ src: url }).run();
-        setTimeout(() => {
-          editor.chain().focus().updateAttributes('image', { 
-            style: `width: ${width}; height: auto; display: block; margin: 0 auto;`
-          }).run();
-        }, 50);
+        const imgHtml = `<img src="${url}" alt="Logo" style="width: ${width}; height: auto; display: block; margin-left: auto; margin-right: auto;" />`;
+        editor.chain().focus().insertContent(imgHtml).run();
       }
     },
   }));
