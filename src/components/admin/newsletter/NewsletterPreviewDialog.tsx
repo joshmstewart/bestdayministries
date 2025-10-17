@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface NewsletterPreviewDialogProps {
@@ -65,8 +65,8 @@ export const NewsletterPreviewDialog = ({
     }
   };
 
-  // Construct final email HTML with header and footer
-  const finalHtml = `
+  // Construct final email HTML with header and footer (memoized to prevent hot reload issues)
+  const finalHtml = useMemo(() => `
     ${headerEnabled ? headerHtml : ""}
     ${htmlContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>'}
     ${footerEnabled ? footerHtml : ""}
@@ -75,7 +75,8 @@ export const NewsletterPreviewDialog = ({
       <p><a href="#" style="color: #666;">Unsubscribe</a></p>
       <p>Best Day Ministries<br/>Your Address Here</p>
     </div>
-  `;
+  `, [headerEnabled, headerHtml, htmlContent, footerEnabled, footerHtml]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">

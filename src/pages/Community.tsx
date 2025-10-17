@@ -52,6 +52,14 @@ const Community = () => {
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
   const [effectiveRole, setEffectiveRole] = useState<UserRole | null>(null);
 
+  // Default quick links - moved to top to avoid TDZ error
+  const defaultQuickLinks = [
+    { label: "Sponsor a Bestie", href: "/sponsor-bestie", icon: "Gift", color: "from-primary/20 to-secondary/5" },
+    { label: "About Best Day Ministries", href: "/about", icon: "Users", color: "from-secondary/20 to-accent/5" },
+    { label: "Joy Rocks Coffee", href: "/joy-rocks", icon: "Sparkles", color: "from-accent/20 to-primary/5" },
+    { label: "Support Us", href: "/support", icon: "Gift", color: "from-secondary/20 to-primary/5" },
+  ];
+
   // Update effective role whenever profile or impersonation changes
   useEffect(() => {
     if (profile) {
@@ -308,13 +316,6 @@ const Community = () => {
       </div>
     );
   }
-
-  const defaultQuickLinks = [
-    { label: "Sponsor a Bestie", href: "/sponsor-bestie", icon: "Gift", color: "from-primary/20 to-secondary/5" },
-    { label: "About Best Day Ministries", href: "/about", icon: "Users", color: "from-secondary/20 to-accent/5" },
-    { label: "Joy Rocks Coffee", href: "/joy-rocks", icon: "Sparkles", color: "from-accent/20 to-primary/5" },
-    { label: "Support Us", href: "/support", icon: "Gift", color: "from-secondary/20 to-primary/5" },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
