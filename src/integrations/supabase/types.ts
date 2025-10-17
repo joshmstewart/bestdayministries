@@ -2182,6 +2182,51 @@ export type Database = {
           },
         ]
       }
+      newsletter_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          html_content: string
+          id: string
+          is_active: boolean
+          name: string
+          preview_text_template: string | null
+          subject_template: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          html_content: string
+          id?: string
+          is_active?: boolean
+          name: string
+          preview_text_template?: string | null
+          subject_template: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          html_content?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          preview_text_template?: string | null
+          subject_template?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string

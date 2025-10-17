@@ -8,12 +8,16 @@ import { Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
+import { CampaignStatsDialog } from "./CampaignStatsDialog";
 import { format } from "date-fns";
+import { Copy } from "lucide-react";
 
 export const NewsletterCampaigns = () => {
   const queryClient = useQueryClient();
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [statsCampaign, setStatsCampaign] = useState<any>(null);
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["newsletter-campaigns"],
@@ -40,6 +44,41 @@ export const NewsletterCampaigns = () => {
     },
     onSuccess: () => {
       toast.success("Campaign deleted");
+      queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] });
+    },
+  });
+
+  const cloneCampaignMutation = useMutation({
+    mutationFn: async (campaignId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Get original campaign
+      const { data: original, error: fetchError } = await supabase
+        .from("newsletter_campaigns")
+        .select("*")
+        .eq("id", campaignId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Create copy
+      const { error: insertError } = await supabase
+        .from("newsletter_campaigns")
+        .insert({
+          title: `${original.title} (Copy)`,
+          subject: original.subject,
+          preview_text: original.preview_text,
+          html_content: original.html_content,
+          target_audience: original.target_audience,
+          status: "draft",
+          created_by: user.id,
+        });
+
+      if (insertError) throw insertError;
+    },
+    onSuccess: () => {
+      toast.success("Campaign cloned");
       queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] });
     },
   });
@@ -119,6 +158,13 @@ export const NewsletterCampaigns = () => {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => cloneCampaignMutation.mutate(campaign.id)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <CampaignActions
                         campaignId={campaign.id}
                         campaignStatus={campaign.status}
@@ -127,16 +173,26 @@ export const NewsletterCampaigns = () => {
                     </>
                   )}
                   {campaign.status === "sent" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // TODO: View analytics
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Stats
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setStatsCampaign(campaign);
+                          setStatsDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Stats
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => cloneCampaignMutation.mutate(campaign.id)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </>
                   )}
                   {(campaign.status === "draft" || campaign.status === "scheduled") && (
                     <Button
@@ -159,6 +215,15 @@ export const NewsletterCampaigns = () => {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
       />
+
+      {statsCampaign && (
+        <CampaignStatsDialog
+          campaignId={statsCampaign.id}
+          campaignTitle={statsCampaign.title}
+          open={statsDialogOpen}
+          onOpenChange={setStatsDialogOpen}
+        />
+      )}
     </div>
   );
 };

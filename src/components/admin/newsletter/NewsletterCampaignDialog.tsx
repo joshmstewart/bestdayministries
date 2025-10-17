@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -15,8 +15,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { RichTextEditor } from "./RichTextEditor";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
-import { Eye, Calendar } from "lucide-react";
+import { Eye, Calendar, Monitor, Smartphone } from "lucide-react";
 import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
 
 const USER_ROLES = [
   { value: "supporter", label: "Supporters" },
@@ -47,6 +50,23 @@ export const NewsletterCampaignDialog = ({
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<string>("");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
+
+  const { data: templates } = useQuery({
+    queryKey: ["newsletter-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("newsletter_templates")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && !campaign,
+  });
 
   useEffect(() => {
     if (campaign) {
@@ -67,8 +87,20 @@ export const NewsletterCampaignDialog = ({
       setTargetAll(true);
       setSelectedRoles([]);
       setScheduledFor("");
+      setSelectedTemplate("");
     }
   }, [campaign, open]);
+
+  const handleTemplateSelect = (templateId: string) => {
+    const template = templates?.find(t => t.id === templateId);
+    if (template) {
+      setSubject(template.subject_template);
+      setPreviewText(template.preview_text_template || "");
+      setHtmlContent(template.html_content);
+      setSelectedTemplate(templateId);
+      toast.success("Template loaded");
+    }
+  };
 
   const saveCampaignMutation = useMutation({
     mutationFn: async () => {
@@ -123,6 +155,24 @@ export const NewsletterCampaignDialog = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {!campaign && templates && templates.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="template">Start from Template (Optional)</Label>
+              <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a template or start from scratch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name} - {template.category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="title">Campaign Title (Internal)</Label>
             <Input
@@ -232,11 +282,37 @@ export const NewsletterCampaignDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content">Email Content</Label>
-            <RichTextEditor
-              content={htmlContent}
-              onChange={setHtmlContent}
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="content">Email Content</Label>
+              <Tabs value={previewMode} onValueChange={(v) => setPreviewMode(v as "desktop" | "mobile")}>
+                <TabsList>
+                  <TabsTrigger value="desktop" className="gap-2">
+                    <Monitor className="h-4 w-4" />
+                    Desktop
+                  </TabsTrigger>
+                  <TabsTrigger value="mobile" className="gap-2">
+                    <Smartphone className="h-4 w-4" />
+                    Mobile
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            <div className={previewMode === "mobile" ? "max-w-[375px] mx-auto" : ""}>
+              <RichTextEditor
+                content={htmlContent}
+                onChange={setHtmlContent}
+              />
+            </div>
+
+            {previewMode === "mobile" && (
+              <Card className="p-4 mt-2 bg-muted">
+                <p className="text-sm text-muted-foreground">
+                  📱 Mobile preview - your email will be optimized for phone screens
+                </p>
+              </Card>
+            )}
+            
             <p className="text-xs text-muted-foreground">
               Use the formatting toolbar to style your email. Links will be automatically tracked.
             </p>
