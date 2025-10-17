@@ -3,12 +3,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { NewsletterHeaderFooterSettings } from "./NewsletterHeaderFooterSettings";
 
 export const NewsletterSettings = () => {
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resend-webhook`;
 
   return (
     <div className="space-y-6">
+      <NewsletterHeaderFooterSettings />
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">From Email Settings</h3>
         <div className="space-y-4">

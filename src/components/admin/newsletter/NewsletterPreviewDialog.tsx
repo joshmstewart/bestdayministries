@@ -6,6 +6,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NewsletterPreviewDialogProps {
   open: boolean;
@@ -22,6 +24,58 @@ export const NewsletterPreviewDialog = ({
   previewText,
   htmlContent,
 }: NewsletterPreviewDialogProps) => {
+  const [headerHtml, setHeaderHtml] = useState("");
+  const [footerHtml, setFooterHtml] = useState("");
+  const [headerEnabled, setHeaderEnabled] = useState(false);
+  const [footerEnabled, setFooterEnabled] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      loadHeaderFooter();
+    }
+  }, [open]);
+
+  const loadHeaderFooter = async () => {
+    try {
+      const { data: headerData } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "newsletter_header")
+        .single();
+
+      const { data: footerData } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "newsletter_footer")
+        .single();
+
+      if (headerData?.setting_value) {
+        const headerValue = headerData.setting_value as any;
+        setHeaderEnabled(headerValue.enabled || false);
+        setHeaderHtml(headerValue.html || "");
+      }
+
+      if (footerData?.setting_value) {
+        const footerValue = footerData.setting_value as any;
+        setFooterEnabled(footerValue.enabled || false);
+        setFooterHtml(footerValue.html || "");
+      }
+    } catch (error) {
+      console.error("Failed to load header/footer:", error);
+    }
+  };
+
+  // Construct final email HTML with header and footer
+  const finalHtml = `
+    ${headerEnabled ? headerHtml : ""}
+    ${htmlContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>'}
+    ${footerEnabled ? footerHtml : ""}
+    <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
+      <p>You're receiving this because you subscribed to our newsletter.</p>
+      <p><a href="#" style="color: #666;">Unsubscribe</a></p>
+      <p>Best Day Ministries<br/>Your Address Here</p>
+    </div>
+  `;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
@@ -74,7 +128,7 @@ export const NewsletterPreviewDialog = ({
             <div 
               className="email-preview max-w-none p-6"
               style={{ fontSize: '16px' }}
-              dangerouslySetInnerHTML={{ __html: htmlContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>' }}
+              dangerouslySetInnerHTML={{ __html: finalHtml }}
             />
           </div>
         </div>

@@ -51,6 +51,19 @@ serve(async (req) => {
       throw new Error("Campaign not found");
     }
 
+    // Fetch header and footer settings
+    const { data: headerData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_header")
+      .single();
+
+    const { data: footerData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_footer")
+      .single();
+
     if (campaign.status !== "draft" && campaign.status !== "scheduled") {
       throw new Error("Campaign already sent or sending");
     }
@@ -117,13 +130,29 @@ serve(async (req) => {
       throw new Error("No subscribers found");
     }
 
+    // Construct final HTML with header and footer
+    let htmlContent = "";
+    
+    // Add header if enabled
+    if (headerData?.setting_value?.enabled && headerData?.setting_value?.html) {
+      htmlContent += headerData.setting_value.html;
+    }
+    
+    // Add campaign content
+    htmlContent += campaign.html_content;
+    
+    // Add footer if enabled
+    if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
+      htmlContent += footerData.setting_value.html;
+    }
+
     // Replace links with tracked versions
-    let htmlContent = campaign.html_content;
     const linkRegex = /href="(https?:\/\/[^"]+)"/g;
     const links: { original: string; shortCode: string }[] = [];
     let match;
 
-    while ((match = linkRegex.exec(campaign.html_content)) !== null) {
+    const originalHtml = htmlContent;
+    while ((match = linkRegex.exec(originalHtml)) !== null) {
       const originalUrl = match[1];
       const shortCode = crypto.randomUUID().split("-")[0];
       
