@@ -170,8 +170,7 @@ const SortableStickerItem = ({
       
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium">#{sticker.sticker_number}</span>
-          <span className="truncate">{sticker.name}</span>
+          <span className="truncate font-medium">{sticker.name}</span>
           <Badge className={rarityConfig[sticker.rarity as keyof typeof rarityConfig].color}>
             {sticker.rarity}
           </Badge>
@@ -706,17 +705,33 @@ export const StickerCollectionManager = () => {
     const newStickers = arrayMove(stickers, oldIndex, newIndex);
     setStickers(newStickers);
 
-    // Update sticker_number for all affected stickers
-    const updates = newStickers.map((sticker, index) => ({
-      id: sticker.id,
-      sticker_number: index + 1,
-    }));
-
     try {
-      for (const update of updates) {
+      // Two-phase update to avoid unique constraint violations:
+      // Phase 1: Set all to negative numbers (temporary)
+      const tempUpdates = newStickers.map((sticker, index) => ({
+        id: sticker.id,
+        temp_number: -(index + 1),
+      }));
+
+      for (const update of tempUpdates) {
         const { error } = await supabase
           .from('stickers')
-          .update({ sticker_number: update.sticker_number })
+          .update({ sticker_number: update.temp_number })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+
+      // Phase 2: Set to final positive numbers
+      const finalUpdates = newStickers.map((sticker, index) => ({
+        id: sticker.id,
+        final_number: index + 1,
+      }));
+
+      for (const update of finalUpdates) {
+        const { error } = await supabase
+          .from('stickers')
+          .update({ sticker_number: update.final_number })
           .eq('id', update.id);
 
         if (error) throw error;
