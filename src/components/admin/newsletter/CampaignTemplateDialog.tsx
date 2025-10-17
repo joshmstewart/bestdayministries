@@ -156,14 +156,14 @@ export const CampaignTemplateDialog = ({ template, open, onOpenChange }: Campaig
             <div className="grid gap-2">
               <Label htmlFor="trigger_event">Trigger Event</Label>
               <Select
-                value={formData.trigger_event}
-                onValueChange={(value) => setFormData({ ...formData, trigger_event: value })}
+                value={formData.trigger_event || "none"}
+                onValueChange={(value) => setFormData({ ...formData, trigger_event: value === "none" ? "" : value })}
               >
                 <SelectTrigger id="trigger_event">
                   <SelectValue placeholder="Manual (no trigger)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Manual (no trigger)</SelectItem>
+                  <SelectItem value="none">Manual (no trigger)</SelectItem>
                   <SelectItem value="newsletter_signup">Newsletter Signup</SelectItem>
                   <SelectItem value="site_signup">Site Signup</SelectItem>
                   <SelectItem value="subscription_created">Subscription Created</SelectItem>
