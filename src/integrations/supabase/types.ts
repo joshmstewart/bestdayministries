@@ -186,6 +186,53 @@ export type Database = {
         }
         Relationships: []
       }
+      automated_campaign_sends: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient_email: string
+          recipient_user_id: string | null
+          sent_at: string | null
+          status: string
+          template_id: string | null
+          trigger_data: Json | null
+          trigger_event: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          trigger_data?: Json | null
+          trigger_event: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          trigger_data?: Json | null
+          trigger_event?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automated_campaign_sends_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avatars: {
         Row: {
           avatar_number: number
@@ -243,6 +290,54 @@ export type Database = {
           is_active?: boolean
           name?: string
           requirements?: Json | null
+        }
+        Relationships: []
+      }
+      campaign_templates: {
+        Row: {
+          auto_send: boolean
+          content: string
+          created_at: string
+          created_by: string | null
+          delay_minutes: number | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          subject: string
+          template_type: string
+          trigger_event: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_send?: boolean
+          content: string
+          created_at?: string
+          created_by?: string | null
+          delay_minutes?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          subject: string
+          template_type: string
+          trigger_event?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_send?: boolean
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          delay_minutes?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string
+          template_type?: string
+          trigger_event?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2399,6 +2494,7 @@ export type Database = {
       }
       newsletter_subscribers: {
         Row: {
+          campaign_template_id: string | null
           created_at: string
           email: string
           id: string
@@ -2415,6 +2511,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          campaign_template_id?: string | null
           created_at?: string
           email: string
           id?: string
@@ -2431,6 +2528,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          campaign_template_id?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -2447,6 +2545,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "newsletter_subscribers_campaign_template_id_fkey"
+            columns: ["campaign_template_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "newsletter_subscribers_user_id_fkey"
             columns: ["user_id"]

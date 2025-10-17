@@ -4,6 +4,8 @@ import { NewsletterSubscribers } from "./newsletter/NewsletterSubscribers";
 import { NewsletterAnalytics } from "./newsletter/NewsletterAnalytics";
 import { NewsletterSettings } from "./newsletter/NewsletterSettings";
 import { NewsletterTemplates } from "./newsletter/NewsletterTemplates";
+import { CampaignTemplates } from "./newsletter/CampaignTemplates";
+import { AutomatedSendsLog } from "./newsletter/AutomatedSendsLog";
 
 export const NewsletterManager = () => {
   return (
@@ -18,14 +20,19 @@ export const NewsletterManager = () => {
       <Tabs defaultValue="campaigns" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+          <TabsTrigger value="automated">Automated</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="campaigns" className="space-y-4">
           <NewsletterCampaigns />
+        </TabsContent>
+
+        <TabsContent value="automated" className="space-y-4">
+          <CampaignTemplates />
+          <AutomatedSendsLog />
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4">
@@ -38,10 +45,6 @@ export const NewsletterManager = () => {
 
         <TabsContent value="analytics" className="space-y-4">
           <NewsletterAnalytics />
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-4">
-          <NewsletterSettings />
         </TabsContent>
       </Tabs>
     </div>

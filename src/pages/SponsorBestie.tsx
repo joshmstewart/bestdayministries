@@ -323,11 +323,34 @@ const SponsorBestie = () => {
             source: 'sponsorship',
             timezone,
           });
+          
+          // Trigger welcome email
+          setTimeout(() => {
+            supabase.functions.invoke("send-automated-campaign", {
+              body: {
+                trigger_event: "newsletter_signup",
+                recipient_email: email.trim(),
+                recipient_user_id: user?.id,
+              },
+            });
+          }, 0);
         } catch (newsletterError) {
           console.error("Error subscribing to newsletter:", newsletterError);
           // Don't block sponsorship if newsletter subscription fails
         }
       }
+      
+      // Trigger subscription success email
+      setTimeout(async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        supabase.functions.invoke("send-automated-campaign", {
+          body: {
+            trigger_event: "subscription_created",
+            recipient_email: email.trim(),
+            recipient_user_id: user?.id,
+          },
+        });
+      }, 0);
 
       // Call Stripe edge function to create checkout session
       const { data, error } = await supabase.functions.invoke("create-sponsorship-checkout", {

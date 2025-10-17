@@ -116,11 +116,33 @@ const VendorAuth = () => {
             source: 'vendor_signup',
             timezone,
           });
+          
+          // Trigger welcome email
+          setTimeout(() => {
+            supabase.functions.invoke("send-automated-campaign", {
+              body: {
+                trigger_event: "newsletter_signup",
+                recipient_email: email,
+                recipient_user_id: data.user.id,
+              },
+            });
+          }, 0);
         } catch (newsletterError) {
           console.error("Error subscribing to newsletter:", newsletterError);
           // Don't block signup if newsletter subscription fails
         }
       }
+      
+      // Trigger account created email
+      setTimeout(() => {
+        supabase.functions.invoke("send-automated-campaign", {
+          body: {
+            trigger_event: "site_signup",
+            recipient_email: email,
+            recipient_user_id: data.user.id,
+          },
+        });
+      }, 0);
 
       // Create vendor record with pending status
       const { error: vendorError } = await supabase
