@@ -306,70 +306,54 @@ export const UserManagement = () => {
 
   const handleCreateTestAccounts = async () => {
     setCreatingTestAccounts(true);
-    let successCount = 0;
-    const errors: string[] = [];
 
-    // Get the current user's session token
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to create test accounts",
-        variant: "destructive",
-      });
-      setCreatingTestAccounts(false);
-      return;
-    }
+    try {
+      // Use the dedicated edge function for persistent test accounts
+      // This ensures they are created correctly and protected from cleanup
+      const { data, error } = await supabase.functions.invoke("create-persistent-test-accounts");
 
-    for (const account of testAccounts) {
-      try {
-        const { data, error } = await supabase.functions.invoke("create-user", {
-          body: account,
+      if (error) {
+        console.error('Error creating/verifying test accounts:', error);
+        toast({
+          title: "Error creating test accounts",
+          description: error.message || 'Failed to create/verify test accounts',
+          variant: "destructive",
+        });
+        setCreatingTestAccounts(false);
+        return;
+      }
+
+      if (data?.success) {
+        const results = data.results || [];
+        const created = results.filter((r: any) => r.status === 'created').length;
+        const existing = results.filter((r: any) => r.status === 'exists').length;
+        const failed = results.filter((r: any) => r.status === 'error').length;
+
+        let message = '';
+        if (created > 0) message += `${created} created. `;
+        if (existing > 0) message += `${existing} already exist. `;
+        if (failed > 0) message += `${failed} failed.`;
+
+        toast({
+          title: "Test accounts ready",
+          description: message.trim() || 'All test accounts are available.',
         });
 
-        if (error) {
-          console.error(`Error creating ${account.displayName}:`, error);
-          // If account already exists, that's okay
-          if (error.message?.includes("already registered") || 
-              error.message?.includes("User already registered") ||
-              error.message?.includes("email address has already been registered")) {
-            successCount++;
-          } else {
-            errors.push(`${account.displayName}: ${error.message}`);
-          }
-        } else if (data?.error) {
-          console.error(`Error creating ${account.displayName}:`, data.error);
-          if (data.error.includes("already registered") || 
-              data.error.includes("User already registered") ||
-              data.error.includes("email address has already been registered")) {
-            successCount++;
-          } else {
-            errors.push(`${account.displayName}: ${data.error}`);
-          }
-        } else if (data?.details?.includes("already been registered")) {
-          // Handle the specific error message format
-          successCount++;
-        } else {
-          successCount++;
+        if (failed > 0) {
+          console.error('Failed accounts:', results.filter((r: any) => r.status === 'error'));
         }
-      } catch (error: any) {
-        console.error(`Exception creating ${account.displayName}:`, error);
-        errors.push(`${account.displayName}: ${error.message || 'Unknown error'}`);
+      } else {
+        toast({
+          title: "Unexpected response",
+          description: "The operation completed but returned an unexpected response.",
+          variant: "destructive",
+        });
       }
-    }
-
-    if (successCount > 0) {
+    } catch (error: any) {
+      console.error('Exception creating test accounts:', error);
       toast({
-        title: "Test accounts ready",
-        description: `${successCount} test account(s) are now available for testing.`,
-      });
-    }
-
-    if (errors.length > 0) {
-      console.error("Account creation errors:", errors);
-      toast({
-        title: "Some accounts failed",
-        description: errors.join('\n'),
+        title: "Error creating test accounts",
+        description: error.message || 'An unexpected error occurred',
         variant: "destructive",
       });
     }

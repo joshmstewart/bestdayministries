@@ -50,9 +50,24 @@ serve(async (req) => {
     const prefix = options.emailPrefix || (options.testRunId ? `emailtest-${options.testRunId}` : null);
     const namePatterns = options.namePatterns || ['Test', 'E2E'];
 
+    // PERSISTENT TEST ACCOUNTS - NEVER DELETE THESE
+    // These are used for testing different user experiences and must remain
+    const PERSISTENT_TEST_EMAILS = [
+      'testbestie@example.com',
+      'testguardian@example.com',
+      'testsupporter@example.com'
+    ];
+
     // Filter test users by email prefix OR generic test patterns
+    // EXCLUDING persistent test accounts
     const testUsers = authUsers.users.filter(user => {
       const email = user.email?.toLowerCase() || '';
+      
+      // NEVER delete persistent test accounts
+      if (PERSISTENT_TEST_EMAILS.includes(email)) {
+        console.log(`🔒 Protecting persistent test account: ${email}`);
+        return false;
+      }
       
       // Email-based cleanup
       if (prefix && email.startsWith(prefix)) return true;
@@ -60,9 +75,6 @@ serve(async (req) => {
       // Generic email patterns
       if (
         email.includes('emailtest-') ||
-        email === 'testbestie@example.com' ||
-        email === 'testguardian@example.com' ||
-        email === 'testsupporter@example.com' ||
         email === 'testvendor@example.com' ||
         (email.includes('test') && email.includes('@test.com'))
       ) {

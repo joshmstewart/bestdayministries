@@ -6,6 +6,25 @@ This system provides **ONE comprehensive cleanup mechanism** for all test data c
 
 ## Core Components
 
+### Edge Function: `create-persistent-test-accounts`
+
+**Location:** `supabase/functions/create-persistent-test-accounts/index.ts`
+
+**Purpose:** Creates and verifies the persistent test accounts that should NEVER be deleted. These accounts are used for testing different user experiences.
+
+**Persistent Test Accounts (PROTECTED FROM CLEANUP):**
+- `testbestie@example.com` (password: TestBestie123!) - Role: bestie
+- `testguardian@example.com` (password: TestGuardian123!) - Role: caregiver  
+- `testsupporter@example.com` (password: TestSupporter123!) - Role: supporter
+
+**Features:**
+- Creates accounts if they don't exist
+- Verifies and updates existing accounts
+- Ensures correct roles and profiles
+- **CRITICAL:** These accounts are explicitly excluded from ALL cleanup operations
+
+---
+
 ### 1. Unified Edge Function: `cleanup-test-data-unified`
 
 **Location**: `supabase/functions/cleanup-test-data-unified/index.ts`
@@ -23,11 +42,15 @@ This single edge function handles ALL test data cleanup with two cleanup strateg
 Cleans up users whose emails match:
 - `emailtest-{testRunId}@test.com`
 - `emailtest-*@test.com`
-- `testbestie@example.com`
-- `testguardian@example.com`
-- `testsupporter@example.com`
 - `testvendor@example.com`
 - Any email containing "test" and "@test.com"
+
+**PROTECTED ACCOUNTS (NEVER DELETED):**
+- ❌ `testbestie@example.com` - PROTECTED
+- ❌ `testguardian@example.com` - PROTECTED
+- ❌ `testsupporter@example.com` - PROTECTED
+
+These persistent test accounts are used for manual testing and are explicitly excluded from all cleanup operations.
 
 #### Strategy 2: E2E Test Cleanup (by name patterns)
 ```typescript

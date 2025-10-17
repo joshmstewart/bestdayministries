@@ -309,6 +309,8 @@ FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry
 ## AUTOMATED_TESTING
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
 TEST-ACCOUNT:test@example.com|testpassword123|REQUIRED-for-auth-pages
+PERSISTENT-TEST-ACCOUNTS:testbestie@example.com|testguardian@example.com|testsupporter@example.com|PROTECTED-from-cleanup|use-for-role-testing
+EDGE:create-persistent-test-accounts[admin|create-verify]|cleanup-test-data-unified[test|exclude-persistent]
 DB:test_runs[status|workflow|commit|branch|duration|url|test_count|passed|failed|skipped|error|metadata]
 EDGE:github-test-webhook[receive-GH→parse→insert-db]|cleanup-test-data-unified[email+E2E-cleanup]
 FRONTEND:TestRunsManager[list-realtime-status-badges-links-to-GH-clean-button]

@@ -54,9 +54,10 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`broadcast-product-update`** - [Admin Only] Sends notifications to all users about product updates
 
 ### Testing & Development
+- **`create-persistent-test-accounts`** - [Admin Only] Creates/verifies persistent test accounts (PROTECTED from cleanup)
 - **`seed-email-test-data`** - [Test Only] Seeds test users and data for email testing
 - **`cleanup-email-test-data`** - [Test Only] Removes test data by email prefix
-- **`cleanup-test-data-unified`** - [Test Only] Unified cleanup for email and E2E tests
+- **`cleanup-test-data-unified`** - [Test Only] Unified cleanup for email and E2E tests (excludes persistent accounts)
 - **`seed-halloween-stickers`** - [Admin Only] Seeds Halloween sticker collection for testing
 
 ### Webhooks & Integrations
@@ -77,8 +78,9 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | aftership-webhook | Webhook | AfterShip | ⚠️ NOT FUNCTIONAL - Receives tracking updates |
 | broadcast-product-update | Admin | Supabase | Sends product update notifications |
 | cleanup-email-test-data | Test | Supabase | Removes email test data |
-| cleanup-test-data-unified | Test | Supabase | Unified test data cleanup |
+| cleanup-test-data-unified | Test | Supabase | Unified test data cleanup (excludes persistent accounts) |
 | create-donation-checkout | Public | Stripe | Creates donation checkout session |
+| create-persistent-test-accounts | Admin | Supabase | Creates/verifies persistent test accounts |
 | create-sponsorship-checkout | Public | Stripe | Creates sponsorship checkout session |
 | create-user | Admin | Supabase | Creates test user accounts |
 | generate-receipts | Cron | Resend, Stripe | Batch generates monthly receipts |
