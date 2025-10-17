@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Send, Eye, Edit, Trash2 } from "lucide-react";
+import { Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
+import { CampaignActions } from "./CampaignActions";
 import { format } from "date-fns";
 
 export const NewsletterCampaigns = () => {
@@ -27,23 +28,6 @@ export const NewsletterCampaigns = () => {
     },
   });
 
-  const sendCampaignMutation = useMutation({
-    mutationFn: async (campaignId: string) => {
-      const { data, error } = await supabase.functions.invoke("send-newsletter", {
-        body: { campaignId },
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Campaign sent successfully!");
-      queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] });
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to send campaign");
-    },
-  });
 
   const deleteCampaignMutation = useMutation({
     mutationFn: async (campaignId: string) => {
@@ -135,16 +119,11 @@ export const NewsletterCampaigns = () => {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      {campaign.status === "draft" && (
-                        <Button
-                          size="sm"
-                          onClick={() => sendCampaignMutation.mutate(campaign.id)}
-                          disabled={sendCampaignMutation.isPending}
-                        >
-                          <Send className="h-4 w-4 mr-2" />
-                          Send Now
-                        </Button>
-                      )}
+                      <CampaignActions
+                        campaignId={campaign.id}
+                        campaignStatus={campaign.status}
+                        onSendComplete={() => queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] })}
+                      />
                     </>
                   )}
                   {campaign.status === "sent" && (
