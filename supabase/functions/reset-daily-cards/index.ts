@@ -48,15 +48,42 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Resetting daily scratch cards for testing...');
+    console.log('Resetting daily scratch cards for admins/owners only...');
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Delete all scratch cards for today
+    // Get all admin and owner user IDs
+    const { data: adminUsers, error: adminError } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .in('role', ['admin', 'owner']);
+
+    if (adminError) {
+      console.error('Error fetching admin users:', adminError);
+      throw adminError;
+    }
+
+    const adminUserIds = adminUsers?.map(u => u.user_id) || [];
+
+    if (adminUserIds.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'No admin users found to reset cards for.',
+          deleted_count: 0
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Delete scratch cards for admin/owner users only for today
     const { error: deleteError, count } = await supabase
       .from('daily_scratch_cards')
       .delete({ count: 'exact' })
-      .eq('date', today);
+      .eq('date', today)
+      .in('user_id', adminUserIds);
 
     if (deleteError) {
       console.error('Error deleting cards:', deleteError);
