@@ -27,6 +27,7 @@ const Auth = () => {
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(true);
   const [loading, setLoading] = useState(false);
 
   // Fetch the logo from database
@@ -124,7 +125,7 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -138,6 +139,23 @@ const Auth = () => {
         });
 
         if (error) throw error;
+
+        // Subscribe to newsletter if checked
+        if (subscribeToNewsletter && data.user) {
+          try {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            await supabase.from("newsletter_subscribers").insert({
+              email,
+              user_id: data.user.id,
+              status: 'active',
+              source: 'signup',
+              timezone,
+            });
+          } catch (newsletterError) {
+            console.error("Error subscribing to newsletter:", newsletterError);
+            // Don't block signup if newsletter subscription fails
+          }
+        }
 
         // Set flag to record terms acceptance once session is confirmed
         localStorage.setItem('pendingTermsAcceptance', 'true');
@@ -403,26 +421,42 @@ const Auth = () => {
             </div>
 
             {isSignUp && (
-              <div className="flex items-start space-x-2 pt-2">
-                <Checkbox 
-                  id="terms" 
-                  checked={acceptedTerms}
-                  onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
-                />
-                <label
-                  htmlFor="terms"
-                  className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  I agree to the{" "}
-                  <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">
-                    Privacy Policy
-                  </Link>
-                </label>
-              </div>
+              <>
+                <div className="flex items-start space-x-2 pt-2">
+                  <Checkbox 
+                    id="newsletter" 
+                    checked={subscribeToNewsletter}
+                    onCheckedChange={(checked) => setSubscribeToNewsletter(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="newsletter"
+                    className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Send me monthly updates and inspiring stories
+                  </label>
+                </div>
+                
+                <div className="flex items-start space-x-2 pt-2">
+                  <Checkbox 
+                    id="terms" 
+                    checked={acceptedTerms}
+                    onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="terms"
+                    className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    I agree to the{" "}
+                    <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">
+                      Privacy Policy
+                    </Link>
+                  </label>
+                </div>
+              </>
             )}
 
             <Button 

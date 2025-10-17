@@ -61,6 +61,7 @@ const SponsorBestie = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [coverStripeFee, setCoverStripeFee] = useState(true);
+  const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(true);
   const [pageContent, setPageContent] = useState({
     badge_text: "Sponsor a Bestie",
     main_heading: "Change a Life Today",
@@ -308,6 +309,24 @@ const SponsorBestie = () => {
       } catch (termsError) {
         console.error("Error recording terms acceptance:", termsError);
         // Don't block sponsorship if terms recording fails
+      }
+
+      // Subscribe to newsletter if checked
+      if (subscribeToNewsletter) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          await supabase.from("newsletter_subscribers").insert({
+            email: email.trim(),
+            user_id: user?.id || null,
+            status: 'active',
+            source: 'sponsorship',
+            timezone,
+          });
+        } catch (newsletterError) {
+          console.error("Error subscribing to newsletter:", newsletterError);
+          // Don't block sponsorship if newsletter subscription fails
+        }
       }
 
       // Call Stripe edge function to create checkout session
@@ -566,6 +585,22 @@ const SponsorBestie = () => {
                         ? "This email is linked to your account and will be used to track and manage your sponsorship. Receipts will be sent here." 
                         : "Don't have an account? You can sponsor as a guest and create one later to view your sponsorships."}
                     </p>
+                  </div>
+
+                  {/* Newsletter Checkbox */}
+                  <div className="flex items-start space-x-2 py-2">
+                    <Checkbox 
+                      id="newsletter" 
+                      checked={subscribeToNewsletter}
+                      onCheckedChange={(checked) => setSubscribeToNewsletter(checked as boolean)}
+                      className="mt-1"
+                    />
+                    <label
+                      htmlFor="newsletter"
+                      className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                    >
+                      Send me monthly updates and inspiring stories
+                    </label>
                   </div>
 
                   {/* Terms and Privacy Policy Checkbox */}

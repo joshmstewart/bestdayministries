@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Store, ArrowLeft } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import joyHouseLogo from "@/assets/joy-house-logo-full.png";
 import { useQuery } from "@tanstack/react-query";
 
@@ -18,6 +19,7 @@ const VendorAuth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(true);
   const [loading, setLoading] = useState(false);
 
   // Fetch the logo from database
@@ -102,6 +104,23 @@ const VendorAuth = () => {
 
       if (signUpError) throw signUpError;
       if (!data.user) throw new Error("Failed to create user");
+
+      // Subscribe to newsletter if checked
+      if (subscribeToNewsletter) {
+        try {
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          await supabase.from("newsletter_subscribers").insert({
+            email,
+            user_id: data.user.id,
+            status: 'active',
+            source: 'vendor_signup',
+            timezone,
+          });
+        } catch (newsletterError) {
+          console.error("Error subscribing to newsletter:", newsletterError);
+          // Don't block signup if newsletter subscription fails
+        }
+      }
 
       // Create vendor record with pending status
       const { error: vendorError } = await supabase
@@ -269,15 +288,31 @@ const VendorAuth = () => {
             </div>
 
             {isSignUp && (
-              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm text-muted-foreground">
-                <p className="font-semibold text-foreground mb-2">Application Process:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Submit your vendor application</li>
-                  <li>Admin reviews your application</li>
-                  <li>Receive approval notification</li>
-                  <li>Start selling in the marketplace!</li>
-                </ul>
-              </div>
+              <>
+                <div className="flex items-start space-x-2 pt-2">
+                  <Checkbox 
+                    id="newsletter" 
+                    checked={subscribeToNewsletter}
+                    onCheckedChange={(checked) => setSubscribeToNewsletter(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="newsletter"
+                    className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Send me monthly updates and inspiring stories
+                  </label>
+                </div>
+
+                <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm text-muted-foreground">
+                  <p className="font-semibold text-foreground mb-2">Application Process:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Submit your vendor application</li>
+                    <li>Admin reviews your application</li>
+                    <li>Receive approval notification</li>
+                    <li>Start selling in the marketplace!</li>
+                  </ul>
+                </div>
+              </>
             )}
 
             <Button 
