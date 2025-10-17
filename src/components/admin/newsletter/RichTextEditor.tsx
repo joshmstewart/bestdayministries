@@ -165,6 +165,13 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     },
   });
 
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
+
   useEffect(() => {
     if (editor) {
       setIsImageSelected(editor.isActive('image'));
