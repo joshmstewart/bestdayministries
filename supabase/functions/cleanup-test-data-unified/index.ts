@@ -314,6 +314,157 @@ serve(async (req) => {
         }
       }
       
+      // 14. Delete events by test users OR name patterns
+      console.log('🧹 Deleting events...');
+      if (testUserIds.length > 0) {
+        // First get event IDs to clean up related data
+        const { data: eventRecords } = await supabaseAdmin
+          .from('events')
+          .select('id')
+          .in('created_by', testUserIds);
+        
+        const eventIds = eventRecords?.map(e => e.id) || [];
+        
+        if (eventIds.length > 0) {
+          // Delete event attendees
+          await supabaseAdmin.from('event_attendees').delete().in('event_id', eventIds);
+          // Delete event dates
+          await supabaseAdmin.from('event_dates').delete().in('event_id', eventIds);
+          console.log('✅ Deleted event-related data');
+        }
+        
+        const { error: eventsError } = await supabaseAdmin
+          .from('events')
+          .delete()
+          .in('created_by', testUserIds);
+        
+        if (eventsError) {
+          console.error('Error deleting events:', eventsError);
+        } else {
+          console.log('✅ Deleted events by user');
+        }
+      }
+      
+      // Delete events by title pattern
+      if (namePatterns.length > 0) {
+        for (const pattern of namePatterns) {
+          const { error: eventPatternError } = await supabaseAdmin
+            .from('events')
+            .delete()
+            .ilike('title', `%${pattern}%`);
+          
+          if (eventPatternError) {
+            console.error(`Error deleting events with pattern ${pattern}:`, eventPatternError);
+          } else {
+            console.log(`✅ Deleted events with pattern: ${pattern}`);
+          }
+        }
+      }
+      
+      // 15. Delete albums by test users OR name patterns
+      console.log('🧹 Deleting albums...');
+      if (testUserIds.length > 0) {
+        // First get album IDs to clean up related data
+        const { data: albumRecords } = await supabaseAdmin
+          .from('albums')
+          .select('id')
+          .in('created_by', testUserIds);
+        
+        const albumIds = albumRecords?.map(a => a.id) || [];
+        
+        if (albumIds.length > 0) {
+          // Delete album images
+          await supabaseAdmin.from('album_images').delete().in('album_id', albumIds);
+          console.log('✅ Deleted album images');
+        }
+        
+        const { error: albumsError } = await supabaseAdmin
+          .from('albums')
+          .delete()
+          .in('created_by', testUserIds);
+        
+        if (albumsError) {
+          console.error('Error deleting albums:', albumsError);
+        } else {
+          console.log('✅ Deleted albums by user');
+        }
+      }
+      
+      // Delete albums by title pattern
+      if (namePatterns.length > 0) {
+        for (const pattern of namePatterns) {
+          const { error: albumPatternError } = await supabaseAdmin
+            .from('albums')
+            .delete()
+            .ilike('title', `%${pattern}%`);
+          
+          if (albumPatternError) {
+            console.error(`Error deleting albums with pattern ${pattern}:`, albumPatternError);
+          } else {
+            console.log(`✅ Deleted albums with pattern: ${pattern}`);
+          }
+        }
+      }
+      
+      // 16. Delete newsletter subscribers (test emails)
+      console.log('🧹 Deleting newsletter subscribers...');
+      const newsletterPatterns = [
+        'newsletter-test-%',
+        'test-%@example.com',
+        'sub1-%@example.com',
+        'sub2-%@example.com',
+        'active-%@example.com',
+        'unsub-%@example.com',
+        'unsubscribe-%@example.com'
+      ];
+      
+      for (const pattern of newsletterPatterns) {
+        const { error: subscriberError } = await supabaseAdmin
+          .from('newsletter_subscribers')
+          .delete()
+          .like('email', pattern);
+        
+        if (subscriberError) {
+          console.error(`Error deleting newsletter subscribers with pattern ${pattern}:`, subscriberError);
+        }
+      }
+      console.log('✅ Deleted newsletter subscribers');
+      
+      // 17. Delete newsletter campaigns with test subjects
+      console.log('🧹 Deleting newsletter campaigns...');
+      const campaignPatterns = ['Test Campaign %', 'Test Email Campaign %', 'Production Campaign %', 'Filter Test %'];
+      
+      for (const pattern of campaignPatterns) {
+        // First get campaign IDs to clean up analytics
+        const { data: campaigns } = await supabaseAdmin
+          .from('newsletter_campaigns')
+          .select('id')
+          .like('subject', pattern);
+        
+        const campaignIds = campaigns?.map(c => c.id) || [];
+        
+        if (campaignIds.length > 0) {
+          // Delete analytics for these campaigns
+          await supabaseAdmin
+            .from('newsletter_analytics')
+            .delete()
+            .in('campaign_id', campaignIds);
+          
+          console.log(`✅ Deleted analytics for ${campaignIds.length} test campaigns`);
+        }
+        
+        // Delete campaigns
+        const { error: campaignError } = await supabaseAdmin
+          .from('newsletter_campaigns')
+          .delete()
+          .like('subject', pattern);
+        
+        if (campaignError) {
+          console.error(`Error deleting campaigns with pattern ${pattern}:`, campaignError);
+        }
+      }
+      console.log('✅ Deleted newsletter campaigns');
+      
       console.log('✅ Completed comprehensive pre-user deletion cleanup');
     }
 
