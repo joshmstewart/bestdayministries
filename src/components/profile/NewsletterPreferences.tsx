@@ -79,6 +79,23 @@ export const NewsletterPreferences = ({ userId, userEmail }: NewsletterPreferenc
       setIsSubscribed(true);
       await loadSubscription();
 
+      // Trigger automated welcome email
+      try {
+        await supabase.functions.invoke('send-automated-campaign', {
+          body: {
+            trigger_event: 'newsletter_subscribed',
+            recipient_email: userEmail,
+            recipient_user_id: userId,
+            trigger_data: {
+              name: userEmail.split('@')[0], // Use email prefix as name fallback
+            }
+          }
+        });
+      } catch (emailError) {
+        console.error("Error sending welcome email:", emailError);
+        // Don't fail the subscription if email fails
+      }
+
       toast({
         title: "Subscribed!",
         description: "You'll now receive our newsletter updates.",
