@@ -2015,6 +2015,197 @@ export type Database = {
           },
         ]
       }
+      newsletter_automation_enrollments: {
+        Row: {
+          automation_id: string | null
+          completed_at: string | null
+          current_step: number | null
+          enrolled_at: string
+          id: string
+          metadata: Json | null
+          next_send_at: string | null
+          sequence_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          automation_id?: string | null
+          completed_at?: string | null
+          current_step?: number | null
+          enrolled_at?: string
+          id?: string
+          metadata?: Json | null
+          next_send_at?: string | null
+          sequence_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          automation_id?: string | null
+          completed_at?: string | null
+          current_step?: number | null
+          enrolled_at?: string
+          id?: string
+          metadata?: Json | null
+          next_send_at?: string | null
+          sequence_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_automation_enrollments_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_automation_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_drip_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_automation_logs: {
+        Row: {
+          action: string
+          automation_id: string | null
+          campaign_id: string | null
+          created_at: string
+          enrollment_id: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          sequence_id: string | null
+          status: string
+          step_number: number | null
+        }
+        Insert: {
+          action: string
+          automation_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          enrollment_id?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          sequence_id?: string | null
+          status?: string
+          step_number?: number | null
+        }
+        Update: {
+          action?: string
+          automation_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          enrollment_id?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          sequence_id?: string | null
+          status?: string
+          step_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_automation_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_automation_logs_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_automation_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_automation_logs_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_drip_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_automations: {
+        Row: {
+          campaign_id: string | null
+          conditions: Json | null
+          created_at: string
+          created_by: string
+          description: string | null
+          drip_sequence_id: string | null
+          id: string
+          name: string
+          status: string
+          total_enrolled: number | null
+          total_sent: number | null
+          trigger_event: string | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          conditions?: Json | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          drip_sequence_id?: string | null
+          id?: string
+          name: string
+          status?: string
+          total_enrolled?: number | null
+          total_sent?: number | null
+          trigger_event?: string | null
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          drip_sequence_id?: string | null
+          id?: string
+          name?: string
+          status?: string
+          total_enrolled?: number | null
+          total_sent?: number | null
+          trigger_event?: string | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_automation_drip_sequence"
+            columns: ["drip_sequence_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_drip_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_automations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_campaigns: {
         Row: {
           created_at: string
@@ -2077,6 +2268,96 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_drip_sequences: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          enrollment_trigger: string
+          exit_conditions: Json | null
+          id: string
+          name: string
+          status: string
+          total_completed: number | null
+          total_enrolled: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          enrollment_trigger: string
+          exit_conditions?: Json | null
+          id?: string
+          name: string
+          status?: string
+          total_completed?: number | null
+          total_enrolled?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          enrollment_trigger?: string
+          exit_conditions?: Json | null
+          id?: string
+          name?: string
+          status?: string
+          total_completed?: number | null
+          total_enrolled?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      newsletter_drip_steps: {
+        Row: {
+          campaign_id: string | null
+          conditions: Json | null
+          created_at: string
+          delay_unit: string
+          delay_value: number
+          id: string
+          sequence_id: string
+          step_number: number
+        }
+        Insert: {
+          campaign_id?: string | null
+          conditions?: Json | null
+          created_at?: string
+          delay_unit?: string
+          delay_value?: number
+          id?: string
+          sequence_id: string
+          step_number: number
+        }
+        Update: {
+          campaign_id?: string | null
+          conditions?: Json | null
+          created_at?: string
+          delay_unit?: string
+          delay_value?: number
+          id?: string
+          sequence_id?: string
+          step_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_drip_steps_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_drip_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_drip_sequences"
             referencedColumns: ["id"]
           },
         ]
