@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Check } from "lucide-react";
 import kawaiiBat from "@/assets/stickers/halloween/04-happy-bat.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
+import { useNavigate } from "react-router-dom";
 
 export const DailyScratchCard = () => {
+  const navigate = useNavigate();
   const [card, setCard] = useState<any>(null);
   const [sampleSticker, setSampleSticker] = useState<string>("");
   const [showDialog, setShowDialog] = useState(false);
@@ -169,12 +171,17 @@ export const DailyScratchCard = () => {
   const isExpired = new Date(card.expires_at) < new Date();
 
   return (
-    <>
+    <div className="space-y-2">
       {/* Small sticker button */}
       <button
-        onClick={() => !card.is_scratched && !isExpired && setShowDialog(true)}
-        disabled={card.is_scratched || isExpired}
-        className="relative transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+        onClick={() => {
+          if (!card.is_scratched && !isExpired) {
+            setShowDialog(true);
+          } else {
+            navigate('/sticker-album');
+          }
+        }}
+        className="relative transition-all hover:scale-110 active:scale-95"
         style={{ 
           filter: card.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))',
           background: 'transparent'
@@ -202,12 +209,21 @@ export const DailyScratchCard = () => {
         </div>
       </button>
 
+      {/* Explanation */}
+      <div className="text-xs text-center text-muted-foreground max-w-[100px]">
+        {card.is_scratched ? (
+          <span>View your collection</span>
+        ) : (
+          <span>Scratch daily for a new sticker!</span>
+        )}
+      </div>
+
       <ScratchCardDialog
         open={showDialog}
         onOpenChange={setShowDialog}
         cardId={card.id}
         onScratched={checkDailyCard}
       />
-    </>
+    </div>
   );
 };

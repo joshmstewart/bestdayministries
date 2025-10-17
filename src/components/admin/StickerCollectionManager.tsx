@@ -9,9 +9,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type UserRole = "supporter" | "bestie" | "caregiver" | "moderator" | "admin" | "owner";
 
@@ -99,6 +116,99 @@ const rarityConfig = {
   rare: { label: "Rare", rate: 15, color: "bg-blue-500" },
   epic: { label: "Epic", rate: 4, color: "bg-purple-500" },
   legendary: { label: "Legendary", rate: 1, color: "bg-yellow-500" },
+};
+
+interface SortableStickerItemProps {
+  sticker: any;
+  isPreview: boolean;
+  onSetPreview: () => void;
+  onToggleActive: () => void;
+  onDelete: () => void;
+}
+
+const SortableStickerItem = ({ 
+  sticker, 
+  isPreview, 
+  onSetPreview, 
+  onToggleActive, 
+  onDelete 
+}: SortableStickerItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sticker.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 p-3 bg-muted rounded-lg border"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing touch-none"
+      >
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      </button>
+      
+      <img
+        src={sticker.image_url}
+        alt={sticker.name}
+        className="w-16 h-16 object-contain border rounded"
+      />
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">#{sticker.sticker_number}</span>
+          <span className="truncate">{sticker.name}</span>
+          <Badge className={rarityConfig[sticker.rarity as keyof typeof rarityConfig].color}>
+            {sticker.rarity}
+          </Badge>
+          {isPreview && (
+            <Badge variant="default">Preview</Badge>
+          )}
+        </div>
+        {sticker.description && (
+          <p className="text-sm text-muted-foreground truncate">{sticker.description}</p>
+        )}
+      </div>
+
+      <div className="flex gap-1">
+        <Button
+          size="sm"
+          variant={isPreview ? "default" : "outline"}
+          onClick={onSetPreview}
+        >
+          Preview
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onToggleActive}
+        >
+          {sticker.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 };
 
 export const StickerCollectionManager = () => {
@@ -530,6 +640,12 @@ export const StickerCollectionManager = () => {
     setLoading(true);
 
     try {
+      // Calculate next sticker number
+      const maxNumber = stickers.length > 0 
+        ? Math.max(...stickers.map(s => s.sticker_number))
+        : 0;
+      const nextNumber = maxNumber + 1;
+
       // Upload image
       const fileExt = stickerImage.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -550,18 +666,22 @@ export const StickerCollectionManager = () => {
           collection_id: selectedCollection,
           image_url: publicUrl,
           drop_rate: rarityConfig[stickerForm.rarity].rate,
-          ...stickerForm,
+          sticker_number: nextNumber,
+          name: stickerForm.name,
+          description: stickerForm.description,
+          rarity: stickerForm.rarity,
+          visual_style: stickerForm.visual_style,
         });
 
       if (insertError) throw insertError;
 
-      toast({ title: "Success", description: "Sticker uploaded!" });
+      toast({ title: "Success", description: `Sticker uploaded as #${nextNumber}!` });
       setStickerForm({
         name: "",
         description: "",
         rarity: "common",
         visual_style: "",
-        sticker_number: stickerForm.sticker_number + 1,
+        sticker_number: nextNumber + 1,
       });
       setStickerImage(null);
       setImagePreview("");
@@ -572,6 +692,49 @@ export const StickerCollectionManager = () => {
       setLoading(false);
     }
   };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = stickers.findIndex((s) => s.id === active.id);
+    const newIndex = stickers.findIndex((s) => s.id === over.id);
+
+    const newStickers = arrayMove(stickers, oldIndex, newIndex);
+    setStickers(newStickers);
+
+    // Update sticker_number for all affected stickers
+    const updates = newStickers.map((sticker, index) => ({
+      id: sticker.id,
+      sticker_number: index + 1,
+    }));
+
+    try {
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('stickers')
+          .update({ sticker_number: update.sticker_number })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+
+      toast({ title: "Success", description: "Sticker order updated!" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      fetchStickers(selectedCollection); // Reload on error
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const deleteSticker = async (stickerId: string, imageUrl: string) => {
     if (!confirm("Are you sure you want to delete this sticker?")) return;
@@ -945,23 +1108,13 @@ export const StickerCollectionManager = () => {
 
               {selectedCollection && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Sticker Name</Label>
-                      <Input
-                        value={stickerForm.name}
-                        onChange={(e) => setStickerForm({ ...stickerForm, name: e.target.value })}
-                        placeholder="Glittery Ghost"
-                      />
-                    </div>
-                    <div>
-                      <Label>Sticker Number</Label>
-                      <Input
-                        type="number"
-                        value={stickerForm.sticker_number}
-                        onChange={(e) => setStickerForm({ ...stickerForm, sticker_number: parseInt(e.target.value) })}
-                      />
-                    </div>
+                  <div>
+                    <Label>Sticker Name</Label>
+                    <Input
+                      value={stickerForm.name}
+                      onChange={(e) => setStickerForm({ ...stickerForm, name: e.target.value })}
+                      placeholder="Glittery Ghost"
+                    />
                   </div>
 
                   <div>
@@ -1036,81 +1189,57 @@ export const StickerCollectionManager = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Stickers in Collection ({stickers.length}/25)</CardTitle>
+                <CardDescription>Drag to reorder stickers</CardDescription>
               </CardHeader>
               <CardContent>
                 {stickers.length > 0 ? (
-                  <div className="grid grid-cols-5 gap-4">
-                    {stickers.map((sticker) => {
-                      const currentCollection = collections.find(c => c.id === selectedCollection);
-                      const isPreview = currentCollection?.preview_sticker_id === sticker.id;
-                      
-                      return (
-                        <div key={sticker.id} className="relative group">
-                          <img
-                            src={sticker.image_url}
-                            alt={sticker.name}
-                            className="w-full aspect-square object-contain border rounded"
-                          />
-                          {isPreview && (
-                            <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-                              Preview
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                            <div className="text-white text-sm text-center px-2">
-                              #{sticker.sticker_number} {sticker.name}
-                            </div>
-                            <Badge className={rarityConfig[sticker.rarity as keyof typeof rarityConfig].color}>
-                              {sticker.rarity}
-                            </Badge>
-                            <div className="flex gap-1 flex-wrap justify-center">
-                              <Button
-                                size="sm"
-                                variant={isPreview ? "default" : "secondary"}
-                                onClick={async () => {
-                                  const { error } = await supabase
-                                    .from('sticker_collections')
-                                    .update({ preview_sticker_id: sticker.id })
-                                    .eq('id', selectedCollection);
-                                  
-                                  if (error) {
-                                    toast({
-                                      title: "Error",
-                                      description: "Failed to set preview sticker",
-                                      variant: "destructive",
-                                    });
-                                  } else {
-                                    toast({
-                                      title: "Success",
-                                      description: "Community page preview updated",
-                                    });
-                                    fetchCollections();
-                                  }
-                                }}
-                                className="text-xs"
-                              >
-                                Preview
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => toggleStickerActive(sticker.id, sticker.is_active)}
-                              >
-                                {sticker.is_active ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => deleteSticker(sticker.id, sticker.image_url)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={stickers.map(s => s.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-2">
+                        {stickers.map((sticker) => {
+                          const currentCollection = collections.find(c => c.id === selectedCollection);
+                          const isPreview = currentCollection?.preview_sticker_id === sticker.id;
+                          
+                          return (
+                            <SortableStickerItem
+                              key={sticker.id}
+                              sticker={sticker}
+                              isPreview={isPreview}
+                              onSetPreview={async () => {
+                                const { error } = await supabase
+                                  .from('sticker_collections')
+                                  .update({ preview_sticker_id: sticker.id })
+                                  .eq('id', selectedCollection);
+                                
+                                if (error) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to set preview sticker",
+                                    variant: "destructive",
+                                  });
+                                } else {
+                                  toast({
+                                    title: "Success",
+                                    description: "Community page preview updated",
+                                  });
+                                  fetchCollections();
+                                }
+                              }}
+                              onToggleActive={() => toggleStickerActive(sticker.id, sticker.is_active)}
+                              onDelete={() => deleteSticker(sticker.id, sticker.image_url)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <p className="mb-2">No stickers in this collection yet.</p>

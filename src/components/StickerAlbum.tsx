@@ -151,6 +151,33 @@ export const StickerAlbum = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Rarity Drop Rates */}
+          <div className="pt-4 border-t">
+            <p className="text-sm font-medium mb-2">Drop Rate Information:</p>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-gray-500"></div>
+                <span className="text-muted-foreground">Common: 50%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-green-500"></div>
+                <span className="text-muted-foreground">Uncommon: 30%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-blue-500"></div>
+                <span className="text-muted-foreground">Rare: 15%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-purple-500"></div>
+                <span className="text-muted-foreground">Epic: 4%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-yellow-500"></div>
+                <span className="text-muted-foreground">Legendary: 1%</span>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
