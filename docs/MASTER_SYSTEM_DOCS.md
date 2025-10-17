@@ -325,8 +325,8 @@ LAYERED-WAITS:tab-click→section-heading-wait-15s→component-title-wait-10s→
 SELECTORS:verify-component-code→exact-text-NOT-generic-patterns
 TAB-CONTENT:ALWAYS-wait-for-specific-content-within-tab-NEVER-waitForTimeout
 CRITICAL:waitForSelector[specific-targets]+exact-component-text+layered-waits=stable-tests
-CLEANUP:cleanup-test-data-unified[email+E2E]→emailPrefix[emailtest-{testRunId}]|namePatterns[Test+E2E]→13-table-cascade→delete-users
-NAMING:Test-prefix|E2E-prefix|test@-email→auto-cleanup
+CLEANUP:cleanup-test-data-unified[email+E2E]→emailPrefix[emailtest-{testRunId}|e2etest@|automatedtest@]|namePatterns[E2E-Test+Automated-Test+Playwright-Test]→19-table-cascade→delete-automated-tests-PRESERVE-manual-test-accounts
+NAMING:Automated[E2E-Test|Automated-Test|Playwright-Test-prefix]|Manual[Test-Bestie|Test-Guardian-PRESERVED]|Email[emailtest-|e2etest@|automatedtest@]→auto-cleanup
 HELPERS:markAsTestData|generateTestName|cleanupTestData
 MANUAL:Admin→Testing-tab→Clean-Test-Data-button
 DOC:TEST_DATA_CLEANUP.md|EMAIL_TESTING_SYSTEM_COMPLETE.md

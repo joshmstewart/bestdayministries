@@ -23,23 +23,20 @@ This single edge function handles ALL test data cleanup with two cleanup strateg
 Cleans up users whose emails match:
 - `emailtest-{testRunId}@test.com`
 - `emailtest-*@test.com`
-- `testbestie@example.com`
-- `testguardian@example.com`
-- `testsupporter@example.com`
-- `testvendor@example.com`
-- Any email containing "test" and "@test.com"
+- `e2etest@*`
+- `automatedtest@*`
 
 #### Strategy 2: E2E Test Cleanup (by name patterns)
 ```typescript
 {
-  namePatterns: ["Test", "E2E"]  // Cleans records with these patterns in names
+  namePatterns: ["E2E Test", "Automated Test", "Playwright Test"]  // Specific patterns for automated tests
 }
 ```
 
 Cleans up records where:
-- `bestie_name` contains "Test" or "E2E" (featured_besties)
-- `title` contains "Test" or "E2E" (discussion_posts)
-- `business_name` contains "Test" or "E2E" (vendors)
+- `bestie_name` contains "E2E Test", "Automated Test", or "Playwright Test" (featured_besties)
+- `title` contains "E2E Test", "Automated Test", or "Playwright Test" (discussion_posts)
+- `business_name` contains "E2E Test", "Automated Test", or "Playwright Test" (vendors)
 
 ### 2. Comprehensive 19-Step Cascade Cleanup
 
@@ -110,7 +107,7 @@ await fetch(`${supabaseUrl}/functions/v1/cleanup-test-data-unified`, {
     'Authorization': `Bearer ${supabaseKey}`,
   },
   body: JSON.stringify({
-    namePatterns: ['Test', 'E2E']
+    namePatterns: ['E2E Test', 'Automated Test', 'Playwright Test']
   }),
 });
 ```
@@ -130,7 +127,7 @@ Admin panel provides manual cleanup button:
 // src/components/admin/TestRunsManager.tsx
 const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
   body: {
-    namePatterns: ['Test', 'E2E']
+    namePatterns: ['E2E Test', 'Automated Test', 'Playwright Test']
   }
 });
 ```
@@ -139,18 +136,24 @@ const { data, error } = await supabase.functions.invoke('cleanup-test-data-unifi
 
 ### 1. Naming Convention
 
-**ALWAYS** prefix test data with "Test" or "E2E":
+**Use specific prefixes for automated test data:**
 
 ```typescript
-// ✅ GOOD - Will be auto-cleaned
+// ✅ GOOD - Will be auto-cleaned by E2E tests
 const testUser = {
-  display_name: "Test User",
+  display_name: "E2E Test User",
   email: "emailtest-123@test.com"
 };
 
 const testPost = {
-  title: "Test Discussion Post",
+  title: "Automated Test Discussion Post",
   content: "Test content"
+};
+
+// ✅ ALSO GOOD - Manual test accounts (won't be auto-cleaned)
+const manualTestUser = {
+  display_name: "Test Bestie",
+  email: "testbestie@example.com"
 };
 
 // ❌ BAD - Won't be cleaned automatically
@@ -169,9 +172,9 @@ import { markAsTestData, generateTestName, cleanupTestData } from '../utils/clea
 const metadata = markAsTestData({ customField: 'value' });
 // Returns: { is_test_data: true, test_created_at: '...', test_session_id: 'test-...', customField: 'value' }
 
-// Generate consistent test names
+// Generate consistent test names for E2E tests
 const name = generateTestName('My Feature');
-// Returns: "Test My Feature"
+// Returns: "E2E Test My Feature"
 
 // Cleanup in tests
 test.afterAll(async ({ page }) => {
@@ -221,11 +224,16 @@ test.afterAll(async () => {
 "john@company.com"
 ```
 
-### Always Use Test Prefixes
+### Always Use Specific Prefixes for Automated Tests
 ```typescript
-// ✅ GOOD
-"Test Sponsorship"
-"E2E Discussion Post"
+// ✅ GOOD - Automated tests
+"E2E Test Sponsorship"
+"Automated Test Discussion Post"
+"Playwright Test Product"
+
+// ✅ ALSO GOOD - Manual test accounts (preserved)
+"Test Bestie"
+"Test Guardian"
 
 // ❌ BAD
 "Monthly Sponsorship"
@@ -240,30 +248,37 @@ All Stripe operations in tests use test mode keys automatically.
 ### Check for Leftover Test Data
 
 ```sql
--- Check for test users
+-- Check for automated test users
 SELECT id, email, display_name 
 FROM profiles 
-WHERE display_name ILIKE '%Test%' 
-   OR display_name ILIKE '%E2E%'
-   OR email LIKE '%test@%';
+WHERE display_name ILIKE '%E2E Test%' 
+   OR display_name ILIKE '%Automated Test%'
+   OR display_name ILIKE '%Playwright Test%'
+   OR email LIKE 'emailtest-%'
+   OR email LIKE 'e2etest@%'
+   OR email LIKE 'automatedtest@%';
 
--- Check for test posts
+-- Check for automated test posts
 SELECT id, title, author_id 
 FROM discussion_posts 
-WHERE title ILIKE '%Test%' 
-   OR title ILIKE '%E2E%';
+WHERE title ILIKE '%E2E Test%' 
+   OR title ILIKE '%Automated Test%'
+   OR title ILIKE '%Playwright Test%';
 
--- Check for test sponsorships
+-- Check for automated test sponsorships
 SELECT s.id, s.amount, p.display_name 
 FROM sponsorships s
 JOIN profiles p ON p.id = s.sponsor_id OR p.id = s.bestie_id
-WHERE p.display_name ILIKE '%Test%';
+WHERE p.display_name ILIKE '%E2E Test%' 
+   OR p.display_name ILIKE '%Automated Test%'
+   OR p.display_name ILIKE '%Playwright Test%';
 
--- Check for test vendors
+-- Check for automated test vendors
 SELECT id, business_name 
 FROM vendors 
-WHERE business_name ILIKE '%Test%' 
-   OR business_name ILIKE '%E2E%';
+WHERE business_name ILIKE '%E2E Test%' 
+   OR business_name ILIKE '%Automated Test%'
+   OR business_name ILIKE '%Playwright Test%';
 ```
 
 ### Automated Cleanup Schedule
@@ -271,9 +286,14 @@ WHERE business_name ILIKE '%Test%'
 Consider setting up a cron job to automatically clean old test data:
 
 ```sql
--- Delete test data older than 7 days
+-- Delete automated test data older than 7 days
 DELETE FROM profiles 
-WHERE (display_name ILIKE '%Test%' OR display_name ILIKE '%E2E%' OR email LIKE '%test@%')
+WHERE (display_name ILIKE '%E2E Test%' 
+   OR display_name ILIKE '%Automated Test%' 
+   OR display_name ILIKE '%Playwright Test%'
+   OR email LIKE 'emailtest-%'
+   OR email LIKE 'e2etest@%'
+   OR email LIKE 'automatedtest@%')
   AND created_at < NOW() - INTERVAL '7 days';
 ```
 
@@ -281,10 +301,11 @@ WHERE (display_name ILIKE '%Test%' OR display_name ILIKE '%E2E%' OR email LIKE '
 
 ### Test Data Not Cleaning Up
 
-1. **Check naming convention**: Ensure test data uses "Test" or "E2E" prefix
-2. **Check email pattern**: Email tests must use `emailtest-` prefix
-3. **Manual cleanup**: Use Admin panel "Clean Test Data" button
-4. **Check logs**: View edge function logs for `cleanup-test-data-unified`
+1. **Check naming convention**: Automated test data must use "E2E Test", "Automated Test", or "Playwright Test" prefix
+2. **Check email pattern**: Email tests must use `emailtest-`, `e2etest@`, or `automatedtest@` prefix
+3. **Manual test accounts**: Simple names like "Test Bestie" are preserved (not auto-cleaned)
+4. **Manual cleanup**: Use Admin panel "Clean Test Data" button
+5. **Check logs**: View edge function logs for `cleanup-test-data-unified`
 
 ### Cleanup Fails
 
@@ -292,25 +313,32 @@ If automated cleanup fails:
 
 1. **Manual SQL cleanup**:
 ```sql
--- Use with caution - this deletes ALL test data
-DELETE FROM profiles WHERE display_name ILIKE '%Test%' OR email LIKE '%test@%';
+-- Use with caution - this deletes automated test data only
+DELETE FROM profiles WHERE 
+  display_name ILIKE '%E2E Test%' 
+  OR display_name ILIKE '%Automated Test%' 
+  OR display_name ILIKE '%Playwright Test%'
+  OR email LIKE 'emailtest-%'
+  OR email LIKE 'e2etest@%'
+  OR email LIKE 'automatedtest@%';
 ```
 
 2. **Individual table cleanup**:
 ```sql
-DELETE FROM discussion_posts WHERE title ILIKE '%Test%';
-DELETE FROM featured_besties WHERE bestie_name ILIKE '%Test%';
-DELETE FROM vendors WHERE business_name ILIKE '%Test%';
+DELETE FROM discussion_posts WHERE title ILIKE '%E2E Test%' OR title ILIKE '%Automated Test%';
+DELETE FROM featured_besties WHERE bestie_name ILIKE '%E2E Test%' OR bestie_name ILIKE '%Automated Test%';
+DELETE FROM vendors WHERE business_name ILIKE '%E2E Test%' OR business_name ILIKE '%Automated Test%';
 ```
 
 ## Best Practices
 
-1. **Always use test prefixes** - "Test" or "E2E" in all test data names
-2. **Always use test emails** - `emailtest-{id}@test.com` or `test@example.com`
-3. **Always cleanup after tests** - Use `test.afterAll()` hooks
-4. **Monitor test data** - Regularly check for leftovers using SQL queries
-5. **Use Stripe test mode** - Never use live Stripe keys in tests
-6. **Document special cases** - If test data can't use standard patterns, document why
+1. **Use specific prefixes for automated tests** - "E2E Test", "Automated Test", or "Playwright Test" in all automated test data
+2. **Preserve manual test accounts** - Simple names like "Test Bestie" are safe and won't be auto-cleaned
+3. **Always use test emails** - `emailtest-{id}@test.com`, `e2etest@domain.com`, or `automatedtest@domain.com`
+4. **Always cleanup after tests** - Use `test.afterAll()` hooks
+5. **Monitor test data** - Regularly check for leftovers using SQL queries
+6. **Use Stripe test mode** - Never use live Stripe keys in tests
+7. **Document special cases** - If test data can't use standard patterns, document why
 
 ## Integration with CI/CD
 
@@ -330,7 +358,7 @@ The `global-teardown.ts` script ensures cleanup runs even if tests fail.
 ```
 Test Run
   ↓
-Create Test Data (with "Test"/"E2E" prefix or test@ email)
+Create Test Data (with "E2E Test"/"Automated Test" prefix or emailtest-/e2etest@ email)
   ↓
 Run Tests
   ↓
@@ -338,14 +366,15 @@ Global Teardown / Cleanup Test / Manual Cleanup
   ↓
 Invoke cleanup-test-data-unified
   ↓
-  ├─ Email Strategy: Match by emailPrefix
-  ├─ E2E Strategy: Match by namePatterns
+  ├─ Email Strategy: Match by emailPrefix (emailtest-, e2etest@, automatedtest@)
+  ├─ E2E Strategy: Match by specific namePatterns (E2E Test, Automated Test, Playwright Test)
   ↓
-13-Table Cascade Cleanup
+19-Table Cascade Cleanup
   ↓
 Delete Auth Users (cascade remaining)
   ↓
 Clean Database ✅
+Manual Test Accounts Preserved (Test Bestie, Test Guardian, etc.) ✅
 ```
 
 ## Related Documentation
