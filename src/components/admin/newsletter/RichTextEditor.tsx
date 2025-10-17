@@ -121,7 +121,13 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        paragraph: {
+          HTMLAttributes: {
+            class: 'min-h-[1.5em]',
+          },
+        },
+      }),
       ResizableImage,
       Youtube,
       Link.configure({

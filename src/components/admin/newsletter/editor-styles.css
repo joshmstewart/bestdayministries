@@ -31,6 +31,13 @@
 
 .ProseMirror p {
   margin: 0.5em 0;
+  min-height: 1.5em;
+}
+
+/* Preserve empty paragraphs */
+.ProseMirror p:empty::before {
+  content: '\200B'; /* Zero-width space */
+  display: inline;
 }
 
 .ProseMirror ul,
