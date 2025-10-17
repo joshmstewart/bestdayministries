@@ -436,10 +436,21 @@ serve(async (req) => {
       status: 200,
     });
   } catch (err) {
-    console.error("Webhook error:", err);
+    console.error("❌ Webhook error:", err);
+    
+    // CRITICAL: Return 200 even for errors so Stripe doesn't keep retrying
+    // Most webhook errors are non-retryable (signature mismatch, missing data, etc.)
+    // We log the error for debugging but tell Stripe the webhook was received
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
-      { status: 400 }
+      JSON.stringify({ 
+        received: true, 
+        error: (err as Error).message,
+        note: "Error logged but returning 200 to prevent Stripe retries"
+      }),
+      { 
+        headers: { "Content-Type": "application/json" },
+        status: 200 
+      }
     );
   }
 });
