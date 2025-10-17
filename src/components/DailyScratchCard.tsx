@@ -210,11 +210,17 @@ export const DailyScratchCard = () => {
       </button>
 
       {/* Explanation */}
-      <div className="text-xs text-center text-muted-foreground max-w-[100px]">
+      <div className="text-xs text-center text-muted-foreground max-w-[120px] space-y-1">
         {card.is_scratched ? (
-          <span>View your collection</span>
+          <>
+            <p className="font-medium">✓ Today's sticker revealed!</p>
+            <p className="text-[10px]">Click to view your collection</p>
+          </>
         ) : (
-          <span>Scratch daily for a new sticker!</span>
+          <>
+            <p className="font-medium">🎯 Daily Scratch Card</p>
+            <p className="text-[10px]">Scratch once per day to collect stickers and complete your collection!</p>
+          </>
         )}
       </div>
 
