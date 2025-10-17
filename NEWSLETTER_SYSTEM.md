@@ -1,7 +1,7 @@
 # NEWSLETTER SYSTEM DOCUMENTATION
 
 ## OVERVIEW
-Complete email newsletter system with campaign management, subscriber lists, automatic header/footer injection, rich content editing, and Stripe integration for sending emails via Resend.
+Complete email newsletter system with campaign management, subscriber lists, automated triggered campaigns, automatic header/footer injection, rich content editing, and Resend integration for sending emails.
 
 ---
 
@@ -49,6 +49,47 @@ Complete email newsletter system with campaign management, subscriber lists, aut
 - INSERT: Anyone (for public signup forms)
 - UPDATE: Admins only (for status changes)
 - DELETE: Admins only
+
+### campaign_templates
+**Purpose:** Store automated email campaign templates
+**Columns:**
+- id (uuid, PK)
+- name (text) - Template name
+- description (text, nullable) - Template description
+- template_type (text) - 'welcome' | 'signup_confirmation' | 'subscription_success' | 'event' | 'product_launch' | 'custom'
+- subject (text) - Email subject with [PLACEHOLDER] support
+- content (text) - HTML content with [PLACEHOLDER] support
+- trigger_event (text, nullable) - 'newsletter_subscribed' | 'newsletter_signup' | 'site_signup' | 'subscription_created' | 'event_published' | 'product_published'
+- auto_send (boolean, default: false) - Send automatically when triggered
+- delay_minutes (integer, default: 0) - Delay before sending
+- is_active (boolean, default: true) - Template active status
+- created_by (uuid, nullable)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+**RLS:**
+- SELECT: Admins only
+- INSERT: Admins only
+- UPDATE: Admins only
+- DELETE: Admins only
+
+### automated_campaign_sends
+**Purpose:** Log automated campaign email sends
+**Columns:**
+- id (uuid, PK)
+- template_id (uuid, nullable) - FK to campaign_templates
+- recipient_email (text) - Email sent to
+- recipient_user_id (uuid, nullable) - User who received email
+- trigger_event (text) - Event that triggered send
+- trigger_data (jsonb, default: {}) - Data used for placeholders
+- status (text, default: 'sent') - 'sent' | 'failed' | 'bounced' | 'pending'
+- error_message (text, nullable) - Error if failed
+- sent_at (timestamp, default: now())
+- created_at (timestamp)
+
+**RLS:**
+- SELECT: Admins can view all
+- INSERT: System can insert (open to edge functions)
 
 ### app_settings (Newsletter-specific keys)
 **newsletter_header:**
@@ -150,6 +191,60 @@ interface RichTextEditorRef {
 />
 ```
 
+#### CampaignTemplates.tsx
+**Location:** `src/components/admin/newsletter/CampaignTemplates.tsx`
+**Purpose:** Manage automated campaign email templates
+**Features:**
+- List all campaign templates with type badges
+- Create/edit templates with rich text editor
+- Toggle active/inactive status
+- Preview template content
+- Delete templates
+- Configure trigger events and auto-send
+
+#### CampaignTemplateDialog.tsx
+**Location:** `src/components/admin/newsletter/CampaignTemplateDialog.tsx`
+**Purpose:** Create/edit automated campaign templates
+**Features:**
+- Template name and description
+- Template type selection (welcome, signup_confirmation, etc.)
+- Trigger event selection (6 trigger types)
+- Subject with placeholder support
+- Rich text content editor with placeholder support
+- Auto-send toggle
+- Delay configuration (minutes)
+- Active/inactive toggle
+
+**Placeholder Support:**
+- [EVENT_NAME], [EVENT_DATE], [EVENT_LOCATION]
+- [PRODUCT_NAME], [PRODUCT_DESCRIPTION]
+- [NAME] - User/subscriber name
+- Custom placeholders passed via trigger_data
+
+#### AutomatedSendsLog.tsx
+**Location:** `src/components/admin/newsletter/AutomatedSendsLog.tsx`
+**Purpose:** View log of automated campaign sends
+**Features:**
+- List recent 100 automated sends
+- Status badges (sent, failed, bounced, pending)
+- Template name display
+- Recipient email
+- Trigger event
+- Send timestamp
+- View details dialog with full content
+
+#### NewsletterPreferences.tsx
+**Location:** `src/components/profile/NewsletterPreferences.tsx`
+**Purpose:** User self-service subscription management
+**Features:**
+- Subscribe/unsubscribe toggle
+- Current subscription status indicator
+- Subscription history display
+- Triggers automated welcome email on subscribe/resubscribe
+- Profile settings integration
+
+**Route:** `/profile-settings` → Newsletter tab
+
 ---
 
 ## EDGE FUNCTIONS
@@ -187,6 +282,62 @@ interface RichTextEditorRef {
 4. Construct HTML with test notice banner
 5. Send single email via Resend
 6. No tracking or database logging for test emails
+
+### send-automated-campaign
+**Location:** `supabase/functions/send-automated-campaign/index.ts`
+**Purpose:** Send automated triggered campaign emails
+**Triggers:** Called by application code when trigger events occur
+**Public:** Yes (accessible from client code)
+
+**Request:**
+```typescript
+{
+  trigger_event: string,  // e.g., 'newsletter_subscribed'
+  recipient_email: string,
+  recipient_user_id?: string,
+  trigger_data?: Record<string, any>
+}
+```
+
+**Workflow:**
+1. Find active template for trigger_event with auto_send=true
+2. If no template found, return success (no-op)
+3. Replace [PLACEHOLDERS] in subject and content with trigger_data values
+4. Send email via Resend
+5. Log to automated_campaign_sends table with status
+6. Return success/failure response
+
+**Supported Trigger Events:**
+- `newsletter_subscribed` - User subscribes/resubscribes via profile
+- `newsletter_signup` - User opts into newsletter during signup
+- `site_signup` - User creates account
+- `subscription_created` - Sponsorship checkout initiated
+- `event_published` - Admin creates public event
+- `product_published` - Vendor creates active product
+
+**Trigger Locations:**
+- NewsletterPreferences.tsx → newsletter_subscribed
+- Auth.tsx → newsletter_signup, site_signup
+- VendorAuth.tsx → newsletter_signup, site_signup
+- SponsorBestie.tsx → newsletter_signup, subscription_created
+- EventManagement.tsx → event_published
+- ProductForm.tsx → product_published
+
+**Placeholder Replacement:**
+```typescript
+// trigger_data example
+{
+  event_name: "Community Gathering",
+  event_date: "December 20, 2025",
+  event_location: "Main Hall"
+}
+
+// In template subject/content:
+"Join us for [EVENT_NAME] on [EVENT_DATE] at [EVENT_LOCATION]"
+
+// Becomes:
+"Join us for Community Gathering on December 20, 2025 at Main Hall"
+```
 
 ### unsubscribe-newsletter
 **Location:** `supabase/functions/unsubscribe-newsletter/index.ts`
@@ -374,14 +525,20 @@ Newsletter sending respects Stripe mode settings but operates independently. Ema
 - ✅ User newsletter preferences (Profile Settings → Newsletter tab)
 - ✅ Subscribe/unsubscribe from profile
 - ✅ Subscription status management
+- ✅ Automated triggered campaigns (6 trigger events)
+- ✅ Campaign template management
+- ✅ Placeholder replacement system
+- ✅ Automated send logging
+- ✅ Welcome emails on subscribe/resubscribe
+- ✅ Event published notifications
+- ✅ Product published notifications
+- ✅ Signup confirmation emails
 
 ## FUTURE ENHANCEMENTS
 - Email open tracking (pixel tracking implementation)
 - Subscriber segmentation by roles
 - Campaign scheduling (UI implementation)
 - A/B testing
-- Template library
-- Automated campaigns
 - RSS-to-email
 - Subscriber preferences center
 - Double opt-in
@@ -389,6 +546,8 @@ Newsletter sending respects Stripe mode settings but operates independently. Ema
 - Bounce handling
 - Spam complaint handling
 - Campaign duplication
+- Multi-step email sequences
+- Conditional triggers based on user actions
 
 ---
 

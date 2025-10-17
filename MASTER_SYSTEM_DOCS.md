@@ -26,33 +26,40 @@
 
 ## NEWSLETTER|/admin→Settings→Newsletter|admin
 DOC:NEWSLETTER_SYSTEM.md
-DB:newsletter_campaigns|newsletter_subscribers|app_settings[newsletter_header+newsletter_footer]
-EDGE:send-newsletter[Resend-API]
-COMPS:NewsletterSettings|NewsletterHeaderFooterSettings|RichTextEditor|NewsletterPreviewDialog
-FEATURES:rich-content-editor|automatic-header-footer|logo-insertion|preview|send|subscriber-management
+DB:newsletter_campaigns|newsletter_subscribers|campaign_templates|automated_campaign_sends|app_settings[newsletter_header+newsletter_footer]
+EDGE:send-newsletter[Resend-API]|send-automated-campaign[public-triggered]
+COMPS:NewsletterSettings|NewsletterHeaderFooterSettings|RichTextEditor|NewsletterPreviewDialog|CampaignTemplates|CampaignTemplateDialog|AutomatedSendsLog|NewsletterPreferences
+FEATURES:rich-content-editor|automatic-header-footer|logo-insertion|preview|send|subscriber-management|automated-campaigns[6-triggers]|template-management|placeholder-replacement|send-logging
+AUTOMATED-TRIGGERS:newsletter_subscribed|newsletter_signup|site_signup|subscription_created|event_published|product_published
+TRIGGER-LOCATIONS:NewsletterPreferences→newsletter_subscribed|Auth+VendorAuth→newsletter_signup+site_signup|SponsorBestie→subscription_created|EventManagement→event_published|ProductForm→product_published
+PLACEHOLDERS:[EVENT_NAME]|[EVENT_DATE]|[EVENT_LOCATION]|[PRODUCT_NAME]|[PRODUCT_DESCRIPTION]|[NAME]→replaced-via-trigger_data
 HEADER-FOOTER:JSONB-in-app_settings{enabled:bool+html:string}→inject-server-side
 LOGO-INSERT:parse-JSON→convert-to-public-URL→insert-with-inline-styles[200px-header|150px-footer]
 EMAIL-ASSEMBLY:header(optional)+content+footer(optional)+unsubscribe-footer(required)
 EDITOR:TipTap[StarterKit+ResizableImage+YouTube+Link+TextStyle+Color+Underline+Highlight+TextAlign]
 IMAGE-HANDLING:upload→crop→app-assets-bucket→public-URL→inline-styles[width+alignment]
 SEND-WORKFLOW:admin-trigger→edge-function→load-settings→fetch-subscribers→construct-HTML→Resend-API→update-status
-RLS:admins-only[campaigns+subscribers]|anyone[subscriber-INSERT-for-public-forms]
-CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[compliance]
+AUTOMATED-WORKFLOW:app-event→supabase.functions.invoke→find-active-template→replace-placeholders→send-email→log-result
+USER-PREFERENCES:/profile-settings→Newsletter-tab→subscribe/unsubscribe-toggle→triggers-automated-welcome-email
+RLS:admins-only[campaigns+subscribers+templates+sends]|anyone[subscriber-INSERT-for-public-forms]
+CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[compliance]|resubscribe-sends-welcome-email
 
 ## NEWSLETTER SYSTEM
 
-**OVERVIEW:** Complete email newsletter system with campaign management, subscriber lists, automatic header/footer injection, rich content editing, Stripe integration for sending via Resend, test emails, working unsubscribe functionality, and user self-service subscription management.
+**OVERVIEW:** Complete email newsletter system with campaign management, subscriber lists, automated triggered campaigns, automatic header/footer injection, rich content editing, Resend integration for sending, test emails, working unsubscribe functionality, and user self-service subscription management.
 
 **ROUTE:** /admin → Settings → Newsletter | /profile-settings → Newsletter (user preferences)
 
-**DB:** newsletter_campaigns|newsletter_subscribers|newsletter_analytics|newsletter_links|app_settings[newsletter_header|newsletter_footer]
+**DB:** newsletter_campaigns|newsletter_subscribers|campaign_templates|automated_campaign_sends|newsletter_analytics|newsletter_links|app_settings[newsletter_header|newsletter_footer]
 
-**COMPS:** NewsletterSettings.tsx|NewsletterHeaderFooterSettings.tsx|RichTextEditor.tsx|NewsletterPreviewDialog.tsx|CampaignActions.tsx
+**COMPS:** NewsletterSettings.tsx|NewsletterHeaderFooterSettings.tsx|RichTextEditor.tsx|NewsletterPreviewDialog.tsx|CampaignActions.tsx|CampaignTemplates.tsx|CampaignTemplateDialog.tsx|AutomatedSendsLog.tsx|NewsletterPreferences.tsx
 
-**EDGE:** send-newsletter[admin-batch-tracking-100-per-batch]|send-test-newsletter[admin-test-banner]|unsubscribe-newsletter[public-HTML-response]|track-newsletter-click[public-redirect]|resend-webhook[analytics]
+**EDGE:** send-newsletter[admin-batch-tracking-100-per-batch]|send-automated-campaign[public-triggered-placeholder-replacement]|send-test-newsletter[admin-test-banner]|unsubscribe-newsletter[public-HTML-response]|track-newsletter-click[public-redirect]|resend-webhook[analytics]
 
 **FEATURES:**
 - Campaign CRUD with rich text editor (images, videos, links, formatting)
+- Automated triggered campaigns (6 trigger events)
+- Campaign template management with placeholder support
 - Header/footer injection with logo insertion
 - Image crop/resize in editor
 - Test email sending before launch
@@ -62,6 +69,15 @@ CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[c
 - Email analytics (sent, opened, clicked)
 - Target audience: all subscribers, all site members, non-subscribers only, or by specific roles
 - Batch sending (100 emails per batch with delays)
+- User self-service subscription with automated welcome emails
+
+**AUTOMATED-TRIGGERS:**
+1. newsletter_subscribed - Profile settings subscribe/resubscribe
+2. newsletter_signup - Signup flow newsletter opt-in
+3. site_signup - Account creation
+4. subscription_created - Sponsorship checkout
+5. event_published - Admin creates public event
+6. product_published - Vendor creates active product
 
 **CRITICAL-PATTERNS:**
 - All styles MUST be inline for email clients
@@ -70,18 +86,21 @@ CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[c
 - Unsubscribe link includes subscriber ID
 - Test emails have warning banner
 - Tracking links replace original URLs
+- Resubscribing triggers welcome email (always sends)
+- Placeholders replaced: [EVENT_NAME], [PRODUCT_NAME], etc.
 
-**STATUS:** ✅ Functional unsubscribe|✅ Test emails|✅ Click tracking|⏳ Open tracking TODO|⏳ Campaign scheduling UI TODO
+**STATUS:** ✅ Functional unsubscribe|✅ Test emails|✅ Click tracking|✅ Automated campaigns|✅ User preferences|⏳ Open tracking TODO|⏳ Campaign scheduling UI TODO
 
 **DOC:** NEWSLETTER_SYSTEM.md
 
-## NEWSLETTER
-DB:newsletter_campaigns|newsletter_subscribers|newsletter_templates|newsletter_analytics|app_settings[newsletter_header|newsletter_footer|newsletter_organization]
-EDGE:send-newsletter|send-test-newsletter|unsubscribe-newsletter
-ADMIN:NewsletterManager[tabs:Campaigns|Templates|Subscribers|Analytics|Settings]
+## NEWSLETTER (CONDENSED)
+DB:newsletter_campaigns|newsletter_subscribers|campaign_templates|automated_campaign_sends|newsletter_analytics|app_settings[newsletter_header|newsletter_footer|newsletter_organization]
+EDGE:send-newsletter|send-automated-campaign|send-test-newsletter|unsubscribe-newsletter
+ADMIN:NewsletterManager[tabs:Campaigns|Templates|Subscribers|Automated-Sends|Header-Footer]
+AUTOMATED:6-triggers[newsletter_subscribed|newsletter_signup|site_signup|subscription_created|event_published|product_published]
 TARGETING:all-subscribers|all-site-members|non-subscribers|role-based
 WORKFLOWS:create-campaign→compose-rich-text→select-target→send/schedule→track-analytics
-FEATURES:header/footer-injection|unsubscribe-links|test-emails|image-crop|scheduling|automation-triggers|sequences
+FEATURES:header/footer-injection|unsubscribe-links|test-emails|image-crop|automated-campaigns|placeholder-replacement|template-management|send-logging
 COMPATIBILITY:inline-styles|table-layouts|email-client-safe
 DOC:NEWSLETTER_SYSTEM.md
 
@@ -175,8 +194,11 @@ DESIGN:Documentary[outline-white]|BDE[solid-brown-NO-gradient-HSL]
 
 ## ADMIN_DASH
 ROUTE:/admin|ACCESS:admin-owner|REDIRECT:non-admins→/community
-TABS:Analytics|Users|Events|Albums|Videos|Besties[subs:Featured+Sponsors+Page+Content+Receipts+Trans+YE-Settings+History]|Partners|Donations|Featured|Vendors[badge-subs:Vendors+Products+Orders]|Format[subs:Homepage+Community+About+Footer+Quick+Nav+Locations]|Moderation[badge-subs:Content+Messages+Policies]|Contact[badge]|Help[subs:Tours+Guides+FAQs]|Updates|Notifications|Settings[subs:App+Stripe-Mode+Social-Sharing+Static-Meta+Avatars+TTS+Coins+Store+Pet-Types+Locations+Impersonation+Newsletter]
+TABS:Analytics|Users|Events|Albums|Videos|Besties[subs:Featured+Sponsors+Page+Content+Receipts+Trans+YE-Settings+History]|Partners|Donations|Featured|Vendors[badge-subs:Vendors+Products+Orders]|Format[subs:Homepage+Community+About+Footer+Quick+Nav+Locations]|Moderation[badge-subs:Content+Messages+Policies]|Contact[badge]|Help[subs:Tours+Guides+FAQs]|Updates|Notifications|Settings[subs:App+Stripe-Mode+Social-Sharing+Static-Meta+Avatars+TTS+Coins+Store+Pet-Types+Locations+Impersonation+Newsletter[subs:Campaigns+Templates+Subscribers+Automated-Sends+Header-Footer]]
 STRIPE-MODE:Settings→Stripe-Mode-tab→StripeModeSwitcher[test|live-toggle]|MOVED-from[/guardian-links+/sponsor-bestie]
+NEWSLETTER:Settings→Newsletter[subs:Campaigns|Templates|Subscribers|Automated-Sends|Header-Footer]→campaign-CRUD|template-management|subscriber-list|automated-sends-log|header-footer-config
+CONTENT-MODERATION:Posts-tab[posts-only]|Comments-tab[comments-only]|cascade-delete-warnings[posts→comments]
+DOC:CONTENT_MODERATION_CASCADE_DELETES.md
 
 ## AUTH
 ROUTE:/auth
