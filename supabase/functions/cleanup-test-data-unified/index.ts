@@ -69,12 +69,12 @@ serve(async (req) => {
         return false;
       }
       
-      // Email-based cleanup
+      // Email-based cleanup - check for specific prefix first
       if (prefix && email.startsWith(prefix)) return true;
       
-      // Enhanced generic email patterns
+      // Enhanced generic email patterns - catches orphaned test users
       if (
-        email.includes('emailtest-') ||
+        email.includes('emailtest-') ||  // Catches emailtest-default-* and emailtest-{runId}-*
         email === 'testvendor@example.com' ||
         (email.includes('test') && email.includes('@test.com')) ||
         email.startsWith('test-') ||  // Matches test-{timestamp}@example.com
@@ -412,6 +412,7 @@ serve(async (req) => {
       // 14. Delete sponsor_besties records (CRITICAL - blocks user deletion)
       console.log('🧹 Deleting sponsor_besties records...');
       if (testUserIds.length > 0) {
+        // Delete where test users are besties OR any other user reference
         const { error: sponsorBestiesError } = await supabaseAdmin
           .from('sponsor_besties')
           .delete()
@@ -421,6 +422,18 @@ serve(async (req) => {
           console.error('Error deleting sponsor_besties:', sponsorBestiesError);
         } else {
           console.log('✅ Deleted sponsor_besties records');
+        }
+        
+        // Also clean up any sponsor_bestie_requests
+        const { error: requestsError } = await supabaseAdmin
+          .from('sponsor_bestie_requests')
+          .delete()
+          .in('bestie_id', testUserIds);
+        
+        if (requestsError) {
+          console.error('Error deleting sponsor_bestie_requests:', requestsError);
+        } else {
+          console.log('✅ Deleted sponsor_bestie_requests');
         }
       }
       
