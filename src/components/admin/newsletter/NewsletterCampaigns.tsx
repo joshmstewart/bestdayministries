@@ -146,7 +146,9 @@ export const NewsletterCampaigns = () => {
                   </div>
                   <p className="text-sm text-muted-foreground">{campaign.subject}</p>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                    <span>Created {format(new Date(campaign.created_at), "MMM d, yyyy")}</span>
+                    {campaign.created_at && (
+                      <span>Created {format(new Date(campaign.created_at), "MMM d, yyyy")}</span>
+                    )}
                     {campaign.scheduled_for && campaign.status === 'scheduled' && (
                       <span>Scheduled for {format(new Date(campaign.scheduled_for), "MMM d, yyyy 'at' h:mm a")}</span>
                     )}
