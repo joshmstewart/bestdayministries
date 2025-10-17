@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, Zap, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
@@ -125,11 +125,24 @@ export const NewsletterCampaigns = () => {
             <Card key={campaign.id} className="p-6">
               <div className="flex items-start justify-between">
                 <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-lg font-semibold">{campaign.title}</h4>
                     <Badge variant={getStatusColor(campaign.status)}>
                       {campaign.status}
                     </Badge>
+                    {/* TODO: Show these badges if campaign has automation or sequence */}
+                    {false && (
+                      <>
+                        <Badge variant="outline" className="gap-1">
+                          <Zap className="h-3 w-3" />
+                          Event Trigger
+                        </Badge>
+                        <Badge variant="outline" className="gap-1">
+                          <GitBranch className="h-3 w-3" />
+                          Sequence (3 steps)
+                        </Badge>
+                      </>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">{campaign.subject}</p>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">

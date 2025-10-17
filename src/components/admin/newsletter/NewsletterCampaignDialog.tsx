@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { CampaignSequenceSteps } from "./CampaignSequenceSteps";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
 import { Eye, Calendar, Monitor, Smartphone } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 
@@ -52,6 +54,14 @@ export const NewsletterCampaignDialog = ({
   const [scheduledFor, setScheduledFor] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
+  
+  // Automation settings
+  const [enableAutomation, setEnableAutomation] = useState(false);
+  const [triggerEvent, setTriggerEvent] = useState("");
+  
+  // Sequence settings
+  const [enableSequence, setEnableSequence] = useState(false);
+  const [sequenceSteps, setSequenceSteps] = useState<any[]>([]);
 
   const { data: templates } = useQuery({
     queryKey: ["newsletter-templates"],
@@ -79,6 +89,16 @@ export const NewsletterCampaignDialog = ({
       setTargetAll(targetAudience.type === "all");
       setSelectedRoles(targetAudience.roles || []);
       setScheduledFor(campaign.scheduled_for ? format(new Date(campaign.scheduled_for), "yyyy-MM-dd'T'HH:mm") : "");
+      
+      // Load automation settings if exists
+      // TODO: Fetch automation data from newsletter_automations
+      setEnableAutomation(false);
+      setTriggerEvent("");
+      
+      // Load sequence steps if exists
+      // TODO: Fetch sequence steps from newsletter_drip_steps
+      setEnableSequence(false);
+      setSequenceSteps([]);
     } else {
       setTitle("");
       setSubject("");
@@ -88,6 +108,10 @@ export const NewsletterCampaignDialog = ({
       setSelectedRoles([]);
       setScheduledFor("");
       setSelectedTemplate("");
+      setEnableAutomation(false);
+      setTriggerEvent("");
+      setEnableSequence(false);
+      setSequenceSteps([]);
     }
   }, [campaign, open]);
 
@@ -316,6 +340,67 @@ export const NewsletterCampaignDialog = ({
             <p className="text-xs text-muted-foreground">
               Use the formatting toolbar to style your email. Links will be automatically tracked.
             </p>
+          </div>
+
+          {/* Automation Settings */}
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <Label className="text-base">Automation Trigger</Label>
+                <p className="text-sm text-muted-foreground">
+                  Send this campaign when an event occurs
+                </p>
+              </div>
+              <Switch
+                checked={enableAutomation}
+                onCheckedChange={setEnableAutomation}
+              />
+            </div>
+
+            {enableAutomation && (
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="trigger-event">Trigger Event</Label>
+                  <Select value={triggerEvent} onValueChange={setTriggerEvent}>
+                    <SelectTrigger id="trigger-event">
+                      <SelectValue placeholder="Select event..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user_signup">User Signup</SelectItem>
+                      <SelectItem value="subscription_start">Subscription Started</SelectItem>
+                      <SelectItem value="subscription_cancelled">Subscription Cancelled</SelectItem>
+                      <SelectItem value="purchase">Purchase Made</SelectItem>
+                      <SelectItem value="cart_abandoned">Cart Abandoned</SelectItem>
+                      <SelectItem value="inactive_30_days">30 Days Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sequence Settings */}
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <Label className="text-base">Email Sequence</Label>
+                <p className="text-sm text-muted-foreground">
+                  Add follow-up emails sent after delays
+                </p>
+              </div>
+              <Switch
+                checked={enableSequence}
+                onCheckedChange={setEnableSequence}
+              />
+            </div>
+
+            {enableSequence && (
+              <CampaignSequenceSteps
+                steps={sequenceSteps}
+                onChange={setSequenceSteps}
+                availableCampaigns={[]}
+              />
+            )}
           </div>
         </div>
 
