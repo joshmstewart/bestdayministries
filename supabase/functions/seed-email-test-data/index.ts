@@ -17,7 +17,10 @@ serve(async (req) => {
     // Track critical errors that should cause seeding to fail
     const criticalErrors: string[] = [];
 
-    const { testRunId = 'default' } = await req.json();
+    const { 
+      testRunId = 'default',
+      includeAdmin = false 
+    } = await req.json();
     const emailPrefix = `emailtest-${testRunId}`;
 
     // Create admin client
@@ -30,7 +33,7 @@ serve(async (req) => {
     // Step 1: Create test users
     console.log('📝 Creating test users...');
     
-    const testUsers = {
+    const testUsers: Record<string, { email: string; password: string; role: string }> = {
       guardian: {
         email: `${emailPrefix}-guardian@test.com`,
         password: 'TestPassword123!',
@@ -52,6 +55,15 @@ serve(async (req) => {
         role: 'supporter'
       }
     };
+
+    // Conditionally add admin user
+    if (includeAdmin) {
+      testUsers.admin = {
+        email: `${emailPrefix}-admin@test.com`,
+        password: 'TestPassword123!',
+        role: 'admin'
+      };
+    }
 
     const userIds: Record<string, string> = {};
 
@@ -109,6 +121,11 @@ serve(async (req) => {
       { user_id: userIds.sponsor, role: 'supporter', created_by: userIds.sponsor },
       { user_id: userIds.vendor, role: 'supporter', created_by: userIds.vendor }
     ];
+
+    // Add admin role if admin user was created
+    if (includeAdmin && userIds.admin) {
+      roles.push({ user_id: userIds.admin, role: 'admin', created_by: userIds.admin });
+    }
 
     const { error: rolesError } = await supabaseAdmin
       .from('user_roles')
