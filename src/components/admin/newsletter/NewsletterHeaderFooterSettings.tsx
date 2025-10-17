@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, Image as ImageIcon } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,6 +17,10 @@ export const NewsletterHeaderFooterSettings = () => {
   const [footerHtml, setFooterHtml] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [mobileLogoUrl, setMobileLogoUrl] = useState("");
+  const headerEditorRef = useRef<any>(null);
+  const footerEditorRef = useRef<any>(null);
 
   useEffect(() => {
     loadSettings();
@@ -36,6 +40,18 @@ export const NewsletterHeaderFooterSettings = () => {
         .eq("setting_key", "newsletter_footer")
         .single();
 
+      const { data: logoData } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "logo_url")
+        .single();
+
+      const { data: mobileLogoData } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "mobile_app_icon_url")
+        .single();
+
       if (headerData?.setting_value) {
         const headerValue = headerData.setting_value as any;
         setHeaderEnabled(headerValue.enabled || false);
@@ -46,6 +62,14 @@ export const NewsletterHeaderFooterSettings = () => {
         const footerValue = footerData.setting_value as any;
         setFooterEnabled(footerValue.enabled || false);
         setFooterHtml(footerValue.html || "");
+      }
+
+      if (logoData?.setting_value) {
+        setLogoUrl(logoData.setting_value as string);
+      }
+
+      if (mobileLogoData?.setting_value) {
+        setMobileLogoUrl(mobileLogoData.setting_value as string);
       }
     } catch (error: any) {
       toast.error("Failed to load settings: " + error.message);
@@ -100,6 +124,26 @@ export const NewsletterHeaderFooterSettings = () => {
     );
   };
 
+  const insertLogoIntoHeader = (url: string) => {
+    if (!url) {
+      toast.error("No logo available");
+      return;
+    }
+    const logoHtml = `<img src="${url}" alt="Logo" style="width: 200px; height: auto; display: block; margin: 0 auto;" />`;
+    setHeaderHtml(headerHtml + logoHtml);
+    toast.success("Logo inserted into header");
+  };
+
+  const insertLogoIntoFooter = (url: string) => {
+    if (!url) {
+      toast.error("No logo available");
+      return;
+    }
+    const logoHtml = `<img src="${url}" alt="Logo" style="width: 150px; height: auto; display: block; margin: 0 auto;" />`;
+    setFooterHtml(footerHtml + logoHtml);
+    toast.success("Logo inserted into footer");
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading settings...</div>;
   }
@@ -140,7 +184,33 @@ export const NewsletterHeaderFooterSettings = () => {
               {headerEnabled && (
                 <>
                   <div className="space-y-2">
-                    <Label>Header Content</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Header Content</Label>
+                      <div className="flex gap-2">
+                        {logoUrl && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => insertLogoIntoHeader(logoUrl)}
+                          >
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            Insert Desktop Logo
+                          </Button>
+                        )}
+                        {mobileLogoUrl && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => insertLogoIntoHeader(mobileLogoUrl)}
+                          >
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            Insert Mobile Logo
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                     <RichTextEditor content={headerHtml} onChange={setHeaderHtml} />
                   </div>
 
@@ -185,7 +255,33 @@ export const NewsletterHeaderFooterSettings = () => {
               {footerEnabled && (
                 <>
                   <div className="space-y-2">
-                    <Label>Footer Content</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Footer Content</Label>
+                      <div className="flex gap-2">
+                        {logoUrl && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => insertLogoIntoFooter(logoUrl)}
+                          >
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            Insert Desktop Logo
+                          </Button>
+                        )}
+                        {mobileLogoUrl && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => insertLogoIntoFooter(mobileLogoUrl)}
+                          >
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            Insert Mobile Logo
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                     <RichTextEditor content={footerHtml} onChange={setFooterHtml} />
                   </div>
 
