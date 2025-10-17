@@ -117,3 +117,18 @@ verify_jwt = false
 [functions.seed-email-test-data]
 verify_jwt = false
 
+[functions.send-newsletter]
+verify_jwt = true
+
+[functions.send-test-newsletter]
+verify_jwt = true
+
+[functions.unsubscribe-newsletter]
+verify_jwt = false
+
+[functions.track-newsletter-click]
+verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false
+

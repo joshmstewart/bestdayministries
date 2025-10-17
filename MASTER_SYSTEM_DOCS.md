@@ -39,11 +39,41 @@ SEND-WORKFLOW:admin-trigger→edge-function→load-settings→fetch-subscribers�
 RLS:admins-only[campaigns+subscribers]|anyone[subscriber-INSERT-for-public-forms]
 CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[compliance]
 
-## GUARDIAN_APPROVALS|/guardian-approvals|caregiver
-TABS:posts|comments|vendors|messages→approve/reject/del
-DB:caregiver_bestie_links(require_post_approval|require_comment_approval|require_message_approval|require_vendor_asset_approval)
-BADGE:useGuardianApprovalsCount→SUM-pending→realtime×4
-RLS:is_guardian_of()→UPDATE
+## NEWSLETTER SYSTEM
+
+**OVERVIEW:** Complete email newsletter system with campaign management, subscriber lists, automatic header/footer injection, rich content editing, Stripe integration for sending via Resend, test emails, and working unsubscribe functionality.
+
+**ROUTE:** /admin → Settings → Newsletter
+
+**DB:** newsletter_campaigns|newsletter_subscribers|newsletter_analytics|newsletter_links|app_settings[newsletter_header|newsletter_footer]
+
+**COMPS:** NewsletterSettings.tsx|NewsletterHeaderFooterSettings.tsx|RichTextEditor.tsx|NewsletterPreviewDialog.tsx|CampaignActions.tsx
+
+**EDGE:** send-newsletter[admin-batch-tracking-100-per-batch]|send-test-newsletter[admin-test-banner]|unsubscribe-newsletter[public-HTML-response]|track-newsletter-click[public-redirect]|resend-webhook[analytics]
+
+**FEATURES:**
+- Campaign CRUD with rich text editor (images, videos, links, formatting)
+- Header/footer injection with logo insertion
+- Image crop/resize in editor
+- Test email sending before launch
+- Working unsubscribe links (CAN-SPAM compliant)
+- Link click tracking
+- Subscriber management (import/export TODO)
+- Email analytics (sent, opened, clicked)
+- Target audience by role (all/specific roles)
+- Batch sending (100 emails per batch with delays)
+
+**CRITICAL-PATTERNS:**
+- All styles MUST be inline for email clients
+- Images stored in app-assets bucket (public URLs)
+- Logo URLs parsed from JSON in app_settings
+- Unsubscribe link includes subscriber ID
+- Test emails have warning banner
+- Tracking links replace original URLs
+
+**STATUS:** ✅ Functional unsubscribe|✅ Test emails|✅ Click tracking|⏳ Open tracking TODO|⏳ Campaign scheduling UI TODO
+
+**DOC:** NEWSLETTER_SYSTEM.md
 
 ## VIDEO
 COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)

@@ -131,26 +131,23 @@ interface RichTextEditorRef {
 }
 ```
 
-#### NewsletterPreviewDialog.tsx
-**Location:** `src/components/admin/newsletter/NewsletterPreviewDialog.tsx`
-**Purpose:** Preview email before sending
+#### CampaignActions.tsx
+**Location:** `src/components/admin/newsletter/CampaignActions.tsx`
+**Purpose:** Campaign action buttons (Send Test, Send Newsletter)
 **Features:**
-- Shows subject and preview text
-- Combines header + content + footer
-- Applies email-specific CSS
-- Automatic unsubscribe footer
-- Scrollable dialog
+- Send test email dialog with email input
+- Send newsletter button (draft campaigns only)
+- Loading states and error handling
+- Success/error toast notifications
+- Test emails include warning banner
 
-**Email Assembly:**
-```typescript
-const finalHtml = `
-  ${headerEnabled ? headerHtml : ""}
-  ${htmlContent}
-  ${footerEnabled ? footerHtml : ""}
-  <div style="...">
-    <!-- Unsubscribe footer (always included) -->
-  </div>
-`;
+**Usage:**
+```tsx
+<CampaignActions
+  campaignId={campaign.id}
+  campaignStatus={campaign.status}
+  onSendComplete={() => refetch()}
+/>
 ```
 
 ---
@@ -171,10 +168,37 @@ const finalHtml = `
    - Add header if enabled
    - Add campaign html_content
    - Add footer if enabled
-   - Add unsubscribe link footer
-6. Send emails via Resend API
-7. Update campaign status to 'sent'
-8. Update recipient_count
+   - Replace links with tracked versions
+   - Add unsubscribe link with subscriber ID
+6. Send emails via Resend in batches
+7. Log sent events to newsletter_analytics
+8. Update campaign status to 'sent'
+9. Update sent_to_count
+
+### send-test-newsletter
+**Location:** `supabase/functions/send-test-newsletter/index.ts`
+**Purpose:** Send test version of campaign to admin email
+**Triggers:** Called by admin via "Send Test" button
+
+**Workflow:**
+1. Authenticate request (admin only)
+2. Fetch campaign details
+3. Load header/footer settings
+4. Construct HTML with test notice banner
+5. Send single email via Resend
+6. No tracking or database logging for test emails
+
+### unsubscribe-newsletter
+**Location:** `supabase/functions/unsubscribe-newsletter/index.ts`
+**Purpose:** Handle unsubscribe requests from email links
+**Triggers:** Called when user clicks unsubscribe link in email
+**Public:** Yes (verify_jwt = false)
+
+**Workflow:**
+1. Extract subscriber ID from URL query parameter
+2. Update newsletter_subscribers status to 'unsubscribed'
+3. Set unsubscribed_at timestamp
+4. Return HTML confirmation page
 
 **Request:**
 ```typescript
@@ -223,6 +247,16 @@ const finalHtml = `
 ---
 
 ## WORKFLOWS
+
+### Sending a Test Email
+1. Open campaign in admin interface
+2. Click "Send Test" button
+3. Enter test email address in dialog
+4. Click "Send Test"
+5. Test email includes warning banner
+6. Verify content, formatting, and images
+7. Make adjustments if needed
+8. Repeat until satisfied
 
 ### Creating a Campaign
 1. Admin → Settings → Newsletter
@@ -311,12 +345,20 @@ const finalHtml = `
 - Uses Supabase Storage public URLs
 - Inline styles ensure proper rendering
 
-### Security
-- Only admins can create/send campaigns
-- Subscriber emails never exposed to frontend
-- Edge function validates admin role
-- RLS policies protect all newsletter tables
-- Unsubscribe link required (CAN-SPAM compliance)
+### Unsubscribe System
+- User clicks unsubscribe link in email
+- Link format: `/functions/v1/unsubscribe-newsletter?id={subscriber_id}`
+- Edge function updates subscriber status to 'unsubscribed'
+- Sets unsubscribed_at timestamp
+- Returns HTML confirmation page
+- Future emails skip unsubscribed users
+
+### Test Email System
+- Admins can send test emails before launching campaign
+- Test emails include warning banner at top
+- No tracking or analytics for test emails
+- Allows verification of formatting and content
+- Can send to any email address
 
 ---
 
@@ -325,20 +367,25 @@ Newsletter sending respects Stripe mode settings but operates independently. Ema
 
 ---
 
+## COMPLETED FEATURES
+- ✅ Unsubscribe link functionality
+- ✅ Test email sending
+- ✅ Link tracking (click tracking)
+
 ## FUTURE ENHANCEMENTS
-- Unsubscribe link functionality (currently placeholder)
-- Email open tracking (pixel tracking)
-- Click tracking (link redirects)
-- Subscriber segmentation
+- Email open tracking (pixel tracking implementation)
+- Subscriber segmentation by roles
+- Campaign scheduling (UI implementation)
 - A/B testing
 - Template library
 - Automated campaigns
 - RSS-to-email
-- Subscriber preferences
+- Subscriber preferences center
 - Double opt-in
-- GDPR compliance tools
+- GDPR compliance tools (consent tracking)
 - Bounce handling
 - Spam complaint handling
+- Campaign duplication
 
 ---
 
