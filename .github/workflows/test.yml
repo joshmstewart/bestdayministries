@@ -77,6 +77,9 @@ jobs:
       
     - name: Run Playwright tests
       run: npx playwright test --ignore-snapshots --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list tests/e2e/ --grep-invert "visual.spec.ts"
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       
     - name: Upload Playwright report
       uses: actions/upload-artifact@v4
