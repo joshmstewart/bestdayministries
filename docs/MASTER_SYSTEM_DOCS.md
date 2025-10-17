@@ -165,6 +165,7 @@ LOGIN:signInWithPassword→check-vendor→redirect
 ROLES:supporter|bestie|caregiver|moderator|admin|owner
 AVATAR:1-12→composite-{n}.png
 TERMS:Guard+Dialog→versions-in-useTermsCheck
+EDGE:record-acceptance[auth-required|IP-tracking+audit-trail]
 SECURITY:handle_new_user()[DEFINER]|has_role()[DEFINER]
 RLS:profiles[own+guardians-linked+admins-all]|user_roles[SELECT-auth|INSERT-UPDATE-DELETE-admins]
 
@@ -221,6 +222,7 @@ DB:discussion_posts[created_at+updated_at]|discussion_comments[created_at+update
 PERMS:posts[guardians-admins-owners]|comment[all-auth]|edit-post[author-guardian-admin]|edit-comment[author-only]|change-author[owners]
 APPROVAL:bestie→check-require_post_approval→pending→guardian-approve
 MODERATION:text[moderate-content]|image[moderate-image-policy]
+EDGE:moderate-content[auth-required|Lovable-AI-text]|moderate-image[auth-required|Lovable-AI-vision]
 MEDIA:images[4.5MB-crop]|videos[select-or-YT]|albums[link]|events[link]|audio[comments]
 UI:DiscussionPostCard[list-card-16:9-media-preview]|DiscussionDetailDialog[full-post-comments-edit]
 EDIT:posts[open-create-form-pre-filled]|comments[inline-textarea-save-cancel]
@@ -359,6 +361,7 @@ DOC:NOTIFICATION_SYSTEM_COMPLETE.md|NOTIFICATION_BADGES_CONCISE.md|NOTIFICATION_
 CHANGE-2025-10-08:vendor=STATUS-not-role
 BENEFIT:guardians-manage-bestie+one-account-multiple-capabilities
 DB:vendors[status-pending-approved-rejected-suspended]|products
+EDGE:submit-tracking[vendor-auth|AfterShip-API]|aftership-webhook[webhook|NOT-FUNCTIONAL]
 FLOWS:apply[/vendor-auth→signup→pending→admin-approve→approved]|check[supabase.from-vendors.select-status]|dash[tabs:Products+Orders+Earnings+Payments+Settings]
 EXAMPLES:caregiver+vendor|bestie+vendor|supporter+vendor
 

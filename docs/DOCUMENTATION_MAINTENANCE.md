@@ -162,6 +162,28 @@ Before completing ANY code task:
 - [ ] Followed established patterns from docs
 - [ ] Updated affected documentation sections
 - [ ] Added new Common Issues if bugs found
+
+## Edge Function Documentation Checklist
+
+When creating or modifying edge functions, ensure:
+
+- [ ] Function listed in MASTER_SYSTEM_DOCS.md `EDGE:` section
+- [ ] Full documentation section in relevant system docs
+- [ ] Entry in EDGE_FUNCTIONS_REFERENCE.md
+- [ ] Authentication type clearly specified (`verify_jwt` setting)
+- [ ] All secrets documented and configured
+- [ ] Zod validation schema included (if accepting input)
+- [ ] Error handling documented with status codes
+- [ ] Database operations listed (INSERT/UPDATE/DELETE/SELECT)
+- [ ] External API calls documented (Stripe, Resend, etc.)
+- [ ] Success/error response formats specified
+- [ ] Related functions cross-referenced
+- [ ] Test file linked (if exists)
+- [ ] Version pinning: `@supabase/supabase-js@2.57.2`
+- [ ] CORS headers included with OPTIONS handler
+- [ ] Logging added for debugging (console.log/error)
+- [ ] Webhook signature verification (if webhook)
+- [ ] Rate limiting implemented (if notification/email)
 - [ ] Updated Key Files list if new files created
 - [ ] Cross-referenced related systems
 - [ ] Maintained concise format (no bloat)
