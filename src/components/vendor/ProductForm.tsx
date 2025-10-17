@@ -112,11 +112,33 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
           description: "Your product has been updated successfully."
         });
       } else {
-        const { error } = await supabase
+        const { data: newProduct, error } = await supabase
           .from('products')
-          .insert(productData);
+          .insert(productData)
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        // Trigger product published email if product is active
+        if (isActive) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.email) {
+            setTimeout(() => {
+              supabase.functions.invoke("send-automated-campaign", {
+                body: {
+                  trigger_event: "product_published",
+                  recipient_email: user.email!,
+                  recipient_user_id: user.id,
+                  trigger_data: {
+                    product_name: name,
+                    product_description: description.substring(0, 100),
+                  },
+                },
+              });
+            }, 0);
+          }
+        }
 
         toast({
           title: "Product added!",
