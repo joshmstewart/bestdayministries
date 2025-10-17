@@ -32,6 +32,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database['public']['Enums']['user_role'];
@@ -506,123 +507,125 @@ export const UnifiedHeader = () => {
                         Menu
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                      <nav className="flex flex-col gap-4 mt-8">
-                        {navLinks
-                          .filter(link => !link.parent_id)
-                          .filter(link => {
-                            if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
-                            return link.visible_to_roles.includes(profile?.role || '');
-                          })
-                          .map((link) => {
-                            const isExternal = link.href.startsWith('http');
-                            const children = navLinks.filter(child => child.parent_id === link.id);
+                    <SheetContent side="left" className="w-[300px] sm:w-[400px] p-0">
+                      <ScrollArea className="h-full p-6">
+                        <nav className="flex flex-col gap-4 mt-8 pb-24">
+                          {navLinks
+                            .filter(link => !link.parent_id)
+                            .filter(link => {
+                              if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
+                              return link.visible_to_roles.includes(profile?.role || '');
+                            })
+                            .map((link) => {
+                              const isExternal = link.href.startsWith('http');
+                              const children = navLinks.filter(child => child.parent_id === link.id);
 
-                            if (link.link_type === 'dropdown' && children.length > 0) {
-                              const hasParentLink = link.href && link.href.trim() !== '';
-                              return (
-                                <div key={link.id} className="flex flex-col gap-2">
-                                  {hasParentLink ? (
-                                    link.href.startsWith('http') ? (
-                                      <a
-                                        href={link.href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-lg font-['Roca'] font-semibold text-foreground/90 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                      >
-                                        {link.label}
-                                      </a>
+                              if (link.link_type === 'dropdown' && children.length > 0) {
+                                const hasParentLink = link.href && link.href.trim() !== '';
+                                return (
+                                  <div key={link.id} className="flex flex-col gap-2">
+                                    {hasParentLink ? (
+                                      link.href.startsWith('http') ? (
+                                        <a
+                                          href={link.href}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-lg font-['Roca'] font-semibold text-foreground/90 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                                          onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                          {link.label}
+                                        </a>
+                                      ) : (
+                                        <Link
+                                          to={link.href}
+                                          className="text-lg font-['Roca'] font-semibold text-foreground/90 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                                          onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                          {link.label}
+                                        </Link>
+                                      )
                                     ) : (
-                                      <Link
-                                        to={link.href}
-                                        className="text-lg font-['Roca'] font-semibold text-foreground/90 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                      >
+                                      <div className="text-lg font-['Roca'] font-semibold text-foreground/90 py-2">
                                         {link.label}
-                                      </Link>
-                                    )
-                                  ) : (
-                                    <div className="text-lg font-['Roca'] font-semibold text-foreground/90 py-2">
-                                      {link.label}
-                                    </div>
-                                  )}
-                                  {children
-                                    .filter(child => {
-                                      if (!child.visible_to_roles || child.visible_to_roles.length === 0) return true;
-                                      return child.visible_to_roles.includes(profile?.role || '');
-                                    })
-                                    .map((child) => {
-                                      const isChildExternal = child.href.startsWith('http');
-                                      if (isChildExternal) {
+                                      </div>
+                                    )}
+                                    {children
+                                      .filter(child => {
+                                        if (!child.visible_to_roles || child.visible_to_roles.length === 0) return true;
+                                        return child.visible_to_roles.includes(profile?.role || '');
+                                      })
+                                      .map((child) => {
+                                        const isChildExternal = child.href.startsWith('http');
+                                        if (isChildExternal) {
+                                          return (
+                                            <a
+                                              key={child.id}
+                                              href={child.href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
+                                              onClick={() => setMobileMenuOpen(false)}
+                                            >
+                                              {child.label}
+                                            </a>
+                                          );
+                                        }
                                         return (
-                                          <a
+                                          <Link
                                             key={child.id}
-                                            href={child.href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            to={child.href}
                                             className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
                                             onClick={() => setMobileMenuOpen(false)}
                                           >
                                             {child.label}
-                                          </a>
+                                          </Link>
                                         );
-                                      }
-                                      return (
-                                        <Link
-                                          key={child.id}
-                                          to={child.href}
-                                          className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
-                                          onClick={() => setMobileMenuOpen(false)}
-                                        >
-                                          {child.label}
-                                        </Link>
-                                      );
-                                    })}
-                                </div>
-                              );
-                            }
+                                      })}
+                                  </div>
+                                );
+                              }
 
-                            if (isExternal) {
+                              if (isExternal) {
+                                return (
+                                  <a
+                                    key={link.id}
+                                    href={link.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                  >
+                                    {link.label}
+                                  </a>
+                                );
+                              }
+
                               return (
-                                <a
+                                <Link
                                   key={link.id}
-                                  href={link.href}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                  to={link.href}
                                   className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
                                   {link.label}
-                                </a>
-                              );
-                            }
-
-                            return (
-                              <Link
-                                key={link.id}
-                                to={link.href}
-                                className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
-                                onClick={() => setMobileMenuOpen(false)}
-                              >
-                                {link.label}
-                              </Link>
-                          );
-                        })}
-                        
-                        {/* Help Icon for Mobile */}
-                        <Button 
-                          onClick={() => {
-                            navigate("/help");
-                            setMobileMenuOpen(false);
-                          }}
-                          variant="ghost"
-                          className="justify-start text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
-                        >
-                          <HelpCircle className="w-5 h-5 mr-2" />
-                          Help Center
-                        </Button>
-                      </nav>
+                                </Link>
+                            );
+                          })}
+                          
+                          {/* Help Icon for Mobile */}
+                          <Button 
+                            onClick={() => {
+                              navigate("/help");
+                              setMobileMenuOpen(false);
+                            }}
+                            variant="ghost"
+                            className="justify-start text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
+                          >
+                            <HelpCircle className="w-5 h-5 mr-2" />
+                            Help Center
+                          </Button>
+                        </nav>
+                      </ScrollArea>
                       <div className="absolute bottom-8 left-6 right-6">
                         <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20">
                           <UserCircle2 className="w-4 h-4 text-primary" />

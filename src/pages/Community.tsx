@@ -334,7 +334,7 @@ const Community = () => {
                     {/* Daily Scratch Card Button - positioned naturally in top right with slight rotation */}
                     {user && (
                       <div 
-                        className="absolute -top-2 right-8 z-10 animate-fade-in bg-transparent" 
+                        className="absolute top-16 md:-top-2 right-4 md:right-8 z-10 animate-fade-in bg-transparent" 
                         style={{ 
                           transform: 'rotate(-8deg)',
                           transformOrigin: 'center center'
