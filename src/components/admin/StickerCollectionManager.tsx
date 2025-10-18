@@ -667,11 +667,18 @@ export const StickerCollectionManager = () => {
     setLoading(true);
 
     try {
-      // Calculate next sticker number
-      const maxNumber = stickers.length > 0 
-        ? Math.max(...stickers.map(s => s.sticker_number))
-        : 0;
-      const nextNumber = maxNumber + 1;
+      // Query database for the highest sticker number in this collection
+      const { data: maxData, error: maxError } = await supabase
+        .from('stickers')
+        .select('sticker_number')
+        .eq('collection_id', selectedCollection)
+        .order('sticker_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (maxError && maxError.code !== 'PGRST116') throw maxError; // PGRST116 = no rows
+      
+      const nextNumber = maxData ? maxData.sticker_number + 1 : 1;
 
       // Upload image
       const fileExt = stickerImage.name.split('.').pop();
