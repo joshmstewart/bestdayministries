@@ -10,7 +10,8 @@ import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, Chevr
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { StickerBookButton } from "@/components/StickerBookButton";
-import { CoinsDisplay } from "@/components/CoinsDisplay";
+import joycoinImage from "@/assets/joycoin.png";
+import { useCoins } from "@/hooks/useCoins";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { useGuardianApprovalsCount } from "@/hooks/useGuardianApprovalsCount";
@@ -40,6 +41,7 @@ type UserRole = Database['public']['Enums']['user_role'];
 export const UnifiedHeader = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { coins } = useCoins();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -649,7 +651,15 @@ export const UnifiedHeader = () => {
                     </SheetContent>
                   </Sheet>
                   <div className="flex items-center gap-2">
-                    <CoinsDisplay />
+                    <button 
+                      onClick={() => navigate("/store")}
+                      className="flex items-center gap-1.5 hover:scale-105 transition-transform"
+                      title="JoyCoins Store"
+                      aria-label="JoyCoins Store"
+                    >
+                      <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" />
+                      <span className="font-semibold text-sm">{coins.toLocaleString()}</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -771,7 +781,17 @@ export const UnifiedHeader = () => {
                     </li>
                   </ul>
                   <div className="flex-1 flex justify-end">
-                    {profile && <CoinsDisplay />}
+                    {profile && (
+                      <button 
+                        onClick={() => navigate("/store")}
+                        className="flex items-center gap-2 hover:scale-105 transition-transform"
+                        title="JoyCoins Store"
+                        aria-label="JoyCoins Store"
+                      >
+                        <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 md:w-8 md:h-8 drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" />
+                        <span className="font-semibold text-sm md:text-base">{coins.toLocaleString()}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </nav>
