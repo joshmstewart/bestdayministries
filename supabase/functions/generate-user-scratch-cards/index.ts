@@ -17,10 +17,18 @@ Deno.serve(async (req) => {
 
     console.log('Generating daily scratch cards for all users...');
 
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date();
+    // MST is UTC-7
+    const MST_OFFSET = -7;
+    const now = new Date();
+    const mstDate = new Date(now.getTime() + (MST_OFFSET * 60 * 60 * 1000));
+    const today = mstDate.toISOString().split('T')[0];
+    
+    // Calculate tomorrow's midnight in MST
+    const tomorrow = new Date(mstDate);
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
+    // Convert back to UTC for storage
+    const tomorrowUTC = new Date(tomorrow.getTime() - (MST_OFFSET * 60 * 60 * 1000));
 
     // Get active collection
     const { data: activeCollection, error: collectionError } = await supabase
@@ -63,7 +71,7 @@ Deno.serve(async (req) => {
           user_id: profile.id,
           date: today,
           collection_id: activeCollection.id,
-          expires_at: tomorrow.toISOString(),
+          expires_at: tomorrowUTC.toISOString(),
         })
         .select();
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Check, Coins } from "lucide-react";
+import { Sparkles, Check, Coins, Clock } from "lucide-react";
 import kawaiiBat from "@/assets/stickers/halloween/04-happy-bat.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
 import { useNavigate } from "react-router-dom";
@@ -19,9 +19,44 @@ export const DailyScratchCard = () => {
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState<string>("");
   const [coinBalance, setCoinBalance] = useState<number>(0);
+  const [timeUntilNext, setTimeUntilNext] = useState<string>("");
+
+  // Helper function to get current date in MST (UTC-7)
+  const getMSTDate = () => {
+    const MST_OFFSET = -7;
+    const now = new Date();
+    return new Date(now.getTime() + (MST_OFFSET * 60 * 60 * 1000));
+  };
+
+  const getMSTMidnight = () => {
+    const mstDate = getMSTDate();
+    const midnight = new Date(mstDate);
+    midnight.setHours(24, 0, 0, 0); // Next midnight MST
+    return midnight;
+  };
 
   useEffect(() => {
     checkDailyCard();
+
+    // Update countdown every second
+    const interval = setInterval(() => {
+      const now = getMSTDate();
+      const midnight = getMSTMidnight();
+      const diff = midnight.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeUntilNext("Refresh to get your new card!");
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeUntilNext(`${hours}h ${minutes}m ${seconds}s`);
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const checkDailyCard = async () => {
@@ -76,7 +111,9 @@ export const DailyScratchCard = () => {
         return;
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      // Use MST for date checking
+      const mstDate = getMSTDate();
+      const today = mstDate.toISOString().split('T')[0];
 
       // Check for free daily card
       let { data: existingCard, error: cardError } = await supabase
@@ -313,6 +350,14 @@ export const DailyScratchCard = () => {
           bonusCard?.is_scratched ? "View collection" : bonusCard ? "Scratch bonus!" : "View collection"
         ) : (
           <span>Scratch daily!</span>
+        )}
+        
+        {/* Countdown timer - only show if daily card is scratched */}
+        {card.is_scratched && timeUntilNext && (
+          <div className="flex items-center justify-center gap-1 mt-2">
+            <Clock className="w-3 h-3" />
+            <span className="text-[10px]">{timeUntilNext}</span>
+          </div>
         )}
       </div>
 
