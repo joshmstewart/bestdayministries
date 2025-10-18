@@ -514,13 +514,23 @@ export const StickerCollectionManager = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const today = new Date().toISOString().split('T')[0];
+
+      // Delete any existing test cards for today to avoid duplicate key error
+      await supabase
+        .from('daily_scratch_cards')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .eq('purchase_number', 999);
+
       // Create a test card that expires in 1 hour
       const { data: testCard, error } = await supabase
         .from('daily_scratch_cards')
         .insert({
           user_id: user.id,
           collection_id: collectionToUse,
-          date: new Date().toISOString().split('T')[0],
+          date: today,
           is_bonus_card: true,
           purchase_number: 999, // Special number to identify test cards
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
