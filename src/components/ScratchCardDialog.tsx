@@ -89,7 +89,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       return;
     }
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) {
       console.error('Could not get canvas context');
       return;
@@ -97,68 +97,45 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
 
     console.log('Initializing scratch card canvas...');
 
-    // Set canvas size with devicePixelRatio for crisp rendering
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    
-    canvas.width = 400 * dpr;
-    canvas.height = 400 * dpr;
-    canvas.style.width = '400px';
-    canvas.style.height = '400px';
-    
-    ctx.scale(dpr, dpr);
+    // Set canvas size - keep it simple for mobile compatibility
+    canvas.width = 400;
+    canvas.height = 400;
 
     // Create radial metallic gradient for realistic scratch-off surface
     const gradient = ctx.createRadialGradient(
       200, 200, 0,
       200, 200, 200
     );
-    gradient.addColorStop(0, '#f0f0f0');
-    gradient.addColorStop(0.4, '#d8d8d8');
-    gradient.addColorStop(0.7, '#c0c0c0');
-    gradient.addColorStop(1, '#a8a8a8');
+    gradient.addColorStop(0, '#e8e8e8');
+    gradient.addColorStop(0.5, '#d0d0d0');
+    gradient.addColorStop(1, '#b0b0b0');
     
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 400, 400);
 
-    // Add noise texture overlay for realism
-    for (let i = 0; i < 2000; i++) {
+    // Add subtle noise texture (no grid)
+    for (let i = 0; i < 1500; i++) {
       const x = Math.random() * 400;
       const y = Math.random() * 400;
-      const opacity = Math.random() * 0.3;
+      const opacity = Math.random() * 0.2;
       ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-      ctx.fillRect(x, y, 1, 1);
+      ctx.fillRect(x, y, 2, 2);
     }
 
-    // Add crosshatch pattern for texture
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < canvas.width; i += 10) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, canvas.height);
-      ctx.stroke();
-      
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(canvas.width, i);
-      ctx.stroke();
-    }
-
-    // Add "Scratch Here" text with glow effect
+    // Add "Scratch Here" text with shadow
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 8;
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
-    ctx.fillStyle = '#707070';
-    ctx.font = 'bold 36px Arial';
+    ctx.fillStyle = '#808080';
+    ctx.font = 'bold 42px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('Scratch Here!', 200, 200);
     
     // Add highlight on text
     ctx.shadowColor = 'transparent';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.fillText('Scratch Here!', 199, 199);
     
     console.log('Canvas initialized successfully');
@@ -167,37 +144,49 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (scratched) return;
 
+    // Prevent default touch behavior (scrolling)
+    if ('touches' in e) {
+      e.preventDefault();
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    let x: number, y: number;
+    
+    if ('touches' in e) {
+      x = e.touches[0].clientX - rect.left;
+      y = e.touches[0].clientY - rect.top;
+    } else {
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
 
-    // Scale coordinates
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
+    // Scale coordinates to canvas size
+    const scaleX = 400 / rect.width;
+    const scaleY = 400 / rect.height;
+    
     const scaledX = x * scaleX;
     const scaledY = y * scaleY;
 
     ctx.globalCompositeOperation = 'destination-out';
     
-    // Create realistic scratch with varying size and irregular edges
-    const baseRadius = 30;
-    const radiusVariation = Math.random() * 15;
+    // Create realistic scratch with varying size
+    const baseRadius = 25;
+    const radiusVariation = Math.random() * 10;
     const radius = baseRadius + radiusVariation;
     
-    // Draw multiple overlapping circles with varying opacity for rough texture
-    for (let i = 0; i < 4; i++) {
-      const offsetX = (Math.random() - 0.5) * 12;
-      const offsetY = (Math.random() - 0.5) * 12;
-      const circleRadius = radius * (0.7 + Math.random() * 0.6);
+    // Draw multiple overlapping circles for rough texture
+    for (let i = 0; i < 3; i++) {
+      const offsetX = (Math.random() - 0.5) * 10;
+      const offsetY = (Math.random() - 0.5) * 10;
+      const circleRadius = radius * (0.8 + Math.random() * 0.4);
       
-      ctx.globalAlpha = 0.5 + Math.random() * 0.5;
+      ctx.globalAlpha = 0.6 + Math.random() * 0.4;
       ctx.beginPath();
       ctx.arc(scaledX + offsetX, scaledY + offsetY, circleRadius, 0, Math.PI * 2);
       ctx.fill();
@@ -205,8 +194,8 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     
     ctx.globalAlpha = 1;
 
-    // Check if enough is scratched
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // Check if enough is scratched (use actual canvas dimensions)
+    const imageData = ctx.getImageData(0, 0, 400, 400);
     const pixels = imageData.data;
     let transparent = 0;
     
@@ -214,10 +203,11 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       if (pixels[i] === 0) transparent++;
     }
 
-    const percentScratched = (transparent / (400 * 400)) * 100;
+    const totalPixels = 400 * 400;
+    const percentScratched = (transparent / totalPixels) * 100;
 
     if (percentScratched > 50 && !scratched) {
-      console.log('Scratch threshold reached:', percentScratched);
+      console.log('Scratch threshold reached:', percentScratched.toFixed(2));
       handleReveal();
     }
   };
@@ -375,13 +365,19 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
               <div className="relative">
                 <canvas
                   ref={canvasRef}
-                  className="border-4 border-primary rounded-lg cursor-pointer"
+                  className="border-4 border-primary rounded-lg cursor-pointer touch-none"
                   onMouseDown={() => setIsScratching(true)}
                   onMouseUp={() => setIsScratching(false)}
                   onMouseMove={(e) => isScratching && scratch(e)}
-                  onTouchStart={() => setIsScratching(true)}
+                  onTouchStart={(e) => {
+                    setIsScratching(true);
+                    scratch(e);
+                  }}
+                  onTouchMove={(e) => {
+                    e.preventDefault();
+                    scratch(e);
+                  }}
                   onTouchEnd={() => setIsScratching(false)}
-                  onTouchMove={(e) => scratch(e)}
                 />
                 {loading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
