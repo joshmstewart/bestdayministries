@@ -242,20 +242,30 @@ export const DailyScratchCard = () => {
 
   const isExpired = new Date(card.expires_at) < new Date();
 
+  // Determine which card to show - prioritize unscratched cards
+  const shouldShowBonusCard = card.is_scratched && bonusCard && !bonusCard.is_scratched;
+  const activeCard = shouldShowBonusCard ? bonusCard : card;
+  const isActiveCardScratched = activeCard.is_scratched;
+  const isBonus = shouldShowBonusCard;
+
   return (
     <div className="space-y-2">
-      {/* Small sticker button */}
+      {/* Single sticker button - shows either daily or bonus card */}
       <button
         onClick={() => {
-          if (!card.is_scratched && !isExpired) {
-            setShowDialog(true);
+          if (!isActiveCardScratched && !isExpired) {
+            if (isBonus) {
+              setShowBonusDialog(true);
+            } else {
+              setShowDialog(true);
+            }
           } else {
             navigate('/sticker-album');
           }
         }}
         className="relative transition-all hover:scale-110 active:scale-95"
         style={{ 
-          filter: card.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))',
+          filter: isActiveCardScratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))',
           background: 'transparent'
         }}
       >
@@ -263,60 +273,25 @@ export const DailyScratchCard = () => {
         <div className="relative w-20 h-20" style={{ background: 'transparent' }}>
           <img
             src={sampleSticker || kawaiiBat}
-            alt="Daily sticker"
+            alt={isBonus ? "Bonus sticker" : "Daily sticker"}
             className="w-full h-full object-contain"
             style={{ background: 'transparent' }}
           />
           
           {/* Status indicator */}
-          {card.is_scratched ? (
+          {isActiveCardScratched ? (
             <div className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground rounded-full p-1 shadow-lg border-2 border-background">
               <Check className="w-3 h-3" />
             </div>
           ) : !isExpired && (
-            <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1 shadow-lg animate-bounce border-2 border-background">
+            <div className={`absolute -bottom-1 -right-1 rounded-full p-1 shadow-lg animate-bounce border-2 border-background ${
+              isBonus ? 'bg-yellow-500 text-white' : 'bg-primary text-primary-foreground'
+            }`}>
               <Sparkles className="w-3 h-3" />
             </div>
           )}
         </div>
       </button>
-
-      {/* Bonus card button - only show if exists */}
-      {bonusCard && (
-        <button
-          onClick={() => {
-            if (!bonusCard.is_scratched && !isExpired) {
-              setShowBonusDialog(true);
-            } else {
-              navigate('/sticker-album');
-            }
-          }}
-          className="relative transition-all hover:scale-110 active:scale-95"
-          style={{ 
-            filter: bonusCard.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))',
-            background: 'transparent'
-          }}
-        >
-          <div className="relative w-20 h-20" style={{ background: 'transparent' }}>
-            <img
-              src={sampleSticker || kawaiiBat}
-              alt="Bonus sticker"
-              className="w-full h-full object-contain"
-              style={{ background: 'transparent' }}
-            />
-            
-            {bonusCard.is_scratched ? (
-              <div className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground rounded-full p-1 shadow-lg border-2 border-background">
-                <Check className="w-3 h-3" />
-              </div>
-            ) : !isExpired && (
-              <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-white rounded-full p-1 shadow-lg animate-bounce border-2 border-background">
-                <Sparkles className="w-3 h-3" />
-              </div>
-            )}
-          </div>
-        </button>
-      )}
 
       {/* Explanation text */}
       <div className="text-xs text-center text-muted-foreground max-w-[120px]">
