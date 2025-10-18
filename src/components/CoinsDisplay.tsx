@@ -14,7 +14,7 @@ export const CoinsDisplay = () => {
   return (
     <button
       onClick={() => navigate("/store")}
-      className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-950 shadow-lg border border-yellow-600/50 hover:scale-105 active:scale-95 transition-transform cursor-pointer text-sm"
+      className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-950 shadow-[0_4px_12px_rgba(234,179,8,0.4)] hover:shadow-[0_6px_16px_rgba(234,179,8,0.5)] border border-yellow-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer text-sm"
       aria-label="Go to JoyCoin Store"
     >
       {/* Shine effect overlay */}

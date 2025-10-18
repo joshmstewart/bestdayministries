@@ -651,11 +651,11 @@ export const UnifiedHeader = () => {
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => navigate("/store")}
-                      className="hover:scale-110 transition-transform flex-shrink-0"
+                      className="hover:scale-110 transition-transform flex-shrink-0 drop-shadow-[0_4px_12px_rgba(234,179,8,0.4)] hover:drop-shadow-[0_6px_16px_rgba(234,179,8,0.5)]"
                       title="JoyCoins Store"
                       aria-label="JoyCoins Store"
                     >
-                      <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 drop-shadow-md" />
+                      <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6" />
                     </button>
                   </div>
                 </div>
@@ -781,11 +781,11 @@ export const UnifiedHeader = () => {
                     {profile && (
                       <button 
                         onClick={() => navigate("/store")}
-                        className="hover:scale-110 transition-transform flex-shrink-0"
+                        className="hover:scale-110 transition-transform flex-shrink-0 drop-shadow-[0_4px_12px_rgba(234,179,8,0.4)] hover:drop-shadow-[0_6px_16px_rgba(234,179,8,0.5)]"
                         title="JoyCoins Store"
                         aria-label="JoyCoins Store"
                       >
-                        <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 md:w-8 md:h-8 drop-shadow-md" />
+                        <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 md:w-8 md:h-8" />
                       </button>
                     )}
                   </div>
