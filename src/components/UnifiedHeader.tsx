@@ -636,17 +636,18 @@ export const UnifiedHeader = () => {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <button 
                       onClick={() => navigate("/store")}
                       className="hover:scale-110 transition-transform flex-shrink-0"
                       title="JoyCoins Store"
                       aria-label="JoyCoins Store"
                     >
-                      <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10 drop-shadow-md" />
+                      <img src={joycoinImage} alt="JoyCoins" className="w-8 h-8 drop-shadow-md" />
                     </button>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20">
-                      <UserCircle2 className="w-4 h-4 text-primary" />
+                    {/* Hide role badge on mobile, show on tablet+ */}
+                    <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary/10 border border-primary/20">
+                      <UserCircle2 className="w-3.5 h-3.5 text-primary" />
                       <span className="text-xs font-medium text-primary capitalize">
                         {profile.role === "caregiver" ? "Guardian" : profile.role}
                       </span>
@@ -773,18 +774,18 @@ export const UnifiedHeader = () => {
                   </ul>
                   <div className="flex-1 flex justify-end">
                     {profile && (
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 md:gap-3">
                         <button 
                           onClick={() => navigate("/store")}
                           className="hover:scale-110 transition-transform flex-shrink-0"
                           title="JoyCoins Store"
                           aria-label="JoyCoins Store"
                         >
-                          <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10 drop-shadow-md" />
+                          <img src={joycoinImage} alt="JoyCoins" className="w-8 h-8 md:w-10 md:h-10 drop-shadow-md" />
                         </button>
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
-                          <UserCircle2 className="w-3.5 h-3.5 text-primary" />
-                          <span className="text-xs font-semibold text-primary capitalize">
+                        <div className="inline-flex items-center gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
+                          <UserCircle2 className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
+                          <span className="text-[10px] md:text-xs font-semibold text-primary capitalize">
                             {profile.role === "caregiver" ? "Guardian" : profile.role}
                           </span>
                         </div>
