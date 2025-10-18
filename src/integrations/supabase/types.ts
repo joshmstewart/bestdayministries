@@ -3733,6 +3733,7 @@ export type Database = {
           is_active: boolean
           name: string
           preview_sticker_id: string | null
+          rarity_percentages: Json | null
           start_date: string
           theme: string
           updated_at: string
@@ -3748,6 +3749,7 @@ export type Database = {
           is_active?: boolean
           name: string
           preview_sticker_id?: string | null
+          rarity_percentages?: Json | null
           start_date?: string
           theme: string
           updated_at?: string
@@ -3763,6 +3765,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           preview_sticker_id?: string | null
+          rarity_percentages?: Json | null
           start_date?: string
           theme?: string
           updated_at?: string

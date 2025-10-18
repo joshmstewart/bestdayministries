@@ -254,6 +254,7 @@ export const StickerCollectionManager = () => {
   const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [stickers, setStickers] = useState<any[]>([]);
   const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
+  const [editingRarityFor, setEditingRarityFor] = useState<string | null>(null);
   const [stickersEnabled, setStickersEnabled] = useState(false);
   
   // Collection form
@@ -264,6 +265,13 @@ export const StickerCollectionManager = () => {
     start_date: new Date().toISOString().split('T')[0],
     end_date: "",
     visible_to_roles: ["admin", "owner"] as UserRole[],
+    rarity_percentages: {
+      common: 50,
+      uncommon: 30,
+      rare: 15,
+      epic: 4,
+      legendary: 1
+    }
   });
 
   // Sticker form
@@ -590,6 +598,13 @@ export const StickerCollectionManager = () => {
       return;
     }
 
+    // Validate percentages sum to 100
+    const total = Object.values(collectionForm.rarity_percentages).reduce((sum, val) => sum + val, 0);
+    if (Math.abs(total - 100) > 0.01) {
+      toast({ title: "Error", description: "Rarity percentages must sum to 100%", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase
       .from('sticker_collections')
@@ -600,6 +615,7 @@ export const StickerCollectionManager = () => {
         start_date: collectionForm.start_date,
         end_date: collectionForm.end_date || null,
         visible_to_roles: collectionForm.visible_to_roles as any,
+        rarity_percentages: collectionForm.rarity_percentages,
       }])
       .select()
       .single();
@@ -618,7 +634,14 @@ export const StickerCollectionManager = () => {
       theme: "", 
       start_date: new Date().toISOString().split('T')[0], 
       end_date: "",
-      visible_to_roles: ["admin", "owner"]
+      visible_to_roles: ["admin", "owner"],
+      rarity_percentages: {
+        common: 50,
+        uncommon: 30,
+        rare: 15,
+        epic: 4,
+        legendary: 1
+      }
     });
     fetchCollections();
     setSelectedCollection(data.id);
@@ -653,6 +676,29 @@ export const StickerCollectionManager = () => {
     toast({ title: "Success", description: "Role visibility updated!" });
     fetchCollections();
     setEditingRolesFor(null);
+  };
+
+  const updateCollectionRarity = async (collectionId: string, percentages: any) => {
+    // Validate percentages sum to 100
+    const total: number = Object.values(percentages).reduce((sum: number, val: any) => sum + Number(val), 0) as number;
+    if (Math.abs(total - 100) > 0.01) {
+      toast({ title: "Error", description: "Rarity percentages must sum to 100%", variant: "destructive" });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('sticker_collections')
+      .update({ rarity_percentages: percentages })
+      .eq('id', collectionId);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Success", description: "Rarity percentages updated!" });
+    fetchCollections();
+    setEditingRarityFor(null);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1132,6 +1178,42 @@ export const StickerCollectionManager = () => {
                   Only users with selected roles will be able to see and scratch cards from this collection
                 </p>
               </div>
+              
+              <div className="space-y-3">
+                <Label className="text-base">Rarity Drop Rates (%)</Label>
+                <p className="text-sm text-muted-foreground">Adjust the drop rate percentages for each rarity level. Must sum to 100%.</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(rarityConfig).map(([key, config]) => (
+                    <div key={key} className="space-y-2">
+                      <Label htmlFor={`rarity-${key}`} className="flex items-center gap-2">
+                        <span className={`w-3 h-3 rounded ${config.color}`} />
+                        {config.label}
+                      </Label>
+                      <Input
+                        id={`rarity-${key}`}
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={collectionForm.rarity_percentages[key as keyof typeof collectionForm.rarity_percentages]}
+                        onChange={(e) => setCollectionForm({
+                          ...collectionForm,
+                          rarity_percentages: {
+                            ...collectionForm.rarity_percentages,
+                            [key]: parseFloat(e.target.value) || 0
+                          }
+                        })}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                  <span className="text-sm font-medium">Total:</span>
+                  <span className={`text-sm font-bold ${Math.abs(Object.values(collectionForm.rarity_percentages).reduce((sum, val) => sum + val, 0) - 100) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
+                    {Object.values(collectionForm.rarity_percentages).reduce((sum, val) => sum + val, 0).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
               <div className="flex gap-3 flex-wrap">
                 <Button onClick={createCollection} disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1197,6 +1279,13 @@ export const StickerCollectionManager = () => {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => setEditingRarityFor(editingRarityFor === collection.id ? null : collection.id)}
+                        >
+                          Edit Rarity
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => toggleCollectionActive(collection.id, collection.is_active)}
                           className={collection.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
                           title={collection.is_active ? "Hide collection" : "Show collection"}
@@ -1245,6 +1334,64 @@ export const StickerCollectionManager = () => {
                         <p className="text-xs text-muted-foreground">
                           Only users with selected roles will see and scratch cards from this collection
                         </p>
+                      </div>
+                    )}
+                    
+                    {editingRarityFor === collection.id && (
+                      <div className="p-4 border-t bg-background">
+                        <Label className="text-sm mb-3 block font-semibold">Rarity Drop Rates (%)</Label>
+                        <p className="text-sm text-muted-foreground mb-3">Adjust percentages for each rarity level. Must sum to 100%.</p>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          {Object.entries(rarityConfig).map(([key, config]) => {
+                            const currentPercentages = collection.rarity_percentages || {
+                              common: 50,
+                              uncommon: 30,
+                              rare: 15,
+                              epic: 4,
+                              legendary: 1
+                            };
+                            return (
+                              <div key={key} className="space-y-2">
+                                <Label htmlFor={`${collection.id}-rarity-${key}`} className="flex items-center gap-2">
+                                  <span className={`w-3 h-3 rounded ${config.color}`} />
+                                  {config.label}
+                                </Label>
+                                <Input
+                                  id={`${collection.id}-rarity-${key}`}
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="0.1"
+                                  value={currentPercentages[key]}
+                                  onChange={(e) => {
+                                    const newPercentages = {
+                                      ...currentPercentages,
+                                      [key]: parseFloat(e.target.value) || 0
+                                    };
+                                    // Update the collection locally first for immediate UI feedback
+                                    setCollections(collections.map(c => 
+                                      c.id === collection.id 
+                                        ? { ...c, rarity_percentages: newPercentages }
+                                        : c
+                                    ));
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30 mb-4">
+                          <span className="text-sm font-medium">Total:</span>
+                          <span className={`text-sm font-bold ${Math.abs((Object.values(collection.rarity_percentages || {common: 50, uncommon: 30, rare: 15, epic: 4, legendary: 1}).reduce((sum: number, val: any) => sum + Number(val), 0) as number) - 100) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
+                            {(Object.values(collection.rarity_percentages || {common: 50, uncommon: 30, rare: 15, epic: 4, legendary: 1}).reduce((sum: number, val: any) => sum + Number(val), 0) as number).toFixed(1)}%
+                          </span>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={() => updateCollectionRarity(collection.id, collection.rarity_percentages)}
+                        >
+                          Save Rarity Settings
+                        </Button>
                       </div>
                     )}
                   </div>
