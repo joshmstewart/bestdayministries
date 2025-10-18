@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Coins } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import joycoinImage from "@/assets/joycoin.png";
 
 interface PetType {
   id: string;
@@ -77,7 +77,7 @@ export function PetAdoption({ petTypes, adoptPet }: PetAdoptionProps) {
                 </div>
 
                 <div className="flex items-center justify-center gap-2 text-sm">
-                  <Coins className="h-4 w-4" />
+                  <img src={joycoinImage} alt="JoyCoin" className="h-4 w-4" />
                   <span className="font-semibold">
                     {petType.unlock_cost === 0 ? "Free" : `${petType.unlock_cost} coins`}
                   </span>

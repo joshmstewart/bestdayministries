@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Coins, Plus, Minus, History } from "lucide-react";
+import { Plus, Minus, History } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import joycoinImage from "@/assets/joycoin.png";
 
 export const CoinsManager = () => {
   const { toast } = useToast();
@@ -102,7 +103,7 @@ export const CoinsManager = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Coins className="h-5 w-5" />
+            <img src={joycoinImage} alt="JoyCoin" className="h-5 w-5" />
             User Coins Management
           </CardTitle>
           <CardDescription>
@@ -133,7 +134,7 @@ export const CoinsManager = () => {
                           size="sm"
                           onClick={() => setSelectedUser(user.id)}
                         >
-                          <Coins className="h-4 w-4 mr-2" />
+                          <img src={joycoinImage} alt="JoyCoin" className="h-4 w-4 mr-2" />
                           Manage
                         </Button>
                       </DialogTrigger>

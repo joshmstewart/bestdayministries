@@ -3,7 +3,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Coins } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
+import joycoinImage from "@/assets/joycoin.png";
 import confetti from "canvas-confetti";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -174,7 +175,22 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const purchaseBonusCard = async () => {
     setPurchasing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('purchase-bonus-card');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please refresh the page and try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('purchase-bonus-card', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
       
       if (error) throw error;
       
@@ -294,10 +310,10 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
                         Buying...
                       </>
                     ) : (
-                  <>
-                    <Coins className="w-4 h-4 mr-2" />
-                    Buy Another Sticker Today (50 coins)
-                  </>
+                      <>
+                        <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
+                        Buy Another Sticker Today (50 coins)
+                      </>
                     )}
                   </Button>
                 )}

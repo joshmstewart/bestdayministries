@@ -1,7 +1,7 @@
-import { Coins } from "lucide-react";
 import { useCoins } from "@/hooks/useCoins";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
+import joycoinImage from "@/assets/joycoin.png";
 
 export const CoinsDisplay = () => {
   const { coins, loading } = useCoins();
@@ -22,7 +22,7 @@ export const CoinsDisplay = () => {
       <div className="absolute inset-0 rounded-full bg-gradient-to-tl from-yellow-300/30 via-transparent to-transparent" />
       
       {/* Icon and text */}
-      <Coins className="h-4 w-4 relative z-10 drop-shadow-sm" />
+      <img src={joycoinImage} alt="JoyCoin" className="h-5 w-5 relative z-10 drop-shadow-sm" />
       <span className="relative z-10 drop-shadow-sm">{coins.toLocaleString()}</span>
     </button>
   );

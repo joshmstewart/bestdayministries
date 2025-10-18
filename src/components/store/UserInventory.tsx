@@ -1,9 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { StorePurchase } from "@/hooks/useStorePurchases";
 import { format } from "date-fns";
+import joycoinImage from "@/assets/joycoin.png";
 
 interface UserInventoryProps {
   purchases: StorePurchase[];
@@ -61,7 +62,7 @@ export const UserInventory = ({ purchases, loading }: UserInventoryProps) => {
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
-                  <Coins className="h-4 w-4 text-primary" />
+                  <img src={joycoinImage} alt="JoyCoin" className="h-4 w-4" />
                   <span className="font-semibold">{purchase.coins_spent}</span>
                 </div>
                 <Badge variant="outline">
