@@ -135,3 +135,9 @@ verify_jwt = false
 [functions.generate-sticker-description]
 verify_jwt = true
 
+[functions.purchase-bonus-card]
+verify_jwt = true
+
+[functions.scratch-daily-card]
+verify_jwt = true
+

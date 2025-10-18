@@ -1,18 +1,24 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Check } from "lucide-react";
+import { Sparkles, Check, Coins } from "lucide-react";
 import kawaiiBat from "@/assets/stickers/halloween/04-happy-bat.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 export const DailyScratchCard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [card, setCard] = useState<any>(null);
+  const [bonusCard, setBonusCard] = useState<any>(null);
   const [sampleSticker, setSampleSticker] = useState<string>("");
   const [showDialog, setShowDialog] = useState(false);
+  const [showBonusDialog, setShowBonusDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState<string>("");
+  const [coinBalance, setCoinBalance] = useState<number>(0);
 
   useEffect(() => {
     checkDailyCard();
@@ -39,6 +45,15 @@ export const DailyScratchCard = () => {
         return;
       }
 
+      // Get user's coin balance
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('coin_balance')
+        .eq('id', user.id)
+        .single();
+      
+      setCoinBalance(profile?.coin_balance || 0);
+
       console.log('DailyScratchCard: Checking for accessible collections...');
 
       // Check if user has access to any active sticker collections
@@ -63,12 +78,22 @@ export const DailyScratchCard = () => {
 
       const today = new Date().toISOString().split('T')[0];
 
-      // Check if card exists for today
+      // Check for free daily card
       let { data: existingCard, error: cardError } = await supabase
         .from('daily_scratch_cards')
         .select('*')
         .eq('user_id', user.id)
         .eq('date', today)
+        .eq('is_bonus_card', false)
+        .maybeSingle();
+
+      // Check for bonus card
+      const { data: existingBonusCard } = await supabase
+        .from('daily_scratch_cards')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .eq('is_bonus_card', true)
         .maybeSingle();
 
       console.log('DailyScratchCard: Existing card check:', { existingCard, cardError });
@@ -105,6 +130,7 @@ export const DailyScratchCard = () => {
       }
 
       setCard(existingCard);
+      setBonusCard(existingBonusCard || null);
 
       // Get the preview sticker from the collection, or fallback to any active sticker
       if (existingCard) {
@@ -152,6 +178,41 @@ export const DailyScratchCard = () => {
     }
   };
 
+  const purchaseBonusCard = async () => {
+    setPurchasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purchase-bonus-card');
+      
+      if (error) throw error;
+      
+      if (data.error) {
+        toast({
+          title: "Cannot Purchase",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success!",
+        description: "Bonus scratch card purchased! 🎉"
+      });
+
+      // Refresh cards
+      await checkDailyCard();
+    } catch (error: any) {
+      console.error('Error purchasing bonus card:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to purchase bonus card",
+        variant: "destructive"
+      });
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
   if (loading) {
     return null;
   }
@@ -169,6 +230,7 @@ export const DailyScratchCard = () => {
   }
 
   const isExpired = new Date(card.expires_at) < new Date();
+  const canBuyBonus = card.is_scratched && !bonusCard && !isExpired;
 
   return (
     <div className="space-y-2">
@@ -209,21 +271,95 @@ export const DailyScratchCard = () => {
         </div>
       </button>
 
+      {/* Bonus card button */}
+      {bonusCard && (
+        <button
+          onClick={() => {
+            if (!bonusCard.is_scratched && !isExpired) {
+              setShowBonusDialog(true);
+            } else {
+              navigate('/sticker-album');
+            }
+          }}
+          className="relative transition-all hover:scale-110 active:scale-95"
+          style={{ 
+            filter: bonusCard.is_scratched || isExpired ? 'grayscale(100%)' : 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15))',
+            background: 'transparent'
+          }}
+        >
+          <div className="relative w-20 h-20" style={{ background: 'transparent' }}>
+            <img
+              src={sampleSticker || kawaiiBat}
+              alt="Bonus sticker"
+              className="w-full h-full object-contain"
+              style={{ background: 'transparent' }}
+            />
+            
+            {bonusCard.is_scratched ? (
+              <div className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground rounded-full p-1 shadow-lg border-2 border-background">
+                <Check className="w-3 h-3" />
+              </div>
+            ) : !isExpired && (
+              <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-white rounded-full p-1 shadow-lg animate-bounce border-2 border-background">
+                <Sparkles className="w-3 h-3" />
+              </div>
+            )}
+          </div>
+        </button>
+      )}
+
+      {/* Buy bonus card button */}
+      {canBuyBonus && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={purchaseBonusCard}
+          disabled={purchasing || coinBalance < 50}
+          className="w-full text-xs"
+        >
+          {purchasing ? (
+            <span>Purchasing...</span>
+          ) : (
+            <>
+              <Coins className="w-3 h-3 mr-1" />
+              Buy 2nd Card (50 coins)
+            </>
+          )}
+        </Button>
+      )}
+
       {/* Explanation */}
       <div className="text-xs text-center text-muted-foreground max-w-[120px]">
         {card.is_scratched ? (
-          <span>View collection</span>
+          bonusCard ? (
+            <span>{bonusCard.is_scratched ? "View collection" : "Scratch bonus!"}</span>
+          ) : canBuyBonus ? (
+            <span>Buy another!</span>
+          ) : (
+            <span>View collection</span>
+          )
         ) : (
           <span>Scratch daily!</span>
         )}
       </div>
 
+      {/* Free card dialog */}
       <ScratchCardDialog
         open={showDialog}
         onOpenChange={setShowDialog}
         cardId={card.id}
         onScratched={checkDailyCard}
       />
+
+      {/* Bonus card dialog */}
+      {bonusCard && (
+        <ScratchCardDialog
+          open={showBonusDialog}
+          onOpenChange={setShowBonusDialog}
+          cardId={bonusCard.id}
+          onScratched={checkDailyCard}
+        />
+      )}
     </div>
   );
 };

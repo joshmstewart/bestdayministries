@@ -775,6 +775,7 @@ export type Database = {
           date: string
           expires_at: string
           id: string
+          is_bonus_card: boolean
           is_scratched: boolean
           revealed_sticker_id: string | null
           scratched_at: string | null
@@ -786,6 +787,7 @@ export type Database = {
           date?: string
           expires_at: string
           id?: string
+          is_bonus_card?: boolean
           is_scratched?: boolean
           revealed_sticker_id?: string | null
           scratched_at?: string | null
@@ -797,6 +799,7 @@ export type Database = {
           date?: string
           expires_at?: string
           id?: string
+          is_bonus_card?: boolean
           is_scratched?: boolean
           revealed_sticker_id?: string | null
           scratched_at?: string | null
@@ -3035,6 +3038,7 @@ export type Database = {
           avatar_number: number | null
           avatar_url: string | null
           bio: string | null
+          coin_balance: number
           coins: number
           created_at: string
           display_name: string
@@ -3050,6 +3054,7 @@ export type Database = {
           avatar_number?: number | null
           avatar_url?: string | null
           bio?: string | null
+          coin_balance?: number
           coins?: number
           created_at?: string
           display_name: string
@@ -3065,6 +3070,7 @@ export type Database = {
           avatar_number?: number | null
           avatar_url?: string | null
           bio?: string | null
+          coin_balance?: number
           coins?: number
           created_at?: string
           display_name?: string
