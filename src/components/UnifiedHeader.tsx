@@ -10,7 +10,7 @@ import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, Chevr
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { StickerBookButton } from "@/components/StickerBookButton";
-import joycoinImage from "@/assets/joycoin.png";
+import { CoinsDisplay } from "@/components/CoinsDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { useGuardianApprovalsCount } from "@/hooks/useGuardianApprovalsCount";
@@ -649,14 +649,7 @@ export const UnifiedHeader = () => {
                     </SheetContent>
                   </Sheet>
                   <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => navigate("/store")}
-                      className="hover:scale-110 transition-transform flex-shrink-0 drop-shadow-[0_4px_12px_rgba(234,179,8,0.4)] hover:drop-shadow-[0_6px_16px_rgba(234,179,8,0.5)]"
-                      title="JoyCoins Store"
-                      aria-label="JoyCoins Store"
-                    >
-                      <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6" />
-                    </button>
+                    <CoinsDisplay />
                   </div>
                 </div>
               </div>
@@ -778,16 +771,7 @@ export const UnifiedHeader = () => {
                     </li>
                   </ul>
                   <div className="flex-1 flex justify-end">
-                    {profile && (
-                      <button 
-                        onClick={() => navigate("/store")}
-                        className="hover:scale-110 transition-transform flex-shrink-0 drop-shadow-[0_4px_12px_rgba(234,179,8,0.4)] hover:drop-shadow-[0_6px_16px_rgba(234,179,8,0.5)]"
-                        title="JoyCoins Store"
-                        aria-label="JoyCoins Store"
-                      >
-                        <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 md:w-8 md:h-8" />
-                      </button>
-                    )}
+                    {profile && <CoinsDisplay />}
                   </div>
                 </div>
               </nav>
