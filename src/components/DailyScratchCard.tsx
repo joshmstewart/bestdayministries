@@ -21,17 +21,20 @@ export const DailyScratchCard = () => {
   const [coinBalance, setCoinBalance] = useState<number>(0);
   const [timeUntilNext, setTimeUntilNext] = useState<string>("");
 
-  // Helper function to get current date in MST (UTC-7)
+  // Helper function to get current time in MST (UTC-7)
   const getMSTDate = () => {
-    const MST_OFFSET = -7;
     const now = new Date();
-    return new Date(now.getTime() + (MST_OFFSET * 60 * 60 * 1000));
+    // Get UTC time and subtract 7 hours to get MST
+    const utcTime = now.getTime();
+    const mstTime = utcTime - (7 * 60 * 60 * 1000);
+    return new Date(mstTime);
   };
 
   const getMSTMidnight = () => {
-    const mstDate = getMSTDate();
-    const midnight = new Date(mstDate);
-    midnight.setHours(24, 0, 0, 0); // Next midnight MST
+    const mstNow = getMSTDate();
+    // Create next midnight in MST
+    const midnight = new Date(mstNow);
+    midnight.setUTCHours(24, 0, 0, 0); // Set to next midnight
     return midnight;
   };
 
@@ -113,6 +116,7 @@ export const DailyScratchCard = () => {
 
       // Use MST for date checking
       const mstDate = getMSTDate();
+      // Format the date in MST timezone
       const today = mstDate.toISOString().split('T')[0];
 
       // Check for free daily card

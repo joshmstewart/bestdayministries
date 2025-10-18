@@ -17,18 +17,19 @@ Deno.serve(async (req) => {
 
     console.log('Generating daily scratch cards for all users...');
 
-    // MST is UTC-7
-    const MST_OFFSET = -7;
+    // Get current time in MST (UTC-7)
     const now = new Date();
-    const mstDate = new Date(now.getTime() + (MST_OFFSET * 60 * 60 * 1000));
+    const utcTime = now.getTime();
+    const mstTime = utcTime - (7 * 60 * 60 * 1000);
+    const mstDate = new Date(mstTime);
     const today = mstDate.toISOString().split('T')[0];
     
-    // Calculate tomorrow's midnight in MST
-    const tomorrow = new Date(mstDate);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    // Convert back to UTC for storage
-    const tomorrowUTC = new Date(tomorrow.getTime() - (MST_OFFSET * 60 * 60 * 1000));
+    // Calculate tomorrow's midnight in MST, then convert to UTC for storage
+    const tomorrowMST = new Date(mstDate);
+    tomorrowMST.setUTCDate(tomorrowMST.getUTCDate() + 1);
+    tomorrowMST.setUTCHours(0, 0, 0, 0);
+    // Add 7 hours to convert MST midnight back to UTC
+    const tomorrowUTC = new Date(tomorrowMST.getTime() + (7 * 60 * 60 * 1000));
 
     // Get active collection
     const { data: activeCollection, error: collectionError } = await supabase

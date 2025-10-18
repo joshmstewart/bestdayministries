@@ -54,11 +54,8 @@ Deno.serve(async (req) => {
       throw new Error('Card already scratched');
     }
 
-    // Check expiration using MST timezone
-    const MST_OFFSET = -7;
-    const now = new Date();
-    const mstNow = new Date(now.getTime() + (MST_OFFSET * 60 * 60 * 1000));
-    if (new Date(card.expires_at) < mstNow) {
+    // Check expiration - card.expires_at is stored in UTC
+    if (new Date(card.expires_at) < new Date()) {
       throw new Error('Card has expired');
     }
 
