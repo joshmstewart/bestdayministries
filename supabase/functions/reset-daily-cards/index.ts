@@ -50,10 +50,11 @@ Deno.serve(async (req) => {
 
     console.log('Resetting daily scratch cards for admins/owners only...');
 
-    // Calculate MST date (UTC-7) to match how cards are created
+    // Calculate MST date (UTC-7) - must match frontend calculation exactly
     const now = new Date();
-    const mstOffset = -7 * 60; // MST is UTC-7
-    const mstTime = new Date(now.getTime() + mstOffset * 60 * 1000);
+    const mstOffset = -7 * 60; // MST is UTC-7 in minutes
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const mstTime = new Date(utc + (mstOffset * 60000));
     const today = mstTime.toISOString().split('T')[0];
     
     console.log('Using MST date for reset:', today);
