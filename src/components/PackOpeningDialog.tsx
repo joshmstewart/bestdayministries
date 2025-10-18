@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,14 @@ const rarityColors = {
   legendary: "from-yellow-400 to-orange-600",
 };
 
+const rarityConfettiConfig = {
+  common: { particleCount: 50, spread: 60, duration: 2000 },
+  uncommon: { particleCount: 100, spread: 80, duration: 2500 },
+  rare: { particleCount: 150, spread: 100, duration: 3000 },
+  epic: { particleCount: 200, spread: 120, duration: 4000 },
+  legendary: { particleCount: 300, spread: 140, duration: 5000 },
+};
+
 export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: PackOpeningDialogProps) => {
   const { toast } = useToast();
   const [opened, setOpened] = useState(false);
@@ -31,6 +39,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const [packImageUrl, setPackImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tearProgress, setTearProgress] = useState(0);
+  
+  const idleAudioRef = useRef<HTMLAudioElement | null>(null);
+  const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -40,8 +51,10 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       setOpening(false);
       setTearProgress(0);
       loadCollectionInfo();
-    }
-  }, [open, cardId]);
+      
+      // Create and play sparkly idle sound
+      const idleAudio = new Audio();
+      idleAudio.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYmMkJSYm5+eoJuXk4+KhoKAfn59fX5/gYOFh4mLjI6Pj4+Pjo2Mi4mIh4WDgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42
 
   const loadCollectionInfo = async () => {
     if (!cardId) return;
@@ -93,6 +106,18 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
     console.log('Opening pack...');
     setOpening(true);
     
+    // Stop idle sound
+    if (idleAudioRef.current) {
+      idleAudioRef.current.pause();
+      idleAudioRef.current = null;
+    }
+    
+    // Play opening sound
+    // Note: Replace with your own sound file URL
+    const openingAudio = new Audio('/sounds/pack-opening.mp3');
+    openingAudio.volume = 0.4;
+    openingAudio.play().catch(e => console.log('Audio play failed:', e));
+    
     // Animate tear progress
     const duration = 800;
     const startTime = Date.now();
@@ -124,27 +149,63 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
       console.log('Card revealed:', data);
       
+      const rarity = data.sticker.rarity;
+      const rarityConfig = rarityConfettiConfig[rarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
+      
       setRevealedSticker(data.sticker);
       setOpened(true);
       setShowConfetti(true);
       setOpening(false);
 
-      // Trigger confetti
-      confetti({
-        particleCount: 150,
-        spread: 100,
-        origin: { y: 0.6 },
-        colors: ['#FFD700', '#FFA500', '#FF6347', '#9370DB', '#87CEEB']
-      });
+      // Play celebration sound based on rarity
+      // Note: Replace with your own sound file URLs
+      const celebrationSounds = {
+        common: '/sounds/reveal-common.mp3',
+        uncommon: '/sounds/reveal-uncommon.mp3',
+        rare: '/sounds/reveal-rare.mp3',
+        epic: '/sounds/reveal-epic.mp3',
+        legendary: '/sounds/reveal-legendary.mp3',
+      };
+      
+      const celebrationAudio = new Audio(celebrationSounds[rarity as keyof typeof celebrationSounds] || celebrationSounds.common);
+      celebrationAudio.volume = 0.5;
+      celebrationAudio.play().catch(e => console.log('Audio play failed:', e));
+      celebrationAudioRef.current = celebrationAudio;
 
-      // Stop confetti after 3 seconds
+      // Trigger confetti based on rarity
+      const confettiDuration = rarityConfig.duration;
+      const confettiInterval = rarity === 'legendary' ? 200 : rarity === 'epic' ? 300 : 500;
+      
+      const fireConfetti = () => {
+        confetti({
+          particleCount: rarityConfig.particleCount / (confettiDuration / confettiInterval),
+          spread: rarityConfig.spread,
+          origin: { y: 0.6 },
+          colors: rarity === 'legendary' 
+            ? ['#FFD700', '#FFA500', '#FF6347'] 
+            : rarity === 'epic'
+            ? ['#9370DB', '#8B00FF', '#DA70D6']
+            : rarity === 'rare'
+            ? ['#4169E1', '#1E90FF', '#87CEEB']
+            : rarity === 'uncommon'
+            ? ['#32CD32', '#90EE90', '#00FF00']
+            : ['#C0C0C0', '#D3D3D3', '#A9A9A9']
+        });
+      };
+
+      // Fire confetti multiple times for better effect
+      fireConfetti();
+      const confettiTimer = setInterval(fireConfetti, confettiInterval);
+
+      // Stop confetti after duration
       setTimeout(() => {
+        clearInterval(confettiTimer);
         setShowConfetti(false);
-      }, 3000);
+      }, confettiDuration);
 
       toast({
         title: "Sticker Revealed!",
-        description: `You got a ${data.sticker.rarity} sticker!`,
+        description: `You got a ${rarity} sticker!`,
       });
     } catch (error: any) {
       console.error('Error revealing card:', error);
