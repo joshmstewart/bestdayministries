@@ -777,6 +777,7 @@ export type Database = {
           id: string
           is_bonus_card: boolean
           is_scratched: boolean
+          purchase_number: number
           revealed_sticker_id: string | null
           scratched_at: string | null
           user_id: string
@@ -789,6 +790,7 @@ export type Database = {
           id?: string
           is_bonus_card?: boolean
           is_scratched?: boolean
+          purchase_number?: number
           revealed_sticker_id?: string | null
           scratched_at?: string | null
           user_id: string
@@ -801,6 +803,7 @@ export type Database = {
           id?: string
           is_bonus_card?: boolean
           is_scratched?: boolean
+          purchase_number?: number
           revealed_sticker_id?: string | null
           scratched_at?: string | null
           user_id?: string

@@ -31,6 +31,28 @@ export const DailyScratchCard = () => {
 
   useEffect(() => {
     checkDailyCard();
+
+    // Subscribe to realtime changes on daily_scratch_cards table
+    const channel = supabase
+      .channel('daily_scratch_cards_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'daily_scratch_cards',
+          filter: `user_id=eq.${supabase.auth.getUser().then(({ data }) => data.user?.id)}`
+        },
+        () => {
+          console.log('Daily scratch card changed, refreshing...');
+          checkDailyCard();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [location.key]); // Refetch whenever navigation occurs
 
   const checkDailyCard = async () => {

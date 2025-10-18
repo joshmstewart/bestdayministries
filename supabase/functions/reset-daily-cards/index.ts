@@ -50,7 +50,13 @@ Deno.serve(async (req) => {
 
     console.log('Resetting daily scratch cards for admins/owners only...');
 
-    const today = new Date().toISOString().split('T')[0];
+    // Calculate MST date (UTC-7) to match how cards are created
+    const now = new Date();
+    const mstOffset = -7 * 60; // MST is UTC-7
+    const mstTime = new Date(now.getTime() + mstOffset * 60 * 1000);
+    const today = mstTime.toISOString().split('T')[0];
+    
+    console.log('Using MST date for reset:', today);
 
     // Get all admin and owner user IDs
     const { data: adminUsers, error: adminError } = await supabase
