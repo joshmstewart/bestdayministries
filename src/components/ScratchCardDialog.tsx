@@ -28,6 +28,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const { toast } = useToast();
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sparkleCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isScratching, setIsScratching] = useState(false);
   const [scratched, setScratched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,9 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const [bonusCardCount, setBonusCardCount] = useState<number>(0);
   const [nextCost, setNextCost] = useState<number>(0);
   const [baseCost, setBaseCost] = useState<number>(50);
+  const [sparkles, setSparkles] = useState<Array<{x: number, y: number, life: number}>>([]);
+  const [revealing, setRevealing] = useState(false);
+  const sparkleAnimationRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -51,17 +55,82 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       setIsDuplicate(false);
       setQuantity(1);
       setIsComplete(false);
+      setSparkles([]);
+      setRevealing(false);
       
       // Initialize canvas after a short delay to ensure it's mounted
       setTimeout(() => {
         if (canvasRef.current) {
           initializeCanvas();
         }
+        if (sparkleCanvasRef.current) {
+          sparkleCanvasRef.current.width = 300;
+          sparkleCanvasRef.current.height = 300;
+        }
       }, 100);
       
       loadBaseCost();
     }
   }, [open]);
+
+  // Animate sparkles
+  useEffect(() => {
+    if (sparkles.length === 0 && !revealing) return;
+
+    const animate = () => {
+      const canvas = sparkleCanvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.clearRect(0, 0, 300, 300);
+
+      // Draw sparkles
+      setSparkles(prev => {
+        const updated = prev
+          .map(s => ({ ...s, life: s.life - 1 }))
+          .filter(s => s.life > 0);
+
+        updated.forEach(sparkle => {
+          const alpha = sparkle.life / 30;
+          const size = 2 + (1 - alpha) * 3;
+          
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(sparkle.x, sparkle.y, size, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Add star shape
+          ctx.strokeStyle = `rgba(255, 215, 0, ${alpha * 0.8})`;
+          ctx.lineWidth = 1;
+          for (let i = 0; i < 4; i++) {
+            const angle = (i * Math.PI) / 2;
+            const x1 = sparkle.x + Math.cos(angle) * size;
+            const y1 = sparkle.y + Math.sin(angle) * size;
+            const x2 = sparkle.x + Math.cos(angle) * (size * 2);
+            const y2 = sparkle.y + Math.sin(angle) * (size * 2);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          }
+        });
+
+        return updated;
+      });
+
+      sparkleAnimationRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      if (sparkleAnimationRef.current) {
+        cancelAnimationFrame(sparkleAnimationRef.current);
+      }
+    };
+  }, [sparkles.length, revealing]);
 
   const loadBaseCost = async () => {
     const { data } = await supabase
@@ -97,26 +166,26 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
 
     console.log('Initializing scratch card canvas...');
 
-    // Set canvas size - keep it simple for mobile compatibility
-    canvas.width = 400;
-    canvas.height = 400;
+    // Smaller canvas size
+    canvas.width = 300;
+    canvas.height = 300;
 
     // Create radial metallic gradient for realistic scratch-off surface
     const gradient = ctx.createRadialGradient(
-      200, 200, 0,
-      200, 200, 200
+      150, 150, 0,
+      150, 150, 150
     );
     gradient.addColorStop(0, '#e8e8e8');
     gradient.addColorStop(0.5, '#d0d0d0');
     gradient.addColorStop(1, '#b0b0b0');
     
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 400, 400);
+    ctx.fillRect(0, 0, 300, 300);
 
-    // Add subtle noise texture (no grid)
-    for (let i = 0; i < 1500; i++) {
-      const x = Math.random() * 400;
-      const y = Math.random() * 400;
+    // Add subtle noise texture
+    for (let i = 0; i < 1000; i++) {
+      const x = Math.random() * 300;
+      const y = Math.random() * 300;
       const opacity = Math.random() * 0.2;
       ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
       ctx.fillRect(x, y, 2, 2);
@@ -128,21 +197,21 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
     ctx.fillStyle = '#808080';
-    ctx.font = 'bold 42px Arial';
+    ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Scratch Here!', 200, 200);
+    ctx.fillText('Scratch Here!', 150, 150);
     
     // Add highlight on text
     ctx.shadowColor = 'transparent';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.fillText('Scratch Here!', 199, 199);
+    ctx.fillText('Scratch Here!', 149, 149);
     
     console.log('Canvas initialized successfully');
   };
 
   const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (scratched) return;
+    if (scratched || revealing) return;
 
     // Prevent default touch behavior (scrolling)
     if ('touches' in e) {
@@ -166,24 +235,32 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       y = e.clientY - rect.top;
     }
 
-    // Scale coordinates to canvas size
-    const scaleX = 400 / rect.width;
-    const scaleY = 400 / rect.height;
+    // Scale coordinates to canvas size (300x300)
+    const scaleX = 300 / rect.width;
+    const scaleY = 300 / rect.height;
     
     const scaledX = x * scaleX;
     const scaledY = y * scaleY;
 
+    // Add sparkles where scratching
+    const numSparkles = 3;
+    for (let i = 0; i < numSparkles; i++) {
+      const sparkleX = scaledX + (Math.random() - 0.5) * 20;
+      const sparkleY = scaledY + (Math.random() - 0.5) * 20;
+      setSparkles(prev => [...prev, { x: sparkleX, y: sparkleY, life: 30 }]);
+    }
+
     ctx.globalCompositeOperation = 'destination-out';
     
-    // Create realistic scratch with varying size
-    const baseRadius = 25;
-    const radiusVariation = Math.random() * 10;
+    // Smaller scratch radius
+    const baseRadius = 20;
+    const radiusVariation = Math.random() * 8;
     const radius = baseRadius + radiusVariation;
     
     // Draw multiple overlapping circles for rough texture
     for (let i = 0; i < 3; i++) {
-      const offsetX = (Math.random() - 0.5) * 10;
-      const offsetY = (Math.random() - 0.5) * 10;
+      const offsetX = (Math.random() - 0.5) * 8;
+      const offsetY = (Math.random() - 0.5) * 8;
       const circleRadius = radius * (0.8 + Math.random() * 0.4);
       
       ctx.globalAlpha = 0.6 + Math.random() * 0.4;
@@ -194,8 +271,8 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     
     ctx.globalAlpha = 1;
 
-    // Check if enough is scratched (use actual canvas dimensions)
-    const imageData = ctx.getImageData(0, 0, 400, 400);
+    // Check if enough is scratched (use actual canvas dimensions 300x300)
+    const imageData = ctx.getImageData(0, 0, 300, 300);
     const pixels = imageData.data;
     let transparent = 0;
     
@@ -203,13 +280,35 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       if (pixels[i] === 0) transparent++;
     }
 
-    const totalPixels = 400 * 400;
+    const totalPixels = 300 * 300;
     const percentScratched = (transparent / totalPixels) * 100;
 
-    if (percentScratched > 50 && !scratched) {
+    if (percentScratched > 50 && !scratched && !revealing) {
       console.log('Scratch threshold reached:', percentScratched.toFixed(2));
-      handleReveal();
+      triggerBigSparkle();
     }
+  };
+
+  const triggerBigSparkle = async () => {
+    setRevealing(true);
+    
+    // Create big sparkle explosion
+    const bigSparkles: Array<{x: number, y: number, life: number}> = [];
+    for (let i = 0; i < 100; i++) {
+      bigSparkles.push({
+        x: Math.random() * 300,
+        y: Math.random() * 300,
+        life: 60
+      });
+    }
+    setSparkles(bigSparkles);
+
+    // Wait for sparkle animation
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Clear sparkles and reveal
+    setSparkles([]);
+    handleReveal();
   };
 
   const handleReveal = async () => {
@@ -362,7 +461,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
               <p className="text-sm text-muted-foreground text-center max-w-md">
                 Scratch to collect stickers and complete your collection! Each sticker has a different rarity level.
               </p>
-              <div className="relative">
+              <div className="relative inline-block">
                 <canvas
                   ref={canvasRef}
                   className="border-4 border-primary rounded-lg cursor-pointer touch-none"
@@ -379,9 +478,20 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
                   }}
                   onTouchEnd={() => setIsScratching(false)}
                 />
-                {loading && (
+                <canvas
+                  ref={sparkleCanvasRef}
+                  width={300}
+                  height={300}
+                  className="absolute top-0 left-0 pointer-events-none border-4 border-transparent rounded-lg"
+                  style={{ width: '100%', height: '100%' }}
+                />
+                {(loading || revealing) && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                    <Loader2 className="w-12 h-12 animate-spin text-white" />
+                    {revealing ? (
+                      <div className="text-white text-2xl font-bold animate-pulse">✨</div>
+                    ) : (
+                      <Loader2 className="w-12 h-12 animate-spin text-white" />
+                    )}
                   </div>
                 )}
               </div>
