@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joycoinImage from "@/assets/joycoin.png";
 
@@ -35,9 +35,45 @@ export const StickerAlbum = () => {
   const [purchasing, setPurchasing] = useState(false);
   const [coinBalance, setCoinBalance] = useState<number>(0);
   const [todayCardCount, setTodayCardCount] = useState<number>(0);
+  const [timeUntilNext, setTimeUntilNext] = useState<string>("");
+
+  // Helper function to get current time in MST (UTC-7)
+  const getMSTDate = () => {
+    const now = new Date();
+    const utcTime = now.getTime();
+    const mstTime = utcTime - (7 * 60 * 60 * 1000);
+    return new Date(mstTime);
+  };
+
+  const getMSTMidnight = () => {
+    const mstNow = getMSTDate();
+    const midnight = new Date(mstNow);
+    midnight.setUTCHours(24, 0, 0, 0);
+    return midnight;
+  };
 
   useEffect(() => {
     fetchCollections();
+
+    // Update countdown every second
+    const interval = setInterval(() => {
+      const now = getMSTDate();
+      const midnight = getMSTMidnight();
+      const diff = midnight.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeUntilNext("Refresh to get your new card!");
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeUntilNext(`${hours}h ${minutes}m ${seconds}s`);
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -211,8 +247,16 @@ export const StickerAlbum = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Sticker Collection</CardTitle>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <CardTitle>Sticker Collection</CardTitle>
+              {timeUntilNext && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>Next daily card: {timeUntilNext}</span>
+                </div>
+              )}
+            </div>
             <Select value={selectedCollection} onValueChange={setSelectedCollection}>
               <SelectTrigger className="w-48">
                 <SelectValue />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Check, Coins, Clock } from "lucide-react";
+import { Sparkles, Check, Coins } from "lucide-react";
 import kawaiiBat from "@/assets/stickers/halloween/04-happy-bat.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
 import { useNavigate } from "react-router-dom";
@@ -19,47 +19,17 @@ export const DailyScratchCard = () => {
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState<string>("");
   const [coinBalance, setCoinBalance] = useState<number>(0);
-  const [timeUntilNext, setTimeUntilNext] = useState<string>("");
 
-  // Helper function to get current time in MST (UTC-7)
+  // Helper function to get current date in MST (UTC-7)
   const getMSTDate = () => {
     const now = new Date();
-    // Get UTC time and subtract 7 hours to get MST
     const utcTime = now.getTime();
     const mstTime = utcTime - (7 * 60 * 60 * 1000);
     return new Date(mstTime);
   };
 
-  const getMSTMidnight = () => {
-    const mstNow = getMSTDate();
-    // Create next midnight in MST
-    const midnight = new Date(mstNow);
-    midnight.setUTCHours(24, 0, 0, 0); // Set to next midnight
-    return midnight;
-  };
-
   useEffect(() => {
     checkDailyCard();
-
-    // Update countdown every second
-    const interval = setInterval(() => {
-      const now = getMSTDate();
-      const midnight = getMSTMidnight();
-      const diff = midnight.getTime() - now.getTime();
-
-      if (diff <= 0) {
-        setTimeUntilNext("Refresh to get your new card!");
-        return;
-      }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      setTimeUntilNext(`${hours}h ${minutes}m ${seconds}s`);
-    }, 1000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const checkDailyCard = async () => {
@@ -354,14 +324,6 @@ export const DailyScratchCard = () => {
           bonusCard?.is_scratched ? "View collection" : bonusCard ? "Scratch bonus!" : "View collection"
         ) : (
           <span>Scratch daily!</span>
-        )}
-        
-        {/* Countdown timer - only show if daily card is scratched */}
-        {card.is_scratched && timeUntilNext && (
-          <div className="flex items-center justify-center gap-1 mt-2">
-            <Clock className="w-3 h-3" />
-            <span className="text-[10px]">{timeUntilNext}</span>
-          </div>
         )}
       </div>
 
