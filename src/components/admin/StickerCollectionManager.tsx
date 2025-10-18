@@ -493,17 +493,24 @@ export const StickerCollectionManager = () => {
   };
 
   const createTestScratchCard = async () => {
-    if (!selectedCollection) {
-      toast({
-        title: "Error",
-        description: "Please select a collection first",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setLoading(true);
     try {
+      // Auto-select first active collection if none selected
+      let collectionToUse = selectedCollection;
+      if (!collectionToUse && collections.length > 0) {
+        const activeCollection = collections.find(c => c.is_active) || collections[0];
+        collectionToUse = activeCollection.id;
+      }
+
+      if (!collectionToUse) {
+        toast({
+          title: "No Collections",
+          description: "Please create a collection first",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -512,7 +519,7 @@ export const StickerCollectionManager = () => {
         .from('daily_scratch_cards')
         .insert({
           user_id: user.id,
-          collection_id: selectedCollection,
+          collection_id: collectionToUse,
           date: new Date().toISOString().split('T')[0],
           is_bonus_card: true,
           purchase_number: 999, // Special number to identify test cards
@@ -1316,7 +1323,7 @@ export const StickerCollectionManager = () => {
                 </Button>
                 <Button 
                   onClick={createTestScratchCard} 
-                  disabled={loading || !selectedCollection}
+                  disabled={loading}
                   variant="outline"
                   className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 >
