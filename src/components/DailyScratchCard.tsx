@@ -240,13 +240,12 @@ export const DailyScratchCard = () => {
     return null;
   }
 
-  const isExpired = new Date(card.expires_at) < new Date();
-
   // Determine which card to show - prioritize unscratched cards
   const shouldShowBonusCard = card.is_scratched && bonusCard && !bonusCard.is_scratched;
   const activeCard = shouldShowBonusCard ? bonusCard : card;
   const isActiveCardScratched = activeCard.is_scratched;
   const isBonus = shouldShowBonusCard;
+  const isExpired = new Date(activeCard.expires_at) < new Date();
 
   return (
     <div className="space-y-2">
