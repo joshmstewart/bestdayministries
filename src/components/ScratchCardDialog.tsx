@@ -294,10 +294,10 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
                         Buying...
                       </>
                     ) : (
-                      <>
-                        <Coins className="w-4 h-4 mr-2" />
-                        Buy Another (50 coins)
-                      </>
+                  <>
+                    <Coins className="w-4 h-4 mr-2" />
+                    Buy Another Sticker Today (50 coins)
+                  </>
                     )}
                   </Button>
                 )}

@@ -280,8 +280,8 @@ export const StickerAlbum = () => {
                   </>
                 ) : (
                   <>
-                    <Coins className="w-4 h-4 mr-2" />
-                    Buy Another Card Today (50 coins)
+            <Coins className="w-4 h-4 mr-2" />
+            Buy Another Sticker Today (50 coins)
                   </>
                 )}
               </Button>
