@@ -37,7 +37,8 @@ export const StickerAlbum = () => {
   const [coinBalance, setCoinBalance] = useState<number>(0);
   const [availableCards, setAvailableCards] = useState<any[]>([]);
   const [bonusCardCount, setBonusCardCount] = useState<number>(0);
-  const [nextCost, setNextCost] = useState<number>(50);
+  const [nextCost, setNextCost] = useState<number>(0);
+  const [baseCost, setBaseCost] = useState<number>(50);
   const [timeUntilNext, setTimeUntilNext] = useState<string>("");
   const [showScratchDialog, setShowScratchDialog] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -45,9 +46,10 @@ export const StickerAlbum = () => {
   // Helper function to get current time in MST (UTC-7)
   const getMSTDate = () => {
     const now = new Date();
-    const utcTime = now.getTime();
-    const mstTime = utcTime - (7 * 60 * 60 * 1000);
-    return new Date(mstTime);
+    const mstOffset = -7 * 60; // MST is UTC-7 in minutes
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const mstTime = new Date(utc + (mstOffset * 60000));
+    return mstTime;
   };
 
   const getMSTMidnight = () => {
@@ -59,6 +61,7 @@ export const StickerAlbum = () => {
 
   useEffect(() => {
     fetchCollections();
+    loadBaseCost();
 
     // Update countdown every second
     const interval = setInterval(() => {
@@ -81,6 +84,18 @@ export const StickerAlbum = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const loadBaseCost = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_card_base_cost')
+      .maybeSingle();
+    
+    if (data?.setting_value) {
+      setBaseCost(Number(data.setting_value));
+    }
+  };
+
   useEffect(() => {
     if (selectedCollection) {
       fetchStickers();
@@ -97,6 +112,13 @@ export const StickerAlbum = () => {
       }
     }
   }, [selectedCollection, collections]);
+
+  // Recalculate cost when base cost changes
+  useEffect(() => {
+    if (baseCost) {
+      setNextCost(baseCost * Math.pow(2, bonusCardCount));
+    }
+  }, [baseCost, bonusCardCount]);
 
   const fetchCollections = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -160,8 +182,8 @@ export const StickerAlbum = () => {
     
     const count = bonusCount || 0;
     setBonusCardCount(count);
-    // Calculate next cost: 50 * (2 ^ count)
-    setNextCost(50 * Math.pow(2, count));
+    // Calculate next cost using base cost from settings
+    setNextCost(baseCost * Math.pow(2, count));
 
     // Fetch all stickers in collection
     const { data: stickers, error: stickersError } = await supabase

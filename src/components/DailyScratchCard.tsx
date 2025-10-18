@@ -280,8 +280,10 @@ export const DailyScratchCard = () => {
         description: "Bonus scratch card purchased! 🎉"
       });
 
-      // Refresh cards
-      await checkDailyCard();
+      // Force immediate refresh with a small delay to ensure DB has committed
+      setTimeout(() => {
+        checkDailyCard();
+      }, 500);
     } catch (error: any) {
       console.error('Error purchasing bonus card:', error);
       toast({

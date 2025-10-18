@@ -61,20 +61,29 @@ serve(async (req) => {
       }
     );
 
-    const BASE_BONUS_CARD_COST = 50;
+    // Load base cost from settings
+    console.log('💰 PURCHASE: Loading base cost from settings...');
+    const { data: costSettings } = await supabaseClient
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_card_base_cost')
+      .maybeSingle();
+    
+    const BASE_BONUS_CARD_COST = costSettings?.setting_value ? Number(costSettings.setting_value) : 50;
+    console.log('💰 PURCHASE: Base cost loaded:', BASE_BONUS_CARD_COST);
     
     console.log('💰 PURCHASE: Calculating MST date...');
     const now = new Date();
-    const utcTime = now.getTime();
-    const mstTime = utcTime - (7 * 60 * 60 * 1000);
-    const mstDate = new Date(mstTime);
-    const today = mstDate.toISOString().split('T')[0];
-    console.log('💰 PURCHASE: MST Date:', today, '| Full:', mstDate.toISOString());
+    const mstOffset = -7 * 60; // MST is UTC-7 in minutes
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const mstTime = new Date(utc + (mstOffset * 60000));
+    const today = mstTime.toISOString().split('T')[0];
+    console.log('💰 PURCHASE: MST Date:', today, '| Full:', mstTime.toISOString());
     
-    const tomorrowMST = new Date(mstDate);
-    tomorrowMST.setUTCDate(tomorrowMST.getUTCDate() + 1);
-    tomorrowMST.setUTCHours(0, 0, 0, 0);
-    const tomorrowUTC = new Date(tomorrowMST.getTime() + (7 * 60 * 60 * 1000));
+    const tomorrowMST = new Date(mstTime);
+    tomorrowMST.setDate(tomorrowMST.getDate() + 1);
+    tomorrowMST.setHours(0, 0, 0, 0);
+    const tomorrowUTC = new Date(tomorrowMST.getTime() - (mstOffset * 60000));
 
     console.log('💰 PURCHASE: Querying existing bonus cards...');
     const { data: existingBonusCards, error: queryError } = await supabaseClient

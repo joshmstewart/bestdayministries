@@ -38,13 +38,34 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const [purchasing, setPurchasing] = useState(false);
   const [coinBalance, setCoinBalance] = useState<number>(0);
   const [bonusCardCount, setBonusCardCount] = useState<number>(0);
-  const [nextCost, setNextCost] = useState<number>(50);
+  const [nextCost, setNextCost] = useState<number>(0);
+  const [baseCost, setBaseCost] = useState<number>(50);
 
   useEffect(() => {
     if (open && canvasRef.current) {
       initializeCanvas();
+      loadBaseCost();
     }
   }, [open]);
+
+  const loadBaseCost = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_card_base_cost')
+      .maybeSingle();
+    
+    if (data?.setting_value) {
+      setBaseCost(Number(data.setting_value));
+    }
+  };
+
+  // Recalculate cost when base cost changes
+  useEffect(() => {
+    if (baseCost) {
+      setNextCost(baseCost * Math.pow(2, bonusCardCount));
+    }
+  }, [baseCost, bonusCardCount]);
 
   const initializeCanvas = () => {
     const canvas = canvasRef.current;
@@ -143,8 +164,8 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
         
         const bonusCount = count || 0;
         setBonusCardCount(bonusCount);
-        // Calculate next cost: 50 * (2 ^ bonusCount)
-        setNextCost(50 * Math.pow(2, bonusCount));
+        // Calculate next cost using base cost from settings
+        setNextCost(baseCost * Math.pow(2, bonusCount));
       }
 
       // Trigger confetti
