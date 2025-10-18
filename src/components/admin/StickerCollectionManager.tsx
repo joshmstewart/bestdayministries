@@ -13,6 +13,7 @@ import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical, X, 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScratchCardDialog } from "@/components/ScratchCardDialog";
+import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import {
   Dialog,
   DialogContent,
@@ -1879,9 +1880,9 @@ export const StickerCollectionManager = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Test Scratch Card Dialog */}
+        {/* Test Pack Opening Dialog */}
         {testCardId && (
-          <ScratchCardDialog
+          <PackOpeningDialog
             open={showTestScratch}
             onOpenChange={setShowTestScratch}
             cardId={testCardId}

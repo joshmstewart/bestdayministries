@@ -405,7 +405,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
         });
       }
 
-      onScratched();
+      // Don't call onScratched here - wait for user to close dialog
     } catch (error: any) {
       toast({
         title: "Error",
@@ -416,6 +416,13 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClose = (newOpen: boolean) => {
+    if (!newOpen && onScratched) {
+      onScratched();
+    }
+    onOpenChange(newOpen);
   };
 
   const purchaseBonusCard = async () => {
@@ -460,9 +467,8 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
         setBonusCardCount(data.purchaseCount || 0);
       }
 
-      // Refresh parent to show new card
-      onScratched();
-      onOpenChange(false);
+      // Close dialog and refresh parent to show new card
+      handleClose(false);
     } catch (error: any) {
       console.error('Error purchasing bonus card:', error);
       toast({
@@ -476,7 +482,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl">
         <div className="flex flex-col items-center justify-center p-6 space-y-6">
           {!revealedSticker ? (
@@ -487,7 +493,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    onOpenChange(false);
+                    handleClose(false);
                     navigate('/sticker-album');
                   }}
                 >
@@ -605,7 +611,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
                 )}
                 <Button 
                   onClick={() => {
-                    onOpenChange(false);
+                    handleClose(false);
                     navigate('/sticker-album');
                   }}
                   className="w-full"
