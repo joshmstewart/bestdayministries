@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Lock, Clock } from "lucide-react";
+import { Loader2, Lock, Clock, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joycoinImage from "@/assets/joycoin.png";
+import { ScratchCardDialog } from "./ScratchCardDialog";
 
 const rarityColors = {
   common: "bg-gray-500",
@@ -34,8 +35,12 @@ export const StickerAlbum = () => {
   });
   const [purchasing, setPurchasing] = useState(false);
   const [coinBalance, setCoinBalance] = useState<number>(0);
-  const [todayCardCount, setTodayCardCount] = useState<number>(0);
+  const [availableCards, setAvailableCards] = useState<any[]>([]);
+  const [bonusCardCount, setBonusCardCount] = useState<number>(0);
+  const [nextCost, setNextCost] = useState<number>(50);
   const [timeUntilNext, setTimeUntilNext] = useState<string>("");
+  const [showScratchDialog, setShowScratchDialog] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   // Helper function to get current time in MST (UTC-7)
   const getMSTDate = () => {
@@ -133,13 +138,30 @@ export const StickerAlbum = () => {
     setCoinBalance(profile?.coins || 0);
 
     const today = new Date().toISOString().split('T')[0];
+    
+    // Get all cards for today (unscratched ones)
     const { data: cards } = await supabase
       .from('daily_scratch_cards')
-      .select('id')
+      .select('*')
       .eq('user_id', user.id)
-      .eq('date', today);
+      .eq('date', today)
+      .eq('is_scratched', false)
+      .order('is_bonus_card', { ascending: true });
     
-    setTodayCardCount(cards?.length || 0);
+    setAvailableCards(cards || []);
+
+    // Count bonus cards purchased today
+    const { count: bonusCount } = await supabase
+      .from('daily_scratch_cards')
+      .select('id', { count: 'exact' })
+      .eq('user_id', user.id)
+      .eq('date', today)
+      .eq('is_bonus_card', true);
+    
+    const count = bonusCount || 0;
+    setBonusCardCount(count);
+    // Calculate next cost: 50 * (2 ^ count)
+    setNextCost(50 * Math.pow(2, count));
 
     // Fetch all stickers in collection
     const { data: stickers, error: stickersError } = await supabase
@@ -210,10 +232,16 @@ export const StickerAlbum = () => {
 
       toast({
         title: "Success!",
-        description: "Bonus scratch card purchased! Go to the community page to scratch it. 🎉"
+        description: `Bonus scratch card purchased for ${data.cost} coins! 🎉`
       });
 
-      // Refresh to update card count
+      // Update next cost if provided
+      if (data.nextCost) {
+        setNextCost(data.nextCost);
+        setBonusCardCount(data.purchaseCount || 0);
+      }
+
+      // Refresh to show new card
       await fetchStickers();
     } catch (error: any) {
       console.error('Error purchasing bonus card:', error);
@@ -243,8 +271,48 @@ export const StickerAlbum = () => {
     );
   }
 
+  const handleCardScratched = async () => {
+    setShowScratchDialog(false);
+    setSelectedCardId(null);
+    await fetchStickers();
+  };
+
   return (
     <div className="space-y-6">
+      {/* Available Scratch Cards */}
+      {availableCards.length > 0 && (
+        <Card className="border-primary bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              Available Scratch Cards
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {availableCards.map((card, index) => (
+                <Button
+                  key={card.id}
+                  onClick={() => {
+                    setSelectedCardId(card.id);
+                    setShowScratchDialog(true);
+                  }}
+                  size="lg"
+                  variant={card.is_bonus_card ? "default" : "outline"}
+                  className="flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {card.is_bonus_card ? `Bonus Card #${index}` : 'Daily Card'}
+                </Button>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              Click a card to scratch it and reveal your sticker!
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -325,34 +393,32 @@ export const StickerAlbum = () => {
           </div>
 
           {/* Buy Bonus Card Button */}
-          {todayCardCount > 0 && todayCardCount < 2 && (
-            <div className="pt-4 border-t">
-              <Button
-                onClick={purchaseBonusCard}
-                disabled={purchasing || coinBalance < 50}
-                className="w-full"
-                size="lg"
-              >
-                {purchasing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Purchasing...
-                  </>
-                ) : (
-                  <>
-                    <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
-                    Buy Another Sticker Today (50 coins)
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                {coinBalance < 50 
-                  ? `Need ${50 - coinBalance} more coins` 
-                  : `You have ${coinBalance} coins • ${2 - todayCardCount} cards left today`
-                }
-              </p>
-            </div>
-          )}
+          <div className="pt-4 border-t">
+            <Button
+              onClick={purchaseBonusCard}
+              disabled={purchasing || coinBalance < nextCost}
+              className="w-full"
+              size="lg"
+            >
+              {purchasing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Purchasing...
+                </>
+              ) : (
+                <>
+                  <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
+                  Buy Bonus Sticker ({nextCost} coins)
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              {coinBalance < nextCost 
+                ? `Need ${nextCost - coinBalance} more coins` 
+                : `You have ${coinBalance} coins • Price doubles each time`
+              }
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -421,6 +487,16 @@ export const StickerAlbum = () => {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Scratch Card Dialog */}
+      {selectedCardId && (
+        <ScratchCardDialog
+          open={showScratchDialog}
+          onOpenChange={setShowScratchDialog}
+          cardId={selectedCardId}
+          onScratched={handleCardScratched}
+        />
       )}
     </div>
   );

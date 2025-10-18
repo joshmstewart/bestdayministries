@@ -37,7 +37,8 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const [isComplete, setIsComplete] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [coinBalance, setCoinBalance] = useState<number>(0);
-  const [todayCardCount, setTodayCardCount] = useState<number>(0);
+  const [bonusCardCount, setBonusCardCount] = useState<number>(0);
+  const [nextCost, setNextCost] = useState<number>(50);
 
   useEffect(() => {
     if (open && canvasRef.current) {
@@ -121,7 +122,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       setQuantity(data.quantity);
       setIsComplete(data.isComplete);
 
-      // Get user's coin balance and today's card count
+      // Get user's coin balance and bonus card count
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase
@@ -133,13 +134,17 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
         setCoinBalance(profile?.coins || 0);
 
         const today = new Date().toISOString().split('T')[0];
-        const { data: cards } = await supabase
+        const { data: bonusCards, count } = await supabase
           .from('daily_scratch_cards')
-          .select('id')
+          .select('id', { count: 'exact' })
           .eq('user_id', user.id)
-          .eq('date', today);
+          .eq('date', today)
+          .eq('is_bonus_card', true);
         
-        setTodayCardCount(cards?.length || 0);
+        const bonusCount = count || 0;
+        setBonusCardCount(bonusCount);
+        // Calculate next cost: 50 * (2 ^ bonusCount)
+        setNextCost(50 * Math.pow(2, bonusCount));
       }
 
       // Trigger confetti
@@ -205,8 +210,14 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
 
       toast({
         title: "Success!",
-        description: "Bonus scratch card purchased! Close this dialog to scratch it. 🎉"
+        description: `Bonus scratch card purchased for ${data.cost} coins! Close this dialog to scratch it. 🎉`
       });
+
+      // Update next cost if provided
+      if (data.nextCost) {
+        setNextCost(data.nextCost);
+        setBonusCardCount(data.purchaseCount || 0);
+      }
 
       // Refresh parent to show new card
       onScratched();
@@ -229,9 +240,21 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
         <div className="flex flex-col items-center justify-center p-6 space-y-6">
           {!revealedSticker ? (
             <>
-              <h2 className="text-2xl font-bold">Scratch to Reveal!</h2>
+              <div className="flex items-center justify-between w-full">
+                <h2 className="text-2xl font-bold">Scratch to Reveal!</h2>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate('/sticker-album');
+                  }}
+                >
+                  View Collection
+                </Button>
+              </div>
               <p className="text-sm text-muted-foreground text-center max-w-md">
-                Scratch once per day to collect stickers and complete your collection! Each sticker has a different rarity level.
+                Scratch to collect stickers and complete your collection! Each sticker has a different rarity level.
               </p>
               <div className="relative">
                 <canvas
@@ -297,32 +320,36 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
                 </div>
               )}
 
-              <div className="flex gap-4">
-                {todayCardCount < 2 && (
-                  <Button 
-                    variant="outline" 
-                    onClick={purchaseBonusCard}
-                    disabled={purchasing || coinBalance < 50}
-                  >
-                    {purchasing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Buying...
-                      </>
-                    ) : (
-                      <>
-                        <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
-                        Buy Another Sticker Today (50 coins)
-                      </>
-                    )}
-                  </Button>
+              <div className="flex flex-col gap-3 w-full">
+                <Button 
+                  variant="outline" 
+                  onClick={purchaseBonusCard}
+                  disabled={purchasing || coinBalance < nextCost}
+                  className="w-full"
+                >
+                  {purchasing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Buying...
+                    </>
+                  ) : (
+                    <>
+                      <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
+                      Buy Another Sticker ({nextCost} coins)
+                    </>
+                  )}
+                </Button>
+                {coinBalance < nextCost && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Need {nextCost - coinBalance} more coins
+                  </p>
                 )}
                 <Button 
-                  variant={todayCardCount < 2 ? "outline" : "default"}
                   onClick={() => {
                     onOpenChange(false);
                     navigate('/sticker-album');
                   }}
+                  className="w-full"
                 >
                   View Collection
                 </Button>

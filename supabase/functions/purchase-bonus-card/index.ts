@@ -60,7 +60,7 @@ serve(async (req) => {
       }
     );
 
-    const BONUS_CARD_COST = 50;
+    const BASE_BONUS_CARD_COST = 50;
     
     // Use MST (UTC-7) for date
     const now = new Date();
@@ -75,21 +75,19 @@ serve(async (req) => {
     tomorrowMST.setUTCHours(0, 0, 0, 0);
     const tomorrowUTC = new Date(tomorrowMST.getTime() + (7 * 60 * 60 * 1000));
 
-    // Check if user already has a bonus card for today
-    const { data: existingBonusCard } = await supabaseClient
+    // Count how many bonus cards purchased today (for doubling price)
+    const { data: existingBonusCards, count: bonusCount } = await supabaseClient
       .from('daily_scratch_cards')
-      .select('id')
+      .select('id', { count: 'exact' })
       .eq('user_id', user.id)
       .eq('date', today)
-      .eq('is_bonus_card', true)
-      .single();
+      .eq('is_bonus_card', true);
 
-    if (existingBonusCard) {
-      return new Response(
-        JSON.stringify({ error: 'You have already purchased a bonus card today' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Calculate cost with doubling: base_cost * (2 ^ count)
+    const purchaseCount = bonusCount || 0;
+    const BONUS_CARD_COST = BASE_BONUS_CARD_COST * Math.pow(2, purchaseCount);
+
+    console.log(`Purchasing bonus card #${purchaseCount + 1} for ${BONUS_CARD_COST} coins`);
 
     // Check user's coin balance
     const { data: profile } = await supabaseClient
@@ -100,7 +98,7 @@ serve(async (req) => {
 
     if (!profile || profile.coins < BONUS_CARD_COST) {
       return new Response(
-        JSON.stringify({ error: 'Insufficient coins. You need 50 coins to purchase a bonus card.' }),
+        JSON.stringify({ error: `Insufficient coins. You need ${BONUS_CARD_COST} coins to purchase a bonus card.` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -159,10 +157,16 @@ serve(async (req) => {
 
     if (cardError) throw cardError;
 
+    // Calculate next purchase cost
+    const nextCost = BASE_BONUS_CARD_COST * Math.pow(2, purchaseCount + 1);
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         card: bonusCard,
+        cost: BONUS_CARD_COST,
+        nextCost: nextCost,
+        purchaseCount: purchaseCount + 1,
         message: 'Bonus card purchased successfully!'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
