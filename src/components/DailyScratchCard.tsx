@@ -30,89 +30,111 @@ export const DailyScratchCard = () => {
   };
 
   useEffect(() => {
+    console.log('🎯 COMPONENT: DailyScratchCard mounting');
+    console.log('🎯 COMPONENT: location.key =', location.key);
+    
     checkDailyCard();
 
-    // Subscribe to realtime changes on daily_scratch_cards table
-    const channel = supabase
-      .channel('daily_scratch_cards_changes')
-      .on(
-        'postgres_changes',
-        {
+    // Set up realtime subscription with proper user ID
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('⚠️ REALTIME: No user found, skipping subscription');
+        return;
+      }
+
+      console.log('🔔 REALTIME: Setting up subscription for user:', user.id);
+      
+      const channel = supabase
+        .channel('daily_scratch_cards_changes')
+        .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'daily_scratch_cards',
-          filter: `user_id=eq.${supabase.auth.getUser().then(({ data }) => data.user?.id)}`
-        },
-        () => {
-          console.log('Daily scratch card changed, refreshing...');
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          console.log('✅ REALTIME: Card changed, refreshing...', payload);
           checkDailyCard();
-        }
-      )
-      .subscribe();
+        })
+        .subscribe((status) => {
+          console.log('🔔 REALTIME: Subscription status:', status);
+        });
 
+      return () => {
+        console.log('🔔 REALTIME: Cleaning up subscription');
+        supabase.removeChannel(channel);
+      };
+    };
+
+    const cleanup = setupRealtime();
     return () => {
-      supabase.removeChannel(channel);
+      cleanup.then(fn => fn && fn());
     };
   }, [location.key]); // Refetch whenever navigation occurs
 
   const checkDailyCard = async () => {
+    console.log('📋 CHECK_DAILY_CARD: Starting...');
+    
     try {
-      // Check if sticker feature is enabled globally
+      console.log('📋 CHECK: Checking stickers_enabled setting...');
       const { data: settings } = await supabase
         .from('app_settings')
         .select('setting_value')
         .eq('setting_key', 'stickers_enabled')
         .single();
 
+      console.log('📋 CHECK: Settings result:', settings);
+
       if (!settings || settings.setting_value === false) {
-        console.log('DailyScratchCard: Feature disabled globally');
+        console.log('❌ CHECK: Stickers disabled in settings');
         setLoading(false);
         return;
       }
 
+      console.log('📋 CHECK: Getting current user...');
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('📋 CHECK: User ID:', user?.id);
+      
       if (!user) {
+        console.log('❌ CHECK: No user found');
         setLoading(false);
         return;
       }
 
-      // Get user's coin balance
+      console.log('📋 CHECK: Getting user coin balance...');
       const { data: profile } = await supabase
         .from('profiles')
         .select('coins')
         .eq('id', user.id)
         .single();
       
+      console.log('📋 CHECK: Coin balance:', profile?.coins);
       setCoinBalance(profile?.coins || 0);
 
-      console.log('DailyScratchCard: Checking for accessible collections...');
-
-      // Check if user has access to any active sticker collections
-      // RLS policy will automatically filter based on visible_to_roles
+      console.log('📋 CHECK: Checking for accessible collections...');
       const { data: activeCollections, error: collectionError } = await supabase
         .from('sticker_collections')
         .select('id, visible_to_roles')
         .eq('is_active', true);
 
-      console.log('DailyScratchCard: Active collections result:', { 
+      console.log('📋 CHECK: Active collections result:', { 
         count: activeCollections?.length || 0, 
         collections: activeCollections,
         error: collectionError 
       });
 
-      // If no collections returned (either none exist or user doesn't have permission), don't show card
       if (collectionError || !activeCollections || activeCollections.length === 0) {
-        console.log('DailyScratchCard: No accessible sticker collections - hiding feature');
+        console.log('❌ CHECK: No accessible sticker collections');
         setLoading(false);
         return;
       }
 
-      // Use MST for date checking
+      console.log('📋 CHECK: Calculating MST date...');
       const mstDate = getMSTDate();
-      // Format the date in MST timezone
       const today = mstDate.toISOString().split('T')[0];
+      console.log('📋 CHECK: MST Date:', today, '| Full MST:', mstDate.toISOString());
 
-      // Check for free daily card
+      console.log('📋 CHECK: Querying for free daily card...');
       let { data: existingCard, error: cardError } = await supabase
         .from('daily_scratch_cards')
         .select('*')
@@ -121,59 +143,80 @@ export const DailyScratchCard = () => {
         .eq('is_bonus_card', false)
         .maybeSingle();
 
-      // Check for bonus card
-      const { data: existingBonusCard } = await supabase
+      console.log('📋 CHECK: Free card result:', {
+        exists: !!existingCard,
+        isScratched: existingCard?.is_scratched,
+        card: existingCard,
+        error: cardError
+      });
+
+      console.log('📋 CHECK: Querying for bonus cards (unscratched only)...');
+      const { data: existingBonusCards } = await supabase
         .from('daily_scratch_cards')
         .select('*')
         .eq('user_id', user.id)
         .eq('date', today)
         .eq('is_bonus_card', true)
-        .maybeSingle();
+        .eq('is_scratched', false)
+        .order('purchase_number', { ascending: true });
 
-      console.log('DailyScratchCard: Existing card check:', { existingCard, cardError });
+      console.log('📋 CHECK: Bonus cards result:', {
+        count: existingBonusCards?.length || 0,
+        cards: existingBonusCards
+      });
 
-      // If no card exists, generate one
       if (!existingCard) {
+        console.log('📋 CHECK: No free card found, generating new one...');
         const { data: newCard, error: genError } = await supabase
           .rpc('generate_daily_scratch_card', { _user_id: user.id });
 
+        console.log('📋 CHECK: Generate card result:', { newCard, error: genError });
+
         if (genError) {
-          console.error('Error generating card:', genError);
+          console.error('❌ CHECK: Error generating card:', genError);
           setError('No active sticker collection found. Please contact an admin.');
           setLoading(false);
           return;
         }
 
         if (newCard) {
-          // Fetch the newly created card
           const { data: fetchedCard } = await supabase
             .from('daily_scratch_cards')
             .select('*')
             .eq('id', newCard)
             .maybeSingle();
-
+          console.log('📋 CHECK: Fetched newly generated card:', fetchedCard);
           existingCard = fetchedCard;
         }
       }
 
-      // If still no card after generation attempt, don't show the feature
       if (!existingCard) {
-        console.log('No scratch card available for user');
+        console.log('❌ CHECK: No scratch card available after generation');
         setLoading(false);
         return;
       }
 
-      setCard(existingCard);
-      setBonusCard(existingBonusCard || null);
+      const shouldShowBonusCard = existingCard.is_scratched && existingBonusCards && existingBonusCards.length > 0;
+      console.log('📋 CHECK: Display logic:', {
+        freeCardScratched: existingCard.is_scratched,
+        hasBonusCards: existingBonusCards?.length > 0,
+        shouldShowBonusCard,
+        activeCard: shouldShowBonusCard ? existingBonusCards[0] : existingCard
+      });
 
-      // Get the preview sticker from the collection, or fallback to any active sticker
+      console.log('📋 CHECK: Setting card state...');
+      setCard(existingCard);
+      setBonusCard(existingBonusCards?.[0] || null);
+
+      console.log('📋 CHECK: Fetching preview sticker...');
       if (existingCard) {
-        // First try to get the preview sticker from the collection
         const { data: collection } = await supabase
           .from('sticker_collections')
           .select('preview_sticker_id')
           .eq('id', existingCard.collection_id)
           .single();
+        
+        console.log('📋 CHECK: Collection preview sticker ID:', collection?.preview_sticker_id);
         
         let stickerImageUrl = null;
         
@@ -185,10 +228,11 @@ export const DailyScratchCard = () => {
             .single();
           
           stickerImageUrl = previewSticker?.image_url;
+          console.log('📋 CHECK: Preview sticker URL:', stickerImageUrl);
         }
         
-        // Fallback to any active sticker if no preview is set
         if (!stickerImageUrl) {
+          console.log('📋 CHECK: No preview sticker, fetching fallback...');
           const { data: stickers } = await supabase
             .from('stickers')
             .select('image_url')
@@ -198,6 +242,7 @@ export const DailyScratchCard = () => {
 
           if (stickers && stickers.length > 0) {
             stickerImageUrl = stickers[0].image_url;
+            console.log('📋 CHECK: Fallback sticker URL:', stickerImageUrl);
           }
         }
         
@@ -206,8 +251,9 @@ export const DailyScratchCard = () => {
         }
       }
     } catch (error) {
-      console.error('Error checking daily card:', error);
+      console.error('❌ CHECK_DAILY_CARD: Error:', error);
     } finally {
+      console.log('📋 CHECK_DAILY_CARD: Complete');
       setLoading(false);
     }
   };
