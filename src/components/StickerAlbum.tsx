@@ -235,13 +235,7 @@ export const StickerAlbum = () => {
         description: `Bonus scratch card purchased for ${data.cost} coins! 🎉`
       });
 
-      // Update next cost if provided
-      if (data.nextCost) {
-        setNextCost(data.nextCost);
-        setBonusCardCount(data.purchaseCount || 0);
-      }
-
-      // Refresh to show new card
+      // Refresh to show new card and update costs
       await fetchStickers();
     } catch (error: any) {
       console.error('Error purchasing bonus card:', error);
