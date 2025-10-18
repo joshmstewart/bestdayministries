@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Check, Coins } from "lucide-react";
 import kawaiiBat from "@/assets/stickers/halloween/04-happy-bat.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 export const DailyScratchCard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [card, setCard] = useState<any>(null);
   const [bonusCard, setBonusCard] = useState<any>(null);
@@ -30,20 +31,7 @@ export const DailyScratchCard = () => {
 
   useEffect(() => {
     checkDailyCard();
-
-    // Refresh when page becomes visible again (after navigating back from admin)
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        checkDailyCard();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
+  }, [location.key]); // Refetch whenever navigation occurs
 
   const checkDailyCard = async () => {
     try {
