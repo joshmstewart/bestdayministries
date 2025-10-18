@@ -30,6 +30,19 @@ export const DailyScratchCard = () => {
 
   useEffect(() => {
     checkDailyCard();
+
+    // Refresh when page becomes visible again (after navigating back from admin)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkDailyCard();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const checkDailyCard = async () => {
