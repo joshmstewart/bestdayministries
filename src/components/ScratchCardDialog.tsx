@@ -99,28 +99,45 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
           .filter(s => s.life > 0);
 
         updated.forEach(sparkle => {
-          const alpha = sparkle.life / 30;
-          const size = 3 + (1 - alpha) * 5; // Larger sparkles
-          
-          // White glow
-          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-          ctx.beginPath();
-          ctx.arc(sparkle.x, sparkle.y, size, 0, Math.PI * 2);
-          ctx.fill();
+          // Validate sparkle coordinates and life
+          if (
+            !isFinite(sparkle.x) || 
+            !isFinite(sparkle.y) || 
+            !isFinite(sparkle.life) ||
+            sparkle.x < 0 || sparkle.x > 300 ||
+            sparkle.y < 0 || sparkle.y > 300 ||
+            sparkle.life <= 0
+          ) {
+            return; // Skip invalid sparkles
+          }
 
-          // Gold star shape
-          ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
-          ctx.lineWidth = 2;
-          for (let i = 0; i < 4; i++) {
-            const angle = (i * Math.PI) / 2;
-            const x1 = sparkle.x + Math.cos(angle) * size;
-            const y1 = sparkle.y + Math.sin(angle) * size;
-            const x2 = sparkle.x + Math.cos(angle) * (size * 2.5);
-            const y2 = sparkle.y + Math.sin(angle) * (size * 2.5);
+          const alpha = Math.max(0, Math.min(1, sparkle.life / 30));
+          const size = Math.max(1, 3 + (1 - alpha) * 5); // Ensure positive size
+          
+          try {
+            // White glow
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
+            ctx.arc(sparkle.x, sparkle.y, size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Gold star shape
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+              const angle = (i * Math.PI) / 2;
+              const x1 = sparkle.x + Math.cos(angle) * size;
+              const y1 = sparkle.y + Math.sin(angle) * size;
+              const x2 = sparkle.x + Math.cos(angle) * (size * 2.5);
+              const y2 = sparkle.y + Math.sin(angle) * (size * 2.5);
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2, y2);
+              ctx.stroke();
+            }
+          } catch (err) {
+            // Skip this sparkle if drawing fails
+            console.warn('Failed to draw sparkle:', err);
           }
         });
 
