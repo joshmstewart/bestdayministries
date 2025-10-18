@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Lock, Coins } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const rarityColors = {
   common: "bg-gray-500",
@@ -15,12 +17,23 @@ const rarityColors = {
 };
 
 export const StickerAlbum = () => {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [collections, setCollections] = useState<any[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [allStickers, setAllStickers] = useState<any[]>([]);
   const [userStickers, setUserStickers] = useState<Map<string, any>>(new Map());
   const [filterRarity, setFilterRarity] = useState<string>("all");
+  const [rarityPercentages, setRarityPercentages] = useState<any>({
+    common: 50,
+    uncommon: 30,
+    rare: 15,
+    epic: 4,
+    legendary: 1
+  });
+  const [purchasing, setPurchasing] = useState(false);
+  const [coinBalance, setCoinBalance] = useState<number>(0);
+  const [todayCardCount, setTodayCardCount] = useState<number>(0);
 
   useEffect(() => {
     fetchCollections();
@@ -29,8 +42,19 @@ export const StickerAlbum = () => {
   useEffect(() => {
     if (selectedCollection) {
       fetchStickers();
+      // Update rarity percentages when collection changes
+      const collection = collections.find(c => c.id === selectedCollection);
+      if (collection) {
+        setRarityPercentages(collection.rarity_percentages || {
+          common: 50,
+          uncommon: 30,
+          rare: 15,
+          epic: 4,
+          legendary: 1
+        });
+      }
     }
-  }, [selectedCollection]);
+  }, [selectedCollection, collections]);
 
   const fetchCollections = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -45,6 +69,14 @@ export const StickerAlbum = () => {
     if (!error && data && data.length > 0) {
       setCollections(data);
       setSelectedCollection(data[0].id);
+      // Set rarity percentages from the first collection
+      setRarityPercentages(data[0].rarity_percentages || {
+        common: 50,
+        uncommon: 30,
+        rare: 15,
+        epic: 4,
+        legendary: 1
+      });
     }
   };
 
@@ -53,6 +85,24 @@ export const StickerAlbum = () => {
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Get coin balance and today's card count
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('coin_balance')
+      .eq('id', user.id)
+      .single();
+    
+    setCoinBalance(profile?.coin_balance || 0);
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data: cards } = await supabase
+      .from('daily_scratch_cards')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('date', today);
+    
+    setTodayCardCount(cards?.length || 0);
 
     // Fetch all stickers in collection
     const { data: stickers, error: stickersError } = await supabase
@@ -88,6 +138,41 @@ export const StickerAlbum = () => {
     setUserStickers(userStickerMap);
 
     setLoading(false);
+  };
+
+  const purchaseBonusCard = async () => {
+    setPurchasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purchase-bonus-card');
+      
+      if (error) throw error;
+      
+      if (data.error) {
+        toast({
+          title: "Cannot Purchase",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success!",
+        description: "Bonus scratch card purchased! Go to the community page to scratch it. 🎉"
+      });
+
+      // Refresh to update card count
+      await fetchStickers();
+    } catch (error: any) {
+      console.error('Error purchasing bonus card:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to purchase bonus card",
+        variant: "destructive"
+      });
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   const filteredStickers = filterRarity === "all"
@@ -158,26 +243,56 @@ export const StickerAlbum = () => {
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded bg-gray-500"></div>
-                <span className="text-muted-foreground">Common: 50%</span>
+                <span className="text-muted-foreground">Common: {rarityPercentages.common}%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded bg-green-500"></div>
-                <span className="text-muted-foreground">Uncommon: 30%</span>
+                <span className="text-muted-foreground">Uncommon: {rarityPercentages.uncommon}%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded bg-blue-500"></div>
-                <span className="text-muted-foreground">Rare: 15%</span>
+                <span className="text-muted-foreground">Rare: {rarityPercentages.rare}%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded bg-purple-500"></div>
-                <span className="text-muted-foreground">Epic: 4%</span>
+                <span className="text-muted-foreground">Epic: {rarityPercentages.epic}%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded bg-yellow-500"></div>
-                <span className="text-muted-foreground">Legendary: 1%</span>
+                <span className="text-muted-foreground">Legendary: {rarityPercentages.legendary}%</span>
               </div>
             </div>
           </div>
+
+          {/* Buy Bonus Card Button */}
+          {todayCardCount > 0 && todayCardCount < 2 && (
+            <div className="pt-4 border-t">
+              <Button
+                onClick={purchaseBonusCard}
+                disabled={purchasing || coinBalance < 50}
+                className="w-full"
+                size="lg"
+              >
+                {purchasing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Purchasing...
+                  </>
+                ) : (
+                  <>
+                    <Coins className="w-4 h-4 mr-2" />
+                    Buy Another Card Today (50 coins)
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {coinBalance < 50 
+                  ? `Need ${50 - coinBalance} more coins` 
+                  : `You have ${coinBalance} coins • ${2 - todayCardCount} cards left today`
+                }
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

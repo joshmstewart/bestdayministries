@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Coins } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +34,9 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isComplete, setIsComplete] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
+  const [coinBalance, setCoinBalance] = useState<number>(0);
+  const [todayCardCount, setTodayCardCount] = useState<number>(0);
 
   useEffect(() => {
     if (open && canvasRef.current) {
@@ -117,6 +120,27 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       setQuantity(data.quantity);
       setIsComplete(data.isComplete);
 
+      // Get user's coin balance and today's card count
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('coin_balance')
+          .eq('id', user.id)
+          .single();
+        
+        setCoinBalance(profile?.coin_balance || 0);
+
+        const today = new Date().toISOString().split('T')[0];
+        const { data: cards } = await supabase
+          .from('daily_scratch_cards')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('date', today);
+        
+        setTodayCardCount(cards?.length || 0);
+      }
+
       // Trigger confetti
       confetti({
         particleCount: data.sticker.rarity === 'legendary' ? 200 : 100,
@@ -144,6 +168,42 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       onOpenChange(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const purchaseBonusCard = async () => {
+    setPurchasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purchase-bonus-card');
+      
+      if (error) throw error;
+      
+      if (data.error) {
+        toast({
+          title: "Cannot Purchase",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success!",
+        description: "Bonus scratch card purchased! Close this dialog to scratch it. 🎉"
+      });
+
+      // Refresh parent to show new card
+      onScratched();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error purchasing bonus card:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to purchase bonus card",
+        variant: "destructive"
+      });
+    } finally {
+      setPurchasing(false);
     }
   };
 
@@ -222,13 +282,32 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
               )}
 
               <div className="flex gap-4">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Close
-                </Button>
-                <Button onClick={() => {
-                  onOpenChange(false);
-                  navigate('/sticker-album');
-                }}>
+                {todayCardCount < 2 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={purchaseBonusCard}
+                    disabled={purchasing || coinBalance < 50}
+                  >
+                    {purchasing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Buying...
+                      </>
+                    ) : (
+                      <>
+                        <Coins className="w-4 h-4 mr-2" />
+                        Buy Another (50 coins)
+                      </>
+                    )}
+                  </Button>
+                )}
+                <Button 
+                  variant={todayCardCount < 2 ? "outline" : "default"}
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate('/sticker-album');
+                  }}
+                >
                   View Collection
                 </Button>
               </div>

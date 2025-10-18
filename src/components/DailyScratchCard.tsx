@@ -230,7 +230,6 @@ export const DailyScratchCard = () => {
   }
 
   const isExpired = new Date(card.expires_at) < new Date();
-  const canBuyBonus = card.is_scratched && !bonusCard && !isExpired;
 
   return (
     <div className="space-y-2">
@@ -271,7 +270,7 @@ export const DailyScratchCard = () => {
         </div>
       </button>
 
-      {/* Bonus card button */}
+      {/* Bonus card button - only show if exists */}
       {bonusCard && (
         <button
           onClick={() => {
@@ -308,36 +307,10 @@ export const DailyScratchCard = () => {
         </button>
       )}
 
-      {/* Buy bonus card button */}
-      {canBuyBonus && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={purchaseBonusCard}
-          disabled={purchasing || coinBalance < 50}
-          className="w-full text-xs"
-        >
-          {purchasing ? (
-            <span>Purchasing...</span>
-          ) : (
-            <>
-              <Coins className="w-3 h-3 mr-1" />
-              Buy 2nd Card (50 coins)
-            </>
-          )}
-        </Button>
-      )}
-
-      {/* Explanation */}
+      {/* Explanation text */}
       <div className="text-xs text-center text-muted-foreground max-w-[120px]">
         {card.is_scratched ? (
-          bonusCard ? (
-            <span>{bonusCard.is_scratched ? "View collection" : "Scratch bonus!"}</span>
-          ) : canBuyBonus ? (
-            <span>Buy another!</span>
-          ) : (
-            <span>View collection</span>
-          )
+          bonusCard?.is_scratched ? "View collection" : bonusCard ? "Scratch bonus!" : "View collection"
         ) : (
           <span>Scratch daily!</span>
         )}
