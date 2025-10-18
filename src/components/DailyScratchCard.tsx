@@ -24,9 +24,10 @@ export const DailyScratchCard = () => {
   // Helper function to get current date in MST (UTC-7)
   const getMSTDate = () => {
     const now = new Date();
-    const utcTime = now.getTime();
-    const mstTime = utcTime - (7 * 60 * 60 * 1000);
-    return new Date(mstTime);
+    const mstOffset = -7 * 60; // MST is UTC-7 in minutes
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const mstTime = new Date(utc + (mstOffset * 60000));
+    return mstTime;
   };
 
   useEffect(() => {
