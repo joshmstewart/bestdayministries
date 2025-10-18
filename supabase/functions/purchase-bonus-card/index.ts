@@ -49,7 +49,19 @@ serve(async (req) => {
     }
 
     const BONUS_CARD_COST = 50;
-    const today = new Date().toISOString().split('T')[0];
+    
+    // Use MST (UTC-7) for date
+    const now = new Date();
+    const utcTime = now.getTime();
+    const mstTime = utcTime - (7 * 60 * 60 * 1000);
+    const mstDate = new Date(mstTime);
+    const today = mstDate.toISOString().split('T')[0];
+    
+    // Calculate tomorrow's midnight in MST, then convert to UTC for expires_at
+    const tomorrowMST = new Date(mstDate);
+    tomorrowMST.setUTCDate(tomorrowMST.getUTCDate() + 1);
+    tomorrowMST.setUTCHours(0, 0, 0, 0);
+    const tomorrowUTC = new Date(tomorrowMST.getTime() + (7 * 60 * 60 * 1000));
 
     // Check if user already has a bonus card for today
     const { data: existingBonusCard } = await supabaseClient
@@ -128,7 +140,7 @@ serve(async (req) => {
         date: today,
         collection_id: activeCollection.id,
         is_bonus_card: true,
-        expires_at: new Date(new Date(today).getTime() + 24 * 60 * 60 * 1000).toISOString()
+        expires_at: tomorrowUTC.toISOString()
       })
       .select()
       .single();
