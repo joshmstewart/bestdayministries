@@ -74,52 +74,66 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    console.log('Initializing scratch card canvas...');
+
     // Set canvas size
     canvas.width = 400;
     canvas.height = 400;
 
-    // Create metallic gradient for realistic scratch-off surface
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, '#e8e8e8');
-    gradient.addColorStop(0.25, '#d0d0d0');
-    gradient.addColorStop(0.5, '#c0c0c0');
-    gradient.addColorStop(0.75, '#d0d0d0');
-    gradient.addColorStop(1, '#e8e8e8');
+    // Create radial metallic gradient for realistic scratch-off surface
+    const gradient = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 0,
+      canvas.width / 2, canvas.height / 2, canvas.width / 2
+    );
+    gradient.addColorStop(0, '#f0f0f0');
+    gradient.addColorStop(0.4, '#d8d8d8');
+    gradient.addColorStop(0.7, '#c0c0c0');
+    gradient.addColorStop(1, '#a8a8a8');
     
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Add noise texture for realism
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const noise = Math.random() * 10 - 5;
-      pixels[i] += noise;     // R
-      pixels[i + 1] += noise; // G
-      pixels[i + 2] += noise; // B
+    // Add noise texture overlay for realism
+    for (let i = 0; i < 2000; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const opacity = Math.random() * 0.3;
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+      ctx.fillRect(x, y, 1, 1);
     }
-    ctx.putImageData(imageData, 0, 0);
 
-    // Add subtle diagonal lines for texture
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    // Add crosshatch pattern for texture
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 1;
-    for (let i = -canvas.height; i < canvas.width; i += 8) {
+    for (let i = 0; i < canvas.width; i += 10) {
       ctx.beginPath();
       ctx.moveTo(i, 0);
-      ctx.lineTo(i + canvas.height, canvas.height);
+      ctx.lineTo(i, canvas.height);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(canvas.width, i);
       ctx.stroke();
     }
 
-    // Add "Scratch Here" text with shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 4;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
-    ctx.fillStyle = '#808080';
-    ctx.font = 'bold 32px Arial';
+    // Add "Scratch Here" text with glow effect
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = '#707070';
+    ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText('Scratch Here!', canvas.width / 2, canvas.height / 2);
+    
+    // Add highlight on text
     ctx.shadowColor = 'transparent';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.fillText('Scratch Here!', canvas.width / 2 - 1, canvas.height / 2 - 1);
+    
+    console.log('Canvas initialized successfully');
   };
 
   const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -144,21 +158,24 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
 
     ctx.globalCompositeOperation = 'destination-out';
     
-    // Create more realistic scratch with varying size and shape
-    const baseRadius = 25;
-    const radiusVariation = Math.random() * 10;
+    // Create realistic scratch with varying size and irregular edges
+    const baseRadius = 30;
+    const radiusVariation = Math.random() * 15;
     const radius = baseRadius + radiusVariation;
     
-    // Add multiple overlapping circles for rougher edges
-    for (let i = 0; i < 3; i++) {
-      const offsetX = (Math.random() - 0.5) * 8;
-      const offsetY = (Math.random() - 0.5) * 8;
-      const circleRadius = radius + (Math.random() - 0.5) * 10;
+    // Draw multiple overlapping circles with varying opacity for rough texture
+    for (let i = 0; i < 4; i++) {
+      const offsetX = (Math.random() - 0.5) * 12;
+      const offsetY = (Math.random() - 0.5) * 12;
+      const circleRadius = radius * (0.7 + Math.random() * 0.6);
       
+      ctx.globalAlpha = 0.5 + Math.random() * 0.5;
       ctx.beginPath();
       ctx.arc(scaledX + offsetX, scaledY + offsetY, circleRadius, 0, Math.PI * 2);
       ctx.fill();
     }
+    
+    ctx.globalAlpha = 1;
 
     // Check if enough is scratched
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -172,6 +189,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     const percentScratched = (transparent / (canvas.width * canvas.height)) * 100;
 
     if (percentScratched > 50 && !scratched) {
+      console.log('Scratch threshold reached:', percentScratched);
       handleReveal();
     }
   };
