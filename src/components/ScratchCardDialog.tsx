@@ -157,7 +157,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
         sparkleAnimationRef.current = null;
       }
     };
-  }, [sparkles.length > 0, revealing]);
+  }, [sparkles, revealing]);
 
   const loadBaseCost = async () => {
     const { data } = await supabase
@@ -238,7 +238,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   };
 
   const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (scratched || revealing) return;
+    if (scratched) return;
 
     // Prevent default touch behavior (scrolling)
     if ('touches' in e) {
@@ -317,8 +317,9 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
 
       console.log('Scratched:', percentScratched.toFixed(1) + '%');
 
-      if (percentScratched > 50 && !scratched && !revealing) {
+      if (percentScratched > 50 && !scratched) {
         console.log('🎉 Scratch threshold reached:', percentScratched.toFixed(2) + '%');
+        setRevealing(true);
         triggerBigSparkle();
       }
     }
