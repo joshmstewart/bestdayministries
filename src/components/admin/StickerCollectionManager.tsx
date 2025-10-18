@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical, X } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical, X, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -132,6 +132,7 @@ interface SortableStickerItemProps {
   onToggleActive: () => void;
   onDelete: () => void;
   onPreview: () => void;
+  onEdit: () => void;
 }
 
 const SortableStickerItem = ({ 
@@ -140,7 +141,8 @@ const SortableStickerItem = ({
   onSetPreview, 
   onToggleActive, 
   onDelete,
-  onPreview
+  onPreview,
+  onEdit
 }: SortableStickerItemProps) => {
   const {
     attributes,
@@ -218,6 +220,14 @@ const SortableStickerItem = ({
           <Button
             size="sm"
             variant="outline"
+            onClick={onEdit}
+            title="Edit sticker"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={onToggleActive}
             className={sticker.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
             title={sticker.is_active ? "Hide sticker" : "Show sticker"}
@@ -267,6 +277,10 @@ export const StickerCollectionManager = () => {
   const [stickerImage, setStickerImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [previewSticker, setPreviewSticker] = useState<any | null>(null);
+  const [editingSticker, setEditingSticker] = useState<any | null>(null);
+  const [editStickerImage, setEditStickerImage] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string>("");
+  const [generatingDescription, setGeneratingDescription] = useState(false);
 
   useEffect(() => {
     fetchCollections();
@@ -833,6 +847,115 @@ export const StickerCollectionManager = () => {
     fetchStickers(selectedCollection);
   };
 
+  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditStickerImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const generateDescription = async (imageUrl: string, isEdit: boolean = false) => {
+    setGeneratingDescription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-sticker-description', {
+        body: { imageUrl }
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const description = data.description;
+      if (isEdit && editingSticker) {
+        setEditingSticker({ ...editingSticker, description });
+      } else {
+        setStickerForm({ ...stickerForm, description });
+      }
+
+      toast({
+        title: "Success",
+        description: "Description generated!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate description",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const updateSticker = async () => {
+    if (!editingSticker) return;
+
+    setLoading(true);
+    try {
+      let imageUrl = editingSticker.image_url;
+
+      // If new image was uploaded, upload it and delete old one
+      if (editStickerImage) {
+        const fileExt = editStickerImage.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('sticker-images')
+          .upload(fileName, editStickerImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('sticker-images')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+
+        // Delete old image
+        const oldFileName = editingSticker.image_url.split('/').pop();
+        if (oldFileName) {
+          await supabase.storage.from('sticker-images').remove([oldFileName]);
+        }
+      }
+
+      // Update sticker record
+      const { error: updateError } = await supabase
+        .from('stickers')
+        .update({
+          name: editingSticker.name,
+          description: editingSticker.description,
+          rarity: editingSticker.rarity,
+          visual_style: editingSticker.visual_style,
+          drop_rate: rarityConfig[editingSticker.rarity as keyof typeof rarityConfig].rate,
+          image_url: imageUrl,
+        })
+        .eq('id', editingSticker.id);
+
+      if (updateError) throw updateError;
+
+      toast({ title: "Success", description: "Sticker updated!" });
+      setEditingSticker(null);
+      setEditStickerImage(null);
+      setEditImagePreview("");
+      fetchStickers(selectedCollection);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const deleteCollection = async (collectionId: string, collectionName: string) => {
     if (!confirm(`Are you sure you want to delete "${collectionName}"? This will also delete all stickers in this collection.`)) {
       return;
@@ -1174,7 +1297,25 @@ export const StickerCollectionManager = () => {
                   </div>
 
                   <div>
-                    <Label>Description</Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label>Description</Label>
+                      {imagePreview && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => generateDescription(imagePreview, false)}
+                          disabled={generatingDescription}
+                        >
+                          {generatingDescription ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Sparkles className="h-4 w-4 mr-2" />
+                          )}
+                          Generate with AI
+                        </Button>
+                      )}
+                    </div>
                     <Textarea
                       value={stickerForm.description}
                       onChange={(e) => setStickerForm({ ...stickerForm, description: e.target.value })}
@@ -1291,6 +1432,10 @@ export const StickerCollectionManager = () => {
                               onToggleActive={() => toggleStickerActive(sticker.id, sticker.is_active)}
                               onDelete={() => deleteSticker(sticker.id, sticker.image_url)}
                               onPreview={() => setPreviewSticker(sticker)}
+                              onEdit={() => {
+                                setEditingSticker(sticker);
+                                setEditImagePreview(sticker.image_url);
+                              }}
                             />
                           );
                         })}
@@ -1354,6 +1499,143 @@ export const StickerCollectionManager = () => {
               <Badge variant="outline">{previewSticker.visual_style}</Badge>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Sticker Dialog */}
+      <Dialog open={!!editingSticker} onOpenChange={() => {
+        setEditingSticker(null);
+        setEditStickerImage(null);
+        setEditImagePreview("");
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-start justify-between">
+              <DialogTitle>Edit Sticker</DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditingSticker(null);
+                  setEditStickerImage(null);
+                  setEditImagePreview("");
+                }}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {editingSticker && (
+            <div className="space-y-4">
+              <div>
+                <Label>Sticker Name</Label>
+                <Input
+                  value={editingSticker.name}
+                  onChange={(e) => setEditingSticker({ ...editingSticker, name: e.target.value })}
+                  placeholder="Friendly Ghost"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Description (Optional)</Label>
+                  {editImagePreview && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => generateDescription(editImagePreview, true)}
+                      disabled={generatingDescription}
+                    >
+                      {generatingDescription ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-2" />
+                      )}
+                      Generate with AI
+                    </Button>
+                  )}
+                </div>
+                <Textarea
+                  value={editingSticker.description || ""}
+                  onChange={(e) => setEditingSticker({ ...editingSticker, description: e.target.value })}
+                  placeholder="A cheerful pumpkin with rosy cheeks"
+                  rows={2}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Visual Style</Label>
+                  <Select
+                    value={editingSticker.visual_style}
+                    onValueChange={(value) => setEditingSticker({ ...editingSticker, visual_style: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cute_kawaii">Cute Kawaii</SelectItem>
+                      <SelectItem value="spooky_classic">Spooky Classic</SelectItem>
+                      <SelectItem value="glitter">Glitter Effect</SelectItem>
+                      <SelectItem value="animated">Animated Style</SelectItem>
+                      <SelectItem value="joy_house">Joy House Themed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Rarity</Label>
+                  <Select
+                    value={editingSticker.rarity}
+                    onValueChange={(value: any) => setEditingSticker({ ...editingSticker, rarity: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(rarityConfig).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          {config.label} ({config.rate}%)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Sticker Image</Label>
+                <Input type="file" accept="image/*" onChange={handleEditImageChange} />
+                {editImagePreview && (
+                  <div className="mt-2">
+                    <img src={editImagePreview} alt="Preview" className="w-32 h-32 object-contain border rounded" />
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave empty to keep current image
+                </p>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingSticker(null);
+                    setEditStickerImage(null);
+                    setEditImagePreview("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={updateSticker} disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Sticker
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
