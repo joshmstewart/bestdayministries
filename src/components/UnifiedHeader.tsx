@@ -655,7 +655,7 @@ export const UnifiedHeader = () => {
                       title="JoyCoins Store"
                       aria-label="JoyCoins Store"
                     >
-                      <img src={joycoinImage} alt="JoyCoins" className="w-8 h-8 drop-shadow-md" />
+                      <img src={joycoinImage} alt="JoyCoins" className="w-7 h-7 drop-shadow-md" />
                     </button>
                   </div>
                 </div>
@@ -785,7 +785,7 @@ export const UnifiedHeader = () => {
                         title="JoyCoins Store"
                         aria-label="JoyCoins Store"
                       >
-                        <img src={joycoinImage} alt="JoyCoins" className="w-8 h-8 md:w-10 md:h-10 drop-shadow-md" />
+                        <img src={joycoinImage} alt="JoyCoins" className="w-7 h-7 md:w-9 md:h-9 drop-shadow-md" />
                       </button>
                     )}
                   </div>
