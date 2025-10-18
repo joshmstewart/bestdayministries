@@ -637,15 +637,13 @@ export const UnifiedHeader = () => {
                     </SheetContent>
                   </Sheet>
                   <div className="flex items-center gap-2">
-                    {isGamesVisible() && (
-                      <button 
-                        onClick={() => navigate("/store")}
-                        className="hover:scale-110 transition-transform"
-                        title="JoyCoins Store"
-                      >
-                        <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10" />
-                      </button>
-                    )}
+                    <button 
+                      onClick={() => navigate("/store")}
+                      className="hover:scale-110 transition-transform"
+                      title="JoyCoins Store"
+                    >
+                      <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10" />
+                    </button>
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20">
                       <UserCircle2 className="w-4 h-4 text-primary" />
                       <span className="text-xs font-medium text-primary capitalize">
@@ -775,15 +773,13 @@ export const UnifiedHeader = () => {
                   <div className="flex-1 flex justify-end">
                     {profile && (
                       <div className="flex items-center gap-2">
-                        {isGamesVisible() && (
-                          <button 
-                            onClick={() => navigate("/store")}
-                            className="hover:scale-110 transition-transform"
-                            title="JoyCoins Store"
-                          >
-                            <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10" />
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => navigate("/store")}
+                          className="hover:scale-110 transition-transform"
+                          title="JoyCoins Store"
+                        >
+                          <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10" />
+                        </button>
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
                           <UserCircle2 className="w-3.5 h-3.5 text-primary" />
                           <span className="text-xs font-semibold text-primary capitalize">
