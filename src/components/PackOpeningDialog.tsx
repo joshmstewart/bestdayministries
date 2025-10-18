@@ -198,7 +198,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                 <div 
                   className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transition-transform duration-300 hover:scale-105"
                   style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #667eea 100%)',
+                    backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #667eea 100%)',
                     backgroundSize: '200% 200%',
                     animation: opening ? 'none' : 'shimmer 3s ease infinite',
                     transform: opening ? `scale(${1 + tearProgress * 0.1})` : 'scale(1)',
@@ -224,20 +224,37 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                   />
 
                   {/* Pack content */}
-                  <div className="relative z-10 flex flex-col items-center justify-center h-full p-6 text-white">
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full p-8 text-white">
                     {packImageUrl ? (
                       <img 
                         src={packImageUrl} 
                         alt={collectionName}
-                        className="w-32 h-32 object-contain mb-4 drop-shadow-2xl"
+                        className="w-40 h-40 object-contain mb-6 drop-shadow-2xl"
                       />
                     ) : (
-                      <Package className="h-20 w-20 mb-4 drop-shadow-lg" />
+                      <Package className="h-24 w-24 mb-6 drop-shadow-lg" />
                     )}
-                    <h3 className="text-2xl font-bold text-center mb-2 drop-shadow-lg">{collectionName}</h3>
-                    <p className="text-center text-sm opacity-90 drop-shadow">Tap to open!</p>
+                    
+                    {/* Stylized Collection Name */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-black/40 blur-xl" />
+                      <h3 className="relative text-4xl font-black text-center tracking-wider drop-shadow-2xl uppercase" 
+                          style={{
+                            textShadow: '0 0 20px rgba(255,255,255,0.5), 0 0 40px rgba(255,255,255,0.3), 2px 2px 4px rgba(0,0,0,0.8)',
+                            WebkitTextStroke: '2px rgba(0,0,0,0.5)',
+                          }}>
+                        {collectionName}
+                      </h3>
+                    </div>
+
+                    {/* Decorative corners */}
+                    <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-white/50 rounded-tl-lg" />
+                    <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-white/50 rounded-tr-lg" />
+                    <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-white/50 rounded-bl-lg" />
+                    <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-white/50 rounded-br-lg" />
+                    
                     {!opening && (
-                      <Sparkles className="absolute top-4 right-4 h-8 w-8 animate-pulse" />
+                      <Sparkles className="absolute top-4 right-20 h-8 w-8 animate-pulse" />
                     )}
                   </div>
 
