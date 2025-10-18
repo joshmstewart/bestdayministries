@@ -42,8 +42,23 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const [baseCost, setBaseCost] = useState<number>(50);
 
   useEffect(() => {
-    if (open && canvasRef.current) {
-      initializeCanvas();
+    if (open) {
+      // Reset all states when dialog opens
+      setScratched(false);
+      setLoading(false);
+      setIsScratching(false);
+      setRevealedSticker(null);
+      setIsDuplicate(false);
+      setQuantity(1);
+      setIsComplete(false);
+      
+      // Initialize canvas after a short delay to ensure it's mounted
+      setTimeout(() => {
+        if (canvasRef.current) {
+          initializeCanvas();
+        }
+      }, 100);
+      
       loadBaseCost();
     }
   }, [open]);
@@ -69,21 +84,34 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
 
   const initializeCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.error('Canvas ref not available');
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('Could not get canvas context');
+      return;
+    }
 
     console.log('Initializing scratch card canvas...');
 
-    // Set canvas size
-    canvas.width = 400;
-    canvas.height = 400;
+    // Set canvas size with devicePixelRatio for crisp rendering
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    
+    canvas.width = 400 * dpr;
+    canvas.height = 400 * dpr;
+    canvas.style.width = '400px';
+    canvas.style.height = '400px';
+    
+    ctx.scale(dpr, dpr);
 
     // Create radial metallic gradient for realistic scratch-off surface
     const gradient = ctx.createRadialGradient(
-      canvas.width / 2, canvas.height / 2, 0,
-      canvas.width / 2, canvas.height / 2, canvas.width / 2
+      200, 200, 0,
+      200, 200, 200
     );
     gradient.addColorStop(0, '#f0f0f0');
     gradient.addColorStop(0.4, '#d8d8d8');
@@ -91,12 +119,12 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     gradient.addColorStop(1, '#a8a8a8');
     
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, 400, 400);
 
     // Add noise texture overlay for realism
     for (let i = 0; i < 2000; i++) {
-      const x = Math.random() * canvas.width;
-      const y = Math.random() * canvas.height;
+      const x = Math.random() * 400;
+      const y = Math.random() * 400;
       const opacity = Math.random() * 0.3;
       ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
       ctx.fillRect(x, y, 1, 1);
@@ -126,18 +154,18 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Scratch Here!', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('Scratch Here!', 200, 200);
     
     // Add highlight on text
     ctx.shadowColor = 'transparent';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.fillText('Scratch Here!', canvas.width / 2 - 1, canvas.height / 2 - 1);
+    ctx.fillText('Scratch Here!', 199, 199);
     
     console.log('Canvas initialized successfully');
   };
 
   const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (scratched || loading) return;
+    if (scratched) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -186,7 +214,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       if (pixels[i] === 0) transparent++;
     }
 
-    const percentScratched = (transparent / (canvas.width * canvas.height)) * 100;
+    const percentScratched = (transparent / (400 * 400)) * 100;
 
     if (percentScratched > 50 && !scratched) {
       console.log('Scratch threshold reached:', percentScratched);
