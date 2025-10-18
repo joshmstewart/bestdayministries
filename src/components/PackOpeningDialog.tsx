@@ -29,6 +29,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const [showConfetti, setShowConfetti] = useState(false);
   const [packRotation, setPackRotation] = useState({ x: 0, y: 0 });
   const [isFlipping, setIsFlipping] = useState(false);
+  const [collectionName, setCollectionName] = useState<string>("Sticker Pack");
+  const [packImageUrl, setPackImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const packRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,8 +40,53 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       setRevealedSticker(null);
       setShowConfetti(false);
       setIsFlipping(false);
+      loadCollectionInfo();
     }
-  }, [open]);
+  }, [open, cardId]);
+
+  const loadCollectionInfo = async () => {
+    if (!cardId) return;
+    
+    setLoading(true);
+    try {
+      // Get card details to find collection_id
+      const { data: card, error: cardError } = await supabase
+        .from('daily_scratch_cards')
+        .select('collection_id')
+        .eq('id', cardId)
+        .single();
+
+      if (cardError) throw cardError;
+
+      // Get collection details
+      const { data: collection, error: collectionError } = await supabase
+        .from('sticker_collections')
+        .select('name, preview_sticker_id')
+        .eq('id', card.collection_id)
+        .single();
+
+      if (collectionError) throw collectionError;
+
+      setCollectionName(collection.name);
+
+      // If there's a preview sticker, fetch its image
+      if (collection.preview_sticker_id) {
+        const { data: sticker } = await supabase
+          .from('stickers')
+          .select('image_url')
+          .eq('id', collection.preview_sticker_id)
+          .single();
+        
+        if (sticker?.image_url) {
+          setPackImageUrl(sticker.image_url);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error loading collection info:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpen = async () => {
     if (!cardId || opening || opened) return;
@@ -141,7 +189,11 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-6">
-          {!opened ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-80">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+            </div>
+          ) : !opened ? (
             <div
               ref={packRef}
               className="relative perspective-1000 cursor-pointer"
@@ -184,8 +236,16 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
                 {/* Pack content */}
                 <div className="relative z-10 flex flex-col items-center justify-center h-full p-6 text-white">
-                  <Package className="h-20 w-20 mb-4 drop-shadow-lg" />
-                  <h3 className="text-2xl font-bold text-center mb-2 drop-shadow-lg">Sticker Pack</h3>
+                  {packImageUrl ? (
+                    <img 
+                      src={packImageUrl} 
+                      alt={collectionName}
+                      className="w-32 h-32 object-contain mb-4 drop-shadow-2xl"
+                    />
+                  ) : (
+                    <Package className="h-20 w-20 mb-4 drop-shadow-lg" />
+                  )}
+                  <h3 className="text-2xl font-bold text-center mb-2 drop-shadow-lg">{collectionName}</h3>
                   <p className="text-center text-sm opacity-90 drop-shadow">Tap to open!</p>
                   {!opening && (
                     <Sparkles className="absolute top-4 right-4 h-8 w-8 animate-pulse" />
