@@ -78,15 +78,48 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     canvas.width = 400;
     canvas.height = 400;
 
-    // Draw scratch-off coating
-    ctx.fillStyle = '#c0c0c0';
+    // Create metallic gradient for realistic scratch-off surface
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#e8e8e8');
+    gradient.addColorStop(0.25, '#d0d0d0');
+    gradient.addColorStop(0.5, '#c0c0c0');
+    gradient.addColorStop(0.75, '#d0d0d0');
+    gradient.addColorStop(1, '#e8e8e8');
+    
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Add "Scratch Here" text
+    // Add noise texture for realism
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const noise = Math.random() * 10 - 5;
+      pixels[i] += noise;     // R
+      pixels[i + 1] += noise; // G
+      pixels[i + 2] += noise; // B
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Add subtle diagonal lines for texture
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    for (let i = -canvas.height; i < canvas.width; i += 8) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + canvas.height, canvas.height);
+      ctx.stroke();
+    }
+
+    // Add "Scratch Here" text with shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
     ctx.fillStyle = '#808080';
     ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Scratch Here!', canvas.width / 2, canvas.height / 2);
+    ctx.shadowColor = 'transparent';
   };
 
   const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -106,10 +139,26 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
+    const scaledX = x * scaleX;
+    const scaledY = y * scaleY;
+
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.arc(x * scaleX, y * scaleY, 30, 0, Math.PI * 2);
-    ctx.fill();
+    
+    // Create more realistic scratch with varying size and shape
+    const baseRadius = 25;
+    const radiusVariation = Math.random() * 10;
+    const radius = baseRadius + radiusVariation;
+    
+    // Add multiple overlapping circles for rougher edges
+    for (let i = 0; i < 3; i++) {
+      const offsetX = (Math.random() - 0.5) * 8;
+      const offsetY = (Math.random() - 0.5) * 8;
+      const circleRadius = radius + (Math.random() - 0.5) * 10;
+      
+      ctx.beginPath();
+      ctx.arc(scaledX + offsetX, scaledY + offsetY, circleRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Check if enough is scratched
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
