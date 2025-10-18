@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical, X, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScratchCardDialog } from "@/components/ScratchCardDialog";
 import {
   Dialog,
   DialogContent,
@@ -289,6 +290,8 @@ export const StickerCollectionManager = () => {
   const [editStickerImage, setEditStickerImage] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string>("");
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [showTestScratch, setShowTestScratch] = useState(false);
+  const [testCardId, setTestCardId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCollections();
@@ -487,6 +490,69 @@ export const StickerCollectionManager = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const createTestScratchCard = async () => {
+    if (!selectedCollection) {
+      toast({
+        title: "Error",
+        description: "Please select a collection first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Create a test card that expires in 1 hour
+      const { data: testCard, error } = await supabase
+        .from('daily_scratch_cards')
+        .insert({
+          user_id: user.id,
+          collection_id: selectedCollection,
+          date: new Date().toISOString().split('T')[0],
+          is_bonus_card: true,
+          purchase_number: 999, // Special number to identify test cards
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
+          is_scratched: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTestCardId(testCard.id);
+      setShowTestScratch(true);
+
+      toast({
+        title: "Test Card Created",
+        description: "Scratch away! This card will expire in 1 hour.",
+      });
+    } catch (error: any) {
+      console.error('Error creating test card:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create test card",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestCardScratched = async () => {
+    // Delete the test card immediately so admin can test again
+    if (testCardId) {
+      await supabase
+        .from('daily_scratch_cards')
+        .delete()
+        .eq('id', testCardId);
+    }
+    setShowTestScratch(false);
+    setTestCardId(null);
   };
 
   const updateToV2Stickers = async () => {
@@ -1248,6 +1314,16 @@ export const StickerCollectionManager = () => {
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Reset Daily Cards (Testing)
                 </Button>
+                <Button 
+                  onClick={createTestScratchCard} 
+                  disabled={loading || !selectedCollection}
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Test Scratcher
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1781,10 +1857,20 @@ export const StickerCollectionManager = () => {
                   Update Sticker
                 </Button>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Test Scratch Card Dialog */}
+        {testCardId && (
+          <ScratchCardDialog
+            open={showTestScratch}
+            onOpenChange={setShowTestScratch}
+            cardId={testCardId}
+            onScratched={handleTestCardScratched}
+          />
+        )}
+      </div>
+    );
+  };
