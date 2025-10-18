@@ -9,9 +9,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DndContext,
   closestCenter,
@@ -125,6 +131,7 @@ interface SortableStickerItemProps {
   onSetPreview: () => void;
   onToggleActive: () => void;
   onDelete: () => void;
+  onPreview: () => void;
 }
 
 const SortableStickerItem = ({ 
@@ -132,7 +139,8 @@ const SortableStickerItem = ({
   isPreview, 
   onSetPreview, 
   onToggleActive, 
-  onDelete 
+  onDelete,
+  onPreview
 }: SortableStickerItemProps) => {
   const {
     attributes,
@@ -162,6 +170,16 @@ const SortableStickerItem = ({
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </button>
+      
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={onPreview}
+        className="absolute top-2 right-2 p-1 rounded bg-background/80 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Preview full size"
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
       
       <CardContent className="p-4 flex flex-col items-center gap-3">
         <img
@@ -193,15 +211,18 @@ const SortableStickerItem = ({
             variant={isPreview ? "default" : "outline"}
             onClick={onSetPreview}
             className="flex-1 text-xs"
+            title="Set as featured sticker for collection preview"
           >
-            Preview
+            Featured
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={onToggleActive}
+            className={sticker.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
+            title={sticker.is_active ? "Hide sticker" : "Show sticker"}
           >
-            {sticker.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {sticker.is_active ? <Eye className="h-4 w-4 text-green-700" /> : <EyeOff className="h-4 w-4 text-red-700" />}
           </Button>
           <Button
             size="sm"
@@ -245,6 +266,7 @@ export const StickerCollectionManager = () => {
   });
   const [stickerImage, setStickerImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [previewSticker, setPreviewSticker] = useState<any | null>(null);
 
   useEffect(() => {
     fetchCollections();
@@ -1042,8 +1064,10 @@ export const StickerCollectionManager = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => toggleCollectionActive(collection.id, collection.is_active)}
+                          className={collection.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
+                          title={collection.is_active ? "Hide collection" : "Show collection"}
                         >
-                          {collection.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {collection.is_active ? <Eye className="h-4 w-4 text-green-700" /> : <EyeOff className="h-4 w-4 text-red-700" />}
                         </Button>
                         <Button
                           size="sm"
@@ -1255,6 +1279,7 @@ export const StickerCollectionManager = () => {
                               }}
                               onToggleActive={() => toggleStickerActive(sticker.id, sticker.is_active)}
                               onDelete={() => deleteSticker(sticker.id, sticker.image_url)}
+                              onPreview={() => setPreviewSticker(sticker)}
                             />
                           );
                         })}
@@ -1281,6 +1306,45 @@ export const StickerCollectionManager = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Sticker Preview Dialog */}
+      <Dialog open={!!previewSticker} onOpenChange={() => setPreviewSticker(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <DialogTitle>{previewSticker?.name}</DialogTitle>
+                {previewSticker?.description && (
+                  <p className="text-sm text-muted-foreground">{previewSticker.description}</p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setPreviewSticker(null)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex items-center justify-center p-8 bg-muted/20 rounded-lg">
+            <img
+              src={previewSticker?.image_url}
+              alt={previewSticker?.name}
+              className="max-w-full max-h-[500px] object-contain"
+            />
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <Badge className={rarityConfig[previewSticker?.rarity as keyof typeof rarityConfig]?.color}>
+              {previewSticker?.rarity}
+            </Badge>
+            {previewSticker?.visual_style && (
+              <Badge variant="outline">{previewSticker.visual_style}</Badge>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

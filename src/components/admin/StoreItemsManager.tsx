@@ -260,8 +260,10 @@ export const StoreItemsManager = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => toggleActive(item.id, item.is_active)}
+                    className={item.is_active ? "bg-green-100 hover:bg-green-200" : "bg-red-100 hover:bg-red-200"}
+                    title={item.is_active ? "Hide item" : "Show item"}
                   >
-                    {item.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {item.is_active ? <Eye className="h-4 w-4 text-green-700" /> : <EyeOff className="h-4 w-4 text-red-700" />}
                   </Button>
                   <Button
                     variant="ghost"
