@@ -323,4 +323,13 @@ All colors MUST be HSL.
       opacity: 0;
     }
   }
+
+  @keyframes shine {
+    0%, 100% {
+      background-position: -200% -200%;
+    }
+    50% {
+      background-position: 200% 200%;
+    }
+  }
 }
