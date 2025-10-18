@@ -636,13 +636,14 @@ export const UnifiedHeader = () => {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button 
                       onClick={() => navigate("/store")}
-                      className="hover:scale-110 transition-transform"
+                      className="hover:scale-110 transition-transform flex-shrink-0"
                       title="JoyCoins Store"
+                      aria-label="JoyCoins Store"
                     >
-                      <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10" />
+                      <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10 drop-shadow-md" />
                     </button>
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20">
                       <UserCircle2 className="w-4 h-4 text-primary" />
@@ -772,13 +773,14 @@ export const UnifiedHeader = () => {
                   </ul>
                   <div className="flex-1 flex justify-end">
                     {profile && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <button 
                           onClick={() => navigate("/store")}
-                          className="hover:scale-110 transition-transform"
+                          className="hover:scale-110 transition-transform flex-shrink-0"
                           title="JoyCoins Store"
+                          aria-label="JoyCoins Store"
                         >
-                          <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10" />
+                          <img src={joycoinImage} alt="JoyCoins" className="w-10 h-10 drop-shadow-md" />
                         </button>
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
                           <UserCircle2 className="w-3.5 h-3.5 text-primary" />

@@ -28,6 +28,9 @@ serve(async (req) => {
         global: {
           headers: { Authorization: authHeader },
         },
+        auth: {
+          persistSession: false,
+        },
       }
     );
 
