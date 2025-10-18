@@ -54,11 +54,11 @@ serve(async (req) => {
     // Check user's coin balance
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('coin_balance')
+      .select('coins')
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.coin_balance < BONUS_CARD_COST) {
+    if (!profile || profile.coins < BONUS_CARD_COST) {
       return new Response(
         JSON.stringify({ error: 'Insufficient coins. You need 50 coins to purchase a bonus card.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -86,7 +86,7 @@ serve(async (req) => {
     // Deduct coins
     const { error: updateError } = await supabaseClient
       .from('profiles')
-      .update({ coin_balance: profile.coin_balance - BONUS_CARD_COST })
+      .update({ coins: profile.coins - BONUS_CARD_COST })
       .eq('id', user.id);
 
     if (updateError) throw updateError;

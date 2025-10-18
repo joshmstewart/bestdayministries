@@ -89,11 +89,11 @@ export const StickerAlbum = () => {
     // Get coin balance and today's card count
     const { data: profile } = await supabase
       .from('profiles')
-      .select('coin_balance')
+      .select('coins')
       .eq('id', user.id)
       .single();
     
-    setCoinBalance(profile?.coin_balance || 0);
+    setCoinBalance(profile?.coins || 0);
 
     const today = new Date().toISOString().split('T')[0];
     const { data: cards } = await supabase
