@@ -17,29 +17,44 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
+
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    console.log("send-test-automated-template: Starting function execution");
 
     // Verify admin access
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Missing authorization header");
+    }
+    
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    if (authError) {
+      console.error("Auth error:", authError);
+      throw new Error(`Authentication failed: ${authError.message}`);
     }
+    
+    if (!user) {
+      throw new Error("No user found");
+    }
+
+    console.log(`User authenticated: ${user.id}`);
 
     const { data: adminCheck } = await supabaseClient
       .rpc("has_admin_access", { _user_id: user.id });
 
     if (!adminCheck) {
+      console.error(`User ${user.id} is not an admin`);
       throw new Error("Admin access required");
     }
 
     const { templateId, testEmail }: SendTestRequest = await req.json();
+    console.log(`Sending test email for template ${templateId} to ${testEmail}`);
 
     // Fetch template details
     const { data: template, error: templateError } = await supabaseClient
@@ -123,7 +138,7 @@ serve(async (req) => {
       console.error("Failed to send test email:", sendError);
       
       // Log failed test send
-      await supabaseClient.from("newsletter_emails_log").insert({
+      const { error: logError } = await supabaseClient.from("newsletter_emails_log").insert({
         template_id: templateId,
         recipient_email: testEmail,
         recipient_user_id: user.id,
@@ -134,11 +149,19 @@ serve(async (req) => {
         metadata: { is_test: true, template_name: template.name },
       });
       
+      if (logError) {
+        console.error("Failed to log error to database:", logError);
+      } else {
+        console.log("Failed send logged to database");
+      }
+      
       throw sendError;
     }
 
+    console.log("Test email sent successfully via Resend");
+
     // Log successful test send
-    await supabaseClient.from("newsletter_emails_log").insert({
+    const { error: logError } = await supabaseClient.from("newsletter_emails_log").insert({
       template_id: templateId,
       recipient_email: testEmail,
       recipient_user_id: user.id,
@@ -149,17 +172,47 @@ serve(async (req) => {
       metadata: { is_test: true, template_name: template.name },
     });
 
+    if (logError) {
+      console.error("Failed to log success to database:", logError);
+      // Don't throw - email was sent successfully
+    } else {
+      console.log("Successful send logged to database");
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: `Test email sent to ${testEmail}`
+        message: `Test email sent to ${testEmail}`,
+        logged: !logError
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("Error in send-test-automated-template:", error);
+    
+    // Try to log the error if we have the necessary info
+    try {
+      const body = await req.clone().json();
+      if (body.templateId && body.testEmail) {
+        await supabaseClient.from("newsletter_emails_log").insert({
+          template_id: body.templateId,
+          recipient_email: body.testEmail,
+          subject: "[TEST] Email Send Failed",
+          status: "failed",
+          error_message: error.message || String(error),
+          metadata: { is_test: true, error_type: "function_error" },
+        });
+        console.log("Error logged to database");
+      }
+    } catch (logError) {
+      console.error("Could not log error to database:", logError);
+    }
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: "Check edge function logs for more information"
+      }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
