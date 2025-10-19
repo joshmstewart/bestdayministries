@@ -43,6 +43,14 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const [customPackImage, setCustomPackImage] = useState<string | null>(null);
   const [customPackAnimation, setCustomPackAnimation] = useState<string | null>(null);
 
+  const handleDialogClose = (isOpen: boolean) => {
+    // If closing the dialog and a pack was opened, trigger the callback
+    if (!isOpen && opened) {
+      onScratched();
+    }
+    onOpenChange(isOpen);
+  };
+
   useEffect(() => {
     if (open) {
       setOpened(false);
@@ -194,7 +202,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
   if (loading) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/10 to-primary/5">
           <DialogHeader>
             <DialogTitle className="text-center">Loading Pack...</DialogTitle>
@@ -208,7 +216,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/10 to-primary/5">
         <DialogHeader>
           <DialogTitle className="text-center">
@@ -469,10 +477,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
               </div>
 
               <Button 
-                onClick={() => {
-                  onOpenChange(false);
-                  onScratched();
-                }}
+                onClick={() => handleDialogClose(false)}
                 size="lg"
                 className="mt-4"
               >
