@@ -58,14 +58,23 @@ export const SponsorshipReceiptsManager = () => {
       // Get all receipts
       const { data: receipts, error: receiptsError } = await supabase
         .from('sponsorship_receipts')
-        .select('sponsorship_id');
+        .select('sponsorship_id, sponsor_email, bestie_name');
 
       if (receiptsError) throw receiptsError;
 
+      // Create sets for matching
       const receiptedIds = new Set(receipts?.map(r => r.sponsorship_id).filter(Boolean));
+      const receiptedCombos = new Set(
+        receipts?.map(r => `${r.sponsor_email}::${r.bestie_name}`).filter(Boolean)
+      );
 
-      // Filter out sponsorships that have receipts
-      return sponsorships?.filter(s => !receiptedIds.has(s.id)) || [];
+      // Filter out sponsorships that have receipts (by ID or by email+bestie combination)
+      return sponsorships?.filter(s => {
+        const profile = (s as any).profiles;
+        const bestie = (s as any).sponsor_besties;
+        const combo = `${profile?.email}::${bestie?.bestie_name}`;
+        return !receiptedIds.has(s.id) && !receiptedCombos.has(combo);
+      }) || [];
     },
   });
 
