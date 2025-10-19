@@ -256,6 +256,23 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
   const handleReveal = async () => {
     try {
+      // Check if card is already scratched
+      const { data: cardCheck } = await supabase
+        .from('daily_scratch_cards')
+        .select('scratched_at')
+        .eq('id', cardId)
+        .single();
+
+      if (cardCheck?.scratched_at) {
+        toast({
+          title: "Already Opened",
+          description: "This pack has already been opened today.",
+          variant: "destructive",
+        });
+        onOpenChange(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('scratch-card', {
         body: { cardId }
       });
