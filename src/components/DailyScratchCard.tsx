@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Check, Coins } from "lucide-react";
-import kawaiiBat from "@/assets/stickers/halloween/04-happy-bat.png";
 import { PackOpeningDialog } from "./PackOpeningDialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -304,7 +303,7 @@ export const DailyScratchCard = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !sampleSticker) {
     return null;
   }
 
@@ -348,10 +347,10 @@ export const DailyScratchCard = () => {
           background: 'transparent'
         }}
       >
-        {/* Use preview sticker or fallback to kawaii bat */}
+        {/* Use preview sticker */}
         <div className="relative w-20 h-20" style={{ background: 'transparent' }}>
           <img
-            src={sampleSticker || kawaiiBat}
+            src={sampleSticker}
             alt={isBonus ? "Bonus sticker" : "Daily sticker"}
             className="w-full h-full object-contain"
             style={{ background: 'transparent' }}
