@@ -3741,6 +3741,8 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          pack_animation_url: string | null
+          pack_image_url: string | null
           preview_sticker_id: string | null
           rarity_percentages: Json | null
           start_date: string
@@ -3757,6 +3759,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          pack_animation_url?: string | null
+          pack_image_url?: string | null
           preview_sticker_id?: string | null
           rarity_percentages?: Json | null
           start_date?: string
@@ -3773,6 +3777,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          pack_animation_url?: string | null
+          pack_image_url?: string | null
           preview_sticker_id?: string | null
           rarity_percentages?: Json | null
           start_date?: string

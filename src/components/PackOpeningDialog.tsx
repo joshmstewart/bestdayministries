@@ -39,6 +39,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const [packStickers, setPackStickers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tearProgress, setTearProgress] = useState(0);
+  const [customPackImage, setCustomPackImage] = useState<string | null>(null);
+  const [customPackAnimation, setCustomPackAnimation] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -66,28 +68,32 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
       if (cardError) throw cardError;
 
-      // Get collection details
+      // Get collection details including custom pack assets
       const { data: collection, error: collectionError } = await supabase
         .from('sticker_collections')
-        .select('name')
+        .select('name, pack_image_url, pack_animation_url')
         .eq('id', card.collection_id)
         .single();
 
       if (collectionError) throw collectionError;
 
       setCollectionName(collection.name || "Sticker Pack");
+      setCustomPackImage(collection.pack_image_url);
+      setCustomPackAnimation(collection.pack_animation_url);
 
-      // Get 4 random stickers from the collection to display on pack
-      const { data: stickers } = await supabase
-        .from('stickers')
-        .select('id, name, image_url, rarity')
-        .eq('collection_id', card.collection_id)
-        .limit(4);
+      // Only load stickers if no custom pack image
+      if (!collection.pack_image_url) {
+        const { data: stickers } = await supabase
+          .from('stickers')
+          .select('id, name, image_url, rarity')
+          .eq('collection_id', card.collection_id)
+          .limit(4);
 
-      if (stickers && stickers.length > 0) {
-        // Shuffle and take up to 4 stickers
-        const shuffled = stickers.sort(() => Math.random() - 0.5);
-        setPackStickers(shuffled.slice(0, 4));
+        if (stickers && stickers.length > 0) {
+          // Shuffle and take up to 4 stickers
+          const shuffled = stickers.sort(() => Math.random() - 0.5);
+          setPackStickers(shuffled.slice(0, 4));
+        }
       }
     } catch (error) {
       console.error('Error loading collection info:', error);
@@ -279,9 +285,15 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                   }}
                 />
 
-                {/* Sticker collage - random positioning with transparent backgrounds */}
+                {/* Custom pack image or sticker collage */}
                 <div className="absolute inset-0 flex items-center justify-center p-4">
-                  {packStickers.length > 0 ? (
+                  {customPackImage ? (
+                    <img 
+                      src={customPackImage} 
+                      alt="Pack" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : packStickers.length > 0 ? (
                     <div className="relative w-full h-full">
                        {packStickers.map((sticker, index) => {
                         // Position stickers to avoid covering title (bottom 20%) - max 15% title coverage

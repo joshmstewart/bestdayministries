@@ -277,6 +277,11 @@ export const StickerCollectionManager = () => {
       legendary: 1
     }
   });
+  
+  const [packImage, setPackImage] = useState<File | null>(null);
+  const [packImagePreview, setPackImagePreview] = useState<string>("");
+  const [packAnimation, setPackAnimation] = useState<File | null>(null);
+  const [packAnimationPreview, setPackAnimationPreview] = useState<string>("");
 
   // Sticker form
   const [stickerForm, setStickerForm] = useState({
@@ -714,28 +719,68 @@ export const StickerCollectionManager = () => {
     }
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from('sticker_collections')
-      .insert([{
-        name: collectionForm.name,
-        description: collectionForm.description,
-        theme: collectionForm.theme,
-        start_date: collectionForm.start_date,
-        end_date: collectionForm.end_date || null,
-        visible_to_roles: collectionForm.visible_to_roles as any,
-        rarity_percentages: collectionForm.rarity_percentages,
-      }])
-      .select()
-      .single();
+    
+    try {
+      let packImageUrl = null;
+      let packAnimationUrl = null;
 
-    setLoading(false);
+      // Upload pack image if provided
+      if (packImage) {
+        const fileExt = packImage.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `pack-images/${fileName}`;
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      return;
-    }
+        const { error: uploadError } = await supabase.storage
+          .from('sticker-images')
+          .upload(filePath, packImage);
 
-    toast({ title: "Success", description: "Collection created!" });
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('sticker-images')
+          .getPublicUrl(filePath);
+
+        packImageUrl = urlData.publicUrl;
+      }
+
+      // Upload pack animation if provided
+      if (packAnimation) {
+        const fileExt = packAnimation.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `pack-animations/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('sticker-images')
+          .upload(filePath, packAnimation);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('sticker-images')
+          .getPublicUrl(filePath);
+
+        packAnimationUrl = urlData.publicUrl;
+      }
+
+      const { data, error } = await supabase
+        .from('sticker_collections')
+        .insert([{
+          name: collectionForm.name,
+          description: collectionForm.description,
+          theme: collectionForm.theme,
+          start_date: collectionForm.start_date,
+          end_date: collectionForm.end_date || null,
+          visible_to_roles: collectionForm.visible_to_roles as any,
+          rarity_percentages: collectionForm.rarity_percentages,
+          pack_image_url: packImageUrl,
+          pack_animation_url: packAnimationUrl,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: "Collection created!" });
     
     // Reload default rates for next collection
     const { data: defaultRates } = await supabase
@@ -752,17 +797,26 @@ export const StickerCollectionManager = () => {
       legendary: 1
     };
     
-    setCollectionForm({ 
-      name: "", 
-      description: "", 
-      theme: "", 
-      start_date: new Date().toISOString().split('T')[0], 
-      end_date: "",
-      visible_to_roles: ["admin", "owner"],
-      rarity_percentages: defaultPercentages
-    });
-    fetchCollections();
-    setSelectedCollection(data.id);
+      setCollectionForm({ 
+        name: "", 
+        description: "", 
+        theme: "", 
+        start_date: new Date().toISOString().split('T')[0], 
+        end_date: "",
+        visible_to_roles: ["admin", "owner"],
+        rarity_percentages: defaultPercentages
+      });
+      setPackImage(null);
+      setPackImagePreview("");
+      setPackAnimation(null);
+      setPackAnimationPreview("");
+      fetchCollections();
+      setSelectedCollection(data.id);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleCollectionActive = async (id: string, currentlyActive: boolean) => {
@@ -1331,6 +1385,83 @@ export const StickerCollectionManager = () => {
                 <p className="text-xs text-muted-foreground mt-2">
                   Only users with selected roles will be able to see and scratch cards from this collection
                 </p>
+              </div>
+              
+              <div className="space-y-4">
+                <Label className="text-base">Custom Pack Assets (Optional)</Label>
+                <p className="text-sm text-muted-foreground">Upload custom images/animations for pack opening experience</p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Pack Image</Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setPackImage(file);
+                          const reader = new FileReader();
+                          reader.onloadend = () => setPackImagePreview(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    {packImagePreview && (
+                      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                        <img src={packImagePreview} alt="Pack preview" className="w-full h-full object-cover" />
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2"
+                          onClick={() => {
+                            setPackImage(null);
+                            setPackImagePreview("");
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Pack Animation (Optional)</Label>
+                    <Input
+                      type="file"
+                      accept="image/gif,video/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setPackAnimation(file);
+                          const reader = new FileReader();
+                          reader.onloadend = () => setPackAnimationPreview(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    {packAnimationPreview && (
+                      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                        {packAnimation?.type.startsWith('video/') ? (
+                          <video src={packAnimationPreview} className="w-full h-full object-cover" autoPlay loop muted />
+                        ) : (
+                          <img src={packAnimationPreview} alt="Animation preview" className="w-full h-full object-cover" />
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2"
+                          onClick={() => {
+                            setPackAnimation(null);
+                            setPackAnimationPreview("");
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-3">
