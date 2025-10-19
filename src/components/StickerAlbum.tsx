@@ -576,17 +576,14 @@ export const StickerAlbum = () => {
                       </span>
                     </Badge>
                   </div>
-                  <p className="text-xs font-medium truncate">
-                    {sticker.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="group-hover:hidden">{actualDropRate}%</span>
-                    <span className="hidden group-hover:inline">{actualDropRate}% drop rate</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="group-hover:hidden">{obtained ? '✓' : '✗'}</span>
-                    <span className="hidden group-hover:inline">{obtained ? 'Collected' : 'Not collected'}</span>
-                  </p>
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs font-medium truncate">
+                      {sticker.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {actualDropRate}%
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
