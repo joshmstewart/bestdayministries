@@ -139,40 +139,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
     noise.stop(audioContext.currentTime + 0.8);
   };
 
-  const playCelebrationSound = (rarity: string) => {
-    if (!audioContextRef.current) return;
-    
-    const audioContext = audioContextRef.current;
-    const rarityConfig: { [key: string]: { notes: number[], duration: number } } = {
-      common: { notes: [523.25, 659.25], duration: 0.3 },
-      uncommon: { notes: [523.25, 659.25, 783.99], duration: 0.4 },
-      rare: { notes: [523.25, 659.25, 783.99, 1046.50], duration: 0.5 },
-      epic: { notes: [523.25, 659.25, 783.99, 1046.50, 1318.51], duration: 0.6 },
-      legendary: { notes: [523.25, 659.25, 783.99, 1046.50, 1318.51, 1568], duration: 0.8 }
-    };
-    
-    const config = rarityConfig[rarity] || rarityConfig.common;
-    
-    config.notes.forEach((freq, index) => {
-      setTimeout(() => {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = freq;
-        oscillator.type = 'triangle';
-        
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + config.duration);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + config.duration);
-      }, index * 100);
-    });
-  };
 
   const loadCollectionInfo = async () => {
     if (!cardId) return;
