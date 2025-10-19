@@ -44,12 +44,12 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   const [customPackAnimation, setCustomPackAnimation] = useState<string | null>(null);
 
   const handleDialogClose = (isOpen: boolean) => {
-    // If closing the dialog and a pack was opened, trigger the callback after a delay
-    // to ensure the database update has propagated
+    // If closing the dialog and a pack was opened, trigger the callback
+    // Small delay to ensure database update propagates and realtime picks it up
     if (!isOpen && opened) {
       setTimeout(() => {
         onOpened();
-      }, 300);
+      }, 100);
     }
     onOpenChange(isOpen);
   };

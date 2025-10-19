@@ -90,6 +90,7 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from('daily_scratch_cards')
       .update({ 
+        is_scratched: true,
         scratched_at: new Date().toISOString(),
         revealed_sticker_id: selectedSticker.id
       })
