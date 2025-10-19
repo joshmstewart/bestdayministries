@@ -208,10 +208,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
           .single();
 
         if (previewSticker?.image_url) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('sticker-images')
-            .getPublicUrl(previewSticker.image_url);
-          setPackImageUrl(publicUrl);
+          // Image URL is already a full URL from storage
+          setPackImageUrl(previewSticker.image_url);
         }
       }
     } catch (error) {
@@ -280,13 +278,10 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       if (error) throw error;
 
       if (data.success && data.sticker) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('sticker-images')
-          .getPublicUrl(data.sticker.image_url);
-        
+        // Image URL is already a full URL from the edge function
         setRevealedSticker({
           ...data.sticker,
-          image_url: publicUrl
+          image_url: data.sticker.image_url
         });
         
         setOpened(true);
