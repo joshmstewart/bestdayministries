@@ -22,11 +22,11 @@ const rarityColors = {
 };
 
 const rarityConfettiConfig = {
-  common: { particleCount: 50, spread: 60, duration: 2000 },
-  uncommon: { particleCount: 100, spread: 80, duration: 2500 },
-  rare: { particleCount: 150, spread: 100, duration: 3000 },
-  epic: { particleCount: 200, spread: 120, duration: 4000 },
-  legendary: { particleCount: 300, spread: 140, duration: 5000 },
+  common: { particleCount: 50, spread: 60, bursts: 1 },
+  uncommon: { particleCount: 100, spread: 80, bursts: 2 },
+  rare: { particleCount: 150, spread: 100, bursts: 3 },
+  epic: { particleCount: 200, spread: 120, bursts: 4 },
+  legendary: { particleCount: 300, spread: 140, bursts: 5 },
 };
 
 export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: PackOpeningDialogProps) => {
@@ -53,8 +53,25 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       loadCollectionInfo();
       
       // Create and play sparkly idle sound
-      const idleAudio = new Audio();
-      idleAudio.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYmMkJSYm5+eoJuXk4+KhoKAfn59fX5/gYOFh4mLjI6Pj4+Pjo2Mi4mIh4WDgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42Pj5CPjo2LiYeGhIKAfn17enl4eHd3d3d4eXp8fX+Bg4WHiYuNjo+Pj46NjIuJh4aEgoB+fXt6eXh4d3d3d3h5ent9f4GDhYeJi42
+      const idleAudio = new Audio('/sounds/pack-idle.mp3');
+      idleAudio.loop = true;
+      idleAudio.volume = 0.3;
+      idleAudio.play().catch(console.error);
+      idleAudioRef.current = idleAudio;
+    }
+
+    return () => {
+      // Cleanup audio on unmount
+      if (idleAudioRef.current) {
+        idleAudioRef.current.pause();
+        idleAudioRef.current = null;
+      }
+      if (celebrationAudioRef.current) {
+        celebrationAudioRef.current.pause();
+        celebrationAudioRef.current = null;
+      }
+    };
+  }, [open]);
 
   const loadCollectionInfo = async () => {
     if (!cardId) return;
@@ -79,350 +96,303 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
       if (collectionError) throw collectionError;
 
-      setCollectionName(collection.name);
+      setCollectionName(collection.name || "Sticker Pack");
 
-      // If there's a preview sticker, fetch its image
+      // Get preview sticker for pack image
       if (collection.preview_sticker_id) {
-        const { data: sticker } = await supabase
+        const { data: previewSticker } = await supabase
           .from('stickers')
           .select('image_url')
           .eq('id', collection.preview_sticker_id)
           .single();
-        
-        if (sticker?.image_url) {
-          setPackImageUrl(sticker.image_url);
+
+        if (previewSticker?.image_url) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('stickers')
+            .getPublicUrl(previewSticker.image_url);
+          setPackImageUrl(publicUrl);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading collection info:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpen = async () => {
-    if (!cardId || opening || opened) return;
-
-    console.log('Opening pack...');
-    setOpening(true);
+  const handleOpen = () => {
+    if (opening || opened) return;
     
-    // Stop idle sound
+    // Stop idle sound and play opening sound
     if (idleAudioRef.current) {
       idleAudioRef.current.pause();
       idleAudioRef.current = null;
     }
     
-    // Play opening sound
-    // Note: Replace with your own sound file URL
     const openingAudio = new Audio('/sounds/pack-opening.mp3');
-    openingAudio.volume = 0.4;
-    openingAudio.play().catch(e => console.log('Audio play failed:', e));
+    openingAudio.volume = 0.5;
+    openingAudio.play().catch(console.error);
     
-    // Animate tear progress
-    const duration = 800;
+    setOpening(true);
+    
+    // Animate tear effect
     const startTime = Date.now();
+    const duration = 800; // 800ms tear animation
     
-    const animate = () => {
+    const animateTear = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
       setTearProgress(progress);
       
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        requestAnimationFrame(animateTear);
       } else {
-        // Reveal after tear animation completes
-        setTimeout(() => handleReveal(), 100);
+        handleReveal();
       }
     };
     
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animateTear);
   };
 
   const handleReveal = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('scratch-daily-card', {
-        body: { card_id: cardId },
+      const { data, error } = await supabase.functions.invoke('scratch-card', {
+        body: { cardId }
       });
 
       if (error) throw error;
 
-      console.log('Card revealed:', data);
-      
-      const rarity = data.sticker.rarity;
-      const rarityConfig = rarityConfettiConfig[rarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
-      
-      setRevealedSticker(data.sticker);
-      setOpened(true);
-      setShowConfetti(true);
-      setOpening(false);
-
-      // Play celebration sound based on rarity
-      // Note: Replace with your own sound file URLs
-      const celebrationSounds = {
-        common: '/sounds/reveal-common.mp3',
-        uncommon: '/sounds/reveal-uncommon.mp3',
-        rare: '/sounds/reveal-rare.mp3',
-        epic: '/sounds/reveal-epic.mp3',
-        legendary: '/sounds/reveal-legendary.mp3',
-      };
-      
-      const celebrationAudio = new Audio(celebrationSounds[rarity as keyof typeof celebrationSounds] || celebrationSounds.common);
-      celebrationAudio.volume = 0.5;
-      celebrationAudio.play().catch(e => console.log('Audio play failed:', e));
-      celebrationAudioRef.current = celebrationAudio;
-
-      // Trigger confetti based on rarity
-      const confettiDuration = rarityConfig.duration;
-      const confettiInterval = rarity === 'legendary' ? 200 : rarity === 'epic' ? 300 : 500;
-      
-      const fireConfetti = () => {
-        confetti({
-          particleCount: rarityConfig.particleCount / (confettiDuration / confettiInterval),
-          spread: rarityConfig.spread,
-          origin: { y: 0.6 },
-          colors: rarity === 'legendary' 
-            ? ['#FFD700', '#FFA500', '#FF6347'] 
-            : rarity === 'epic'
-            ? ['#9370DB', '#8B00FF', '#DA70D6']
-            : rarity === 'rare'
-            ? ['#4169E1', '#1E90FF', '#87CEEB']
-            : rarity === 'uncommon'
-            ? ['#32CD32', '#90EE90', '#00FF00']
-            : ['#C0C0C0', '#D3D3D3', '#A9A9A9']
+      if (data.success && data.sticker) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('stickers')
+          .getPublicUrl(data.sticker.image_url);
+        
+        setRevealedSticker({
+          ...data.sticker,
+          image_url: publicUrl
         });
-      };
-
-      // Fire confetti multiple times for better effect
-      fireConfetti();
-      const confettiTimer = setInterval(fireConfetti, confettiInterval);
-
-      // Stop confetti after duration
-      setTimeout(() => {
-        clearInterval(confettiTimer);
-        setShowConfetti(false);
-      }, confettiDuration);
-
-      toast({
-        title: "Sticker Revealed!",
-        description: `You got a ${rarity} sticker!`,
-      });
+        
+        setOpened(true);
+        setShowConfetti(true);
+        
+        // Get rarity-specific config
+        const rarity = data.sticker.rarity as keyof typeof rarityConfettiConfig;
+        const config = rarityConfettiConfig[rarity] || rarityConfettiConfig.common;
+        
+        // Play rarity-specific celebration sound
+        const celebrationAudio = new Audio(`/sounds/reveal-${rarity}.mp3`);
+        celebrationAudio.volume = 0.6;
+        celebrationAudio.play().catch(console.error);
+        celebrationAudioRef.current = celebrationAudio;
+        
+        // Trigger confetti multiple times based on rarity
+        for (let i = 0; i < config.bursts; i++) {
+          setTimeout(() => {
+            confetti({
+              particleCount: config.particleCount,
+              spread: config.spread,
+              origin: { y: 0.6 },
+              colors: ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#9370DB']
+            });
+          }, i * 300);
+        }
+        
+        onScratched();
+      } else {
+        throw new Error(data.message || 'Failed to reveal sticker');
+      }
     } catch (error: any) {
-      console.error('Error revealing card:', error);
+      console.error('Error revealing sticker:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to reveal card",
+        description: error.message || "Failed to reveal your sticker",
         variant: "destructive",
       });
-      setOpening(false);
+      onOpenChange(false);
     }
   };
 
-  const handleClose = (newOpen: boolean) => {
-    if (!newOpen && onScratched) {
-      onScratched();
-    }
-    onOpenChange(newOpen);
-  };
+  if (loading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/10 to-primary/5">
+          <DialogHeader>
+            <DialogTitle className="text-center">Loading Pack...</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/10 to-primary/5">
         <DialogHeader>
           <DialogTitle className="text-center">
-            {opened ? "Sticker Revealed!" : "Open Your Pack!"}
+            {opened ? "You Got:" : "Open Your Pack"}
           </DialogTitle>
           <DialogDescription className="text-center">
-            {opened 
-              ? "Congratulations on your new sticker!" 
-              : "Tap the pack to reveal your sticker"}
+            {opened ? "Added to your collection!" : "Tap to open your pack!"}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-4 py-6">
-          {loading ? (
-            <div className="flex items-center justify-center h-80">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-            </div>
-          ) : !opened ? (
-            <div className="w-full max-w-sm">
-              <div
-                className="relative cursor-pointer mx-auto"
-                onClick={handleOpen}
+        <div className="flex flex-col items-center gap-6 py-4">
+          {!opened ? (
+            <div 
+              onClick={handleOpen}
+              className="relative cursor-pointer transform transition-all duration-300 hover:scale-105 w-full max-w-[280px] aspect-[2/3]"
+              style={{
+                perspective: "1000px"
+              }}
+            >
+              <div 
+                className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl"
                 style={{
-                  width: '280px',
-                  height: '360px',
-                  perspective: '1000px',
+                  backgroundImage: `linear-gradient(135deg, 
+                    hsl(var(--primary)) 0%,
+                    hsl(var(--primary) / 0.8) 50%,
+                    hsl(var(--primary) / 0.6) 100%)`,
+                  backgroundSize: "cover",
+                  transform: opening ? `scaleY(${1 - tearProgress * 0.3})` : "scaleY(1)",
+                  clipPath: opening 
+                    ? `polygon(0 ${tearProgress * 30}%, 100% ${tearProgress * 30}%, 100% ${100 - tearProgress * 30}%, 0 ${100 - tearProgress * 30}%)`
+                    : "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
+                  transition: opening ? "none" : "all 0.3s ease"
                 }}
               >
-                {/* Pack wrapper with holographic effect */}
+                {/* Holographic overlay */}
                 <div 
-                  className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transition-transform duration-300 hover:scale-105"
+                  className="absolute inset-0 opacity-30 mix-blend-overlay"
                   style={{
-                    backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #667eea 100%)',
-                    backgroundSize: '200% 200%',
-                    animation: opening ? 'none' : 'shimmer 3s ease infinite',
-                    transform: opening ? `scale(${1 + tearProgress * 0.1})` : 'scale(1)',
-                    opacity: opening ? 1 - tearProgress : 1,
-                  }}
-                >
-                  {/* Holographic overlay */}
-                  <div 
-                    className="absolute inset-0 opacity-50"
-                    style={{
-                      background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
-                    }}
-                  />
-                  
-                  {/* Shine effect */}
-                  <div 
-                    className="absolute inset-0"
-                    style={{
-                      background: 'linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%)',
-                      backgroundSize: '200% 200%',
-                      animation: opening ? 'none' : 'shine 4s ease-in-out infinite',
-                    }}
-                  />
-
-                  {/* Pack content */}
-                  <div className="relative z-10 flex flex-col items-center justify-center h-full p-8 text-white">
-                    {packImageUrl ? (
-                      <img 
-                        src={packImageUrl} 
-                        alt={collectionName}
-                        className="w-40 h-40 object-contain mb-6 drop-shadow-2xl"
-                      />
-                    ) : (
-                      <Package className="h-24 w-24 mb-6 drop-shadow-lg" />
-                    )}
-                    
-                    {/* Stylized Collection Name */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-black/40 blur-xl" />
-                      <h3 className="relative text-4xl font-black text-center tracking-wider drop-shadow-2xl uppercase" 
-                          style={{
-                            textShadow: '0 0 20px rgba(255,255,255,0.5), 0 0 40px rgba(255,255,255,0.3), 2px 2px 4px rgba(0,0,0,0.8)',
-                            WebkitTextStroke: '2px rgba(0,0,0,0.5)',
-                          }}>
-                        {collectionName}
-                      </h3>
-                    </div>
-
-                    {/* Decorative corners */}
-                    <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-white/50 rounded-tl-lg" />
-                    <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-white/50 rounded-tr-lg" />
-                    <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-white/50 rounded-bl-lg" />
-                    <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-white/50 rounded-br-lg" />
-                    
-                    {!opening && (
-                      <Sparkles className="absolute top-4 right-20 h-8 w-8 animate-pulse" />
-                    )}
-                  </div>
-
-                  {/* Tear effect overlay when opening */}
-                  {opening && tearProgress > 0 && (
-                    <>
-                      {/* Top tear piece */}
-                      <div 
-                        className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-500"
-                        style={{
-                          clipPath: `polygon(0 0, 100% 0, 100% ${50 - tearProgress * 50}%, 0 ${50 - tearProgress * 50}%)`,
-                          transform: `translateY(-${tearProgress * 100}px) rotateX(${tearProgress * 30}deg)`,
-                          transformOrigin: 'bottom',
-                        }}
-                      />
-                      
-                      {/* Bottom tear piece */}
-                      <div 
-                        className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-500"
-                        style={{
-                          clipPath: `polygon(0 ${50 + tearProgress * 50}%, 100% ${50 + tearProgress * 50}%, 100% 100%, 0 100%)`,
-                          transform: `translateY(${tearProgress * 100}px) rotateX(-${tearProgress * 30}deg)`,
-                          transformOrigin: 'top',
-                        }}
-                      />
-
-                      {/* Sparkles during opening */}
-                      {[...Array(10)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="absolute w-2 h-2 bg-white rounded-full"
-                          style={{
-                            left: `${50 + (Math.random() - 0.5) * 60}%`,
-                            top: `${50 + (Math.random() - 0.5) * 60}%`,
-                            opacity: tearProgress,
-                            transform: `scale(${tearProgress}) translate(${(Math.random() - 0.5) * 100}px, ${(Math.random() - 0.5) * 100}px)`,
-                            transition: 'all 0.3s ease-out',
-                          }}
-                        />
-                      ))}
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              <p className="text-center text-lg font-semibold mt-6">{collectionName}</p>
-              <p className="text-center text-sm text-muted-foreground mt-2">Click the pack to open!</p>
-            </div>
-          ) : (
-            <div className="animate-scale-in">
-              {/* Revealed sticker card */}
-              <div 
-                className={`relative w-64 h-80 rounded-xl overflow-hidden shadow-2xl bg-gradient-to-br ${
-                  rarityColors[revealedSticker?.rarity as keyof typeof rarityColors] || rarityColors.common
-                }`}
-              >
-                {/* Card shine overlay */}
-                <div 
-                  className="absolute inset-0 opacity-30"
-                  style={{
-                    background: 'linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.5) 50%, transparent 70%)',
-                    backgroundSize: '200% 200%',
-                    animation: 'shine 3s ease-in-out infinite',
+                    background: `
+                      radial-gradient(circle at 20% 50%, transparent 20%, rgba(255,255,255,0.3) 21%, transparent 22%),
+                      radial-gradient(circle at 80% 50%, transparent 20%, rgba(255,255,255,0.3) 21%, transparent 22%),
+                      radial-gradient(circle at 50% 20%, transparent 20%, rgba(255,255,255,0.3) 21%, transparent 22%),
+                      radial-gradient(circle at 50% 80%, transparent 20%, rgba(255,255,255,0.3) 21%, transparent 22%)
+                    `,
+                    animation: "holographic 3s ease-in-out infinite"
                   }}
                 />
 
+                {/* Shimmer effect */}
+                <div 
+                  className="absolute inset-0 opacity-40"
+                  style={{
+                    background: "linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.8) 50%, transparent 70%)",
+                    backgroundSize: "200% 200%",
+                    animation: "shimmer 3s ease-in-out infinite"
+                  }}
+                />
+
+                {/* Decorative corner borders */}
+                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-white/40 rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-white/40 rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-white/40 rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-white/40 rounded-br-xl" />
+
+                {/* Pack content */}
                 <div className="relative z-10 flex flex-col items-center justify-center h-full p-6 text-white">
-                  {revealedSticker?.image_url && (
+                  {packImageUrl ? (
                     <img 
-                      src={revealedSticker.image_url} 
-                      alt={revealedSticker.name}
-                      className="w-40 h-40 object-contain mb-4 drop-shadow-2xl"
+                      src={packImageUrl} 
+                      alt="Pack preview" 
+                      className="w-32 h-32 object-contain mb-4 drop-shadow-2xl"
                     />
+                  ) : (
+                    <Package className="w-32 h-32 mb-4 drop-shadow-2xl" strokeWidth={1.5} />
                   )}
-                  <h3 className="text-2xl font-bold text-center mb-2 drop-shadow-lg">
-                    {revealedSticker?.name}
-                  </h3>
-                  <p className="text-center text-sm mb-2 drop-shadow">
-                    {revealedSticker?.description}
-                  </p>
-                  <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-semibold uppercase tracking-wide">
-                    {revealedSticker?.rarity}
-                  </span>
+                  
+                  <h2 
+                    className="text-4xl font-black tracking-wider text-center mb-2 drop-shadow-2xl"
+                    style={{
+                      textShadow: `
+                        2px 2px 4px rgba(0,0,0,0.8),
+                        0 0 20px rgba(255,255,255,0.5),
+                        0 0 30px rgba(255,255,255,0.3)
+                      `,
+                      WebkitTextStroke: "1px rgba(0,0,0,0.3)"
+                    }}
+                  >
+                    {collectionName}
+                  </h2>
+                  
+                  <Sparkles className="w-8 h-8 animate-pulse" />
                 </div>
+
+                {/* Tear sparkles */}
+                {opening && (
+                  <>
+                    <div 
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-2 bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-80"
+                      style={{
+                        top: `${tearProgress * 30}%`,
+                        animation: "sparkle 0.3s ease-in-out infinite"
+                      }}
+                    />
+                    <div 
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-2 bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-80"
+                      style={{
+                        bottom: `${tearProgress * 30}%`,
+                        animation: "sparkle 0.3s ease-in-out infinite"
+                      }}
+                    />
+                  </>
+                )}
               </div>
+
+              {/* CSS animations */}
+              <style>{`
+                @keyframes holographic {
+                  0%, 100% { opacity: 0.3; }
+                  50% { opacity: 0.6; }
+                }
+                
+                @keyframes shimmer {
+                  0% { background-position: -200% 0; }
+                  100% { background-position: 200% 0; }
+                }
+                
+                @keyframes sparkle {
+                  0%, 100% { opacity: 0.6; }
+                  50% { opacity: 1; }
+                }
+              `}</style>
             </div>
-          )}
+          ) : revealedSticker ? (
+            <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+              <div className={`relative rounded-xl overflow-hidden shadow-2xl bg-gradient-to-br ${rarityColors[revealedSticker.rarity as keyof typeof rarityColors]} p-1`}>
+                <img 
+                  src={revealedSticker.image_url} 
+                  alt={revealedSticker.name}
+                  className="w-64 h-64 object-contain bg-white rounded-lg"
+                />
+              </div>
+              
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-bold">{revealedSticker.name}</h3>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {revealedSticker.rarity} • {revealedSticker.category}
+                </p>
+                {revealedSticker.description && (
+                  <p className="text-sm text-muted-foreground max-w-xs">
+                    {revealedSticker.description}
+                  </p>
+                )}
+              </div>
+
+              <Button 
+                onClick={() => onOpenChange(false)}
+                className="w-full"
+              >
+                Continue
+              </Button>
+            </div>
+          ) : null}
         </div>
-
-        {opened && (
-          <div className="flex gap-2">
-            <Button
-              onClick={() => handleClose(false)}
-              className="flex-1"
-            >
-              Close
-            </Button>
-          </div>
-        )}
-
-        {/* Custom animations */}
-        <style>{`
-          @keyframes shimmer {
-            0%, 100% { background-position: 0% 0%; }
-            50% { background-position: 100% 100%; }
-          }
-        `}</style>
       </DialogContent>
     </Dialog>
   );
