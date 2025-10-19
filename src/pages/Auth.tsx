@@ -12,7 +12,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
-import joyHouseLogo from "@/assets/joy-house-logo-full.png";
 import { useQuery } from "@tanstack/react-query";
 
 const Auth = () => {
@@ -52,8 +51,6 @@ const Auth = () => {
       return null;
     }
   });
-
-  const logoUrl = logoData || joyHouseLogo;
 
   // 🚀 PRODUCTION FIX: Removed terms recording from Auth.tsx
   // Terms are now ONLY recorded through TermsAcceptanceDialog for reliability
@@ -253,11 +250,13 @@ const Auth = () => {
       <Card className="w-full max-w-md border-2 shadow-xl relative z-10">
         <CardContent className="p-8 space-y-6">
           <div className="text-center space-y-4">
-            <img 
-              src={logoUrl} 
-              alt="Best Day Ministries" 
-              className="h-16 mx-auto object-contain"
-            />
+            {logoData && (
+              <img 
+                src={logoData} 
+                alt="Best Day Ministries" 
+                className="h-16 mx-auto object-contain"
+              />
+            )}
             <div>
               <h1 className="text-3xl font-black text-foreground mb-2">
                 {isForgotPassword ? "Reset Password" : isSignUp ? "Join Our Community" : "Welcome Back"}

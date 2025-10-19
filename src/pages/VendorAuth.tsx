@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Store, ArrowLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import joyHouseLogo from "@/assets/joy-house-logo-full.png";
 import { useQuery } from "@tanstack/react-query";
 
 const VendorAuth = () => {
@@ -44,8 +43,6 @@ const VendorAuth = () => {
       return null;
     }
   });
-
-  const logoUrl = logoData || joyHouseLogo;
 
   useEffect(() => {
     // Check if user is already logged in as vendor
@@ -239,11 +236,13 @@ const VendorAuth = () => {
               <span className="text-2xl font-bold text-primary">Vendor Portal</span>
             </div>
             
-            <img 
-              src={logoUrl} 
-              alt="Best Day Ministries" 
-              className="h-16 mx-auto object-contain"
-            />
+            {logoData && (
+              <img 
+                src={logoData} 
+                alt="Best Day Ministries" 
+                className="h-16 mx-auto object-contain"
+              />
+            )}
             
             <div>
               <h1 className="text-3xl font-black text-foreground mb-2">
