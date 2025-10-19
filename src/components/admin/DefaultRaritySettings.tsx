@@ -118,24 +118,91 @@ export const DefaultRaritySettings = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {Object.entries(percentages).map(([rarity, value]) => (
-            <div key={rarity} className="space-y-2">
-              <Label htmlFor={rarity} className="capitalize">{rarity}</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id={rarity}
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={value}
-                  onChange={(e) => handleChange(rarity, e.target.value)}
-                  className="w-full"
-                />
-                <span className="text-sm text-muted-foreground">%</span>
-              </div>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Common - most common */}
+          <div className="space-y-2">
+            <Label htmlFor="common" className="capitalize">Common</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="common"
+                type="number"
+                min="0"
+                max="100"
+                value={percentages.common}
+                onChange={(e) => handleChange('common', e.target.value)}
+                className="w-full"
+              />
+              <span className="text-sm text-muted-foreground">%</span>
             </div>
-          ))}
+          </div>
+
+          {/* Uncommon */}
+          <div className="space-y-2">
+            <Label htmlFor="uncommon" className="capitalize">Uncommon</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="uncommon"
+                type="number"
+                min="0"
+                max="100"
+                value={percentages.uncommon}
+                onChange={(e) => handleChange('uncommon', e.target.value)}
+                className="w-full"
+              />
+              <span className="text-sm text-muted-foreground">%</span>
+            </div>
+          </div>
+
+          {/* Rare */}
+          <div className="space-y-2">
+            <Label htmlFor="rare" className="capitalize">Rare</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="rare"
+                type="number"
+                min="0"
+                max="100"
+                value={percentages.rare}
+                onChange={(e) => handleChange('rare', e.target.value)}
+                className="w-full"
+              />
+              <span className="text-sm text-muted-foreground">%</span>
+            </div>
+          </div>
+
+          {/* Epic */}
+          <div className="space-y-2">
+            <Label htmlFor="epic" className="capitalize">Epic</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="epic"
+                type="number"
+                min="0"
+                max="100"
+                value={percentages.epic}
+                onChange={(e) => handleChange('epic', e.target.value)}
+                className="w-full"
+              />
+              <span className="text-sm text-muted-foreground">%</span>
+            </div>
+          </div>
+
+          {/* Legendary - least common, spans full width on small screens */}
+          <div className="space-y-2 col-span-2 sm:col-span-1">
+            <Label htmlFor="legendary" className="capitalize">Legendary</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="legendary"
+                type="number"
+                min="0"
+                max="100"
+                value={percentages.legendary}
+                onChange={(e) => handleChange('legendary', e.target.value)}
+                className="w-full"
+              />
+              <span className="text-sm text-muted-foreground">%</span>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t">
