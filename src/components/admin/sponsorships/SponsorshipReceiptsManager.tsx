@@ -4,12 +4,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
 
 export const SponsorshipReceiptsManager = () => {
   const { toast } = useToast();
   const [sending, setSending] = useState<string | null>(null);
+
+  // Fetch recent receipts log
+  const { data: recentReceipts } = useQuery({
+    queryKey: ['recent-sponsorship-receipts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sponsorship_receipts')
+        .select('*')
+        .order('sent_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Fetch active sponsorships without receipts
   const { data: sponsorshipsWithoutReceipts, isLoading, refetch } = useQuery({
@@ -98,10 +115,17 @@ export const SponsorshipReceiptsManager = () => {
       <CardHeader>
         <CardTitle>Sponsorship Receipts</CardTitle>
         <CardDescription>
-          Send missing receipts to sponsors who never received them
+          Manage and view sponsorship receipt emails
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <Tabs defaultValue="missing" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="missing">Missing Receipts</TabsTrigger>
+            <TabsTrigger value="log">Receipt Log</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="missing" className="space-y-4">
         {!sponsorshipsWithoutReceipts?.length ? (
           <p className="text-sm text-muted-foreground">
             All active sponsorships have receipts. Great job! 🎉
@@ -166,6 +190,53 @@ export const SponsorshipReceiptsManager = () => {
             </div>
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="log" className="space-y-4">
+            {!recentReceipts?.length ? (
+              <p className="text-sm text-muted-foreground">
+                No receipts have been sent yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {recentReceipts.map((receipt) => (
+                  <div
+                    key={receipt.id}
+                    className="flex items-start justify-between p-4 border rounded-lg"
+                  >
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <p className="font-medium truncate">
+                          {receipt.sponsor_name || receipt.sponsor_email}
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {receipt.sponsor_email}
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-xs">
+                          {receipt.bestie_name || 'General'}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          ${receipt.amount} / {receipt.frequency}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {receipt.receipt_number}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground text-right whitespace-nowrap ml-4">
+                      {format(new Date(receipt.sent_at), 'MMM d, yyyy')}
+                      <br />
+                      {format(new Date(receipt.sent_at), 'h:mm a')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
