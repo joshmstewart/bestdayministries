@@ -2,25 +2,116 @@ MASTER_SYSTEM_DOCS
 
 ## ⚠️ CRITICAL: DOCUMENTATION WORKFLOW - READ FIRST ⚠️
 
-**BEFORE MAKING ANY CODE CHANGES:**
-1. SEARCH for relevant documentation files (MASTER_SYSTEM_DOCS.md + specific system docs)
-2. READ the complete documentation for the system you're modifying
-3. UNDERSTAND established patterns, database schemas, RLS policies, and component structures
-4. FOLLOW the existing patterns - DO NOT reinvent or contradict documented approaches
+**THIS IS MANDATORY. NO EXCEPTIONS. DOCUMENTATION = SOURCE OF TRUTH.**
 
-**AFTER MAKING CODE CHANGES:**
-1. UPDATE this MASTER_SYSTEM_DOCS.md file with any new/changed patterns
-2. UPDATE the specific system documentation file (e.g., *_CONCISE.md, *_SYSTEM.md)
-3. ADD new sections if you created new systems/features
-4. CROSS-REFERENCE related systems when adding integrations
+---
 
-**CONSEQUENCES OF IGNORING:**
-- RLS policy bugs (like the user_roles SELECT issue we just fixed)
-- Inconsistent patterns across codebase
-- Breaking existing functionality
-- Time wasted debugging preventable issues
+### 🔴 BEFORE MAKING ANY CODE CHANGES - MANDATORY CHECKLIST:
 
-**THIS IS NOT OPTIONAL. DOCUMENTATION = SOURCE OF TRUTH.**
+**STEP 1: SEARCH DOCUMENTATION (REQUIRED)**
+- Use `lov-search-files` to search for relevant documentation:
+  - Search `docs/**` for system name (e.g., "newsletter", "sticker", "sponsorship")
+  - Search `docs/MASTER_SYSTEM_DOCS.md` for the feature area
+  - Search for related edge function docs in `docs/EDGE_FUNCTIONS_REFERENCE.md`
+- **DO NOT SKIP THIS STEP** - You cannot know what exists without searching
+
+**STEP 2: READ COMPLETE DOCUMENTATION (REQUIRED)**
+- Read the ENTIRE relevant section of MASTER_SYSTEM_DOCS.md
+- Read ANY dedicated system documentation file (e.g., `NEWSLETTER_SYSTEM.md`, `STICKER_PACK_SYSTEM.md`)
+- Read edge function documentation if modifying backend
+- **MEMORIZE** the patterns, schemas, RLS policies, and component structures
+
+**STEP 3: SEARCH AND READ EXISTING CODE (REQUIRED)**
+- Use `lov-search-files` to find ALL files related to the feature:
+  - Search for component names mentioned in docs
+  - Search for database table names
+  - Search for edge function names
+  - Search for hook names and utility functions
+- Use `lov-view` to READ the actual implementation of related files
+- **UNDERSTAND** how the existing code works before changing anything
+
+**STEP 4: VERIFY YOUR UNDERSTANDING (REQUIRED)**
+- Can you explain the current architecture in your own words?
+- Do you know which RLS policies protect which tables?
+- Do you understand the data flow and state management?
+- Have you identified all files that need to change?
+- **IF NO TO ANY** → Go back and read more documentation and code
+
+**STEP 5: FOLLOW ESTABLISHED PATTERNS (REQUIRED)**
+- Use the SAME component structure as existing code
+- Use the SAME naming conventions
+- Use the SAME state management patterns
+- Use the SAME database query patterns
+- **DO NOT REINVENT** patterns that already exist
+- **DO NOT CONTRADICT** documented approaches
+
+---
+
+### 🔴 AFTER MAKING CODE CHANGES - MANDATORY UPDATES:
+
+**STEP 1: UPDATE MASTER_SYSTEM_DOCS.md**
+- Add new patterns to the relevant section
+- Update changed patterns with accurate information
+- Add cross-references if integrating with other systems
+
+**STEP 2: UPDATE SPECIFIC SYSTEM DOCS**
+- Update or create dedicated system documentation files
+- Document new database tables, edge functions, components
+- Update workflows and usage examples
+
+**STEP 3: UPDATE EDGE_FUNCTIONS_REFERENCE.md**
+- Document any new or modified edge functions
+- Update request/response formats
+- Document any new secrets or environment variables
+
+---
+
+### 🔴 CONSEQUENCES OF IGNORING THIS WORKFLOW:
+
+**BUGS YOU WILL CREATE:**
+- RLS policy bugs (auth.uid() called without authentication check)
+- Missing foreign key relationships causing orphaned data
+- Inconsistent state management causing race conditions
+- Missing realtime subscriptions causing stale UI
+- Breaking existing integrations between systems
+
+**WASTED TIME:**
+- Debugging issues that documentation already warned about
+- Rewriting code that follows wrong patterns
+- Multiple fix attempts because root cause not understood
+- User frustration from repeated failures
+
+**LOSS OF TRUST:**
+- User loses confidence in AI assistance
+- User must manually review all AI changes
+- User stops using AI for complex tasks
+
+---
+
+### ✅ EXAMPLE OF CORRECT WORKFLOW:
+
+**User Request:** "Add email logging to newsletter system"
+
+**CORRECT APPROACH:**
+1. Search: `lov-search-files` for "newsletter" in `docs/**`
+2. Read: `docs/NEWSLETTER_SYSTEM.md` completely
+3. Search: `lov-search-files` for "send-newsletter" in `supabase/functions/**`
+4. Read: `supabase/functions/send-newsletter/index.ts` completely
+5. Search: `lov-search-files` for "newsletter_campaigns" to find all related code
+6. Read: All components that use newsletter data
+7. Understand: Current email sending flow, database schema, RLS policies
+8. Implement: Follow existing patterns for logging (check other *_log tables)
+9. Update: All three documentation files with new logging feature
+
+**WRONG APPROACH:**
+1. ❌ Immediately start coding without checking docs
+2. ❌ Assume how the system works without reading code
+3. ❌ Create new patterns instead of following existing ones
+4. ❌ Skip updating documentation after changes
+
+---
+
+**THIS IS NOT OPTIONAL. THIS IS NOT A SUGGESTION. THIS IS MANDATORY.**
 
 ---
 
