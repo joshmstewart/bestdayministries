@@ -39,38 +39,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const [packStickers, setPackStickers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tearProgress, setTearProgress] = useState(0);
-  
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const idleOscillatorRef = useRef<OscillatorNode | null>(null);
-  const idleGainRef = useRef<GainNode | null>(null);
-  const sparkleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Cleanup function to stop all audio
-  const cleanupAudio = () => {
-    if (sparkleIntervalRef.current) {
-      clearInterval(sparkleIntervalRef.current);
-      sparkleIntervalRef.current = null;
-    }
-    if (idleOscillatorRef.current) {
-      try {
-        idleOscillatorRef.current.stop();
-      } catch (e) {
-        // Already stopped
-      }
-      idleOscillatorRef.current = null;
-    }
-    if (idleGainRef.current) {
-      idleGainRef.current = null;
-    }
-    if (audioContextRef.current) {
-      try {
-        audioContextRef.current.close();
-      } catch (e) {
-        // Already closed
-      }
-      audioContextRef.current = null;
-    }
-  };
 
   useEffect(() => {
     if (open) {
@@ -80,85 +48,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       setOpening(false);
       setTearProgress(0);
       loadCollectionInfo();
-      
-      // Create sparkly idle sound using Web Audio API
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      
-      sparkleIntervalRef.current = playIdleSound(audioContext);
-    } else {
-      // Cleanup immediately when dialog closes
-      cleanupAudio();
     }
-
-    return () => {
-      // Cleanup on unmount
-      cleanupAudio();
-    };
   }, [open]);
-
-  const playIdleSound = (audioContext: AudioContext) => {
-    // Create a sparkly, magical idle sound
-    const playSparkle = () => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Random frequency for sparkle effect
-      oscillator.frequency.value = 800 + Math.random() * 800;
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    };
-    
-    // Play sparkles at random intervals
-    const sparkleInterval = setInterval(() => {
-      if (Math.random() > 0.3) {
-        playSparkle();
-      }
-    }, 400);
-    
-    return sparkleInterval;
-  };
-
-  const playOpeningSound = () => {
-    if (!audioContextRef.current) return;
-    
-    const audioContext = audioContextRef.current;
-    
-    // Create a whoosh/tear sound
-    const noise = audioContext.createBufferSource();
-    const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.8, audioContext.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    
-    for (let i = 0; i < noiseBuffer.length; i++) {
-      output[i] = Math.random() * 2 - 1;
-    }
-    
-    noise.buffer = noiseBuffer;
-    
-    const noiseFilter = audioContext.createBiquadFilter();
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 1000;
-    
-    const noiseGain = audioContext.createGain();
-    noiseGain.gain.setValueAtTime(0.3, audioContext.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
-    
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(audioContext.destination);
-    
-    noise.start(audioContext.currentTime);
-    noise.stop(audioContext.currentTime + 0.8);
-  };
 
 
   const loadCollectionInfo = async () => {
@@ -207,14 +98,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
   const handleOpen = () => {
     if (opening || opened) return;
-    
-    // Stop idle sound completely
-    cleanupAudio();
-    
-    // Create new audio context for opening sound only
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    audioContextRef.current = audioContext;
-    playOpeningSound();
     
     setOpening(true);
     
