@@ -21,11 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import {
   DndContext,
@@ -1253,21 +1248,18 @@ export const StickerCollectionManager = () => {
             </CardContent>
           </Card>
 
-          <Collapsible open={createCollectionOpen} onOpenChange={setCreateCollectionOpen}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Create New Collection</CardTitle>
-                      <CardDescription>Set up a new sticker collection</CardDescription>
-                    </div>
-                    <ChevronDown className={`h-5 w-5 transition-transform ${createCollectionOpen ? 'rotate-180' : ''}`} />
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="space-y-4">
+          <Card>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setCreateCollectionOpen(!createCollectionOpen)}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Create New Collection</CardTitle>
+                  <CardDescription>Set up a new sticker collection</CardDescription>
+                </div>
+                <ChevronDown className={`h-5 w-5 transition-transform ${createCollectionOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </CardHeader>
+            {createCollectionOpen && (
+              <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Collection Name</Label>
@@ -1410,9 +1402,8 @@ export const StickerCollectionManager = () => {
                     Create Collection
                   </Button>
                 </CardContent>
-              </CollapsibleContent>
+            )}
             </Card>
-          </Collapsible>
 
           <Card>
             <CardHeader>
