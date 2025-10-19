@@ -7,6 +7,7 @@ import { NewsletterTemplates } from "./newsletter/NewsletterTemplates";
 import { CampaignTemplates } from "./newsletter/CampaignTemplates";
 import { AutomatedSendsLog } from "./newsletter/AutomatedSendsLog";
 import { NewsletterEmailsLog } from "./newsletter/NewsletterEmailsLog";
+import { SponsorshipReceiptsManager } from "./sponsorships/SponsorshipReceiptsManager";
 
 export const NewsletterManager = () => {
   return (
@@ -25,6 +26,7 @@ export const NewsletterManager = () => {
             <TabsTrigger value="automated" className="whitespace-nowrap">Automated</TabsTrigger>
             <TabsTrigger value="templates" className="whitespace-nowrap">Templates</TabsTrigger>
             <TabsTrigger value="log" className="whitespace-nowrap">Email Log</TabsTrigger>
+            <TabsTrigger value="receipts" className="whitespace-nowrap">Sponsorship Receipts</TabsTrigger>
             <TabsTrigger value="subscribers" className="whitespace-nowrap">Subscribers</TabsTrigger>
             <TabsTrigger value="analytics" className="whitespace-nowrap">Analytics</TabsTrigger>
             <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
@@ -46,6 +48,10 @@ export const NewsletterManager = () => {
 
         <TabsContent value="log" className="space-y-4">
           <NewsletterEmailsLog />
+        </TabsContent>
+
+        <TabsContent value="receipts" className="space-y-4">
+          <SponsorshipReceiptsManager />
         </TabsContent>
 
         <TabsContent value="subscribers" className="space-y-4">

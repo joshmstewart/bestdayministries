@@ -275,7 +275,7 @@ serve(async (req) => {
           const frequency = subscription.items.data[0]?.price.recurring?.interval === "month" ? "monthly" : "yearly";
 
         // Create or update sponsorship record
-        const { error: upsertError } = await supabaseAdmin
+        const { data: sponsorshipData, error: upsertError } = await supabaseAdmin
           .from("sponsorships")
           .upsert({
             sponsor_id: user.id,
@@ -288,51 +288,30 @@ serve(async (req) => {
             stripe_mode: stripeMode,
           }, {
             onConflict: "sponsor_id,sponsor_bestie_id",
-          });
+          })
+          .select('id')
+          .single();
 
         if (upsertError) {
           console.error("Error creating sponsorship:", upsertError);
         } else {
-          console.log(`Created/updated sponsorship for user ${user.id}, sponsor_bestie ${sponsorBestieId}`);
+          console.log(`Created/updated sponsorship ${sponsorshipData.id} for user ${user.id}, sponsor_bestie ${sponsorBestieId}`);
           
-          // Send receipt email
-          const { data: bestieData } = await supabaseAdmin
-            .from('sponsor_besties')
-            .select('bestie_name')
-            .eq('id', sponsorBestieId)
-            .single();
-
-          // Get sponsor name from user metadata
-          const { data: profileData } = await supabaseAdmin
-            .from('profiles')
-            .select('display_name')
-            .eq('id', user.id)
-            .single();
-
-          if (bestieData) {
-            try {
-              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                },
+          // Send receipt email using the actual sponsorship ID
+          try {
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
               body: JSON.stringify({
-                sponsorshipId: upsertError ? undefined : sponsorBestieId, // Pass sponsorship context
-                sponsorEmail: customerEmail,
-                sponsorName: profileData?.display_name || null,
-                bestieName: bestieData.bestie_name,
-                amount: amount,
-                frequency: frequency,
-                transactionId: session.id,
-                transactionDate: new Date().toISOString(),
-                stripeMode: stripeMode,
+                sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
               }),
-              });
-              console.log('Receipt email sent for webhook sponsorship');
-            } catch (emailError) {
-              console.error('Failed to send receipt email:', emailError);
-            }
+            });
+            console.log('Receipt email sent for sponsorship:', sponsorshipData.id);
+          } catch (emailError) {
+            console.error('Failed to send receipt email:', emailError);
           }
         }
         }
@@ -383,23 +362,15 @@ serve(async (req) => {
           break;
         }
 
-        // Get bestie data and sponsor name
-        const { data: bestieData } = await supabaseAdmin
-          .from('sponsor_besties')
-          .select('bestie_name')
-          .eq('id', sponsorBestieId)
+        // Find the sponsorship record
+        const { data: sponsorshipData } = await supabaseAdmin
+          .from('sponsorships')
+          .select('id')
+          .eq('sponsor_id', user.id)
+          .eq('sponsor_bestie_id', sponsorBestieId)
           .single();
 
-        const { data: profileData } = await supabaseAdmin
-          .from('profiles')
-          .select('display_name')
-          .eq('id', user.id)
-          .single();
-
-        if (bestieData) {
-          const amount = invoice.amount_paid / 100; // Convert cents to dollars
-          const frequency = subscription.items.data[0]?.price.recurring?.interval === "month" ? "monthly" : "yearly";
-
+        if (sponsorshipData) {
           try {
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
               method: 'POST',
@@ -408,18 +379,10 @@ serve(async (req) => {
                 'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
               },
               body: JSON.stringify({
-                sponsorshipId: sponsorBestieId, // Pass sponsorship context
-                sponsorEmail: customerEmail,
-                sponsorName: profileData?.display_name || null,
-                bestieName: bestieData.bestie_name,
-                amount: amount,
-                frequency: frequency,
-                transactionId: invoice.id,
-                transactionDate: new Date(invoice.created * 1000).toISOString(),
-                stripeMode: stripeMode,
+                sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
               }),
             });
-            console.log('Receipt email sent for recurring payment');
+            console.log('Receipt email sent for recurring payment:', sponsorshipData.id);
           } catch (emailError) {
             console.error('Failed to send receipt email:', emailError);
           }
