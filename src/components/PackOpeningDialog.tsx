@@ -454,7 +454,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                 <img 
                   src={revealedSticker.image_url} 
                   alt={revealedSticker.name}
-                  className="w-64 h-64 object-contain bg-white rounded-lg"
+                  className="w-64 h-64 object-contain rounded-lg"
                 />
               </div>
               
