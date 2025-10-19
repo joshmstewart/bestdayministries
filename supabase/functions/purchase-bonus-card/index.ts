@@ -230,6 +230,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
+        cardId: bonusCard.id,
         card: bonusCard,
         cost: BONUS_CARD_COST,
         nextCost: nextCost,

@@ -372,7 +372,7 @@ export const StickerAlbum = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {availableCards.map((card, index) => (
+              {availableCards.map((card) => (
                 <Button
                   key={card.id}
                   onClick={() => {
@@ -384,7 +384,7 @@ export const StickerAlbum = () => {
                   className="flex items-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  {card.is_bonus_card ? `Bonus Card #${index}` : 'Daily Card'}
+                  {card.is_bonus_card ? 'Bonus Card' : 'Daily Card'}
                 </Button>
               ))}
             </div>
