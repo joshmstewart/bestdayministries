@@ -306,6 +306,21 @@ WORKFLOW:1)Sentry-catch→2)alert-webhook→3)log-DB→4)admin-view
 SETUP:Sentry-dashboard[Alerts→WebHooks→add-edge-URL]
 FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry_event_id|severity|environment|metadata|created_at
 
+## STICKER_PACK_SYSTEM
+OVERVIEW:daily-free-packs+purchasable-bonus-packs+rarity-based-drops+animated-pack-opening+collection-progress+duplicate-tracking
+DB:sticker_collections|stickers|daily_scratch_cards|user_stickers|badges
+EDGE:scratch-card[opens-pack→determines-rarity→reveals-sticker]|purchase-bonus-card[exponential-pricing→deduct-coins→create-bonus-card]
+COMPONENTS:PackOpeningDialog[tear-animation+holographic-effects+rarity-confetti]|DailyScratchCard[community-widget+realtime-updates]|StickerAlbum[full-view+purchase+progress]
+RARITY:common[50%]|uncommon[30%]|rare[15%]|epic[4%]|legendary[1%]→configurable-per-collection
+PACKS:daily-free[1/day-MST-reset]|bonus[purchasable-exponential:100→200→400→800-coins]
+FEATURES:duplicate-detection+quantity-tracking+collection-completion-badges+role-based-visibility+custom-pack-images
+TIMEZONE:MST-UTC-7→midnight-reset→date-field-YYYY-MM-DD
+REALTIME:supabase-subscription→instant-state-updates→filter-by-user_id
+RLS:users-view-own-cards+scratch-own-cards|admins-manage-all
+ANIMATION:tear-effect+holographic-shimmer+sparkles+rarity-based-confetti
+ADMIN:StickerCollectionManager[CRUD-collections+stickers+rarity-config+preview-test]
+DOC:STICKER_PACK_SYSTEM.md
+
 ## AUTOMATED_TESTING
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
 TEST-ACCOUNT:test@example.com|testpassword123|REQUIRED-for-auth-pages

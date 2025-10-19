@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Lock, Clock, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joycoinImage from "@/assets/joycoin.png";
-import { ScratchCardDialog } from "./ScratchCardDialog";
+import { PackOpeningDialog } from "./PackOpeningDialog";
 
 const rarityColors = {
   common: "bg-gray-500",
@@ -604,11 +604,11 @@ export const StickerAlbum = () => {
 
       {/* Pack Opening Dialog */}
       {selectedCardId && (
-        <ScratchCardDialog
+        <PackOpeningDialog
           open={showScratchDialog}
           onOpenChange={setShowScratchDialog}
           cardId={selectedCardId}
-          onScratched={handleCardScratched}
+          onOpened={handleCardScratched}
         />
       )}
     </div>
