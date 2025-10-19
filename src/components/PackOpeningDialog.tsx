@@ -40,8 +40,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const [loading, setLoading] = useState(true);
   const [tearProgress, setTearProgress] = useState(0);
   
-  const idleAudioRef = useRef<HTMLAudioElement | null>(null);
-  const celebrationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const idleOscillatorRef = useRef<OscillatorNode | null>(null);
+  const idleGainRef = useRef<GainNode | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -52,26 +53,126 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       setTearProgress(0);
       loadCollectionInfo();
       
-      // Create and play sparkly idle sound
-      const idleAudio = new Audio('/sounds/pack-idle.mp3');
-      idleAudio.loop = true;
-      idleAudio.volume = 0.3;
-      idleAudio.play().catch(console.error);
-      idleAudioRef.current = idleAudio;
+      // Create sparkly idle sound using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = audioContext;
+      
+      playIdleSound(audioContext);
     }
 
     return () => {
       // Cleanup audio on unmount
-      if (idleAudioRef.current) {
-        idleAudioRef.current.pause();
-        idleAudioRef.current = null;
+      if (idleOscillatorRef.current) {
+        idleOscillatorRef.current.stop();
+        idleOscillatorRef.current = null;
       }
-      if (celebrationAudioRef.current) {
-        celebrationAudioRef.current.pause();
-        celebrationAudioRef.current = null;
+      if (idleGainRef.current) {
+        idleGainRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
       }
     };
   }, [open]);
+
+  const playIdleSound = (audioContext: AudioContext) => {
+    // Create a sparkly, magical idle sound
+    const playSparkle = () => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Random frequency for sparkle effect
+      oscillator.frequency.value = 800 + Math.random() * 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    };
+    
+    // Play sparkles at random intervals
+    const sparkleInterval = setInterval(() => {
+      if (Math.random() > 0.3) {
+        playSparkle();
+      }
+    }, 400);
+    
+    return sparkleInterval;
+  };
+
+  const playOpeningSound = () => {
+    if (!audioContextRef.current) return;
+    
+    const audioContext = audioContextRef.current;
+    
+    // Create a whoosh/tear sound
+    const noise = audioContext.createBufferSource();
+    const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.8, audioContext.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    
+    for (let i = 0; i < noiseBuffer.length; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+    
+    noise.buffer = noiseBuffer;
+    
+    const noiseFilter = audioContext.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 1000;
+    
+    const noiseGain = audioContext.createGain();
+    noiseGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+    
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(audioContext.destination);
+    
+    noise.start(audioContext.currentTime);
+    noise.stop(audioContext.currentTime + 0.8);
+  };
+
+  const playCelebrationSound = (rarity: string) => {
+    if (!audioContextRef.current) return;
+    
+    const audioContext = audioContextRef.current;
+    const rarityConfig: { [key: string]: { notes: number[], duration: number } } = {
+      common: { notes: [523.25, 659.25], duration: 0.3 },
+      uncommon: { notes: [523.25, 659.25, 783.99], duration: 0.4 },
+      rare: { notes: [523.25, 659.25, 783.99, 1046.50], duration: 0.5 },
+      epic: { notes: [523.25, 659.25, 783.99, 1046.50, 1318.51], duration: 0.6 },
+      legendary: { notes: [523.25, 659.25, 783.99, 1046.50, 1318.51, 1568], duration: 0.8 }
+    };
+    
+    const config = rarityConfig[rarity] || rarityConfig.common;
+    
+    config.notes.forEach((freq, index) => {
+      setTimeout(() => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = freq;
+        oscillator.type = 'triangle';
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + config.duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + config.duration);
+      }, index * 100);
+    });
+  };
 
   const loadCollectionInfo = async () => {
     if (!cardId) return;
@@ -124,14 +225,12 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
     if (opening || opened) return;
     
     // Stop idle sound and play opening sound
-    if (idleAudioRef.current) {
-      idleAudioRef.current.pause();
-      idleAudioRef.current = null;
+    if (idleOscillatorRef.current) {
+      idleOscillatorRef.current.stop();
+      idleOscillatorRef.current = null;
     }
     
-    const openingAudio = new Audio('/sounds/pack-opening.mp3');
-    openingAudio.volume = 0.5;
-    openingAudio.play().catch(console.error);
+    playOpeningSound();
     
     setOpening(true);
     
@@ -181,10 +280,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
         const config = rarityConfettiConfig[rarity] || rarityConfettiConfig.common;
         
         // Play rarity-specific celebration sound
-        const celebrationAudio = new Audio(`/sounds/reveal-${rarity}.mp3`);
-        celebrationAudio.volume = 0.6;
-        celebrationAudio.play().catch(console.error);
-        celebrationAudioRef.current = celebrationAudio;
+        playCelebrationSound(rarity);
         
         // Trigger confetti multiple times based on rarity
         for (let i = 0; i < config.bursts; i++) {
