@@ -508,7 +508,13 @@ export const StickerAlbum = () => {
         {filteredStickers.map((sticker) => {
           const userSticker = userStickers.get(sticker.id);
           const obtained = !!userSticker;
-          const rarityPercentage = rarityPercentages[sticker.rarity] || 0;
+          
+          // Calculate actual drop rate: tier percentage / number of stickers in that tier
+          const stickersInRarity = allStickers.filter(s => s.rarity === sticker.rarity).length;
+          const tierPercentage = rarityPercentages[sticker.rarity] || 0;
+          const actualDropRate = stickersInRarity > 0 
+            ? (tierPercentage / stickersInRarity).toFixed(2)
+            : 0;
 
           return (
             <Card 
@@ -553,8 +559,8 @@ export const StickerAlbum = () => {
                   )}
                 </div>
 
-                {/* Info - visible on card, enhanced on hover */}
-                <div className="space-y-2">
+                {/* Info - always visible, enhanced text on hover */}
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-xs font-medium">
                       #{sticker.sticker_number}
@@ -570,18 +576,17 @@ export const StickerAlbum = () => {
                       </span>
                     </Badge>
                   </div>
-                  <p className="text-xs font-medium truncate group-hover:whitespace-normal group-hover:overflow-visible">
+                  <p className="text-xs font-medium truncate">
                     {sticker.name}
                   </p>
-                  {/* Show extra info on hover */}
-                  <div className="hidden group-hover:block space-y-1">
-                    <p className="text-xs text-muted-foreground">
-                      {rarityPercentage}% drop rate
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {obtained ? `Owned: x${userSticker?.quantity || 1}` : 'Not collected'}
-                    </p>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="group-hover:hidden">{actualDropRate}%</span>
+                    <span className="hidden group-hover:inline">{actualDropRate}% drop rate</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="group-hover:hidden">{obtained ? '✓' : '✗'}</span>
+                    <span className="hidden group-hover:inline">{obtained ? 'Collected' : 'Not collected'}</span>
+                  </p>
                 </div>
               </CardContent>
             </Card>
