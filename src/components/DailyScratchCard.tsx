@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Check, Coins } from "lucide-react";
 import kawaiiBat from "@/assets/stickers/halloween/04-happy-bat.png";
-import { ScratchCardDialog } from "./ScratchCardDialog";
+import { PackOpeningDialog } from "./PackOpeningDialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -379,7 +379,7 @@ export const DailyScratchCard = () => {
       </div>
 
       {/* Free card dialog */}
-      <ScratchCardDialog
+      <PackOpeningDialog
         open={showDialog}
         onOpenChange={setShowDialog}
         cardId={card.id}
@@ -388,7 +388,7 @@ export const DailyScratchCard = () => {
 
       {/* Bonus card dialog */}
       {bonusCard && (
-        <ScratchCardDialog
+        <PackOpeningDialog
           open={showBonusDialog}
           onOpenChange={setShowBonusDialog}
           cardId={bonusCard.id}
