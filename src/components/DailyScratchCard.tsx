@@ -284,7 +284,7 @@ export const DailyScratchCard = () => {
 
       toast({
         title: "Success!",
-        description: "Bonus scratch card purchased! 🎉"
+        description: "Bonus pack purchased! 🎉"
       });
 
       // Force immediate refresh with a small delay to ensure DB has committed
@@ -373,8 +373,8 @@ export const DailyScratchCard = () => {
 
       {/* Explanation text */}
       <div className="text-xs text-center text-muted-foreground max-w-[120px]">
-        {!card.is_scratched && <span>Scratch daily!</span>}
-        {card.is_scratched && bonusCard && !bonusCard.is_scratched && <span>Scratch bonus!</span>}
+        {!card.is_scratched && <span>Open daily pack!</span>}
+        {card.is_scratched && bonusCard && !bonusCard.is_scratched && <span>Open bonus pack!</span>}
       </div>
 
       {/* Free card dialog */}
@@ -382,7 +382,7 @@ export const DailyScratchCard = () => {
         open={showDialog}
         onOpenChange={setShowDialog}
         cardId={card.id}
-        onScratched={checkDailyCard}
+        onOpened={checkDailyCard}
       />
 
       {/* Bonus card dialog */}
@@ -391,7 +391,7 @@ export const DailyScratchCard = () => {
           open={showBonusDialog}
           onOpenChange={setShowBonusDialog}
           cardId={bonusCard.id}
-          onScratched={checkDailyCard}
+          onOpened={checkDailyCard}
         />
       )}
     </div>

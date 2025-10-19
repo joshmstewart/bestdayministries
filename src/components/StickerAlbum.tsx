@@ -169,7 +169,7 @@ export const StickerAlbum = () => {
 
     const today = new Date().toISOString().split('T')[0];
     
-    // Get all cards for today (unscratched ones)
+    // Get all cards for today (unopened ones)
     const { data: cards } = await supabase
       .from('daily_scratch_cards')
       .select('*')
@@ -262,7 +262,7 @@ export const StickerAlbum = () => {
 
       toast({
         title: "Success!",
-        description: `Bonus scratch card purchased for ${data.cost} coins! 🎉`
+        description: `Bonus pack purchased for ${data.cost} coins! 🎉`
       });
 
       // Refresh to show new card and update costs
@@ -334,7 +334,7 @@ export const StickerAlbum = () => {
 
       toast({
         title: "Success!",
-        description: `Bonus scratch card purchased for ${data.cost} coins! 🎉`
+        description: `Bonus pack purchased for ${data.cost} coins! 🎉`
       });
 
       // Refresh to get the new card
@@ -361,13 +361,13 @@ export const StickerAlbum = () => {
 
   return (
     <div className="space-y-6">
-      {/* Available Scratch Cards */}
+      {/* Available Packs */}
       {availableCards.length > 0 && (
         <Card className="border-primary bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              Available Scratch Cards
+              Available Packs
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -602,7 +602,7 @@ export const StickerAlbum = () => {
         </Card>
       )}
 
-      {/* Scratch Card Dialog */}
+      {/* Pack Opening Dialog */}
       {selectedCardId && (
         <ScratchCardDialog
           open={showScratchDialog}

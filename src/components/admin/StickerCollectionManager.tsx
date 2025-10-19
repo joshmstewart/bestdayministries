@@ -503,7 +503,7 @@ export const StickerCollectionManager = () => {
   };
 
   const resetDailyCards = async () => {
-    if (!confirm('This will reset all daily scratch cards for today. Users will be able to get new cards. Continue?')) {
+    if (!confirm('This will reset all daily packs for today. Users will be able to get new packs. Continue?')) {
       return;
     }
 
@@ -1345,7 +1345,7 @@ export const StickerCollectionManager = () => {
             <div className="space-y-1">
               <Label className="text-base font-semibold">Enable Sticker Feature</Label>
               <p className="text-sm text-muted-foreground">
-                Turn this off to completely hide the daily scratch card from all users
+                Turn this off to completely hide the daily sticker pack from all users
               </p>
             </div>
             <Switch
@@ -1503,7 +1503,7 @@ export const StickerCollectionManager = () => {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Only users with selected roles will be able to see and scratch cards from this collection
+                  Only users with selected roles will be able to see and open packs from this collection
                 </p>
               </div>
               
@@ -1752,7 +1752,7 @@ export const StickerCollectionManager = () => {
                           })}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Only users with selected roles will see and scratch cards from this collection
+                          Only users with selected roles will see and open packs from this collection
                         </p>
                       </div>
                     )}
@@ -2394,7 +2394,7 @@ export const StickerCollectionManager = () => {
             open={showTestScratch}
             onOpenChange={setShowTestScratch}
             cardId={testCardId}
-            onScratched={handleTestCardScratched}
+            onOpened={handleTestCardScratched}
           />
         )}
       </div>

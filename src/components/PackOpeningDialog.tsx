@@ -11,7 +11,7 @@ interface PackOpeningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cardId: string;
-  onScratched: () => void;
+  onOpened: () => void;
 }
 
 const rarityColors = {
@@ -30,7 +30,7 @@ const rarityConfettiConfig = {
   legendary: { particleCount: 300, spread: 140, bursts: 5 },
 };
 
-export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: PackOpeningDialogProps) => {
+export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: PackOpeningDialogProps) => {
   const { toast } = useToast();
   const [opened, setOpened] = useState(false);
   const [opening, setOpening] = useState(false);
@@ -44,9 +44,12 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const [customPackAnimation, setCustomPackAnimation] = useState<string | null>(null);
 
   const handleDialogClose = (isOpen: boolean) => {
-    // If closing the dialog and a pack was opened, trigger the callback
+    // If closing the dialog and a pack was opened, trigger the callback after a delay
+    // to ensure the database update has propagated
     if (!isOpen && opened) {
-      onScratched();
+      setTimeout(() => {
+        onOpened();
+      }, 300);
     }
     onOpenChange(isOpen);
   };
