@@ -91,7 +91,7 @@ serve(async (req) => {
       .from('daily_scratch_cards')
       .update({ 
         scratched_at: new Date().toISOString(),
-        sticker_id: selectedSticker.id
+        revealed_sticker_id: selectedSticker.id
       })
       .eq('id', cardId);
 
