@@ -141,3 +141,6 @@ verify_jwt = true
 [functions.scratch-daily-card]
 verify_jwt = true
 
+[functions.scratch-card]
+verify_jwt = true
+

@@ -209,7 +209,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
         if (previewSticker?.image_url) {
           const { data: { publicUrl } } = supabase.storage
-            .from('stickers')
+            .from('sticker-images')
             .getPublicUrl(previewSticker.image_url);
           setPackImageUrl(publicUrl);
         }
@@ -264,7 +264,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
       if (data.success && data.sticker) {
         const { data: { publicUrl } } = supabase.storage
-          .from('stickers')
+          .from('sticker-images')
           .getPublicUrl(data.sticker.image_url);
         
         setRevealedSticker({
