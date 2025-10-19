@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical, X, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { removeBackground as removeBg, loadImage } from "@/lib/removeBackground";
 import { ScratchCardDialog } from "@/components/ScratchCardDialog";
 import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { DefaultRaritySettings } from "./DefaultRaritySettings";
@@ -298,6 +299,7 @@ export const StickerCollectionManager = () => {
   });
   const [stickerImage, setStickerImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [removeBackground, setRemoveBackground] = useState(true); // Auto-remove backgrounds by default
   const [previewSticker, setPreviewSticker] = useState<any | null>(null);
   const [editingSticker, setEditingSticker] = useState<any | null>(null);
   const [editStickerImage, setEditStickerImage] = useState<File | null>(null);
@@ -997,6 +999,26 @@ export const StickerCollectionManager = () => {
     setLoading(true);
 
     try {
+      let fileToUpload = stickerImage;
+      
+      // Remove background if checkbox is enabled
+      if (removeBackground) {
+        try {
+          toast({ title: "Processing", description: "Removing background from sticker..." });
+          const img = await loadImage(stickerImage);
+          const processedBlob = await removeBg(img);
+          fileToUpload = new File([processedBlob], stickerImage.name.replace(/\.\w+$/, '.png'), { type: 'image/png' });
+          toast({ title: "Success", description: "Background removed!" });
+        } catch (bgError: any) {
+          console.error('Background removal error:', bgError);
+          toast({ 
+            title: "Warning", 
+            description: "Could not remove background, uploading original image", 
+            variant: "destructive" 
+          });
+        }
+      }
+
       // Query database for the highest sticker number in this collection
       const { data: maxData, error: maxError } = await supabase
         .from('stickers')
@@ -1011,11 +1033,11 @@ export const StickerCollectionManager = () => {
       const nextNumber = maxData ? maxData.sticker_number + 1 : 1;
 
       // Upload image
-      const fileExt = stickerImage.name.split('.').pop();
+      const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('sticker-images')
-        .upload(fileName, stickerImage);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) throw uploadError;
 
@@ -2079,6 +2101,19 @@ export const StickerCollectionManager = () => {
                   <div>
                     <Label>Sticker Image</Label>
                     <Input type="file" accept="image/*" onChange={handleImageChange} />
+                    <div className="flex items-center space-x-2 mt-2">
+                      <Checkbox
+                        id="remove-background"
+                        checked={removeBackground}
+                        onCheckedChange={(checked) => setRemoveBackground(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="remove-background"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Auto-remove background (make transparent)
+                      </label>
+                    </div>
                     {imagePreview && (
                       <div className="mt-2">
                         <img src={imagePreview} alt="Preview" className="w-32 h-32 object-contain border rounded" />
