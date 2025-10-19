@@ -283,12 +283,13 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                 <div className="absolute inset-0 flex items-center justify-center p-4">
                   {packStickers.length > 0 ? (
                     <div className="relative w-full h-full">
-                      {packStickers.map((sticker, index) => {
+                       {packStickers.map((sticker, index) => {
+                        // Position stickers to avoid covering title (bottom 20%) - max 15% title coverage
                         const configs = [
-                          { top: '-5%', left: '-8%', size: 140, rotate: -18, transform: '' },
-                          { top: '50%', right: '-10%', size: 165, rotate: 15, transform: '' },
-                          { bottom: '-8%', left: '12%', size: 155, rotate: -12, transform: '' },
-                          { top: '8%', right: '25%', size: 145, rotate: 10, transform: '' }
+                          { top: '-8%', left: '-10%', size: 145, rotate: -20 },
+                          { top: '15%', right: '-8%', size: 160, rotate: 15 },
+                          { top: '35%', left: '8%', size: 150, rotate: -12 },
+                          { top: '25%', right: '22%', size: 140, rotate: 10 }
                         ];
                         const config = configs[index] || configs[0];
                         
@@ -300,10 +301,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                               top: config.top,
                               left: config.left,
                               right: config.right,
-                              bottom: config.bottom,
                               width: `${config.size}px`,
                               height: `${config.size}px`,
-                              transform: `rotate(${config.rotate}deg) ${config.transform || ''}`,
+                              transform: `rotate(${config.rotate}deg)`,
                               filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.6))",
                               zIndex: 4 - index
                             }}
