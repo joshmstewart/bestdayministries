@@ -450,11 +450,11 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
             )
           ) : revealedSticker ? (
             <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
-              <div className={`relative rounded-xl overflow-hidden shadow-2xl bg-gradient-to-br ${rarityColors[revealedSticker.rarity as keyof typeof rarityColors]} p-1`}>
+              <div className="relative rounded-xl overflow-hidden shadow-2xl">
                 <img 
                   src={revealedSticker.image_url} 
                   alt={revealedSticker.name}
-                  className="w-64 h-64 object-contain rounded-lg"
+                  className="w-64 h-64 object-contain"
                 />
               </div>
               
