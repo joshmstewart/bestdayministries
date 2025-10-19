@@ -375,48 +375,45 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                   }}
                 />
 
-                {/* Sticker collage - random positioning */}
+                {/* Sticker collage - random positioning with transparent backgrounds */}
                 <div className="absolute inset-0 flex items-center justify-center p-4">
                   {packStickers.length > 0 ? (
                     <div className="relative w-full h-full">
                       {packStickers.map((sticker, index) => {
-                        // Random positions with some overlap and edge wrapping
-                        const positions = [
-                          { top: '5%', left: '10%', size: 70, rotate: -12 },
-                          { top: '45%', right: '8%', size: 85, rotate: 15 },
-                          { bottom: '15%', left: '5%', size: 75, rotate: -8 },
-                          { top: '25%', left: '50%', size: 80, rotate: 5, transform: 'translateX(-50%)' }
+                        // Different sizes and positions for variety
+                        const configs = [
+                          { top: '8%', left: '15%', size: 65, rotate: -15 },
+                          { top: '40%', right: '10%', size: 90, rotate: 12 },
+                          { bottom: '20%', left: '8%', size: 75, rotate: -10 },
+                          { top: '22%', left: '45%', size: 85, rotate: 8, transform: 'translateX(-50%)' }
                         ];
-                        const pos = positions[index] || positions[0];
+                        const config = configs[index] || configs[0];
                         
                         return (
                           <div
                             key={sticker.id}
-                            className="absolute rounded-lg overflow-hidden"
+                            className="absolute"
                             style={{
-                              top: pos.top,
-                              left: pos.left,
-                              right: pos.right,
-                              bottom: pos.bottom,
-                              width: `${pos.size}px`,
-                              height: `${pos.size}px`,
-                              transform: `rotate(${pos.rotate}deg) ${pos.transform || ''}`,
-                              boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
-                              border: "2px solid rgba(255,255,255,0.4)",
+                              top: config.top,
+                              left: config.left,
+                              right: config.right,
+                              bottom: config.bottom,
+                              width: `${config.size}px`,
+                              height: `${config.size}px`,
+                              transform: `rotate(${config.rotate}deg) ${config.transform || ''}`,
+                              filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.6))",
                               zIndex: 4 - index
                             }}
                           >
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent" />
+                            {/* Just the sticker image - transparent PNG */}
                             <img
                               src={sticker.image_url}
                               alt={sticker.name}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain"
                               style={{
-                                filter: "brightness(1.15) contrast(1.15)"
+                                filter: "brightness(1.1) contrast(1.1)"
                               }}
                             />
-                            {/* Glossy overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-60" />
                           </div>
                         );
                       })}

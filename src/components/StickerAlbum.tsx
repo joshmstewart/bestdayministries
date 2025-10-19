@@ -6,7 +6,6 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Loader2, Lock, Clock, Sparkles } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import joycoinImage from "@/assets/joycoin.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
@@ -505,93 +504,90 @@ export const StickerAlbum = () => {
         </CardContent>
       </Card>
 
-      <TooltipProvider>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {filteredStickers.map((sticker) => {
-            const userSticker = userStickers.get(sticker.id);
-            const obtained = !!userSticker;
-            const rarityPercentage = rarityPercentages[sticker.rarity] || 0;
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {filteredStickers.map((sticker) => {
+          const userSticker = userStickers.get(sticker.id);
+          const obtained = !!userSticker;
+          const rarityPercentage = rarityPercentages[sticker.rarity] || 0;
 
-            return (
-              <Tooltip key={sticker.id}>
-                <TooltipTrigger asChild>
-                  <Card 
-                    className={`relative overflow-hidden transition-all hover:scale-105 cursor-pointer ${
-                      obtained ? 'border-primary' : 'border-dashed opacity-60'
-                    }`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="relative aspect-square mb-2">
-                        {obtained ? (
-                          <>
-                            <img
-                              src={sticker.image_url}
-                              alt={sticker.name}
-                              className="w-full h-full object-contain"
-                            />
-                            {userSticker.quantity > 1 && (
-                              <Badge 
-                                variant="secondary" 
-                                className="absolute top-1 right-1"
-                              >
-                                x{userSticker.quantity}
-                              </Badge>
-                            )}
-                          </>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center rounded overflow-hidden relative">
-                            {/* Show sticker outline/silhouette */}
-                            <img
-                              src={sticker.image_url}
-                              alt="???"
-                              className="w-full h-full object-contain opacity-10 blur-sm"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-                              <Lock className="w-8 h-8 text-muted-foreground z-10" />
-                            </div>
-                          </div>
-                        )}
+          return (
+            <Card 
+              key={sticker.id}
+              className={`relative overflow-hidden transition-all hover:scale-105 cursor-pointer group ${
+                obtained ? 'border-primary' : 'border-dashed opacity-70'
+              }`}
+            >
+              <CardContent className="p-4">
+                <div className="relative aspect-square mb-2">
+                  {obtained ? (
+                    <>
+                      <img
+                        src={sticker.image_url}
+                        alt={sticker.name}
+                        className="w-full h-full object-contain"
+                      />
+                      {userSticker.quantity > 1 && (
+                        <Badge 
+                          variant="secondary" 
+                          className="absolute top-1 right-1"
+                        >
+                          x{userSticker.quantity}
+                        </Badge>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center rounded overflow-hidden relative">
+                      {/* Show sticker silhouette with better visibility */}
+                      <img
+                        src={sticker.image_url}
+                        alt="???"
+                        className="w-full h-full object-contain opacity-20 grayscale"
+                        style={{
+                          filter: "brightness(0.5) contrast(1.5)"
+                        }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+                        <Lock className="w-8 h-8 text-muted-foreground z-10" />
                       </div>
-
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-xs font-medium truncate">
-                            #{sticker.sticker_number}
-                          </span>
-                          <Badge 
-                            className={`text-xs ${rarityColors[sticker.rarity as keyof typeof rarityColors]}`}
-                          >
-                            {sticker.rarity.charAt(0).toUpperCase()}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {sticker.name}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[200px]">
-                  <div className="space-y-2">
-                    <p className="font-semibold">{sticker.name}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge className={`${rarityColors[sticker.rarity as keyof typeof rarityColors]}`}>
-                        {rarityNames[sticker.rarity as keyof typeof rarityNames]}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {rarityPercentage}% drop rate
-                      </span>
                     </div>
+                  )}
+                </div>
+
+                {/* Info - visible on card, enhanced on hover */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-medium">
+                      #{sticker.sticker_number}
+                    </span>
+                    <Badge 
+                      className={`text-xs transition-all ${rarityColors[sticker.rarity as keyof typeof rarityColors]}`}
+                    >
+                      <span className="group-hover:hidden">
+                        {sticker.rarity.charAt(0).toUpperCase()}
+                      </span>
+                      <span className="hidden group-hover:inline">
+                        {rarityNames[sticker.rarity as keyof typeof rarityNames]}
+                      </span>
+                    </Badge>
+                  </div>
+                  <p className="text-xs font-medium truncate group-hover:whitespace-normal group-hover:overflow-visible">
+                    {sticker.name}
+                  </p>
+                  {/* Show extra info on hover */}
+                  <div className="hidden group-hover:block space-y-1">
                     <p className="text-xs text-muted-foreground">
-                      #{sticker.sticker_number} • {obtained ? `Owned: x${userSticker?.quantity || 1}` : 'Not collected'}
+                      {rarityPercentage}% drop rate
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {obtained ? `Owned: x${userSticker?.quantity || 1}` : 'Not collected'}
                     </p>
                   </div>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </div>
-      </TooltipProvider>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       {obtainedCount === totalCount && totalCount > 0 && (
         <Card className="border-primary bg-primary/5">
