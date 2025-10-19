@@ -502,21 +502,22 @@ export const StickerCollectionManager = () => {
     }
   };
 
-  const resetDailyCards = async () => {
-    if (!confirm('This will reset all daily packs for today. Users will be able to get new packs. Continue?')) {
-      return;
-    }
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
+  const resetDailyCards = async (scope: 'self' | 'admins' | 'all') => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('reset-daily-cards');
+      const { data, error } = await supabase.functions.invoke('reset-daily-cards', {
+        body: { scope }
+      });
 
       if (error) throw error;
 
       toast({
         title: "Success!",
-        description: data.message || "All daily cards have been reset",
+        description: data.message || "Daily cards have been reset",
       });
+      setResetDialogOpen(false);
     } catch (error: any) {
       console.error('Error resetting cards:', error);
       toast({
@@ -1400,7 +1401,7 @@ export const StickerCollectionManager = () => {
             <CardContent className="pt-6">
               <div className="flex gap-3 flex-wrap">
                 <Button 
-                  onClick={resetDailyCards} 
+                  onClick={() => setResetDialogOpen(true)} 
                   disabled={loading}
                   variant="outline"
                   className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
@@ -2397,6 +2398,67 @@ export const StickerCollectionManager = () => {
             onOpened={handleTestCardScratched}
           />
         )}
+
+        {/* Reset Daily Cards Dialog */}
+        <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset Daily Cards</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                Choose who should have their daily cards reset for today:
+              </p>
+              <div className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left h-auto py-4"
+                  onClick={() => resetDailyCards('self')}
+                  disabled={loading}
+                >
+                  <div className="space-y-1">
+                    <div className="font-semibold">Only Me</div>
+                    <div className="text-xs text-muted-foreground">
+                      Reset only your daily card. You'll be able to get a new pack today.
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left h-auto py-4"
+                  onClick={() => resetDailyCards('admins')}
+                  disabled={loading}
+                >
+                  <div className="space-y-1">
+                    <div className="font-semibold">All Admins & Owners</div>
+                    <div className="text-xs text-muted-foreground">
+                      Reset daily cards for all admin and owner accounts. Useful for testing.
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left h-auto py-4 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => {
+                    if (confirm('⚠️ This will reset daily cards for ALL USERS. Everyone will be able to get new packs today. Are you sure?')) {
+                      resetDailyCards('all');
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  <div className="space-y-1">
+                    <div className="font-semibold">All Users</div>
+                    <div className="text-xs">
+                      ⚠️ Reset daily cards for everyone in the system. Use with caution!
+                    </div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   };

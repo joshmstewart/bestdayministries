@@ -27,9 +27,19 @@ export const CampaignActions = ({
 }: CampaignActionsProps) => {
   const [isSending, setIsSending] = useState(false);
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
-  const [testEmail, setTestEmail] = useState("");
   const [isSendingTest, setIsSendingTest] = useState(false);
   const { toast } = useToast();
+
+  // Get current user email for test emails
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  
+  useState(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) {
+        setCurrentUserEmail(user.email);
+      }
+    });
+  });
 
   const handleSendNewsletter = async () => {
     try {
@@ -60,10 +70,10 @@ export const CampaignActions = ({
   };
 
   const handleSendTest = async () => {
-    if (!testEmail) {
+    if (!currentUserEmail) {
       toast({
-        title: "Email required",
-        description: "Please enter a test email address",
+        title: "Error",
+        description: "Unable to determine your email address",
         variant: "destructive",
       });
       return;
@@ -75,7 +85,7 @@ export const CampaignActions = ({
       const { data, error } = await supabase.functions.invoke("send-test-newsletter", {
         body: { 
           campaignId,
-          testEmail 
+          testEmail: currentUserEmail
         },
       });
 
@@ -83,11 +93,10 @@ export const CampaignActions = ({
 
       toast({
         title: "Test email sent!",
-        description: data.message,
+        description: `Test email sent to ${currentUserEmail}`,
       });
       
       setIsTestDialogOpen(false);
-      setTestEmail("");
     } catch (error: any) {
       console.error("Error sending test email:", error);
       toast({
@@ -128,20 +137,15 @@ export const CampaignActions = ({
           <DialogHeader>
             <DialogTitle>Send Test Email</DialogTitle>
             <DialogDescription>
-              Send a test version of this campaign to verify how it looks. The test email will include a test notice banner.
+              Send a test version of this campaign to yourself to verify how it looks.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="testEmail">Test Email Address</Label>
-              <Input
-                id="testEmail"
-                type="email"
-                placeholder="admin@example.com"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-              />
+              <p className="text-sm text-muted-foreground">
+                Test email will be sent to: <strong>{currentUserEmail}</strong>
+              </p>
             </div>
           </div>
           

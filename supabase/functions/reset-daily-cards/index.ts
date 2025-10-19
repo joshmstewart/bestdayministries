@@ -48,7 +48,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Resetting daily scratch cards for admins/owners only...');
+    // Get scope from request body (default to 'admins' for backward compatibility)
+    const body = await req.json().catch(() => ({}));
+    const scope = body.scope || 'admins'; // 'self', 'admins', or 'all'
+
+    console.log(`Resetting daily scratch cards - scope: ${scope}`);
 
     // Calculate MST date (UTC-7) - must match frontend calculation exactly
     const now = new Date();
@@ -59,24 +63,58 @@ Deno.serve(async (req) => {
     
     console.log('Using MST date for reset:', today);
 
-    // Get all admin and owner user IDs
-    const { data: adminUsers, error: adminError } = await supabase
-      .from('user_roles')
-      .select('user_id')
-      .in('role', ['admin', 'owner']);
+    let targetUserIds: string[] = [];
+    let scopeMessage = '';
 
-    if (adminError) {
-      console.error('Error fetching admin users:', adminError);
-      throw adminError;
-    }
+    if (scope === 'self') {
+      // Reset only for current user
+      targetUserIds = [user.id];
+      scopeMessage = 'your';
+    } else if (scope === 'admins') {
+      // Get all admin and owner user IDs
+      const { data: adminUsers, error: adminError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['admin', 'owner']);
 
-    const adminUserIds = adminUsers?.map(u => u.user_id) || [];
+      if (adminError) {
+        console.error('Error fetching admin users:', adminError);
+        throw adminError;
+      }
 
-    if (adminUserIds.length === 0) {
+      targetUserIds = adminUsers?.map(u => u.user_id) || [];
+      scopeMessage = 'all admin/owner';
+    } else if (scope === 'all') {
+      // Reset for all users - don't filter by user_id
+      const { error: deleteError, count } = await supabase
+        .from('daily_scratch_cards')
+        .delete({ count: 'exact' })
+        .eq('date', today);
+
+      if (deleteError) {
+        console.error('Error deleting cards:', deleteError);
+        throw deleteError;
+      }
+
+      console.log(`Reset ${count} scratch cards for all users`);
+
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'No admin users found to reset cards for.',
+          message: `Reset ${count} daily scratch cards for all users. Everyone can now get new cards.`,
+          deleted_count: count
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (targetUserIds.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'No users found to reset cards for.',
           deleted_count: 0
         }),
         {
@@ -85,24 +123,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Delete scratch cards for admin/owner users only for today
+    // Delete scratch cards for target users for today
     const { error: deleteError, count } = await supabase
       .from('daily_scratch_cards')
       .delete({ count: 'exact' })
       .eq('date', today)
-      .in('user_id', adminUserIds);
+      .in('user_id', targetUserIds);
 
     if (deleteError) {
       console.error('Error deleting cards:', deleteError);
       throw deleteError;
     }
 
-    console.log(`Reset ${count} scratch cards for today`);
+    console.log(`Reset ${count} scratch cards for ${scopeMessage} users`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Reset ${count} daily scratch cards. Users can now get new cards.`,
+        message: `Reset ${count} daily scratch cards for ${scopeMessage} users. They can now get new cards.`,
         deleted_count: count
       }),
       {

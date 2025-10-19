@@ -5,9 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Mail, Power, PowerOff, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Mail, Power, PowerOff, Eye, Send } from "lucide-react";
 import { CampaignTemplateDialog } from "./CampaignTemplateDialog";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const CampaignTemplates = () => {
   const { toast } = useToast();
@@ -16,6 +24,18 @@ export const CampaignTemplates = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [testTemplate, setTestTemplate] = useState<any>(null);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+
+  // Get current user email for test emails
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ["campaign-templates"],
@@ -103,6 +123,46 @@ export const CampaignTemplates = () => {
     }
   };
 
+  const handleSendTest = async () => {
+    if (!testTemplate || !currentUser?.email) {
+      toast({
+        title: "Error",
+        description: "Unable to send test email",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSendingTest(true);
+      
+      const { data, error } = await supabase.functions.invoke("send-test-automated-template", {
+        body: { 
+          templateId: testTemplate.id,
+          testEmail: currentUser.email
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Test email sent!",
+        description: `Test email sent to ${currentUser.email}`,
+      });
+      
+      setTestDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error sending test email:", error);
+      toast({
+        title: "Failed to send test email",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -163,6 +223,17 @@ export const CampaignTemplates = () => {
                       title="Preview email"
                     >
                       <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        setTestTemplate(template);
+                        setTestDialogOpen(true);
+                      }}
+                      title="Send test email to yourself"
+                    >
+                      <Send className="w-4 h-4" />
                     </Button>
                     <Button
                       size="icon"
@@ -232,6 +303,47 @@ export const CampaignTemplates = () => {
           htmlContent={previewTemplate.content || ""}
         />
       )}
+
+      <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Test Email</DialogTitle>
+            <DialogDescription>
+              Send a test version of this automated template to yourself to see how it looks.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Test email will be sent to: <strong>{currentUser?.email}</strong>
+              </p>
+              {testTemplate && (
+                <div className="bg-muted p-3 rounded-md text-sm">
+                  <p><strong>Template:</strong> {testTemplate.name}</p>
+                  <p><strong>Subject:</strong> {testTemplate.subject}</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTestDialogOpen(false)}
+              disabled={isSendingTest}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendTest}
+              disabled={isSendingTest}
+            >
+              {isSendingTest ? "Sending..." : "Send Test"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
