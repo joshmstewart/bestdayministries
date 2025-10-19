@@ -259,6 +259,11 @@ export const StickerCollectionManager = () => {
   const [stickers, setStickers] = useState<any[]>([]);
   const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
   const [editingRarityFor, setEditingRarityFor] = useState<string | null>(null);
+  const [editingPackAssetsFor, setEditingPackAssetsFor] = useState<string | null>(null);
+  const [editPackImage, setEditPackImage] = useState<File | null>(null);
+  const [editPackImagePreview, setEditPackImagePreview] = useState<string>("");
+  const [editPackAnimation, setEditPackAnimation] = useState<File | null>(null);
+  const [editPackAnimationPreview, setEditPackAnimationPreview] = useState<string>("");
   const [stickersEnabled, setStickersEnabled] = useState(false);
   
   // Collection form
@@ -871,6 +876,99 @@ export const StickerCollectionManager = () => {
     toast({ title: "Success", description: "Rarity percentages updated!" });
     fetchCollections();
     setEditingRarityFor(null);
+  };
+
+  const updatePackAssets = async (collectionId: string) => {
+    setLoading(true);
+    try {
+      let packImageUrl = null;
+      let packAnimationUrl = null;
+
+      // Upload new pack image if provided
+      if (editPackImage) {
+        const fileExt = editPackImage.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `pack-images/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('sticker-images')
+          .upload(filePath, editPackImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('sticker-images')
+          .getPublicUrl(filePath);
+
+        packImageUrl = urlData.publicUrl;
+      }
+
+      // Upload new pack animation if provided
+      if (editPackAnimation) {
+        const fileExt = editPackAnimation.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `pack-animations/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('sticker-images')
+          .upload(filePath, editPackAnimation);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('sticker-images')
+          .getPublicUrl(filePath);
+
+        packAnimationUrl = urlData.publicUrl;
+      }
+
+      // Update collection with new URLs (only update fields that were uploaded)
+      const updates: any = {};
+      if (packImageUrl) updates.pack_image_url = packImageUrl;
+      if (packAnimationUrl) updates.pack_animation_url = packAnimationUrl;
+
+      if (Object.keys(updates).length === 0) {
+        toast({ title: "No Changes", description: "No new assets uploaded", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('sticker_collections')
+        .update(updates)
+        .eq('id', collectionId);
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: "Pack assets updated!" });
+      fetchCollections();
+      setEditingPackAssetsFor(null);
+      setEditPackImage(null);
+      setEditPackImagePreview("");
+      setEditPackAnimation(null);
+      setEditPackAnimationPreview("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearPackAsset = async (collectionId: string, assetType: 'image' | 'animation') => {
+    const fieldName = assetType === 'image' ? 'pack_image_url' : 'pack_animation_url';
+    
+    const { error } = await supabase
+      .from('sticker_collections')
+      .update({ [fieldName]: null })
+      .eq('id', collectionId);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Success", description: `Pack ${assetType} cleared - will use default sticker collage` });
+    fetchCollections();
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1570,6 +1668,22 @@ export const StickerCollectionManager = () => {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => {
+                            setEditingPackAssetsFor(editingPackAssetsFor === collection.id ? null : collection.id);
+                            if (editingPackAssetsFor !== collection.id) {
+                              // Reset previews when opening
+                              setEditPackImage(null);
+                              setEditPackImagePreview("");
+                              setEditPackAnimation(null);
+                              setEditPackAnimationPreview("");
+                            }
+                          }}
+                        >
+                          Edit Pack
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => toggleCollectionActive(collection.id, collection.is_active)}
                           className={collection.is_active ? "bg-green-100 hover:bg-green-200 border-green-300" : "bg-red-100 hover:bg-red-200 border-red-300"}
                           title={collection.is_active ? "Hide collection" : "Show collection"}
@@ -1704,6 +1818,146 @@ export const StickerCollectionManager = () => {
                           onClick={() => updateCollectionRarity(collection.id, collection.rarity_percentages)}
                         >
                           Save Rarity Settings
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {editingPackAssetsFor === collection.id && (
+                      <div className="p-4 border-t bg-background">
+                        <Label className="text-sm mb-3 block font-semibold">Custom Pack Assets</Label>
+                        <p className="text-sm text-muted-foreground mb-4">Upload custom images/animations for pack opening. Leave blank to keep current assets or use default sticker collage.</p>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          {/* Current Pack Image */}
+                          <div className="space-y-2">
+                            <Label>Current Pack Image</Label>
+                            {collection.pack_image_url ? (
+                              <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                                <img src={collection.pack_image_url} alt="Current pack" className="w-full h-full object-cover" />
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => clearPackAsset(collection.id, 'image')}
+                                >
+                                  Clear
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="w-full aspect-[2/3] rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground text-sm">
+                                No custom image - using sticker collage
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Current Pack Animation */}
+                          <div className="space-y-2">
+                            <Label>Current Pack Animation</Label>
+                            {collection.pack_animation_url ? (
+                              <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                                {collection.pack_animation_url.includes('.mp4') || collection.pack_animation_url.includes('.webm') ? (
+                                  <video src={collection.pack_animation_url} className="w-full h-full object-cover" autoPlay loop muted />
+                                ) : (
+                                  <img src={collection.pack_animation_url} alt="Current animation" className="w-full h-full object-cover" />
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => clearPackAsset(collection.id, 'animation')}
+                                >
+                                  Clear
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="w-full aspect-[2/3] rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground text-sm">
+                                No custom animation
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          {/* Upload New Pack Image */}
+                          <div className="space-y-2">
+                            <Label>Upload New Pack Image</Label>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setEditPackImage(file);
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => setEditPackImagePreview(reader.result as string);
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                            {editPackImagePreview && (
+                              <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                                <img src={editPackImagePreview} alt="New pack preview" className="w-full h-full object-cover" />
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => {
+                                    setEditPackImage(null);
+                                    setEditPackImagePreview("");
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Upload New Pack Animation */}
+                          <div className="space-y-2">
+                            <Label>Upload New Pack Animation</Label>
+                            <Input
+                              type="file"
+                              accept="image/gif,video/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setEditPackAnimation(file);
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => setEditPackAnimationPreview(reader.result as string);
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                            {editPackAnimationPreview && (
+                              <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                                {editPackAnimation?.type.startsWith('video/') ? (
+                                  <video src={editPackAnimationPreview} className="w-full h-full object-cover" autoPlay loop muted />
+                                ) : (
+                                  <img src={editPackAnimationPreview} alt="New animation preview" className="w-full h-full object-cover" />
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="absolute top-2 right-2"
+                                  onClick={() => {
+                                    setEditPackAnimation(null);
+                                    setEditPackAnimationPreview("");
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          size="sm" 
+                          onClick={() => updatePackAssets(collection.id)}
+                          disabled={!editPackImage && !editPackAnimation}
+                        >
+                          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Upload New Assets
                         </Button>
                       </div>
                     )}
