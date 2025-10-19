@@ -36,7 +36,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const [revealedSticker, setRevealedSticker] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [collectionName, setCollectionName] = useState<string>("Sticker Pack");
-  const [packImageUrl, setPackImageUrl] = useState<string | null>(null);
+  const [packStickers, setPackStickers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tearProgress, setTearProgress] = useState(0);
   
@@ -191,7 +191,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       // Get collection details
       const { data: collection, error: collectionError } = await supabase
         .from('sticker_collections')
-        .select('name, preview_sticker_id')
+        .select('name')
         .eq('id', card.collection_id)
         .single();
 
@@ -199,18 +199,17 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
 
       setCollectionName(collection.name || "Sticker Pack");
 
-      // Get preview sticker for pack image
-      if (collection.preview_sticker_id) {
-        const { data: previewSticker } = await supabase
-          .from('stickers')
-          .select('image_url')
-          .eq('id', collection.preview_sticker_id)
-          .single();
+      // Get 4 random stickers from the collection to display on pack
+      const { data: stickers } = await supabase
+        .from('stickers')
+        .select('id, name, image_url, rarity')
+        .eq('collection_id', card.collection_id)
+        .limit(4);
 
-        if (previewSticker?.image_url) {
-          // Image URL is already a full URL from storage
-          setPackImageUrl(previewSticker.image_url);
-        }
+      if (stickers && stickers.length > 0) {
+        // Shuffle and take up to 4 stickers
+        const shuffled = stickers.sort(() => Math.random() - 0.5);
+        setPackStickers(shuffled.slice(0, 4));
       }
     } catch (error) {
       console.error('Error loading collection info:', error);
@@ -354,95 +353,163 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
               onClick={handleOpen}
               className="relative cursor-pointer transform transition-all duration-300 hover:scale-105 w-full max-w-[280px] aspect-[2/3]"
               style={{
-                perspective: "1000px"
+                perspective: "1000px",
+                filter: "drop-shadow(0 20px 60px rgba(0,0,0,0.6))"
               }}
             >
               <div 
-                className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl"
+                className="relative w-full h-full rounded-2xl overflow-hidden"
                 style={{
-                  backgroundImage: `linear-gradient(135deg, 
+                  background: `linear-gradient(135deg, 
                     hsl(var(--primary)) 0%,
-                    hsl(var(--primary) / 0.8) 50%,
-                    hsl(var(--primary) / 0.6) 100%)`,
-                  backgroundSize: "cover",
-                  transform: opening ? `scaleY(${1 - tearProgress * 0.3})` : "scaleY(1)",
+                    hsl(var(--primary) / 0.9) 30%,
+                    hsl(var(--primary) / 0.8) 70%,
+                    hsl(var(--primary) / 0.7) 100%)`,
+                  transform: opening ? `scaleY(${1 - tearProgress * 0.3}) rotateY(${tearProgress * 10}deg)` : "scaleY(1) rotateY(0deg)",
                   clipPath: opening 
                     ? `polygon(0 ${tearProgress * 30}%, 100% ${tearProgress * 30}%, 100% ${100 - tearProgress * 30}%, 0 ${100 - tearProgress * 30}%)`
                     : "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
-                  transition: opening ? "none" : "all 0.3s ease"
+                  transition: opening ? "none" : "all 0.3s ease",
+                  boxShadow: `
+                    inset 0 2px 4px rgba(255,255,255,0.2),
+                    inset 0 -2px 4px rgba(0,0,0,0.2),
+                    0 8px 32px rgba(0,0,0,0.4)
+                  `
                 }}
               >
-                {/* Holographic overlay */}
+                {/* Metallic foil overlay */}
                 <div 
-                  className="absolute inset-0 opacity-30 mix-blend-overlay"
+                  className="absolute inset-0 opacity-40 mix-blend-overlay"
                   style={{
                     background: `
-                      radial-gradient(circle at 20% 50%, transparent 20%, rgba(255,255,255,0.3) 21%, transparent 22%),
-                      radial-gradient(circle at 80% 50%, transparent 20%, rgba(255,255,255,0.3) 21%, transparent 22%),
-                      radial-gradient(circle at 50% 20%, transparent 20%, rgba(255,255,255,0.3) 21%, transparent 22%),
-                      radial-gradient(circle at 50% 80%, transparent 20%, rgba(255,255,255,0.3) 21%, transparent 22%)
+                      repeating-linear-gradient(
+                        45deg,
+                        transparent,
+                        transparent 2px,
+                        rgba(255,255,255,0.03) 2px,
+                        rgba(255,255,255,0.03) 4px
+                      ),
+                      radial-gradient(circle at 30% 40%, rgba(255,215,0,0.4) 0%, transparent 50%),
+                      radial-gradient(circle at 70% 60%, rgba(147,112,219,0.3) 0%, transparent 50%),
+                      radial-gradient(circle at 50% 80%, rgba(64,224,208,0.3) 0%, transparent 50%)
                     `,
-                    animation: "holographic 3s ease-in-out infinite"
+                    animation: "holographic 4s ease-in-out infinite"
                   }}
                 />
 
-                {/* Shimmer effect */}
+                {/* Prismatic shimmer */}
                 <div 
-                  className="absolute inset-0 opacity-40"
+                  className="absolute inset-0 opacity-60"
                   style={{
-                    background: "linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.8) 50%, transparent 70%)",
-                    backgroundSize: "200% 200%",
-                    animation: "shimmer 3s ease-in-out infinite"
+                    background: `linear-gradient(
+                      110deg,
+                      transparent 25%,
+                      rgba(255,255,255,0.4) 35%,
+                      rgba(255,255,255,0.8) 45%,
+                      rgba(255,255,255,0.4) 55%,
+                      transparent 65%
+                    )`,
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer 4s ease-in-out infinite"
                   }}
                 />
 
-                {/* Decorative corner borders */}
-                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-white/40 rounded-tl-xl" />
-                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-white/40 rounded-tr-xl" />
-                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-white/40 rounded-bl-xl" />
-                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-white/40 rounded-br-xl" />
-
-                {/* Pack content */}
-                <div className="relative z-10 flex flex-col items-center justify-center h-full p-6 text-white">
-                  {packImageUrl ? (
-                    <img 
-                      src={packImageUrl} 
-                      alt="Pack preview" 
-                      className="w-32 h-32 object-contain mb-4 drop-shadow-2xl"
-                    />
+                {/* Sticker collage */}
+                <div className="absolute inset-0 flex items-center justify-center p-4">
+                  {packStickers.length > 0 ? (
+                    <div className="relative w-full h-full">
+                      {/* Grid layout for stickers */}
+                      <div className="grid grid-cols-2 gap-2 w-full h-3/4 mb-4">
+                        {packStickers.map((sticker, index) => (
+                          <div
+                            key={sticker.id}
+                            className="relative rounded-lg overflow-hidden"
+                            style={{
+                              gridColumn: index === 0 ? "1 / -1" : "auto",
+                              transform: `rotate(${(index - 1.5) * 3}deg)`,
+                              boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                              border: "2px solid rgba(255,255,255,0.3)"
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+                            <img
+                              src={sticker.image_url}
+                              alt={sticker.name}
+                              className="w-full h-full object-cover"
+                              style={{
+                                filter: "brightness(1.1) contrast(1.1)"
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
-                    <Package className="w-32 h-32 mb-4 drop-shadow-2xl" strokeWidth={1.5} />
+                    <Package className="w-24 h-24 text-white/80 drop-shadow-2xl" strokeWidth={1.5} />
                   )}
-                  
+                </div>
+
+                {/* Foil border accent */}
+                <div 
+                  className="absolute inset-0 rounded-2xl"
+                  style={{
+                    border: "3px solid transparent",
+                    background: `
+                      linear-gradient(white, white) padding-box,
+                      linear-gradient(135deg, 
+                        rgba(255,215,0,0.6), 
+                        rgba(255,255,255,0.4), 
+                        rgba(147,112,219,0.6),
+                        rgba(64,224,208,0.6)
+                      ) border-box
+                    `,
+                    WebkitMask: "linear-gradient(white 0 0) padding-box, linear-gradient(white 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude"
+                  }}
+                />
+
+                {/* Title banner */}
+                <div 
+                  className="absolute bottom-0 left-0 right-0 py-4 px-6"
+                  style={{
+                    background: "linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.7), transparent)",
+                    backdropFilter: "blur(4px)"
+                  }}
+                >
                   <h2 
-                    className="text-4xl font-black tracking-wider text-center mb-2 drop-shadow-2xl"
+                    className="text-3xl font-black tracking-wider text-center text-white uppercase"
                     style={{
                       textShadow: `
-                        2px 2px 4px rgba(0,0,0,0.8),
-                        0 0 20px rgba(255,255,255,0.5),
-                        0 0 30px rgba(255,255,255,0.3)
+                        0 2px 4px rgba(0,0,0,1),
+                        0 0 20px hsl(var(--primary)),
+                        0 0 40px hsl(var(--primary) / 0.5)
                       `,
-                      WebkitTextStroke: "1px rgba(0,0,0,0.3)"
+                      WebkitTextStroke: "1px rgba(0,0,0,0.5)",
+                      letterSpacing: "0.1em"
                     }}
                   >
                     {collectionName}
                   </h2>
-                  
-                  <Sparkles className="w-8 h-8 animate-pulse" />
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                    <span className="text-sm text-white/90 font-semibold">TAP TO OPEN</span>
+                    <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
+                  </div>
                 </div>
 
                 {/* Tear sparkles */}
                 {opening && (
                   <>
                     <div 
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-2 bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-80"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-3 bg-gradient-to-r from-transparent via-yellow-300 to-transparent opacity-90 blur-sm"
                       style={{
                         top: `${tearProgress * 30}%`,
                         animation: "sparkle 0.3s ease-in-out infinite"
                       }}
                     />
                     <div 
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-2 bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-80"
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-3 bg-gradient-to-r from-transparent via-yellow-300 to-transparent opacity-90 blur-sm"
                       style={{
                         bottom: `${tearProgress * 30}%`,
                         animation: "sparkle 0.3s ease-in-out infinite"
@@ -455,8 +522,14 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
               {/* CSS animations */}
               <style>{`
                 @keyframes holographic {
-                  0%, 100% { opacity: 0.3; }
-                  50% { opacity: 0.6; }
+                  0%, 100% { 
+                    opacity: 0.4;
+                    transform: translateY(0) scale(1);
+                  }
+                  50% { 
+                    opacity: 0.7;
+                    transform: translateY(-2px) scale(1.02);
+                  }
                 }
                 
                 @keyframes shimmer {
@@ -465,7 +538,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                 }
                 
                 @keyframes sparkle {
-                  0%, 100% { opacity: 0.6; }
+                  0%, 100% { opacity: 0.7; }
                   50% { opacity: 1; }
                 }
               `}</style>
