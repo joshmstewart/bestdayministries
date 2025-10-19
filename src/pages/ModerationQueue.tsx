@@ -369,11 +369,11 @@ const ModerationQueue = () => {
           </div>
 
           <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="posts">
+            <TabsList className="inline-flex flex-wrap h-auto">
+              <TabsTrigger value="posts" className="whitespace-nowrap">
                 Posts ({flaggedPosts.length})
               </TabsTrigger>
-              <TabsTrigger value="comments">
+              <TabsTrigger value="comments" className="whitespace-nowrap">
                 Comments ({flaggedComments.length})
               </TabsTrigger>
             </TabsList>

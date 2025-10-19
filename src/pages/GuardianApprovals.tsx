@@ -343,8 +343,8 @@ export default function GuardianApprovals() {
           </div>
 
           <Tabs defaultValue="posts" className="w-full" data-tour-target="approvals-tabs">
-            <TabsList className="grid w-full grid-cols-4" data-tour-target="approval-tabs-list">
-              <TabsTrigger value="posts" className="gap-2" data-tour-target="posts-tab">
+            <TabsList className="inline-flex flex-wrap h-auto" data-tour-target="approval-tabs-list">
+              <TabsTrigger value="posts" className="gap-2 whitespace-nowrap" data-tour-target="posts-tab">
                 <FileText className="w-4 h-4" />
                 Posts
                 {pendingPosts.length > 0 && (

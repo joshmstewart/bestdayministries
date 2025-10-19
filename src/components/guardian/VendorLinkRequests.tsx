@@ -304,8 +304,8 @@ export const VendorLinkRequests = ({ onRequestsChange }: VendorLinkRequestsProps
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="links" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="links">
+          <TabsList className="inline-flex flex-wrap h-auto">
+            <TabsTrigger value="links" className="whitespace-nowrap">
               Link Requests
               {requests.length > 0 && (
                 <Badge variant="destructive" className="ml-2">

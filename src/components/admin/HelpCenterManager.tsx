@@ -23,16 +23,16 @@ export function HelpCenterManager() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="tours" className="gap-2">
+        <TabsList className="inline-flex flex-wrap h-auto">
+          <TabsTrigger value="tours" className="gap-2 whitespace-nowrap">
             <PlayCircle className="h-4 w-4" />
             Tours
           </TabsTrigger>
-          <TabsTrigger value="guides" className="gap-2">
+          <TabsTrigger value="guides" className="gap-2 whitespace-nowrap">
             <BookOpen className="h-4 w-4" />
             Guides
           </TabsTrigger>
-          <TabsTrigger value="faqs" className="gap-2">
+          <TabsTrigger value="faqs" className="gap-2 whitespace-nowrap">
             <HelpCircle className="h-4 w-4" />
             FAQs
           </TabsTrigger>

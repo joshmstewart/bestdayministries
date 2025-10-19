@@ -83,8 +83,8 @@ const Store = () => {
           </div>
 
           <Tabs defaultValue="store" className="space-y-6">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-              <TabsTrigger value="store" className="flex items-center gap-2">
+            <TabsList className="inline-flex flex-wrap h-auto mx-auto">
+              <TabsTrigger value="store" className="flex items-center gap-2 whitespace-nowrap">
                 <ShoppingBag className="h-4 w-4" />
                 Browse Store
               </TabsTrigger>

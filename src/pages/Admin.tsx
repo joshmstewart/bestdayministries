@@ -548,9 +548,9 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="product-updates" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="product-updates">Product Updates</TabsTrigger>
-                    <TabsTrigger value="change-logs">Change Logs</TabsTrigger>
+                  <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="product-updates" className="whitespace-nowrap">Product Updates</TabsTrigger>
+                    <TabsTrigger value="change-logs" className="whitespace-nowrap">Change Logs</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="product-updates">
@@ -585,9 +585,9 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="issue-reports" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="issue-reports">Issue Reports</TabsTrigger>
-                    <TabsTrigger value="system-logs">System Logs</TabsTrigger>
+                  <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="issue-reports" className="whitespace-nowrap">Issue Reports</TabsTrigger>
+                    <TabsTrigger value="system-logs" className="whitespace-nowrap">System Logs</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="issue-reports">

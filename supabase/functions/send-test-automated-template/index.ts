@@ -112,7 +112,7 @@ serve(async (req) => {
     // Send via Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
-    const { error: sendError } = await resend.emails.send({
+    const { data: emailData, error: sendError } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: testEmail,
       subject: `[TEST] ${template.subject}`,
@@ -121,8 +121,33 @@ serve(async (req) => {
 
     if (sendError) {
       console.error("Failed to send test email:", sendError);
+      
+      // Log failed test send
+      await supabaseClient.from("newsletter_emails_log").insert({
+        template_id: templateId,
+        recipient_email: testEmail,
+        recipient_user_id: user.id,
+        subject: `[TEST] ${template.subject}`,
+        html_content: htmlContent,
+        status: "failed",
+        error_message: sendError.message || String(sendError),
+        metadata: { is_test: true, template_name: template.name },
+      });
+      
       throw sendError;
     }
+
+    // Log successful test send
+    await supabaseClient.from("newsletter_emails_log").insert({
+      template_id: templateId,
+      recipient_email: testEmail,
+      recipient_user_id: user.id,
+      subject: `[TEST] ${template.subject}`,
+      html_content: htmlContent,
+      status: "sent",
+      resend_email_id: emailData?.id,
+      metadata: { is_test: true, template_name: template.name },
+    });
 
     return new Response(
       JSON.stringify({ 

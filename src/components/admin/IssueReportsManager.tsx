@@ -277,8 +277,8 @@ const IssueReportsManager = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="new" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="new" className="gap-2">
+            <TabsList className="inline-flex flex-wrap h-auto">
+              <TabsTrigger value="new" className="gap-2 whitespace-nowrap">
                 New
                 {newReports.length > 0 && (
                   <Badge variant="destructive" className="ml-1">
@@ -286,7 +286,7 @@ const IssueReportsManager = () => {
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="investigating">
+              <TabsTrigger value="investigating" className="whitespace-nowrap">
                 Investigating
                 {investigatingReports.length > 0 && (
                   <Badge className="ml-1">{investigatingReports.length}</Badge>

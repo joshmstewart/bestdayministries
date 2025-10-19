@@ -310,8 +310,8 @@ export default function Notifications() {
 
           {/* Tabs */}
           <Tabs defaultValue="unread" className="mb-8">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="unread">
+            <TabsList className="inline-flex flex-wrap h-auto">
+              <TabsTrigger value="unread" className="whitespace-nowrap">
                 Unread
                 {unreadNotifications.length > 0 && (
                   <Badge variant="secondary" className="ml-2">

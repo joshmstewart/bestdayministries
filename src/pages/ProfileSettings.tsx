@@ -461,10 +461,10 @@ const ProfileSettings = () => {
           </div>
 
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="tts">TTS</TabsTrigger>
-              <TabsTrigger value="notifications">
+            <TabsList className="inline-flex flex-wrap h-auto">
+              <TabsTrigger value="profile" className="whitespace-nowrap">Profile</TabsTrigger>
+              <TabsTrigger value="tts" className="whitespace-nowrap">TTS</TabsTrigger>
+              <TabsTrigger value="notifications" className="whitespace-nowrap">
                 <Bell className="w-4 h-4 lg:hidden" />
                 <span className="hidden lg:inline">Notifications</span>
               </TabsTrigger>

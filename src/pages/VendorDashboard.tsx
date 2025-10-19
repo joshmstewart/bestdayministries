@@ -342,11 +342,11 @@ const VendorDashboard = () => {
             </div>
 
             <Tabs defaultValue="products" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="products">Products</TabsTrigger>
-                <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="earnings">Earnings</TabsTrigger>
-                <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsList className="inline-flex flex-wrap h-auto">
+                <TabsTrigger value="products" className="whitespace-nowrap">Products</TabsTrigger>
+                <TabsTrigger value="orders" className="whitespace-nowrap">Orders</TabsTrigger>
+                <TabsTrigger value="earnings" className="whitespace-nowrap">Earnings</TabsTrigger>
+                <TabsTrigger value="payments" className="whitespace-nowrap">Payments</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
               

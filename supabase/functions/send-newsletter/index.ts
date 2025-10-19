@@ -299,7 +299,7 @@ serve(async (req) => {
         const personalizedHtml = htmlContent.replace(/{{subscriber_id}}/g, subscriber.id);
         
         try {
-          const { error } = await resend.emails.send({
+          const { data: emailData, error } = await resend.emails.send({
             from: `${fromName} <${fromEmail}>`,
             to: subscriber.email,
             subject: campaign.subject,
@@ -312,10 +312,35 @@ serve(async (req) => {
 
           if (error) {
             console.error(`Failed to send to ${subscriber.email}:`, error);
+            
+            // Log failed send
+            await supabaseClient.from("newsletter_emails_log").insert({
+              campaign_id: campaignId,
+              recipient_email: subscriber.email,
+              recipient_user_id: subscriber.user_id,
+              subject: campaign.subject,
+              html_content: personalizedHtml,
+              status: "failed",
+              error_message: error.message || String(error),
+              metadata: { subscriber_id: subscriber.id },
+            });
+            
             return false;
           }
 
-          // Log send event
+          // Log successful send
+          await supabaseClient.from("newsletter_emails_log").insert({
+            campaign_id: campaignId,
+            recipient_email: subscriber.email,
+            recipient_user_id: subscriber.user_id,
+            subject: campaign.subject,
+            html_content: personalizedHtml,
+            status: "sent",
+            resend_email_id: emailData?.id,
+            metadata: { subscriber_id: subscriber.id },
+          });
+
+          // Log send event for analytics
           await supabaseClient.from("newsletter_analytics").insert({
             campaign_id: campaignId,
             subscriber_id: subscriber.id,
@@ -324,8 +349,21 @@ serve(async (req) => {
           });
 
           return true;
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Error sending to ${subscriber.email}:`, error);
+          
+          // Log failed send
+          await supabaseClient.from("newsletter_emails_log").insert({
+            campaign_id: campaignId,
+            recipient_email: subscriber.email,
+            recipient_user_id: subscriber.user_id,
+            subject: campaign.subject,
+            html_content: personalizedHtml,
+            status: "failed",
+            error_message: error.message || String(error),
+            metadata: { subscriber_id: subscriber.id },
+          });
+          
           return false;
         }
       });

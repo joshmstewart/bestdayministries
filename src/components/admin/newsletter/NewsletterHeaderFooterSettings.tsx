@@ -203,9 +203,9 @@ export const NewsletterHeaderFooterSettings = () => {
       </Alert>
 
       <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="header">Header</TabsTrigger>
-          <TabsTrigger value="footer">Footer</TabsTrigger>
+        <TabsList className="inline-flex flex-wrap h-auto">
+          <TabsTrigger value="header" className="whitespace-nowrap">Header</TabsTrigger>
+          <TabsTrigger value="footer" className="whitespace-nowrap">Footer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="header" className="space-y-4">

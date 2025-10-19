@@ -98,11 +98,11 @@ const Marketplace = () => {
         <section className="py-12">
           <div className="container mx-auto px-4">
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
-                <TabsTrigger value="all" onClick={() => setSelectedCategory(null)}>
+              <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8">
+                <TabsTrigger value="all" onClick={() => setSelectedCategory(null)} className="whitespace-nowrap">
                   All Products
                 </TabsTrigger>
-                <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')}>
+                <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap">
                   Official Merch
                 </TabsTrigger>
                 <TabsTrigger value="handmade" onClick={() => setSelectedCategory('handmade')}>

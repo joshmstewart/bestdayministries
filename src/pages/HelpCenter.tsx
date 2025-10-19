@@ -183,8 +183,8 @@ export default function HelpCenter() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
-              <TabsTrigger value="tours" className="gap-2">
+            <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8">
+              <TabsTrigger value="tours" className="gap-2 whitespace-nowrap">
                 <PlayCircle className="h-4 w-4" />
                 Tours
               </TabsTrigger>

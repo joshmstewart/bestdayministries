@@ -2463,6 +2463,69 @@ export type Database = {
           },
         ]
       }
+      newsletter_emails_log: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          error_message: string | null
+          html_content: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          recipient_user_id: string | null
+          resend_email_id: string | null
+          sent_at: string
+          status: string
+          subject: string
+          template_id: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          html_content?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          recipient_user_id?: string | null
+          resend_email_id?: string | null
+          sent_at?: string
+          status?: string
+          subject: string
+          template_id?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          html_content?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          recipient_user_id?: string | null
+          resend_email_id?: string | null
+          sent_at?: string
+          status?: string
+          subject?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_emails_log_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_emails_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_links: {
         Row: {
           campaign_id: string
