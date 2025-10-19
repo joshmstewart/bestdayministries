@@ -77,21 +77,6 @@ export const DailyScratchCard = () => {
     console.log('📋 CHECK_DAILY_CARD: Starting...');
     
     try {
-      console.log('📋 CHECK: Checking stickers_enabled setting...');
-      const { data: settings } = await supabase
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', 'stickers_enabled')
-        .single();
-
-      console.log('📋 CHECK: Settings result:', settings);
-
-      if (!settings || settings.setting_value === false) {
-        console.log('❌ CHECK: Stickers disabled in settings');
-        setLoading(false);
-        return;
-      }
-
       console.log('📋 CHECK: Getting current user...');
       const { data: { user } } = await supabase.auth.getUser();
       console.log('📋 CHECK: User ID:', user?.id);
@@ -102,21 +87,61 @@ export const DailyScratchCard = () => {
         return;
       }
 
-      console.log('📋 CHECK: Getting user coin balance...');
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('coins')
-        .eq('id', user.id)
-        .single();
+      console.log('📋 CHECK: Calculating MST date...');
+      const mstDate = getMSTDate();
+      const today = mstDate.toISOString().split('T')[0];
+      console.log('📋 CHECK: MST Date:', today, '| Full MST:', mstDate.toISOString());
+
+      // Batch all initial queries together for faster loading
+      console.log('📋 CHECK: Fetching all data in parallel...');
+      const [
+        { data: settings },
+        { data: profile },
+        { data: activeCollections, error: collectionError },
+        { data: existingCard, error: cardError },
+        { data: existingBonusCards }
+      ] = await Promise.all([
+        supabase
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', 'stickers_enabled')
+          .single(),
+        supabase
+          .from('profiles')
+          .select('coins')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('sticker_collections')
+          .select('id, visible_to_roles')
+          .eq('is_active', true),
+        supabase
+          .from('daily_scratch_cards')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .eq('is_bonus_card', false)
+          .maybeSingle(),
+        supabase
+          .from('daily_scratch_cards')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .eq('is_bonus_card', true)
+          .eq('is_scratched', false)
+          .order('purchase_number', { ascending: true })
+      ]);
+
+      console.log('📋 CHECK: Parallel fetch complete');
+
+      if (!settings || settings.setting_value === false) {
+        console.log('❌ CHECK: Stickers disabled in settings');
+        setLoading(false);
+        return;
+      }
       
       console.log('📋 CHECK: Coin balance:', profile?.coins);
       setCoinBalance(profile?.coins || 0);
-
-      console.log('📋 CHECK: Checking for accessible collections...');
-      const { data: activeCollections, error: collectionError } = await supabase
-        .from('sticker_collections')
-        .select('id, visible_to_roles')
-        .eq('is_active', true);
 
       console.log('📋 CHECK: Active collections result:', { 
         count: activeCollections?.length || 0, 
@@ -130,20 +155,6 @@ export const DailyScratchCard = () => {
         return;
       }
 
-      console.log('📋 CHECK: Calculating MST date...');
-      const mstDate = getMSTDate();
-      const today = mstDate.toISOString().split('T')[0];
-      console.log('📋 CHECK: MST Date:', today, '| Full MST:', mstDate.toISOString());
-
-      console.log('📋 CHECK: Querying for free daily card...');
-      let { data: existingCard, error: cardError } = await supabase
-        .from('daily_scratch_cards')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .eq('is_bonus_card', false)
-        .maybeSingle();
-
       console.log('📋 CHECK: Free card result:', {
         exists: !!existingCard,
         isScratched: existingCard?.is_scratched,
@@ -151,22 +162,14 @@ export const DailyScratchCard = () => {
         error: cardError
       });
 
-      console.log('📋 CHECK: Querying for bonus cards (unscratched only)...');
-      const { data: existingBonusCards } = await supabase
-        .from('daily_scratch_cards')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .eq('is_bonus_card', true)
-        .eq('is_scratched', false)
-        .order('purchase_number', { ascending: true });
-
       console.log('📋 CHECK: Bonus cards result:', {
         count: existingBonusCards?.length || 0,
         cards: existingBonusCards
       });
 
-      if (!existingCard) {
+      let cardToUse = existingCard;
+
+      if (!cardToUse) {
         console.log('📋 CHECK: No free card found, generating new one...');
         const { data: newCard, error: genError } = await supabase
           .rpc('generate_daily_scratch_card', { _user_id: user.id });
@@ -187,69 +190,74 @@ export const DailyScratchCard = () => {
             .eq('id', newCard)
             .maybeSingle();
           console.log('📋 CHECK: Fetched newly generated card:', fetchedCard);
-          existingCard = fetchedCard;
+          cardToUse = fetchedCard;
         }
       }
 
-      if (!existingCard) {
+      if (!cardToUse) {
         console.log('❌ CHECK: No scratch card available after generation');
         setLoading(false);
         return;
       }
 
-      const shouldShowBonusCard = existingCard.is_scratched && existingBonusCards && existingBonusCards.length > 0;
+      const shouldShowBonusCard = cardToUse.is_scratched && existingBonusCards && existingBonusCards.length > 0;
       console.log('📋 CHECK: Display logic:', {
-        freeCardScratched: existingCard.is_scratched,
+        freeCardScratched: cardToUse.is_scratched,
         hasBonusCards: existingBonusCards?.length > 0,
         shouldShowBonusCard,
-        activeCard: shouldShowBonusCard ? existingBonusCards[0] : existingCard
+        activeCard: shouldShowBonusCard ? existingBonusCards[0] : cardToUse
       });
 
       console.log('📋 CHECK: Setting card state...');
-      setCard(existingCard);
+      setCard(cardToUse);
       setBonusCard(existingBonusCards?.[0] || null);
 
-      console.log('📋 CHECK: Fetching preview sticker...');
-      if (existingCard) {
-        const { data: collection } = await supabase
-          .from('sticker_collections')
-          .select('preview_sticker_id')
-          .eq('id', existingCard.collection_id)
-          .single();
-        
-        console.log('📋 CHECK: Collection preview sticker ID:', collection?.preview_sticker_id);
-        
-        let stickerImageUrl = null;
-        
-        if (collection?.preview_sticker_id) {
-          const { data: previewSticker } = await supabase
-            .from('stickers')
-            .select('image_url')
-            .eq('id', collection.preview_sticker_id)
-            .single();
+      // Fetch preview sticker asynchronously (don't block rendering)
+      console.log('📋 CHECK: Fetching preview sticker in background...');
+      if (cardToUse) {
+        // Don't await - let this happen in the background
+        (async () => {
+          const [
+            { data: collection },
+            { data: fallbackStickers }
+          ] = await Promise.all([
+            supabase
+              .from('sticker_collections')
+              .select('preview_sticker_id')
+              .eq('id', cardToUse.collection_id)
+              .single(),
+            supabase
+              .from('stickers')
+              .select('image_url')
+              .eq('collection_id', cardToUse.collection_id)
+              .eq('is_active', true)
+              .limit(1)
+          ]);
           
-          stickerImageUrl = previewSticker?.image_url;
-          console.log('📋 CHECK: Preview sticker URL:', stickerImageUrl);
-        }
-        
-        if (!stickerImageUrl) {
-          console.log('📋 CHECK: No preview sticker, fetching fallback...');
-          const { data: stickers } = await supabase
-            .from('stickers')
-            .select('image_url')
-            .eq('collection_id', existingCard.collection_id)
-            .eq('is_active', true)
-            .limit(1);
-
-          if (stickers && stickers.length > 0) {
-            stickerImageUrl = stickers[0].image_url;
+          console.log('📋 CHECK: Collection preview sticker ID:', collection?.preview_sticker_id);
+          
+          let stickerImageUrl = null;
+          
+          if (collection?.preview_sticker_id) {
+            const { data: previewSticker } = await supabase
+              .from('stickers')
+              .select('image_url')
+              .eq('id', collection.preview_sticker_id)
+              .single();
+            
+            stickerImageUrl = previewSticker?.image_url;
+            console.log('📋 CHECK: Preview sticker URL:', stickerImageUrl);
+          }
+          
+          if (!stickerImageUrl && fallbackStickers && fallbackStickers.length > 0) {
+            stickerImageUrl = fallbackStickers[0].image_url;
             console.log('📋 CHECK: Fallback sticker URL:', stickerImageUrl);
           }
-        }
-        
-        if (stickerImageUrl) {
-          setSampleSticker(stickerImageUrl);
-        }
+          
+          if (stickerImageUrl) {
+            setSampleSticker(stickerImageUrl);
+          }
+        })();
       }
     } catch (error) {
       console.error('❌ CHECK_DAILY_CARD: Error:', error);
