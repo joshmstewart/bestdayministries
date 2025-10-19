@@ -40,8 +40,9 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`send-contact-reply`** - [Auth Required] Sends admin replies to contact form submissions
 - **`notify-admin-new-contact`** - [Internal] Notifies admins of new contact form submissions
 - **`process-inbound-email`** - [Webhook] Processes CloudFlare email routing, auto-threads replies
-- **`send-newsletter`** - [Admin Only] Sends newsletter campaigns to subscribers
-- **`send-test-newsletter`** - [Admin Only] Sends test newsletter to admin before campaign
+- **`send-newsletter`** - [Admin Only] Sends newsletter campaigns to subscribers, logs all emails
+- **`send-test-newsletter`** - [Admin Only] Sends test newsletter to logged-in admin
+- **`send-test-automated-template`** - [Admin Only] Sends test automated template to logged-in admin
 - **`send-automated-campaign`** - [Admin Only] Sends automated marketing campaigns via Resend
 
 ### Content Moderation
@@ -59,6 +60,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`cleanup-email-test-data`** - [Test Only] Removes test data by email prefix
 - **`cleanup-test-data-unified`** - [Test Only] Unified cleanup for email and E2E tests (excludes persistent accounts)
 - **`seed-halloween-stickers`** - [Admin Only] Seeds Halloween sticker collection for testing
+- **`reset-daily-cards`** - [Admin Only] Resets daily scratch cards with scope (self/admins/all)
 
 ### Webhooks & Integrations
 - **`github-test-webhook`** - [Webhook] Receives GitHub Actions test results, logs to `test_runs`
@@ -94,6 +96,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | notify-admin-new-contact | Internal | Resend | Notifies admins of contact submissions |
 | process-inbound-email | Webhook | Supabase | Processes CloudFlare email routing |
 | resend-webhook | Webhook | Supabase | Logs Resend email events |
+| reset-daily-cards | Admin | Supabase | Resets daily scratch cards with scope |
 | seed-email-test-data | Test | Supabase | Seeds email test data |
 | seed-halloween-stickers | Admin | Supabase | Seeds Halloween sticker collection |
 | send-approval-notification | Internal | Resend | Sends approval notifications |
@@ -101,10 +104,11 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | send-contact-reply | Auth | Resend | Sends contact form replies |
 | send-digest-email | Cron | Resend | Sends batched digest emails |
 | send-message-notification | Internal | Resend | Sends message notifications |
-| send-newsletter | Admin | Resend | Sends newsletter campaigns |
+| send-newsletter | Admin | Resend | Sends newsletter campaigns with logging |
 | send-notification-email | Internal | Resend | Sends individual notifications |
 | send-sponsorship-receipt | Internal | Resend | Sends tax-deductible receipts |
-| send-test-newsletter | Admin | Resend | Sends test newsletters |
+| send-test-automated-template | Admin | Resend | Sends test automated template emails |
+| send-test-newsletter | Admin | Resend | Sends test newsletters to logged-in admin |
 | sentry-webhook | Webhook | Supabase | Logs Sentry error alerts |
 | stripe-webhook | Webhook | Stripe | Handles all Stripe events |
 | submit-tracking | Vendor | AfterShip | Submits order tracking |
@@ -137,10 +141,12 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 **Requires admin or owner role via `has_admin_access()`**
 
 - `broadcast-product-update` - Sends notifications to all users
-- `send-newsletter` - Sends newsletter campaigns
-- `send-test-newsletter` - Tests newsletter before sending
+- `send-newsletter` - Sends newsletter campaigns with comprehensive logging
+- `send-test-newsletter` - Tests newsletter to logged-in admin
+- `send-test-automated-template` - Tests automated template to logged-in admin
 - `send-automated-campaign` - Sends marketing campaigns
 - `seed-halloween-stickers` - Seeds sticker collections
+- `reset-daily-cards` - Resets daily scratch cards with scope targeting
 - `create-user` - Creates test users
 
 ### Vendor Authentication

@@ -633,10 +633,97 @@ const { data, error } = await supabase.functions.invoke('scratch-card', {
 - Optimistic UI updates (assume success, rollback on error)
 - Service worker for offline pack viewing
 
+## Admin Daily Card Reset
+
+### Overview
+Admins can manually reset daily scratch cards with scoped targeting, useful for testing or fixing issues.
+
+**Location:** Admin → Besties → Collections → Reset Daily Cards button
+
+### Reset Scopes
+
+#### 1. Only Me (self)
+Deletes only the logged-in admin's daily cards for today.
+
+**Use case:** Admin wants to test pack opening again without affecting others
+
+**Query:**
+```sql
+DELETE FROM daily_scratch_cards 
+WHERE user_id = <admin_user_id> 
+  AND date = <today_mst>
+```
+
+#### 2. All Admins & Owners (admins)
+Deletes daily cards for all users with admin or owner roles.
+
+**Use case:** Reset cards for admin team testing
+
+**Query:**
+```sql
+DELETE FROM daily_scratch_cards 
+WHERE user_id IN (
+  SELECT user_id FROM user_roles 
+  WHERE role IN ('admin', 'owner')
+) 
+AND date = <today_mst>
+```
+
+#### 3. All Users (all)
+Deletes daily cards for everyone in the system.
+
+**Use case:** Major fix deployed, give everyone fresh daily pack
+
+**Requires:** Confirmation dialog ("This will reset daily cards for ALL users")
+
+**Query:**
+```sql
+DELETE FROM daily_scratch_cards 
+WHERE date = <today_mst>
+```
+
+### Edge Function: `reset-daily-cards`
+
+**Auth:** Admin or Owner only (via `has_admin_access()`)
+
+**Request Body:**
+```json
+{
+  "scope": "self" | "admins" | "all"
+}
+```
+
+**Response Success:**
+```json
+{
+  "success": true,
+  "message": "Reset X daily cards",
+  "deletedCount": 42
+}
+```
+
+**Response Error:**
+```json
+{
+  "error": "Admin access required"
+}
+```
+
+### UI Flow
+1. Admin clicks "Reset Daily Cards" button
+2. Dialog opens with three radio button options:
+   - ✓ Only Me (default)
+   - ✓ All Admins & Owners
+   - ✓ All Users (shows warning badge)
+3. If "All Users" selected, additional confirmation text required
+4. Click "Reset Cards" button
+5. Success toast shown with count deleted
+6. Cards immediately available for re-opening
+
 ## Documentation Status
-**Last Updated:** 2025-10-19
-**Status:** Complete - All pack opening instances use `PackOpeningDialog`
-**Coverage:** Database schema, edge functions, components, workflows, admin tools
+**Last Updated:** 2025-10-20
+**Status:** Complete - All pack opening instances use `PackOpeningDialog`, admin reset functionality with scope targeting
+**Coverage:** Database schema, edge functions, components, workflows, admin tools, reset functionality
 
 ## Related Documentation
 - `MASTER_SYSTEM_DOCS.md` - High-level sticker system overview

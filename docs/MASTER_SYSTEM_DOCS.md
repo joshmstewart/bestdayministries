@@ -309,7 +309,7 @@ FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry
 ## STICKER_PACK_SYSTEM
 OVERVIEW:daily-free-packs+purchasable-bonus-packs+rarity-based-drops+animated-pack-opening+collection-progress+duplicate-tracking
 DB:sticker_collections|stickers|daily_scratch_cards|user_stickers|badges
-EDGE:scratch-card[opens-pack→determines-rarity→reveals-sticker]|purchase-bonus-card[exponential-pricing→deduct-coins→create-bonus-card]
+EDGE:scratch-card[opens-pack→determines-rarity→reveals-sticker]|purchase-bonus-card[exponential-pricing→deduct-coins→create-bonus-card]|reset-daily-cards[admin-only+scope:self|admins|all]
 COMPONENTS:PackOpeningDialog[tear-animation+holographic-effects+rarity-confetti]|DailyScratchCard[community-widget+realtime-updates]|StickerAlbum[full-view+purchase+progress]
 RARITY:common[50%]|uncommon[30%]|rare[15%]|epic[4%]|legendary[1%]→configurable-per-collection
 PACKS:daily-free[1/day-MST-reset]|bonus[purchasable-exponential:100→200→400→800-coins]
@@ -318,8 +318,27 @@ TIMEZONE:MST-UTC-7→midnight-reset→date-field-YYYY-MM-DD
 REALTIME:supabase-subscription→instant-state-updates→filter-by-user_id
 RLS:users-view-own-cards+scratch-own-cards|admins-manage-all
 ANIMATION:tear-effect+holographic-shimmer+sparkles+rarity-based-confetti
-ADMIN:StickerCollectionManager[CRUD-collections+stickers+rarity-config+preview-test]
+ADMIN:StickerCollectionManager[CRUD-collections+stickers+rarity-config+preview-test+reset-daily-cards-dialog]
+RESET:admin-dialog→choose-scope[Only-Me|All-Admins-Owners|All-Users-confirm]→delete-cards-by-scope
 DOC:STICKER_PACK_SYSTEM.md
+
+## NEWSLETTER_SYSTEM
+OVERVIEW:email-campaigns+automated-templates+subscriber-management+analytics+testing+comprehensive-logging
+DB:newsletter_campaigns|newsletter_subscribers|newsletter_analytics|newsletter_templates|campaign_templates|newsletter_links|newsletter_emails_log|newsletter_drip_steps
+EDGE:send-newsletter[admin+campaign+subscribers→resend]|send-test-newsletter[admin+self-email]|send-test-automated-template[admin+test-template]|send-automated-campaign[trigger-based]
+FRONTEND:NewsletterManager[7-tabs:Campaigns|Automated|Templates|Email-Log|Subscribers|Analytics|Settings]
+TABS:Campaigns[manual-campaigns+draft-scheduled-sent]|Automated[trigger-templates+log]|Templates[reusable-content]|Email-Log[sent-tracking]|Subscribers[manage-list]|Analytics[open-click-rates]|Settings[header-footer-org]
+CAMPAIGNS:create→edit-rich-text→preview→test-send→schedule→send→track
+AUTOMATED:create-template→set-trigger[welcome|anniversary|etc]→auto-send-on-event
+TEST:any-campaign-or-template→send-to-logged-in-admin→test-notice-banner
+LOGGING:newsletter_emails_log[campaign_id|template_id|recipient_email|recipient_user_id|subject|html_content|status|error_message|resend_email_id|metadata]
+EMAIL-LOG-UI:search-by-email|filter-by-status[sent|failed|bounced]|view-details-dialog[full-email-content+metadata]|pagination
+RICH-EDITOR:tiptap[formatting|images|links|alignment]|image-crop-dialog[aspect-ratio-selection]
+HEADER-FOOTER:reusable-header-footer→enabled-toggle→inject-into-emails
+TRACKING:link-tracking[short-codes]|open-tracking[pixel]|click-analytics
+RLS:admins-only-campaigns-templates|anyone-subscribe|admins-view-logs
+MOBILE:tab-bar-wraps[inline-flex+flex-wrap+whitespace-nowrap]
+DOC:NEWSLETTER_SYSTEM.md
 
 ## AUTOMATED_TESTING
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
