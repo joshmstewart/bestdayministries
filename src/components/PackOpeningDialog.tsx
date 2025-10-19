@@ -43,6 +43,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const audioContextRef = useRef<AudioContext | null>(null);
   const idleOscillatorRef = useRef<OscillatorNode | null>(null);
   const idleGainRef = useRef<GainNode | null>(null);
+  const sparkleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -57,11 +58,15 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioContext;
       
-      playIdleSound(audioContext);
+      sparkleIntervalRef.current = playIdleSound(audioContext);
     }
 
     return () => {
       // Cleanup audio on unmount
+      if (sparkleIntervalRef.current) {
+        clearInterval(sparkleIntervalRef.current);
+        sparkleIntervalRef.current = null;
+      }
       if (idleOscillatorRef.current) {
         idleOscillatorRef.current.stop();
         idleOscillatorRef.current = null;
@@ -188,6 +193,10 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
     if (opening || opened) return;
     
     // Stop idle sound and play opening sound
+    if (sparkleIntervalRef.current) {
+      clearInterval(sparkleIntervalRef.current);
+      sparkleIntervalRef.current = null;
+    }
     if (idleOscillatorRef.current) {
       idleOscillatorRef.current.stop();
       idleOscillatorRef.current = null;
@@ -380,12 +389,12 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                   {packStickers.length > 0 ? (
                     <div className="relative w-full h-full">
                       {packStickers.map((sticker, index) => {
-                        // Different sizes and positions for variety
+                        // Different sizes and positions for variety - much larger sizes
                         const configs = [
-                          { top: '8%', left: '15%', size: 65, rotate: -15 },
-                          { top: '40%', right: '10%', size: 90, rotate: 12 },
-                          { bottom: '20%', left: '8%', size: 75, rotate: -10 },
-                          { top: '22%', left: '45%', size: 85, rotate: 8, transform: 'translateX(-50%)' }
+                          { top: '8%', left: '15%', size: 120, rotate: -15 },
+                          { top: '35%', right: '10%', size: 180, rotate: 12 },
+                          { bottom: '15%', left: '8%', size: 140, rotate: -10 },
+                          { top: '18%', left: '45%', size: 160, rotate: 8, transform: 'translateX(-50%)' }
                         ];
                         const config = configs[index] || configs[0];
                         
