@@ -45,6 +45,33 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const idleGainRef = useRef<GainNode | null>(null);
   const sparkleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Cleanup function to stop all audio
+  const cleanupAudio = () => {
+    if (sparkleIntervalRef.current) {
+      clearInterval(sparkleIntervalRef.current);
+      sparkleIntervalRef.current = null;
+    }
+    if (idleOscillatorRef.current) {
+      try {
+        idleOscillatorRef.current.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      idleOscillatorRef.current = null;
+    }
+    if (idleGainRef.current) {
+      idleGainRef.current = null;
+    }
+    if (audioContextRef.current) {
+      try {
+        audioContextRef.current.close();
+      } catch (e) {
+        // Already closed
+      }
+      audioContextRef.current = null;
+    }
+  };
+
   useEffect(() => {
     if (open) {
       setOpened(false);
@@ -59,25 +86,14 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
       audioContextRef.current = audioContext;
       
       sparkleIntervalRef.current = playIdleSound(audioContext);
+    } else {
+      // Cleanup immediately when dialog closes
+      cleanupAudio();
     }
 
     return () => {
-      // Cleanup audio on unmount
-      if (sparkleIntervalRef.current) {
-        clearInterval(sparkleIntervalRef.current);
-        sparkleIntervalRef.current = null;
-      }
-      if (idleOscillatorRef.current) {
-        idleOscillatorRef.current.stop();
-        idleOscillatorRef.current = null;
-      }
-      if (idleGainRef.current) {
-        idleGainRef.current = null;
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
+      // Cleanup on unmount
+      cleanupAudio();
     };
   }, [open]);
 
@@ -192,16 +208,12 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
   const handleOpen = () => {
     if (opening || opened) return;
     
-    // Stop idle sound and play opening sound
-    if (sparkleIntervalRef.current) {
-      clearInterval(sparkleIntervalRef.current);
-      sparkleIntervalRef.current = null;
-    }
-    if (idleOscillatorRef.current) {
-      idleOscillatorRef.current.stop();
-      idleOscillatorRef.current = null;
-    }
+    // Stop idle sound completely
+    cleanupAudio();
     
+    // Create new audio context for opening sound only
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioContextRef.current = audioContext;
     playOpeningSound();
     
     setOpening(true);
@@ -389,12 +401,11 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                   {packStickers.length > 0 ? (
                     <div className="relative w-full h-full">
                       {packStickers.map((sticker, index) => {
-                        // Different sizes and positions for variety - much larger sizes
                         const configs = [
-                          { top: '8%', left: '15%', size: 120, rotate: -15 },
-                          { top: '35%', right: '10%', size: 180, rotate: 12 },
-                          { bottom: '15%', left: '8%', size: 140, rotate: -10 },
-                          { top: '18%', left: '45%', size: 160, rotate: 8, transform: 'translateX(-50%)' }
+                          { top: '-5%', left: '-8%', size: 140, rotate: -18, transform: '' },
+                          { top: '50%', right: '-10%', size: 165, rotate: 15, transform: '' },
+                          { bottom: '-8%', left: '12%', size: 155, rotate: -12, transform: '' },
+                          { top: '8%', right: '25%', size: 145, rotate: 10, transform: '' }
                         ];
                         const config = configs[index] || configs[0];
                         

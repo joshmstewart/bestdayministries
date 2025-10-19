@@ -22,6 +22,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -294,6 +300,7 @@ export const StickerCollectionManager = () => {
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [showTestScratch, setShowTestScratch] = useState(false);
   const [testCardId, setTestCardId] = useState<string | null>(null);
+  const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
 
   useEffect(() => {
     fetchCollections();
@@ -1219,12 +1226,48 @@ export const StickerCollectionManager = () => {
         </TabsList>
 
         <TabsContent value="collections" className="space-y-4">
+          {/* Testing Buttons */}
           <Card>
-            <CardHeader>
-              <CardTitle>Create New Collection</CardTitle>
-              <CardDescription>Set up a new sticker collection</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-6">
+              <div className="flex gap-3 flex-wrap">
+                <Button 
+                  onClick={resetDailyCards} 
+                  disabled={loading}
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Reset Daily Cards (Testing)
+                </Button>
+                <Button 
+                  onClick={createTestScratchCard} 
+                  disabled={loading}
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Test Scratcher
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Collapsible open={createCollectionOpen} onOpenChange={setCreateCollectionOpen}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Create New Collection</CardTitle>
+                      <CardDescription>Set up a new sticker collection</CardDescription>
+                    </div>
+                    <ChevronDown className={`h-5 w-5 transition-transform ${createCollectionOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Collection Name</Label>
@@ -1361,53 +1404,15 @@ export const StickerCollectionManager = () => {
                   </span>
                 </div>
               </div>
-              <div className="flex gap-3 flex-wrap">
-                <Button onClick={createCollection} disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Collection
-                </Button>
-                <Button 
-                  onClick={seedHalloweenCollection} 
-                  disabled={loading}
-                  variant="secondary"
-                >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Seed Halloween Collection
-                </Button>
-                <Button 
-                  onClick={updateToV2Stickers} 
-                  disabled={loading || !selectedCollection}
-                  variant="default"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Update to V2 Kawaii Stickers
-                </Button>
-                <Button 
-                  onClick={resetDailyCards} 
-                  disabled={loading}
-                  variant="outline"
-                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Reset Daily Cards (Testing)
-                </Button>
-                <Button 
-                  onClick={createTestScratchCard} 
-                  disabled={loading}
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Test Scratcher
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  <Button onClick={createCollection} disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Collection
+                  </Button>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           <Card>
             <CardHeader>
