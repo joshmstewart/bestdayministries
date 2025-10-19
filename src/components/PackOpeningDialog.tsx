@@ -290,9 +290,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
         const rarity = data.sticker.rarity as keyof typeof rarityConfettiConfig;
         const config = rarityConfettiConfig[rarity] || rarityConfettiConfig.common;
         
-        // Play rarity-specific celebration sound
-        playCelebrationSound(rarity);
-        
         // Trigger confetti multiple times based on rarity
         for (let i = 0; i < config.bursts; i++) {
           setTimeout(() => {
