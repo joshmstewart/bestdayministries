@@ -267,8 +267,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
             });
           }, i * 300);
         }
-        
-        onScratched();
       } else {
         throw new Error(data.message || 'Failed to reveal sticker');
       }
@@ -377,35 +375,51 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
                   }}
                 />
 
-                {/* Sticker collage */}
+                {/* Sticker collage - random positioning */}
                 <div className="absolute inset-0 flex items-center justify-center p-4">
                   {packStickers.length > 0 ? (
                     <div className="relative w-full h-full">
-                      {/* Grid layout for stickers */}
-                      <div className="grid grid-cols-2 gap-2 w-full h-3/4 mb-4">
-                        {packStickers.map((sticker, index) => (
+                      {packStickers.map((sticker, index) => {
+                        // Random positions with some overlap and edge wrapping
+                        const positions = [
+                          { top: '5%', left: '10%', size: 70, rotate: -12 },
+                          { top: '45%', right: '8%', size: 85, rotate: 15 },
+                          { bottom: '15%', left: '5%', size: 75, rotate: -8 },
+                          { top: '25%', left: '50%', size: 80, rotate: 5, transform: 'translateX(-50%)' }
+                        ];
+                        const pos = positions[index] || positions[0];
+                        
+                        return (
                           <div
                             key={sticker.id}
-                            className="relative rounded-lg overflow-hidden"
+                            className="absolute rounded-lg overflow-hidden"
                             style={{
-                              gridColumn: index === 0 ? "1 / -1" : "auto",
-                              transform: `rotate(${(index - 1.5) * 3}deg)`,
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
-                              border: "2px solid rgba(255,255,255,0.3)"
+                              top: pos.top,
+                              left: pos.left,
+                              right: pos.right,
+                              bottom: pos.bottom,
+                              width: `${pos.size}px`,
+                              height: `${pos.size}px`,
+                              transform: `rotate(${pos.rotate}deg) ${pos.transform || ''}`,
+                              boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+                              border: "2px solid rgba(255,255,255,0.4)",
+                              zIndex: 4 - index
                             }}
                           >
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent" />
                             <img
                               src={sticker.image_url}
                               alt={sticker.name}
                               className="w-full h-full object-cover"
                               style={{
-                                filter: "brightness(1.1) contrast(1.1)"
+                                filter: "brightness(1.15) contrast(1.15)"
                               }}
                             />
+                            {/* Glossy overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-60" />
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <Package className="w-24 h-24 text-white/80 drop-shadow-2xl" strokeWidth={1.5} />
@@ -529,7 +543,12 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onScratched }: P
               </div>
 
               <Button 
-                onClick={() => onOpenChange(false)}
+                variant="default"
+                size="lg"
+                onClick={() => {
+                  onScratched();
+                  onOpenChange(false);
+                }}
                 className="w-full"
               >
                 Continue

@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Loader2, Lock, Clock, Sparkles } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import joycoinImage from "@/assets/joycoin.png";
 import { ScratchCardDialog } from "./ScratchCardDialog";
@@ -16,6 +17,14 @@ const rarityColors = {
   rare: "bg-blue-500",
   epic: "bg-purple-500",
   legendary: "bg-yellow-500",
+};
+
+const rarityNames = {
+  common: "Common",
+  uncommon: "Uncommon",
+  rare: "Rare",
+  epic: "Epic",
+  legendary: "Legendary"
 };
 
 export const StickerAlbum = () => {
@@ -293,6 +302,64 @@ export const StickerAlbum = () => {
     await fetchStickers();
   };
 
+  const handleBonusPurchase = async () => {
+    setPurchasing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please refresh the page and try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('purchase-bonus-card', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data.error) {
+        toast({
+          title: "Cannot Purchase",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success!",
+        description: `Bonus scratch card purchased for ${data.cost} coins! 🎉`
+      });
+
+      // Refresh to get the new card
+      await fetchStickers();
+      
+      // Auto-open the new card after a short delay
+      setTimeout(() => {
+        if (data.cardId) {
+          setSelectedCardId(data.cardId);
+          setShowScratchDialog(true);
+        }
+      }, 500);
+    } catch (error: any) {
+      console.error('Error purchasing bonus card:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to purchase bonus card",
+        variant: "destructive"
+      });
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Available Scratch Cards */}
@@ -411,7 +478,7 @@ export const StickerAlbum = () => {
           {/* Buy Bonus Card Button */}
           <div className="pt-4 border-t">
             <Button
-              onClick={purchaseBonusCard}
+              onClick={handleBonusPurchase}
               disabled={purchasing || coinBalance < nextCost}
               className="w-full"
               size="lg"
@@ -438,61 +505,93 @@ export const StickerAlbum = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {filteredStickers.map((sticker) => {
-          const userSticker = userStickers.get(sticker.id);
-          const obtained = !!userSticker;
+      <TooltipProvider>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {filteredStickers.map((sticker) => {
+            const userSticker = userStickers.get(sticker.id);
+            const obtained = !!userSticker;
+            const rarityPercentage = rarityPercentages[sticker.rarity] || 0;
 
-          return (
-            <Card 
-              key={sticker.id} 
-              className={`relative overflow-hidden ${obtained ? 'border-primary' : 'border-dashed opacity-60'}`}
-            >
-              <CardContent className="p-4">
-                <div className="relative aspect-square mb-2">
-                  {obtained ? (
-                    <>
-                      <img
-                        src={sticker.image_url}
-                        alt={sticker.name}
-                        className="w-full h-full object-contain"
-                      />
-                      {userSticker.quantity > 1 && (
-                        <Badge 
-                          variant="secondary" 
-                          className="absolute top-1 right-1"
-                        >
-                          x{userSticker.quantity}
-                        </Badge>
-                      )}
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted rounded">
-                      <Lock className="w-8 h-8 text-muted-foreground" />
+            return (
+              <Tooltip key={sticker.id}>
+                <TooltipTrigger asChild>
+                  <Card 
+                    className={`relative overflow-hidden transition-all hover:scale-105 cursor-pointer ${
+                      obtained ? 'border-primary' : 'border-dashed opacity-60'
+                    }`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="relative aspect-square mb-2">
+                        {obtained ? (
+                          <>
+                            <img
+                              src={sticker.image_url}
+                              alt={sticker.name}
+                              className="w-full h-full object-contain"
+                            />
+                            {userSticker.quantity > 1 && (
+                              <Badge 
+                                variant="secondary" 
+                                className="absolute top-1 right-1"
+                              >
+                                x{userSticker.quantity}
+                              </Badge>
+                            )}
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center rounded overflow-hidden relative">
+                            {/* Show sticker outline/silhouette */}
+                            <img
+                              src={sticker.image_url}
+                              alt="???"
+                              className="w-full h-full object-contain opacity-10 blur-sm"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+                              <Lock className="w-8 h-8 text-muted-foreground z-10" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-medium truncate">
+                            #{sticker.sticker_number}
+                          </span>
+                          <Badge 
+                            className={`text-xs ${rarityColors[sticker.rarity as keyof typeof rarityColors]}`}
+                          >
+                            {sticker.rarity.charAt(0).toUpperCase()}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {sticker.name}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[200px]">
+                  <div className="space-y-2">
+                    <p className="font-semibold">{sticker.name}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${rarityColors[sticker.rarity as keyof typeof rarityColors]}`}>
+                        {rarityNames[sticker.rarity as keyof typeof rarityNames]}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {rarityPercentage}% drop rate
+                      </span>
                     </div>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-medium truncate">
-                      #{sticker.sticker_number}
-                    </span>
-                    <Badge 
-                      className={`text-xs ${rarityColors[sticker.rarity as keyof typeof rarityColors]}`}
-                    >
-                      {sticker.rarity.charAt(0).toUpperCase()}
-                    </Badge>
+                    <p className="text-xs text-muted-foreground">
+                      #{sticker.sticker_number} • {obtained ? `Owned: x${userSticker?.quantity || 1}` : 'Not collected'}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {obtained ? sticker.name : "???"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </TooltipProvider>
 
       {obtainedCount === totalCount && totalCount > 0 && (
         <Card className="border-primary bg-primary/5">
