@@ -18,14 +18,16 @@ export const NewsletterManager = () => {
       </div>
 
       <Tabs defaultValue="campaigns" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-          <TabsTrigger value="automated">Automated</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto">
+          <TabsList className="inline-flex w-auto min-w-full">
+            <TabsTrigger value="campaigns" className="whitespace-nowrap">Campaigns</TabsTrigger>
+            <TabsTrigger value="automated" className="whitespace-nowrap">Automated</TabsTrigger>
+            <TabsTrigger value="templates" className="whitespace-nowrap">Templates</TabsTrigger>
+            <TabsTrigger value="subscribers" className="whitespace-nowrap">Subscribers</TabsTrigger>
+            <TabsTrigger value="analytics" className="whitespace-nowrap">Analytics</TabsTrigger>
+            <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="campaigns" className="space-y-4">
           <NewsletterCampaigns />

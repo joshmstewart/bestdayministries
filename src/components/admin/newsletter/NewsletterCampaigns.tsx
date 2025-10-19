@@ -12,9 +12,11 @@ import { CampaignStatsDialog } from "./CampaignStatsDialog";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
 import { format } from "date-fns";
 import { Copy } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const NewsletterCampaigns = () => {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
@@ -126,8 +128,8 @@ export const NewsletterCampaigns = () => {
         <div className="grid gap-4">
           {campaigns?.map((campaign) => (
             <Card key={campaign.id} className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1 flex-1">
+              <div className={isMobile ? "space-y-4" : "flex items-start justify-between"}>
+                <div className="space-y-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-lg font-semibold">{campaign.title}</h4>
                     <Badge variant={getStatusColor(campaign.status)}>
@@ -148,7 +150,7 @@ export const NewsletterCampaigns = () => {
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">{campaign.subject}</p>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2 flex-wrap">
                     {campaign.created_at && (
                       <span>Created {format(new Date(campaign.created_at), "MMM d, yyyy")}</span>
                     )}
@@ -163,7 +165,7 @@ export const NewsletterCampaigns = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className={isMobile ? "flex gap-2 flex-wrap" : "flex gap-2 flex-shrink-0"}>
                   <Button
                     variant="outline"
                     size="sm"

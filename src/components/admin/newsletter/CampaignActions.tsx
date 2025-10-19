@@ -111,10 +111,11 @@ export const CampaignActions = ({
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button
           onClick={() => setIsTestDialogOpen(true)}
           variant="outline"
+          size="sm"
           disabled={isSending}
         >
           <Mail className="w-4 h-4 mr-2" />
@@ -125,6 +126,7 @@ export const CampaignActions = ({
           <Button
             onClick={handleSendNewsletter}
             disabled={isSending}
+            size="sm"
           >
             <Send className="w-4 h-4 mr-2" />
             {isSending ? "Sending..." : "Send Newsletter"}
