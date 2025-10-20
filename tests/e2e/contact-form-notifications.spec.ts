@@ -19,16 +19,29 @@ test.describe('Contact Form Notification System', () => {
   test.beforeAll(async () => {
     supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get admin user ID for notification checks
-    const { data: adminRoles } = await supabase
-      .from('user_roles')
-      .select('user_id')
-      .eq('role', 'admin')
-      .limit(1);
-    
-    if (adminRoles && adminRoles.length > 0) {
-      adminUserId = adminRoles[0].user_id;
+    // Seed test data with admin user
+    const { data: seedResult, error: seedError } = await supabase.functions.invoke(
+      'seed-email-test-data',
+      {
+        body: {
+          testRunId: `contact-notif-${Date.now()}`,
+          includeAdmin: true
+        }
+      }
+    );
+
+    if (seedError) {
+      console.error('❌ Error seeding test data:', seedError);
+      throw seedError;
     }
+
+    if (!seedResult?.userIds?.admin) {
+      console.error('❌ No admin user created in seed data');
+      throw new Error('Failed to create admin user');
+    }
+
+    adminUserId = seedResult.userIds.admin;
+    console.log('✅ Seeded test data with admin user:', adminUserId);
   });
 
   test.afterEach(async () => {

@@ -32,7 +32,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get recipient's email and notification preferences
     const { data: recipient, error: recipientError } = await supabaseAdmin
-      .from("profiles_public")
+      .from("profiles")
       .select("email, display_name")
       .eq("id", recipientId)
       .single();
@@ -83,13 +83,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get sender and bestie names
     const { data: sender } = await supabaseAdmin
-      .from("profiles_public")
+      .from("profiles")
       .select("display_name")
       .eq("id", message.sent_by)
       .single();
 
     const { data: bestie } = await supabaseAdmin
-      .from("profiles_public")
+      .from("profiles")
       .select("display_name")
       .eq("id", message.bestie_id)
       .single();

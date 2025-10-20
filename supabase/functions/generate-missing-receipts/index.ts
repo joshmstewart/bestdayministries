@@ -90,7 +90,7 @@ serve(async (req) => {
 
     // Get user profile for name
     const { data: profile } = await supabaseClient
-      .from("profiles_public")
+      .from("profiles")
       .select("display_name")
       .eq("id", userData.user.id)
       .single();

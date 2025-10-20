@@ -229,20 +229,8 @@ serve(async (req) => {
         }
       }
       
-      // 8. Delete moderation queue items
-      if (testUserIds.length > 0) {
-        console.log('🧹 Deleting moderation queue items...');
-        const { error: moderationError } = await supabaseAdmin
-          .from('moderation_queue')
-          .delete()
-          .or(`author_id.in.(${testUserIds.join(',')}),reviewed_by.in.(${testUserIds.join(',')})`);
-        
-        if (moderationError) {
-          console.error('Error deleting moderation queue:', moderationError);
-        } else {
-          console.log('✅ Deleted moderation queue items');
-        }
-      }
+      // 8. Skip moderation queue (table doesn't exist in this project)
+      // The moderation system uses different tables
       
       // 9. Delete featured bestie hearts
       if (testUserIds.length > 0) {

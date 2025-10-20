@@ -214,6 +214,13 @@ serve(async (req) => {
     // Step 7: Create sponsorships
     console.log('📝 Creating sponsorships...');
     
+    // Delete any existing sponsorships for this sponsor/bestie combo to avoid unique constraint violations
+    await supabaseAdmin
+      .from('sponsorships')
+      .delete()
+      .eq('sponsor_id', userIds.sponsor)
+      .eq('sponsor_bestie_id', sponsorBestie.id);
+    
     const { data: monthlySponsorship, error: monthlyError } = await supabaseAdmin
       .from('sponsorships')
       .insert({
@@ -222,7 +229,10 @@ serve(async (req) => {
         sponsor_bestie_id: sponsorBestie.id,
         amount: 50,
         frequency: 'monthly',
-        status: 'active'
+        status: 'active',
+        stripe_subscription_id: `sub_test_monthly_${testRunId || 'default'}`,
+        stripe_customer_id: `cus_test_${testRunId || 'default'}`,
+        stripe_mode: 'test'
       })
       .select()
       .single();
@@ -240,13 +250,17 @@ serve(async (req) => {
         sponsor_bestie_id: sponsorBestie.id,
         amount: 100,
         frequency: 'one-time',
-        status: 'completed'
+        status: 'completed',
+        stripe_payment_intent_id: `pi_test_onetime_${testRunId || 'default'}`,
+        stripe_customer_id: `cus_test_${testRunId || 'default'}`,
+        stripe_mode: 'test'
       })
       .select()
       .single();
 
     if (oneTimeError) {
       console.error('Error creating one-time sponsorship:', oneTimeError);
+      throw oneTimeError;
     }
 
     console.log('✅ Created sponsorships');
@@ -436,18 +450,15 @@ serve(async (req) => {
       criticalErrors.push(`Preferences: ${prefsError.message}`);
     }
 
-    // Step 14: Ensure receipt settings exist (delete existing first to ensure test data is used)
+    // Step 14: Ensure receipt settings exist (use upsert to avoid duplicates)
     console.log('📝 Ensuring receipt settings...');
     
-    // Delete all existing receipt settings to ensure test data is used
-    await supabaseAdmin
-      .from('receipt_settings')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all except dummy ID
+    const testReceiptSettingsId = '11111111-1111-1111-1111-111111111111';
     
     const { error: receiptError } = await supabaseAdmin
       .from('receipt_settings')
-      .insert({
+      .upsert({
+        id: testReceiptSettingsId,
         organization_name: 'Test Organization',
         organization_ein: '12-3456789',
         organization_address: '123 Test St, Test City, TS 12345',
@@ -455,6 +466,9 @@ serve(async (req) => {
         reply_to_email: 'support@testorg.com',
         receipt_message: 'Thank you for your sponsorship!',
         tax_deductible_notice: 'Your donation is tax-deductible to the extent allowed by law.'
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: false
       });
 
     if (receiptError) {

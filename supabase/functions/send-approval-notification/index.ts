@@ -33,7 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get guardian's email and notification preferences
     const { data: guardian, error: guardianError } = await supabaseAdmin
-      .from("profiles_public")
+      .from("profiles")
       .select("email, display_name")
       .eq("id", guardianId)
       .single();
