@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import percySnapshot from '@percy/playwright';
 
 /**
  * Newsletter System UI E2E Tests
@@ -263,5 +264,53 @@ test.describe('Newsletter System UI @fast', () => {
     // At minimum, we should see campaigns or newsletter-related content
     const hasNewsletterContent = await adminPage.locator('text=/Newsletter|Campaigns|Subscribers/i').first().isVisible();
     expect(hasNewsletterContent).toBeTruthy();
+  });
+
+  // VISUAL REGRESSION TESTS
+  test.describe('Newsletter Visual Regression', () => {
+    test('newsletter campaigns tab visual snapshot', async () => {
+      await adminPage.goto('/admin');
+      await adminPage.waitForLoadState('networkidle');
+      
+      await adminPage.click('button:has-text("Besties")');
+      await adminPage.waitForTimeout(1500);
+      
+      const campaignsTab = adminPage.locator('button:has-text("Campaigns"), text="Campaigns"').first();
+      if (await campaignsTab.isVisible()) {
+        await campaignsTab.click();
+        await adminPage.waitForTimeout(1000);
+        await percySnapshot(adminPage, 'Newsletter - Campaigns Tab');
+      }
+    });
+
+    test('newsletter subscribers tab visual snapshot', async () => {
+      await adminPage.goto('/admin');
+      await adminPage.waitForLoadState('networkidle');
+      
+      await adminPage.click('button:has-text("Besties")');
+      await adminPage.waitForTimeout(1500);
+      
+      const subscribersTab = adminPage.locator('button:has-text("Subscribers"), text="Subscribers"').first();
+      if (await subscribersTab.isVisible()) {
+        await subscribersTab.click();
+        await adminPage.waitForTimeout(1000);
+        await percySnapshot(adminPage, 'Newsletter - Subscribers Tab');
+      }
+    });
+
+    test('newsletter campaign dialog visual snapshot', async () => {
+      await adminPage.goto('/admin');
+      await adminPage.waitForLoadState('networkidle');
+      
+      await adminPage.click('button:has-text("Besties")');
+      await adminPage.waitForTimeout(1500);
+      
+      const newCampaignBtn = adminPage.locator('button:has-text("New Campaign")').first();
+      if (await newCampaignBtn.isVisible()) {
+        await newCampaignBtn.click();
+        await adminPage.waitForTimeout(1000);
+        await percySnapshot(adminPage, 'Newsletter - Campaign Creation Dialog');
+      }
+    });
   });
 });

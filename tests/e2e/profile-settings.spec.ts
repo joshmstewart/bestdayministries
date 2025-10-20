@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import percySnapshot from '@percy/playwright';
 
 /**
  * Profile Settings E2E Tests
@@ -332,5 +333,51 @@ test.describe('Profile Settings @fast', () => {
     }
     
     expect(visibleTabs).toBeGreaterThan(0);
+  });
+
+  // VISUAL REGRESSION TESTS
+  test.describe('Profile Visual Regression', () => {
+    test('profile settings main page visual snapshot', async () => {
+      await testPage.goto('/profile');
+      await testPage.waitForLoadState('networkidle');
+      await testPage.waitForTimeout(1000);
+      await percySnapshot(testPage, 'Profile Settings - Main Tab');
+    });
+
+    test('profile notifications tab visual snapshot', async () => {
+      await testPage.goto('/profile');
+      await testPage.waitForLoadState('networkidle');
+      
+      const notificationsTab = testPage.locator('button:has-text("Notifications"), text="Notifications"').first();
+      if (await notificationsTab.isVisible()) {
+        await notificationsTab.click();
+        await testPage.waitForTimeout(1000);
+        await percySnapshot(testPage, 'Profile Settings - Notifications Tab');
+      }
+    });
+
+    test('profile newsletter tab visual snapshot', async () => {
+      await testPage.goto('/profile');
+      await testPage.waitForLoadState('networkidle');
+      
+      const newsletterTab = testPage.locator('button:has-text("Newsletter"), text="Newsletter"').first();
+      if (await newsletterTab.isVisible()) {
+        await newsletterTab.click();
+        await testPage.waitForTimeout(1000);
+        await percySnapshot(testPage, 'Profile Settings - Newsletter Tab');
+      }
+    });
+
+    test('avatar change dialog visual snapshot', async () => {
+      await testPage.goto('/profile');
+      await testPage.waitForLoadState('networkidle');
+      
+      const changeAvatarBtn = testPage.locator('button:has-text("Change Avatar")').first();
+      if (await changeAvatarBtn.isVisible()) {
+        await changeAvatarBtn.click();
+        await testPage.waitForTimeout(1000);
+        await percySnapshot(testPage, 'Profile Settings - Avatar Selection Dialog');
+      }
+    });
   });
 });

@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import percySnapshot from '@percy/playwright';
 
 /**
  * Games System E2E Tests
@@ -331,6 +332,43 @@ test.describe('Games System @fast', () => {
       });
       
       console.log('Match-3 coin transactions exist:', hasCoinTransaction);
+    });
+  });
+
+  // VISUAL REGRESSION TESTS
+  test.describe('Games Visual Regression', () => {
+    test('memory match lobby visual snapshot', async () => {
+      await testPage.goto('/memory-match');
+      await testPage.waitForLoadState('networkidle');
+      await testPage.waitForTimeout(1000);
+      await percySnapshot(testPage, 'Memory Match - Game Lobby');
+    });
+
+    test('memory match gameplay visual snapshot', async () => {
+      await testPage.goto('/memory-match');
+      await testPage.waitForLoadState('networkidle');
+      
+      const startBtn = testPage.locator('button:has-text("Start")').first();
+      await startBtn.click();
+      await testPage.waitForTimeout(1500);
+      await percySnapshot(testPage, 'Memory Match - Gameplay');
+    });
+
+    test('match-3 mode selection visual snapshot', async () => {
+      await testPage.goto('/match3');
+      await testPage.waitForLoadState('networkidle');
+      await testPage.waitForTimeout(1000);
+      await percySnapshot(testPage, 'Match-3 - Mode Selection');
+    });
+
+    test('match-3 gameplay visual snapshot', async () => {
+      await testPage.goto('/match3');
+      await testPage.waitForLoadState('networkidle');
+      
+      const startBtn = testPage.locator('button:has-text("Start"), button:has-text("Easy")').first();
+      await startBtn.click();
+      await testPage.waitForTimeout(1500);
+      await percySnapshot(testPage, 'Match-3 - Gameplay');
     });
   });
 });
