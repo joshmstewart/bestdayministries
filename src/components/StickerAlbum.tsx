@@ -337,20 +337,56 @@ export const StickerAlbum = () => {
         description: `Bonus pack purchased for ${data.cost} coins! 🎉`
       });
 
-      // Update next cost from response BEFORE refetch
-      const responseNextCost = data.nextCost;
-      if (responseNextCost) {
-        setNextCost(responseNextCost);
-      }
+      // Update bonus card count and cost directly to prevent recalculation
+      setBonusCardCount(data.purchaseCount);
+      setNextCost(data.nextCost);
 
-      // Refresh to get the new card (but preserve nextCost)
-      const currentNextCost = responseNextCost;
-      await fetchStickers();
+      // Refresh to get the new card without recalculating cost
+      if (!session?.user) return;
+
+      // Get coin balance
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('coins')
+        .eq('id', session.user.id)
+        .single();
       
-      // Restore the correct nextCost after fetch
-      if (currentNextCost) {
-        setNextCost(currentNextCost);
-      }
+      setCoinBalance(profile?.coins || 0);
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get all cards for today (unopened ones)
+      const { data: cards } = await supabase
+        .from('daily_scratch_cards')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('date', today)
+        .eq('is_scratched', false)
+        .order('is_bonus_card', { ascending: true });
+      
+      setAvailableCards(cards || []);
+
+      // Refresh stickers without touching bonus count/cost
+      const { data: stickers } = await supabase
+        .from('stickers')
+        .select('*')
+        .eq('collection_id', selectedCollection)
+        .eq('is_active', true)
+        .order('sticker_number');
+
+      const { data: obtained } = await supabase
+        .from('user_stickers')
+        .select('*, stickers(*)')
+        .eq('user_id', session.user.id)
+        .eq('collection_id', selectedCollection);
+
+      setAllStickers(stickers || []);
+      
+      const userStickerMap = new Map();
+      obtained?.forEach((item) => {
+        userStickerMap.set(item.sticker_id, item);
+      });
+      setUserStickers(userStickerMap);
       
       // Auto-open the new card after a short delay
       setTimeout(() => {
