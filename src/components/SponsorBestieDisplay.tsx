@@ -187,7 +187,7 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
             .from('sponsor_bestie_funding_progress_by_mode')
             .select('*')
             .in('sponsor_bestie_id', bestiesWithGoals.map(b => b.id))
-            .eq('stripe_mode', currentMode);
+            .or(`stripe_mode.eq.${currentMode},stripe_mode.is.null`);
 
           if (progressData) {
             const progressMap: Record<string, FundingProgress> = {};
