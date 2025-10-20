@@ -24,25 +24,27 @@
 
 ---
 
-## NEWSLETTER|/admin→Settings→Newsletter|admin
+## NEWSLETTER|/admin→Newsletter|admin
 DOC:NEWSLETTER_SYSTEM.md
-DB:newsletter_campaigns|newsletter_subscribers|campaign_templates|automated_campaign_sends|app_settings[newsletter_header+newsletter_footer]
-EDGE:send-newsletter[Resend-API]|send-automated-campaign[public-triggered]
-COMPS:NewsletterSettings|NewsletterHeaderFooterSettings|RichTextEditor|NewsletterPreviewDialog|CampaignTemplates|CampaignTemplateDialog|AutomatedSendsLog|NewsletterPreferences
-FEATURES:rich-content-editor|automatic-header-footer|logo-insertion|preview|send|subscriber-management|automated-campaigns[6-triggers]|template-management|placeholder-replacement|send-logging
+DB:newsletter_campaigns|newsletter_subscribers|campaign_templates|automated_campaign_sends|newsletter_analytics|newsletter_links|newsletter_emails_log[comprehensive-audit-trail]|app_settings[newsletter_header+newsletter_footer+newsletter_organization]
+EDGE:send-newsletter[admin-batch-header-footer-logging]|send-test-newsletter[admin-test-banner-logging]|send-automated-campaign[triggered-header-footer-dual-logging]|send-test-automated-template[admin-test-logging]|resend-webhook[analytics-engagement]|track-newsletter-click[redirect]|unsubscribe-newsletter[HTML-response]
+COMPS:NewsletterManager[8-tabs]|NewsletterSettings|NewsletterOrganizationSettings|NewsletterHeaderFooterSettings|RichTextEditor[TipTap-images-YouTube]|NewsletterCampaigns|CampaignActions|CampaignTemplates|CampaignTemplateDialog|AutomatedSendsLog|NewsletterEmailsLog[search-filter-view-HTML]|NewsletterSubscribers|NewsletterAnalytics|NewsletterPreferences[user-profile]
+FEATURES:manual-campaigns|automated-templates[6-triggers]|rich-editor|header-footer-injection[ALL-emails]|test-sending[TEST-prefix]|link-tracking|email-logging[newsletter_emails_log]|subscriber-management|analytics-dashboard|unsubscribe-system|organization-settings|batch-sending[100-per-batch]|webhook-integration[Resend]
 AUTOMATED-TRIGGERS:newsletter_subscribed|newsletter_signup|site_signup|subscription_created|event_published|product_published
 TRIGGER-LOCATIONS:NewsletterPreferences→newsletter_subscribed|Auth+VendorAuth→newsletter_signup+site_signup|SponsorBestie→subscription_created|EventManagement→event_published|ProductForm→product_published
-PLACEHOLDERS:[EVENT_NAME]|[EVENT_DATE]|[EVENT_LOCATION]|[PRODUCT_NAME]|[PRODUCT_DESCRIPTION]|[NAME]→replaced-via-trigger_data
-HEADER-FOOTER:JSONB-in-app_settings{enabled:bool+html:string}→inject-server-side
-LOGO-INSERT:parse-JSON→convert-to-public-URL→insert-with-inline-styles[200px-header|150px-footer]
-EMAIL-ASSEMBLY:header(optional)+content+footer(optional)+unsubscribe-footer(required)
-EDITOR:TipTap[StarterKit+ResizableImage+YouTube+Link+TextStyle+Color+Underline+Highlight+TextAlign]
-IMAGE-HANDLING:upload→crop→app-assets-bucket→public-URL→inline-styles[width+alignment]
-SEND-WORKFLOW:admin-trigger→edge-function→load-settings→fetch-subscribers→construct-HTML→Resend-API→update-status
-AUTOMATED-WORKFLOW:app-event→supabase.functions.invoke→find-active-template→replace-placeholders→send-email→log-result
-USER-PREFERENCES:/profile-settings→Newsletter-tab→subscribe/unsubscribe-toggle→triggers-automated-welcome-email
-RLS:admins-only[campaigns+subscribers+templates+sends]|anyone[subscriber-INSERT-for-public-forms]
-CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[compliance]|resubscribe-sends-welcome-email
+PLACEHOLDERS:[EVENT_NAME]|[EVENT_DATE]|[EVENT_LOCATION]|[PRODUCT_NAME]|[PRODUCT_DESCRIPTION]|[NAME]→replaced-via-trigger_data-case-insensitive
+HEADER-FOOTER:app_settings[newsletter_header:JSONB{enabled+html}|newsletter_footer:JSONB{enabled+html}]→injected-ALL-emails[manual+automated+test]
+ORG-SETTINGS:app_settings[newsletter_organization:JSONB{name+address+from_email+from_name}]→used-all-sends
+LOGGING:newsletter_emails_log[campaign_id+template_id+recipient_email+subject+html_content+status+error_message+resend_email_id+metadata]→every-email-logged→search-filter-view-in-admin
+DUAL-LOGGING-AUTOMATED:automated_campaign_sends[status-tracking-engagement]|newsletter_emails_log[audit-trail-HTML-content]
+TEST-EMAILS:[TEST]-prefix-in-subject|test-warning-banner|logged-with-metadata:{is_test:true}|sent-to-admin-only
+TARGETING:all-subscribers|all-site-members|non-subscribers|role-based[filter-by-user-roles]
+AUTOMATED-WORKFLOW:app-event→supabase.functions.invoke→find-active-template→fetch-header-footer-org→replace-placeholders→inject-header-footer→send-Resend→dual-log[automated_campaign_sends+newsletter_emails_log]
+USER-PREFERENCES:/profile-settings→Newsletter-tab→subscribe/unsubscribe→triggers-automated-welcome-email
+COMPATIBILITY:inline-styles-email-client-safe|absolute-URLs|table-layouts|no-modern-CSS
+RLS:admins-only[campaigns+subscribers+templates+sends+analytics+logs]|anyone[subscriber-INSERT-public-forms]|system[edge-functions-INSERT-logs]
+WEBHOOK:resend-webhook→email.sent|email.delivered|email.opened|email.clicked|email.bounced|email.complained→updates-analytics+subscriber-status+automated-sends-engagement
+CRITICAL-IMPLEMENTATION:ALL-send-functions-MUST[inject-header-footer|log-newsletter_emails_log|use-org-settings|handle-errors-gracefully]
 
 ## NEWSLETTER SYSTEM
 
@@ -94,14 +96,17 @@ CRITICAL:inline-styles-required[email-compatibility]|unsubscribe-link-required[c
 **DOC:** NEWSLETTER_SYSTEM.md
 
 ## NEWSLETTER (CONDENSED)
-DB:newsletter_campaigns|newsletter_subscribers|campaign_templates|automated_campaign_sends|newsletter_analytics|app_settings[newsletter_header|newsletter_footer|newsletter_organization]
-EDGE:send-newsletter|send-automated-campaign|send-test-newsletter|unsubscribe-newsletter
-ADMIN:NewsletterManager[tabs:Campaigns|Templates|Subscribers|Automated-Sends|Header-Footer]
-AUTOMATED:6-triggers[newsletter_subscribed|newsletter_signup|site_signup|subscription_created|event_published|product_published]
-TARGETING:all-subscribers|all-site-members|non-subscribers|role-based
-WORKFLOWS:create-campaign→compose-rich-text→select-target→send/schedule→track-analytics
-FEATURES:header/footer-injection|unsubscribe-links|test-emails|image-crop|automated-campaigns|placeholder-replacement|template-management|send-logging
-COMPATIBILITY:inline-styles|table-layouts|email-client-safe
+ADMIN-ROUTE:/admin→Newsletter[8-tabs:Campaigns|Automated|Templates|Email-Log|Sponsorship-Receipts|Subscribers|Analytics|Settings]
+DB:newsletter_campaigns|newsletter_subscribers|campaign_templates|automated_campaign_sends|newsletter_analytics|newsletter_links|newsletter_emails_log|app_settings[newsletter_header|newsletter_footer|newsletter_organization]
+EDGE:send-newsletter|send-test-newsletter|send-automated-campaign|send-test-automated-template|resend-webhook|track-newsletter-click|unsubscribe-newsletter
+ADMIN:NewsletterManager→8-tabs-with-comprehensive-management
+MANUAL-CAMPAIGNS:create-with-RichTextEditor→test-send[TEST-prefix]→send-to-subscribers→batch-100→track-opens-clicks→comprehensive-logging
+AUTOMATED:6-triggers[newsletter_subscribed|newsletter_signup|site_signup|subscription_created|event_published|product_published]→placeholder-replacement→header-footer-injection→dual-logging
+TARGETING:all-subscribers|all-site-members|non-subscribers|role-based-filtering
+HEADER-FOOTER:enabled-toggle+HTML-content→auto-injected-ALL-emails[manual+automated+test]
+EMAIL-LOG:newsletter_emails_log→every-send-logged→search-filter-view-HTML-content→debug-tool
+CRITICAL:ALL-send-functions[inject-header-footer|log-to-newsletter_emails_log|use-org-settings|handle-errors]
+COMPATIBILITY:inline-styles|table-layouts|email-client-safe|absolute-URLs
 DOC:NEWSLETTER_SYSTEM.md
 
 ## AUDIO_RECORDING_STANDARD

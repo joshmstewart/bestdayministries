@@ -127,7 +127,7 @@ serve(async (req) => {
     if (emailError) {
       console.error("❌ Email send error:", emailError);
       
-      // Log failed send
+      // Log failed send to automated_campaign_sends
       await supabaseClient.from("automated_campaign_sends").insert({
         template_id: template.id,
         recipient_email,
@@ -138,12 +138,28 @@ serve(async (req) => {
         error_message: emailError.message,
       });
 
+      // Also log to newsletter_emails_log for comprehensive tracking
+      await supabaseClient.from("newsletter_emails_log").insert({
+        template_id: template.id,
+        recipient_email,
+        recipient_user_id: recipient_user_id || null,
+        subject: subject,
+        html_content: htmlContent,
+        status: "failed",
+        error_message: emailError.message,
+        metadata: { 
+          trigger_event, 
+          trigger_data,
+          template_name: template.name 
+        },
+      });
+
       throw emailError;
     }
 
     console.log("✅ Email sent successfully:", emailData);
 
-    // Log successful send
+    // Log successful send to automated_campaign_sends
     await supabaseClient.from("automated_campaign_sends").insert({
       template_id: template.id,
       recipient_email,
@@ -151,6 +167,22 @@ serve(async (req) => {
       trigger_event,
       trigger_data,
       status: "sent",
+    });
+
+    // Also log to newsletter_emails_log for comprehensive tracking
+    await supabaseClient.from("newsletter_emails_log").insert({
+      template_id: template.id,
+      recipient_email,
+      recipient_user_id: recipient_user_id || null,
+      subject: subject,
+      html_content: htmlContent,
+      status: "sent",
+      resend_email_id: emailData?.id,
+      metadata: { 
+        trigger_event, 
+        trigger_data,
+        template_name: template.name 
+      },
     });
 
     return new Response(

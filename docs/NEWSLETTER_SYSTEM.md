@@ -1,18 +1,23 @@
 # NEWSLETTER & EMAIL MARKETING SYSTEM
 
 ## Overview
-Comprehensive email marketing platform with manual campaigns, automated trigger-based templates, subscriber management, analytics tracking, and detailed email logging.
+Comprehensive email marketing platform with manual campaigns, automated trigger-based templates, subscriber management, analytics tracking, and detailed email logging. All emails automatically include header/footer branding and proper unsubscribe links.
 
 ## Core Features
-- **Manual Campaigns**: Create, schedule, and send one-off newsletter campaigns
-- **Automated Templates**: Trigger-based emails (welcome, anniversary, notifications)
-- **Rich Text Editor**: TipTap with formatting, images, links, alignment
-- **Test Sending**: Send test emails to yourself before launching campaigns
-- **Subscriber Management**: Add, import, manage subscriber list
-- **Email Tracking**: Open rates, click tracking, link analytics
-- **Comprehensive Logging**: Track every email sent with full details
-- **Header/Footer Templates**: Reusable branded content for all emails
-- **Mobile Responsive**: Admin UI wraps tabs on small screens
+- **Manual Campaigns**: Create, schedule, and send one-off newsletter campaigns with rich content
+- **Automated Templates**: Trigger-based emails (welcome, anniversary, notifications) with delay options
+- **Rich Text Editor**: TipTap with formatting, images, links, YouTube embeds, alignment, colors
+- **Test Sending**: Send test emails with [TEST] prefix to verify appearance before sending
+- **Subscriber Management**: Add, import, manage subscriber list with status tracking
+- **Email Tracking**: Webhook-based tracking for opens, clicks, bounces, complaints via Resend
+- **Link Tracking**: Automatic link wrapping with click tracking and redirect
+- **Comprehensive Logging**: Every email logged to newsletter_emails_log with full HTML, status, errors
+- **Header/Footer Templates**: Global branded header/footer automatically injected into all emails
+- **Organization Settings**: Configurable from name, from email, organization name and address
+- **Unsubscribe Management**: Automatic unsubscribe links in all emails with one-click processing
+- **Analytics Dashboard**: View campaign performance, engagement rates, link clicks
+- **Mobile Responsive**: Admin UI with wrapped tabs for mobile screens
+- **Batch Sending**: Sends in batches of 100 with delays to prevent rate limiting
 
 ## Database Schema
 
@@ -160,6 +165,13 @@ Drip campaign sequence steps:
 
 ## Edge Functions
 
+**CRITICAL IMPLEMENTATION NOTES:**
+1. **All send functions MUST inject header/footer** from app_settings
+2. **All send functions MUST log to newsletter_emails_log** for audit trail
+3. **All send functions MUST use organization settings** for from name/email
+4. **Test functions MUST prefix subject** with [TEST]
+5. **All functions MUST handle errors gracefully** and log failures
+
 ### `send-newsletter`
 Sends campaign to all active subscribers.
 
@@ -268,25 +280,59 @@ Sends campaign to all active subscribers.
 - Test banner: "This would normally be sent automatically when trigger event occurs"
 
 ### `send-automated-campaign`
-Sends triggered template when automation event occurs.
+Trigger-based automated emails (welcome, anniversary, notifications).
 
-**Auth:** Internal system trigger
+**Auth:** Service role (called by other edge functions or triggers)
 
 **Request Body:**
 ```json
 {
-  "templateId": "uuid",
-  "recipientEmail": "user@example.com",
-  "variables": { "name": "John", "date": "2025-10-20" }
+  "trigger_event": "user_signup",
+  "recipient_email": "user@example.com",
+  "recipient_user_id": "uuid-of-user",
+  "trigger_data": {
+    "user_name": "John Doe",
+    "signup_date": "2024-01-15"
+  }
 }
 ```
 
 **Logic:**
-1. Fetches template
-2. Replaces variable placeholders
-3. Constructs email with header/footer
-4. Sends via Resend
-5. Logs to analytics
+1. Finds active template for trigger_event with auto_send enabled
+2. Exits gracefully if no template found (returns success: false)
+3. Loads header/footer/org settings from app_settings
+4. Replaces placeholders in subject and content (e.g., [USER_NAME] → "John Doe")
+5. Constructs final HTML (header + content + footer)
+6. Sends via Resend with from name/email from organization settings
+7. **Logs to BOTH tables:**
+   - `automated_campaign_sends`: Track send status, trigger data, engagement
+   - `newsletter_emails_log`: Full HTML content, subject, metadata with trigger info
+8. Returns success with template name used
+
+**Dual Logging Purpose:**
+- `automated_campaign_sends`: Real-time status tracking (sent → delivered → opened)
+- `newsletter_emails_log`: Complete audit trail with full HTML for debugging
+
+**Response Success:**
+```json
+{
+  "success": true,
+  "template_used": "Welcome Email"
+}
+```
+
+**When No Template:**
+```json
+{
+  "success": false,
+  "message": "No template found for this event"
+}
+```
+
+**Placeholder System:**
+Any key in trigger_data can be used in subject/content:
+- `trigger_data: { "USER_NAME": "John" }`
+- Use in template: `[USER_NAME]` → replaced with "John"
 
 ## Frontend Components
 
@@ -600,12 +646,77 @@ TipTap-based rich text editor for email content.
 ## Common Issues & Solutions
 
 ### "Test email not received"
-**Cause:** Email in spam or Resend API key issue
-**Fix:** Check spam folder, verify Resend API key in secrets
+**Cause:** Email in spam or Resend API key issue  
+**Fix:** 
+1. Check spam/junk folder
+2. Verify RESEND_API_KEY is set in Supabase secrets
+3. Check Resend dashboard for domain verification (SPF/DKIM)
+4. Check Email Log tab to see if email was marked as sent or failed
 
 ### "Send button disabled"
-**Cause:** Campaign status not "draft"
-**Fix:** Only draft campaigns can be sent
+**Cause:** Campaign status not "draft"  
+**Fix:** Only draft campaigns can be sent. Already-sent campaigns show "sent" status.
+
+### "Images not showing in email"
+**Cause:** Image URLs not absolute or header/footer not injected  
+**Fix:** 
+1. Verify header/footer are enabled in Settings
+2. Check that images use full URLs (https://)
+3. Test with "Send Test" before sending to all
+4. View Email Log to see actual HTML sent
+
+### "Footer/Header not in email"
+**Cause:** Edge function not loading app_settings correctly  
+**Fix:** 
+1. Verify newsletter_header and newsletter_footer exist in app_settings
+2. Check enabled flag is true in settings
+3. All send functions (send-newsletter, send-test-newsletter, send-automated-campaign, send-test-automated-template) fetch and inject header/footer
+4. View Email Log to verify HTML includes header/footer
+
+### "Links not tracking clicks"
+**Cause:** Link tracking not configured in send-newsletter  
+**Fix:** 
+1. send-newsletter automatically wraps links with tracking codes
+2. Resend webhook must be configured to receive click events
+3. Check Resend dashboard → Webhooks for webhook setup
+4. Webhook URL: `{SUPABASE_URL}/functions/v1/resend-webhook`
+
+### "Opened event not showing"
+**Cause:** Email clients blocking tracking pixels (Apple Mail Privacy Protection, Gmail caching)  
+**Fix:** 
+1. Open tracking is inherently unreliable due to privacy features
+2. Use click tracking instead for reliable engagement metrics
+3. Test with regular Gmail (not Apple Mail) for more reliable open tracking
+4. Webhook receives events from Resend but may not capture all opens
+
+### "Automated emails not sending"
+**Cause:** Template not active or auto_send disabled  
+**Fix:** 
+1. Verify campaign_templates table has is_active = true
+2. Verify auto_send = true for template
+3. Check trigger_event matches exactly
+4. Review automated_campaign_sends table for error messages
+5. Check Email Log for any failed sends
+
+## Future Enhancements
+
+### Planned Features
+- **A/B Testing**: Test different subject lines and content
+- **Dynamic Content**: Personalized blocks based on user data
+- **Drip Sequences**: Multi-step email sequences (newsletter_drip_steps table exists)
+- **Advanced Segmentation**: Filter subscribers by custom criteria
+- **Email Templates Library**: Pre-designed responsive templates
+- **Scheduled Campaigns**: Set future send dates for campaigns
+- **SMS Integration**: Multi-channel communication
+- **Webhook Reliability**: Retry failed webhook processing
+- **Unsubscribe Preferences**: Granular subscription management
+
+### Technical Improvements
+- Implement batch webhook processing for high-volume sends
+- Add retry logic for failed sends
+- Optimize link tracking performance
+- Enhanced mobile preview in editor
+- Dark mode support for admin UI
 
 ### "Email log shows 'failed' status"
 **Cause:** Resend API error (bad email, over quota, etc.)
