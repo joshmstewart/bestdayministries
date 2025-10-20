@@ -3400,13 +3400,6 @@ export type Database = {
             foreignKeyName: "sponsor_bestie_requests_sponsor_bestie_id_fkey"
             columns: ["sponsor_bestie_id"]
             isOneToOne: false
-            referencedRelation: "sponsor_bestie_funding_progress_by_mode"
-            referencedColumns: ["sponsor_bestie_id"]
-          },
-          {
-            foreignKeyName: "sponsor_bestie_requests_sponsor_bestie_id_fkey"
-            columns: ["sponsor_bestie_id"]
-            isOneToOne: false
             referencedRelation: "sponsor_besties"
             referencedColumns: ["id"]
           },
@@ -3771,13 +3764,6 @@ export type Database = {
             columns: ["sponsor_bestie_id"]
             isOneToOne: false
             referencedRelation: "sponsor_bestie_funding_progress"
-            referencedColumns: ["sponsor_bestie_id"]
-          },
-          {
-            foreignKeyName: "sponsorships_sponsor_bestie_id_fkey"
-            columns: ["sponsor_bestie_id"]
-            isOneToOne: false
-            referencedRelation: "sponsor_bestie_funding_progress_by_mode"
             referencedColumns: ["sponsor_bestie_id"]
           },
           {
@@ -4896,6 +4882,7 @@ export type Database = {
       }
       sponsor_bestie_funding_progress_by_mode: {
         Row: {
+          bestie_id: string | null
           bestie_name: string | null
           current_monthly_pledges: number | null
           funding_percentage: number | null
@@ -4998,6 +4985,19 @@ export type Database = {
           setting_key: string
           setting_value: Json
           updated_at: string
+        }[]
+      }
+      get_sponsor_bestie_funding_progress: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          bestie_id: string
+          bestie_name: string
+          current_monthly_pledges: number
+          funding_percentage: number
+          monthly_goal: number
+          remaining_needed: number
+          sponsor_bestie_id: string
+          stripe_mode: string
         }[]
       }
       get_user_email: {
