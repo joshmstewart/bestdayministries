@@ -5,14 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Mail, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
+import { Mail, CheckCircle, XCircle, Clock, Eye, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const AutomatedSendsLog = () => {
+  const { toast } = useToast();
   const [selectedSend, setSelectedSend] = useState<any>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [resending, setResending] = useState<string | null>(null);
 
-  const { data: sends, isLoading } = useQuery({
+  const { data: sends, isLoading, refetch } = useQuery({
     queryKey: ["automated-campaign-sends"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -32,6 +35,38 @@ export const AutomatedSendsLog = () => {
       return data;
     },
   });
+
+  const handleResend = async (send: any) => {
+    setResending(send.id);
+    try {
+      const { error } = await supabase.functions.invoke('send-automated-campaign', {
+        body: {
+          trigger_event: send.trigger_event,
+          recipient_email: send.recipient_email,
+          recipient_user_id: send.recipient_user_id,
+          trigger_data: send.trigger_data || {},
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email resent",
+        description: "The email has been queued for resending",
+      });
+      
+      refetch();
+    } catch (error: any) {
+      console.error('Error resending email:', error);
+      toast({
+        title: "Error resending email",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setResending(null);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -65,12 +100,12 @@ export const AutomatedSendsLog = () => {
           <div className="space-y-3">
             {sends.map((send: any) => (
               <div key={send.id} className="p-4 border rounded-lg space-y-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
                     <div className="font-medium">{send.campaign_templates?.name || "Unknown Template"}</div>
-                    <div className="text-sm text-muted-foreground">{send.recipient_email}</div>
+                    <div className="text-sm text-muted-foreground truncate">{send.recipient_email}</div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     {send.campaign_templates?.content && (
                       <Button
                         variant="ghost"
@@ -79,8 +114,24 @@ export const AutomatedSendsLog = () => {
                           setSelectedSend(send);
                           setDetailsOpen(true);
                         }}
+                        title="View email content"
                       >
                         <Eye className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {(send.status === 'failed' || send.status === 'bounced') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleResend(send)}
+                        disabled={resending === send.id}
+                        title="Resend email"
+                      >
+                        {resending === send.id ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
                       </Button>
                     )}
                     {getStatusBadge(send.status)}
