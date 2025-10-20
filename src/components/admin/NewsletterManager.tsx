@@ -38,8 +38,20 @@ export const NewsletterManager = () => {
         </TabsContent>
 
         <TabsContent value="automated" className="space-y-4">
-          <CampaignTemplates />
-          <AutomatedSendsLog />
+          <Tabs defaultValue="templates" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="templates">Campaign Templates</TabsTrigger>
+              <TabsTrigger value="log">Email Log</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="templates">
+              <CampaignTemplates />
+            </TabsContent>
+            
+            <TabsContent value="log">
+              <AutomatedSendsLog />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4">
