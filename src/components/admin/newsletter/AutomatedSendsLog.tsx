@@ -29,10 +29,28 @@ export const AutomatedSendsLog = () => {
           )
         `)
         .order("sent_at", { ascending: false })
-        .limit(100);
+        .limit(200); // Fetch more to dedupe
 
       if (error) throw error;
-      return data;
+      
+      // Deduplicate by recipient_email + template_id, keeping the latest
+      const seen = new Map<string, any>();
+      const deduped = data?.filter(send => {
+        const key = `${send.recipient_email}::${send.template_id}`;
+        if (!seen.has(key)) {
+          seen.set(key, send);
+          return true;
+        }
+        // If we've seen this combo, only keep it if this one is more recent
+        const existing = seen.get(key);
+        if (new Date(send.sent_at) > new Date(existing.sent_at)) {
+          seen.set(key, send);
+          return true;
+        }
+        return false;
+      }) || [];
+
+      return deduped.slice(0, 100); // Return top 100 after deduplication
     },
   });
 
