@@ -86,17 +86,54 @@ export const AutomatedSendsLog = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "sent":
-        return <Badge className="bg-green-500/10 text-green-700 dark:text-green-400"><CheckCircle className="w-3 h-3 mr-1" /> Sent</Badge>;
-      case "failed":
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" /> Failed</Badge>;
-      case "bounced":
-        return <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" /> Bounced</Badge>;
-      default:
-        return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" /> {status}</Badge>;
+  const getStatusBadge = (status: string, send: any) => {
+    // Show engagement indicators
+    const engagementBadges = [];
+    
+    if (send.opened_at) {
+      engagementBadges.push(
+        <Badge key="opened" variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400">
+          <Eye className="w-3 h-3 mr-1" /> Opened
+        </Badge>
+      );
     }
+    
+    if (send.clicked_at) {
+      engagementBadges.push(
+        <Badge key="clicked" variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-400">
+          <Mail className="w-3 h-3 mr-1" /> Clicked
+        </Badge>
+      );
+    }
+    
+    // Status badge
+    let statusBadge;
+    switch (status) {
+      case "delivered":
+        statusBadge = <Badge className="bg-green-500/10 text-green-700 dark:text-green-400"><CheckCircle className="w-3 h-3 mr-1" /> Delivered</Badge>;
+        break;
+      case "sent":
+        statusBadge = <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400"><CheckCircle className="w-3 h-3 mr-1" /> Sent</Badge>;
+        break;
+      case "failed":
+        statusBadge = <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" /> Failed</Badge>;
+        break;
+      case "bounced":
+        statusBadge = <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" /> Bounced</Badge>;
+        break;
+      case "complained":
+        statusBadge = <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" /> Spam Report</Badge>;
+        break;
+      default:
+        statusBadge = <Badge variant="outline"><Clock className="w-3 h-3 mr-1" /> {status}</Badge>;
+    }
+    
+    return (
+      <div className="flex gap-2 flex-wrap">
+        {statusBadge}
+        {engagementBadges}
+      </div>
+    );
   };
 
   return (
@@ -152,7 +189,7 @@ export const AutomatedSendsLog = () => {
                         )}
                       </Button>
                     )}
-                    {getStatusBadge(send.status)}
+                    {getStatusBadge(send.status, send)}
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -194,6 +231,24 @@ export const AutomatedSendsLog = () => {
                 <div className="text-sm font-medium">Sent:</div>
                 <div className="text-sm">{format(new Date(selectedSend.sent_at), "MMM d, yyyy 'at' h:mm a")}</div>
               </div>
+              {selectedSend.opened_at && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Opened:</div>
+                  <div className="text-sm">{format(new Date(selectedSend.opened_at), "MMM d, yyyy 'at' h:mm a")}</div>
+                </div>
+              )}
+              {selectedSend.clicked_at && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Clicked:</div>
+                  <div className="text-sm">{format(new Date(selectedSend.clicked_at), "MMM d, yyyy 'at' h:mm a")}</div>
+                </div>
+              )}
+              {selectedSend.complained_at && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Spam Report:</div>
+                  <div className="text-sm">{format(new Date(selectedSend.complained_at), "MMM d, yyyy 'at' h:mm a")}</div>
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="text-sm font-medium">Email Content:</div>
                 <div 

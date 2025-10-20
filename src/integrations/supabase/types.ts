@@ -188,9 +188,12 @@ export type Database = {
       }
       automated_campaign_sends: {
         Row: {
+          clicked_at: string | null
+          complained_at: string | null
           created_at: string
           error_message: string | null
           id: string
+          opened_at: string | null
           recipient_email: string
           recipient_user_id: string | null
           sent_at: string | null
@@ -200,9 +203,12 @@ export type Database = {
           trigger_event: string
         }
         Insert: {
+          clicked_at?: string | null
+          complained_at?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
+          opened_at?: string | null
           recipient_email: string
           recipient_user_id?: string | null
           sent_at?: string | null
@@ -212,9 +218,12 @@ export type Database = {
           trigger_event: string
         }
         Update: {
+          clicked_at?: string | null
+          complained_at?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
+          opened_at?: string | null
           recipient_email?: string
           recipient_user_id?: string | null
           sent_at?: string | null

@@ -116,20 +116,36 @@ serve(async (req) => {
         .eq("email", email);
     }
 
-    // Update automated campaign sends status
-    if (eventType === "delivered" || eventType === "bounced" || eventType === "failed") {
-      const statusMap: Record<string, string> = {
-        "delivered": "delivered",
-        "bounced": "bounced",
-        "failed": "failed",
-      };
+    // Update automated campaign sends status and engagement tracking
+    if (eventType === "delivered" || eventType === "bounced" || eventType === "failed" || 
+        eventType === "opened" || eventType === "clicked" || eventType === "complained") {
+      
+      const updateData: any = {};
+      const now = new Date().toISOString();
+      
+      // Set status for terminal states
+      if (eventType === "delivered") {
+        updateData.status = "delivered";
+      } else if (eventType === "bounced") {
+        updateData.status = "bounced";
+        updateData.error_message = "Email bounced";
+      } else if (eventType === "failed") {
+        updateData.status = "failed";
+      } else if (eventType === "complained") {
+        updateData.status = "complained";
+        updateData.complained_at = now;
+      }
+      
+      // Track engagement events (don't change status, just add timestamps)
+      if (eventType === "opened") {
+        updateData.opened_at = now;
+      } else if (eventType === "clicked") {
+        updateData.clicked_at = now;
+      }
 
       await supabaseClient
         .from("automated_campaign_sends")
-        .update({ 
-          status: statusMap[eventType],
-          error_message: eventType === "bounced" ? "Email bounced" : null,
-        })
+        .update(updateData)
         .eq("recipient_email", email)
         .gte("sent_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Last 7 days only
     }
