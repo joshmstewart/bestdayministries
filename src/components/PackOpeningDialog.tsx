@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import confetti from "canvas-confetti";
@@ -20,6 +21,14 @@ const rarityColors = {
   rare: "from-blue-400 to-blue-600",
   epic: "from-purple-400 to-purple-600",
   legendary: "from-yellow-400 to-orange-600",
+};
+
+const rarityBadgeColors = {
+  common: "bg-gray-500 text-white",
+  uncommon: "bg-green-500 text-white",
+  rare: "bg-blue-500 text-white",
+  epic: "bg-purple-500 text-white",
+  legendary: "bg-yellow-500 text-black",
 };
 
 const rarityConfettiConfig = {
@@ -469,9 +478,17 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
               
               <div className="text-center space-y-2">
                 <h3 className="text-2xl font-bold">{revealedSticker.name}</h3>
-                <p className="text-sm text-muted-foreground capitalize">
-                  {revealedSticker.rarity} • {revealedSticker.category}
-                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <Badge className={rarityBadgeColors[revealedSticker.rarity as keyof typeof rarityBadgeColors]}>
+                    {revealedSticker.rarity.charAt(0).toUpperCase() + revealedSticker.rarity.slice(1)}
+                  </Badge>
+                  {revealedSticker.category && (
+                    <>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-sm text-muted-foreground capitalize">{revealedSticker.category}</span>
+                    </>
+                  )}
+                </div>
                 {revealedSticker.description && (
                   <p className="text-sm text-muted-foreground max-w-xs">
                     {revealedSticker.description}
