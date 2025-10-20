@@ -253,6 +253,20 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           }
 
           console.log('🔵 FINAL PROGRESS MAP:', progressMap);
+          
+          // Log which besties have progress and which don't
+          const bestiesWithProgress = bestiesWithGoals.filter(b => progressMap[b.id]);
+          const bestiesWithoutProgress = bestiesWithGoals.filter(b => !progressMap[b.id]);
+          
+          console.log('✅ BESTIES WITH PROGRESS:', {
+            count: bestiesWithProgress.length,
+            besties: bestiesWithProgress.map(b => ({ id: b.id, name: b.bestie_name, progress: progressMap[b.id] }))
+          });
+          
+          console.log('❌ BESTIES WITHOUT PROGRESS:', {
+            count: bestiesWithoutProgress.length,
+            besties: bestiesWithoutProgress.map(b => ({ id: b.id, name: b.bestie_name, goal: b.monthly_goal }))
+          });
 
           setFundingProgress(progressMap);
         }
