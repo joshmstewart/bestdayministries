@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, CheckCircle2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -12,6 +12,7 @@ import { format } from "date-fns";
 export const SponsorshipReceiptsManager = () => {
   const { toast } = useToast();
   const [sending, setSending] = useState<string | null>(null);
+  const [resending, setResending] = useState<string | null>(null);
 
   // Fetch recent receipts log with deduplication
   const { data: recentReceipts } = useQuery({
@@ -112,6 +113,35 @@ export const SponsorshipReceiptsManager = () => {
       });
     } finally {
       setSending(null);
+    }
+  };
+
+  const handleResendReceipt = async (receipt: any) => {
+    setResending(receipt.id);
+    try {
+      const { error } = await supabase.functions.invoke('send-sponsorship-receipt', {
+        body: { 
+          sponsorshipId: receipt.sponsorship_id,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Receipt resent",
+        description: "The receipt has been resent successfully",
+      });
+      
+      refetch();
+    } catch (error: any) {
+      console.error('Error resending receipt:', error);
+      toast({
+        title: "Error resending receipt",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setResending(null);
     }
   };
 
@@ -221,7 +251,7 @@ export const SponsorshipReceiptsManager = () => {
                 {recentReceipts.map((receipt) => (
                   <div
                     key={receipt.id}
-                    className="flex items-start justify-between p-4 border rounded-lg"
+                    className="flex items-start justify-between p-4 border rounded-lg gap-4"
                   >
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
@@ -245,10 +275,25 @@ export const SponsorshipReceiptsManager = () => {
                         </Badge>
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground text-right whitespace-nowrap ml-4">
-                      {format(new Date(receipt.sent_at), 'MMM d, yyyy')}
-                      <br />
-                      {format(new Date(receipt.sent_at), 'h:mm a')}
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="text-sm text-muted-foreground text-right whitespace-nowrap">
+                        {format(new Date(receipt.sent_at), 'MMM d, yyyy')}
+                        <br />
+                        {format(new Date(receipt.sent_at), 'h:mm a')}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleResendReceipt(receipt)}
+                        disabled={resending === receipt.id}
+                        title="Resend receipt"
+                      >
+                        {resending === receipt.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </div>
                 ))}
