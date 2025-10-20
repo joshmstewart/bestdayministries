@@ -83,7 +83,7 @@ export const NewsletterPreferences = ({ userId, userEmail }: NewsletterPreferenc
       try {
         await supabase.functions.invoke('send-automated-campaign', {
           body: {
-            trigger_event: 'newsletter_subscribed',
+            trigger_event: 'newsletter_signup',
             recipient_email: userEmail,
             recipient_user_id: userId,
             trigger_data: {
