@@ -116,6 +116,24 @@ serve(async (req) => {
         .eq("email", email);
     }
 
+    // Update automated campaign sends status
+    if (eventType === "delivered" || eventType === "bounced" || eventType === "failed") {
+      const statusMap: Record<string, string> = {
+        "delivered": "sent", // Keep as "sent" but we know it was delivered
+        "bounced": "bounced",
+        "failed": "failed",
+      };
+
+      await supabaseClient
+        .from("automated_campaign_sends")
+        .update({ 
+          status: statusMap[eventType],
+          error_message: eventType === "bounced" ? "Email bounced" : null,
+        })
+        .eq("recipient_email", email)
+        .gte("sent_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Last 7 days only
+    }
+
     return new Response(
       JSON.stringify({ received: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
