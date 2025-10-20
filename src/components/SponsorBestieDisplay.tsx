@@ -184,32 +184,38 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
         // Load funding progress for besties with goals, filtered by Stripe mode
         const bestiesWithGoals = orderedBesties.filter(b => b.monthly_goal && b.monthly_goal > 0);
         if (bestiesWithGoals.length > 0) {
-          const { data: progressData } = await supabase
+          // Query 1: Get besties with matching stripe mode
+          const { data: matchingModeData } = await supabase
             .from('sponsor_bestie_funding_progress_by_mode')
             .select('*')
             .in('sponsor_bestie_id', bestiesWithGoals.map(b => b.id))
-            .or(`stripe_mode.eq.${currentMode},stripe_mode.is.null`);
+            .eq('stripe_mode', currentMode);
 
-          if (progressData) {
-            const progressMap: Record<string, FundingProgress> = {};
-            
-            // Process results: prioritize matching mode over null
-            progressData.forEach(p => {
-              const existingEntry = progressMap[p.sponsor_bestie_id];
-              
-              // If no entry yet, add it
-              if (!existingEntry) {
-                progressMap[p.sponsor_bestie_id] = p;
-              } 
-              // If current entry is null and new entry matches mode, replace it
-              else if (existingEntry.stripe_mode === null && p.stripe_mode === currentMode) {
-                progressMap[p.sponsor_bestie_id] = p;
-              }
-              // If current entry matches mode, keep it (don't overwrite with null)
+          // Query 2: Get besties with no sponsorships (null mode)
+          const { data: nullModeData } = await supabase
+            .from('sponsor_bestie_funding_progress_by_mode')
+            .select('*')
+            .in('sponsor_bestie_id', bestiesWithGoals.map(b => b.id))
+            .is('stripe_mode', null);
+
+          // Merge results: prioritize matching mode over null
+          const progressMap: Record<string, FundingProgress> = {};
+
+          // First add all null mode entries (besties with $0)
+          if (nullModeData) {
+            nullModeData.forEach(p => {
+              progressMap[p.sponsor_bestie_id] = p;
             });
-            
-            setFundingProgress(progressMap);
           }
+
+          // Then overwrite with matching mode entries (actual funding in current mode)
+          if (matchingModeData) {
+            matchingModeData.forEach(p => {
+              progressMap[p.sponsor_bestie_id] = p;
+            });
+          }
+
+          setFundingProgress(progressMap);
         }
       }
     } catch (error) {
