@@ -33,9 +33,16 @@ Route: `/sponsor-bestie?bestieId={optional}` - One-time/monthly sponsorships via
 - "Fully Funded" message (if `is_fully_funded` or ≥100%)
 - **Carousel Controls:** Prev/Next arrows, Play/Pause, dot indicators (inside card, bottom)
 
-**Data:** Fetches `sponsor_besties` (active), randomizes, checks user sponsorships, loads `sponsor_bestie_funding_progress` view
+**Data:** Fetches `sponsor_besties` (active), randomizes, checks user sponsorships, loads `sponsor_bestie_funding_progress_by_mode` view
 
 **Controls Position:** All carousel navigation controls rendered inside each card (matches FeaturedItem pattern)
+
+**CRITICAL STRIPE MODE BEHAVIOR:**
+- **Carousel ALWAYS displays LIVE sponsorship data** regardless of app's Stripe mode setting
+- Hardcoded to query `stripe_mode = 'live'` to show real funding progress
+- Rationale: Carousel is public-facing display meant to show real progress and encourage real sponsorships
+- Test mode is for admin operations only, not public displays
+- This ensures besties with real LIVE sponsorships always show correct funding amounts
 
 ---
 
@@ -131,3 +138,4 @@ Only first section gets TTS button (combines header + text)
 | No progress bar | `monthly_goal` null/0 | Set goal in admin |
 | Carousel not pausing | `onPlayingChange` disconnected | Check TextToSpeech prop |
 | Button hidden | `is_fully_funded` true | Check database flag |
+| Funding shows $0 despite LIVE sponsorships | Code changed to query by app mode instead of hardcoded 'live' | Verify `SponsorBestieDisplay.tsx` queries with `.eq('stripe_mode', 'live')` |
