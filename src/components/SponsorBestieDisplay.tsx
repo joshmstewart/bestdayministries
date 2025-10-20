@@ -34,6 +34,7 @@ interface FundingProgress {
   current_monthly_pledges: number;
   monthly_goal: number;
   funding_percentage: number;
+  stripe_mode: string | null;
 }
 
 interface SponsorBestieDisplayProps {
@@ -191,9 +192,22 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
 
           if (progressData) {
             const progressMap: Record<string, FundingProgress> = {};
+            
+            // Process results: prioritize matching mode over null
             progressData.forEach(p => {
-              progressMap[p.sponsor_bestie_id] = p;
+              const existingEntry = progressMap[p.sponsor_bestie_id];
+              
+              // If no entry yet, add it
+              if (!existingEntry) {
+                progressMap[p.sponsor_bestie_id] = p;
+              } 
+              // If current entry is null and new entry matches mode, replace it
+              else if (existingEntry.stripe_mode === null && p.stripe_mode === currentMode) {
+                progressMap[p.sponsor_bestie_id] = p;
+              }
+              // If current entry matches mode, keep it (don't overwrite with null)
             });
+            
             setFundingProgress(progressMap);
           }
         }
