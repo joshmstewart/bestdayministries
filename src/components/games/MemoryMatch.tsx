@@ -64,7 +64,7 @@ export const MemoryMatch = () => {
     if (!user) return;
 
     const { data } = await supabase
-      .from('user_purchases')
+      .from('user_store_purchases')
       .select('store_item_id')
       .eq('user_id', user.id);
 
