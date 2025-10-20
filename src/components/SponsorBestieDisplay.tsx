@@ -121,8 +121,6 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
 
   const loadCurrentBesties = async () => {
     try {
-      console.log('🔵 LOADING BESTIES - Start');
-      
       // Fetch all active and public besties from sponsor_besties table
       const { data: bestiesData, error: bestiesError } = await supabase
         .from('sponsor_besties')
@@ -132,17 +130,6 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
         .order('created_at', { ascending: false });
 
       if (bestiesError) throw bestiesError;
-
-      console.log('🔵 FETCHED BESTIES:', {
-        count: bestiesData?.length || 0,
-        besties: bestiesData?.map(b => ({
-          id: b.id,
-          name: b.bestie_name,
-          monthly_goal: b.monthly_goal,
-          is_active: b.is_active,
-          is_public: b.is_public
-        }))
-      });
 
       if (bestiesData && bestiesData.length > 0) {
         // Parse text_sections
@@ -178,95 +165,43 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           }
         }
 
-        // Get current Stripe mode
-        const { data: modeData } = await supabase
-          .from('app_settings')
-          .select('setting_value')
-          .eq('setting_key', 'stripe_mode')
-          .single();
-        
-        let currentMode: 'test' | 'live' = 'test';
-        if (modeData?.setting_value) {
-          const rawValue = modeData.setting_value;
-          const cleanValue = typeof rawValue === 'string' 
-            ? rawValue.replace(/^"(.*)"$/, '$1')
-            : String(rawValue);
-          currentMode = (cleanValue === 'live' ? 'live' : 'test') as 'test' | 'live';
-        }
-        
-        console.log('🔵 STRIPE MODE:', {
-          rawValue: modeData?.setting_value,
-          currentMode
-        });
-
-        // Load funding progress for besties with goals, filtered by Stripe mode
+        // Load funding progress for besties with goals
+        // Always show LIVE mode sponsorships regardless of app's Stripe mode setting
         const bestiesWithGoals = orderedBesties.filter(b => b.monthly_goal && b.monthly_goal > 0);
         
-        console.log('🔵 BESTIES WITH GOALS:', {
-          count: bestiesWithGoals.length,
-          bestieIds: bestiesWithGoals.map(b => ({ id: b.id, name: b.bestie_name, goal: b.monthly_goal }))
-        });
-        
         if (bestiesWithGoals.length > 0) {
-          // Query 1: Get besties with matching stripe mode
-          const { data: matchingModeData } = await supabase
+          const bestieIds = bestiesWithGoals.map(b => b.id);
+          
+          // Query funding progress for LIVE mode only
+          const { data: liveModeData } = await supabase
             .from('sponsor_bestie_funding_progress_by_mode')
             .select('*')
-            .in('sponsor_bestie_id', bestiesWithGoals.map(b => b.id))
-            .eq('stripe_mode', currentMode);
+            .in('sponsor_bestie_id', bestieIds)
+            .eq('stripe_mode', 'live');
 
-          console.log('🔵 MATCHING MODE DATA:', {
-            mode: currentMode,
-            count: matchingModeData?.length || 0,
-            data: matchingModeData
-          });
-
-          // Query 2: Get besties with no sponsorships (null mode)
+          // Query for besties with no sponsorships (null mode)
           const { data: nullModeData } = await supabase
             .from('sponsor_bestie_funding_progress_by_mode')
             .select('*')
-            .in('sponsor_bestie_id', bestiesWithGoals.map(b => b.id))
+            .in('sponsor_bestie_id', bestieIds)
             .is('stripe_mode', null);
 
-          console.log('🔵 NULL MODE DATA:', {
-            count: nullModeData?.length || 0,
-            data: nullModeData
-          });
-
-          // Merge results: prioritize matching mode over null
+          // Build progress map: prioritize LIVE data over null
           const progressMap: Record<string, FundingProgress> = {};
 
-          // First add all null mode entries (besties with $0)
+          // First add besties with no sponsorships ($0)
           if (nullModeData) {
             nullModeData.forEach(p => {
               progressMap[p.sponsor_bestie_id] = p;
             });
           }
 
-          console.log('🔵 PROGRESS MAP AFTER NULL:', progressMap);
-
-          // Then overwrite with matching mode entries (actual funding in current mode)
-          if (matchingModeData) {
-            matchingModeData.forEach(p => {
+          // Then overwrite with LIVE sponsorships (real funding)
+          if (liveModeData) {
+            liveModeData.forEach(p => {
               progressMap[p.sponsor_bestie_id] = p;
             });
           }
-
-          console.log('🔵 FINAL PROGRESS MAP:', progressMap);
-          
-          // Log which besties have progress and which don't
-          const bestiesWithProgress = bestiesWithGoals.filter(b => progressMap[b.id]);
-          const bestiesWithoutProgress = bestiesWithGoals.filter(b => !progressMap[b.id]);
-          
-          console.log('✅ BESTIES WITH PROGRESS:', {
-            count: bestiesWithProgress.length,
-            besties: bestiesWithProgress.map(b => ({ id: b.id, name: b.bestie_name, progress: progressMap[b.id] }))
-          });
-          
-          console.log('❌ BESTIES WITHOUT PROGRESS:', {
-            count: bestiesWithoutProgress.length,
-            besties: bestiesWithoutProgress.map(b => ({ id: b.id, name: b.bestie_name, goal: b.monthly_goal }))
-          });
 
           setFundingProgress(progressMap);
         }
