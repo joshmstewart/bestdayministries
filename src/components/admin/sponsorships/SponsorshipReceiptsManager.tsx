@@ -13,7 +13,7 @@ export const SponsorshipReceiptsManager = () => {
   const { toast } = useToast();
   const [sending, setSending] = useState<string | null>(null);
 
-  // Fetch recent receipts log
+  // Fetch recent receipts log with deduplication
   const { data: recentReceipts } = useQuery({
     queryKey: ['recent-sponsorship-receipts'],
     queryFn: async () => {
@@ -21,10 +21,18 @@ export const SponsorshipReceiptsManager = () => {
         .from('sponsorship_receipts')
         .select('*')
         .order('sent_at', { ascending: false })
-        .limit(50);
+        .limit(100); // Fetch more to dedupe
 
       if (error) throw error;
-      return data;
+
+      // Deduplicate by transaction_id or receipt_number, keeping the latest
+      const seen = new Set<string>();
+      return data?.filter(receipt => {
+        const key = receipt.transaction_id || receipt.receipt_number;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, 50) || [];
     },
   });
 
@@ -40,6 +48,7 @@ export const SponsorshipReceiptsManager = () => {
           frequency,
           started_at,
           sponsor_id,
+          sponsor_email,
           sponsor_bestie_id,
           stripe_subscription_id,
           profiles!sponsorships_sponsor_id_fkey (
@@ -72,7 +81,8 @@ export const SponsorshipReceiptsManager = () => {
       return sponsorships?.filter(s => {
         const profile = (s as any).profiles;
         const bestie = (s as any).sponsor_besties;
-        const combo = `${profile?.email}::${bestie?.bestie_name}`;
+        const email = profile?.email || s.sponsor_email;
+        const combo = `${email}::${bestie?.bestie_name}`;
         return !receiptedIds.has(s.id) && !receiptedCombos.has(combo);
       }) || [];
     },
@@ -162,10 +172,10 @@ export const SponsorshipReceiptsManager = () => {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">
-                        {profile?.display_name || 'Unknown Sponsor'}
+                        {profile?.display_name || sponsorship.sponsor_email || 'Unknown Sponsor'}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">
-                        {profile?.email}
+                        {profile?.email || sponsorship.sponsor_email}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="outline" className="text-xs">
