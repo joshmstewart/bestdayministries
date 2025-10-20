@@ -231,6 +231,8 @@ REALTIME:useGuardianApprovalsCount|useSponsorUnreadCount
 PAGES:/sponsor-bestie|/sponsorship-success|/guardian-links|/bestie-messages|/guardian-approvals
 TRIGGERS:link_guest_sponsorships()
 STORAGE:app-assets|featured-bestie-audio
+CRITICAL-CAROUSEL:SponsorBestieDisplay→ALWAYS-queries-LIVE-mode-only→hardcoded-stripe_mode='live'→public-display-shows-real-funding-regardless-app-mode
+DOC:SPONSOR_PAGE_SYSTEM.md
 
 ## VENDOR_BESTIE
 OVERVIEW:vendors-display-approved-bestie-content-on-profile
@@ -373,12 +375,14 @@ ROUTE:/sponsor-bestie?bestieId=xxx
 FEATURES:dynamic-ordering|URL-param|role-block-besties|Stripe
 SECTIONS:header|featured_video|carousel|selection_form|impact_info[ordered-by-display_order]
 DISPLAY:SponsorBestieDisplay[carousel-7s+TTS+audio+funding+controls-inside-card]
-DB:sponsor_besties|sponsor_page_sections|sponsor_bestie_funding_progress-VIEW
+DB:sponsor_besties|sponsor_page_sections|sponsor_bestie_funding_progress_by_mode-VIEW
 ADMIN:Manager[CRUD]|PageOrder[drag-drop-dnd-kit]|PageContent[edit-header]
 RULES:URL[?bestieId→move-top]|role[besties-cant-sponsor]|funding[if-goal>0]|carousel[pause-on-nav-TTS]
 STRIPE:create-checkout→session→URL
 WORKFLOW:guardian-creates→vendor-links→guardian-approves→vendor-requests-asset→guardian-approves→displays
 DISPLAY:2-col-grid[asset|bestie-name-desc-TTS]
+CRITICAL-STRIPE-MODE:carousel-ALWAYS-shows-LIVE-sponsorships→.eq('stripe_mode','live')→never-respects-app-mode-setting→public-facing-must-show-real-data
+LOCATIONS:homepage|community|sponsor-page|support→all-use-same-LIVE-only-logic
 
 ## COMMUNITY_PREVIEW_SECTIONS
 GRID:1-col-mobile|2-col-desktop-gap-6
@@ -448,6 +452,7 @@ STATUSES:success✅|failure❌|pending⏱|cancelled🚫
 RUN-LOCAL:npx-playwright-test|--ui[interactive]|show-report[view-results]|--grep-@slow[performance]|--grep-@fast[default]
 E2E-COVERAGE:
 TESTS:basic|auth|navigation|community|forms|guardian-approvals|guardian-linking|sponsorship|store|vendor-linking|discussions|events-interactions|shopping-cart|notifications|video|help-center|performance
+SPONSORSHIP-REGRESSION:LIVE-funding-display→catches-carousel-showing-$0-for-LIVE-sponsorships-when-app-in-TEST-mode
 TAGS:@fast[default-60s-timeout]|@slow[performance-tests]
 E2E-RELIABILITY-PATTERNS:
 LAYERED-WAITS:tab-click→section-heading-wait-15s→component-title-wait-10s→button-wait-5s
