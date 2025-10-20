@@ -78,7 +78,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Best Day Ministries <noreply@bestdayministries.com>",
+      from: "Best Day Ministries <noreply@bestdayministries.org>",
       to: [recipient_email],
       subject: subject,
       html: content,
