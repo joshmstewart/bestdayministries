@@ -29,7 +29,7 @@ serve(async (req) => {
     // Get the card
     const { data: card, error: cardError } = await supabase
       .from('daily_scratch_cards')
-      .select('*, collection_id')
+      .select('*, collection_id, is_bonus_card')
       .eq('id', cardId)
       .single();
 
@@ -99,13 +99,14 @@ serve(async (req) => {
     if (updateError) throw updateError;
 
     // Add sticker to user's collection
+    const obtainedFrom = card.is_bonus_card ? 'bonus_card' : 'daily_scratch';
     const { error: insertError } = await supabase
       .from('user_stickers')
       .insert({
         user_id: card.user_id,
         sticker_id: selectedSticker.id,
         collection_id: card.collection_id,
-        source: 'daily_scratch'
+        obtained_from: obtainedFrom
       });
 
     if (insertError) {

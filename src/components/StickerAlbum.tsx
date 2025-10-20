@@ -337,6 +337,11 @@ export const StickerAlbum = () => {
         description: `Bonus pack purchased for ${data.cost} coins! 🎉`
       });
 
+      // Update next cost immediately from response
+      if (data.nextCost) {
+        setNextCost(data.nextCost);
+      }
+
       // Refresh to get the new card
       await fetchStickers();
       
