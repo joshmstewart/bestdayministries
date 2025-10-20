@@ -119,7 +119,7 @@ serve(async (req) => {
     // Update automated campaign sends status
     if (eventType === "delivered" || eventType === "bounced" || eventType === "failed") {
       const statusMap: Record<string, string> = {
-        "delivered": "sent", // Keep as "sent" but we know it was delivered
+        "delivered": "delivered",
         "bounced": "bounced",
         "failed": "failed",
       };
