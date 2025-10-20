@@ -99,6 +99,7 @@ export const StickerAlbum = () => {
       .eq('setting_key', 'bonus_card_base_cost')
       .maybeSingle();
     
+    console.log('📊 BASE COST loaded from DB:', data?.setting_value);
     if (data?.setting_value) {
       setBaseCost(Number(data.setting_value));
     }
@@ -123,6 +124,7 @@ export const StickerAlbum = () => {
 
   // Recalculate cost when base cost changes
   useEffect(() => {
+    console.log('🔄 RECALC COST - Base cost:', baseCost, 'Bonus count:', bonusCardCount, 'Next cost:', baseCost * Math.pow(2, bonusCardCount));
     if (baseCost) {
       setNextCost(baseCost * Math.pow(2, bonusCardCount));
     }
@@ -189,6 +191,7 @@ export const StickerAlbum = () => {
       .eq('is_bonus_card', true);
     
     const count = bonusCount || 0;
+    console.log('💰 FETCH STICKERS - Bonus count:', count, 'Base cost:', baseCost, 'Calculated next cost:', baseCost * Math.pow(2, count));
     setBonusCardCount(count);
     // Calculate next cost using base cost from settings
     setNextCost(baseCost * Math.pow(2, count));
