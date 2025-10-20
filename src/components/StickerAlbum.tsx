@@ -169,7 +169,14 @@ export const StickerAlbum = () => {
     
     setCoinBalance(profile?.coins || 0);
 
-    const today = new Date().toISOString().split('T')[0];
+    // Calculate MST date (same as edge function)
+    const now = new Date();
+    const mstOffset = -7 * 60; // MST is UTC-7 in minutes
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const mstTime = new Date(utc + (mstOffset * 60000));
+    const today = mstTime.toISOString().split('T')[0];
+    
+    console.log('📅 DATE CHECK - MST today:', today, 'UTC now:', new Date().toISOString());
     
     // Get all cards for today (unopened ones)
     const { data: cards } = await supabase
