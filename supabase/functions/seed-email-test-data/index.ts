@@ -68,6 +68,17 @@ serve(async (req) => {
     const userIds: Record<string, string> = {};
 
     for (const [key, userData] of Object.entries(testUsers)) {
+      // First, try to delete any existing user with this email
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(u => u.email === userData.email);
+      
+      if (existingUser) {
+        console.log(`🔄 Found existing user ${userData.email}, cleaning up...`);
+        await supabaseAdmin.auth.admin.deleteUser(existingUser.id);
+        // Small delay to allow deletion to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: userData.email,
         password: userData.password,

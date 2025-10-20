@@ -4,8 +4,8 @@ test.describe('Discussion Posts @fast', () => {
   test('can view discussions page', async ({ page }) => {
     await page.goto('/discussions');
     
-    // Wait for page to load
-    await expect(page.getByRole('heading', { name: 'Discussions', exact: true })).toBeVisible({ timeout: 15000 });
+    // Wait for page to load - heading is "Community Discussions"
+    await expect(page.getByRole('heading', { name: /Community Discussions/i })).toBeVisible({ timeout: 15000 });
     
     // Should see discussion posts or empty state
     const hasCards = await page.locator('[role="article"], .group').count() > 0;
