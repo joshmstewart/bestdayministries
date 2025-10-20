@@ -76,7 +76,7 @@ const Store = () => {
           </div>
 
           <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold">JoyCoins Store</h1>
+            <h1 className="text-4xl font-bold">JoyCoin Store</h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Spend your earned JoyCoins on exclusive items, badges, and more!
             </p>
