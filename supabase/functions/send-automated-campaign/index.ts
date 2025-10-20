@@ -63,6 +63,25 @@ serve(async (req) => {
       // and log that a delay was requested
     }
 
+    // Fetch header and footer settings
+    const { data: headerData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_header")
+      .single();
+
+    const { data: footerData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_footer")
+      .single();
+
+    const { data: orgData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_organization")
+      .single();
+
     // Replace placeholders in subject and content
     let subject = template.subject;
     let content = template.content;
@@ -74,14 +93,35 @@ serve(async (req) => {
       content = content.replace(new RegExp(placeholder, 'g'), trigger_data[key] || '');
     });
 
+    // Construct final HTML with header and footer
+    let htmlContent = "";
+    
+    // Add header if enabled
+    if (headerData?.setting_value?.enabled && headerData?.setting_value?.html) {
+      htmlContent += headerData.setting_value.html;
+    }
+    
+    // Add campaign content
+    htmlContent += content;
+    
+    // Add footer if enabled
+    if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
+      htmlContent += footerData.setting_value.html;
+    }
+
+    // Get organization info
+    const orgInfo = orgData?.setting_value as any;
+    const fromEmail = orgInfo?.from_email || "noreply@bestdayministries.org";
+    const fromName = orgInfo?.from_name || "Best Day Ministries";
+
     console.log(`📤 Sending email to: ${recipient_email}`);
 
     // Send email via Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Best Day Ministries <noreply@bestdayministries.org>",
+      from: `${fromName} <${fromEmail}>`,
       to: [recipient_email],
       subject: subject,
-      html: content,
+      html: htmlContent,
     });
 
     if (emailError) {
