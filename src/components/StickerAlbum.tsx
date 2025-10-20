@@ -337,13 +337,20 @@ export const StickerAlbum = () => {
         description: `Bonus pack purchased for ${data.cost} coins! 🎉`
       });
 
-      // Update next cost immediately from response
-      if (data.nextCost) {
-        setNextCost(data.nextCost);
+      // Update next cost from response BEFORE refetch
+      const responseNextCost = data.nextCost;
+      if (responseNextCost) {
+        setNextCost(responseNextCost);
       }
 
-      // Refresh to get the new card
+      // Refresh to get the new card (but preserve nextCost)
+      const currentNextCost = responseNextCost;
       await fetchStickers();
+      
+      // Restore the correct nextCost after fetch
+      if (currentNextCost) {
+        setNextCost(currentNextCost);
+      }
       
       // Auto-open the new card after a short delay
       setTimeout(() => {
