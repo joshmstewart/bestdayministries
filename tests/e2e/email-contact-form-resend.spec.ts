@@ -215,8 +215,8 @@ test.describe('Contact Form Email Tests (Resend)', () => {
       text: 'Second reply from user',
     });
 
-    // Wait a bit for second reply
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Wait a bit for second reply (longer for WebKit)
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     // Verify both replies exist
     // Note: This would need a helper to fetch all replies

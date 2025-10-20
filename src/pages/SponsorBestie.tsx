@@ -650,7 +650,7 @@ const SponsorBestie = () => {
                   </div>
 
                   {/* Submit Button */}
-                  <Button onClick={handleSponsorship} disabled={loading || !selectedBestie || !email || !amount || !acceptedTerms} size="lg" className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0">
+                  <Button onClick={handleSponsorship} disabled={loading || !selectedBestie || !email || !amount || !acceptedTerms} size="lg" className="w-full shadow-warm hover:shadow-glow transition-all hover:scale-105 bg-gradient-warm border-0 relative z-20">
                     {loading ? "Processing..." : (
                       <>
                         Sponsor with ${coverStripeFee ? ((parseFloat(amount) || 0) * 1.029 + 0.30).toFixed(2) : amount}

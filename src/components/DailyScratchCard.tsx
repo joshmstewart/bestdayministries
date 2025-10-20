@@ -373,8 +373,9 @@ export const DailyScratchCard = () => {
 
       {/* Explanation text */}
       <div className="text-xs text-center text-muted-foreground max-w-[120px]">
-        {!card.is_scratched && <span>Open daily pack!</span>}
-        {card.is_scratched && bonusCard && !bonusCard.is_scratched && <span>Open bonus pack!</span>}
+        {!card.is_scratched && <span>Scratch to collect stickers!</span>}
+        {card.is_scratched && bonusCard && !bonusCard.is_scratched && <span>Scratch bonus to collect more!</span>}
+        {card.is_scratched && (!bonusCard || bonusCard.is_scratched) && <span>View your collection</span>}
       </div>
 
       {/* Free card dialog */}
