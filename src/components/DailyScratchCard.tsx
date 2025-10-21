@@ -48,12 +48,34 @@ export const DailyScratchCard = () => {
       const channel = supabase
         .channel('daily_scratch_cards_changes')
         .on('postgres_changes', {
-          event: '*',
+          event: 'DELETE',
           schema: 'public',
           table: 'daily_scratch_cards',
           filter: `user_id=eq.${user.id}`
         }, (payload) => {
-          console.log('✅ REALTIME: Card changed, refreshing...', payload);
+          console.log('🗑️ REALTIME: Card deleted, clearing state and regenerating...', payload);
+          setCard(null);
+          setBonusCard(null);
+          setSampleSticker("");
+          setLoading(true);
+          checkDailyCard();
+        })
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'daily_scratch_cards',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          console.log('✅ REALTIME: New card created, refreshing...', payload);
+          checkDailyCard();
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'daily_scratch_cards',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          console.log('📝 REALTIME: Card updated, refreshing...', payload);
           checkDailyCard();
         })
         .subscribe((status) => {
@@ -303,7 +325,15 @@ export const DailyScratchCard = () => {
     }
   };
 
-  if (loading || !sampleSticker) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!sampleSticker) {
     return null;
   }
 

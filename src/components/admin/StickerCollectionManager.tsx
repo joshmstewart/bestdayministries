@@ -516,7 +516,7 @@ export const StickerCollectionManager = () => {
 
       toast({
         title: "Success!",
-        description: data.message || "Daily cards have been reset",
+        description: (data.message || "Daily cards have been reset") + " Visit the Community page to open your new pack!",
       });
       setResetDialogOpen(false);
     } catch (error: any) {
