@@ -46,6 +46,7 @@ export const StickerAlbum = () => {
   const [availableCards, setAvailableCards] = useState<any[]>([]);
   const [bonusCardCount, setBonusCardCount] = useState<number>(0);
   const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [nextCost, setNextCost] = useState<number>(0);
   const [baseCost, setBaseCost] = useState<number>(50);
   const [timeUntilNext, setTimeUntilNext] = useState<string>("");
@@ -72,6 +73,7 @@ export const StickerAlbum = () => {
     fetchCollections();
     loadBaseCost();
     loadBonusPacksSetting();
+    loadUserRole();
 
     // Update countdown every second
     const interval = setInterval(() => {
@@ -114,8 +116,43 @@ export const StickerAlbum = () => {
       .eq('setting_key', 'bonus_packs_enabled')
       .maybeSingle();
     
-    setBonusPacksEnabled(data?.setting_value !== false);
+    const isEnabled = data?.setting_value !== false;
+
+    // Check role visibility
+    const { data: rolesData } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_packs_visible_to_roles')
+      .maybeSingle();
+    
+    const visibleRoles = rolesData?.setting_value as string[] || ["supporter", "bestie", "caregiver", "admin", "owner"];
+    
+    // Only enable if both the feature is on AND user has the right role
+    const canSee = userRole && visibleRoles.includes(userRole);
+    setBonusPacksEnabled(isEnabled && canSee);
   };
+
+  const loadUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (data?.role) {
+      setUserRole(data.role);
+    }
+  };
+
+  // Re-check bonus packs visibility when user role changes
+  useEffect(() => {
+    if (userRole) {
+      loadBonusPacksSetting();
+    }
+  }, [userRole]);
 
   useEffect(() => {
     if (selectedCollection) {

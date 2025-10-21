@@ -45,6 +45,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const [revealing, setRevealing] = useState(false);
   const sparkleAnimationRef = useRef<number | null>(null);
   const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -72,6 +73,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       
       loadBaseCost();
       loadBonusPacksSetting();
+      loadUserRole();
     }
   }, [open]);
 
@@ -490,8 +492,43 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       .eq('setting_key', 'bonus_packs_enabled')
       .maybeSingle();
     
-    setBonusPacksEnabled(data?.setting_value !== false);
+    const isEnabled = data?.setting_value !== false;
+
+    // Check role visibility
+    const { data: rolesData } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_packs_visible_to_roles')
+      .maybeSingle();
+    
+    const visibleRoles = rolesData?.setting_value as string[] || ["supporter", "bestie", "caregiver", "admin", "owner"];
+    
+    // Only enable if both the feature is on AND user has the right role
+    const canSee = userRole && visibleRoles.includes(userRole);
+    setBonusPacksEnabled(isEnabled && canSee);
   };
+
+  const loadUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (data?.role) {
+      setUserRole(data.role);
+    }
+  };
+
+  // Re-check bonus packs visibility when user role changes
+  useEffect(() => {
+    if (userRole) {
+      loadBonusPacksSetting();
+    }
+  }, [userRole]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

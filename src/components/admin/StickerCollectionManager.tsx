@@ -267,6 +267,7 @@ export const StickerCollectionManager = () => {
   const [editPackAnimationPreview, setEditPackAnimationPreview] = useState<string>("");
   const [stickersEnabled, setStickersEnabled] = useState(false);
   const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
+  const [bonusPacksVisibleRoles, setBonusPacksVisibleRoles] = useState<UserRole[]>(["supporter", "bestie", "caregiver", "admin", "owner"]);
   
   // Collection form
   const [collectionForm, setCollectionForm] = useState({
@@ -376,6 +377,16 @@ export const StickerCollectionManager = () => {
       .single();
     
     setBonusPacksEnabled(data?.setting_value !== false); // Default to true if not set
+    
+    const { data: rolesData } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_packs_visible_to_roles')
+      .single();
+    
+    if (rolesData?.setting_value) {
+      setBonusPacksVisibleRoles(rolesData.setting_value as UserRole[]);
+    }
   };
 
   const fetchStickers = async (collectionId: string) => {
@@ -1402,7 +1413,11 @@ export const StickerCollectionManager = () => {
 
       {/* Bonus Pack Purchases Control */}
       <Card>
-        <CardContent>
+        <CardHeader>
+          <CardTitle>Bonus Pack Purchases</CardTitle>
+          <CardDescription>Control who can buy extra sticker packs with JoyCoins</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label className="text-base font-semibold">Enable Bonus Pack Purchases</Label>
@@ -1443,6 +1458,64 @@ export const StickerCollectionManager = () => {
               }}
             />
           </div>
+
+          {bonusPacksEnabled && (
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Visible to Roles</Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Select which user roles can see and purchase bonus packs
+              </p>
+              <div className="space-y-2">
+                {USER_ROLES.map((role) => (
+                  <div key={role.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`bonus-role-${role.value}`}
+                      checked={bonusPacksVisibleRoles.includes(role.value)}
+                      onCheckedChange={async (checked) => {
+                        try {
+                          const newRoles = checked
+                            ? [...bonusPacksVisibleRoles, role.value]
+                            : bonusPacksVisibleRoles.filter((r) => r !== role.value);
+
+                          const { data: { user } } = await supabase.auth.getUser();
+
+                          const { error } = await supabase
+                            .from("app_settings")
+                            .upsert({
+                              setting_key: "bonus_packs_visible_to_roles",
+                              setting_value: newRoles,
+                              updated_by: user?.id,
+                            }, {
+                              onConflict: 'setting_key'
+                            });
+
+                          if (error) throw error;
+
+                          setBonusPacksVisibleRoles(newRoles);
+                          toast({
+                            title: "Success",
+                            description: "Role visibility updated",
+                          });
+                        } catch (error: any) {
+                          toast({
+                            title: "Error",
+                            description: error.message,
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    />
+                    <Label
+                      htmlFor={`bonus-role-${role.value}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {role.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

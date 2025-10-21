@@ -19,6 +19,7 @@ export const DailyScratchCard = () => {
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState<string>("");
   const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [coinBalance, setCoinBalance] = useState<number>(0);
 
   // Helper function to get current date in MST (UTC-7)
@@ -36,6 +37,7 @@ export const DailyScratchCard = () => {
     
     checkDailyCard();
     loadBonusPacksSetting();
+    loadUserRole();
 
     // Set up realtime subscription with proper user ID
     const setupRealtime = async () => {
@@ -334,8 +336,43 @@ export const DailyScratchCard = () => {
       .eq('setting_key', 'bonus_packs_enabled')
       .maybeSingle();
     
-    setBonusPacksEnabled(data?.setting_value !== false);
+    const isEnabled = data?.setting_value !== false;
+
+    // Check role visibility
+    const { data: rolesData } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_packs_visible_to_roles')
+      .maybeSingle();
+    
+    const visibleRoles = rolesData?.setting_value as string[] || ["supporter", "bestie", "caregiver", "admin", "owner"];
+    
+    // Only enable if both the feature is on AND user has the right role
+    const canSee = userRole && visibleRoles.includes(userRole);
+    setBonusPacksEnabled(isEnabled && canSee);
   };
+
+  const loadUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (data?.role) {
+      setUserRole(data.role);
+    }
+  };
+
+  // Re-check bonus packs visibility when user role changes
+  useEffect(() => {
+    if (userRole) {
+      loadBonusPacksSetting();
+    }
+  }, [userRole]);
 
   if (loading) {
     return (
