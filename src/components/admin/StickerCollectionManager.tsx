@@ -284,6 +284,7 @@ export const StickerCollectionManager = () => {
     end_date: "",
     visible_to_roles: ["admin", "owner"] as UserRole[],
     use_default_rarity: true, // Default to using defaults
+    stickers_per_pack: 1, // Default to 1 sticker per pack
     rarity_percentages: {
       common: 50,
       uncommon: 30,
@@ -811,6 +812,7 @@ export const StickerCollectionManager = () => {
           visible_to_roles: collectionForm.visible_to_roles as any,
           use_default_rarity: collectionForm.use_default_rarity,
           rarity_percentages: collectionForm.rarity_percentages,
+          stickers_per_pack: collectionForm.stickers_per_pack,
           pack_image_url: packImageUrl,
           pack_animation_url: packAnimationUrl,
         }])
@@ -844,6 +846,7 @@ export const StickerCollectionManager = () => {
         end_date: "",
         visible_to_roles: ["admin", "owner"],
         use_default_rarity: true,
+        stickers_per_pack: 1,
         rarity_percentages: defaultPercentages
       });
       setPackImage(null);
@@ -1653,6 +1656,20 @@ export const StickerCollectionManager = () => {
                     onChange={(e) => setCollectionForm({ ...collectionForm, end_date: e.target.value })}
                   />
                 </div>
+              </div>
+              <div>
+                <Label>Stickers Per Pack</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={collectionForm.stickers_per_pack}
+                  onChange={(e) => setCollectionForm({ ...collectionForm, stickers_per_pack: parseInt(e.target.value) || 1 })}
+                  placeholder="1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Number of stickers revealed when opening a pack (1-10)
+                </p>
               </div>
               <div>
                 <Label className="text-sm mb-2 block">Visible to Roles (Who can see this sticker collection)</Label>

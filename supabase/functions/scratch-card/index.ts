@@ -46,10 +46,10 @@ serve(async (req) => {
       );
     }
 
-    // Get collection with rarity percentages
+    // Get collection with rarity percentages and stickers_per_pack
     const { data: collection, error: collectionError } = await supabase
       .from('sticker_collections')
-      .select('rarity_percentages, use_default_rarity')
+      .select('rarity_percentages, use_default_rarity, stickers_per_pack')
       .eq('id', card.collection_id)
       .single();
 
@@ -71,114 +71,142 @@ serve(async (req) => {
       rarityPercentages = collection.rarity_percentages as Record<string, number>;
     }
 
-    // Determine rarity based on percentages
-    const rand = Math.random() * 100;
-    let cumulative = 0;
-    let selectedRarity = 'common';
+    // Determine how many stickers to reveal (default to 1 if not set)
+    const stickersPerPack = collection.stickers_per_pack || 1;
+    const revealedStickers = [];
 
-    for (const [rarity, percentage] of Object.entries(rarityPercentages)) {
-      cumulative += percentage;
-      if (rand <= cumulative) {
-        selectedRarity = rarity;
-        break;
-      }
-    }
-
-    // Get a random sticker of the selected rarity
-    const { data: stickers, error: stickersError } = await supabase
+    // Get all active stickers for this collection
+    const { data: allStickers, error: allStickersError } = await supabase
       .from('stickers')
       .select('*')
       .eq('collection_id', card.collection_id)
-      .eq('rarity', selectedRarity)
       .eq('is_active', true);
 
-    if (stickersError) throw stickersError;
+    if (allStickersError) throw allStickersError;
     
-    if (!stickers || stickers.length === 0) {
-      throw new Error(`No stickers found for rarity: ${selectedRarity}`);
+    if (!allStickers || allStickers.length === 0) {
+      throw new Error('No active stickers found in this collection');
     }
 
-    const selectedSticker = stickers[Math.floor(Math.random() * stickers.length)];
+    // Reveal multiple stickers
+    for (let i = 0; i < stickersPerPack; i++) {
+      // Determine rarity based on percentages
+      const rand = Math.random() * 100;
+      let cumulative = 0;
+      let selectedRarity = 'common';
 
-    // Mark card as scratched
+      for (const [rarity, percentage] of Object.entries(rarityPercentages)) {
+        cumulative += percentage;
+        if (rand <= cumulative) {
+          selectedRarity = rarity;
+          break;
+        }
+      }
+
+      // Get stickers of the selected rarity
+      const stickersOfRarity = allStickers.filter(s => s.rarity === selectedRarity);
+      
+      if (stickersOfRarity.length === 0) {
+        // Fallback to common if no stickers of selected rarity
+        const commonStickers = allStickers.filter(s => s.rarity === 'common');
+        if (commonStickers.length > 0) {
+          revealedStickers.push(commonStickers[Math.floor(Math.random() * commonStickers.length)]);
+        }
+        continue;
+      }
+
+      const selectedSticker = stickersOfRarity[Math.floor(Math.random() * stickersOfRarity.length)];
+      revealedStickers.push(selectedSticker);
+    }
+
+    if (revealedStickers.length === 0) {
+      throw new Error('Failed to reveal any stickers');
+    }
+
+    // Mark card as scratched with first sticker (for compatibility)
     const { error: updateError } = await supabase
       .from('daily_scratch_cards')
       .update({ 
         is_scratched: true,
         scratched_at: new Date().toISOString(),
-        revealed_sticker_id: selectedSticker.id
+        revealed_sticker_id: revealedStickers[0].id
       })
       .eq('id', cardId);
 
     if (updateError) throw updateError;
 
-    // Check if user already has this sticker (duplicate detection)
-    const { data: existingSticker, error: checkError } = await supabase
-      .from('user_stickers')
-      .select('id, quantity')
-      .eq('user_id', card.user_id)
-      .eq('sticker_id', selectedSticker.id)
-      .eq('collection_id', card.collection_id)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Error checking for existing sticker:', checkError);
-      throw new Error(`Failed to check existing sticker: ${checkError.message}`);
-    }
-
     const obtainedFrom = card.is_bonus_card ? 'bonus_card' : 'daily_scratch';
     const now = new Date().toISOString();
 
-    if (existingSticker) {
-      // Duplicate - increment quantity
-      const { error: updateStickerError } = await supabase
+    // Add all revealed stickers to user's collection
+    for (const selectedSticker of revealedStickers) {
+      // Check if user already has this sticker (duplicate detection)
+      const { data: existingSticker, error: checkError } = await supabase
         .from('user_stickers')
-        .update({
-          quantity: (existingSticker.quantity || 1) + 1,
-          last_obtained_at: now,
-          obtained_from: obtainedFrom // Update to most recent source
-        })
-        .eq('id', existingSticker.id);
-
-      if (updateStickerError) {
-        console.error('Error updating sticker quantity:', updateStickerError);
-        throw new Error(`Failed to update sticker quantity: ${updateStickerError.message}`);
-      }
-
-      console.log(`Duplicate sticker found. Updated quantity to ${(existingSticker.quantity || 1) + 1}`);
-    } else {
-      // New sticker - insert
-      const { data: insertedData, error: insertError } = await supabase
-        .from('user_stickers')
-        .insert({
-          user_id: card.user_id,
-          sticker_id: selectedSticker.id,
-          collection_id: card.collection_id,
-          obtained_from: obtainedFrom,
-          quantity: 1,
-          first_obtained_at: now,
-          last_obtained_at: now
-        })
-        .select()
+        .select('id, quantity')
+        .eq('user_id', card.user_id)
+        .eq('sticker_id', selectedSticker.id)
+        .eq('collection_id', card.collection_id)
         .single();
 
-      if (insertError) {
-        console.error('Error inserting sticker:', insertError);
-        throw new Error(`Failed to insert sticker: ${insertError.message}`);
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Error checking for existing sticker:', checkError);
+        throw new Error(`Failed to check existing sticker: ${checkError.message}`);
       }
 
-      if (!insertedData) {
-        console.error('Sticker insert returned no data');
-        throw new Error('Failed to verify sticker insertion');
-      }
+      if (existingSticker) {
+        // Duplicate - increment quantity
+        const { error: updateStickerError } = await supabase
+          .from('user_stickers')
+          .update({
+            quantity: (existingSticker.quantity || 1) + 1,
+            last_obtained_at: now,
+            obtained_from: obtainedFrom
+          })
+          .eq('id', existingSticker.id);
 
-      console.log(`New sticker inserted: ${selectedSticker.name} (ID: ${selectedSticker.id})`);
+        if (updateStickerError) {
+          console.error('Error updating sticker quantity:', updateStickerError);
+          throw new Error(`Failed to update sticker quantity: ${updateStickerError.message}`);
+        }
+
+        console.log(`Duplicate sticker found. Updated quantity to ${(existingSticker.quantity || 1) + 1}`);
+      } else {
+        // New sticker - insert
+        const { data: insertedData, error: insertError } = await supabase
+          .from('user_stickers')
+          .insert({
+            user_id: card.user_id,
+            sticker_id: selectedSticker.id,
+            collection_id: card.collection_id,
+            obtained_from: obtainedFrom,
+            quantity: 1,
+            first_obtained_at: now,
+            last_obtained_at: now
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error inserting sticker:', insertError);
+          throw new Error(`Failed to insert sticker: ${insertError.message}`);
+        }
+
+        if (!insertedData) {
+          console.error('Sticker insert returned no data');
+          throw new Error('Failed to verify sticker insertion');
+        }
+
+        console.log(`New sticker inserted: ${selectedSticker.name} (ID: ${selectedSticker.id})`);
+      }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        sticker: selectedSticker 
+        stickers: revealedStickers,
+        // Keep for backwards compatibility
+        sticker: revealedStickers[0]
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

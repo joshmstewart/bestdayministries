@@ -3810,6 +3810,7 @@ export type Database = {
           preview_sticker_id: string | null
           rarity_percentages: Json | null
           start_date: string
+          stickers_per_pack: number
           theme: string
           updated_at: string
           use_default_rarity: boolean
@@ -3829,6 +3830,7 @@ export type Database = {
           preview_sticker_id?: string | null
           rarity_percentages?: Json | null
           start_date?: string
+          stickers_per_pack?: number
           theme: string
           updated_at?: string
           use_default_rarity?: boolean
@@ -3848,6 +3850,7 @@ export type Database = {
           preview_sticker_id?: string | null
           rarity_percentages?: Json | null
           start_date?: string
+          stickers_per_pack?: number
           theme?: string
           updated_at?: string
           use_default_rarity?: boolean

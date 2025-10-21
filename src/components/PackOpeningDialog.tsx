@@ -43,7 +43,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   const { toast } = useToast();
   const [opened, setOpened] = useState(false);
   const [opening, setOpening] = useState(false);
-  const [revealedSticker, setRevealedSticker] = useState<any>(null);
+  const [revealedStickers, setRevealedStickers] = useState<any[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [collectionName, setCollectionName] = useState<string>("Sticker Pack");
   const [packStickers, setPackStickers] = useState<any[]>([]);
@@ -66,7 +66,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   useEffect(() => {
     if (open) {
       setOpened(false);
-      setRevealedSticker(null);
+      setRevealedStickers([]);
       setShowConfetti(false);
       setOpening(false);
       setTearProgress(0);
@@ -176,31 +176,40 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
         throw error;
       }
 
-      if (data.success && data.sticker) {
-        console.log('Sticker revealed successfully:', data.sticker);
-        // Image URL is already a full URL from the edge function
-        setRevealedSticker({
-          ...data.sticker,
-          image_url: data.sticker.image_url
-        });
+      if (data.success) {
+        // Support both single and multiple stickers
+        const stickers = data.stickers || (data.sticker ? [data.sticker] : []);
         
-        setOpened(true);
-        setShowConfetti(true);
-        
-        // Get rarity-specific config
-        const rarity = data.sticker.rarity as keyof typeof rarityConfettiConfig;
-        const config = rarityConfettiConfig[rarity] || rarityConfettiConfig.common;
-        
-        // Trigger confetti multiple times based on rarity
-        for (let i = 0; i < config.bursts; i++) {
-          setTimeout(() => {
-            confetti({
-              particleCount: config.particleCount,
-              spread: config.spread,
-              origin: { y: 0.6 },
-              colors: ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#9370DB']
-            });
-          }, i * 300);
+        if (stickers.length > 0) {
+          console.log(`${stickers.length} sticker(s) revealed successfully:`, stickers);
+          setRevealedStickers(stickers);
+          
+          setOpened(true);
+          setShowConfetti(true);
+          
+          // Get highest rarity for confetti effect
+          const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+          const highestRarity = stickers.reduce((highest: string, sticker: any) => {
+            const stickerRarityIndex = rarities.indexOf(sticker.rarity);
+            const highestRarityIndex = rarities.indexOf(highest);
+            return stickerRarityIndex > highestRarityIndex ? sticker.rarity : highest;
+          }, 'common');
+          
+          const config = rarityConfettiConfig[highestRarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
+          
+          // Trigger confetti multiple times based on rarity
+          for (let i = 0; i < config.bursts; i++) {
+            setTimeout(() => {
+              confetti({
+                particleCount: config.particleCount,
+                spread: config.spread,
+                origin: { y: 0.6 },
+                colors: ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#9370DB']
+              });
+            }, i * 300);
+          }
+        } else {
+          throw new Error('No stickers revealed');
         }
       } else {
         console.error('Scratch card failed:', data.message);
@@ -473,33 +482,64 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
                 `}</style>
               </div>
             )
-          ) : revealedSticker ? (
-            <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
-              <img 
-                src={revealedSticker.image_url} 
-                alt={revealedSticker.name}
-                className="w-64 h-64 object-contain"
-              />
-              
-              <div className="text-center space-y-2">
-                <h3 className="text-2xl font-bold">{revealedSticker.name}</h3>
-                <div className="flex items-center justify-center gap-2">
-                  <Badge className={rarityBadgeColors[revealedSticker.rarity as keyof typeof rarityBadgeColors]}>
-                    {revealedSticker.rarity.charAt(0).toUpperCase() + revealedSticker.rarity.slice(1)}
-                  </Badge>
-                  {revealedSticker.category && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-sm text-muted-foreground capitalize">{revealedSticker.category}</span>
-                    </>
-                  )}
-                </div>
-                {revealedSticker.description && (
-                  <p className="text-sm text-muted-foreground max-w-xs">
-                    {revealedSticker.description}
-                  </p>
-                )}
-              </div>
+          ) : revealedStickers.length > 0 ? (
+            <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500">
+              {revealedStickers.length === 1 ? (
+                // Single sticker - large display
+                <>
+                  <img 
+                    src={revealedStickers[0].image_url} 
+                    alt={revealedStickers[0].name}
+                    className="w-64 h-64 object-contain"
+                  />
+                  
+                  <div className="text-center space-y-2">
+                    <h3 className="text-2xl font-bold">{revealedStickers[0].name}</h3>
+                    <div className="flex items-center justify-center gap-2">
+                      <Badge className={rarityBadgeColors[revealedStickers[0].rarity as keyof typeof rarityBadgeColors]}>
+                        {revealedStickers[0].rarity.charAt(0).toUpperCase() + revealedStickers[0].rarity.slice(1)}
+                      </Badge>
+                      {revealedStickers[0].category && (
+                        <>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-sm text-muted-foreground capitalize">{revealedStickers[0].category}</span>
+                        </>
+                      )}
+                    </div>
+                    {revealedStickers[0].description && (
+                      <p className="text-sm text-muted-foreground max-w-xs">
+                        {revealedStickers[0].description}
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                // Multiple stickers - grid display
+                <>
+                  <h3 className="text-2xl font-bold">You got {revealedStickers.length} stickers!</h3>
+                  <div className={cn(
+                    "grid gap-4 w-full max-w-2xl",
+                    revealedStickers.length === 2 && "grid-cols-2",
+                    revealedStickers.length >= 3 && "grid-cols-3"
+                  )}>
+                    {revealedStickers.map((sticker, index) => (
+                      <div key={index} className="flex flex-col items-center gap-2 p-4 rounded-lg border bg-card">
+                        <img 
+                          src={sticker.image_url} 
+                          alt={sticker.name}
+                          className="w-32 h-32 object-contain"
+                        />
+                        <div className="text-center space-y-1">
+                          <p className="font-semibold text-sm">{sticker.name}</p>
+                          <Badge className={cn("text-xs", rarityBadgeColors[sticker.rarity as keyof typeof rarityBadgeColors])}>
+                            {sticker.rarity.charAt(0).toUpperCase() + sticker.rarity.slice(1)}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               <Button 
                 onClick={() => handleDialogClose(false)}
