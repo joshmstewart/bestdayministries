@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Community Features', () => {
+test.describe('Community Features @fast', () => {
   test('should load community page', async ({ page }) => {
     await page.goto('/community');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
     
     // Check if page loaded (may redirect to home if not auth)
     const currentUrl = page.url();
@@ -17,19 +16,15 @@ test.describe('Community Features', () => {
   test('should display community sections', async ({ page }) => {
     await page.goto('/community');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for section headings or cards
     const sections = page.locator('h2, h3, section, [class*="section"], [class*="card"]');
-    const count = await sections.count();
-    
-    expect(count).toBeGreaterThan(0);
+    await expect(sections.first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should load discussions page', async ({ page }) => {
     await page.goto('/discussions');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
     
     const currentUrl = page.url();
     expect(currentUrl).toBeTruthy();
@@ -38,7 +33,6 @@ test.describe('Community Features', () => {
   test('should display discussion posts', async ({ page }) => {
     await page.goto('/discussions');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for posts or empty state
     const posts = page.locator('[class*="post"], [class*="discussion"], article');

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { mockSupabaseAuth, mockSupabaseDatabase, mockAuthenticatedSession, MockSupabaseState } from '../utils/supabase-mocks';
 
-test.describe('Page Navigation', () => {
+test.describe('Page Navigation @fast', () => {
   let state: MockSupabaseState;
 
   test.beforeEach(async ({ page }) => {
@@ -42,8 +42,8 @@ test.describe('Page Navigation', () => {
       if (page.path === '/community') {
         console.log(`🔍 NAV TEST: Waiting for Community content to render...`);
         
-        // Additional wait for React to hydrate
-        await browser.waitForTimeout(2000);
+      // Additional wait for React to hydrate
+      await expect(page.locator('main, .container, [class*="featured"], [class*="section"]').first()).toBeVisible({ timeout: 5000 });
         
         // Check for any HTML content first
         const htmlContent = await browser.content();
@@ -59,7 +59,7 @@ test.describe('Page Navigation', () => {
         });
       }
       
-      await browser.waitForTimeout(1000);
+      await browser.waitForLoadState('domcontentloaded');
       console.log(`🔍 NAV TEST: Page loaded for ${page.name}`);
       
       // Verify page loaded successfully (200 status or content visible)
@@ -105,7 +105,7 @@ test.describe('Page Navigation', () => {
     
     // Scroll to bottom to make sure footer loads
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(500);
+    await expect(page.locator('footer')).toBeVisible({ timeout: 3000 });
     
     const footer = page.locator('footer');
     await expect(footer).toBeVisible();
@@ -153,7 +153,7 @@ test.describe('Mobile Navigation', () => {
     
     if (menuExists && await menuButton.isVisible()) {
       await menuButton.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('nav, [role="navigation"]')).toBeVisible({ timeout: 3000 });
       
       // Check if navigation appears (could be a sheet/drawer/modal)
       const nav = page.locator('nav, [role="navigation"]');
@@ -188,14 +188,14 @@ test.describe('Accessibility', () => {
     
     // Verify nav has pointer-events-auto when visible (at top)
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => window.scrollY === 0);
     
     const visibleClasses = await nav.getAttribute('class');
     expect(visibleClasses).toContain('pointer-events-auto');
     
     // Scroll down to hide nav
     await page.evaluate(() => window.scrollTo(0, 300));
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => window.scrollY >= 300);
     
     const hiddenClasses = await nav.getAttribute('class');
     expect(hiddenClasses).toContain('pointer-events-none');

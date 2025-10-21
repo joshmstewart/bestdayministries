@@ -18,7 +18,7 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     const signUpTab = page.locator('button:has-text("Sign Up"), text="Sign Up"').first();
     if (await signUpTab.isVisible()) {
       await signUpTab.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('input[placeholder*="Name" i]').first()).toBeVisible({ timeout: 3000 });
     }
     
     // Fill signup form
@@ -37,7 +37,7 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     await signUpBtn.click();
     
     // Wait for terms dialog to appear
-    await page.waitForTimeout(2000);
+    await expect(page.locator('text=/Terms|Privacy|Accept/i').first()).toBeVisible({ timeout: 5000 });
     
     // Check for terms dialog
     const termsDialog = page.locator('text=/Terms|Privacy|Accept/i').first();
@@ -59,7 +59,7 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     const signUpTab = page.locator('button:has-text("Sign Up")').first();
     if (await signUpTab.isVisible()) {
       await signUpTab.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('input[placeholder*="Name" i]').first()).toBeVisible({ timeout: 3000 });
     }
     
     await page.fill('input[placeholder*="Name" i]', 'Test User');
@@ -69,11 +69,11 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     const signUpBtn = page.locator('button:has-text("Sign Up")').first();
     await signUpBtn.click();
     
-    await page.waitForTimeout(2000);
+    await expect(page.locator('text=/Terms|Privacy/i').first()).toBeVisible({ timeout: 5000 });
     
     // Try to press Escape key
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('load');
     
     // Dialog should still be visible
     const termsDialog = page.locator('text=/Terms|Privacy/i').first();
@@ -90,7 +90,7 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     const signUpTab = page.locator('button:has-text("Sign Up")').first();
     if (await signUpTab.isVisible()) {
       await signUpTab.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('input[placeholder*="Name" i]').first()).toBeVisible({ timeout: 3000 });
     }
     
     await page.fill('input[placeholder*="Name" i]', 'Test User');
@@ -100,7 +100,7 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     const signUpBtn = page.locator('button:has-text("Sign Up")').first();
     await signUpBtn.click();
     
-    await page.waitForTimeout(2000);
+    await expect(page.locator('button:has-text("Accept"), button:has-text("I Accept")').first()).toBeVisible({ timeout: 5000 });
     
     // Look for accept button (should be disabled without checkbox)
     const acceptBtn = page.locator('button:has-text("Accept"), button:has-text("I Accept")').first();
@@ -118,7 +118,7 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     const signUpTab = page.locator('button:has-text("Sign Up")').first();
     if (await signUpTab.isVisible()) {
       await signUpTab.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('input[placeholder*="Name" i]').first()).toBeVisible({ timeout: 3000 });
     }
     
     const uniqueEmail = `accepttest${Date.now()}@example.com`;
@@ -129,13 +129,13 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     const signUpBtn = page.locator('button:has-text("Sign Up")').first();
     await signUpBtn.click();
     
-    await page.waitForTimeout(2000);
+    await expect(page.locator('input[type="checkbox"]').first()).toBeVisible({ timeout: 5000 });
     
     // Check terms checkbox
     const termsCheckbox = page.locator('input[type="checkbox"]').first();
     if (await termsCheckbox.isVisible()) {
       await termsCheckbox.click();
-      await page.waitForTimeout(500);
+      await expect(termsCheckbox).toBeChecked({ timeout: 2000 });
     }
     
     // Click accept button

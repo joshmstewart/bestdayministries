@@ -1,0 +1,80 @@
+name: Fast Tests (Smoke Tests)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  fast-tests:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps chromium
+      
+    - name: Run Fast Playwright tests
+      run: npx playwright test --grep "@fast" --project=chromium --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      
+    - name: Upload Playwright report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: fast-test-report-${{ matrix.shardIndex }}
+        path: playwright-report/
+        retention-days: 7
+
+  log-results:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    needs: [fast-tests]
+    if: always()
+    steps:
+    - name: Log test results to database
+      env:
+        SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      run: |
+        STATUS="${{ needs.fast-tests.result == 'success' && 'success' || 'failure' }}"
+        curl -X POST "${SUPABASE_URL}/functions/v1/github-test-webhook" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+          -d '{
+            "workflow_run": {
+              "id": "${{ github.run_id }}",
+              "name": "Fast Tests",
+              "head_sha": "${{ github.sha }}",
+              "head_branch": "${{ github.ref_name }}",
+              "status": "'"${STATUS}"'",
+              "conclusion": "'"${STATUS}"'",
+              "html_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "head_commit": {
+                "message": "${{ github.event.head_commit.message }}"
+              },
+              "actor": {
+                "login": "${{ github.actor }}"
+              }
+            },
+            "action": "completed",
+            "repository": {
+              "full_name": "${{ github.repository }}"
+            }
+          }'

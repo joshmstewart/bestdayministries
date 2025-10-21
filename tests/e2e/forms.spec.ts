@@ -50,7 +50,7 @@ test.describe('Contact Form', () => {
     
     // Scroll to form
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(1000);
+    await expect(page.locator('input[type="email"]').first()).toBeVisible({ timeout: 3000 });
     
     const emailInput = page.locator('input[type="email"]').first();
     
@@ -58,7 +58,7 @@ test.describe('Contact Form', () => {
       // Enter invalid email
       await emailInput.fill('invalid-email');
       await emailInput.blur();
-      await page.waitForTimeout(500);
+      await expect(emailInput).toBeFocused().then(() => {}, () => {});
       
       // Check validation state
       const isInvalid = await emailInput.evaluate((el: HTMLInputElement) => !el.validity.valid);
@@ -72,7 +72,7 @@ test.describe('Contact Form', () => {
     
     // Scroll to form
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(1000);
+    await expect(page.locator('input[name="name"], input[placeholder*="name" i]').first()).toBeVisible({ timeout: 3000 });
     
     // Fill form with valid data
     const nameInput = page.locator('input[name="name"], input[placeholder*="name" i]').first();
@@ -96,7 +96,7 @@ test.describe('Contact Form', () => {
       await submitButton.click();
       
       // Wait for submission response
-      await page.waitForTimeout(3000);
+      await expect(page.locator('[role="status"], .toast, text=/success|thank you/i').first()).toBeVisible({ timeout: 5000 }).catch(() => {});
       
       // Should show success toast or message
       const successToast = page.locator('[role="status"], .toast, text=/success|thank you/i');
@@ -124,7 +124,7 @@ test.describe('Contact Form', () => {
       await emailInput.fill('test@example.com');
       await passwordInput.fill('testpassword123');
       await loginButton.click();
-      await page.waitForTimeout(2000);
+      await page.waitForURL(/\/(community|admin)/, { timeout: 5000 }).catch(() => {});
     }
     
     // Navigate to contact form
@@ -133,7 +133,7 @@ test.describe('Contact Form', () => {
     
     // Scroll to form
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(1000);
+    await expect(page.locator('input[name="name"], input[placeholder*="name" i]').first()).toBeVisible({ timeout: 3000 });
     
     // Fill form with valid data
     const nameInput = page.locator('input[name="name"], input[placeholder*="name" i]').first();
@@ -162,7 +162,7 @@ test.describe('Contact Form', () => {
       await submitButton.click();
       
       // Wait for submission response
-      await page.waitForTimeout(3000);
+      await expect(page.locator('[role="status"], .toast').first()).toBeVisible({ timeout: 5000 }).catch(() => {});
       
       // Should show success toast or message
       const successToast = page.locator('[role="status"], .toast, text=/success|thank you/i');
@@ -178,7 +178,7 @@ test.describe('Contact Form', () => {
     
     // Scroll to form
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(1000);
+    await expect(page.locator('input[name="name"], input[placeholder*="name" i]').first()).toBeVisible({ timeout: 3000 });
     
     // Fill form with valid data
     const nameInput = page.locator('input[name="name"], input[placeholder*="name" i]').first();
@@ -197,7 +197,7 @@ test.describe('Contact Form', () => {
       await submitButton.click();
       
       // Wait for submission response
-      await page.waitForTimeout(3000);
+      await page.waitForLoadState('networkidle');
       
       // Should show success message or redirect
       // We're not checking specific content since we don't want to spam the real form

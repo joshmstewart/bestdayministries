@@ -75,7 +75,7 @@ test.describe('Profile Settings @fast', () => {
     await saveBtn.click();
     
     // Wait for success
-    await testPage.waitForTimeout(2000);
+    await expect(testPage.locator('[role="status"], .toast').first()).toBeVisible({ timeout: 3000 }).catch(() => {});
     
     // Verify in database
     const nameUpdated = await testPage.evaluate(async ({ name }) => {
@@ -110,7 +110,7 @@ test.describe('Profile Settings @fast', () => {
       const saveBtn = testPage.locator('button:has-text("Save")').first();
       await saveBtn.click();
       
-      await testPage.waitForTimeout(2000);
+      await testPage.waitForLoadState('networkidle');
       
       // Verify in database
       const bioUpdated = await testPage.evaluate(async ({ bio }) => {
@@ -143,7 +143,7 @@ test.describe('Profile Settings @fast', () => {
     const changeAvatarBtn = testPage.locator('button:has-text("Change Avatar"), button:has-text("Avatar")').first();
     if (await changeAvatarBtn.isVisible()) {
       await changeAvatarBtn.click();
-      await testPage.waitForTimeout(1000);
+      await expect(testPage.locator('[class*="avatar"], img[src*="composite"]').first()).toBeVisible({ timeout: 3000 });
       
       // Select a different avatar (e.g., avatar #5)
       const avatarOption = testPage.locator('[class*="avatar"], img[src*="composite"]').nth(4);
@@ -154,7 +154,7 @@ test.describe('Profile Settings @fast', () => {
         const saveAvatarBtn = testPage.locator('button:has-text("Save"), button:has-text("Select")').first();
         await saveAvatarBtn.click();
         
-        await testPage.waitForTimeout(2000);
+        await testPage.waitForLoadState('networkidle');
         
         console.log('Avatar changed successfully');
       }
@@ -210,7 +210,7 @@ test.describe('Profile Settings @fast', () => {
     const notificationsTab = testPage.locator('button:has-text("Notifications"), text="Notifications"').first();
     if (await notificationsTab.isVisible()) {
       await notificationsTab.click();
-      await testPage.waitForTimeout(1000);
+      await expect(testPage.locator('text=/Email|Digest|Notification/i').first()).toBeVisible({ timeout: 3000 });
       
       // Verify notification settings display
       const notifSettings = testPage.locator('text=/Email|Digest|Notification/i').first();
@@ -233,7 +233,7 @@ test.describe('Profile Settings @fast', () => {
     const newsletterTab = testPage.locator('button:has-text("Newsletter"), text="Newsletter"').first();
     if (await newsletterTab.isVisible()) {
       await newsletterTab.click();
-      await testPage.waitForTimeout(1000);
+      await expect(testPage.locator('text=/Subscribe|Unsubscribe|Newsletter/i').first()).toBeVisible({ timeout: 3000 });
       
       // Verify newsletter subscription controls
       const newsletterContent = testPage.locator('text=/Subscribe|Unsubscribe|Newsletter/i').first();
@@ -264,7 +264,7 @@ test.describe('Profile Settings @fast', () => {
       const saveBtn = testPage.locator('button:has-text("Save")').first();
       await saveBtn.click();
       
-      await testPage.waitForTimeout(1000);
+      await testPage.waitForLoadState('networkidle');
       
       // Should see validation error or button stays disabled
       const hasError = await testPage.locator('text=/required|cannot be empty/i').isVisible().catch(() => false);
@@ -340,7 +340,7 @@ test.describe('Profile Settings @fast', () => {
     test('profile settings main page visual snapshot', async () => {
       await testPage.goto('/profile');
       await testPage.waitForLoadState('networkidle');
-      await testPage.waitForTimeout(1000);
+      await expect(testPage.locator('input[name="display_name"]').first()).toBeVisible({ timeout: 3000 });
       await percySnapshot(testPage, 'Profile Settings - Main Tab');
     });
 
@@ -351,7 +351,7 @@ test.describe('Profile Settings @fast', () => {
       const notificationsTab = testPage.locator('button:has-text("Notifications"), text="Notifications"').first();
       if (await notificationsTab.isVisible()) {
         await notificationsTab.click();
-        await testPage.waitForTimeout(1000);
+        await expect(testPage.locator('text=/Email|Digest/i').first()).toBeVisible({ timeout: 3000 });
         await percySnapshot(testPage, 'Profile Settings - Notifications Tab');
       }
     });
@@ -363,7 +363,7 @@ test.describe('Profile Settings @fast', () => {
       const newsletterTab = testPage.locator('button:has-text("Newsletter"), text="Newsletter"').first();
       if (await newsletterTab.isVisible()) {
         await newsletterTab.click();
-        await testPage.waitForTimeout(1000);
+        await expect(testPage.locator('text=/Subscribe|Newsletter/i').first()).toBeVisible({ timeout: 3000 });
         await percySnapshot(testPage, 'Profile Settings - Newsletter Tab');
       }
     });

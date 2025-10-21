@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Homepage Basics', () => {
+test.describe('Homepage Basics @fast', () => {
   test('should load homepage successfully', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
