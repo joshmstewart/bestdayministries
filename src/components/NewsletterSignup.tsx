@@ -69,6 +69,22 @@ export const NewsletterSignup = ({ compact = false }: NewsletterSignupProps) => 
       });
 
       if (error) throw error;
+
+      // Trigger welcome email
+      try {
+        await supabase.functions.invoke("send-automated-campaign", {
+          body: {
+            trigger_event: "newsletter_signup",
+            recipient_email: email,
+            trigger_data: {
+              source: compact ? "widget" : "website_signup",
+            },
+          },
+        });
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+        // Don't throw - subscription was successful
+      }
     },
     onSuccess: () => {
       toast.success("Successfully subscribed to newsletter!");
