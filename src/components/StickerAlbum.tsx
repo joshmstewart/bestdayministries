@@ -108,19 +108,35 @@ export const StickerAlbum = () => {
   useEffect(() => {
     if (selectedCollection) {
       fetchStickers();
-      // Update rarity percentages when collection changes
-      const collection = collections.find(c => c.id === selectedCollection);
-      if (collection) {
-        setRarityPercentages(collection.rarity_percentages || {
-          common: 50,
-          uncommon: 30,
-          rare: 15,
-          epic: 4,
-          legendary: 1
-        });
-      }
+      loadRarityPercentages();
     }
   }, [selectedCollection, collections]);
+
+  const loadRarityPercentages = async () => {
+    const collection = collections.find(c => c.id === selectedCollection);
+    if (!collection) return;
+
+    // If collection uses default rarity, fetch from app_settings
+    if (collection.use_default_rarity) {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'default_rarity_percentages')
+        .maybeSingle();
+      
+      if (data?.setting_value) {
+        setRarityPercentages(data.setting_value as any);
+      }
+    } else {
+      setRarityPercentages(collection.rarity_percentages || {
+        common: 50,
+        uncommon: 30,
+        rare: 15,
+        epic: 4,
+        legendary: 1
+      });
+    }
+  };
 
   // Recalculate cost when base cost changes
   useEffect(() => {
@@ -182,14 +198,7 @@ export const StickerAlbum = () => {
     if (!error && data && data.length > 0) {
       setCollections(data);
       setSelectedCollection(data[0].id);
-      // Set rarity percentages from the first collection
-      setRarityPercentages(data[0].rarity_percentages || {
-        common: 50,
-        uncommon: 30,
-        rare: 15,
-        epic: 4,
-        legendary: 1
-      });
+      // Rarity percentages will be loaded in the useEffect
     }
   };
 
@@ -546,7 +555,12 @@ export const StickerAlbum = () => {
 
           {/* Rarity Drop Rates */}
           <div className="pt-4 border-t">
-            <p className="text-sm font-medium mb-2">Drop Rate Information:</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">Drop Rate Information:</p>
+              {collections.find(c => c.id === selectedCollection)?.use_default_rarity && (
+                <Badge variant="outline" className="text-xs">Using Defaults</Badge>
+              )}
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded bg-gray-500"></div>

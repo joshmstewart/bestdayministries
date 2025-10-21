@@ -275,6 +275,7 @@ export const StickerCollectionManager = () => {
     start_date: new Date().toISOString().split('T')[0],
     end_date: "",
     visible_to_roles: ["admin", "owner"] as UserRole[],
+    use_default_rarity: true, // Default to using defaults
     rarity_percentages: {
       common: 50,
       uncommon: 30,
@@ -779,6 +780,7 @@ export const StickerCollectionManager = () => {
           start_date: collectionForm.start_date,
           end_date: collectionForm.end_date || null,
           visible_to_roles: collectionForm.visible_to_roles as any,
+          use_default_rarity: collectionForm.use_default_rarity,
           rarity_percentages: collectionForm.rarity_percentages,
           pack_image_url: packImageUrl,
           pack_animation_url: packAnimationUrl,
@@ -812,6 +814,7 @@ export const StickerCollectionManager = () => {
         start_date: new Date().toISOString().split('T')[0], 
         end_date: "",
         visible_to_roles: ["admin", "owner"],
+        use_default_rarity: true,
         rarity_percentages: defaultPercentages
       });
       setPackImage(null);
@@ -1585,75 +1588,110 @@ export const StickerCollectionManager = () => {
                 </div>
               </div>
               
-              <div className="space-y-3">
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-base">Rarity Drop Rates (%)</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      // Load default rates from app_settings
-                      const { data } = await supabase
-                        .from('app_settings')
-                        .select('setting_value')
-                        .eq('setting_key', 'default_rarity_percentages')
-                        .maybeSingle();
-                      
-                      if (data?.setting_value) {
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-semibold">Rarity Drop Rates</Label>
+                    <p className="text-sm text-muted-foreground">Configure how often each rarity appears in packs</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="use-defaults" className="text-sm cursor-pointer">
+                      Use Defaults
+                    </Label>
+                    <Switch
+                      id="use-defaults"
+                      checked={collectionForm.use_default_rarity}
+                      onCheckedChange={(checked) => {
                         setCollectionForm({
                           ...collectionForm,
-                          rarity_percentages: data.setting_value as any
+                          use_default_rarity: checked
                         });
-                        toast({
-                          title: "Success",
-                          description: "Loaded default drop rates",
-                        });
-                      }
-                    }}
-                  >
-                    Use Defaults
-                  </Button>
+                      }}
+                    />
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">Adjust the drop rate percentages for each rarity level. Must sum to 100%.</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(rarityConfig).map(([key, config]) => (
-                    <div key={key} className="space-y-2">
-                      <Label htmlFor={`rarity-${key}`} className="flex items-center gap-2">
-                        <span className={`w-3 h-3 rounded ${config.color}`} />
-                        {config.label}
-                      </Label>
-                      <Input
-                        id={`rarity-${key}`}
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={collectionForm.rarity_percentages[key as keyof typeof collectionForm.rarity_percentages]}
-                        onChange={(e) => setCollectionForm({
-                          ...collectionForm,
-                          rarity_percentages: {
-                            ...collectionForm.rarity_percentages,
-                            [key]: parseFloat(e.target.value) || 0
+                
+                {collectionForm.use_default_rarity && (
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-primary/5 border-primary/20">
+                    <Badge variant="outline" className="border-primary/40">
+                      Using Defaults
+                    </Badge>
+                    <p className="text-xs text-muted-foreground">
+                      This collection will automatically use default rarity percentages. Changes to defaults will apply instantly.
+                    </p>
+                  </div>
+                )}
+                
+                {!collectionForm.use_default_rarity && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Adjust the drop rate percentages for each rarity level. Must sum to 100%.</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const { data } = await supabase
+                            .from('app_settings')
+                            .select('setting_value')
+                            .eq('setting_key', 'default_rarity_percentages')
+                            .maybeSingle();
+                          
+                          if (data?.setting_value) {
+                            setCollectionForm({
+                              ...collectionForm,
+                              rarity_percentages: data.setting_value as any
+                            });
+                            toast({
+                              title: "Success",
+                              description: "Loaded default drop rates",
+                            });
                           }
-                        })}
-                      />
+                        }}
+                      >
+                        Copy Defaults
+                      </Button>
                     </div>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
-                  <span className="text-sm font-medium">Total:</span>
-                  <span className={`text-sm font-bold ${Math.abs(Object.values(collectionForm.rarity_percentages).reduce((sum, val) => sum + val, 0) - 100) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
-                    {Object.values(collectionForm.rarity_percentages).reduce((sum, val) => sum + val, 0).toFixed(1)}%
-                  </span>
-                </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {Object.entries(rarityConfig).map(([key, config]) => (
+                        <div key={key} className="space-y-2">
+                          <Label htmlFor={`rarity-${key}`} className="flex items-center gap-2">
+                            <span className={`w-3 h-3 rounded ${config.color}`} />
+                            {config.label}
+                          </Label>
+                          <Input
+                            id={`rarity-${key}`}
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={collectionForm.rarity_percentages[key as keyof typeof collectionForm.rarity_percentages]}
+                            onChange={(e) => setCollectionForm({
+                              ...collectionForm,
+                              rarity_percentages: {
+                                ...collectionForm.rarity_percentages,
+                                [key]: parseFloat(e.target.value) || 0
+                              }
+                            })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                      <span className="text-sm font-medium">Total:</span>
+                      <span className={`text-sm font-bold ${Math.abs(Object.values(collectionForm.rarity_percentages).reduce((sum, val) => sum + val, 0) - 100) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
+                        {Object.values(collectionForm.rarity_percentages).reduce((sum, val) => sum + val, 0).toFixed(1)}%
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
-                  <Button onClick={createCollection} disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Collection
-                  </Button>
-                </CardContent>
+              <Button onClick={createCollection} disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Plus className="mr-2 h-4 w-4" />
+                Create Collection
+              </Button>
+            </CardContent>
             )}
             </Card>
 
@@ -1761,37 +1799,89 @@ export const StickerCollectionManager = () => {
                     {editingRarityFor === collection.id && (
                       <div className="p-4 border-t bg-background">
                         <div className="flex items-center justify-between mb-3">
-                          <Label className="text-sm font-semibold">Rarity Drop Rates (%)</Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              // Load default rates from app_settings
-                              const { data } = await supabase
-                                .from('app_settings')
-                                .select('setting_value')
-                                .eq('setting_key', 'default_rarity_percentages')
-                                .maybeSingle();
-                              
-                              if (data?.setting_value) {
+                          <div className="space-y-0.5">
+                            <Label className="text-sm font-semibold">Rarity Drop Rates</Label>
+                            <p className="text-xs text-muted-foreground">Configure drop rates for this collection</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`use-defaults-${collection.id}`} className="text-sm cursor-pointer">
+                              Use Defaults
+                            </Label>
+                            <Switch
+                              id={`use-defaults-${collection.id}`}
+                              checked={collection.use_default_rarity || false}
+                              onCheckedChange={async (checked) => {
+                                const { error } = await supabase
+                                  .from('sticker_collections')
+                                  .update({ use_default_rarity: checked })
+                                  .eq('id', collection.id);
+
+                                if (error) {
+                                  toast({ title: "Error", description: error.message, variant: "destructive" });
+                                  return;
+                                }
+
                                 setCollections(collections.map(c => 
                                   c.id === collection.id 
-                                    ? { ...c, rarity_percentages: data.setting_value as any }
+                                    ? { ...c, use_default_rarity: checked }
                                     : c
                                 ));
-                                toast({
-                                  title: "Success",
-                                  description: "Loaded default drop rates",
+                                
+                                toast({ 
+                                  title: "Success", 
+                                  description: checked 
+                                    ? "Collection now uses default rarity percentages" 
+                                    : "Collection now uses custom rarity percentages" 
                                 });
-                              }
-                            }}
-                          >
-                            Use Defaults
-                          </Button>
+                              }}
+                            />
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-3">Adjust percentages for each rarity level. Must sum to 100%.</p>
-                        <div className="grid grid-cols-2 gap-3 mb-4">
+                        
+                        {collection.use_default_rarity && (
+                          <div className="flex items-center gap-2 p-3 border rounded-md bg-primary/5 border-primary/20 mb-3">
+                            <Badge variant="outline" className="border-primary/40">
+                              Using Defaults
+                            </Badge>
+                            <p className="text-xs text-muted-foreground">
+                              This collection automatically uses default rarity percentages. Changes to defaults apply instantly.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {!collection.use_default_rarity && (
+                          <>
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="text-sm text-muted-foreground">Adjust percentages for each rarity level. Must sum to 100%.</p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  // Load default rates from app_settings
+                                  const { data } = await supabase
+                                    .from('app_settings')
+                                    .select('setting_value')
+                                    .eq('setting_key', 'default_rarity_percentages')
+                                    .maybeSingle();
+                                  
+                                  if (data?.setting_value) {
+                                    setCollections(collections.map(c => 
+                                      c.id === collection.id 
+                                        ? { ...c, rarity_percentages: data.setting_value as any }
+                                        : c
+                                    ));
+                                    toast({
+                                      title: "Success",
+                                      description: "Loaded default drop rates",
+                                    });
+                                  }
+                                }}
+                              >
+                                Copy Defaults
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-4">
                           {Object.entries(rarityConfig).map(([key, config]) => {
                             const currentPercentages = collection.rarity_percentages || {
                               common: 50,
@@ -1836,12 +1926,14 @@ export const StickerCollectionManager = () => {
                             {(Object.values(collection.rarity_percentages || {common: 50, uncommon: 30, rare: 15, epic: 4, legendary: 1}).reduce((sum: number, val: any) => sum + Number(val), 0) as number).toFixed(1)}%
                           </span>
                         </div>
-                        <Button 
-                          size="sm" 
-                          onClick={() => updateCollectionRarity(collection.id, collection.rarity_percentages)}
-                        >
-                          Save Rarity Settings
-                        </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={() => updateCollectionRarity(collection.id, collection.rarity_percentages)}
+                            >
+                              Save Rarity Settings
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )}
                     

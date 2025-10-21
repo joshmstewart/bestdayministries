@@ -3812,6 +3812,7 @@ export type Database = {
           start_date: string
           theme: string
           updated_at: string
+          use_default_rarity: boolean
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
@@ -3830,6 +3831,7 @@ export type Database = {
           start_date?: string
           theme: string
           updated_at?: string
+          use_default_rarity?: boolean
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
@@ -3848,6 +3850,7 @@ export type Database = {
           start_date?: string
           theme?: string
           updated_at?: string
+          use_default_rarity?: boolean
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: [

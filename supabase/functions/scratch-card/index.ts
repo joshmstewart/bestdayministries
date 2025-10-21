@@ -49,13 +49,27 @@ serve(async (req) => {
     // Get collection with rarity percentages
     const { data: collection, error: collectionError } = await supabase
       .from('sticker_collections')
-      .select('rarity_percentages')
+      .select('rarity_percentages, use_default_rarity')
       .eq('id', card.collection_id)
       .single();
 
     if (collectionError) throw collectionError;
 
-    const rarityPercentages = collection.rarity_percentages as Record<string, number>;
+    let rarityPercentages: Record<string, number>;
+
+    // If collection uses defaults, fetch from app_settings
+    if (collection.use_default_rarity) {
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'default_rarity_percentages')
+        .single();
+
+      if (settingsError) throw settingsError;
+      rarityPercentages = settingsData.setting_value as Record<string, number>;
+    } else {
+      rarityPercentages = collection.rarity_percentages as Record<string, number>;
+    }
 
     // Determine rarity based on percentages
     const rand = Math.random() * 100;
