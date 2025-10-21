@@ -2347,6 +2347,275 @@ export const StickerCollectionManager = () => {
           </DialogContent>
         </Dialog>
 
+      {/* Edit Collection Dialog */}
+      <Dialog open={!!editingCollection} onOpenChange={(open) => !open && setEditingCollection(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Collection: {editingCollection?.name}</DialogTitle>
+          </DialogHeader>
+
+          {editingCollection && (
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="basic">Basic</TabsTrigger>
+                <TabsTrigger value="roles">Roles</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+                <TabsTrigger value="rarity">Rarity</TabsTrigger>
+                <TabsTrigger value="pack">Pack Assets</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="basic" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Collection Name</Label>
+                    <Input
+                      value={editingCollection.name}
+                      onChange={(e) => setEditingCollection({ ...editingCollection, name: e.target.value })}
+                      placeholder="Halloween 2025"
+                    />
+                  </div>
+                  <div>
+                    <Label>Theme</Label>
+                    <Input
+                      value={editingCollection.theme}
+                      onChange={(e) => setEditingCollection({ ...editingCollection, theme: e.target.value })}
+                      placeholder="halloween"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={editingCollection.description || ""}
+                    onChange={(e) => setEditingCollection({ ...editingCollection, description: e.target.value })}
+                    placeholder="Spooky stickers for Halloween!"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Start Date</Label>
+                    <Input
+                      type="date"
+                      value={editingCollection.start_date}
+                      onChange={(e) => setEditingCollection({ ...editingCollection, start_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>End Date (Optional)</Label>
+                    <Input
+                      type="date"
+                      value={editingCollection.end_date || ""}
+                      onChange={(e) => setEditingCollection({ ...editingCollection, end_date: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="roles" className="space-y-4 mt-4">
+                <Label className="text-sm">Visible to Roles</Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Only users with selected roles will be able to see and open packs from this collection
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {USER_ROLES.map((role) => (
+                    <div key={role.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-role-${role.value}`}
+                        checked={editingCollection.visible_to_roles?.includes(role.value)}
+                        onCheckedChange={(checked) => {
+                          const newRoles = checked
+                            ? [...(editingCollection.visible_to_roles || []), role.value]
+                            : (editingCollection.visible_to_roles || []).filter((r: string) => r !== role.value);
+                          setEditingCollection({ ...editingCollection, visible_to_roles: newRoles });
+                        }}
+                      />
+                      <label
+                        htmlFor={`edit-role-${role.value}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize"
+                      >
+                        {role.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="settings" className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="edit-stickers-per-pack">Stickers Per Pack</Label>
+                  <Input
+                    id="edit-stickers-per-pack"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={editingCollection.stickers_per_pack || 1}
+                    onChange={(e) => setEditingCollection({ ...editingCollection, stickers_per_pack: parseInt(e.target.value) || 1 })}
+                    className="w-32 mt-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Number of stickers revealed when opening a pack (1-10)
+                  </p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="rarity" className="space-y-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-semibold">Rarity Drop Rates</Label>
+                    <p className="text-xs text-muted-foreground">Configure drop rates for this collection</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="edit-use-defaults" className="text-sm cursor-pointer">
+                      Use Defaults
+                    </Label>
+                    <Switch
+                      id="edit-use-defaults"
+                      checked={editingCollection.use_default_rarity || false}
+                      onCheckedChange={(checked) => setEditingCollection({ ...editingCollection, use_default_rarity: checked })}
+                    />
+                  </div>
+                </div>
+
+                {editingCollection.use_default_rarity ? (
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-primary/5 border-primary/20">
+                    <Badge variant="outline" className="border-primary/40">
+                      Using Defaults
+                    </Badge>
+                    <p className="text-xs text-muted-foreground">
+                      This collection automatically uses default rarity percentages.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">Adjust percentages for each rarity level. Must sum to 100%.</p>
+
+                    <div className="grid grid-cols-5 gap-3">
+                      {Object.entries(editingCollection.rarity_percentages || {
+                        common: 50,
+                        uncommon: 30,
+                        rare: 15,
+                        epic: 4,
+                        legendary: 1
+                      }).map(([rarity, value]) => (
+                        <div key={rarity} className="space-y-2">
+                          <Label className="capitalize text-xs">{rarity}</Label>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              value={Number(value) || 0}
+                              onChange={(e) => setEditingCollection({
+                                ...editingCollection,
+                                rarity_percentages: {
+                                  ...(editingCollection.rarity_percentages || {}),
+                                  [rarity]: parseFloat(e.target.value) || 0
+                                }
+                              })}
+                              className="text-xs"
+                            />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                      <span className="text-sm font-medium">Total:</span>
+                      <span className={`text-sm font-bold ${
+                        Math.abs((Object.values(editingCollection.rarity_percentages || {}) as number[]).reduce((sum, val) => sum + val, 0) - 100) < 0.01 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {((Object.values(editingCollection.rarity_percentages || {}) as number[]).reduce((sum, val) => sum + val, 0)).toFixed(1)}%
+                      </span>
+                    </div>
+                  </>
+                )}
+              </TabsContent>
+
+              <TabsContent value="pack" className="space-y-4 mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Current pack assets are displayed in the collection preview. Upload new files to change them.
+                </p>
+              </TabsContent>
+
+              <div className="flex gap-2 justify-end pt-4 border-t mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingCollection(null)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (!editingCollection.name || !editingCollection.theme) {
+                      toast({
+                        title: "Error",
+                        description: "Name and theme are required",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    if (!editingCollection.use_default_rarity) {
+                      const total = (Object.values(editingCollection.rarity_percentages || {}) as number[]).reduce((sum, val) => sum + val, 0);
+                      if (Math.abs(total - 100) > 0.01) {
+                        toast({
+                          title: "Error",
+                          description: "Rarity percentages must sum to 100%",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                    }
+
+                    setLoading(true);
+                    try {
+                      const { error } = await supabase
+                        .from('sticker_collections')
+                        .update({
+                          name: editingCollection.name,
+                          description: editingCollection.description,
+                          theme: editingCollection.theme,
+                          start_date: editingCollection.start_date,
+                          end_date: editingCollection.end_date || null,
+                          visible_to_roles: editingCollection.visible_to_roles,
+                          stickers_per_pack: editingCollection.stickers_per_pack || 1,
+                          use_default_rarity: editingCollection.use_default_rarity || false,
+                          rarity_percentages: editingCollection.rarity_percentages,
+                        })
+                        .eq('id', editingCollection.id);
+
+                      if (error) throw error;
+
+                      toast({ title: "Success", description: "Collection updated successfully!" });
+                      setEditingCollection(null);
+                      fetchCollections();
+                    } catch (error: any) {
+                      toast({
+                        title: "Error",
+                        description: error.message || "Failed to update collection",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </div>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
+
         {/* Test Pack Opening Dialog */}
         {testCardId && (
           <PackOpeningDialog
