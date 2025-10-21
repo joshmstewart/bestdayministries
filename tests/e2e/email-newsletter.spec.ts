@@ -404,7 +404,7 @@ test.describe('Newsletter System Tests', () => {
     await subscribeSwitch.click();
     
     // Wait for update
-    await userPage.waitForTimeout(2000);
+    await expect(userPage.locator('[role="status"], .toast').first()).toBeVisible({ timeout: 3000 }).catch(() => {});
 
     // Verify in database
     const sponsorEmail = `${seedData.emailPrefix}-sponsor@test.com`;

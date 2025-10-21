@@ -26,7 +26,7 @@ test.describe('Shopping Cart @fast', () => {
       const firstProduct = page.locator('[data-testid="product-card"], .product-card').first();
       await firstProduct.click();
       
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       
       // Should show dialog or navigate to product page
       const hasDialog = await page.locator('[role="dialog"]').isVisible();

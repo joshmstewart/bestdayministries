@@ -69,7 +69,7 @@ test.describe('Newsletter System UI @fast', () => {
     
     // Click Besties tab
     await adminPage.click('button:has-text("Besties")');
-    await adminPage.waitForTimeout(1000);
+    await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for newsletter-related content within tabs
     const newsletterTab = adminPage.locator('text=/Newsletter|Campaigns/i').first();
@@ -82,13 +82,13 @@ test.describe('Newsletter System UI @fast', () => {
     
     // Navigate to Besties section
     await adminPage.click('button:has-text("Besties")');
-    await adminPage.waitForTimeout(1500);
+    await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for Campaigns tab or New Campaign button
     const campaignsSection = adminPage.locator('text=/Campaigns/i').first();
     if (await campaignsSection.isVisible()) {
       await campaignsSection.click();
-      await adminPage.waitForTimeout(1000);
+      await expect(campaignsSection).toHaveAttribute('aria-selected', 'true').catch(() => {});
     }
     
     // Click New Campaign button
@@ -110,7 +110,7 @@ test.describe('Newsletter System UI @fast', () => {
     await saveBtn.click();
     
     // Wait for success
-    await adminPage.waitForTimeout(2000);
+    await expect(adminPage.locator('[role="status"], .toast').first()).toBeVisible({ timeout: 3000 }).catch(() => {});
     
     // Verify campaign in database
     const campaignExists = await adminPage.evaluate(async ({ title }) => {
@@ -133,13 +133,13 @@ test.describe('Newsletter System UI @fast', () => {
     
     // Navigate to Besties section
     await adminPage.click('button:has-text("Besties")');
-    await adminPage.waitForTimeout(1500);
+    await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for Templates tab
     const templatesTab = adminPage.locator('button:has-text("Templates"), text="Templates"').first();
     if (await templatesTab.isVisible()) {
       await templatesTab.click();
-      await adminPage.waitForTimeout(1000);
+      await expect(templatesTab).toHaveAttribute('aria-selected', 'true').catch(() => {});
     }
     
     // Click New Template button
@@ -155,7 +155,7 @@ test.describe('Newsletter System UI @fast', () => {
       const saveBtn = adminPage.locator('button:has-text("Save"), button:has-text("Create")').first();
       await saveBtn.click();
       
-      await adminPage.waitForTimeout(2000);
+      await expect(adminPage.locator('[role="status"], .toast').first()).toBeVisible({ timeout: 3000 }).catch(() => {});
       
       // Verify template in database
       const templateExists = await adminPage.evaluate(async ({ name }) => {
@@ -181,13 +181,13 @@ test.describe('Newsletter System UI @fast', () => {
     
     // Navigate to Besties section
     await adminPage.click('button:has-text("Besties")');
-    await adminPage.waitForTimeout(1500);
+    await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for Subscribers tab
     const subscribersTab = adminPage.locator('button:has-text("Subscribers"), text="Subscribers"').first();
     if (await subscribersTab.isVisible()) {
       await subscribersTab.click();
-      await adminPage.waitForTimeout(1000);
+      await expect(subscribersTab).toHaveAttribute('aria-selected', 'true').catch(() => {});
     }
     
     // Click Add Subscriber button
@@ -202,7 +202,7 @@ test.describe('Newsletter System UI @fast', () => {
       const saveBtn = adminPage.locator('button:has-text("Add"), button:has-text("Save")').first();
       await saveBtn.click();
       
-      await adminPage.waitForTimeout(2000);
+      await expect(adminPage.locator('[role="status"], .toast').first()).toBeVisible({ timeout: 3000 }).catch(() => {});
       
       // Verify subscriber in database
       const subscriberExists = await adminPage.evaluate(async ({ email }) => {
@@ -228,13 +228,13 @@ test.describe('Newsletter System UI @fast', () => {
     
     // Navigate to Besties section
     await adminPage.click('button:has-text("Besties")');
-    await adminPage.waitForTimeout(1500);
+    await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for Analytics tab
     const analyticsTab = adminPage.locator('button:has-text("Analytics"), text="Analytics"').first();
     if (await analyticsTab.isVisible()) {
       await analyticsTab.click();
-      await adminPage.waitForTimeout(1000);
+      await expect(analyticsTab).toHaveAttribute('aria-selected', 'true').catch(() => {});
       
       // Verify analytics interface loads
       const analyticsContent = adminPage.locator('text=/Campaign Statistics|Analytics|Performance/i').first();
@@ -250,7 +250,7 @@ test.describe('Newsletter System UI @fast', () => {
     
     // Navigate to Besties section
     await adminPage.click('button:has-text("Besties")');
-    await adminPage.waitForTimeout(1500);
+    await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Check for key newsletter tabs (may vary based on implementation)
     const expectedTabs = ['Campaigns', 'Subscribers'];
@@ -273,12 +273,12 @@ test.describe('Newsletter System UI @fast', () => {
       await adminPage.waitForLoadState('networkidle');
       
       await adminPage.click('button:has-text("Besties")');
-      await adminPage.waitForTimeout(1500);
+      await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
       
       const campaignsTab = adminPage.locator('button:has-text("Campaigns"), text="Campaigns"').first();
       if (await campaignsTab.isVisible()) {
         await campaignsTab.click();
-        await adminPage.waitForTimeout(1000);
+        await expect(campaignsTab).toHaveAttribute('aria-selected', 'true').catch(() => {});
         await percySnapshot(adminPage, 'Newsletter - Campaigns Tab');
       }
     });
@@ -288,12 +288,12 @@ test.describe('Newsletter System UI @fast', () => {
       await adminPage.waitForLoadState('networkidle');
       
       await adminPage.click('button:has-text("Besties")');
-      await adminPage.waitForTimeout(1500);
+      await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
       
       const subscribersTab = adminPage.locator('button:has-text("Subscribers"), text="Subscribers"').first();
       if (await subscribersTab.isVisible()) {
         await subscribersTab.click();
-        await adminPage.waitForTimeout(1000);
+        await expect(subscribersTab).toHaveAttribute('aria-selected', 'true').catch(() => {});
         await percySnapshot(adminPage, 'Newsletter - Subscribers Tab');
       }
     });
@@ -308,7 +308,7 @@ test.describe('Newsletter System UI @fast', () => {
       const newCampaignBtn = adminPage.locator('button:has-text("New Campaign")').first();
       if (await newCampaignBtn.isVisible()) {
         await newCampaignBtn.click();
-        await adminPage.waitForTimeout(1000);
+        await expect(adminPage.locator('[role="dialog"]').first()).toBeVisible({ timeout: 3000 });
         await percySnapshot(adminPage, 'Newsletter - Campaign Creation Dialog');
       }
     });

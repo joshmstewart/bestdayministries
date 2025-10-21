@@ -65,7 +65,7 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     // Check for content type tabs
     const expectedTabs = ['Posts', 'Comments', 'Messages'];
@@ -87,7 +87,7 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     // Click Posts tab if exists
     const postsTab = moderatorPage.locator('button:has-text("Posts"), [role="tab"]:has-text("Posts")').first();
@@ -106,12 +106,12 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     const postsTab = moderatorPage.locator('button:has-text("Posts")').first();
     if (await postsTab.isVisible()) {
       await postsTab.click();
-      await moderatorPage.waitForTimeout(1000);
+      await expect(postsTab).toHaveAttribute('aria-selected', 'true');
     }
     
     // Look for approve button on first item
@@ -122,7 +122,7 @@ test.describe('Moderation Queue Interactions @fast', () => {
       const postId = await postCard.getAttribute('data-post-id').catch(() => null);
       
       await approveBtn.click();
-      await moderatorPage.waitForTimeout(2000);
+      await moderatorPage.waitForLoadState('networkidle');
       
       // Verify post status changed if we got the ID
       if (postId) {
@@ -153,19 +153,19 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     const postsTab = moderatorPage.locator('button:has-text("Posts")').first();
     if (await postsTab.isVisible()) {
       await postsTab.click();
-      await moderatorPage.waitForTimeout(1000);
+      await expect(postsTab).toHaveAttribute('aria-selected', 'true');
     }
     
     // Look for reject button
     const rejectBtn = moderatorPage.locator('button:has-text("Reject"), button:has-text("Deny")').first();
     if (await rejectBtn.isVisible()) {
       await rejectBtn.click();
-      await moderatorPage.waitForTimeout(2000);
+      await moderatorPage.waitForLoadState('networkidle');
       
       console.log('Post rejected successfully');
     } else {
@@ -178,19 +178,19 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     const postsTab = moderatorPage.locator('button:has-text("Posts")').first();
     if (await postsTab.isVisible()) {
       await postsTab.click();
-      await moderatorPage.waitForTimeout(1000);
+      await expect(postsTab).toHaveAttribute('aria-selected', 'true');
     }
     
     // Look for delete button
     const deleteBtn = moderatorPage.locator('button[aria-label*="Delete" i], button:has-text("Delete")').first();
     if (await deleteBtn.isVisible()) {
       await deleteBtn.click();
-      await moderatorPage.waitForTimeout(1000);
+      await expect(moderatorPage.locator('[role="dialog"]').first()).toBeVisible({ timeout: 3000 });
       
       // Check for cascade warning
       const warningText = moderatorPage.locator('text=/cascade|comments|will also be deleted/i').first();
@@ -213,13 +213,13 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     // Click Comments tab
     const commentsTab = moderatorPage.locator('button:has-text("Comments"), [role="tab"]:has-text("Comments")').first();
     if (await commentsTab.isVisible()) {
       await commentsTab.click();
-      await moderatorPage.waitForTimeout(1000);
+      await expect(commentsTab).toHaveAttribute('aria-selected', 'true');
       
       // Verify comments interface loads
       const hasComments = await moderatorPage.locator('text=/Comment|Pending|Review/i').first().isVisible().catch(() => false);
@@ -232,12 +232,12 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     const commentsTab = moderatorPage.locator('button:has-text("Comments")').first();
     if (await commentsTab.isVisible()) {
       await commentsTab.click();
-      await moderatorPage.waitForTimeout(1000);
+      await expect(commentsTab).toHaveAttribute('aria-selected', 'true');
       
       // Look for approve/reject buttons
       const moderateBtn = moderatorPage.locator('button:has-text("Approve"), button:has-text("Reject")').first();
@@ -256,13 +256,12 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     // Look for select all or bulk selection checkbox
     const selectAllCheckbox = moderatorPage.locator('input[type="checkbox"][aria-label*="Select all" i]').first();
     if (await selectAllCheckbox.isVisible()) {
       await selectAllCheckbox.click();
-      await moderatorPage.waitForTimeout(500);
       
       console.log('Bulk selection toggled');
     } else {
@@ -275,7 +274,7 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     // Look for bulk action buttons
     const bulkApproveBtn = moderatorPage.locator('button:has-text("Approve Selected"), button:has-text("Bulk Approve")').first();
@@ -293,7 +292,7 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     // Look for status indicators
     const statusBadge = moderatorPage.locator('[class*="badge"], [data-status]').first();
@@ -309,7 +308,7 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     // Test switching between tabs
     const tabs = ['Posts', 'Comments', 'Messages'];
@@ -318,7 +317,7 @@ test.describe('Moderation Queue Interactions @fast', () => {
       const tab = moderatorPage.locator(`button:has-text("${tabName}")`).first();
       if (await tab.isVisible()) {
         await tab.click();
-        await moderatorPage.waitForTimeout(1000);
+        await expect(tab).toHaveAttribute('aria-selected', 'true');
         console.log(`Switched to ${tabName} filter`);
       }
     }
@@ -329,13 +328,13 @@ test.describe('Moderation Queue Interactions @fast', () => {
     await moderatorPage.waitForLoadState('networkidle');
     
     await moderatorPage.click('button:has-text("Moderation")');
-    await moderatorPage.waitForTimeout(1500);
+    await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
     
     // Get initial count
     const initialItems = await moderatorPage.locator('[data-post-id], [data-comment-id]').count();
     
     // Wait to see if realtime updates occur
-    await moderatorPage.waitForTimeout(3000);
+    await moderatorPage.waitForLoadState('networkidle');
     
     const laterItems = await moderatorPage.locator('[data-post-id], [data-comment-id]').count();
     
@@ -350,12 +349,12 @@ test.describe('Moderation Queue Interactions @fast', () => {
       await moderatorPage.waitForLoadState('networkidle');
       
       await moderatorPage.click('button:has-text("Moderation")');
-      await moderatorPage.waitForTimeout(1500);
+      await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
       
       const postsTab = moderatorPage.locator('button:has-text("Posts")').first();
       if (await postsTab.isVisible()) {
         await postsTab.click();
-        await moderatorPage.waitForTimeout(1000);
+        await expect(postsTab).toHaveAttribute('aria-selected', 'true');
       }
       
       await percySnapshot(moderatorPage, 'Moderation Queue - Posts Tab');
@@ -366,12 +365,12 @@ test.describe('Moderation Queue Interactions @fast', () => {
       await moderatorPage.waitForLoadState('networkidle');
       
       await moderatorPage.click('button:has-text("Moderation")');
-      await moderatorPage.waitForTimeout(1500);
+      await expect(moderatorPage.locator('text=/Content|Posts|Comments/i').first()).toBeVisible({ timeout: 10000 });
       
       const commentsTab = moderatorPage.locator('button:has-text("Comments")').first();
       if (await commentsTab.isVisible()) {
         await commentsTab.click();
-        await moderatorPage.waitForTimeout(1000);
+        await expect(commentsTab).toHaveAttribute('aria-selected', 'true');
         await percySnapshot(moderatorPage, 'Moderation Queue - Comments Tab');
       }
     });

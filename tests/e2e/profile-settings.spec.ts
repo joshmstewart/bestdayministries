@@ -375,7 +375,7 @@ test.describe('Profile Settings @fast', () => {
       const changeAvatarBtn = testPage.locator('button:has-text("Change Avatar")').first();
       if (await changeAvatarBtn.isVisible()) {
         await changeAvatarBtn.click();
-        await testPage.waitForTimeout(1000);
+        await expect(testPage.locator('[role="dialog"]').first()).toBeVisible({ timeout: 3000 });
         await percySnapshot(testPage, 'Profile Settings - Avatar Selection Dialog');
       }
     });

@@ -366,7 +366,7 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       // Reload page
       await page.reload();
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       console.log('🔍 TEST 238: Page reloaded');
       
       // Look for unlink button (trash icon) - find by the trash icon SVG
@@ -381,7 +381,7 @@ test.describe('Guardian-Bestie Linking Flow', () => {
         
         // Wait for AlertDialog to appear
         await page.waitForSelector('[role="alertdialog"]', { timeout: 2000 }).catch(() => {});
-        await page.waitForTimeout(500);
+        await expect(page.locator('[data-state="open"]').first()).toBeVisible({ timeout: 2000 });
         console.log('🔍 TEST 238: AlertDialog appeared');
         
         // Click the "Remove Link" button in the AlertDialog
@@ -395,7 +395,7 @@ test.describe('Guardian-Bestie Linking Flow', () => {
         }
         
         // Wait for DELETE operation to complete
-        await page.waitForTimeout(1500);
+        await page.waitForLoadState('networkidle');
         
         // Verify link was removed from state
         const finalLinkCount = state.caregiverBestieLinks.size;
@@ -408,13 +408,13 @@ test.describe('Guardian-Bestie Linking Flow', () => {
   test.describe('Validation Tests @fast', () => {
     test('should validate incomplete friend code', async ({ page }) => {
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
+      await expect(page.locator('[data-state="open"]').first()).toBeVisible({ timeout: 2000 });
       
       // Open dialog if needed
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
       if (await linkButton.isVisible()) {
         await linkButton.click();
-        await page.waitForTimeout(500);
+        await expect(page.locator('[data-state="open"]').first()).toBeVisible({ timeout: 2000 });
       }
       
       // Try to submit without selecting all emojis (just check button is disabled or shows error)
@@ -424,7 +424,7 @@ test.describe('Guardian-Bestie Linking Flow', () => {
         await submitButton.click();
         
         // Should show validation error
-        await page.waitForTimeout(500);
+        await expect(page.locator('[data-state="open"]').first()).toBeVisible({ timeout: 2000 });
         const errorVisible = await page.locator('text=/select|complete|required|choose/i').first().isVisible().catch(() => false);
         expect(errorVisible).toBeTruthy();
       }
@@ -441,7 +441,7 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       
       // Try to access guardian links
       await page.goto('/guardian-links');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       
       // Should be redirected away or show access denied
       const currentUrl = page.url();
