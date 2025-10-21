@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export const DefaultRaritySettings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [percentages, setPercentages] = useState({
     common: 50,
     uncommon: 30,
@@ -109,15 +111,36 @@ export const DefaultRaritySettings = () => {
     );
   }
 
+  const getSummary = () => {
+    return `Common: ${percentages.common}%, Uncommon: ${percentages.uncommon}%, Rare: ${percentages.rare}%, Epic: ${percentages.epic}%, Legendary: ${percentages.legendary}%`;
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Default Drop Rate Percentages</CardTitle>
-        <CardDescription>
-          Set the default drop rate percentages for all new sticker collections. These can be overridden per collection.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>Default Drop Rate Percentages</CardTitle>
+            <CardDescription>
+              {isOpen ? (
+                "Set the default drop rate percentages for all new sticker collections. These can be overridden per collection."
+              ) : (
+                getSummary()
+              )}
+            </CardDescription>
+          </div>
+          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm">
+                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+          </Collapsible>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           {/* Common - most common */}
           <div className="space-y-2">
@@ -233,7 +256,9 @@ export const DefaultRaritySettings = () => {
             )}
           </Button>
         </div>
-      </CardContent>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 };
