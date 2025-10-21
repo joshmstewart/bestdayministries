@@ -167,83 +167,86 @@
 }
 
 /* Styled Boxes/Containers */
+/* Light Gray Box */
+.ProseMirror div[style*="background-color:#f5f5f5"],
 .ProseMirror div[style*="background-color: #f5f5f5"],
+.ProseMirror div[style*="background-color:rgb(245,245,245)"],
 .ProseMirror div[style*="background-color: rgb(245, 245, 245)"] {
-  background-color: #f5f5f5 !important;
-  padding: 2rem !important;
-  border-radius: 0.5rem !important;
-  margin: 1rem 0 !important;
-  border: 2px dashed #d1d5db;
+  border: 2px dashed #d1d5db !important;
   position: relative;
 }
 
-.ProseMirror div[style*="background-color: #f5f5f5"]::before,
-.ProseMirror div[style*="background-color: rgb(245, 245, 245)"]::before {
-  content: "Light Gray Box";
+.ProseMirror div[style*="background-color:#f5f5f5"]::after,
+.ProseMirror div[style*="background-color: #f5f5f5"]::after,
+.ProseMirror div[style*="background-color:rgb(245,245,245)"]::after,
+.ProseMirror div[style*="background-color: rgb(245, 245, 245)"]::after {
+  content: "📦 Light Gray Box";
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
   font-size: 0.75rem;
+  font-weight: 600;
   color: #6b7280;
   background: white;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 0.25rem;
   border: 1px solid #d1d5db;
   pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.ProseMirror div[style*="background: linear-gradient(135deg, #667eea"],
-.ProseMirror div[style*="background:linear-gradient(135deg,#667eea"] {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  padding: 2rem !important;
-  border-radius: 0.5rem !important;
-  margin: 1rem 0 !important;
-  color: white !important;
-  border: 2px dashed rgba(255, 255, 255, 0.5);
+/* Purple Gradient Box */
+.ProseMirror div[style*="linear-gradient(135deg,#667eea"],
+.ProseMirror div[style*="linear-gradient(135deg, #667eea"],
+.ProseMirror div[style*="background:linear-gradient(135deg,#667eea"],
+.ProseMirror div[style*="background: linear-gradient(135deg, #667eea"] {
+  border: 2px dashed rgba(255, 255, 255, 0.5) !important;
   position: relative;
 }
 
-.ProseMirror div[style*="background: linear-gradient(135deg, #667eea)"]::before,
-.ProseMirror div[style*="background:linear-gradient(135deg,#667eea"]::before {
-  content: "Purple Gradient Box";
+.ProseMirror div[style*="linear-gradient(135deg,#667eea"]::after,
+.ProseMirror div[style*="linear-gradient(135deg, #667eea"]::after,
+.ProseMirror div[style*="background:linear-gradient(135deg,#667eea"]::after,
+.ProseMirror div[style*="background: linear-gradient(135deg, #667eea"]::after {
+  content: "🌟 Purple Gradient Box";
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
   font-size: 0.75rem;
+  font-weight: 600;
   color: white;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.25rem 0.75rem;
   border-radius: 0.25rem;
   border: 1px solid rgba(255, 255, 255, 0.3);
   pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-.ProseMirror div[style*="background: linear-gradient(135deg, #667eea)"] p,
-.ProseMirror div[style*="background:linear-gradient(135deg,#667eea"] p {
-  color: white !important;
-}
-
+/* White Bordered Box */
+.ProseMirror div[style*="background-color:#ffffff"][style*="border:2px solid"],
 .ProseMirror div[style*="background-color: #ffffff"][style*="border: 2px solid"],
+.ProseMirror div[style*="background-color:rgb(255,255,255)"][style*="border:2px solid"],
 .ProseMirror div[style*="background-color: rgb(255, 255, 255)"][style*="border: 2px solid"] {
-  background-color: #ffffff !important;
-  padding: 2rem !important;
   border: 2px dashed #d1d5db !important;
-  border-radius: 0.5rem !important;
-  margin: 1rem 0 !important;
   position: relative;
 }
 
-.ProseMirror div[style*="background-color: #ffffff"][style*="border: 2px solid"]::before,
-.ProseMirror div[style*="background-color: rgb(255, 255, 255)"][style*="border: 2px solid"]::before {
-  content: "White Bordered Box";
+.ProseMirror div[style*="background-color:#ffffff"][style*="border:2px solid"]::after,
+.ProseMirror div[style*="background-color: #ffffff"][style*="border: 2px solid"]::after,
+.ProseMirror div[style*="background-color:rgb(255,255,255)"][style*="border:2px solid"]::after,
+.ProseMirror div[style*="background-color: rgb(255, 255, 255)"][style*="border: 2px solid"]::after {
+  content: "⬜ White Bordered Box";
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
   font-size: 0.75rem;
+  font-weight: 600;
   color: #6b7280;
   background: #f9fafb;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 0.25rem;
   border: 1px solid #d1d5db;
   pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
