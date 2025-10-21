@@ -551,7 +551,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
                     revealedStickers.length >= 3 && "grid-cols-2 sm:grid-cols-3"
                   )}>
                     {revealedStickers.map((sticker, index) => (
-                      <div key={index} className="flex flex-col items-center gap-2 p-4 rounded-lg border bg-card">
+                      <div key={index} className="flex flex-col items-center gap-2 p-4 rounded-lg border bg-transparent">
                         <img 
                           src={sticker.image_url} 
                           alt={sticker.name}
