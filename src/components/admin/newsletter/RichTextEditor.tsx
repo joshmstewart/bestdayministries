@@ -624,6 +624,20 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         >
           <Square className="h-4 w-4" />
         </Button>
+        {editor.isActive('styledBox') && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              editor.chain().focus().lift('styledBox').run();
+              toast.success("Box removed!");
+            }}
+            title="Remove box wrapper (keeps content)"
+          >
+            <Square className="h-4 w-4 opacity-50" />
+          </Button>
+        )}
         <div className="w-px h-6 bg-border mx-1" />
         <div className="flex items-center gap-1">
           <input
