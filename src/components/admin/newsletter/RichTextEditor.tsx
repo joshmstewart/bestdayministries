@@ -79,6 +79,7 @@ import {
   Highlighter,
   RemoveFormatting,
   Crop,
+  Square,
 } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
@@ -108,6 +109,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [containerDialogOpen, setContainerDialogOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [isRecropping, setIsRecropping] = useState(false);
@@ -610,6 +612,15 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         >
           <Minus className="h-4 w-4" />
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setContainerDialogOpen(true)}
+          title="Styled box"
+        >
+          <Square className="h-4 w-4" />
+        </Button>
         <div className="w-px h-6 bg-border mx-1" />
         <div className="flex items-center gap-1">
           <input
@@ -811,6 +822,75 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             </Button>
             <Button onClick={handleVideoUpload} disabled={!videoFile || uploading}>
               {uploading ? "Uploading..." : "Insert Video"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Styled Container Dialog */}
+      <Dialog open={containerDialogOpen} onOpenChange={setContainerDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Insert Styled Box</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Select a box style to wrap your selected content:
+            </p>
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full h-auto p-4 flex flex-col items-start gap-2"
+                onClick={() => {
+                  editor?.chain().focus().insertContent(
+                    '<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;"><p>Type your content here...</p></div>'
+                  ).run();
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold">Light Gray Box</div>
+                <div className="w-full h-16 rounded bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-xs">
+                  Preview: Light background
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full h-auto p-4 flex flex-col items-start gap-2"
+                onClick={() => {
+                  editor?.chain().focus().insertContent(
+                    '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;">Type your content here...</p></div>'
+                  ).run();
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold">Purple Gradient Box</div>
+                <div className="w-full h-16 rounded bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-xs text-white">
+                  Preview: Gradient background
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full h-auto p-4 flex flex-col items-start gap-2"
+                onClick={() => {
+                  editor?.chain().focus().insertContent(
+                    '<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p>Type your content here...</p></div>'
+                  ).run();
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold">White Bordered Box</div>
+                <div className="w-full h-16 rounded bg-white border-2 border-gray-300 flex items-center justify-center text-xs">
+                  Preview: White with border
+                </div>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tip: Select text first, then apply a box style to wrap it. You can edit the content inside the box after creating it.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContainerDialogOpen(false)}>
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
