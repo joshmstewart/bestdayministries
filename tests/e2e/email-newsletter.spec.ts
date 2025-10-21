@@ -472,4 +472,80 @@ test.describe('Newsletter System Tests', () => {
 
     console.log('✅ Unsubscribed user filter test passed');
   });
+
+  test('automated welcome email sends on newsletter signup @email @automated', async () => {
+    test.setTimeout(60000);
+
+    const testEmail = `welcome-${Date.now()}@example.com`;
+
+    // Verify active welcome template exists
+    const { data: template } = await supabase
+      .from('campaign_templates')
+      .select('*')
+      .eq('trigger_event', 'newsletter_signup')
+      .eq('is_active', true)
+      .eq('auto_send', true)
+      .maybeSingle();
+
+    expect(template).toBeTruthy();
+    expect(template.name).toContain('Welcome');
+
+    // Subscribe to newsletter (mimicking frontend flow)
+    const { data: subscriber, error: subError } = await supabase
+      .from('newsletter_subscribers')
+      .insert({
+        email: testEmail,
+        status: 'active',
+        first_name: 'Welcome Test',
+      })
+      .select()
+      .single();
+
+    expect(subError).toBeNull();
+    expect(subscriber).toBeTruthy();
+
+    // Trigger automated campaign (mimicking frontend behavior)
+    const { error: sendError } = await supabase.functions.invoke('send-automated-campaign', {
+      body: {
+        trigger_event: 'newsletter_signup',
+        recipient_email: testEmail,
+        trigger_data: {
+          source: 'test_signup',
+        },
+      },
+    });
+
+    expect(sendError).toBeNull();
+
+    // Wait for email processing
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Verify email was logged in automated_campaign_sends
+    const { data: automatedSend } = await supabase
+      .from('automated_campaign_sends')
+      .select('*')
+      .eq('template_id', template.id)
+      .eq('recipient_email', testEmail)
+      .eq('trigger_event', 'newsletter_signup')
+      .eq('status', 'sent')
+      .maybeSingle();
+
+    expect(automatedSend).toBeTruthy();
+    expect(automatedSend.status).toBe('sent');
+
+    // Verify email was logged in newsletter_emails_log
+    const { data: emailLog } = await supabase
+      .from('newsletter_emails_log')
+      .select('*')
+      .eq('template_id', template.id)
+      .eq('recipient_email', testEmail)
+      .eq('status', 'sent')
+      .maybeSingle();
+
+    expect(emailLog).toBeTruthy();
+    expect(emailLog.subject).toBeTruthy();
+    expect(emailLog.html_content).toBeTruthy();
+
+    console.log('✅ Automated welcome email test passed');
+  });
 });
