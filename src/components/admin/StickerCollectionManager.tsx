@@ -9,13 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical, X, Edit } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, Eye, EyeOff, Sparkles, GripVertical, X, Edit, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { removeBackground as removeBg, loadImage } from "@/lib/removeBackground";
 import { ScratchCardDialog } from "@/components/ScratchCardDialog";
 import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { DefaultRaritySettings } from "./DefaultRaritySettings";
+import { CollectionEditDialog } from "./CollectionEditDialog";
 import {
   Dialog,
   DialogContent,
@@ -263,6 +264,7 @@ export const StickerCollectionManager = () => {
   const [collections, setCollections] = useState<any[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [stickers, setStickers] = useState<any[]>([]);
+  const [editingCollection, setEditingCollection] = useState<any | null>(null);
   const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
   const [editingRarityFor, setEditingRarityFor] = useState<string | null>(null);
   const [editingPackAssetsFor, setEditingPackAssetsFor] = useState<string | null>(null);
@@ -891,11 +893,10 @@ export const StickerCollectionManager = () => {
 
     toast({ title: "Success", description: "Role visibility updated!" });
     fetchCollections();
-    setEditingRolesFor(null);
+    // Will be removed when dialog is used
   };
 
   const updateCollectionRarity = async (collectionId: string, percentages: any) => {
-    // Validate percentages sum to 100
     const total: number = Object.values(percentages).reduce((sum: number, val: any) => sum + Number(val), 0) as number;
     if (Math.abs(total - 100) > 0.01) {
       toast({ title: "Error", description: "Rarity percentages must sum to 100%", variant: "destructive" });
@@ -914,7 +915,7 @@ export const StickerCollectionManager = () => {
 
     toast({ title: "Success", description: "Rarity percentages updated!" });
     fetchCollections();
-    setEditingRarityFor(null);
+    // Will be removed when dialog is used
   };
 
   const updateStickersPerPack = async (collectionId: string, stickersPerPack: number) => {
@@ -935,7 +936,7 @@ export const StickerCollectionManager = () => {
 
     toast({ title: "Success", description: "Stickers per pack updated!" });
     fetchCollections();
-    setEditingSettingsFor(null);
+    // Will be removed when dialog is used
   };
 
   const updatePackAssets = async (collectionId: string) => {
@@ -982,7 +983,6 @@ export const StickerCollectionManager = () => {
         packAnimationUrl = urlData.publicUrl;
       }
 
-      // Update collection with new URLs (only update fields that were uploaded)
       const updates: any = {};
       if (packImageUrl) updates.pack_image_url = packImageUrl;
       if (packAnimationUrl) updates.pack_animation_url = packAnimationUrl;
@@ -1014,29 +1014,7 @@ export const StickerCollectionManager = () => {
     }
   };
 
-  const clearPackAsset = async (collectionId: string, assetType: 'image' | 'animation') => {
-    const fieldName = assetType === 'image' ? 'pack_image_url' : 'pack_animation_url';
-    
-    const { error } = await supabase
-      .from('sticker_collections')
-      .update({ [fieldName]: null })
-      .eq('id', collectionId);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      return;
-    }
-
-    toast({ title: "Success", description: `Pack ${assetType} cleared - will use default sticker collage` });
-    fetchCollections();
-  };
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setStickerImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
@@ -1926,39 +1904,10 @@ export const StickerCollectionManager = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setEditingRolesFor(editingRolesFor === collection.id ? null : collection.id)}
+                          onClick={() => setEditingCollection(collection)}
                         >
-                          Edit Roles
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingSettingsFor(editingSettingsFor === collection.id ? null : collection.id)}
-                        >
-                          Edit Settings
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingRarityFor(editingRarityFor === collection.id ? null : collection.id)}
-                        >
-                          Edit Rarity
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingPackAssetsFor(editingPackAssetsFor === collection.id ? null : collection.id);
-                            if (editingPackAssetsFor !== collection.id) {
-                              // Reset previews when opening
-                              setEditPackImage(null);
-                              setEditPackImagePreview("");
-                              setEditPackAnimation(null);
-                              setEditPackAnimationPreview("");
-                            }
-                          }}
-                        >
-                          Edit Pack
+                          <Settings className="h-4 w-4 mr-2" />
+                          Edit
                         </Button>
                         <Button
                           size="sm"
@@ -1979,354 +1928,6 @@ export const StickerCollectionManager = () => {
                         </Button>
                       </div>
                     </div>
-                    
-                    {editingRolesFor === collection.id && (
-                      <div className="p-4 border-t bg-background">
-                        <Label className="text-sm mb-3 block font-semibold">Visible to Roles</Label>
-                        <div className="grid grid-cols-3 gap-3 mb-4">
-                          {USER_ROLES.map((role) => {
-                            const currentRoles = collection.visible_to_roles || ["admin", "owner"];
-                            return (
-                              <div key={role.value} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`${collection.id}-${role.value}`}
-                                  checked={currentRoles.includes(role.value)}
-                                  onCheckedChange={(checked) => {
-                                    const newRoles = checked
-                                      ? [...currentRoles, role.value]
-                                      : currentRoles.filter((r: string) => r !== role.value);
-                                    updateCollectionRoles(collection.id, newRoles);
-                                  }}
-                                />
-                                <label
-                                  htmlFor={`${collection.id}-${role.value}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize"
-                                >
-                                  {role.label}
-                                </label>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Only users with selected roles will see and open packs from this collection
-                        </p>
-                      </div>
-                    )}
-                    
-                    {editingSettingsFor === collection.id && (
-                      <div className="p-4 border-t bg-background">
-                        <Label className="text-sm mb-3 block font-semibold">Collection Settings</Label>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor={`stickers-per-pack-${collection.id}`}>Stickers Per Pack</Label>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Input
-                                id={`stickers-per-pack-${collection.id}`}
-                                type="number"
-                                min="1"
-                                max="10"
-                                defaultValue={collection.stickers_per_pack || 1}
-                                className="w-32"
-                                onBlur={(e) => {
-                                  const value = parseInt(e.target.value);
-                                  if (value !== collection.stickers_per_pack) {
-                                    updateStickersPerPack(collection.id, value);
-                                  }
-                                }}
-                              />
-                              <span className="text-sm text-muted-foreground">
-                                (Current: {collection.stickers_per_pack || 1})
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Number of stickers revealed when opening a pack (1-10)
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {editingRarityFor === collection.id && (
-                      <div className="p-4 border-t bg-background">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="space-y-0.5">
-                            <Label className="text-sm font-semibold">Rarity Drop Rates</Label>
-                            <p className="text-xs text-muted-foreground">Configure drop rates for this collection</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor={`use-defaults-${collection.id}`} className="text-sm cursor-pointer">
-                              Use Defaults
-                            </Label>
-                            <Switch
-                              id={`use-defaults-${collection.id}`}
-                              checked={collection.use_default_rarity || false}
-                              onCheckedChange={async (checked) => {
-                                const { error } = await supabase
-                                  .from('sticker_collections')
-                                  .update({ use_default_rarity: checked })
-                                  .eq('id', collection.id);
-
-                                if (error) {
-                                  toast({ title: "Error", description: error.message, variant: "destructive" });
-                                  return;
-                                }
-
-                                setCollections(collections.map(c => 
-                                  c.id === collection.id 
-                                    ? { ...c, use_default_rarity: checked }
-                                    : c
-                                ));
-                                
-                                toast({ 
-                                  title: "Success", 
-                                  description: checked 
-                                    ? "Collection now uses default rarity percentages" 
-                                    : "Collection now uses custom rarity percentages" 
-                                });
-                              }}
-                            />
-                          </div>
-                        </div>
-                        
-                        {collection.use_default_rarity && (
-                          <div className="flex items-center gap-2 p-3 border rounded-md bg-primary/5 border-primary/20 mb-3">
-                            <Badge variant="outline" className="border-primary/40">
-                              Using Defaults
-                            </Badge>
-                            <p className="text-xs text-muted-foreground">
-                              This collection automatically uses default rarity percentages. Changes to defaults apply instantly.
-                            </p>
-                          </div>
-                        )}
-                        
-                        {!collection.use_default_rarity && (
-                          <>
-                            <div className="flex items-center justify-between mb-3">
-                              <p className="text-sm text-muted-foreground">Adjust percentages for each rarity level. Must sum to 100%.</p>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={async () => {
-                                  // Load default rates from app_settings
-                                  const { data } = await supabase
-                                    .from('app_settings')
-                                    .select('setting_value')
-                                    .eq('setting_key', 'default_rarity_percentages')
-                                    .maybeSingle();
-                                  
-                                  if (data?.setting_value) {
-                                    setCollections(collections.map(c => 
-                                      c.id === collection.id 
-                                        ? { ...c, rarity_percentages: data.setting_value as any }
-                                        : c
-                                    ));
-                                    toast({
-                                      title: "Success",
-                                      description: "Loaded default drop rates",
-                                    });
-                                  }
-                                }}
-                              >
-                                Copy Defaults
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                          {Object.entries(rarityConfig).map(([key, config]) => {
-                            const currentPercentages = collection.rarity_percentages || {
-                              common: 50,
-                              uncommon: 30,
-                              rare: 15,
-                              epic: 4,
-                              legendary: 1
-                            };
-                            return (
-                              <div key={key} className="space-y-2">
-                                <Label htmlFor={`${collection.id}-rarity-${key}`} className="flex items-center gap-2">
-                                  <span className={`w-3 h-3 rounded ${config.color}`} />
-                                  {config.label}
-                                </Label>
-                                <Input
-                                  id={`${collection.id}-rarity-${key}`}
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  step="0.1"
-                                  value={currentPercentages[key]}
-                                  onChange={(e) => {
-                                    const newPercentages = {
-                                      ...currentPercentages,
-                                      [key]: parseFloat(e.target.value) || 0
-                                    };
-                                    // Update the collection locally first for immediate UI feedback
-                                    setCollections(collections.map(c => 
-                                      c.id === collection.id 
-                                        ? { ...c, rarity_percentages: newPercentages }
-                                        : c
-                                    ));
-                                  }}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30 mb-4">
-                          <span className="text-sm font-medium">Total:</span>
-                          <span className={`text-sm font-bold ${Math.abs((Object.values(collection.rarity_percentages || {common: 50, uncommon: 30, rare: 15, epic: 4, legendary: 1}).reduce((sum: number, val: any) => sum + Number(val), 0) as number) - 100) < 0.01 ? 'text-green-600' : 'text-destructive'}`}>
-                            {(Object.values(collection.rarity_percentages || {common: 50, uncommon: 30, rare: 15, epic: 4, legendary: 1}).reduce((sum: number, val: any) => sum + Number(val), 0) as number).toFixed(1)}%
-                          </span>
-                        </div>
-                            <Button 
-                              size="sm" 
-                              onClick={() => updateCollectionRarity(collection.id, collection.rarity_percentages)}
-                            >
-                              Save Rarity Settings
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    
-                    {editingPackAssetsFor === collection.id && (
-                      <div className="p-4 border-t bg-background">
-                        <Label className="text-sm mb-3 block font-semibold">Custom Pack Assets</Label>
-                        <p className="text-sm text-muted-foreground mb-4">Upload custom images/animations for pack opening. Leave blank to keep current assets or use default sticker collage.</p>
-                        
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          {/* Current Pack Image */}
-                          <div className="space-y-2">
-                            <Label>Current Pack Image</Label>
-                            {collection.pack_image_url ? (
-                              <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
-                                <img src={collection.pack_image_url} alt="Current pack" className="w-full h-full object-cover" />
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="absolute top-2 right-2"
-                                  onClick={() => clearPackAsset(collection.id, 'image')}
-                                >
-                                  Clear
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="w-full aspect-[2/3] rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground text-sm">
-                                No custom image - using sticker collage
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Current Pack Animation */}
-                          <div className="space-y-2">
-                            <Label>Current Pack Animation</Label>
-                            {collection.pack_animation_url ? (
-                              <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
-                                {collection.pack_animation_url.includes('.mp4') || collection.pack_animation_url.includes('.webm') ? (
-                                  <video src={collection.pack_animation_url} className="w-full h-full object-cover" autoPlay loop muted />
-                                ) : (
-                                  <img src={collection.pack_animation_url} alt="Current animation" className="w-full h-full object-cover" />
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="absolute top-2 right-2"
-                                  onClick={() => clearPackAsset(collection.id, 'animation')}
-                                >
-                                  Clear
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="w-full aspect-[2/3] rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground text-sm">
-                                No custom animation
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          {/* Upload New Pack Image */}
-                          <div className="space-y-2">
-                            <Label>Upload New Pack Image</Label>
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  setEditPackImage(file);
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => setEditPackImagePreview(reader.result as string);
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                            />
-                            {editPackImagePreview && (
-                              <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
-                                <img src={editPackImagePreview} alt="New pack preview" className="w-full h-full object-cover" />
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="absolute top-2 right-2"
-                                  onClick={() => {
-                                    setEditPackImage(null);
-                                    setEditPackImagePreview("");
-                                  }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Upload New Pack Animation */}
-                          <div className="space-y-2">
-                            <Label>Upload New Pack Animation</Label>
-                            <Input
-                              type="file"
-                              accept="image/gif,video/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  setEditPackAnimation(file);
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => setEditPackAnimationPreview(reader.result as string);
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                            />
-                            {editPackAnimationPreview && (
-                              <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
-                                {editPackAnimation?.type.startsWith('video/') ? (
-                                  <video src={editPackAnimationPreview} className="w-full h-full object-cover" autoPlay loop muted />
-                                ) : (
-                                  <img src={editPackAnimationPreview} alt="New animation preview" className="w-full h-full object-cover" />
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="absolute top-2 right-2"
-                                  onClick={() => {
-                                    setEditPackAnimation(null);
-                                    setEditPackAnimationPreview("");
-                                  }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <Button 
-                          size="sm" 
-                          onClick={() => updatePackAssets(collection.id)}
-                          disabled={!editPackImage && !editPackAnimation}
-                        >
-                          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Upload New Assets
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
