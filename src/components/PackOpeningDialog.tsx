@@ -152,6 +152,22 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
     requestAnimationFrame(animateTear);
   };
 
+  const triggerCelebration = (rarity: string) => {
+    const config = rarityConfettiConfig[rarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
+    
+    // Trigger confetti multiple times based on rarity
+    for (let i = 0; i < config.bursts; i++) {
+      setTimeout(() => {
+        confetti({
+          particleCount: config.particleCount,
+          spread: config.spread,
+          origin: { y: 0.6 },
+          colors: ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#9370DB']
+        });
+      }, i * 300);
+    }
+  };
+
   const handleReveal = async () => {
     try {
       // Check if card is already scratched
@@ -191,27 +207,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
           setOpened(true);
           setShowConfetti(true);
           
-          // Get highest rarity for confetti effect
-          const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-          const highestRarity = stickers.reduce((highest: string, sticker: any) => {
-            const stickerRarityIndex = rarities.indexOf(sticker.rarity);
-            const highestRarityIndex = rarities.indexOf(highest);
-            return stickerRarityIndex > highestRarityIndex ? sticker.rarity : highest;
-          }, 'common');
-          
-          const config = rarityConfettiConfig[highestRarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
-          
-          // Trigger confetti multiple times based on rarity
-          for (let i = 0; i < config.bursts; i++) {
-            setTimeout(() => {
-              confetti({
-                particleCount: config.particleCount,
-                spread: config.spread,
-                origin: { y: 0.6 },
-                colors: ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#9370DB']
-              });
-            }, i * 300);
-          }
+          // Trigger celebration for first sticker
+          triggerCelebration(stickers[0].rarity);
         } else {
           throw new Error('No stickers revealed');
         }
@@ -494,7 +491,10 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
                   <div 
                     onClick={() => {
                       if (currentStickerIndex < revealedStickers.length - 1) {
-                        setCurrentStickerIndex(currentStickerIndex + 1);
+                        const nextIndex = currentStickerIndex + 1;
+                        setCurrentStickerIndex(nextIndex);
+                        // Trigger celebration for the next sticker
+                        triggerCelebration(revealedStickers[nextIndex].rarity);
                       } else {
                         setShowSummary(true);
                       }
