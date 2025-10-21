@@ -176,6 +176,18 @@ DB:navigation_links→realtime
 ORDERING:top-level[display_order]→children[display_order-within-parent]
 PARENT-LINKS:dropdown-parents-CAN-have-href[label-clicks→navigates|arrow→dropdown]|optional-href[empty→dropdown-only]
 
+## FOOTER
+OVERVIEW:database-driven-footer-with-fallback-defaults
+DB:footer_sections[title+display_order+is_active]|footer_links[section_id+label+href+display_order+is_active]
+COMP:Footer.tsx→loads-DB-sections-and-links→falls-back-to-hardcoded-defaults-if-empty
+ADMIN:Admin→Format→Footer-tab→FooterLinksManager[CRUD-sections-and-links]
+ROUTING:internal-links[href-starts-with-/]→use-Link-component|external-links[href-starts-with-http]→use-anchor-tag
+CRITICAL:to-edit-footer-links→UPDATE-DATABASE-RECORDS-not-React-code
+EXAMPLE:UPDATE-footer_links-SET-href='/newsletter'-WHERE-label='Newsletter'
+FALLBACK:if-no-DB-records→displays-3-default-sections[About|Get-Involved|Connect]
+REALTIME:footer-data-loads-on-mount→no-realtime-subscription
+DISPLAY:3-column-grid-on-desktop|1-column-on-mobile|all-pages-site-wide
+
 ## NOTIF_BADGES
 LOCATIONS:UnifiedHeader[Approvals-red|Admin-red|Bell-unread-count]|Admin-tabs|Guardian-tabs
 FEATURES:red-destructive+realtime+auto-update+DELETE-events-immediate-refresh
