@@ -843,32 +843,59 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  const { from, to, empty } = editor?.state.selection || {};
-                  
-                  if (!empty && from !== undefined && to !== undefined && editor) {
-                    // Create a fragment from the selection
-                    const fragment = editor.state.doc.slice(from, to).content;
-                    
-                    // Create a temporary div to serialize the fragment to HTML
-                    const tempDiv = document.createElement('div');
-                    const serializer = DOMSerializer.fromSchema(editor.schema);
-                    const dom = serializer.serializeFragment(fragment);
-                    tempDiv.appendChild(dom);
-                    const selectedHTML = tempDiv.innerHTML;
-                    
-                    // Delete selection and insert wrapped content
-                    editor.chain().focus()
-                      .deleteSelection()
-                      .insertContent(
-                        `<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;">${selectedHTML || '<p></p>'}</div>`
-                      )
-                      .run();
-                  } else {
-                    // Insert empty box
-                    editor?.chain().focus().insertContent(
-                      '<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
-                    ).run();
+                  if (!editor) {
+                    toast.error("Editor not ready");
+                    return;
                   }
+
+                  const { from, to, empty } = editor.state.selection;
+                  
+                  try {
+                    if (!empty && from !== undefined && to !== undefined) {
+                      // Create a fragment from the selection
+                      const fragment = editor.state.doc.slice(from, to).content;
+                      
+                      // Serialize to HTML
+                      const tempDiv = document.createElement('div');
+                      const serializer = DOMSerializer.fromSchema(editor.schema);
+                      const dom = serializer.serializeFragment(fragment);
+                      tempDiv.appendChild(dom);
+                      const selectedHTML = tempDiv.innerHTML;
+                      
+                      // Delete selection and insert wrapped content
+                      const success = editor.chain()
+                        .focus()
+                        .deleteSelection()
+                        .insertContent(
+                          `<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;">${selectedHTML || '<p></p>'}</div>`
+                        )
+                        .run();
+                      
+                      if (success) {
+                        toast.success("Light gray box added!");
+                      } else {
+                        toast.error("Failed to add box");
+                      }
+                    } else {
+                      // Insert empty box
+                      const success = editor.chain()
+                        .focus()
+                        .insertContent(
+                          '<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
+                        )
+                        .run();
+                      
+                      if (success) {
+                        toast.success("Light gray box added!");
+                      } else {
+                        toast.error("Failed to add box");
+                      }
+                    }
+                  } catch (error: any) {
+                    console.error("Error adding box:", error);
+                    toast.error("Error: " + error.message);
+                  }
+                  
                   setContainerDialogOpen(false);
                 }}
               >
@@ -881,33 +908,55 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  const { from, to, empty } = editor?.state.selection || {};
-                  
-                  if (!empty && from !== undefined && to !== undefined && editor) {
-                    // Create a fragment from the selection
-                    const fragment = editor.state.doc.slice(from, to).content;
-                    
-                    // Serialize to HTML
-                    const tempDiv = document.createElement('div');
-                    const serializer = DOMSerializer.fromSchema(editor.schema);
-                    const dom = serializer.serializeFragment(fragment);
-                    tempDiv.appendChild(dom);
-                    let selectedHTML = tempDiv.innerHTML;
-                    
-                    // Make all text white for gradient background
-                    selectedHTML = selectedHTML.replace(/<p>/g, '<p style="color: white;">');
-                    
-                    editor.chain().focus()
-                      .deleteSelection()
-                      .insertContent(
-                        `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;">${selectedHTML || '<p style="color: white;"></p>'}</div>`
-                      )
-                      .run();
-                  } else {
-                    editor?.chain().focus().insertContent(
-                      '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;"></p></div>'
-                    ).run();
+                  if (!editor) {
+                    toast.error("Editor not ready");
+                    return;
                   }
+
+                  const { from, to, empty } = editor.state.selection;
+                  
+                  try {
+                    if (!empty && from !== undefined && to !== undefined) {
+                      const fragment = editor.state.doc.slice(from, to).content;
+                      const tempDiv = document.createElement('div');
+                      const serializer = DOMSerializer.fromSchema(editor.schema);
+                      const dom = serializer.serializeFragment(fragment);
+                      tempDiv.appendChild(dom);
+                      let selectedHTML = tempDiv.innerHTML;
+                      selectedHTML = selectedHTML.replace(/<p>/g, '<p style="color: white;">');
+                      
+                      const success = editor.chain()
+                        .focus()
+                        .deleteSelection()
+                        .insertContent(
+                          `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;">${selectedHTML || '<p style="color: white;"></p>'}</div>`
+                        )
+                        .run();
+                      
+                      if (success) {
+                        toast.success("Purple gradient box added!");
+                      } else {
+                        toast.error("Failed to add box");
+                      }
+                    } else {
+                      const success = editor.chain()
+                        .focus()
+                        .insertContent(
+                          '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;"></p></div>'
+                        )
+                        .run();
+                      
+                      if (success) {
+                        toast.success("Purple gradient box added!");
+                      } else {
+                        toast.error("Failed to add box");
+                      }
+                    }
+                  } catch (error: any) {
+                    console.error("Error adding box:", error);
+                    toast.error("Error: " + error.message);
+                  }
+                  
                   setContainerDialogOpen(false);
                 }}
               >
@@ -920,30 +969,54 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  const { from, to, empty } = editor?.state.selection || {};
-                  
-                  if (!empty && from !== undefined && to !== undefined && editor) {
-                    // Create a fragment from the selection
-                    const fragment = editor.state.doc.slice(from, to).content;
-                    
-                    // Serialize to HTML
-                    const tempDiv = document.createElement('div');
-                    const serializer = DOMSerializer.fromSchema(editor.schema);
-                    const dom = serializer.serializeFragment(fragment);
-                    tempDiv.appendChild(dom);
-                    const selectedHTML = tempDiv.innerHTML;
-                    
-                    editor.chain().focus()
-                      .deleteSelection()
-                      .insertContent(
-                        `<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;">${selectedHTML || '<p></p>'}</div>`
-                      )
-                      .run();
-                  } else {
-                    editor?.chain().focus().insertContent(
-                      '<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
-                    ).run();
+                  if (!editor) {
+                    toast.error("Editor not ready");
+                    return;
                   }
+
+                  const { from, to, empty } = editor.state.selection;
+                  
+                  try {
+                    if (!empty && from !== undefined && to !== undefined) {
+                      const fragment = editor.state.doc.slice(from, to).content;
+                      const tempDiv = document.createElement('div');
+                      const serializer = DOMSerializer.fromSchema(editor.schema);
+                      const dom = serializer.serializeFragment(fragment);
+                      tempDiv.appendChild(dom);
+                      const selectedHTML = tempDiv.innerHTML;
+                      
+                      const success = editor.chain()
+                        .focus()
+                        .deleteSelection()
+                        .insertContent(
+                          `<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;">${selectedHTML || '<p></p>'}</div>`
+                        )
+                        .run();
+                      
+                      if (success) {
+                        toast.success("White bordered box added!");
+                      } else {
+                        toast.error("Failed to add box");
+                      }
+                    } else {
+                      const success = editor.chain()
+                        .focus()
+                        .insertContent(
+                          '<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
+                        )
+                        .run();
+                      
+                      if (success) {
+                        toast.success("White bordered box added!");
+                      } else {
+                        toast.error("Failed to add box");
+                      }
+                    }
+                  } catch (error: any) {
+                    console.error("Error adding box:", error);
+                    toast.error("Error: " + error.message);
+                  }
+                  
                   setContainerDialogOpen(false);
                 }}
               >
