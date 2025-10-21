@@ -115,7 +115,6 @@ test.describe('Coffee Shop Domain System @fast', () => {
     const backLink = page.locator('a[href="/"], button:has-text("Home")').first();
     if (await backLink.isVisible()) {
       await backLink.click();
-      await page.waitForTimeout(2000);
       
       // Should be on main site
       const currentUrl = page.url();
@@ -213,8 +212,7 @@ test.describe('Coffee Shop Domain System @fast', () => {
     await page.fill('input[type="email"]', 'test@example.com');
     await page.fill('input[type="password"]', 'testpassword123');
     await page.click('button:has-text("Sign In")');
-    
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
     
     // Navigate to admin coffee shop settings
     await page.goto('/admin');
@@ -224,7 +222,6 @@ test.describe('Coffee Shop Domain System @fast', () => {
     const settingsTab = page.locator('button:has-text("Settings"), button:has-text("Format")').first();
     if (await settingsTab.isVisible()) {
       await settingsTab.click();
-      await page.waitForTimeout(1000);
       
       // Check for coffee shop configuration
       const coffeeShopConfig = page.locator('text=/Coffee Shop|Coffee/i').first();

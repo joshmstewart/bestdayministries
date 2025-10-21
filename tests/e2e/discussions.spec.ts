@@ -63,9 +63,6 @@ test.describe('Discussion Posts @fast', () => {
       // Click first post card
       await page.locator('[role="article"]').first().click();
       
-      // Wait for dialog to open
-      await page.waitForTimeout(500);
-      
       // Dialog should be visible
       const dialog = page.locator('[role="dialog"]');
       const dialogVisible = await dialog.isVisible().catch(() => false);
@@ -106,7 +103,6 @@ test.describe('Discussion Comments @fast', () => {
     if (postCount > 0) {
       // Open first post
       await page.locator('[role="article"]').first().click();
-      await page.waitForTimeout(500);
       
       // Check for comment section in dialog
       const dialog = page.locator('[role="dialog"]');

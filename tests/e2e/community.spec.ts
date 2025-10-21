@@ -54,7 +54,6 @@ test.describe('Events', () => {
   test('should display events or empty state', async ({ page }) => {
     await page.goto('/events');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for event cards or calendar
     const events = page.locator('[class*="event"], [class*="card"], article');
@@ -87,7 +86,6 @@ test.describe('Gallery', () => {
   test('should display images', async ({ page }) => {
     await page.goto('/gallery');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for images
     const images = page.locator('img[src], [class*="image"]');
@@ -99,13 +97,11 @@ test.describe('Gallery', () => {
   test('should support image lightbox', async ({ page }) => {
     await page.goto('/gallery');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const firstImage = page.locator('img[src]').first();
     
     if (await firstImage.isVisible()) {
       await firstImage.click();
-      await page.waitForTimeout(500);
       
       // Should open lightbox/modal
       const modal = page.locator('[role="dialog"], [class*="lightbox"], [class*="modal"]');
@@ -127,7 +123,6 @@ test.describe('Videos', () => {
   test('should display video content', async ({ page }) => {
     await page.goto('/videos');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for video players or YouTube embeds
     const videos = page.locator('video, iframe[src*="youtube"], [class*="video"]');
@@ -148,7 +143,6 @@ test.describe('Sponsorship', () => {
   test('should display bestie profiles', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for bestie cards or profiles
     const profiles = page.locator('[class*="bestie"], [class*="profile"], [class*="card"]');
@@ -160,7 +154,6 @@ test.describe('Sponsorship', () => {
   test('should show funding progress', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for progress bars
     const progress = page.locator('[role="progressbar"], [class*="progress"]');

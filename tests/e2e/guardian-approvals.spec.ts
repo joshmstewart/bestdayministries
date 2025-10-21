@@ -4,7 +4,6 @@ test.describe('Guardian Approvals - Access Control', () => {
   test('should require authentication for guardian approvals page', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Should redirect to auth or show restricted access
     const currentUrl = page.url();
@@ -25,7 +24,6 @@ test.describe('Guardian Approvals - Access Control', () => {
   test('should have back button navigation', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
     
     const backButton = page.locator('button, a').filter({ hasText: /back/i }).first();
     const hasBackButton = await backButton.count() > 0;
@@ -38,7 +36,6 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
   test('should display approval tabs', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for tabs: Posts, Comments, Vendors, Messages
     const tabs = page.locator('[role="tablist"], [class*="tab"]');
@@ -50,7 +47,6 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
   test('should have posts approval tab', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const postsTab = page.locator('button:has-text("Posts"), [role="tab"]:has-text("Posts")').first();
     const hasPostsTab = await postsTab.count() > 0;
@@ -61,7 +57,6 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
   test('should have comments approval tab', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const commentsTab = page.locator('button:has-text("Comments"), [role="tab"]:has-text("Comments")').first();
     const hasCommentsTab = await commentsTab.count() > 0;
@@ -72,7 +67,6 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
   test('should have vendors approval tab', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const vendorsTab = page.locator('button:has-text("Vendors"), [role="tab"]:has-text("Vendors")').first();
     const hasVendorsTab = await vendorsTab.count() > 0;
@@ -83,7 +77,6 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
   test('should have messages approval tab', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const messagesTab = page.locator('button:has-text("Messages"), [role="tab"]:has-text("Messages")').first();
     const hasMessagesTab = await messagesTab.count() > 0;
@@ -94,18 +87,15 @@ test.describe('Guardian Approvals - Tabs and Navigation', () => {
   test('should switch between tabs', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const tabs = page.locator('[role="tab"]');
     const tabCount = await tabs.count();
     
     if (tabCount >= 2) {
       await tabs.nth(1).click();
-      await page.waitForTimeout(500);
       
       // Tab should be switched (aria-selected or active class)
-      const isSelected = await tabs.nth(1).getAttribute('aria-selected');
-      expect(isSelected === 'true' || isSelected === null).toBeTruthy();
+      await expect(tabs.nth(1)).toHaveAttribute('aria-selected', /true|false/);
     }
   });
 });
@@ -114,7 +104,6 @@ test.describe('Guardian Approvals - Pending Items', () => {
   test('should display pending posts or empty state', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for posts or empty state message
     const pendingItems = page.locator('[class*="post"], [class*="card"], [class*="item"]');
@@ -129,7 +118,6 @@ test.describe('Guardian Approvals - Pending Items', () => {
   test('should display pending comments or empty state', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Switch to comments tab
     const commentsTab = page.locator('button:has-text("Comments"), [role="tab"]:has-text("Comments")').first();
@@ -137,7 +125,7 @@ test.describe('Guardian Approvals - Pending Items', () => {
     
     if (hasTab) {
       await commentsTab.click();
-      await page.waitForTimeout(1000);
+      await expect(commentsTab).toHaveAttribute('aria-selected', 'true', { timeout: 3000 });
       
       const pendingComments = page.locator('[class*="comment"], [class*="card"]');
       const emptyState = page.locator('text=/no pending|no comments|nothing to approve/i');
@@ -152,14 +140,13 @@ test.describe('Guardian Approvals - Pending Items', () => {
   test('should display pending vendor assets or empty state', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const vendorsTab = page.locator('button:has-text("Vendors"), [role="tab"]:has-text("Vendors")').first();
     const hasTab = await vendorsTab.count() > 0;
     
     if (hasTab) {
       await vendorsTab.click();
-      await page.waitForTimeout(1000);
+      await expect(vendorsTab).toHaveAttribute('aria-selected', 'true', { timeout: 3000 });
       
       const pendingAssets = page.locator('[class*="vendor"], [class*="asset"], [class*="card"]');
       const emptyState = page.locator('text=/no pending|no vendors|nothing to approve/i');
@@ -174,14 +161,13 @@ test.describe('Guardian Approvals - Pending Items', () => {
   test('should display pending messages or empty state', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const messagesTab = page.locator('button:has-text("Messages"), [role="tab"]:has-text("Messages")').first();
     const hasTab = await messagesTab.count() > 0;
     
     if (hasTab) {
       await messagesTab.click();
-      await page.waitForTimeout(1000);
+      await expect(messagesTab).toHaveAttribute('aria-selected', 'true', { timeout: 3000 });
       
       const pendingMessages = page.locator('[class*="message"], [class*="card"]');
       const emptyState = page.locator('text=/no pending|no messages|nothing to approve/i');
@@ -198,7 +184,6 @@ test.describe('Guardian Approvals - Actions', () => {
   test('should have approve and reject buttons', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for approve/reject buttons
     const approveButtons = page.locator('button').filter({ hasText: /approve|accept/i });
@@ -214,7 +199,6 @@ test.describe('Guardian Approvals - Actions', () => {
   test('should have delete buttons for items', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const deleteButtons = page.locator('button').filter({ hasText: /delete|remove/i });
     const hasDeleteButtons = await deleteButtons.count() > 0;
@@ -225,7 +209,6 @@ test.describe('Guardian Approvals - Actions', () => {
   test('should display confirmation dialogs for actions', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Try to find and click an action button
     const actionButton = page.locator('button').filter({ 
@@ -236,7 +219,6 @@ test.describe('Guardian Approvals - Actions', () => {
     
     if (hasButton) {
       await actionButton.click();
-      await page.waitForTimeout(1000);
       
       // Look for confirmation dialog or immediate action
       const dialog = page.locator('[role="dialog"], [role="alertdialog"]');
@@ -251,7 +233,6 @@ test.describe('Guardian Approvals - Badge Counts', () => {
   test('should display badge counts in navigation', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for approval badges in header/navigation
     const badges = page.locator('[class*="badge"], .badge');
@@ -263,7 +244,6 @@ test.describe('Guardian Approvals - Badge Counts', () => {
   test('should show pending counts on tabs', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for count indicators on tabs
     const tabCounts = page.locator('[role="tab"] [class*="badge"], [role="tab"] [class*="count"]');
@@ -277,7 +257,6 @@ test.describe('Guardian Approvals - Content Display', () => {
   test('should display post preview with title and content', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for post content elements
     const titles = page.locator('h1, h2, h3, h4').filter({ hasText: /.+/ });
@@ -292,7 +271,6 @@ test.describe('Guardian Approvals - Content Display', () => {
   test('should display author information', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for author/user info
     const authorInfo = page.locator('text=/by |posted by|author/i');
@@ -304,7 +282,6 @@ test.describe('Guardian Approvals - Content Display', () => {
   test('should display timestamps for pending items', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for time indicators
     const timeElements = await page.locator('time, [datetime]').count();
@@ -317,7 +294,6 @@ test.describe('Guardian Approvals - Content Display', () => {
   test('should display images if posts contain them', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const images = page.locator('img[src]');
     const imageCount = await images.count();
@@ -343,7 +319,6 @@ test.describe('Guardian Approvals - Responsive Design', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const tabList = page.locator('[role="tablist"]');
     const hasTabList = await tabList.count() > 0;
@@ -356,7 +331,6 @@ test.describe('Guardian Approvals - Empty States', () => {
   test('should show helpful empty state messages', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for empty state messaging
     const emptyStateText = page.locator('text=/no pending|nothing to|all caught up|no items/i');
@@ -368,7 +342,6 @@ test.describe('Guardian Approvals - Empty States', () => {
   test('should display empty state icons', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for empty state visual elements
     const emptyStateIcon = page.locator('svg, img').first();
@@ -382,7 +355,6 @@ test.describe('Guardian Approvals - Accessibility', () => {
   test('should have proper ARIA labels for tabs', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const tabs = page.locator('[role="tab"]');
     const tabCount = await tabs.count();
@@ -402,7 +374,6 @@ test.describe('Guardian Approvals - Accessibility', () => {
   test('should have accessible action buttons', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     const buttons = page.locator('button');
     const buttonCount = await buttons.count();
@@ -422,11 +393,9 @@ test.describe('Guardian Approvals - Accessibility', () => {
   test('should support keyboard navigation', async ({ page }) => {
     await page.goto('/guardian-approvals');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
     
     // Tab through interactive elements
     await page.keyboard.press('Tab');
-    await page.waitForTimeout(200);
     
     const focusedElement = await page.evaluate(() => {
       return document.activeElement?.tagName;

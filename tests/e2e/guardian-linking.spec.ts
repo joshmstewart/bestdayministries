@@ -42,13 +42,11 @@ test.describe('Guardian-Bestie Linking Flow', () => {
     });
     
     // CRITICAL: Wait for ALL session routes to be fully registered before navigation
-    await page.waitForTimeout(1000);
     
     // Navigate and wait for everything to fully load INCLUDING network requests
     await page.goto('/guardian-links', { waitUntil: 'networkidle' });
     
     // Additional wait for auth state to fully propagate
-    await page.waitForTimeout(500);
   });
 
   // ============================================
@@ -67,10 +65,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       console.log('🔍 TEST 90-92: Network idle');
       
       // Add delay for checkAccess to complete
-      await page.waitForTimeout(2000);
-      console.log('🔍 TEST 90-92: Waited 2s for checkAccess');
-      
-      // Wait for Link Bestie button to appear
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
       console.log('🔍 TEST 90-92: Waiting for Link Bestie button...');
       
@@ -83,7 +77,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       
       // Click to open dialog
       await linkButton.click();
-      await page.waitForTimeout(500);
       console.log('🔍 TEST 90-92: Clicked Link Bestie button - dialog should be open');
       
       // Now look for form elements inside the dialog
@@ -110,7 +103,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       
       // Click to open dialog
       await linkButton.click();
-      await page.waitForTimeout(500);
       console.log('🔍 TEST 93-95: Opened link dialog');
       
       // Check for the three emoji selector labels inside the dialog
@@ -147,7 +139,7 @@ test.describe('Guardian-Bestie Linking Flow', () => {
         if (dataState === 'closed') {
           await contentModerationTrigger.click();
           console.log('🔍 TEST 128: Clicked to expand accordion');
-          await page.waitForTimeout(500); // Wait for accordion animation
+          await expect(contentModerationTrigger).toHaveAttribute('data-state', 'open', { timeout: 3000 });
         }
         
         // Now check for switches (component uses Switch not checkbox)
@@ -185,7 +177,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       
       // Click to open dialog
       await linkButton.click();
-      await page.waitForTimeout(500);
       console.log('🔍 TEST 97: Clicked link button - dialog should be open');
       
       // Wait for dialog content to render
@@ -199,31 +190,24 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       // Select first emoji
       console.log('🔍 TEST 97: Selecting first emoji...');
       await page.getByTestId('emoji-1-trigger').click();
-      await page.waitForTimeout(300);
       console.log('🔍 TEST 97: Selected first emoji');
       await page.getByTestId(`emoji-1-option-${emojis[0]}`).click();
-      await page.waitForTimeout(300);
       
       // Select second emoji
       console.log('🔍 TEST 97: Selecting second emoji...');
       await page.getByTestId('emoji-2-trigger').click();
-      await page.waitForTimeout(300);
       console.log('🔍 TEST 97: Selected second emoji');
       await page.getByTestId(`emoji-2-option-${emojis[1]}`).click();
-      await page.waitForTimeout(300);
       
       // Select third emoji
       console.log('🔍 TEST 97: Selecting third emoji...');
       await page.getByTestId('emoji-3-trigger').click();
-      await page.waitForTimeout(300);
       console.log('🔍 TEST 97: Selected third emoji');
       await page.getByTestId(`emoji-3-option-${emojis[2]}`).click();
-      await page.waitForTimeout(500);
       
       // Enter relationship
       console.log('🔍 TEST 97: Filling relationship input...');
       await page.getByTestId('relationship-input').fill('Parent');
-      await page.waitForTimeout(300);
       console.log('🔍 TEST 97: Filled relationship');
       
       // Submit
@@ -231,7 +215,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       await page.getByTestId('create-link-button').click();
       
       // Wait for processing
-      await page.waitForTimeout(2000);
       console.log('🔍 TEST 97: Waiting for link creation...');
       
       // Verify link was created in state
@@ -260,7 +243,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       
       // Open dialog
       await linkButton.click();
-      await page.waitForTimeout(500);
       console.log('🔍 TEST 130: Opened link dialog');
       
       // Wait for emoji selectors
@@ -269,31 +251,23 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       // Select invalid friend code (all same emoji that doesn't exist)
       console.log('🔍 TEST 130: Selecting invalid friend code...');
       await page.getByTestId('emoji-1-trigger').click();
-      await page.waitForTimeout(500);
       await page.getByTestId('emoji-1-option-🌟').click();
-      await page.waitForTimeout(500);
       
       await page.getByTestId('emoji-2-trigger').click();
-      await page.waitForTimeout(500);
       await page.getByTestId('emoji-2-option-🌟').click();
-      await page.waitForTimeout(500);
       
       await page.getByTestId('emoji-3-trigger').click();
-      await page.waitForTimeout(500);
       await page.getByTestId('emoji-3-option-🌟').click();
-      await page.waitForTimeout(800);
       console.log('🔍 TEST 130: Selected all emojis');
       
       // Enter relationship
       await page.getByTestId('relationship-input').fill('Parent');
-      await page.waitForTimeout(300);
       console.log('🔍 TEST 130: Filled relationship');
       
       // Submit
       const initialLinkCount = state.caregiverBestieLinks.size;
       console.log('🔍 TEST 130: Initial link count:', initialLinkCount);
       await page.getByTestId('create-link-button').click();
-      await page.waitForTimeout(2000);
       
       // Should show error and not create link
       const errorVisible = await page.locator('text=/not found|invalid|doesn\'t exist/i').first().isVisible({ timeout: 3000 }).catch(() => false);
@@ -323,7 +297,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       
       // Open dialog
       await linkButton.click();
-      await page.waitForTimeout(500);
       console.log('🔍 TEST 173: Opened link dialog');
       
       // Wait for emoji selectors
@@ -334,19 +307,13 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       console.log('🔍 TEST 173: Selecting friend code...');
       
       await page.getByTestId('emoji-1-trigger').click();
-      await page.waitForTimeout(300);
       await page.getByTestId(`emoji-1-option-${emojis[0]}`).click();
-      await page.waitForTimeout(300);
       
       await page.getByTestId('emoji-2-trigger').click();
-      await page.waitForTimeout(300);
       await page.getByTestId(`emoji-2-option-${emojis[1]}`).click();
-      await page.waitForTimeout(300);
       
       await page.getByTestId('emoji-3-trigger').click();
-      await page.waitForTimeout(300);
       await page.getByTestId(`emoji-3-option-${emojis[2]}`).click();
-      await page.waitForTimeout(500);
       console.log('🔍 TEST 173: Selected all emojis');
       
       // Leave relationship empty - try to submit
@@ -356,7 +323,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       
       // Button should be clickable but should show validation error
       await submitButton.click();
-      await page.waitForTimeout(1000);
       console.log('🔍 TEST 173: Clicked submit without relationship');
       
       // Should not create link without relationship
@@ -377,7 +343,6 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       // Reload page to see linked besties
       await page.reload();
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
       console.log('🔍 TEST 219: Page reloaded');
       
       // Should show the linked bestie

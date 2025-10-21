@@ -50,7 +50,6 @@ test.describe('Games System @fast', () => {
       // Click easy difficulty or start button
       const startEasyBtn = testPage.locator('button:has-text("Start Easy"), button:has-text("Start")').first();
       await startEasyBtn.click();
-      await testPage.waitForTimeout(1000);
       
       // Verify game board renders
       const gameBoard = testPage.locator('[class*="grid"]').first();
@@ -69,13 +68,11 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1000);
       
       // Click first card
       const firstCard = testPage.locator('button[class*="card"], div[class*="card"]').first();
       if (await firstCard.isVisible()) {
         await firstCard.click();
-        await testPage.waitForTimeout(500);
         
         // Card should show content (emoji or image)
         // This is verified by the card state change
@@ -90,10 +87,10 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1000);
       
       // Look for stats display
       const movesDisplay = testPage.locator('text=/Moves|moves/i').first();
+      await expect(movesDisplay).toBeVisible({ timeout: 5000 });
       const pairsDisplay = testPage.locator('text=/pairs|Matched/i').first();
       
       const hasStats = await movesDisplay.isVisible() || await pairsDisplay.isVisible();
@@ -107,11 +104,10 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1000);
       
       // Look for timer
       const timer = testPage.locator('text=/\\d+:\\d+|Timer|Time/i').first();
-      const hasTimer = await timer.isVisible();
+      await expect(timer).toBeVisible({ timeout: 5000 });
       
       if (hasTimer) {
         console.log('Timer is visible and running');
@@ -126,18 +122,15 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1000);
       
       // Look for back/quit button
       const backBtn = testPage.locator('button:has-text("Back"), button:has-text("Quit"), button:has-text("Menu")').first();
       if (await backBtn.isVisible()) {
         await backBtn.click();
-        await testPage.waitForTimeout(1000);
         
         // Should be back at lobby
         const lobbyIndicator = testPage.locator('text=/Select Difficulty|Choose/i').first();
-        const isBackAtLobby = await lobbyIndicator.isVisible();
-        expect(isBackAtLobby).toBeTruthy();
+        await expect(lobbyIndicator).toBeVisible({ timeout: 5000 });
       }
     });
   });
@@ -161,7 +154,6 @@ test.describe('Games System @fast', () => {
       const startBtn = testPage.locator('button:has-text("Easy"), button:has-text("Free Play"), button:has-text("Start")').first();
       await startBtn.waitFor({ state: 'visible', timeout: 10000 });
       await startBtn.click();
-      await testPage.waitForTimeout(1500);
       
       // Verify game grid renders
       const gameGrid = testPage.locator('[class*="grid"]').first();
@@ -175,10 +167,10 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start"), button:has-text("Easy")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1500);
       
       // Check for grid cells with items
       const gridCells = testPage.locator('button[class*="cell"], div[class*="cell"]');
+      await expect(gridCells.first()).toBeVisible({ timeout: 10000 });
       const cellCount = await gridCells.count();
       expect(cellCount).toBeGreaterThan(0);
     });
@@ -190,19 +182,16 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start"), button:has-text("Easy")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1500);
       
       // Click first cell
       const firstCell = testPage.locator('button[class*="cell"], div[class*="cell"]').first();
       if (await firstCell.isVisible()) {
         await firstCell.click();
-        await testPage.waitForTimeout(300);
         
         // Click adjacent cell
         const secondCell = testPage.locator('button[class*="cell"], div[class*="cell"]').nth(1);
         if (await secondCell.isVisible()) {
           await secondCell.click();
-          await testPage.waitForTimeout(500);
           
           console.log('Swap interaction completed');
         }
@@ -216,7 +205,6 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start"), button:has-text("Easy")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1500);
       
       // Look for score display
       const scoreDisplay = testPage.locator('text=/Score|Points/i').first();
@@ -238,11 +226,10 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start"), button:has-text("Easy")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1500);
       
       // Look for sound/music controls
       const soundBtn = testPage.locator('button[aria-label*="sound" i], button[aria-label*="music" i]').first();
-      const hasSoundControl = await soundBtn.isVisible().catch(() => false);
+      await expect(soundBtn).toBeVisible({ timeout: 5000 }).catch(() => {});
       
       if (hasSoundControl) {
         console.log('Sound controls are available');
@@ -258,12 +245,10 @@ test.describe('Games System @fast', () => {
       const challengeBtn = testPage.locator('button:has-text("Challenge"), text="Challenge"').first();
       if (await challengeBtn.isVisible()) {
         await challengeBtn.click();
-        await testPage.waitForTimeout(1000);
         
         // Should see challenge selection or goals
         const challengeContent = testPage.locator('text=/Goal|Destroy|Target/i').first();
-        const hasChallenges = await challengeContent.isVisible();
-        expect(hasChallenges).toBeTruthy();
+        await expect(challengeContent).toBeVisible({ timeout: 5000 });
       } else {
         console.log('Challenge mode not immediately visible');
       }
@@ -276,18 +261,15 @@ test.describe('Games System @fast', () => {
       // Start game
       const startBtn = testPage.locator('button:has-text("Start"), button:has-text("Easy")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1500);
       
       // Look for back/quit button
       const backBtn = testPage.locator('button:has-text("Back"), button:has-text("Quit"), button:has-text("Menu")').first();
       if (await backBtn.isVisible()) {
         await backBtn.click();
-        await testPage.waitForTimeout(1000);
         
         // Should be back at mode selection
         const modeSelection = testPage.locator('text=/Select|Mode|Choose/i').first();
-        const isBackAtSelection = await modeSelection.isVisible();
-        expect(isBackAtSelection).toBeTruthy();
+        await expect(modeSelection).toBeVisible({ timeout: 5000 });
       }
     });
   });
@@ -340,7 +322,6 @@ test.describe('Games System @fast', () => {
     test('memory match lobby visual snapshot', async () => {
       await testPage.goto('/memory-match');
       await testPage.waitForLoadState('networkidle');
-      await testPage.waitForTimeout(1000);
       await percySnapshot(testPage, 'Memory Match - Game Lobby');
     });
 
@@ -350,14 +331,13 @@ test.describe('Games System @fast', () => {
       
       const startBtn = testPage.locator('button:has-text("Start")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1500);
+      await expect(testPage.locator('[class*="grid"]').first()).toBeVisible({ timeout: 10000 });
       await percySnapshot(testPage, 'Memory Match - Gameplay');
     });
 
     test('match-3 mode selection visual snapshot', async () => {
       await testPage.goto('/match3');
       await testPage.waitForLoadState('networkidle');
-      await testPage.waitForTimeout(1000);
       await percySnapshot(testPage, 'Match-3 - Mode Selection');
     });
 
@@ -367,7 +347,7 @@ test.describe('Games System @fast', () => {
       
       const startBtn = testPage.locator('button:has-text("Start"), button:has-text("Easy")').first();
       await startBtn.click();
-      await testPage.waitForTimeout(1500);
+      await expect(testPage.locator('[class*="grid"]').first()).toBeVisible({ timeout: 10000 });
       await percySnapshot(testPage, 'Match-3 - Gameplay');
     });
   });
