@@ -266,6 +266,7 @@ export const StickerCollectionManager = () => {
   const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
   const [editingRarityFor, setEditingRarityFor] = useState<string | null>(null);
   const [editingPackAssetsFor, setEditingPackAssetsFor] = useState<string | null>(null);
+  const [editingSettingsFor, setEditingSettingsFor] = useState<string | null>(null);
   const [editPackImage, setEditPackImage] = useState<File | null>(null);
   const [editPackImagePreview, setEditPackImagePreview] = useState<string>("");
   const [editPackAnimation, setEditPackAnimation] = useState<File | null>(null);
@@ -914,6 +915,27 @@ export const StickerCollectionManager = () => {
     toast({ title: "Success", description: "Rarity percentages updated!" });
     fetchCollections();
     setEditingRarityFor(null);
+  };
+
+  const updateStickersPerPack = async (collectionId: string, stickersPerPack: number) => {
+    if (stickersPerPack < 1 || stickersPerPack > 10) {
+      toast({ title: "Error", description: "Stickers per pack must be between 1 and 10", variant: "destructive" });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('sticker_collections')
+      .update({ stickers_per_pack: stickersPerPack })
+      .eq('id', collectionId);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Success", description: "Stickers per pack updated!" });
+    fetchCollections();
+    setEditingSettingsFor(null);
   };
 
   const updatePackAssets = async (collectionId: string) => {
@@ -1911,6 +1933,13 @@ export const StickerCollectionManager = () => {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => setEditingSettingsFor(editingSettingsFor === collection.id ? null : collection.id)}
+                        >
+                          Edit Settings
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => setEditingRarityFor(editingRarityFor === collection.id ? null : collection.id)}
                         >
                           Edit Rarity
@@ -1982,6 +2011,39 @@ export const StickerCollectionManager = () => {
                         <p className="text-xs text-muted-foreground">
                           Only users with selected roles will see and open packs from this collection
                         </p>
+                      </div>
+                    )}
+                    
+                    {editingSettingsFor === collection.id && (
+                      <div className="p-4 border-t bg-background">
+                        <Label className="text-sm mb-3 block font-semibold">Collection Settings</Label>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor={`stickers-per-pack-${collection.id}`}>Stickers Per Pack</Label>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Input
+                                id={`stickers-per-pack-${collection.id}`}
+                                type="number"
+                                min="1"
+                                max="10"
+                                defaultValue={collection.stickers_per_pack || 1}
+                                className="w-32"
+                                onBlur={(e) => {
+                                  const value = parseInt(e.target.value);
+                                  if (value !== collection.stickers_per_pack) {
+                                    updateStickersPerPack(collection.id, value);
+                                  }
+                                }}
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                (Current: {collection.stickers_per_pack || 1})
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Number of stickers revealed when opening a pack (1-10)
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
                     
