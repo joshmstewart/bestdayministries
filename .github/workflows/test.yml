@@ -60,8 +60,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
+        shardIndex: [1, 2, 3, 4, 5, 6, 7, 8]
+        shardTotal: [8]
     steps:
     - uses: actions/checkout@v4
     
@@ -93,6 +93,11 @@ jobs:
     if: ${{ inputs.run_visual_tests }}
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
     - uses: actions/checkout@v4
     
@@ -108,7 +113,7 @@ jobs:
       
     - name: Run Percy visual tests
       if: ${{ env.PERCY_TOKEN != '' }}
-      run: npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts --project=chromium
+      run: npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts --project=chromium --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       env:
         PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
         
@@ -116,7 +121,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: percy-logs
+        name: percy-logs-${{ matrix.shardIndex }}
         path: |
           percy-logs/
           playwright-report/
@@ -126,6 +131,11 @@ jobs:
     if: ${{ inputs.run_email_tests }}
     timeout-minutes: 45
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
     - uses: actions/checkout@v4
     
@@ -140,7 +150,7 @@ jobs:
       run: npx playwright install --with-deps chromium
       
     - name: Run email tests
-      run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium
+      run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -149,7 +159,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: email-test-report
+        name: email-test-report-${{ matrix.shardIndex }}
         path: playwright-report/
         retention-days: 30
 

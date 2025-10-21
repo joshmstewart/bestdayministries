@@ -5,7 +5,7 @@ test.describe('Admin Access', () => {
     // Try to access admin without auth
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await expect(page.locator('body')).toBeVisible();
     
     // Should either redirect to auth or show access denied
     const isAdminPage = page.url().includes('/admin');
@@ -19,7 +19,6 @@ test.describe('Admin Access', () => {
   test('should load admin page structure', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
     
     const body = page.locator('body');
     await expect(body).toBeVisible();
@@ -33,7 +32,6 @@ test.describe('Admin Access', () => {
   test('should have admin navigation tabs', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for tabs, navigation, or admin interface elements
     const tabs = page.locator('[role="tablist"], [class*="tab"], nav, [role="navigation"]');
@@ -46,7 +44,6 @@ test.describe('Admin Access', () => {
   test('should have Stripe mode switcher in Settings tab', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for Settings tab
     const settingsTab = page.locator('[role="tab"]').filter({ hasText: /Settings/i }).first();
@@ -54,7 +51,7 @@ test.describe('Admin Access', () => {
     
     if (settingsExists) {
       await settingsTab.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('[role="tab"]').filter({ hasText: /Stripe Mode/i }).first()).toBeVisible({ timeout: 3000 });
       
       // Look for Stripe Mode tab within Settings
       const stripeModeTab = page.locator('[role="tab"]').filter({ hasText: /Stripe Mode/i }).first();

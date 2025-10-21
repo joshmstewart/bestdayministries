@@ -4,11 +4,10 @@ test.describe('Contact Form', () => {
   test('should display contact form', async ({ page }) => {
     await page.goto('/support-us');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
     
     // Scroll down to find contact form
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(500);
+    await page.waitForSelector('form, input[type="email"]', { timeout: 3000 });
     
     // Look for any form elements
     const anyForm = page.locator('form, input[type="email"]').first();
@@ -23,7 +22,7 @@ test.describe('Contact Form', () => {
     
     // Scroll to form
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(1000);
+    await expect(page.locator('button[type="submit"]').first()).toBeVisible({ timeout: 3000 });
     
     const submitButton = page.locator('button[type="submit"]').first();
     
