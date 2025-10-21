@@ -141,12 +141,15 @@ const Auth = () => {
         if (subscribeToNewsletter && data.user) {
           try {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            await supabase.from("newsletter_subscribers").insert({
+            // Use upsert to handle case where email already subscribed as guest
+            await supabase.from("newsletter_subscribers").upsert({
               email,
               user_id: data.user.id,
               status: 'active',
               source: 'signup',
               timezone,
+            }, {
+              onConflict: 'email'
             });
             
             // Trigger welcome email
