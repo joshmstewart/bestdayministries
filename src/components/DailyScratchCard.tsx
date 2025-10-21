@@ -18,6 +18,7 @@ export const DailyScratchCard = () => {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState<string>("");
+  const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
   const [coinBalance, setCoinBalance] = useState<number>(0);
 
   // Helper function to get current date in MST (UTC-7)
@@ -34,6 +35,7 @@ export const DailyScratchCard = () => {
     console.log('🎯 COMPONENT: location.key =', location.key);
     
     checkDailyCard();
+    loadBonusPacksSetting();
 
     // Set up realtime subscription with proper user ID
     const setupRealtime = async () => {
@@ -323,6 +325,16 @@ export const DailyScratchCard = () => {
     } finally {
       setPurchasing(false);
     }
+  };
+
+  const loadBonusPacksSetting = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_packs_enabled')
+      .maybeSingle();
+    
+    setBonusPacksEnabled(data?.setting_value !== false);
   };
 
   if (loading) {

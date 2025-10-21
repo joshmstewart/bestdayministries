@@ -45,6 +45,7 @@ export const StickerAlbum = () => {
   const [coinBalance, setCoinBalance] = useState<number>(0);
   const [availableCards, setAvailableCards] = useState<any[]>([]);
   const [bonusCardCount, setBonusCardCount] = useState<number>(0);
+  const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
   const [nextCost, setNextCost] = useState<number>(0);
   const [baseCost, setBaseCost] = useState<number>(50);
   const [timeUntilNext, setTimeUntilNext] = useState<string>("");
@@ -70,6 +71,7 @@ export const StickerAlbum = () => {
   useEffect(() => {
     fetchCollections();
     loadBaseCost();
+    loadBonusPacksSetting();
 
     // Update countdown every second
     const interval = setInterval(() => {
@@ -103,6 +105,16 @@ export const StickerAlbum = () => {
     if (data?.setting_value) {
       setBaseCost(Number(data.setting_value));
     }
+  };
+
+  const loadBonusPacksSetting = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_packs_enabled')
+      .maybeSingle();
+    
+    setBonusPacksEnabled(data?.setting_value !== false);
   };
 
   useEffect(() => {
@@ -586,32 +598,34 @@ export const StickerAlbum = () => {
           </div>
 
           {/* Buy Bonus Card Button */}
-          <div className="pt-4 border-t">
-            <Button
-              onClick={handleBonusPurchase}
-              disabled={purchasing || coinBalance < nextCost}
-              className="w-full"
-              size="lg"
-            >
-              {purchasing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Purchasing...
-                </>
-              ) : (
-                <>
-                  <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
-                  Buy Bonus Sticker ({nextCost} coins)
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              {coinBalance < nextCost 
-                ? `Need ${nextCost - coinBalance} more coins` 
-                : `You have ${coinBalance} coins • Price doubles each time`
-              }
-            </p>
-          </div>
+          {bonusPacksEnabled && (
+            <div className="pt-4 border-t">
+              <Button
+                onClick={handleBonusPurchase}
+                disabled={purchasing || coinBalance < nextCost}
+                className="w-full"
+                size="lg"
+              >
+                {purchasing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Purchasing...
+                  </>
+                ) : (
+                  <>
+                    <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
+                    Buy Bonus Sticker ({nextCost} coins)
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {coinBalance < nextCost 
+                  ? `Need ${nextCost - coinBalance} more coins` 
+                  : `You have ${coinBalance} coins • Price doubles each time`
+                }
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

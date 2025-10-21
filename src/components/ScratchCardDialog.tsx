@@ -44,6 +44,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
   const [sparkles, setSparkles] = useState<Array<{x: number, y: number, life: number}>>([]);
   const [revealing, setRevealing] = useState(false);
   const sparkleAnimationRef = useRef<number | null>(null);
+  const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
 
   useEffect(() => {
     if (open) {
@@ -70,6 +71,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       }, 100);
       
       loadBaseCost();
+      loadBonusPacksSetting();
     }
   }, [open]);
 
@@ -481,6 +483,16 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     }
   };
 
+  const loadBonusPacksSetting = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_packs_enabled')
+      .maybeSingle();
+    
+    setBonusPacksEnabled(data?.setting_value !== false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl">
@@ -586,28 +598,32 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
               )}
 
               <div className="flex flex-col gap-3 w-full">
-                <Button 
-                  variant="outline" 
-                  onClick={purchaseBonusCard}
-                  disabled={purchasing || coinBalance < nextCost}
-                  className="w-full"
-                >
-                  {purchasing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Buying...
-                    </>
-                  ) : (
-                    <>
-                      <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
-                      Buy Another Sticker ({nextCost} coins)
-                    </>
-                  )}
-                </Button>
-                {coinBalance < nextCost && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    Need {nextCost - coinBalance} more coins
-                  </p>
+                {bonusPacksEnabled && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={purchaseBonusCard}
+                      disabled={purchasing || coinBalance < nextCost}
+                      className="w-full"
+                    >
+                      {purchasing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Buying...
+                        </>
+                      ) : (
+                        <>
+                          <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
+                          Buy Another Sticker ({nextCost} coins)
+                        </>
+                      )}
+                    </Button>
+                    {coinBalance < nextCost && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Need {nextCost - coinBalance} more coins
+                      </p>
+                    )}
+                  </>
                 )}
                 <Button 
                   onClick={() => {

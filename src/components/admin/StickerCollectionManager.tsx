@@ -266,6 +266,7 @@ export const StickerCollectionManager = () => {
   const [editPackAnimation, setEditPackAnimation] = useState<File | null>(null);
   const [editPackAnimationPreview, setEditPackAnimationPreview] = useState<string>("");
   const [stickersEnabled, setStickersEnabled] = useState(false);
+  const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
   
   // Collection form
   const [collectionForm, setCollectionForm] = useState({
@@ -313,6 +314,7 @@ export const StickerCollectionManager = () => {
   useEffect(() => {
     fetchCollections();
     loadStickerSetting();
+    loadBonusPacksSetting();
     loadDefaultRates();
   }, []);
 
@@ -364,6 +366,16 @@ export const StickerCollectionManager = () => {
       .single();
     
     setStickersEnabled(data?.setting_value === true);
+  };
+
+  const loadBonusPacksSetting = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'bonus_packs_enabled')
+      .single();
+    
+    setBonusPacksEnabled(data?.setting_value !== false); // Default to true if not set
   };
 
   const fetchStickers = async (collectionId: string) => {
@@ -1374,6 +1386,52 @@ export const StickerCollectionManager = () => {
                   toast({
                     title: "Success",
                     description: `Sticker feature ${checked ? 'enabled' : 'disabled'}`,
+                  });
+                } catch (error: any) {
+                  toast({
+                    title: "Error",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                }
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bonus Pack Purchases Control */}
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-base font-semibold">Enable Bonus Pack Purchases</Label>
+              <p className="text-sm text-muted-foreground">
+                Allow users to buy extra sticker packs with JoyCoins (disable to launch with only free daily packs)
+              </p>
+            </div>
+            <Switch
+              checked={bonusPacksEnabled}
+              onCheckedChange={async (checked) => {
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  
+                  const { error } = await supabase
+                    .from("app_settings")
+                    .upsert({
+                      setting_key: "bonus_packs_enabled",
+                      setting_value: checked,
+                      updated_by: user?.id,
+                    }, {
+                      onConflict: 'setting_key'
+                    });
+
+                  if (error) throw error;
+
+                  setBonusPacksEnabled(checked);
+                  toast({
+                    title: "Success",
+                    description: `Bonus pack purchases ${checked ? 'enabled' : 'disabled'}`,
                   });
                 } catch (error: any) {
                   toast({
