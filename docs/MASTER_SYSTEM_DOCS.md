@@ -174,6 +174,24 @@ const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '
 PATTERN:Button[variant=outline+size=icon]|ACTIVE[green-Eye]|INACTIVE[red-EyeOff]
 FILES:17-locations-use-pattern
 
+## ADMIN_EDIT_BUTTON
+PATTERN:Button[variant=outline+size=icon]+Edit-icon-only-NO-text
+ICON:Edit[h-4-w-4]|Pencil[w-4-h-4]→both-acceptable-prefer-Edit-for-new
+CRITICAL:ALWAYS-use-size=icon-NOT-size=sm|NO-text-label|include-title-prop-for-accessibility
+LOCATIONS:FAQManager|GuideManager|TourManager|StickerCollectionManager|all-admin-list-views
+EXAMPLE:
+```tsx
+<Button
+  size="icon"
+  variant="outline"
+  onClick={() => handleEdit(item)}
+  title="Edit item"
+>
+  <Edit className="h-4 w-4" />
+</Button>
+```
+RATIONALE:icon-only=compact|consistent-admin-UI|title-prop=accessibility
+
 ## BACK_BUTTON
 SPACING:main[pt-4-navbar|pt-6-no-navbar]|btn[mb-6]
 STYLE:Button[variant=outline+size=sm]+ArrowLeft+"Back-to-[Dest]"

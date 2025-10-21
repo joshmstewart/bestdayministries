@@ -228,7 +228,7 @@ const SortableStickerItem = ({
             Featured
           </Button>
           <Button
-            size="sm"
+            size="icon"
             variant="outline"
             onClick={onEdit}
             title="Edit sticker"
@@ -1916,12 +1916,12 @@ export const StickerCollectionManager = () => {
                           Test Pack
                         </Button>
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="outline"
                           onClick={() => setEditingCollection(collection)}
+                          title="Edit collection"
                         >
-                          <Settings className="h-4 w-4 mr-2" />
-                          Edit
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
