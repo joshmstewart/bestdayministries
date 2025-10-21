@@ -7,40 +7,46 @@ export const useModerationCount = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    checkAdminStatus();
+    let cleanup: (() => void) | undefined;
+
+    const init = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch role from user_roles table (security requirement)
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        // Check for admin-level access (owner role automatically has admin access)
+        const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
+        setIsAdmin(adminStatus);
+
+        if (adminStatus) {
+          await fetchModerationCount();
+          cleanup = setupRealtimeSubscriptions();
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, []);
-
-  const checkAdminStatus = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      // Fetch role from user_roles table (security requirement)
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      // Check for admin-level access (owner role automatically has admin access)
-      const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
-      setIsAdmin(adminStatus);
-
-      if (adminStatus) {
-        fetchModerationCount();
-        setupRealtimeSubscriptions();
-      } else {
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Error checking admin status:", error);
-      setLoading(false);
-    }
-  };
 
   const fetchModerationCount = async () => {
     try {
@@ -82,6 +88,7 @@ export const useModerationCount = () => {
           table: 'discussion_posts'
         },
         () => {
+          console.log('Discussion post changed, refetching moderation count');
           fetchModerationCount();
         }
       )
@@ -98,12 +105,13 @@ export const useModerationCount = () => {
           table: 'discussion_comments'
         },
         () => {
+          console.log('Discussion comment changed, refetching moderation count');
           fetchModerationCount();
         }
       )
       .subscribe();
 
-    // Cleanup function
+    // Return cleanup function
     return () => {
       supabase.removeChannel(postsChannel);
       supabase.removeChannel(commentsChannel);

@@ -31,26 +31,44 @@ export const useCoins = () => {
   };
 
   useEffect(() => {
-    fetchCoins();
+    let cleanup: (() => void) | undefined;
 
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel('coins-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles',
-        },
-        () => {
-          fetchCoins();
-        }
-      )
-      .subscribe();
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      await fetchCoins();
+
+      // Subscribe to realtime updates for this user only
+      const channel = supabase
+        .channel('coins-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('Coins updated via realtime:', payload);
+            fetchCoins();
+          }
+        )
+        .subscribe();
+
+      cleanup = () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    init();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (cleanup) cleanup();
     };
   }, []);
 

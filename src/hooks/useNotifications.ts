@@ -254,62 +254,81 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
-    loadNotifications();
+    let cleanup: (() => void) | undefined;
 
-    // Set up realtime subscription
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        loadNotifications();
-      } else if (event === 'SIGNED_OUT') {
-        setNotifications([]);
-        setUnreadCount(0);
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
       }
-    });
 
-    const channel = supabase
-      .channel('notifications-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-        },
-        (payload) => {
-          console.log('Notification inserted:', payload);
+      await loadNotifications();
+
+      // Set up auth state change listener
+      const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
           loadNotifications();
+        } else if (event === 'SIGNED_OUT') {
+          setNotifications([]);
+          setUnreadCount(0);
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-        },
-        (payload) => {
-          console.log('Notification updated:', payload);
-          loadNotifications();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-        },
-        (payload) => {
-          console.log('Notification deleted:', payload);
-          // Immediately reload to update badge counts
-          loadNotifications();
-        }
-      )
-      .subscribe();
+      });
+
+      // Set up realtime subscription with user_id filter
+      const channel = supabase
+        .channel('notifications-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('Notification inserted via realtime:', payload);
+            loadNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('Notification updated via realtime:', payload);
+            loadNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('Notification deleted via realtime:', payload);
+            loadNotifications();
+          }
+        )
+        .subscribe();
+
+      cleanup = () => {
+        authSubscription.unsubscribe();
+        supabase.removeChannel(channel);
+      };
+    };
+
+    init();
 
     return () => {
-      authSubscription.unsubscribe();
-      supabase.removeChannel(channel);
+      if (cleanup) cleanup();
     };
   }, []);
 

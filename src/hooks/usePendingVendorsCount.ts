@@ -7,40 +7,46 @@ export const usePendingVendorsCount = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    checkAdminStatus();
+    let cleanup: (() => void) | undefined;
+
+    const init = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch role from user_roles table (security requirement)
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        // Check for admin-level access (owner role automatically has admin access)
+        const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
+        setIsAdmin(adminStatus);
+
+        if (adminStatus) {
+          await fetchPendingVendorsCount();
+          cleanup = setupRealtimeSubscription();
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, []);
-
-  const checkAdminStatus = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      // Fetch role from user_roles table (security requirement)
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      // Check for admin-level access (owner role automatically has admin access)
-      const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
-      setIsAdmin(adminStatus);
-
-      if (adminStatus) {
-        fetchPendingVendorsCount();
-        setupRealtimeSubscription();
-      } else {
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Error checking admin status:", error);
-      setLoading(false);
-    }
-  };
 
   const fetchPendingVendorsCount = async () => {
     try {
@@ -71,12 +77,13 @@ export const usePendingVendorsCount = () => {
           table: 'vendors'
         },
         () => {
+          console.log('Vendor changed, refetching pending vendors count');
           fetchPendingVendorsCount();
         }
       )
       .subscribe();
 
-    // Cleanup function
+    // Return cleanup function
     return () => {
       supabase.removeChannel(channel);
     };

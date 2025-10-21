@@ -4,10 +4,48 @@ import { supabase } from "@/integrations/supabase/client";
 export const useMessageModerationCount = () => {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    fetchCount();
-    setupRealtimeSubscription();
+    let cleanup: (() => void) | undefined;
+
+    const init = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch role from user_roles table (security requirement)
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        // Check for admin-level access (owner role automatically has admin access)
+        const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
+        setIsAdmin(adminStatus);
+
+        if (adminStatus) {
+          await fetchCount();
+          cleanup = setupRealtimeSubscription();
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, []);
 
   const fetchCount = async () => {
@@ -38,6 +76,7 @@ export const useMessageModerationCount = () => {
           table: "sponsor_messages",
         },
         () => {
+          console.log('Sponsor message changed, refetching moderation count');
           fetchCount();
         }
       )
@@ -48,5 +87,5 @@ export const useMessageModerationCount = () => {
     };
   };
 
-  return { count, loading, refetch: fetchCount };
+  return { count, loading, refetch: fetchCount, isAdmin };
 };

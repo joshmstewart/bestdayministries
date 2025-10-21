@@ -4,10 +4,51 @@ import { supabase } from "@/integrations/supabase/client";
 export const useContactFormCount = () => {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    fetchCount();
-    
+    let cleanup: (() => void) | undefined;
+
+    const init = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch role from user_roles table (security requirement)
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        // Check for admin-level access (owner role automatically has admin access)
+        const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
+        setIsAdmin(adminStatus);
+
+        if (adminStatus) {
+          await fetchCount();
+          cleanup = setupRealtimeSubscription();
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, []);
+
+  const setupRealtimeSubscription = () => {
     // Subscribe to both submissions and replies changes (including deletes)
     const submissionsChannel = supabase
       .channel("contact-form-count")
@@ -19,6 +60,7 @@ export const useContactFormCount = () => {
           table: "contact_form_submissions",
         },
         () => {
+          console.log('Contact form submission inserted, refetching count');
           fetchCount();
         }
       )
@@ -30,6 +72,7 @@ export const useContactFormCount = () => {
           table: "contact_form_submissions",
         },
         () => {
+          console.log('Contact form submission updated, refetching count');
           fetchCount();
         }
       )
@@ -41,7 +84,7 @@ export const useContactFormCount = () => {
           table: "contact_form_submissions",
         },
         () => {
-          // Immediately refetch count when submissions are deleted
+          console.log('Contact form submission deleted, refetching count');
           fetchCount();
         }
       )
@@ -53,6 +96,7 @@ export const useContactFormCount = () => {
           table: "contact_form_replies",
         },
         () => {
+          console.log('Contact form reply inserted, refetching count');
           fetchCount();
         }
       )
@@ -64,6 +108,7 @@ export const useContactFormCount = () => {
           table: "contact_form_replies",
         },
         () => {
+          console.log('Contact form reply updated, refetching count');
           fetchCount();
         }
       )
@@ -75,6 +120,7 @@ export const useContactFormCount = () => {
           table: "contact_form_replies",
         },
         () => {
+          console.log('Contact form reply deleted, refetching count');
           fetchCount();
         }
       )
@@ -83,7 +129,7 @@ export const useContactFormCount = () => {
     return () => {
       supabase.removeChannel(submissionsChannel);
     };
-  }, []);
+  };
 
   const fetchCount = async () => {
     try {
@@ -138,5 +184,5 @@ export const useContactFormCount = () => {
     }
   };
 
-  return { count, loading, refetch: fetchCount };
+  return { count, loading, refetch: fetchCount, isAdmin };
 };
