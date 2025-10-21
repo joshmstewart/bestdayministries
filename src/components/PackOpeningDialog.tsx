@@ -171,9 +171,13 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
         body: { cardId }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Scratch card function error:', error);
+        throw error;
+      }
 
       if (data.success && data.sticker) {
+        console.log('Sticker revealed successfully:', data.sticker);
         // Image URL is already a full URL from the edge function
         setRevealedSticker({
           ...data.sticker,
@@ -199,13 +203,14 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
           }, i * 300);
         }
       } else {
+        console.error('Scratch card failed:', data.message);
         throw new Error(data.message || 'Failed to reveal sticker');
       }
     } catch (error: any) {
       console.error('Error revealing sticker:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to reveal your sticker",
+        description: error.message || "Failed to reveal your sticker. Please try again.",
         variant: "destructive",
       });
       onOpenChange(false);

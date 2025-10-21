@@ -123,6 +123,7 @@ serve(async (req) => {
 
     if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
       console.error('Error checking for existing sticker:', checkError);
+      throw new Error(`Failed to check existing sticker: ${checkError.message}`);
     }
 
     const obtainedFrom = card.is_bonus_card ? 'bonus_card' : 'daily_scratch';
@@ -141,11 +142,13 @@ serve(async (req) => {
 
       if (updateStickerError) {
         console.error('Error updating sticker quantity:', updateStickerError);
-        throw updateStickerError;
+        throw new Error(`Failed to update sticker quantity: ${updateStickerError.message}`);
       }
+
+      console.log(`Duplicate sticker found. Updated quantity to ${(existingSticker.quantity || 1) + 1}`);
     } else {
       // New sticker - insert
-      const { error: insertError } = await supabase
+      const { data: insertedData, error: insertError } = await supabase
         .from('user_stickers')
         .insert({
           user_id: card.user_id,
@@ -155,12 +158,21 @@ serve(async (req) => {
           quantity: 1,
           first_obtained_at: now,
           last_obtained_at: now
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) {
         console.error('Error inserting sticker:', insertError);
-        throw insertError;
+        throw new Error(`Failed to insert sticker: ${insertError.message}`);
       }
+
+      if (!insertedData) {
+        console.error('Sticker insert returned no data');
+        throw new Error('Failed to verify sticker insertion');
+      }
+
+      console.log(`New sticker inserted: ${selectedSticker.name} (ID: ${selectedSticker.id})`);
     }
 
     return new Response(
