@@ -90,6 +90,9 @@ const Footer = () => {
           .order("display_order", { ascending: true }),
       ]);
 
+      console.log('Footer sections loaded:', sectionsResult.data);
+      console.log('Footer links loaded:', linksResult.data);
+
       if (sectionsResult.data) setFooterSections(sectionsResult.data);
       if (linksResult.data) setFooterLinks(linksResult.data);
     } catch (error) {
