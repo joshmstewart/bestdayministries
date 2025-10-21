@@ -10,6 +10,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
+import { DOMSerializer } from "@tiptap/pm/model";
 import { forwardRef, useImperativeHandle } from "react";
 
 // Custom Image extension with resize and alignment support
@@ -842,16 +843,24 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  const { from, to } = editor?.state.selection || {};
-                  const hasSelection = from !== to;
+                  const { from, to, empty } = editor?.state.selection || {};
                   
-                  if (hasSelection) {
-                    // Wrap selected content
-                    const selectedContent = editor?.state.doc.textBetween(from!, to!, ' ');
-                    editor?.chain().focus()
+                  if (!empty && from !== undefined && to !== undefined && editor) {
+                    // Create a fragment from the selection
+                    const fragment = editor.state.doc.slice(from, to).content;
+                    
+                    // Create a temporary div to serialize the fragment to HTML
+                    const tempDiv = document.createElement('div');
+                    const serializer = DOMSerializer.fromSchema(editor.schema);
+                    const dom = serializer.serializeFragment(fragment);
+                    tempDiv.appendChild(dom);
+                    const selectedHTML = tempDiv.innerHTML;
+                    
+                    // Delete selection and insert wrapped content
+                    editor.chain().focus()
                       .deleteSelection()
                       .insertContent(
-                        `<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;"><p>${selectedContent}</p></div>`
+                        `<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;">${selectedHTML || '<p></p>'}</div>`
                       )
                       .run();
                   } else {
@@ -872,20 +881,29 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  const { from, to } = editor?.state.selection || {};
-                  const hasSelection = from !== to;
+                  const { from, to, empty } = editor?.state.selection || {};
                   
-                  if (hasSelection) {
-                    // Wrap selected content
-                    const selectedContent = editor?.state.doc.textBetween(from!, to!, ' ');
-                    editor?.chain().focus()
+                  if (!empty && from !== undefined && to !== undefined && editor) {
+                    // Create a fragment from the selection
+                    const fragment = editor.state.doc.slice(from, to).content;
+                    
+                    // Serialize to HTML
+                    const tempDiv = document.createElement('div');
+                    const serializer = DOMSerializer.fromSchema(editor.schema);
+                    const dom = serializer.serializeFragment(fragment);
+                    tempDiv.appendChild(dom);
+                    let selectedHTML = tempDiv.innerHTML;
+                    
+                    // Make all text white for gradient background
+                    selectedHTML = selectedHTML.replace(/<p>/g, '<p style="color: white;">');
+                    
+                    editor.chain().focus()
                       .deleteSelection()
                       .insertContent(
-                        `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;">${selectedContent}</p></div>`
+                        `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;">${selectedHTML || '<p style="color: white;"></p>'}</div>`
                       )
                       .run();
                   } else {
-                    // Insert empty box
                     editor?.chain().focus().insertContent(
                       '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;"></p></div>'
                     ).run();
@@ -902,20 +920,26 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  const { from, to } = editor?.state.selection || {};
-                  const hasSelection = from !== to;
+                  const { from, to, empty } = editor?.state.selection || {};
                   
-                  if (hasSelection) {
-                    // Wrap selected content
-                    const selectedContent = editor?.state.doc.textBetween(from!, to!, ' ');
-                    editor?.chain().focus()
+                  if (!empty && from !== undefined && to !== undefined && editor) {
+                    // Create a fragment from the selection
+                    const fragment = editor.state.doc.slice(from, to).content;
+                    
+                    // Serialize to HTML
+                    const tempDiv = document.createElement('div');
+                    const serializer = DOMSerializer.fromSchema(editor.schema);
+                    const dom = serializer.serializeFragment(fragment);
+                    tempDiv.appendChild(dom);
+                    const selectedHTML = tempDiv.innerHTML;
+                    
+                    editor.chain().focus()
                       .deleteSelection()
                       .insertContent(
-                        `<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p>${selectedContent}</p></div>`
+                        `<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;">${selectedHTML || '<p></p>'}</div>`
                       )
                       .run();
                   } else {
-                    // Insert empty box
                     editor?.chain().focus().insertContent(
                       '<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
                     ).run();
@@ -930,7 +954,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              <strong>Tip:</strong> Select text first to wrap it in a box, or insert an empty box and type inside it. You can edit, format, and add images inside boxes just like regular content.
+              <strong>Tip:</strong> Select text/content (preserves formatting like bold, italic, lists) to wrap in a box, or insert an empty box to type in. You can format text and add images inside boxes.
             </p>
           </div>
           <DialogFooter>
