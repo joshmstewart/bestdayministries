@@ -17,7 +17,6 @@ test.describe('Sponsorship Flow', () => {
   test('should show funding progress for featured besties', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for progress indicators (bars, percentages, funding goals)
     const progressElements = page.locator('[role="progressbar"], .progress, [class*="progress"], [class*="funding"]');
@@ -32,7 +31,6 @@ test.describe('Sponsorship Flow', () => {
     // when app was in TEST mode. Carousel must ALWAYS show LIVE data regardless of app mode.
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
     
     // Look for dollar amounts in the page (funding progress)
     const dollarAmounts = page.locator('text=/\\$[0-9]+/');
@@ -64,7 +62,6 @@ test.describe('Sponsorship Flow', () => {
   test('should have sponsor button for available besties', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for sponsor/support buttons
     const sponsorButtons = page.locator('button, a').filter({ 
@@ -79,7 +76,6 @@ test.describe('Sponsorship Flow', () => {
   test('should redirect unauthenticated users when attempting to sponsor', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Try to click a sponsor button if it exists
     const sponsorButton = page.locator('button, a').filter({ 
@@ -90,7 +86,7 @@ test.describe('Sponsorship Flow', () => {
     
     if (buttonExists && await sponsorButton.isVisible()) {
       await sponsorButton.click();
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('networkidle');
       
       // Should redirect to auth, show login modal, or proceed to checkout
       const currentUrl = page.url();
@@ -108,7 +104,6 @@ test.describe('Sponsorship Flow', () => {
   test('should display sponsorship frequency options', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for one-time vs monthly options
     const frequencyOptions = page.locator('text=/monthly|one-time|recurring|frequency/i');
@@ -121,7 +116,6 @@ test.describe('Sponsorship Flow', () => {
   test('should show bestie information cards', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for bestie name and description elements
     const bestieCards = page.locator('[class*="card"], [class*="bestie"]');
@@ -156,7 +150,6 @@ test.describe('Sponsorship Flow', () => {
   test('should show monthly goal information', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for goal/target amounts
     const goalText = page.locator('text=/goal|target|needed|\\$/i');
@@ -168,7 +161,6 @@ test.describe('Sponsorship Flow', () => {
   test('should have accessible sponsorship forms', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Check for proper button labels and ARIA attributes
     const buttons = page.locator('button');
@@ -194,7 +186,6 @@ test.describe('Sponsorship Flow', () => {
   test('should show fully funded besties differently', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for "fully funded" indicators
     const fullyFundedText = page.locator('text=/fully funded|funded|goal reached|100%/i');
@@ -207,7 +198,6 @@ test.describe('Sponsorship Flow', () => {
   test('should display bestie images', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Check for images
     const images = page.locator('img[src*="bestie"], img[alt*="bestie"], img[class*="bestie"]');
@@ -233,7 +223,6 @@ test.describe('Sponsorship Flow', () => {
   test('should show heart/like interactions if available', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for heart icons or like buttons
     const heartElements = page.locator('[class*="heart"], [aria-label*="heart"], [aria-label*="like"]');
@@ -267,7 +256,6 @@ test.describe('Sponsorship Management', () => {
   test('should require authentication for order history', async ({ page }) => {
     await page.goto('/order-history');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Should redirect to auth or show login prompt
     const currentUrl = page.url();
@@ -289,7 +277,6 @@ test.describe('Sponsorship Management', () => {
   test('should show empty state when no orders exist', async ({ page }) => {
     await page.goto('/order-history');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for empty state or orders or general page content
     const emptyState = page.locator('text=/no orders|no sponsorships|start sponsoring|empty/i');
@@ -306,7 +293,6 @@ test.describe('Sponsorship Management', () => {
   test('should display Stripe mode indicator', async ({ page }) => {
     await page.goto('/order-history');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for test/live mode indicator
     const modeIndicator = page.locator('text=/test mode|live mode|stripe mode/i');
@@ -320,7 +306,6 @@ test.describe('Guest Sponsorship', () => {
   test('should allow guest checkout without login', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Guest checkout is handled by Stripe
     // Verify page loads and sponsor buttons exist

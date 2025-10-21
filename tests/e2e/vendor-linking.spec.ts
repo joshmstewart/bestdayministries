@@ -79,7 +79,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
           await submitButton.click();
           
           // Should show validation error
-          await page.waitForTimeout(500);
+          await expect(page.locator('text=/complete|select|required/i').first()).toBeVisible();
           const errorVisible = await page.locator('text=/complete|select|required/i').first().isVisible().catch(() => false);
           expect(errorVisible).toBeTruthy();
         }
@@ -118,7 +118,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
         const submitButton = page.locator('button[type="submit"]').filter({ hasText: /link|request|submit/i }).first();
         await submitButton.click();
         
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('networkidle');
         
         // Verify request was created in state
         const requests = Array.from(state.vendorBestieRequests.values()).filter(
@@ -153,7 +153,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
         const initialRequestCount = state.vendorBestieRequests.size;
         
         await submitButton.click();
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('networkidle');
         
         // Should show error or not create request
         const errorVisible = await page.locator('text=/not found|invalid|doesn\'t exist/i').first().isVisible().catch(() => false);
@@ -220,7 +220,6 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       await mockAuthenticatedSession(page, state, 'guardian@test.com', 'caregiver');
       await page.goto('/guardian-approvals');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
       
       // Click the "Vendor Links" tab to show vendor requests
       const vendorsTab = page.locator('button[role="tab"]').filter({ hasText: /vendor links/i }).first();
@@ -228,7 +227,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       console.log('🔍 TEST 15/150: Vendor Links tab visible:', tabVisible);
       if (tabVisible) {
         await vendorsTab.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
         console.log('🔍 TEST 15/150: Clicked Vendor Links tab');
       }
       
@@ -254,7 +253,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       const approveButton = page.locator('button').filter({ hasText: /approve|accept/i }).first();
       if (await approveButton.isVisible()) {
         await approveButton.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
         
         // Verify status changed in state
         const request = state.vendorBestieRequests.get(requestId);
@@ -279,7 +278,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       const rejectButton = page.locator('button').filter({ hasText: /reject|decline|deny/i }).first();
       if (await rejectButton.isVisible()) {
         await rejectButton.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
         
         // Verify status changed in state
         const request = state.vendorBestieRequests.get(requestId);
@@ -325,7 +324,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
         const initialRequestCount = state.vendorBestieRequests.size;
         
         await submitButton.click();
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('networkidle');
         
         // Should not create duplicate
         expect(state.vendorBestieRequests.size).toBe(initialRequestCount);
@@ -353,7 +352,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       
       // Navigate to vendor dashboard
       await page.goto('/vendor-dashboard');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       
       // Should successfully load vendor dashboard (not redirected to /auth)
       const currentUrl = page.url();
@@ -380,7 +379,7 @@ test.describe('Vendor-Bestie Linking Flow', () => {
       });
       
       await page.goto('/vendor-dashboard');
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       
       // Should be redirected or show access denied
       const currentUrl = page.url();

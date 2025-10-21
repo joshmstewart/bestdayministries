@@ -48,7 +48,7 @@ test.describe('Authentication and Signup Flow', () => {
     console.log('🔍 TEST 10: Toggle button clicked');
     
     // ✅ Wait for mode to change
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('networkidle');
     
     // Should see signup-specific elements
     const nameInput = page.getByPlaceholder(/name|display name/i);
@@ -62,7 +62,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 11: Starting required fields validation test');
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
-      await page.waitForTimeout(300);
+      await page.waitForLoadState('networkidle');
       console.log('🔍 TEST 11: Switched to signup mode');
       
       // ✅ Don't try to click submit - just verify button is correctly disabled
@@ -83,7 +83,7 @@ test.describe('Authentication and Signup Flow', () => {
     test('should successfully sign up as Supporter', async ({ page }) => {
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
-      await page.waitForTimeout(500);
+      await expect(page.getByPlaceholder(/name|display name/i)).toBeVisible();
       
       // ✅ Fill ALL required fields FIRST
       await page.getByPlaceholder(/email/i).fill('supporter@test.com');
@@ -91,7 +91,7 @@ test.describe('Authentication and Signup Flow', () => {
       await page.getByPlaceholder(/name|display name/i).fill('Test Supporter');
       
       // ✅ Wait for name input to blur and state to update
-      await page.waitForTimeout(200);
+      await page.waitForLoadState('networkidle');
       
       // Select supporter role (default, so no need to change)
       // Role defaults to "supporter" so we don't need to select it
@@ -100,14 +100,14 @@ test.describe('Authentication and Signup Flow', () => {
       const avatarOption = page.locator('[data-avatar-number="1"]').first();
       if (await avatarOption.isVisible()) {
         await avatarOption.click();
-        await page.waitForTimeout(200); // Wait for state update
+        await page.waitForLoadState('networkidle'); // Wait for state update
       }
       
       // ✅ Accept terms
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
       if (await termsCheckbox.isVisible()) {
         await termsCheckbox.check();
-        await page.waitForTimeout(200); // Wait for state update
+        await expect(submitButton).toBeEnabled(); // Wait for state update
       }
       
       // ✅ NOW button should be enabled
@@ -118,7 +118,7 @@ test.describe('Authentication and Signup Flow', () => {
       await submitButton.click({ noWaitAfter: true });
       
       // Wait for form submission to complete
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       
       // Verify user was created
       const user = state.getUserByEmail('supporter@test.com');
@@ -141,7 +141,7 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
-      await page.waitForTimeout(500);
+      await expect(page.getByPlaceholder(/name|display name/i)).toBeVisible();
       console.log('🔍 TEST 13-15: Clicked signup button');
       
       // Fill in required fields
@@ -151,13 +151,13 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 13-15: Filled basic fields');
       
       // ✅ Wait for name input to blur and state to update
-      await page.waitForTimeout(200);
+      await page.waitForLoadState('networkidle');
       
       // Select bestie role
       const roleSelector = page.getByRole('combobox').first();
       console.log('🔍 TEST 13-15: Found role selector:', await roleSelector.isVisible());
       await roleSelector.click();
-      await page.waitForTimeout(300); // Wait for dropdown to open
+      await expect(page.getByRole('option').first()).toBeVisible(); // Wait for dropdown to open
       console.log('🔍 TEST 13-15: Clicked role selector');
       
       // Try to find the bestie option with different strategies
@@ -176,7 +176,7 @@ test.describe('Authentication and Signup Flow', () => {
       }
       
       await bestieOption.click();
-      await page.waitForTimeout(300); // Wait for selection to complete
+      await page.waitForLoadState('networkidle'); // Wait for selection to complete
       console.log('🔍 TEST 13-15: Clicked bestie option');
       
       // Select avatar
@@ -185,7 +185,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 13-15: Avatar visible:', avatarVisible);
       if (avatarVisible) {
         await avatarOption.click();
-        await page.waitForTimeout(200);
+        await page.waitForLoadState('networkidle');
         console.log('🔍 TEST 13-15: Clicked avatar');
       }
       
@@ -195,7 +195,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 13-15: Terms checkbox visible:', termsVisible);
       if (termsVisible) {
         await termsCheckbox.check();
-        await page.waitForTimeout(200);
+        await expect(submitButton).toBeEnabled();
         console.log('🔍 TEST 13-15: Checked terms');
       }
       
@@ -210,7 +210,7 @@ test.describe('Authentication and Signup Flow', () => {
       await submitButton.click({ noWaitAfter: true });
       
       // Wait for form submission to complete
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       console.log('🔍 TEST 13-15: Form submitted, checking results');
       
       // Verify user was created with friend code
@@ -238,7 +238,7 @@ test.describe('Authentication and Signup Flow', () => {
     test('should successfully sign up as Caregiver', async ({ page }) => {
       // Switch to signup mode
       await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
-      await page.waitForTimeout(500);
+      await expect(page.getByPlaceholder(/name|display name/i)).toBeVisible();
       
       // Fill in required fields
       await page.getByPlaceholder(/email/i).fill('caregiver@test.com');
@@ -246,30 +246,30 @@ test.describe('Authentication and Signup Flow', () => {
       await page.getByPlaceholder(/name|display name/i).fill('Test Caregiver');
       
       // ✅ Wait for name input to blur and state to update
-      await page.waitForTimeout(200);
+      await page.waitForLoadState('networkidle');
       
       // Select caregiver role
       const roleSelector = page.getByRole('combobox').first();
       await roleSelector.click();
-      await page.waitForTimeout(300); // Wait for dropdown to open
+      await expect(page.getByRole('option').first()).toBeVisible(); // Wait for dropdown to open
       
       // Click on the caregiver/guardian option
       const caregiverOption = page.getByRole('option', { name: /guardian/i });
       await caregiverOption.click();
-      await page.waitForTimeout(300); // Wait for selection to complete
+      await page.waitForLoadState('networkidle'); // Wait for selection to complete
       
       // Select avatar
       const avatarOption = page.locator('[data-avatar-number="1"]').first();
       if (await avatarOption.isVisible()) {
         await avatarOption.click();
-        await page.waitForTimeout(200);
+        await page.waitForLoadState('networkidle');
       }
       
       // Accept terms
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
       if (await termsCheckbox.isVisible()) {
         await termsCheckbox.check();
-        await page.waitForTimeout(200);
+        await expect(submitButton).toBeEnabled();
       }
       
       // Verify button is enabled before clicking
@@ -280,7 +280,7 @@ test.describe('Authentication and Signup Flow', () => {
       await submitButton.click({ noWaitAfter: true });
       
       // Wait for form submission to complete
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       
       // Verify user was created
       const user = state.getUserByEmail('caregiver@test.com');
@@ -296,7 +296,7 @@ test.describe('Authentication and Signup Flow', () => {
     console.log('🔍 TEST 17: Starting terms acceptance test');
     // Switch to signup mode
     await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
-    await page.waitForTimeout(300);
+    await expect(page.getByPlaceholder(/name|display name/i)).toBeVisible();
     console.log('🔍 TEST 17: Switched to signup mode');
     
     // Fill in ALL OTHER required fields
@@ -332,12 +332,12 @@ test.describe('Authentication and Signup Flow', () => {
   test('should allow avatar selection', async ({ page }) => {
     // Switch to signup mode
     await page.locator('button').filter({ hasText: /sign up|create account|register/i }).first().click();
-    await page.waitForTimeout(500);
+    await expect(page.getByPlaceholder(/name|display name/i)).toBeVisible();
     console.log('🔍 TEST 18-20: Switched to signup mode');
     
     // Fill in name first (avatar picker appears after name is filled)
     await page.getByPlaceholder(/name|display name/i).fill('Test User');
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('networkidle');
     console.log('🔍 TEST 18-20: Filled display name');
     
     // Click the collapsible trigger to expand avatar picker
@@ -345,7 +345,7 @@ test.describe('Authentication and Signup Flow', () => {
     const labelVisible = await avatarLabel.isVisible().catch(() => false);
     console.log('🔍 TEST 18-20: Avatar label visible:', labelVisible);
     await avatarLabel.click();
-    await page.waitForTimeout(500);
+    await expect(page.locator('[data-avatar-number]').first()).toBeVisible();
     console.log('🔍 TEST 18-20: Clicked avatar collapsible');
     
     // Wait for avatars to load and appear
@@ -357,7 +357,7 @@ test.describe('Authentication and Signup Flow', () => {
     const avatarOption = page.locator('[data-avatar-number="1"]').first();
     await expect(avatarOption).toBeVisible();
     await avatarOption.click();
-    await page.waitForTimeout(200);
+    await page.waitForLoadState('networkidle');
     console.log('🔍 TEST 18-20: Avatar clicked successfully');
   });
 
@@ -398,7 +398,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 24: Sign-in button clicked');
       
       // ✅ Wait longer for error toast/message
-      await page.waitForTimeout(2000);
+      await expect(page.locator('text=/invalid|incorrect|wrong|not found/i').first()).toBeVisible({ timeout: 5000 });
       
       // Verify error is shown
       const errorVisible = await page.locator('text=/invalid|incorrect|wrong|not found/i').first().isVisible({ timeout: 3000 }).catch(() => false);
@@ -431,7 +431,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 25: Sign-in button clicked');
       
       // Wait for sign-in to process
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       
       // Verify session exists
       const session = state.sessions.get(userId);
@@ -472,7 +472,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 30: Clicked forgot password link');
       
       // ✅ Wait for form to appear
-      await page.waitForTimeout(300);
+      await expect(page.getByPlaceholder(/email/i)).toBeVisible();
       
       const emailVisible = await page.getByPlaceholder(/email/i).isVisible();
       console.log('🔍 TEST 30: Email input visible:', emailVisible);
@@ -483,7 +483,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 31: Starting password reset request test');
       const forgotPasswordLink = page.locator('a, button').filter({ hasText: /forgot.*password|reset.*password/i }).first();
       await forgotPasswordLink.click();
-      await page.waitForTimeout(300);
+      await expect(page.getByPlaceholder(/email/i)).toBeVisible();
       console.log('🔍 TEST 31: Opened password reset form');
       
       await page.getByPlaceholder(/email/i).fill('reset@test.com');
@@ -500,7 +500,7 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 31: Clicked submit button');
       
       // ✅ Wait longer for success message
-      await page.waitForTimeout(2000);
+      await expect(page.locator('text=/sent|check.*email|link/i').first()).toBeVisible({ timeout: 5000 });
       const successVisible = await page.locator('text=/sent|check.*email|link/i').first().isVisible({ timeout: 3000 }).catch(() => false);
       console.log('🔍 TEST 31: Success message visible:', successVisible);
       expect(successVisible).toBeTruthy();

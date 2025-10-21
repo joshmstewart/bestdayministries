@@ -16,7 +16,6 @@ test.describe('JoyCoin Store', () => {
   test('should display store items', async ({ page }) => {
     await page.goto('/store');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for store items (cards, products, etc)
     const items = page.locator('[class*="card"], [class*="item"], [class*="product"]');
@@ -29,7 +28,6 @@ test.describe('JoyCoin Store', () => {
   test('should show item prices in coins', async ({ page }) => {
     await page.goto('/store');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for coin prices or coin icons
     const coinElements = page.locator(':has-text("coin"), :has-text("💰"), [class*="coin"]');
@@ -42,14 +40,13 @@ test.describe('JoyCoin Store', () => {
   test('should require authentication for purchases', async ({ page }) => {
     await page.goto('/store');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Try to click purchase button (if any items exist)
     const purchaseButton = page.locator('button').filter({ hasText: /buy|purchase|get/i }).first();
     
     if (await purchaseButton.isVisible()) {
       await purchaseButton.click();
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       
       // Should either show login dialog or redirect to auth
       const isAuthPage = page.url().includes('/auth');
@@ -117,7 +114,6 @@ test.describe('Virtual Pet', () => {
   test('should display pet interface', async ({ page }) => {
     await page.goto('/virtual-pet');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for pet-related elements
     const petCanvas = page.locator('canvas, img[alt*="pet" i], [class*="pet"]');
@@ -138,7 +134,6 @@ test.describe('Memory Match Game', () => {
   test('should display game board', async ({ page }) => {
     await page.goto('/memory-match');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Look for game setup screen or game cards
     const gameCards = page.locator('button.game-card, [class*="card"], [class*="game"]');
@@ -157,20 +152,19 @@ test.describe('Memory Match Game', () => {
   test('should allow card selection', async ({ page }) => {
     await page.goto('/memory-match');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
     
     // Check if we need to start the game first
     const startButton = page.locator('button').filter({ hasText: /start/i }).first();
     if (await startButton.isVisible()) {
       await startButton.click();
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
     }
     
     const cards = page.locator('button.game-card').first();
     
     if (await cards.isVisible()) {
       await cards.click();
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
       
       // Card should change state when clicked
       // This is a basic interaction test
