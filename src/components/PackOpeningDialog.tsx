@@ -44,6 +44,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   const [opened, setOpened] = useState(false);
   const [opening, setOpening] = useState(false);
   const [revealedStickers, setRevealedStickers] = useState<any[]>([]);
+  const [currentStickerIndex, setCurrentStickerIndex] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [collectionName, setCollectionName] = useState<string>("Sticker Pack");
   const [packStickers, setPackStickers] = useState<any[]>([]);
@@ -67,6 +69,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
     if (open) {
       setOpened(false);
       setRevealedStickers([]);
+      setCurrentStickerIndex(0);
+      setShowSummary(false);
       setShowConfetti(false);
       setOpening(false);
       setTearProgress(0);
@@ -484,43 +488,67 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
             )
           ) : revealedStickers.length > 0 ? (
             <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500">
-              {revealedStickers.length === 1 ? (
-                // Single sticker - large display
+              {!showSummary ? (
+                // Sequential reveal - one sticker at a time
                 <>
-                  <img 
-                    src={revealedStickers[0].image_url} 
-                    alt={revealedStickers[0].name}
-                    className="w-64 h-64 object-contain"
-                  />
-                  
-                  <div className="text-center space-y-2">
-                    <h3 className="text-2xl font-bold">{revealedStickers[0].name}</h3>
-                    <div className="flex items-center justify-center gap-2">
-                      <Badge className={rarityBadgeColors[revealedStickers[0].rarity as keyof typeof rarityBadgeColors]}>
-                        {revealedStickers[0].rarity.charAt(0).toUpperCase() + revealedStickers[0].rarity.slice(1)}
-                      </Badge>
-                      {revealedStickers[0].category && (
-                        <>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="text-sm text-muted-foreground capitalize">{revealedStickers[0].category}</span>
-                        </>
+                  <div 
+                    onClick={() => {
+                      if (currentStickerIndex < revealedStickers.length - 1) {
+                        setCurrentStickerIndex(currentStickerIndex + 1);
+                      } else {
+                        setShowSummary(true);
+                      }
+                    }}
+                    className="cursor-pointer transform transition-all duration-300 hover:scale-105 flex flex-col items-center gap-4"
+                  >
+                    <img 
+                      src={revealedStickers[currentStickerIndex].image_url} 
+                      alt={revealedStickers[currentStickerIndex].name}
+                      className="w-64 h-64 object-contain"
+                      style={{ filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))' }}
+                    />
+                    
+                    <div className="text-center space-y-2">
+                      <h3 className="text-2xl font-bold">{revealedStickers[currentStickerIndex].name}</h3>
+                      <div className="flex items-center justify-center gap-2">
+                        <Badge className={rarityBadgeColors[revealedStickers[currentStickerIndex].rarity as keyof typeof rarityBadgeColors]}>
+                          {revealedStickers[currentStickerIndex].rarity.charAt(0).toUpperCase() + revealedStickers[currentStickerIndex].rarity.slice(1)}
+                        </Badge>
+                        {revealedStickers[currentStickerIndex].category && (
+                          <>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-sm text-muted-foreground capitalize">{revealedStickers[currentStickerIndex].category}</span>
+                          </>
+                        )}
+                      </div>
+                      {revealedStickers[currentStickerIndex].description && (
+                        <p className="text-sm text-muted-foreground max-w-xs">
+                          {revealedStickers[currentStickerIndex].description}
+                        </p>
                       )}
                     </div>
-                    {revealedStickers[0].description && (
-                      <p className="text-sm text-muted-foreground max-w-xs">
-                        {revealedStickers[0].description}
-                      </p>
-                    )}
+                    
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Sparkles className="w-4 h-4" />
+                      <span>
+                        {currentStickerIndex < revealedStickers.length - 1 
+                          ? `Tap for next sticker (${currentStickerIndex + 1} of ${revealedStickers.length})`
+                          : `Tap to see summary`
+                        }
+                      </span>
+                      <Sparkles className="w-4 h-4" />
+                    </div>
                   </div>
                 </>
               ) : (
-                // Multiple stickers - grid display
+                // Summary view - all stickers
                 <>
                   <h3 className="text-2xl font-bold">You got {revealedStickers.length} stickers!</h3>
                   <div className={cn(
                     "grid gap-4 w-full max-w-2xl",
+                    revealedStickers.length === 1 && "grid-cols-1",
                     revealedStickers.length === 2 && "grid-cols-2",
-                    revealedStickers.length >= 3 && "grid-cols-3"
+                    revealedStickers.length >= 3 && "grid-cols-2 sm:grid-cols-3"
                   )}>
                     {revealedStickers.map((sticker, index) => (
                       <div key={index} className="flex flex-col items-center gap-2 p-4 rounded-lg border bg-card">
@@ -528,6 +556,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
                           src={sticker.image_url} 
                           alt={sticker.name}
                           className="w-32 h-32 object-contain"
+                          style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))' }}
                         />
                         <div className="text-center space-y-1">
                           <p className="font-semibold text-sm">{sticker.name}</p>
@@ -538,16 +567,16 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
                       </div>
                     ))}
                   </div>
+
+                  <Button 
+                    onClick={() => handleDialogClose(false)}
+                    size="lg"
+                    className="mt-4"
+                  >
+                    Continue
+                  </Button>
                 </>
               )}
-
-              <Button 
-                onClick={() => handleDialogClose(false)}
-                size="lg"
-                className="mt-4"
-              >
-                Continue
-              </Button>
             </div>
           ) : null}
         </div>
