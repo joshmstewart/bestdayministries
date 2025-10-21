@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ContactForm } from "@/components/ContactForm";
 import ReportIssueButton from "@/components/ReportIssueButton";
@@ -176,12 +177,21 @@ const Footer = () => {
                     .filter((link) => link.section_id === section.id)
                     .map((link) => (
                       <li key={link.id}>
-                        <a
-                          href={link.href}
-                          className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
-                        >
-                          {link.label}
-                        </a>
+                        {link.href.startsWith('/') ? (
+                          <Link
+                            to={link.href}
+                            className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
+                          >
+                            {link.label}
+                          </Link>
+                        ) : (
+                          <a
+                            href={link.href}
+                            className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
+                          >
+                            {link.label}
+                          </a>
+                        )}
                       </li>
                     ))}
                 </ul>
@@ -194,12 +204,21 @@ const Footer = () => {
                 <ul className="space-y-2">
                   {section.links.map((link) => (
                     <li key={link.label}>
-                      <a
-                        href={link.href}
-                        className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
-                      >
-                        {link.label}
-                      </a>
+                      {link.href.startsWith('/') ? (
+                        <Link
+                          to={link.href}
+                          className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
+                        >
+                          {link.label}
+                        </Link>
+                      ) : (
+                        <a
+                          href={link.href}
+                          className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
+                        >
+                          {link.label}
+                        </a>
+                      )}
                     </li>
                   ))}
                 </ul>
