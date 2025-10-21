@@ -41,7 +41,7 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
   };
 
   // Don't show dialog on auth pages or terms/privacy pages
-  const publicPages = ['/auth', '/auth/vendor', '/terms', '/privacy', '/'];
+  const publicPages = ['/auth', '/auth/vendor', '/terms', '/privacy', '/', '/newsletter'];
   const isPublicPage = publicPages.includes(location.pathname);
 
   // Check if user just signed up (within last 30 seconds)
