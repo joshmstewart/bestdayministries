@@ -236,15 +236,15 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           <CardContent className="p-0">
             <div className="grid md:grid-cols-2 gap-0">
               {/* Image skeleton */}
-              <div className="relative bg-muted" style={{ maxHeight: '350px', minHeight: '300px' }}>
+              <div className="relative bg-muted h-[280px]">
                 <div className="w-full h-full bg-muted-foreground/10" />
               </div>
               {/* Content skeleton */}
-              <div className="p-6 space-y-4 flex flex-col justify-center">
-                <div className="h-8 w-3/4 bg-muted rounded" />
-                <div className="h-24 w-full bg-muted rounded" />
-                <div className="h-16 w-full bg-muted rounded" />
+              <div className="p-4 space-y-3 flex flex-col justify-center">
+                <div className="h-6 w-3/4 bg-muted rounded" />
+                <div className="h-20 w-full bg-muted rounded" />
                 <div className="h-12 w-full bg-muted rounded" />
+                <div className="h-10 w-full bg-muted rounded" />
               </div>
             </div>
           </CardContent>
@@ -277,25 +277,24 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
     return (
       <Card key={bestie.id} className="border-2 hover:border-primary/50 transition-all overflow-hidden">
         <CardContent className="p-0">
-          <div className="grid md:grid-cols-2 gap-0">
+          <div className="grid md:grid-cols-[300px,1fr] gap-0">
             {/* Left side - Image */}
-            <div className="relative overflow-hidden flex items-center justify-center bg-muted" style={{ maxHeight: '350px' }}>
+            <div className="relative overflow-hidden bg-muted h-[280px]">
               <img
                 src={bestie.image_url}
                 alt={bestie.bestie_name}
-                className="object-contain w-full h-full"
-                style={{ maxHeight: '350px' }}
+                className="object-cover w-full h-full"
                 crossOrigin="anonymous"
               />
-              <div className="absolute top-4 left-4">
-                <div className="bg-gradient-warm px-4 py-1.5 rounded-full shadow-lg">
-                  <span className="text-white font-bold text-sm">Available for Sponsorship</span>
+              <div className="absolute top-3 left-3">
+                <div className="bg-gradient-warm px-3 py-1 rounded-full shadow-lg">
+                  <span className="text-white font-bold text-xs">Available for Sponsorship</span>
                 </div>
               </div>
               {isSponsoring && (
-                <div className="absolute top-4 right-4">
-                  <div className="bg-green-500 px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
-                    <Heart className="w-4 h-4 text-white fill-white" />
+                <div className="absolute top-3 right-3">
+                  <div className="bg-green-500 px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1">
+                    <Heart className="w-3 h-3 text-white fill-white" />
                     <span className="text-white font-semibold text-xs">You're Sponsoring!</span>
                   </div>
                 </div>
@@ -303,11 +302,11 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
             </div>
 
             {/* Right side - Content */}
-            <div className="p-6 space-y-4 flex flex-col justify-center">
+            <div className="p-4 space-y-3 flex flex-col justify-center">
               {bestie.text_sections && bestie.text_sections.length > 0 ? (
                 <>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-script text-2xl font-bold text-primary leading-tight">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-script text-xl font-bold text-primary leading-tight">
                       {bestie.text_sections[0]?.header}
                     </h3>
                     <TextToSpeech 
@@ -317,14 +316,14 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
                     />
                   </div>
                   {bestie.text_sections.map((section, index) => (
-                    <div key={index} className="space-y-2">
+                    <div key={index} className="space-y-1.5">
                       {index > 0 && section.header && (
-                        <h3 className="font-script text-2xl font-bold text-primary leading-tight">
+                        <h3 className="font-script text-xl font-bold text-primary leading-tight">
                           {section.header}
                         </h3>
                       )}
                       {section.text && (
-                        <p className="font-script text-base text-foreground/80 leading-relaxed whitespace-pre-line">
+                        <p className="font-script text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
                           {section.text}
                         </p>
                       )}
@@ -338,13 +337,13 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
               )}
 
               {bestie.voice_note_url && (
-                <div className="pt-2">
+                <div className="pt-1">
                   <AudioPlayer src={bestie.voice_note_url} />
                 </div>
               )}
 
               {bestie.monthly_goal && bestie.monthly_goal > 0 && (
-                <div className="mt-4 space-y-2">
+                <div className="mt-2 space-y-2">
                   <SponsorshipBreakdownDialog />
                   <FundingProgressBar
                     currentAmount={progress?.current_monthly_pledges || 0}
@@ -356,17 +355,16 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
               {showSponsorButton && (
                 <Button
                   onClick={() => handleSponsorClick(bestie.id)}
-                  className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all text-white font-bold py-6 text-lg"
-                  size="lg"
+                  className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all text-white font-bold py-4 text-base"
                 >
-                  <Heart className="w-5 h-5 mr-2" />
+                  <Heart className="w-4 h-4 mr-2" />
                   Sponsor This Bestie
                 </Button>
               )}
 
               {isFullyFunded && (
-                <div className="text-center py-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-green-600 dark:text-green-400 font-semibold">
+                <div className="text-center py-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <p className="text-green-600 dark:text-green-400 font-semibold text-sm">
                     ✓ Fully Funded! Thank you to all sponsors!
                   </p>
                 </div>
