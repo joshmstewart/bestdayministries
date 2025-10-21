@@ -22,7 +22,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DndContext,
   closestCenter,
@@ -268,6 +273,7 @@ export const StickerCollectionManager = () => {
   const [stickersEnabled, setStickersEnabled] = useState(false);
   const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
   const [bonusPacksVisibleRoles, setBonusPacksVisibleRoles] = useState<UserRole[]>(["supporter", "bestie", "caregiver", "admin", "owner"]);
+  const [bonusPacksOpen, setBonusPacksOpen] = useState(false);
   
   // Collection form
   const [collectionForm, setCollectionForm] = useState({
@@ -1412,112 +1418,147 @@ export const StickerCollectionManager = () => {
       </Card>
 
       {/* Bonus Pack Purchases Control */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Bonus Pack Purchases</CardTitle>
-          <CardDescription>Control who can buy extra sticker packs with JoyCoins</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="text-base font-semibold">Enable Bonus Pack Purchases</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow users to buy extra sticker packs with JoyCoins (disable to launch with only free daily packs)
-              </p>
-            </div>
-            <Switch
-              checked={bonusPacksEnabled}
-              onCheckedChange={async (checked) => {
-                try {
-                  const { data: { user } } = await supabase.auth.getUser();
-                  
-                  const { error } = await supabase
-                    .from("app_settings")
-                    .upsert({
-                      setting_key: "bonus_packs_enabled",
-                      setting_value: checked,
-                      updated_by: user?.id,
-                    }, {
-                      onConflict: 'setting_key'
-                    });
-
-                  if (error) throw error;
-
-                  setBonusPacksEnabled(checked);
-                  toast({
-                    title: "Success",
-                    description: `Bonus pack purchases ${checked ? 'enabled' : 'disabled'}`,
-                  });
-                } catch (error: any) {
-                  toast({
-                    title: "Error",
-                    description: error.message,
-                    variant: "destructive",
-                  });
-                }
-              }}
-            />
-          </div>
-
-          {bonusPacksEnabled && (
-            <div className="space-y-3">
-              <Label className="text-base font-semibold">Visible to Roles</Label>
-              <p className="text-sm text-muted-foreground mb-3">
-                Select which user roles can see and purchase bonus packs
-              </p>
-              <div className="space-y-2">
-                {USER_ROLES.map((role) => (
-                  <div key={role.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`bonus-role-${role.value}`}
-                      checked={bonusPacksVisibleRoles.includes(role.value)}
-                      onCheckedChange={async (checked) => {
-                        try {
-                          const newRoles = checked
-                            ? [...bonusPacksVisibleRoles, role.value]
-                            : bonusPacksVisibleRoles.filter((r) => r !== role.value);
-
-                          const { data: { user } } = await supabase.auth.getUser();
-
-                          const { error } = await supabase
-                            .from("app_settings")
-                            .upsert({
-                              setting_key: "bonus_packs_visible_to_roles",
-                              setting_value: newRoles,
-                              updated_by: user?.id,
-                            }, {
-                              onConflict: 'setting_key'
-                            });
-
-                          if (error) throw error;
-
-                          setBonusPacksVisibleRoles(newRoles);
-                          toast({
-                            title: "Success",
-                            description: "Role visibility updated",
-                          });
-                        } catch (error: any) {
-                          toast({
-                            title: "Error",
-                            description: error.message,
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    />
-                    <Label
-                      htmlFor={`bonus-role-${role.value}`}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {role.label}
-                    </Label>
-                  </div>
-                ))}
+      <Collapsible open={bonusPacksOpen} onOpenChange={setBonusPacksOpen}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1 flex-1">
+                <CardTitle>Bonus Pack Purchases</CardTitle>
+                <CardDescription>
+                  {bonusPacksEnabled ? (
+                    <>
+                      Enabled for: {bonusPacksVisibleRoles.length === 0 ? (
+                        <span className="text-muted-foreground">No roles</span>
+                      ) : (
+                        <span className="font-medium">
+                          {bonusPacksVisibleRoles
+                            .map(r => USER_ROLES.find(ur => ur.value === r)?.label)
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Disabled</span>
+                  )}
+                </CardDescription>
               </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  {bonusPacksOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          
+          <CollapsibleContent>
+            <CardContent className="space-y-6 pt-0">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-base font-semibold">Enable Bonus Pack Purchases</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow users to buy extra sticker packs with JoyCoins (disable to launch with only free daily packs)
+                  </p>
+                </div>
+                <Switch
+                  checked={bonusPacksEnabled}
+                  onCheckedChange={async (checked) => {
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      
+                      const { error } = await supabase
+                        .from("app_settings")
+                        .upsert({
+                          setting_key: "bonus_packs_enabled",
+                          setting_value: checked,
+                          updated_by: user?.id,
+                        }, {
+                          onConflict: 'setting_key'
+                        });
+
+                      if (error) throw error;
+
+                      setBonusPacksEnabled(checked);
+                      toast({
+                        title: "Success",
+                        description: `Bonus pack purchases ${checked ? 'enabled' : 'disabled'}`,
+                      });
+                    } catch (error: any) {
+                      toast({
+                        title: "Error",
+                        description: error.message,
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                />
+              </div>
+
+              {bonusPacksEnabled && (
+                <div className="space-y-3 pt-4 border-t">
+                  <Label className="text-base font-semibold">Visible to Roles</Label>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Select which user roles can see and purchase bonus packs
+                  </p>
+                  <div className="space-y-2">
+                    {USER_ROLES.map((role) => (
+                      <div key={role.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`bonus-role-${role.value}`}
+                          checked={bonusPacksVisibleRoles.includes(role.value)}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              const newRoles = checked
+                                ? [...bonusPacksVisibleRoles, role.value]
+                                : bonusPacksVisibleRoles.filter((r) => r !== role.value);
+
+                              const { data: { user } } = await supabase.auth.getUser();
+
+                              const { error } = await supabase
+                                .from("app_settings")
+                                .upsert({
+                                  setting_key: "bonus_packs_visible_to_roles",
+                                  setting_value: newRoles,
+                                  updated_by: user?.id,
+                                }, {
+                                  onConflict: 'setting_key'
+                                });
+
+                              if (error) throw error;
+
+                              setBonusPacksVisibleRoles(newRoles);
+                              toast({
+                                title: "Success",
+                                description: "Role visibility updated",
+                              });
+                            } catch (error: any) {
+                              toast({
+                                title: "Error",
+                                description: error.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        />
+                        <Label
+                          htmlFor={`bonus-role-${role.value}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {role.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Default Drop Rates */}
       <DefaultRaritySettings />
