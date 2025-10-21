@@ -491,6 +491,13 @@ export const UnifiedHeader = () => {
             ) : (
               <>
                 <Button 
+                  variant="ghost" 
+                  onClick={() => navigate("/newsletter")}
+                  className="font-semibold"
+                >
+                  Newsletter
+                </Button>
+                <Button 
                   variant="outline" 
                   onClick={() => navigate("/auth")}
                   className="font-semibold"
