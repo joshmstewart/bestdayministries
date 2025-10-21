@@ -8,6 +8,9 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   reporter: 'html',
   
+  // Global setup to polyfill import.meta for Node.js
+  globalSetup: './tests/global-setup.ts',
+  
   // Global teardown to clean test data
   globalTeardown: './tests/global-teardown.ts',
   
