@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter, AlertTriangle } from "lucide-react";
+import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter, AlertTriangle, MailCheck } from "lucide-react";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +26,7 @@ interface Profile {
   terms_version?: string | null;
   privacy_version?: string | null;
   terms_accepted_at?: string | null;
+  newsletter_subscribed?: boolean;
 }
 
 export const UserManagement = () => {
@@ -125,6 +126,12 @@ export const UserManagement = () => {
         .select("user_id, terms_version, privacy_version, accepted_at")
         .order("accepted_at", { ascending: false });
 
+      // Fetch newsletter subscriptions for all users
+      const { data: newsletterData } = await supabase
+        .from("newsletter_subscribers")
+        .select("user_id, status")
+        .eq("status", "active");
+
       // Group terms by user_id (take most recent)
       const termsMap = new Map();
       termsData?.forEach(term => {
@@ -133,7 +140,10 @@ export const UserManagement = () => {
         }
       });
 
-      // Merge roles, vendor status, permissions, and terms with profiles
+      // Create a set of subscribed user IDs for quick lookup
+      const subscribedUserIds = new Set(newsletterData?.map(n => n.user_id) || []);
+
+      // Merge roles, vendor status, permissions, terms, and newsletter with profiles
       const usersWithRoles = (profiles || []).map(profile => {
         const userTerms = termsMap.get(profile.id);
         return {
@@ -145,6 +155,7 @@ export const UserManagement = () => {
           terms_version: userTerms?.terms_version || null,
           privacy_version: userTerms?.privacy_version || null,
           terms_accepted_at: userTerms?.accepted_at || null,
+          newsletter_subscribed: subscribedUserIds.has(profile.id),
         };
       });
 
@@ -913,6 +924,7 @@ export const UserManagement = () => {
               <TableHead>Role</TableHead>
               <TableHead>Moderation Permissions</TableHead>
               <TableHead>Vendor Status</TableHead>
+              <TableHead>Newsletter</TableHead>
               <TableHead>Terms Accepted</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -921,7 +933,7 @@ export const UserManagement = () => {
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   No users found matching your filters
                 </TableCell>
               </TableRow>
@@ -1032,6 +1044,16 @@ export const UserManagement = () => {
                         </span>
                       )}
                     </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {user.newsletter_subscribed ? (
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 flex items-center gap-1 w-fit">
+                      <MailCheck className="w-3 h-3" />
+                      Subscribed
+                    </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
