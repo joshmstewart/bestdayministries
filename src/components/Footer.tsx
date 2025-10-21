@@ -136,7 +136,7 @@ const Footer = () => {
       title: "Connect",
       links: [
         { label: "Contact Us", href: "#" },
-        { label: "Newsletter", href: "#" },
+        { label: "Newsletter", href: "/newsletter" },
         { label: "Partners", href: "#" },
         { label: "Best Day Ever Cafe", href: "#" },
       ],
