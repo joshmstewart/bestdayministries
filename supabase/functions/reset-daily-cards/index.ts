@@ -85,24 +85,35 @@ Deno.serve(async (req) => {
       targetUserIds = adminUsers?.map(u => u.user_id) || [];
       scopeMessage = 'all admin/owner';
     } else if (scope === 'all') {
-      // Reset for all users - don't filter by user_id
-      const { error: deleteError, count } = await supabase
+      // Reset for all users - delete both scratch cards AND collected stickers
+      const { error: deleteCardsError, count: cardsCount } = await supabase
         .from('daily_scratch_cards')
         .delete({ count: 'exact' })
         .eq('date', today);
 
-      if (deleteError) {
-        console.error('Error deleting cards:', deleteError);
-        throw deleteError;
+      if (deleteCardsError) {
+        console.error('Error deleting cards:', deleteCardsError);
+        throw deleteCardsError;
       }
 
-      console.log(`Reset ${count} scratch cards for all users`);
+      // Also delete all user stickers to fully reset collections
+      const { error: deleteStickersError, count: stickersCount } = await supabase
+        .from('user_stickers')
+        .delete({ count: 'exact' });
+
+      if (deleteStickersError) {
+        console.error('Error deleting stickers:', deleteStickersError);
+        throw deleteStickersError;
+      }
+
+      console.log(`Reset ${cardsCount} scratch cards and ${stickersCount} stickers for all users`);
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Reset ${count} daily scratch cards for all users. Everyone can now get new cards.`,
-          deleted_count: count
+          message: `Reset ${cardsCount} daily scratch cards and ${stickersCount} stickers for all users. Everyone can now get new cards and rebuild collections.`,
+          deleted_cards: cardsCount,
+          deleted_stickers: stickersCount
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -124,24 +135,36 @@ Deno.serve(async (req) => {
     }
 
     // Delete scratch cards for target users for today
-    const { error: deleteError, count } = await supabase
+    const { error: deleteCardsError, count: cardsCount } = await supabase
       .from('daily_scratch_cards')
       .delete({ count: 'exact' })
       .eq('date', today)
       .in('user_id', targetUserIds);
 
-    if (deleteError) {
-      console.error('Error deleting cards:', deleteError);
-      throw deleteError;
+    if (deleteCardsError) {
+      console.error('Error deleting cards:', deleteCardsError);
+      throw deleteCardsError;
     }
 
-    console.log(`Reset ${count} scratch cards for ${scopeMessage} users`);
+    // Also delete all user stickers for target users to fully reset their collections
+    const { error: deleteStickersError, count: stickersCount } = await supabase
+      .from('user_stickers')
+      .delete({ count: 'exact' })
+      .in('user_id', targetUserIds);
+
+    if (deleteStickersError) {
+      console.error('Error deleting stickers:', deleteStickersError);
+      throw deleteStickersError;
+    }
+
+    console.log(`Reset ${cardsCount} scratch cards and ${stickersCount} stickers for ${scopeMessage} users`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Reset ${count} daily scratch cards for ${scopeMessage} users. They can now get new cards.`,
-        deleted_count: count
+        message: `Reset ${cardsCount} daily scratch cards and ${stickersCount} stickers for ${scopeMessage} users. Collections have been fully reset.`,
+        deleted_cards: cardsCount,
+        deleted_stickers: stickersCount
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
