@@ -16,7 +16,6 @@ import { removeBackground as removeBg, loadImage } from "@/lib/removeBackground"
 import { ScratchCardDialog } from "@/components/ScratchCardDialog";
 import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { DefaultRaritySettings } from "./DefaultRaritySettings";
-import { CollectionEditDialog } from "./CollectionEditDialog";
 import {
   Dialog,
   DialogContent,
@@ -1015,6 +1014,11 @@ export const StickerCollectionManager = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setStickerImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
