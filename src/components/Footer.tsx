@@ -207,6 +207,7 @@ const Footer = () => {
                       {link.href.startsWith('/') ? (
                         <Link
                           to={link.href}
+                          onClick={() => console.log('Newsletter Link clicked, navigating to:', link.href)}
                           className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
                         >
                           {link.label}
@@ -214,6 +215,7 @@ const Footer = () => {
                       ) : (
                         <a
                           href={link.href}
+                          onClick={() => console.log('Newsletter anchor clicked:', link.href)}
                           className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
                         >
                           {link.label}
