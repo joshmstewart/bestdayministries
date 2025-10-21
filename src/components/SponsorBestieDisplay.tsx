@@ -278,26 +278,39 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
       <Card key={bestie.id} className="border-2 hover:border-primary/50 transition-all overflow-hidden">
         <CardContent className="p-0">
           <div className="grid md:grid-cols-2 gap-0">
-            {/* Left side - Image */}
-            <div className="relative overflow-hidden flex items-center justify-center bg-muted" style={{ maxHeight: '450px' }}>
-              <img
-                src={bestie.image_url}
-                alt={bestie.bestie_name}
-                className="object-contain w-full h-full"
-                style={{ maxHeight: '450px' }}
-                crossOrigin="anonymous"
-              />
-              <div className="absolute top-4 left-4">
-                <div className="bg-gradient-warm px-4 py-1.5 rounded-full shadow-lg">
-                  <span className="text-white font-bold text-sm">Available for Sponsorship</span>
-                </div>
-              </div>
-              {isSponsoring && (
-                <div className="absolute top-4 right-4">
-                  <div className="bg-green-500 px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
-                    <Heart className="w-4 h-4 text-white fill-white" />
-                    <span className="text-white font-semibold text-xs">You're Sponsoring!</span>
+            {/* Left side - Image and Progress */}
+            <div className="relative flex flex-col">
+              <div className="relative overflow-hidden flex items-center justify-center bg-muted" style={{ maxHeight: '450px' }}>
+                <img
+                  src={bestie.image_url}
+                  alt={bestie.bestie_name}
+                  className="object-contain w-full h-full"
+                  style={{ maxHeight: '450px' }}
+                  crossOrigin="anonymous"
+                />
+                <div className="absolute top-4 left-4">
+                  <div className="bg-gradient-warm px-4 py-1.5 rounded-full shadow-lg">
+                    <span className="text-white font-bold text-sm">Available for Sponsorship</span>
                   </div>
+                </div>
+                {isSponsoring && (
+                  <div className="absolute top-4 right-4">
+                    <div className="bg-green-500 px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
+                      <Heart className="w-4 h-4 text-white fill-white" />
+                      <span className="text-white font-semibold text-xs">You're Sponsoring!</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Progress bar moved to left column */}
+              {bestie.monthly_goal && bestie.monthly_goal > 0 && (
+                <div className="p-4 space-y-2 bg-muted/50">
+                  <SponsorshipBreakdownDialog />
+                  <FundingProgressBar
+                    currentAmount={progress?.current_monthly_pledges || 0}
+                    goalAmount={bestie.monthly_goal}
+                  />
                 </div>
               )}
             </div>
@@ -340,16 +353,6 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
               {bestie.voice_note_url && (
                 <div className="pt-2">
                   <AudioPlayer src={bestie.voice_note_url} />
-                </div>
-              )}
-
-              {bestie.monthly_goal && bestie.monthly_goal > 0 && (
-                <div className="mt-4 space-y-2">
-                  <SponsorshipBreakdownDialog />
-                  <FundingProgressBar
-                    currentAmount={progress?.current_monthly_pledges || 0}
-                    goalAmount={bestie.monthly_goal}
-                  />
                 </div>
               )}
 
