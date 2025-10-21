@@ -272,6 +272,10 @@ export const StickerCollectionManager = () => {
   const [editPackImagePreview, setEditPackImagePreview] = useState<string>("");
   const [editPackAnimation, setEditPackAnimation] = useState<File | null>(null);
   const [editPackAnimationPreview, setEditPackAnimationPreview] = useState<string>("");
+  const [newCollectionPackImage, setNewCollectionPackImage] = useState<File | null>(null);
+  const [newCollectionPackImagePreview, setNewCollectionPackImagePreview] = useState<string>("");
+  const [newCollectionPackAnimation, setNewCollectionPackAnimation] = useState<File | null>(null);
+  const [newCollectionPackAnimationPreview, setNewCollectionPackAnimationPreview] = useState<string>("");
   const [stickersEnabled, setStickersEnabled] = useState(false);
   const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
   const [bonusPacksVisibleRoles, setBonusPacksVisibleRoles] = useState<UserRole[]>(["supporter", "bestie", "caregiver", "admin", "owner"]);
@@ -2348,7 +2352,15 @@ export const StickerCollectionManager = () => {
         </Dialog>
 
       {/* Edit Collection Dialog */}
-      <Dialog open={!!editingCollection} onOpenChange={(open) => !open && setEditingCollection(null)}>
+      <Dialog open={!!editingCollection} onOpenChange={(open) => {
+        if (!open) {
+          setEditingCollection(null);
+          setNewCollectionPackImage(null);
+          setNewCollectionPackImagePreview("");
+          setNewCollectionPackAnimation(null);
+          setNewCollectionPackAnimationPreview("");
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Collection: {editingCollection?.name}</DialogTitle>
@@ -2539,14 +2551,178 @@ export const StickerCollectionManager = () => {
 
               <TabsContent value="pack" className="space-y-4 mt-4">
                 <p className="text-sm text-muted-foreground">
-                  Current pack assets are displayed in the collection preview. Upload new files to change them.
+                  Upload custom images/animations for pack opening. Leave blank to keep current assets or use default sticker collage.
                 </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Current Pack Image */}
+                  <div className="space-y-2">
+                    <Label>Current Pack Image</Label>
+                    {editingCollection?.pack_image_url ? (
+                      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                        <img src={editingCollection.pack_image_url} alt="Current pack" className="w-full h-full object-cover" />
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase
+                                .from('sticker_collections')
+                                .update({ pack_image_url: null })
+                                .eq('id', editingCollection.id);
+
+                              if (error) throw error;
+
+                              setEditingCollection({ ...editingCollection, pack_image_url: null });
+                              toast({ title: "Success", description: "Pack image cleared" });
+                              fetchCollections();
+                            } catch (error: any) {
+                              toast({
+                                title: "Error",
+                                description: error.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-full aspect-[2/3] rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground text-sm">
+                        No custom image - using sticker collage
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label>Upload New Pack Image</Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewCollectionPackImage(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setNewCollectionPackImagePreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                      {newCollectionPackImagePreview && (
+                        <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                          <img src={newCollectionPackImagePreview} alt="New pack preview" className="w-full h-full object-cover" />
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              setNewCollectionPackImage(null);
+                              setNewCollectionPackImagePreview("");
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Current Pack Animation */}
+                  <div className="space-y-2">
+                    <Label>Current Pack Animation</Label>
+                    {editingCollection?.pack_animation_url ? (
+                      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                        {editingCollection.pack_animation_url.includes('.mp4') || editingCollection.pack_animation_url.includes('.webm') ? (
+                          <video src={editingCollection.pack_animation_url} className="w-full h-full object-cover" autoPlay loop muted />
+                        ) : (
+                          <img src={editingCollection.pack_animation_url} alt="Current animation" className="w-full h-full object-cover" />
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-2 right-2"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase
+                                .from('sticker_collections')
+                                .update({ pack_animation_url: null })
+                                .eq('id', editingCollection.id);
+
+                              if (error) throw error;
+
+                              setEditingCollection({ ...editingCollection, pack_animation_url: null });
+                              toast({ title: "Success", description: "Pack animation cleared" });
+                              fetchCollections();
+                            } catch (error: any) {
+                              toast({
+                                title: "Error",
+                                description: error.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-full aspect-[2/3] rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground text-sm">
+                        No custom animation
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label>Upload New Pack Animation</Label>
+                      <Input
+                        type="file"
+                        accept="image/gif,video/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewCollectionPackAnimation(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setNewCollectionPackAnimationPreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                      {newCollectionPackAnimationPreview && (
+                        <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border">
+                          {newCollectionPackAnimationPreview.includes('video') ? (
+                            <video src={newCollectionPackAnimationPreview} className="w-full h-full object-cover" autoPlay loop muted />
+                          ) : (
+                            <img src={newCollectionPackAnimationPreview} alt="New animation preview" className="w-full h-full object-cover" />
+                          )}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              setNewCollectionPackAnimation(null);
+                              setNewCollectionPackAnimationPreview("");
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
 
               <div className="flex gap-2 justify-end pt-4 border-t mt-4">
                 <Button
                   variant="outline"
-                  onClick={() => setEditingCollection(null)}
+                  onClick={() => {
+                    setEditingCollection(null);
+                    setNewCollectionPackImage(null);
+                    setNewCollectionPackImagePreview("");
+                    setNewCollectionPackAnimation(null);
+                    setNewCollectionPackAnimationPreview("");
+                  }}
                 >
                   Cancel
                 </Button>
@@ -2575,6 +2751,47 @@ export const StickerCollectionManager = () => {
 
                     setLoading(true);
                     try {
+                      let packImageUrl = editingCollection.pack_image_url;
+                      let packAnimationUrl = editingCollection.pack_animation_url;
+
+                      // Upload new pack image if provided
+                      if (newCollectionPackImage) {
+                        const fileExt = newCollectionPackImage.name.split('.').pop();
+                        const fileName = `${Date.now()}.${fileExt}`;
+                        const filePath = `pack-images/${fileName}`;
+
+                        const { error: uploadError } = await supabase.storage
+                          .from('sticker-images')
+                          .upload(filePath, newCollectionPackImage);
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: urlData } = supabase.storage
+                          .from('sticker-images')
+                          .getPublicUrl(filePath);
+
+                        packImageUrl = urlData.publicUrl;
+                      }
+
+                      // Upload new pack animation if provided
+                      if (newCollectionPackAnimation) {
+                        const fileExt = newCollectionPackAnimation.name.split('.').pop();
+                        const fileName = `${Date.now()}.${fileExt}`;
+                        const filePath = `pack-animations/${fileName}`;
+
+                        const { error: uploadError } = await supabase.storage
+                          .from('sticker-images')
+                          .upload(filePath, newCollectionPackAnimation);
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: urlData } = supabase.storage
+                          .from('sticker-images')
+                          .getPublicUrl(filePath);
+
+                        packAnimationUrl = urlData.publicUrl;
+                      }
+
                       const { error } = await supabase
                         .from('sticker_collections')
                         .update({
@@ -2587,6 +2804,8 @@ export const StickerCollectionManager = () => {
                           stickers_per_pack: editingCollection.stickers_per_pack || 1,
                           use_default_rarity: editingCollection.use_default_rarity || false,
                           rarity_percentages: editingCollection.rarity_percentages,
+                          pack_image_url: packImageUrl,
+                          pack_animation_url: packAnimationUrl,
                         })
                         .eq('id', editingCollection.id);
 
@@ -2594,6 +2813,10 @@ export const StickerCollectionManager = () => {
 
                       toast({ title: "Success", description: "Collection updated successfully!" });
                       setEditingCollection(null);
+                      setNewCollectionPackImage(null);
+                      setNewCollectionPackImagePreview("");
+                      setNewCollectionPackAnimation(null);
+                      setNewCollectionPackAnimationPreview("");
                       fetchCollections();
                     } catch (error: any) {
                       toast({
