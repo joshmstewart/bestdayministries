@@ -254,26 +254,31 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
+    let mounted = true;
     let cleanup: (() => void) | undefined;
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
+      if (!user || !mounted) {
+        if (mounted) setLoading(false);
         return;
       }
 
       await loadNotifications();
+      
+      if (!mounted) return;
 
       // Set up auth state change listener
       const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
+        if (event === 'SIGNED_IN' && session && mounted) {
           loadNotifications();
         } else if (event === 'SIGNED_OUT') {
           setNotifications([]);
           setUnreadCount(0);
         }
       });
+
+      if (!mounted) return;
 
       // Set up realtime subscription with user_id filter
       const channel = supabase
@@ -288,7 +293,7 @@ export const useNotifications = () => {
           },
           (payload) => {
             console.log('Notification inserted via realtime:', payload);
-            loadNotifications();
+            if (mounted) loadNotifications();
           }
         )
         .on(
@@ -301,7 +306,7 @@ export const useNotifications = () => {
           },
           (payload) => {
             console.log('Notification updated via realtime:', payload);
-            loadNotifications();
+            if (mounted) loadNotifications();
           }
         )
         .on(
@@ -314,7 +319,7 @@ export const useNotifications = () => {
           },
           (payload) => {
             console.log('Notification deleted via realtime:', payload);
-            loadNotifications();
+            if (mounted) loadNotifications();
           }
         )
         .subscribe();
@@ -328,6 +333,7 @@ export const useNotifications = () => {
     init();
 
     return () => {
+      mounted = false;
       if (cleanup) cleanup();
     };
   }, []);

@@ -7,14 +7,15 @@ export const useContactFormCount = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     let cleanup: (() => void) | undefined;
 
     const init = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
-        if (!user) {
-          setLoading(false);
+        if (!user || !mounted) {
+          if (mounted) setLoading(false);
           return;
         }
 
@@ -25,25 +26,30 @@ export const useContactFormCount = () => {
           .eq("user_id", user.id)
           .maybeSingle();
 
+        if (!mounted) return;
+
         // Check for admin-level access (owner role automatically has admin access)
         const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
         setIsAdmin(adminStatus);
 
         if (adminStatus) {
           await fetchCount();
-          cleanup = setupRealtimeSubscription();
+          if (mounted) {
+            cleanup = setupRealtimeSubscription();
+          }
         } else {
           setLoading(false);
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     init();
 
     return () => {
+      mounted = false;
       if (cleanup) cleanup();
     };
   }, []);
