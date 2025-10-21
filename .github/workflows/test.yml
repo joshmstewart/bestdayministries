@@ -55,13 +55,13 @@ jobs:
 
   e2e-tests:
     if: ${{ inputs.run_e2e_tests }}
-    timeout-minutes: 60
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3, 4, 5, 6, 7, 8]
-        shardTotal: [8]
+        shardIndex: [1, 2, 3, 4, 5, 6]
+        shardTotal: [6]
     steps:
     - uses: actions/checkout@v4
     
@@ -75,8 +75,8 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
       
-    - name: Run Playwright tests
-      run: npx playwright test --ignore-snapshots --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list tests/e2e/ --grep-invert "visual.spec.ts"
+    - name: Run Playwright tests (Chromium only for speed)
+      run: npx playwright test --ignore-snapshots --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list --project=chromium tests/e2e/ --grep-invert "visual.spec.ts"
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}

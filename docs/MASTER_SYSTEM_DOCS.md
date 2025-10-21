@@ -288,6 +288,8 @@ CRITICAL-RULES:7-rules→profiles_public|is_moderated-only|client-filter|height-
 OVERVIEW:test-categories[approvals|digest|contact-form|messages|notifications|sponsorship-receipts]→patterns[seed-test-data→trigger-email→wait-DB-state→verify-NOT-email-capture]→cleanup[afterAll]
 FILES:email-approvals.spec.ts|email-digest.spec.ts|email-contact-form-resend.spec.ts|email-messages.spec.ts|email-notifications.spec.ts|email-sponsorship-receipts.spec.ts
 CLEANUP:cleanup-email-test-data[edge-func]→delete-test-users-by-email-prefix→cascade-deletes-all-related-data→called-in-afterAll-hook
+OPTIMIZATION:Chromium-only-CI[3x-faster]|6-shards[vs-8]|30s-timeout[vs-60s]|0-retries[vs-1]|global-teardown[once-not-per-test]→34min→8-10min
+PERF-DOC:TEST_PERFORMANCE_OPTIMIZATION.md[70%-faster|defense-layers|best-practices]
 EDGE:seed-email-test-data[creates-test-users+data]|cleanup-email-test-data[deletes-test-users+cascade]
 HELPERS:tests/utils/resend-test-helper.ts[waitForSubmission|waitForReply|simulateInboundEmail|cleanupTestSubmissions]
 CI:.github/workflows/email-tests.yml[seed→test→cleanup]

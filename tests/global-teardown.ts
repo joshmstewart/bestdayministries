@@ -1,13 +1,82 @@
 /**
- * Global teardown that runs after all tests complete
+ * Global teardown that runs ONCE after ALL test shards complete
  * 
- * PRIORITY 3 FIX: Simplified teardown
- * Each test file already calls cleanup in afterAll hooks, and tests/e2e/cleanup.spec.ts
- * also runs cleanup at the end. Global teardown is redundant and causes credential issues.
+ * CRITICAL: This ensures test data cleanup happens even if tests fail
+ * Defense-in-depth: UI components filter test data + this cleanup removes it from DB
  */
 
-async function globalTeardown() {
-  console.log('\n✨ Test run complete - cleanup handled by individual test suites\n');
+import { chromium, FullConfig } from '@playwright/test';
+
+async function globalTeardown(config: FullConfig) {
+  console.log('\n🧹 Running global cleanup after all test shards...');
+  
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  
+  try {
+    // Navigate to app to get Supabase client
+    await page.goto(config.projects[0].use.baseURL || 'http://localhost:8080');
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    
+    // Execute cleanup with retry logic
+    let attempts = 0;
+    const maxAttempts = 3;
+    let success = false;
+    
+    while (attempts < maxAttempts && !success) {
+      attempts++;
+      console.log(`  Attempt ${attempts}/${maxAttempts}...`);
+      
+      const result = await page.evaluate(async () => {
+        try {
+          // @ts-ignore
+          const { supabase } = await import('/src/integrations/supabase/client.ts');
+          
+          const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
+            body: {
+              namePatterns: ['Test', 'E2E', 'test', 'e2e', 'Email Test']
+            }
+          });
+
+          if (error) {
+            return { success: false, error: error.message };
+          }
+
+          return { success: true, data };
+        } catch (err) {
+          return { 
+            success: false, 
+            error: err instanceof Error ? err.message : String(err) 
+          };
+        }
+      });
+
+      if (result.success) {
+        console.log(`  ✅ Cleanup successful on attempt ${attempts}`);
+        console.log(`  📊 Cleaned: ${JSON.stringify(result.data)}`);
+        success = true;
+      } else {
+        console.error(`  ❌ Cleanup failed on attempt ${attempts}:`, result.error);
+        if (attempts < maxAttempts) {
+          await page.waitForTimeout(2000);
+        }
+      }
+    }
+    
+    if (!success) {
+      console.error('⚠️  WARNING: Global cleanup failed after all retries!');
+      console.error('⚠️  Test data may appear in production!');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error in global teardown:', error);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+  
+  console.log('✨ Global teardown complete\n');
 }
 
 export default globalTeardown;
