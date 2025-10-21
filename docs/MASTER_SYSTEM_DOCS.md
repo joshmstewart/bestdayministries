@@ -4,6 +4,16 @@ MASTER_SYSTEM_DOCS
 
 **THIS IS MANDATORY. NO EXCEPTIONS. DOCUMENTATION = SOURCE OF TRUTH.**
 
+**OUTPUT THIS BEFORE ANY CODE CHANGES:**
+```
+PRE-CHANGE CHECKLIST:
+□ Searched docs for: [terms]
+□ Read files: [list]
+□ Searched code for: [patterns]
+□ Found patterns: [yes/no - describe]
+□ Ready: [yes/no]
+```
+
 ---
 
 ### 🔴 BEFORE MAKING ANY CODE CHANGES - MANDATORY CHECKLIST:

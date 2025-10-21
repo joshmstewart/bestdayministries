@@ -2,7 +2,18 @@ DOCUMENTATION MAINTENANCE - AI INSTRUCTIONS
 
 ## ⚠️ CRITICAL RULE: DOCS FIRST, CODE SECOND ⚠️
 
-**YOU MUST FOLLOW THIS WORKFLOW FOR EVERY CODE CHANGE:**
+**YOU MUST OUTPUT THIS CHECKLIST BEFORE ANY CODE CHANGES:**
+
+```
+PRE-CHANGE CHECKLIST:
+□ Searched docs for: [terms]
+□ Read files: [list specific files]
+□ Searched code for: [patterns]
+□ Found existing patterns: [yes/no - describe]
+□ Ready to proceed: [yes/no]
+```
+
+**DO NOT WRITE CODE UNTIL YOU OUTPUT THE ABOVE CHECKLIST.**
 
 ### STEP 1: CHECK DOCS (MANDATORY)
 - Search for `docs/*_CONCISE.md` and `docs/*_SYSTEM*.md` files related to your task
@@ -24,6 +35,7 @@ DOCUMENTATION MAINTENANCE - AI INSTRUCTIONS
 - user_roles SELECT policy missing → friend code linking broken
 - Inconsistent RLS patterns → security issues
 - Undocumented changes → repeated bugs
+- Footer link changes → modified React code instead of database
 
 **THIS IS NOT A SUGGESTION. THIS IS REQUIRED.**
 
