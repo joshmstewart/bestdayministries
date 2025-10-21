@@ -6,8 +6,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Mail, MapPin } from "lucide-react";
+
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
+  "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+  "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
+  "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
+];
+
+const CANADIAN_PROVINCES = [
+  "Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador",
+  "Northwest Territories", "Nova Scotia", "Nunavut", "Ontario", "Prince Edward Island",
+  "Quebec", "Saskatchewan", "Yukon"
+];
+
+const COUNTRIES = [
+  "United States", "Canada", "United Kingdom", "Australia", "New Zealand", "Ireland",
+  "Germany", "France", "Spain", "Italy", "Netherlands", "Belgium", "Switzerland", "Austria",
+  "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Portugal", "Greece",
+  "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru", "Japan", "South Korea",
+  "Singapore", "Philippines", "Thailand", "Vietnam", "India", "South Africa", "Other"
+];
 
 interface NewsletterSignupProps {
   compact?: boolean;
@@ -17,9 +42,17 @@ export const NewsletterSignup = ({ compact = false }: NewsletterSignupProps) => 
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState("United States");
   const [consent, setConsent] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
+
+  const getStateOptions = () => {
+    if (country === "United States") return US_STATES;
+    if (country === "Canada") return CANADIAN_PROVINCES;
+    return [];
+  };
+
+  const showStateDropdown = country === "United States" || country === "Canada";
 
   const subscribeMutation = useMutation({
     mutationFn: async () => {
@@ -124,34 +157,60 @@ export const NewsletterSignup = ({ compact = false }: NewsletterSignupProps) => 
               <MapPin className="h-4 w-4" />
               Help us understand where our community is growing (optional)
             </p>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  placeholder="Austin"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
+                <Label htmlFor="country">Country</Label>
+                <Select value={country} onValueChange={setCountry}>
+                  <SelectTrigger id="country">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-[100]">
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State/Province</Label>
-                <Input
-                  id="state"
-                  placeholder="Texas"
-                  value={state}
-                  onChange={(e) => setState(e.target.value)}
-                />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="Denver"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">
+                    {country === "United States" ? "State" : country === "Canada" ? "Province" : "State/Province/Region"}
+                  </Label>
+                  {showStateDropdown ? (
+                    <Select value={state} onValueChange={setState}>
+                      <SelectTrigger id="state">
+                        <SelectValue placeholder={country === "United States" ? "Select state" : "Select province"} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-[100] max-h-[300px]">
+                        {getStateOptions().map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id="state"
+                      placeholder="Region"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                placeholder="United States"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-              />
             </div>
           </div>
         )}
