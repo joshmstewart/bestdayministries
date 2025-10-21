@@ -236,7 +236,7 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           <CardContent className="p-0">
             <div className="grid md:grid-cols-2 gap-0">
               {/* Image skeleton */}
-              <div className="relative bg-muted" style={{ maxHeight: '450px', minHeight: '400px' }}>
+              <div className="relative bg-muted" style={{ maxHeight: '350px', minHeight: '300px' }}>
                 <div className="w-full h-full bg-muted-foreground/10" />
               </div>
               {/* Content skeleton */}
@@ -279,12 +279,12 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
         <CardContent className="p-0">
           <div className="grid md:grid-cols-2 gap-0">
             {/* Left side - Image */}
-            <div className="relative overflow-hidden flex items-center justify-center bg-muted" style={{ maxHeight: '450px' }}>
+            <div className="relative overflow-hidden flex items-center justify-center bg-muted" style={{ maxHeight: '350px' }}>
               <img
                 src={bestie.image_url}
                 alt={bestie.bestie_name}
                 className="object-contain w-full h-full"
-                style={{ maxHeight: '450px' }}
+                style={{ maxHeight: '350px' }}
                 crossOrigin="anonymous"
               />
               <div className="absolute top-4 left-4">
