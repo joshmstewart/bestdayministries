@@ -130,6 +130,45 @@ export const StickerAlbum = () => {
     }
   }, [baseCost, bonusCardCount]);
 
+  // Realtime subscription for new stickers
+  useEffect(() => {
+    if (!selectedCollection) return;
+
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const channel = supabase
+        .channel('user_stickers_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_stickers',
+            filter: `collection_id=eq.${selectedCollection}`
+          },
+          (payload) => {
+            console.log('✨ Sticker update received:', payload);
+            // Refresh stickers when any change occurs
+            fetchStickers();
+          }
+        )
+        .subscribe();
+
+      return channel;
+    };
+
+    let channel: any;
+    setupRealtime().then(ch => { channel = ch; });
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [selectedCollection]);
+
   const fetchCollections = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;

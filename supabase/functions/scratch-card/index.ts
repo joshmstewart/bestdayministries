@@ -98,20 +98,55 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    // Add sticker to user's collection
-    const obtainedFrom = card.is_bonus_card ? 'bonus_card' : 'daily_scratch';
-    const { error: insertError } = await supabase
+    // Check if user already has this sticker (duplicate detection)
+    const { data: existingSticker, error: checkError } = await supabase
       .from('user_stickers')
-      .insert({
-        user_id: card.user_id,
-        sticker_id: selectedSticker.id,
-        collection_id: card.collection_id,
-        obtained_from: obtainedFrom
-      });
+      .select('id, quantity')
+      .eq('user_id', card.user_id)
+      .eq('sticker_id', selectedSticker.id)
+      .eq('collection_id', card.collection_id)
+      .single();
 
-    if (insertError) {
-      console.error('Error adding sticker to collection:', insertError);
-      // Don't throw - card is already scratched, just log the error
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error checking for existing sticker:', checkError);
+    }
+
+    const obtainedFrom = card.is_bonus_card ? 'bonus_card' : 'daily_scratch';
+    const now = new Date().toISOString();
+
+    if (existingSticker) {
+      // Duplicate - increment quantity
+      const { error: updateStickerError } = await supabase
+        .from('user_stickers')
+        .update({
+          quantity: (existingSticker.quantity || 1) + 1,
+          last_obtained_at: now,
+          obtained_from: obtainedFrom // Update to most recent source
+        })
+        .eq('id', existingSticker.id);
+
+      if (updateStickerError) {
+        console.error('Error updating sticker quantity:', updateStickerError);
+        throw updateStickerError;
+      }
+    } else {
+      // New sticker - insert
+      const { error: insertError } = await supabase
+        .from('user_stickers')
+        .insert({
+          user_id: card.user_id,
+          sticker_id: selectedSticker.id,
+          collection_id: card.collection_id,
+          obtained_from: obtainedFrom,
+          quantity: 1,
+          first_obtained_at: now,
+          last_obtained_at: now
+        });
+
+      if (insertError) {
+        console.error('Error inserting sticker:', insertError);
+        throw insertError;
+      }
     }
 
     return new Response(
