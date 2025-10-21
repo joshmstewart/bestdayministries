@@ -563,11 +563,11 @@ export const StickerCollectionManager = () => {
     }
   };
 
-  const createTestScratchCard = async () => {
+  const createTestScratchCard = async (collectionId?: string) => {
     setLoading(true);
     try {
-      // Auto-select first active collection if none selected
-      let collectionToUse = selectedCollection;
+      // Use provided collectionId, or auto-select first active collection if none selected
+      let collectionToUse = collectionId || selectedCollection;
       if (!collectionToUse && collections.length > 0) {
         const activeCollection = collections.find(c => c.is_active) || collections[0];
         collectionToUse = activeCollection.id;
@@ -1592,7 +1592,7 @@ export const StickerCollectionManager = () => {
                   Reset Daily Cards (Testing)
                 </Button>
                 <Button 
-                  onClick={createTestScratchCard} 
+                  onClick={() => createTestScratchCard()} 
                   disabled={loading}
                   variant="outline"
                   className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
@@ -1905,6 +1905,16 @@ export const StickerCollectionManager = () => {
                         <Badge variant={collection.is_active ? "default" : "secondary"}>
                           {collection.is_active ? "Active" : "Inactive"}
                         </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => createTestScratchCard(collection.id)}
+                          disabled={loading}
+                          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Test Pack
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
