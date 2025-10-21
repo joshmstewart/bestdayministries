@@ -131,9 +131,19 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
 
       if (bestiesError) throw bestiesError;
 
-      if (bestiesData && bestiesData.length > 0) {
+      // CRITICAL: Filter out test data to prevent test besties from showing in production
+      const filteredBesties = bestiesData?.filter(bestie => {
+        const name = bestie.bestie_name?.toLowerCase() || '';
+        // Exclude test data patterns
+        return !name.includes('test') && 
+               !name.includes('e2e') &&
+               !name.includes('email test') &&
+               name !== 'test bestie';
+      }) || [];
+
+      if (filteredBesties && filteredBesties.length > 0) {
         // Parse text_sections
-        const parsedBesties = bestiesData.map(b => ({
+        const parsedBesties = filteredBesties.map(b => ({
           ...b,
           text_sections: Array.isArray(b.text_sections) ? b.text_sections : 
             (typeof b.text_sections === 'string' ? JSON.parse(b.text_sections) : [])

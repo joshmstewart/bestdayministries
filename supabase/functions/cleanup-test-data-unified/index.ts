@@ -397,7 +397,7 @@ serve(async (req) => {
         }
       }
       
-      // 14. Delete sponsor_besties records (CRITICAL - blocks user deletion)
+      // 14. Delete sponsor_besties records (CRITICAL - blocks user deletion and shows in carousel)
       console.log('🧹 Deleting sponsor_besties records...');
       if (testUserIds.length > 0) {
         // Delete where test users are besties OR any other user reference
@@ -409,7 +409,7 @@ serve(async (req) => {
         if (sponsorBestiesError) {
           console.error('Error deleting sponsor_besties:', sponsorBestiesError);
         } else {
-          console.log('✅ Deleted sponsor_besties records');
+          console.log('✅ Deleted sponsor_besties records by user');
         }
         
         // Also clean up any sponsor_bestie_requests
@@ -422,6 +422,22 @@ serve(async (req) => {
           console.error('Error deleting sponsor_bestie_requests:', requestsError);
         } else {
           console.log('✅ Deleted sponsor_bestie_requests');
+        }
+      }
+      
+      // CRITICAL: Also delete sponsor_besties by name pattern (test data may not have user_id)
+      if (namePatterns.length > 0) {
+        for (const pattern of namePatterns) {
+          const { error: sponsorBestiePatternError } = await supabaseAdmin
+            .from('sponsor_besties')
+            .delete()
+            .ilike('bestie_name', `%${pattern}%`);
+          
+          if (sponsorBestiePatternError) {
+            console.error(`Error deleting sponsor_besties with pattern ${pattern}:`, sponsorBestiePatternError);
+          } else {
+            console.log(`✅ Deleted sponsor_besties with pattern: ${pattern}`);
+          }
         }
       }
       

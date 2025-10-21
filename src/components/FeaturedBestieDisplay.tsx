@@ -148,8 +148,18 @@ export const FeaturedBestieDisplay = ({ canLoad = true, onLoadComplete }: Featur
 
       if (error) throw error;
       
+      // CRITICAL: Filter out test data to prevent test besties from showing in production
+      const filteredData = data?.filter(bestie => {
+        const name = bestie.bestie_name?.toLowerCase() || '';
+        // Exclude test data patterns
+        return !name.includes('test') && 
+               !name.includes('e2e') &&
+               !name.includes('email test') &&
+               name !== 'test bestie';
+      }) || [];
+      
       // Randomize the order
-      const shuffled = data ? [...data].sort(() => Math.random() - 0.5) : [];
+      const shuffled = filteredData.length > 0 ? [...filteredData].sort(() => Math.random() - 0.5) : [];
       setBesties(shuffled);
 
       // Check sponsorship statuses for all besties

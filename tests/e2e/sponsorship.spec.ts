@@ -1,6 +1,27 @@
 import { test, expect } from '@playwright/test';
+import { supabase } from '../../src/integrations/supabase/client';
 
 test.describe('Sponsorship Flow', () => {
+  // CRITICAL: Clean up after EACH test to prevent test data leakage
+  test.afterEach(async () => {
+    console.log('🧹 Cleaning up test sponsorship data...');
+    try {
+      // Clean up any test sponsor_besties that might have been created
+      const { error } = await supabase.functions.invoke('cleanup-test-data-unified', {
+        body: {
+          namePatterns: ['Test', 'E2E']
+        }
+      });
+      
+      if (error) {
+        console.error('⚠️  Cleanup warning:', error);
+      } else {
+        console.log('✅ Test data cleaned up successfully');
+      }
+    } catch (err) {
+      console.error('⚠️  Cleanup error:', err);
+    }
+  });
   test('should display featured besties page', async ({ page }) => {
     await page.goto('/sponsor-bestie');
     await page.waitForLoadState('networkidle');
