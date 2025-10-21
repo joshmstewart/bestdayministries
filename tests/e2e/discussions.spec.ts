@@ -122,7 +122,6 @@ test.describe('Discussion Comments @fast', () => {
     if (postCount > 0) {
       // Open first post
       await page.locator('[role="article"]').first().click();
-      await page.waitForTimeout(500);
       
       const dialog = page.locator('[role="dialog"]');
       if (await dialog.isVisible()) {
@@ -147,7 +146,6 @@ test.describe('Discussion Interactions @fast', () => {
     if (postCount > 0) {
       // Open first post to see TTS in detail view
       await page.locator('[role="article"]').first().click();
-      await page.waitForTimeout(500);
       
       const dialog = page.locator('[role="dialog"]');
       if (await dialog.isVisible()) {
@@ -172,7 +170,6 @@ test.describe('Discussion Interactions @fast', () => {
       
       if (await readMoreButton.isVisible()) {
         await readMoreButton.click();
-        await page.waitForTimeout(500);
         
         // Dialog should open
         const dialog = page.locator('[role="dialog"]');
@@ -192,7 +189,6 @@ test.describe('Discussion Edit Functionality @fast', () => {
     if (postCount > 0) {
       // Open first post
       await page.locator('[role="article"]').first().click();
-      await page.waitForTimeout(500);
       
       const dialog = page.locator('[role="dialog"]');
       if (await dialog.isVisible()) {
@@ -213,7 +209,6 @@ test.describe('Discussion Edit Functionality @fast', () => {
     
     if (postCount > 0) {
       await page.locator('[role="article"]').first().click();
-      await page.waitForTimeout(500);
       
       const dialog = page.locator('[role="dialog"]');
       if (await dialog.isVisible()) {
@@ -234,7 +229,6 @@ test.describe('Discussion Edit Functionality @fast', () => {
     
     if (postCount > 0) {
       await page.locator('[role="article"]').first().click();
-      await page.waitForTimeout(500);
       
       const dialog = page.locator('[role="dialog"]');
       if (await dialog.isVisible()) {
@@ -243,7 +237,6 @@ test.describe('Discussion Edit Functionality @fast', () => {
         
         if (await editButton.isVisible({ timeout: 2000 }).catch(() => false)) {
           await editButton.click();
-          await page.waitForTimeout(300);
           
           // Should show textarea and Save/Cancel buttons
           const textarea = dialog.locator('textarea');
@@ -266,7 +259,6 @@ test.describe('Discussion Edit Functionality @fast', () => {
     
     if (postCount > 0) {
       await page.locator('[role="article"]').first().click();
-      await page.waitForTimeout(500);
       
       const dialog = page.locator('[role="dialog"]');
       if (await dialog.isVisible()) {
@@ -287,7 +279,6 @@ test.describe('Discussion Edit Functionality @fast', () => {
     
     if (postCount > 0) {
       await page.locator('[role="article"]').first().click();
-      await page.waitForTimeout(500);
       
       const dialog = page.locator('[role="dialog"]');
       if (await dialog.isVisible()) {

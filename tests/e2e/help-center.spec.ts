@@ -55,7 +55,7 @@ test.describe('Help Center Tours @fast', () => {
     
     if (hasTourTab) {
       await tourTab.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('[data-testid="tour-item"], .tour-item').first()).toBeVisible({ timeout: 3000 }).catch(() => {});
       
       // Should show tours or empty state
       const tours = page.locator('[data-testid="tour-item"], .tour-item');
@@ -101,7 +101,7 @@ test.describe('Help Center Guides @fast', () => {
     
     if (hasGuideTab) {
       await guideTab.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('[data-testid="guide-item"], .guide-item').first()).toBeVisible({ timeout: 3000 }).catch(() => {});
       
       // Should show guides or empty state
       const guides = page.locator('[data-testid="guide-item"], .guide-item');
@@ -122,11 +122,10 @@ test.describe('Help Center Guides @fast', () => {
     
     if (buttonCount > 0) {
       await guideButtons.first().click();
-      await page.waitForTimeout(1000);
       
       // Should open dialog
       const dialog = page.locator('[role="dialog"]');
-      const dialogVisible = await dialog.isVisible().catch(() => false);
+      await expect(dialog).toBeVisible({ timeout: 3000 }).catch(() => {});
       
       expect(dialogVisible || true).toBeTruthy();
     }
@@ -144,7 +143,7 @@ test.describe('Help Center FAQs @fast', () => {
     
     if (hasFaqTab) {
       await faqTab.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('[data-testid="faq-item"], .accordion').first()).toBeVisible({ timeout: 3000 }).catch(() => {});
       
       // Should show FAQs or empty state
       const faqs = page.locator('[data-testid="faq-item"], .accordion');
@@ -166,11 +165,9 @@ test.describe('Help Center FAQs @fast', () => {
     if (triggerCount > 0) {
       const firstTrigger = accordionTriggers.first();
       await firstTrigger.click();
-      await page.waitForTimeout(500);
       
       // Should expand (aria-expanded should be true)
-      const expanded = await firstTrigger.getAttribute('aria-expanded');
-      expect(expanded === 'true' || expanded === 'false').toBeTruthy();
+      await expect(firstTrigger).toHaveAttribute('aria-expanded', /true|false/, { timeout: 2000 });
     }
   });
 });

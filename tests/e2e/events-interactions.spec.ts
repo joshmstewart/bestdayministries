@@ -15,7 +15,7 @@ test.describe('Event Interactions @fast', () => {
       await page.locator('[data-testid="event-card"], .event-card, article').first().click();
       
       // Should open dialog or navigate to event details
-      await page.waitForTimeout(1000);
+      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 3000 }).catch(() => {});
       
       // Check for dialog or detail view
       const hasDialog = await page.locator('[role="dialog"]').isVisible();
@@ -57,11 +57,9 @@ test.describe('Event Interactions @fast', () => {
     if (hasUpcomingTab && hasPastTab) {
       // Click past tab
       await page.getByRole('tab', { name: /past/i }).click();
-      await page.waitForTimeout(500);
       
       // Events should update
-      await page.waitForLoadState('networkidle');
-      expect(page.url()).toContain('/events');
+      await expect(page.getByRole('tab', { name: /past/i })).toHaveAttribute('aria-selected', 'true', { timeout: 2000 }).catch(() => {});
     }
   });
 

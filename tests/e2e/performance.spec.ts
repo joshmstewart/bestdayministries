@@ -100,8 +100,10 @@ test.describe('Core Web Vitals @slow', () => {
     // Wait for initial load
     await page.waitForLoadState('networkidle');
     
-    // Wait additional time for any layout shifts
-    await page.waitForTimeout(3000);
+    // Wait additional time for layout shifts to occur
+    await page.waitForFunction(() => {
+      return new Promise(resolve => setTimeout(resolve, 3000));
+    }, { timeout: 5000 });
     
     // Get CLS score
     const cls = await page.evaluate(() => {

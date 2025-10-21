@@ -238,7 +238,6 @@ test.describe('Coffee Shop Domain System @fast', () => {
     test('coffee shop homepage visual snapshot', async ({ page }) => {
       await page.goto('/coffee-shop');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
       await percySnapshot(page, 'Coffee Shop - Homepage');
     });
 
@@ -246,7 +245,6 @@ test.describe('Coffee Shop Domain System @fast', () => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto('/coffee-shop');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
       await percySnapshot(page, 'Coffee Shop - Mobile View');
     });
 
@@ -256,7 +254,7 @@ test.describe('Coffee Shop Domain System @fast', () => {
       
       // Scroll to view all sections
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
-      await page.waitForTimeout(500);
+      await page.waitForFunction(() => window.scrollY > 0, { timeout: 2000 });
       
       await percySnapshot(page, 'Coffee Shop - Mid Page Sections');
     });

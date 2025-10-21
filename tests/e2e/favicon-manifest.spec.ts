@@ -18,11 +18,10 @@ test.describe('Favicon and App Manifest @fast', () => {
 
   test('favicon updates from database setting', async ({ page }) => {
     await page.goto('/');
-    
-    // Wait for favicon to be set by FaviconManager
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
     
     const faviconLink = await page.locator('link[rel="icon"]');
+    await expect(faviconLink).toBeVisible({ timeout: 2000 });
     const faviconHref = await faviconLink.getAttribute('href');
     
     // Verify favicon has been set (should not be default)
@@ -51,10 +50,7 @@ test.describe('Favicon and App Manifest @fast', () => {
     
     // Check for manifest link
     const manifestLink = await page.locator('link[rel="manifest"]');
-    
-    // Manifest might be dynamically created by useAppManifest
-    // So we check if it exists or wait for it
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('networkidle');
     const manifestCount = await manifestLink.count();
     
     // Should have at least one manifest link (either static or dynamic)

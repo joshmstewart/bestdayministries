@@ -29,10 +29,9 @@ test.describe('Contact Form', () => {
     if (await submitButton.isVisible()) {
       // Try to submit empty form
       await submitButton.click();
-      await page.waitForTimeout(1000);
       
       // Should show validation errors
-      const errors = page.locator('[role="alert"], .error, .text-destructive, .text-red-500');
+      await expect(page.locator('[role="alert"], .error, .text-destructive, .text-red-500').first()).toBeVisible({ timeout: 2000 }).catch(() => {});
       const hasErrors = await errors.count() > 0;
       
       // Or HTML5 validation should kick in
