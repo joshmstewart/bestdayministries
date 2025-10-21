@@ -915,6 +915,10 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
 
                   const { from, to, empty } = editor.state.selection;
                   
+                  console.log("=== PURPLE BOX DEBUG ===");
+                  console.log("Selection:", { from, to, empty });
+                  console.log("Editor HTML BEFORE:", editor.getHTML());
+                  
                   try {
                     if (!empty && from !== undefined && to !== undefined) {
                       const fragment = editor.state.doc.slice(from, to).content;
@@ -925,13 +929,20 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                       let selectedHTML = tempDiv.innerHTML;
                       selectedHTML = selectedHTML.replace(/<p>/g, '<p style="color: white;">');
                       
+                      console.log("Selected HTML:", selectedHTML);
+                      
+                      const htmlToInsert = `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;">${selectedHTML || '<p style="color: white;"></p>'}</div>`;
+                      console.log("HTML to insert:", htmlToInsert);
+                      
                       const success = editor.chain()
                         .focus()
                         .deleteSelection()
-                        .insertContent(
-                          `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;">${selectedHTML || '<p style="color: white;"></p>'}</div>`
-                        )
+                        .insertContent(htmlToInsert)
                         .run();
+                      
+                      console.log("Insert success:", success);
+                      console.log("Editor HTML AFTER:", editor.getHTML());
+                      console.log("Editor JSON:", JSON.stringify(editor.getJSON(), null, 2));
                       
                       if (success) {
                         toast.success("Purple gradient box added!");
@@ -939,12 +950,17 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                         toast.error("Failed to add box");
                       }
                     } else {
+                      const htmlToInsert = '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;"></p></div>';
+                      console.log("Inserting empty box:", htmlToInsert);
+                      
                       const success = editor.chain()
                         .focus()
-                        .insertContent(
-                          '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;"></p></div>'
-                        )
+                        .insertContent(htmlToInsert)
                         .run();
+                      
+                      console.log("Insert success:", success);
+                      console.log("Editor HTML AFTER:", editor.getHTML());
+                      console.log("Editor JSON:", JSON.stringify(editor.getJSON(), null, 2));
                       
                       if (success) {
                         toast.success("Purple gradient box added!");
