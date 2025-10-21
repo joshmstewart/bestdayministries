@@ -11,6 +11,7 @@ import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
 import { DOMSerializer } from "@tiptap/pm/model";
+import { StyledBox } from "./StyledBoxExtension";
 import { forwardRef, useImperativeHandle } from "react";
 
 // Custom Image extension with resize and alignment support
@@ -152,6 +153,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       Placeholder.configure({
         placeholder: 'Start typing your newsletter content here... Use the toolbar above to format text, add images, videos, and links.',
       }),
+      StyledBox,
     ],
     content,
     editable: true,
@@ -851,45 +853,11 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   const { from, to, empty } = editor.state.selection;
                   
                   try {
-                    if (!empty && from !== undefined && to !== undefined) {
-                      // Create a fragment from the selection
-                      const fragment = editor.state.doc.slice(from, to).content;
-                      
-                      // Serialize to HTML
-                      const tempDiv = document.createElement('div');
-                      const serializer = DOMSerializer.fromSchema(editor.schema);
-                      const dom = serializer.serializeFragment(fragment);
-                      tempDiv.appendChild(dom);
-                      const selectedHTML = tempDiv.innerHTML;
-                      
-                      // Delete selection and insert wrapped content
-                      const success = editor.chain()
-                        .focus()
-                        .deleteSelection()
-                        .insertContent(
-                          `<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;">${selectedHTML || '<p></p>'}</div>`
-                        )
-                        .run();
-                      
-                      if (success) {
-                        toast.success("Light gray box added!");
-                      } else {
-                        toast.error("Failed to add box");
-                      }
+                    const success = editor.chain().focus().setStyledBox('light-gray').run();
+                    if (success) {
+                      toast.success("Light gray box added - select content to wrap it!");
                     } else {
-                      // Insert empty box
-                      const success = editor.chain()
-                        .focus()
-                        .insertContent(
-                          '<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
-                        )
-                        .run();
-                      
-                      if (success) {
-                        toast.success("Light gray box added!");
-                      } else {
-                        toast.error("Failed to add box");
-                      }
+                      toast.error("Select some content first, then click to wrap it");
                     }
                   } catch (error: any) {
                     console.error("Error adding box:", error);
@@ -913,60 +881,12 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                     return;
                   }
 
-                  const { from, to, empty } = editor.state.selection;
-                  
-                  console.log("=== PURPLE BOX DEBUG ===");
-                  console.log("Selection:", { from, to, empty });
-                  console.log("Editor HTML BEFORE:", editor.getHTML());
-                  
                   try {
-                    if (!empty && from !== undefined && to !== undefined) {
-                      const fragment = editor.state.doc.slice(from, to).content;
-                      const tempDiv = document.createElement('div');
-                      const serializer = DOMSerializer.fromSchema(editor.schema);
-                      const dom = serializer.serializeFragment(fragment);
-                      tempDiv.appendChild(dom);
-                      let selectedHTML = tempDiv.innerHTML;
-                      selectedHTML = selectedHTML.replace(/<p>/g, '<p style="color: white;">');
-                      
-                      console.log("Selected HTML:", selectedHTML);
-                      
-                      const htmlToInsert = `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;">${selectedHTML || '<p style="color: white;"></p>'}</div>`;
-                      console.log("HTML to insert:", htmlToInsert);
-                      
-                      const success = editor.chain()
-                        .focus()
-                        .deleteSelection()
-                        .insertContent(htmlToInsert)
-                        .run();
-                      
-                      console.log("Insert success:", success);
-                      console.log("Editor HTML AFTER:", editor.getHTML());
-                      console.log("Editor JSON:", JSON.stringify(editor.getJSON(), null, 2));
-                      
-                      if (success) {
-                        toast.success("Purple gradient box added!");
-                      } else {
-                        toast.error("Failed to add box");
-                      }
+                    const success = editor.chain().focus().setStyledBox('purple-gradient').run();
+                    if (success) {
+                      toast.success("Purple gradient box added - select content to wrap it!");
                     } else {
-                      const htmlToInsert = '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;"></p></div>';
-                      console.log("Inserting empty box:", htmlToInsert);
-                      
-                      const success = editor.chain()
-                        .focus()
-                        .insertContent(htmlToInsert)
-                        .run();
-                      
-                      console.log("Insert success:", success);
-                      console.log("Editor HTML AFTER:", editor.getHTML());
-                      console.log("Editor JSON:", JSON.stringify(editor.getJSON(), null, 2));
-                      
-                      if (success) {
-                        toast.success("Purple gradient box added!");
-                      } else {
-                        toast.error("Failed to add box");
-                      }
+                      toast.error("Select some content first, then click to wrap it");
                     }
                   } catch (error: any) {
                     console.error("Error adding box:", error);
@@ -993,40 +913,11 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   const { from, to, empty } = editor.state.selection;
                   
                   try {
-                    if (!empty && from !== undefined && to !== undefined) {
-                      const fragment = editor.state.doc.slice(from, to).content;
-                      const tempDiv = document.createElement('div');
-                      const serializer = DOMSerializer.fromSchema(editor.schema);
-                      const dom = serializer.serializeFragment(fragment);
-                      tempDiv.appendChild(dom);
-                      const selectedHTML = tempDiv.innerHTML;
-                      
-                      const success = editor.chain()
-                        .focus()
-                        .deleteSelection()
-                        .insertContent(
-                          `<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;">${selectedHTML || '<p></p>'}</div>`
-                        )
-                        .run();
-                      
-                      if (success) {
-                        toast.success("White bordered box added!");
-                      } else {
-                        toast.error("Failed to add box");
-                      }
+                    const success = editor.chain().focus().setStyledBox('white-bordered').run();
+                    if (success) {
+                      toast.success("White bordered box added - select content to wrap it!");
                     } else {
-                      const success = editor.chain()
-                        .focus()
-                        .insertContent(
-                          '<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
-                        )
-                        .run();
-                      
-                      if (success) {
-                        toast.success("White bordered box added!");
-                      } else {
-                        toast.error("Failed to add box");
-                      }
+                      toast.error("Select some content first, then click to wrap it");
                     }
                   } catch (error: any) {
                     console.error("Error adding box:", error);
