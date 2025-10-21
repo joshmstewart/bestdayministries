@@ -842,9 +842,24 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  editor?.chain().focus().insertContent(
-                    '<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;"><p>Type your content here...</p></div>'
-                  ).run();
+                  const { from, to } = editor?.state.selection || {};
+                  const hasSelection = from !== to;
+                  
+                  if (hasSelection) {
+                    // Wrap selected content
+                    const selectedContent = editor?.state.doc.textBetween(from!, to!, ' ');
+                    editor?.chain().focus()
+                      .deleteSelection()
+                      .insertContent(
+                        `<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;"><p>${selectedContent}</p></div>`
+                      )
+                      .run();
+                  } else {
+                    // Insert empty box
+                    editor?.chain().focus().insertContent(
+                      '<div style="background-color: #f5f5f5; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
+                    ).run();
+                  }
                   setContainerDialogOpen(false);
                 }}
               >
@@ -857,9 +872,24 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  editor?.chain().focus().insertContent(
-                    '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;">Type your content here...</p></div>'
-                  ).run();
+                  const { from, to } = editor?.state.selection || {};
+                  const hasSelection = from !== to;
+                  
+                  if (hasSelection) {
+                    // Wrap selected content
+                    const selectedContent = editor?.state.doc.textBetween(from!, to!, ' ');
+                    editor?.chain().focus()
+                      .deleteSelection()
+                      .insertContent(
+                        `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;">${selectedContent}</p></div>`
+                      )
+                      .run();
+                  } else {
+                    // Insert empty box
+                    editor?.chain().focus().insertContent(
+                      '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;"><p style="color: white;"></p></div>'
+                    ).run();
+                  }
                   setContainerDialogOpen(false);
                 }}
               >
@@ -872,9 +902,24 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 variant="outline"
                 className="w-full h-auto p-4 flex flex-col items-start gap-2"
                 onClick={() => {
-                  editor?.chain().focus().insertContent(
-                    '<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p>Type your content here...</p></div>'
-                  ).run();
+                  const { from, to } = editor?.state.selection || {};
+                  const hasSelection = from !== to;
+                  
+                  if (hasSelection) {
+                    // Wrap selected content
+                    const selectedContent = editor?.state.doc.textBetween(from!, to!, ' ');
+                    editor?.chain().focus()
+                      .deleteSelection()
+                      .insertContent(
+                        `<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p>${selectedContent}</p></div>`
+                      )
+                      .run();
+                  } else {
+                    // Insert empty box
+                    editor?.chain().focus().insertContent(
+                      '<div style="background-color: #ffffff; padding: 2rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; margin: 1rem 0;"><p></p></div>'
+                    ).run();
+                  }
                   setContainerDialogOpen(false);
                 }}
               >
@@ -885,7 +930,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Tip: Select text first, then apply a box style to wrap it. You can edit the content inside the box after creating it.
+              <strong>Tip:</strong> Select text first to wrap it in a box, or insert an empty box and type inside it. You can edit, format, and add images inside boxes just like regular content.
             </p>
           </div>
           <DialogFooter>
