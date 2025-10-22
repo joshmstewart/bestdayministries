@@ -127,11 +127,11 @@ export const SponsorshipTransactionsManager = () => {
 
       const allProfileIds = [...new Set([...sponsorIds, ...bestieIds, ...donorIds])];
 
-      // Fetch all profiles at once
+      // Fetch all profiles at once using profiles_public view to avoid RLS issues
       let profilesMap: Record<string, any> = {};
       if (allProfileIds.length > 0) {
         const { data: profilesData } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('id, display_name, avatar_url')
           .in('id', allProfileIds);
         
