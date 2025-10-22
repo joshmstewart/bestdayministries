@@ -29,7 +29,7 @@ const Hero = ({ content = {} }: HeroProps) => {
     gradient_text = "",
     description = "Building a supportive community for adults with special needs by sharing their creativity and giving them confidence, independence, and JOY!",
     button_text = "Join Our Community",
-    button_url = "/auth",
+    button_url = "/auth?signup=true",
     button_url_type = "internal",
     stat1_number = "500+",
     stat1_label = "Community Members",
@@ -42,7 +42,7 @@ const Hero = ({ content = {} }: HeroProps) => {
     if (button_url_type === "custom") {
       window.open(button_url, "_blank", "noopener,noreferrer");
     } else {
-      window.location.href = button_url || "/auth";
+      window.location.href = button_url || "/auth?signup=true";
     }
   };
 
