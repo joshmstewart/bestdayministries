@@ -4932,10 +4932,7 @@ export type Database = {
       }
     }
     Functions: {
-      can_moderate: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      can_moderate: { Args: { _user_id: string }; Returns: boolean }
       can_view_sponsorship: {
         Args: { _sponsorship_id: string; _user_id: string }
         Returns: boolean
@@ -4953,10 +4950,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      cleanup_rate_limits: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       generate_daily_scratch_card: {
         Args: { _user_id: string }
         Returns: string
@@ -4991,7 +4985,7 @@ export type Database = {
         }[]
       }
       get_public_app_settings: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           id: string
           setting_key: string
@@ -5000,7 +4994,7 @@ export type Database = {
         }[]
       }
       get_sponsor_bestie_funding_progress: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           bestie_id: string
           bestie_name: string
@@ -5012,10 +5006,7 @@ export type Database = {
           stripe_mode: string
         }[]
       }
-      get_user_email: {
-        Args: { _user_id: string }
-        Returns: string
-      }
+      get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -5028,10 +5019,7 @@ export type Database = {
           user_id: string
         }[]
       }
-      has_admin_access: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      has_admin_access: { Args: { _user_id: string }; Returns: boolean }
       has_permission: {
         Args: { _permission_type: string; _user_id: string }
         Returns: boolean
@@ -5040,10 +5028,7 @@ export type Database = {
         Args: { _bestie_id: string; _guardian_id: string }
         Returns: boolean
       }
-      is_owner: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_for_order: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
