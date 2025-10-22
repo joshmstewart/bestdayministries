@@ -509,10 +509,12 @@ CLEANUP:cleanup-test-data-unified[email+E2E]→emailPrefix[emailtest-{testRunId}
 NAMING:Test-prefix|E2E-prefix|test@-email→auto-cleanup
 HELPERS:markAsTestData|generateTestName|cleanupTestData|setupCleanupGuard[retry-logic]
 MANUAL:Admin→Testing-tab→Clean-Test-Data-button
-DOC:TEST_DATA_CLEANUP.md|TEST_DATA_CLEANUP_CRITICAL.md|EMAIL_TESTING_SYSTEM_COMPLETE.md
+DOC:TEST_DATA_CLEANUP.md|TEST_DATA_CLEANUP_CRITICAL.md|EMAIL_TESTING_SYSTEM_COMPLETE.md|TESTING_BEST_PRACTICES.md|TEST_ANALYSIS_2025_10_22.md|TEST_FIXES_2025_10_22.md
 CRITICAL-PRIORITY:cleanup-reliability>test-pass-rate|3-defense-layers[defensive-filter+enhanced-cleanup+retry-logic]
 DEFENSIVE-FILTERING:SponsorBestieDisplay+FeaturedBestieDisplay→filter-out-test-names-BEFORE-display
 TEST-LEAKAGE-PREVENTION:sponsor-besties-MUST-NOT-show-in-carousel|featured-besties-MUST-NOT-show-on-homepage|afterEach-hooks-MORE-reliable-than-afterAll
+BEST-PRACTICES:60s-timeout-auth-flows|handle-empty-states|role-based-selectors|email-tests-separate-workflow
+CRITICAL-LEARNINGS:45s-timeout-insufficient-CI|auth-flows-need-intermediate-waits|content-may-not-exist|email-tests-need-service-key
 
 ## INTERNAL_PAGES
 FILE:lib/internalPages.ts

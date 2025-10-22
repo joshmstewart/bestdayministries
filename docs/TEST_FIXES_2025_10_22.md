@@ -134,3 +134,11 @@ if (criticalErrors.length > 0) {
 2. Add more logging to understand test execution flow
 3. Consider adding test data markers (metadata field) for easier cleanup
 4. Monitor cleanup effectiveness in CI runs
+
+## Related Documentation
+
+**See**: `TEST_ANALYSIS_2025_10_22.md` for comprehensive analysis of October 22 test run revealing:
+- Auth flow timeouts still occurring (45s → need 60s)
+- Email tests requiring service key
+- Empty state handling patterns
+- Selector syntax best practices
