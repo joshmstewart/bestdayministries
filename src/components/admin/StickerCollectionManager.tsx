@@ -315,7 +315,7 @@ export const StickerCollectionManager = () => {
   });
   const [stickerImage, setStickerImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const [removeBackground, setRemoveBackground] = useState(true); // Auto-remove backgrounds by default
+  const [removeBackground, setRemoveBackground] = useState(false); // Off by default - users typically upload pre-processed images
   const [previewSticker, setPreviewSticker] = useState<any | null>(null);
   const [editingSticker, setEditingSticker] = useState<any | null>(null);
   const [editStickerImage, setEditStickerImage] = useState<File | null>(null);
