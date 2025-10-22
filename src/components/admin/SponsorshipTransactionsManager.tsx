@@ -99,16 +99,35 @@ export const SponsorshipTransactionsManager = () => {
 
       if (sponsorshipsError) throw sponsorshipsError;
 
-      // Load donations
+      // Load donations (no profile join since there's no FK)
       const { data: donationsData, error: donationsError } = await supabase
         .from('donations')
-        .select(`
-          *,
-          donor_profile:profiles!donations_donor_id_fkey(display_name, avatar_url)
-        `)
+        .select('*')
         .order('started_at', { ascending: false });
 
       if (donationsError) throw donationsError;
+
+      // Get unique donor IDs from donations
+      const donorIds = [...new Set(
+        (donationsData || [])
+          .map(d => d.donor_id)
+          .filter((id): id is string => id !== null)
+      )];
+
+      // Fetch donor profiles if there are any donor IDs
+      let donorProfiles: Record<string, any> = {};
+      if (donorIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, display_name, avatar_url')
+          .in('id', donorIds);
+        
+        if (profilesData) {
+          donorProfiles = Object.fromEntries(
+            profilesData.map(p => [p.id, p])
+          );
+        }
+      }
 
       // Transform sponsorships
       const sponsorships: Transaction[] = (sponsorshipsData || []).map(s => ({
@@ -132,7 +151,7 @@ export const SponsorshipTransactionsManager = () => {
         started_at: d.started_at,
         ended_at: d.ended_at,
         transaction_type: 'donation' as const,
-        sponsor_profile: (d as any).donor_profile,
+        sponsor_profile: d.donor_id ? donorProfiles[d.donor_id] : undefined,
       }));
 
       // Merge and sort by date
