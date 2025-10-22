@@ -812,18 +812,16 @@ export const SponsorshipTransactionsManager = () => {
                             </Button>
                           )}
                           
-                          {/* Audit Logs */}
-                          {transaction.transaction_type === 'sponsorship' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => loadAuditLogs(transaction.id)}
-                              title="View Receipt Generation Logs"
-                              disabled={loadingLogs}
-                            >
-                              <FileText className="w-4 h-4" />
-                            </Button>
-                          )}
+                          {/* Audit Logs - Available for both sponsorships and donations */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => loadAuditLogs(transaction.id)}
+                            title="View Receipt Generation Logs"
+                            disabled={loadingLogs}
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
                           
                           {/* Stripe Links */}
                           {transaction.stripe_subscription_id ? (
