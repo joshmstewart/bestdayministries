@@ -126,7 +126,7 @@ export const StickerAlbum = () => {
       .eq('setting_key', 'bonus_packs_visible_to_roles')
       .maybeSingle();
     
-    const visibleRoles = rolesData?.setting_value as string[] || ["supporter", "bestie", "caregiver", "admin", "owner"];
+    const visibleRoles = rolesData?.setting_value as string[] || ["admin", "owner"];
     
     // Only enable if both the feature is on AND user has the right role
     const canSee = userRole && visibleRoles.includes(userRole);
