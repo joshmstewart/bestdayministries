@@ -61,7 +61,7 @@ export const UnifiedHeader = () => {
   const { count: messageModerationCount } = useMessageModerationCount();
   const { count: contactFormCount } = useContactFormCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
-  const { canModerate } = useUserPermissions();
+  const { canModerate, hasStoreAccess } = useUserPermissions();
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -658,17 +658,19 @@ export const UnifiedHeader = () => {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => navigate("/store")}
-                      className="flex items-center gap-1.5 hover:scale-105 transition-transform"
-                      title="JoyCoins Store"
-                      aria-label="JoyCoins Store"
-                    >
-                      <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" />
-                      <span className="font-semibold text-sm">{coins.toLocaleString()}</span>
-                    </button>
-                  </div>
+                  {hasStoreAccess && (
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => navigate("/store")}
+                        className="flex items-center gap-1.5 hover:scale-105 transition-transform"
+                        title="JoyCoins Store"
+                        aria-label="JoyCoins Store"
+                      >
+                        <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" />
+                        <span className="font-semibold text-sm">{coins.toLocaleString()}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -789,7 +791,7 @@ export const UnifiedHeader = () => {
                     </li>
                   </ul>
                   <div className="flex-1 flex justify-end">
-                    {profile && (
+                    {profile && hasStoreAccess && (
                       <button 
                         onClick={() => navigate("/store")}
                         className="flex items-center gap-2 hover:scale-105 transition-transform"

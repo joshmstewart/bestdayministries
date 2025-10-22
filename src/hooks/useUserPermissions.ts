@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type PermissionType = 'moderate' | 'manage_vendors' | 'view_analytics';
+export type PermissionType = 'moderate' | 'manage_vendors' | 'view_analytics' | 'store_access';
 
 export const useUserPermissions = () => {
   const [permissions, setPermissions] = useState<Set<PermissionType>>(new Set());
   const [loading, setLoading] = useState(true);
   const [canModerate, setCanModerate] = useState(false);
+  const [hasStoreAccess, setHasStoreAccess] = useState(false);
 
   useEffect(() => {
     loadPermissions();
@@ -32,7 +33,8 @@ export const useUserPermissions = () => {
       if (isAdmin) {
         // Admins have all permissions
         setCanModerate(true);
-        setPermissions(new Set(['moderate', 'manage_vendors', 'view_analytics']));
+        setHasStoreAccess(true);
+        setPermissions(new Set(['moderate', 'manage_vendors', 'view_analytics', 'store_access']));
         setLoading(false);
         return;
       }
@@ -47,6 +49,7 @@ export const useUserPermissions = () => {
         const perms = new Set(permissionsData.map(p => p.permission_type as PermissionType));
         setPermissions(perms);
         setCanModerate(perms.has('moderate'));
+        setHasStoreAccess(perms.has('store_access'));
       }
     } catch (error) {
       console.error("Error loading permissions:", error);
@@ -63,6 +66,7 @@ export const useUserPermissions = () => {
     permissions,
     loading,
     canModerate,
+    hasStoreAccess,
     hasPermission,
     refreshPermissions: loadPermissions,
   };
