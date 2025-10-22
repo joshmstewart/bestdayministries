@@ -28,6 +28,18 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - Delete users
 - Send password resets
 
+### Media
+**Sub-tabs:** Videos | Audio Clips
+- **Videos** (`VideoManager`): Upload videos or embed YouTube
+  - Thumbnails, metadata
+  - Active/inactive toggle
+  - Drag-and-drop reordering
+- **Audio Clips** (`AudioClipsManager`): Upload and manage audio clips
+  - Titles, descriptions, categories
+  - Audio preview player
+  - Visibility toggle
+  - Search and category filtering
+
 ### Events
 **Redirect:** `/admin/events` (EventManagement page)
 - Create/edit events
@@ -40,13 +52,6 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - Create/manage photo albums
 - Image cropping, reordering
 - Link to events/discussions
-
-### Videos
-**Component:** `VideoManager`
-- Upload videos or embed YouTube
-- Thumbnails, metadata
-- Active/inactive toggle
-- Drag-and-drop reordering
 
 ### Besties
 **Sub-tabs:** Featured Besties | Sponsor Besties | Sponsor Page Order | Sponsor Page Content | Receipt Settings | Transactions | Year-End Settings | Year-End History
@@ -144,11 +149,19 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - View email styles and formatting
 
 ### Settings
-**Sub-tabs:** App Settings | Avatars | Impersonation
+**Sub-tabs:** App Settings | Stripe Mode | Social Sharing | Static Meta Tags | Avatars | Text-to-Speech | Coins | Store Items | Pet Types | Locations | Impersonation
 - **App Settings:** Logo, favicon, mobile app icon/name (`AppSettingsManager`)
   - Favicon dynamically updates via `FaviconManager` component on app load
   - Stored in `app_settings` table with key `favicon_url`
+- **Stripe Mode:** Toggle between test and live Stripe modes (`StripeModeSwitcher`)
+- **Social Sharing:** Guide for social media preview configuration (`SocialSharingGuide`)
+- **Static Meta Tags:** Configure default meta tags (`StaticMetaTagsManager`)
 - **Avatars:** Upload composite avatars (`AvatarUploader`)
+- **Text-to-Speech:** Configure TTS voice settings (`TTSVoiceManager`)
+- **Coins:** Manage virtual coin system (`CoinsManager`)
+- **Store Items:** Configure store products (`StoreItemsManager`)
+- **Pet Types:** Manage pet type categories (`PetTypesManager`)
+- **Locations:** Saved locations management (`SavedLocationsManager`)
 - **Impersonation:** Test UI as different roles (`RoleImpersonator`)
 
 ## Role Impersonation

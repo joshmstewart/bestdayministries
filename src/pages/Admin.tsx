@@ -243,9 +243,9 @@ const Admin = () => {
           <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="media">Media</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
-            <TabsTrigger value="videos">Videos</TabsTrigger>
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="partners">Partners</TabsTrigger>
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
@@ -359,8 +359,29 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="videos">
-            <VideoManager />
+          <TabsContent value="media">
+            <Card>
+              <CardHeader>
+                <CardTitle>Media Management</CardTitle>
+                <CardDescription>Upload and manage videos and audio clips</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="videos" className="space-y-4">
+                  <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="videos">Videos</TabsTrigger>
+                    <TabsTrigger value="audio">Audio Clips</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="videos">
+                    <VideoManager />
+                  </TabsContent>
+
+                  <TabsContent value="audio">
+                    <AudioClipsManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="featured">
@@ -618,7 +639,6 @@ const Admin = () => {
                     <TabsTrigger value="static-meta">Static Meta Tags</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
-                    <TabsTrigger value="audio-clips">Audio Clips</TabsTrigger>
                     <TabsTrigger value="coins">Coins</TabsTrigger>
                     <TabsTrigger value="store">Store Items</TabsTrigger>
                     <TabsTrigger value="pet-types">Pet Types</TabsTrigger>
@@ -666,10 +686,6 @@ const Admin = () => {
 
                   <TabsContent value="tts">
                     <TTSVoiceManager />
-                  </TabsContent>
-
-                  <TabsContent value="audio-clips">
-                    <AudioClipsManager />
                   </TabsContent>
 
                   <TabsContent value="coins">
