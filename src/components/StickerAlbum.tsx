@@ -64,8 +64,9 @@ export const StickerAlbum = () => {
 
   const getMSTMidnight = () => {
     const mstNow = getMSTDate();
+    // Get tomorrow at midnight MST
     const midnight = new Date(mstNow);
-    midnight.setUTCHours(24, 0, 0, 0);
+    midnight.setHours(24, 0, 0, 0); // Use setHours (local) not setUTCHours
     return midnight;
   };
 
