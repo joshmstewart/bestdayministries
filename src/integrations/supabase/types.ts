@@ -186,6 +186,44 @@ export type Database = {
         }
         Relationships: []
       }
+      app_sound_effects: {
+        Row: {
+          audio_clip_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          is_enabled: boolean | null
+          updated_at: string | null
+          volume: number | null
+        }
+        Insert: {
+          audio_clip_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Update: {
+          audio_clip_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_sound_effects_audio_clip_id_fkey"
+            columns: ["audio_clip_id"]
+            isOneToOne: false
+            referencedRelation: "audio_clips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audio_clips: {
         Row: {
           category: string | null

@@ -61,6 +61,7 @@ import TestRunsManager from "@/components/admin/TestRunsManager";
 import { StickerCollectionManager } from "@/components/admin/StickerCollectionManager";
 import { NewsletterManager } from "@/components/admin/NewsletterManager";
 import { AudioClipsManager } from "@/components/admin/AudioClipsManager";
+import { SoundEffectsManager } from "@/components/admin/SoundEffectsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -370,6 +371,7 @@ const Admin = () => {
                   <TabsList className="inline-flex flex-wrap h-auto">
                     <TabsTrigger value="videos">Videos</TabsTrigger>
                     <TabsTrigger value="audio">Audio Clips</TabsTrigger>
+                    <TabsTrigger value="sound-effects">Sound Effects</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="videos">
@@ -378,6 +380,10 @@ const Admin = () => {
 
                   <TabsContent value="audio">
                     <AudioClipsManager />
+                  </TabsContent>
+
+                  <TabsContent value="sound-effects">
+                    <SoundEffectsManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>

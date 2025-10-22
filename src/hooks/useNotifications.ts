@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface Notification {
   id: string;
@@ -115,6 +116,7 @@ export const useNotifications = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { playSound } = useSoundEffects();
 
   const loadNotifications = async () => {
     try {
@@ -285,6 +287,7 @@ export const useNotifications = () => {
           table: 'notifications',
         },
         () => {
+          playSound('notification');
           loadNotifications();
         }
       )

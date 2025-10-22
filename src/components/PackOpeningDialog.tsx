@@ -8,6 +8,7 @@ import confetti from "canvas-confetti";
 import { Sparkles, Package, BookOpen, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface PackOpeningDialogProps {
   open: boolean;
@@ -43,6 +44,7 @@ const rarityConfettiConfig = {
 export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: PackOpeningDialogProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { playSound } = useSoundEffects();
   const [opened, setOpened] = useState(false);
   const [opening, setOpening] = useState(false);
   const [revealedStickers, setRevealedStickers] = useState<any[]>([]);
@@ -132,6 +134,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   const handleOpen = () => {
     if (opening || opened) return;
     
+    playSound('sticker_pack_open');
     setOpening(true);
     
     // Animate tear effect
@@ -155,6 +158,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   };
 
   const triggerCelebration = (rarity: string) => {
+    playSound('sticker_reveal');
+    
     const config = rarityConfettiConfig[rarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
     
     // Trigger confetti multiple times based on rarity

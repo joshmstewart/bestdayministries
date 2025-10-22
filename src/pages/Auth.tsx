@@ -13,11 +13,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useQuery } from "@tanstack/react-query";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { playSound } = useSoundEffects();
   const [isSignUp, setIsSignUp] = useState(searchParams.get('signup') === 'true');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -194,6 +196,9 @@ const Auth = () => {
         });
 
         if (error) throw error;
+
+        // Play login sound
+        playSound('login');
 
         // Vendor status check will be handled by auth state listener
         // which will redirect appropriately
