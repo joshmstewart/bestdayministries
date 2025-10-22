@@ -263,11 +263,15 @@ RLS:SELECT[all-auth]|INSERT[auth]|UPDATE-DELETE[author-admin]
 GUEST:no-account→sponsor_email→auto-link-on-signup
 FUNDING:monthly_goal>0→SUM-active-monthly→progress
 MSG-APPROVAL:require_message_approval→guardian-edit→approve
-DB:sponsor_besties|sponsorships|sponsor_messages|receipt_settings|year_end_summary_settings
+DB:sponsor_besties|sponsorships|sponsor_messages|receipt_settings|year_end_summary_settings|sponsorship_receipts
 VIEWS:sponsor_bestie_funding_progress|sponsorship_year_end_summary
 EDGE:create-checkout|verify-payment|manage|update|send-receipt|gen-receipts|year-end
 WEBHOOKS:subscription.deleted→cancelled|subscription.updated→3-states|checkout.completed
 REALTIME:useGuardianApprovalsCount|useSponsorUnreadCount
+RECEIPTS-SECURITY:CRITICAL-PRIVACY→users-see-ONLY-own-receipts→RLS[user_id-OR-sponsor_email-match]→explicit-filter[defense-in-depth]
+RECEIPTS-RLS:removed-admin-view-all-policy→NO-role-sees-all-receipts→privacy-protected
+RECEIPTS-QUERY:DonationHistory→explicit-filter[.or(user_id.eq+sponsor_email.eq)]→never-query-all
+PAGES:/sponsor-bestie|/sponsorship-success|/guardian-links|/bestie-messages|/guardian-approvals
 PAGES:/sponsor-bestie|/sponsorship-success|/guardian-links|/bestie-messages|/guardian-approvals
 TRIGGERS:link_guest_sponsorships()
 STORAGE:app-assets|featured-bestie-audio

@@ -35,17 +35,20 @@ export const DonationHistory = () => {
   const loadReceipts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.id) {
-        console.log('No user id found');
+      if (!user?.id || !user?.email) {
+        console.log('No user found');
         return;
       }
 
       console.log('Loading receipts for user:', user.email);
 
-      // Query receipts - RLS ensures users only see their own
+      // CRITICAL SECURITY: Query only THIS user's receipts
+      // Defense in depth: Filter by BOTH user_id and email
+      // RLS policies also enforce this, but explicit filtering is safer
       const { data, error } = await supabase
         .from('sponsorship_receipts')
         .select('*')
+        .or(`user_id.eq.${user.id},sponsor_email.eq.${user.email}`)
         .order('transaction_date', { ascending: false });
 
       if (error) {
@@ -54,7 +57,7 @@ export const DonationHistory = () => {
         return;
       }
       
-      console.log('Receipts loaded:', data?.length || 0);
+      console.log('Receipts loaded for current user:', data?.length || 0);
       setReceipts(data || []);
     } catch (error) {
       console.error('Unexpected error loading receipts:', error);
