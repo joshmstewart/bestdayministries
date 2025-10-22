@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Heart, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const donationSchema = z.object({
   amount: z.number().min(5, "Minimum donation is $5"),
@@ -17,12 +17,14 @@ const donationSchema = z.object({
 });
 
 export const DonationForm = () => {
+  const navigate = useNavigate();
   const [frequency, setFrequency] = useState<"one-time" | "monthly">("monthly");
   const [amount, setAmount] = useState<string>("25");
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [coverStripeFee, setCoverStripeFee] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     checkAuthAndLoadEmail();
@@ -32,6 +34,9 @@ export const DonationForm = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.email) {
       setEmail(user.email);
+      setIsLoggedIn(true);
+    } else {
+      setIsLoggedIn(false);
     }
   };
 
@@ -176,18 +181,45 @@ export const DonationForm = () => {
           </div>
         </div>
 
+        {/* Login Prompt for Non-Logged-In Users */}
+        {!isLoggedIn && (
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Heart className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <p className="text-sm font-semibold">Already have an account?</p>
+                <p className="text-xs text-muted-foreground">
+                  Log in to track your donations, view receipts, and manage your giving in one place.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate("/auth?redirect=/support")}
+                  className="mt-2"
+                >
+                  Log In
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Email */}
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-base font-semibold">Email Address</Label>
+          <Label htmlFor="email" className="text-base font-semibold">Your Email</Label>
           <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
+            disabled={isLoggedIn}
+            required
           />
           <p className="text-xs text-muted-foreground">
-            We'll send your receipt to this email address
+            {isLoggedIn 
+              ? "This email is linked to your account and will be used to track your donation. Receipts will be sent here." 
+              : "Don't have an account? You can donate as a guest and create one later to view your donation receipts with the same email."}
           </p>
         </div>
 
@@ -244,6 +276,17 @@ export const DonationForm = () => {
         >
           {loading ? "Processing..." : `Donate ${frequency === "monthly" ? "Monthly" : "Now"}`}
         </Button>
+
+        {/* Tax & Legal Info */}
+        <div className="text-xs text-muted-foreground text-center space-y-1 pt-2">
+          <p>
+            Best Day Ministries is a church under section 508(c)(1)(A) of the Internal Revenue Code. 
+            Your donation may be tax-deductible to the extent allowed by law.
+          </p>
+          <p className="font-medium">
+            100% of your donation goes directly to support our mission {coverStripeFee ? '(processing fees covered)' : '(minus processing fees)'}.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
