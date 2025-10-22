@@ -384,13 +384,20 @@ DOC:DIALOG_BUTTON_STANDARD.md
 
 ## DONATION
 ROUTE:/support
-DB:donations
+DB:donations[CRITICAL-CONSTRAINT-must-allow:pending+completed+active+cancelled+paused]
 WORKFLOW:select-frequency+amount→email→terms→Stripe→success
 GUEST:donor_email→link-on-signup
-EDGE:create-checkout|stripe-webhook
+EDGE:create-donation-checkout[creates-pending]|stripe-webhook[updates-to-completed-or-active]
 STATUS:One-Time[pending→completed]|Monthly[pending→active→cancelled]
+STRIPE-IDS:stripe_customer_id[ALWAYS-set-both-types]|stripe_subscription_id[ONLY-monthly]
 FEE-COVERAGE:(amt+0.30)/0.971
-DIFFERENCES:vs-sponsorships[purpose|recipient|metadata|table|UI|receipts|year-end]
+ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships]
+ACTIONS:copy-customer-id|open-stripe-customer|view-receipt-logs|delete-test
+RECEIPT-STATUS:green-FileText[generated]|yellow-Clock[pending]
+AUDIT-LOGS:accessible-for-both-donations+sponsorships[NOT-restricted]
+CRITICAL-BUG:constraint-must-include-pending+completed→silent-failure-if-missing
+DIFFERENCES:vs-sponsorships[purpose|recipient|metadata:type='donation'|table|UI|receipts|year-end]
+DOC:DONATION_SYSTEM.md
 
 ## HELP_CENTER
 ROUTE:/help

@@ -290,3 +290,63 @@ try {
 - **Dual Mode Stripe**: Payment functions support test/live mode via `app_settings.stripe_mode`
 - **Security**: All webhook functions verify signatures before processing
 - **Testing**: Test functions prefixed with `test-` or contain "test" in name
+
+---
+
+## Detailed Function Documentation
+
+### create-donation-checkout
+
+**Location:** `supabase/functions/create-donation-checkout/index.ts`
+
+**Auth:** Public (no JWT required)
+
+**Purpose:** Creates Stripe Checkout session for general donations (not tied to specific bestie)
+
+**Request Body:**
+```typescript
+{
+  amount: number,        // Min: 5, Max: 100,000
+  frequency: 'monthly' | 'one-time',
+  email: string,         // Valid email format
+  coverStripeFee: boolean // Optional, defaults to false
+}
+```
+
+**Validation:** Zod schema with detailed error messages
+
+**Process:**
+1. Gets Stripe mode from `app_settings.stripe_mode` ('test' or 'live')
+2. Calculates final amount with optional fee coverage: `(amount + 0.30) / 0.971`
+3. Creates/retrieves Stripe customer by email
+4. Creates Stripe Checkout session:
+   - Mode: `'payment'` (one-time) or `'subscription'` (monthly)
+   - **Metadata:** `{type: 'donation', frequency, amount, coverStripeFee, donation_type: 'general'}`
+   - Success URL: `/support?donation=success`
+   - Cancel URL: `/support`
+5. **Inserts donation record with status = 'pending'**
+   - Sets `stripe_customer_id` immediately
+   - Sets `donor_id` if user has profile, otherwise `donor_email`
+   - **CRITICAL:** Database constraint must allow 'pending' status
+
+**Response:**
+```typescript
+{ url: string }  // Redirect to Stripe Checkout
+```
+
+**Webhook Integration:**
+- `stripe-webhook` receives `checkout.session.completed` event
+- Identifies donation by `metadata.type === 'donation'`
+- Updates status to 'completed' (one-time) or 'active' (monthly)
+- Sets `stripe_subscription_id` for monthly donations
+
+**Common Issues:**
+- ❌ Donations not appearing → Check database constraint allows 'pending'
+- ❌ Donations stuck at 'pending' → Check webhook fired and constraint allows 'completed'/'active'
+- ❌ Wrong Stripe mode → Verify `app_settings.stripe_mode` matches intent
+
+**See Also:** `docs/DONATION_SYSTEM.md`, `docs/DONATION_DEBUGGING_LESSONS.md`
+
+---
+
+**Last Updated:** 2025-10-22 - After comprehensive donation debugging

@@ -13,16 +13,28 @@ General donation system on the Support Us page (`/support`) allowing one-time an
 - `donor_email` (text, nullable) - Email for guest donations
 - `amount` (numeric) - Donation amount in dollars
 - `frequency` (text) - 'one-time' or 'monthly'
-- `status` (text) - 'pending', 'completed' (one-time), 'active' (monthly), 'cancelled'
-- `stripe_customer_id` (text, nullable) - Stripe customer ID
-- `stripe_subscription_id` (text, nullable) - For monthly donations
+- `status` (text) - **CRITICAL: Must allow 'pending', 'completed', 'active', 'cancelled', 'paused'**
+- `stripe_customer_id` (text, nullable) - **ALWAYS set** - Stripe customer ID for both one-time and monthly
+- `stripe_subscription_id` (text, nullable) - **Only for monthly** donations
 - `stripe_mode` (text) - 'test' or 'live'
 - `started_at`, `ended_at`, `created_at`, `updated_at` (timestamps)
+
+**Database Constraint:**
+```sql
+-- CRITICAL: Status check constraint MUST include 'pending' and 'completed'
+ALTER TABLE donations DROP CONSTRAINT IF EXISTS donations_status_check;
+ALTER TABLE donations ADD CONSTRAINT donations_status_check 
+  CHECK (status IN ('pending', 'completed', 'active', 'cancelled', 'paused'));
+```
 
 **RLS Policies:**
 - Admins can view all donations
 - Donors can view their own donations (by `donor_id` OR by matching email from `auth.users`)
 - Public can INSERT (handled by edge function, not direct client calls)
+
+**Common Issues:**
+- ❌ **WRONG**: Constraint only allowing 'active', 'cancelled', 'paused' → donations fail silently
+- ✅ **CORRECT**: Constraint must include 'pending' (used by edge function) and 'completed' (used by webhook)
 
 ---
 
@@ -139,15 +151,28 @@ General donation system on the Support Us page (`/support`) allowing one-time an
 
 ### One-Time Donations
 ```
-pending → (checkout.session.completed) → completed
+1. Edge function creates: status = 'pending', stripe_customer_id = [customer_id]
+2. Webhook (checkout.session.completed): status = 'completed'
+   - Query: WHERE donor_email = [email] AND amount = [amount] AND frequency = 'one-time' AND status = 'pending'
 ```
 
 ### Monthly Donations
 ```
-pending → (checkout.session.completed) → active
-active → (customer.subscription.updated with cancel_at_period_end) → active (with ended_at set)
-active → (customer.subscription.deleted) → cancelled
+1. Edge function creates: status = 'pending', stripe_customer_id = [customer_id]
+2. Webhook (checkout.session.completed): status = 'active', stripe_subscription_id = [sub_id]
+   - Query: WHERE donor_email = [email] AND amount = [amount] AND frequency = 'monthly' AND status = 'pending'
+3. Webhook (customer.subscription.updated): Updates status based on subscription state
+   - Active → status = 'active', ended_at = NULL
+   - Scheduled cancellation → status = 'active', ended_at = [cancel_at]
+   - Cancelled → status = 'cancelled', ended_at = NOW()
+4. Webhook (customer.subscription.deleted): status = 'cancelled', ended_at = NOW()
 ```
+
+**CRITICAL DEBUGGING:**
+- If donations stay 'pending' forever → Check database constraint allows 'completed' status
+- If donations never appear → Check database constraint allows 'pending' status
+- Check Stripe webhook logs for delivery issues
+- Check edge function logs for creation issues
 
 ---
 
@@ -194,22 +219,28 @@ active → (customer.subscription.deleted) → cancelled
 - Automatic status updates via webhooks
 - Email validation and sanitization
 - Terms & Conditions acceptance requirement
+- **Admin transaction management:**
+  - View all donations in SponsorshipTransactionsManager
+  - Copy Stripe customer ID
+  - Open Stripe customer page in dashboard
+  - View receipt generation status (generated/pending)
+  - Access receipt generation audit logs
+  - Delete test transactions
 
 ---
 
 ## NOT IMPLEMENTED ❌
 
 ### Critical
-- Automated receipt generation (like sponsorships have)
-- Donation history page for donors
+- Automated receipt generation (like sponsorships have) - **Partially implemented: audit logs viewable**
+- Donation history page for donors (currently only in admin)
 - Ability to update monthly donation amount
 - Stripe Customer Portal link for subscription management
 
 ### Important
 - Year-end tax summaries for donors
-- Admin view of all donations
 - Donation analytics dashboard
-- Email notifications for successful donations
+- Email notifications for successful donations (welcome, thank you, receipts)
 
 ### Nice to Have
 - Linking guest donations to accounts on signup
@@ -224,11 +255,21 @@ active → (customer.subscription.deleted) → cancelled
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
+| **Donations not appearing** | Database constraint blocks 'pending' status | Check constraint allows: 'pending', 'completed', 'active', 'cancelled', 'paused' |
+| **Donations stuck at 'pending'** | Database constraint blocks 'completed' status | Same as above - verify constraint |
 | Webhook not updating status | Missing `type: 'donation'` metadata | Verify metadata in checkout session |
 | Can't find donation by email | Email mismatch | Check case sensitivity, trim whitespace |
 | Monthly donation stays pending | Webhook didn't fire | Check Stripe webhook logs |
 | Wrong Stripe mode | Mode setting incorrect | Check `app_settings.stripe_mode` |
 | Guest donation not visible to user | No `donor_id` link | Query by email instead |
+| Receipt logs not showing | UI restricted to sponsorships | Check SponsorshipTransactionsManager - should show for both |
+
+**Critical Debugging Steps:**
+1. Check database constraint: `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'donations'::regclass AND contype = 'c'`
+2. Check edge function logs for 'pending' creation
+3. Check webhook logs for 'completed'/'active' update
+4. Verify `stripe_customer_id` is set (required for actions)
+5. Check `metadata.type = 'donation'` in Stripe dashboard
 
 ---
 
@@ -266,4 +307,50 @@ active → (customer.subscription.deleted) → cancelled
 
 ---
 
-**Last Updated:** After implementing webhook automation for donation status updates
+---
+
+## ADMIN INTERFACE
+
+**SponsorshipTransactionsManager** (`src/components/admin/SponsorshipTransactionsManager.tsx`)
+
+Displays donations alongside sponsorships with full management capabilities:
+
+**Visible Information:**
+- Type badge (yellow "Donation" vs orange "Sponsorship")
+- Donor/Sponsor name and email
+- Recipient (General Fund vs Bestie name)
+- Amount
+- Frequency (One-Time vs Monthly)
+- Status (Completed, Active, Cancelled)
+- Stripe mode (Test vs Live)
+- Start date / End date
+- Receipt status (green checkmark if generated, yellow clock if pending)
+
+**Available Actions:**
+- 📄 **View Receipt** - If receipt generated (green FileText icon)
+- 🕐 **Receipt Pending** - If no receipt yet (yellow Clock icon, disabled)
+- 📋 **View Audit Logs** - Receipt generation logs (FileText icon, works for both donations and sponsorships)
+- 📋 **Copy Customer ID** - Copy `stripe_customer_id` to clipboard
+- 🔗 **Open Stripe Customer** - Opens customer page in Stripe dashboard (test or live mode)
+- 🗑️ **Delete Test Transaction** - Only for test mode transactions
+
+**Key Implementation Details:**
+```typescript
+// Transaction interface includes both donation and sponsorship fields
+interface Transaction {
+  stripe_customer_id: string | null;  // Used for one-time donations
+  stripe_subscription_id: string | null;  // Used for monthly donations/sponsorships
+  receipt_number: string | null;
+  receipt_generated_at: string | null;
+}
+
+// Audit logs work for both types
+const loadAuditLogs = async (transactionId: string) => {
+  // Loads from sponsorship_receipts table
+  // Works for donations too when receipts are generated
+};
+```
+
+---
+
+**Last Updated:** 2025-10-22 - After fixing database constraint and adding full admin UI support for donations
