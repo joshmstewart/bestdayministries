@@ -87,19 +87,18 @@ export const SponsorshipTransactionsManager = () => {
       setLoading(true);
       
       // Load sponsorships
+      // Load sponsorships (without profile joins)
       const { data: sponsorshipsData, error: sponsorshipsError } = await supabase
         .from('sponsorships')
         .select(`
           *,
-          sponsor_profile:profiles!sponsorships_sponsor_id_fkey(display_name, avatar_url),
-          bestie_profile:profiles!sponsorships_bestie_id_fkey(display_name, avatar_url),
           sponsor_bestie:sponsor_besties(bestie_name)
         `)
         .order('started_at', { ascending: false });
 
       if (sponsorshipsError) throw sponsorshipsError;
 
-      // Load donations (no profile join since there's no FK)
+      // Load donations
       const { data: donationsData, error: donationsError } = await supabase
         .from('donations')
         .select('*')
@@ -107,23 +106,37 @@ export const SponsorshipTransactionsManager = () => {
 
       if (donationsError) throw donationsError;
 
-      // Get unique donor IDs from donations
+      // Get unique profile IDs from both sponsorships and donations
+      const sponsorIds = [...new Set(
+        (sponsorshipsData || [])
+          .map(s => s.sponsor_id)
+          .filter((id): id is string => id !== null)
+      )];
+      
+      const bestieIds = [...new Set(
+        (sponsorshipsData || [])
+          .map(s => s.bestie_id)
+          .filter((id): id is string => id !== null)
+      )];
+      
       const donorIds = [...new Set(
         (donationsData || [])
           .map(d => d.donor_id)
           .filter((id): id is string => id !== null)
       )];
 
-      // Fetch donor profiles if there are any donor IDs
-      let donorProfiles: Record<string, any> = {};
-      if (donorIds.length > 0) {
+      const allProfileIds = [...new Set([...sponsorIds, ...bestieIds, ...donorIds])];
+
+      // Fetch all profiles at once
+      let profilesMap: Record<string, any> = {};
+      if (allProfileIds.length > 0) {
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, display_name, avatar_url')
-          .in('id', donorIds);
+          .in('id', allProfileIds);
         
         if (profilesData) {
-          donorProfiles = Object.fromEntries(
+          profilesMap = Object.fromEntries(
             profilesData.map(p => [p.id, p])
           );
         }
@@ -133,7 +146,8 @@ export const SponsorshipTransactionsManager = () => {
       const sponsorships: Transaction[] = (sponsorshipsData || []).map(s => ({
         ...s,
         transaction_type: 'sponsorship' as const,
-        sponsor_profile: s.sponsor_profile,
+        sponsor_profile: s.sponsor_id ? profilesMap[s.sponsor_id] : undefined,
+        bestie_profile: s.bestie_id ? profilesMap[s.bestie_id] : undefined,
       }));
 
       // Transform donations
@@ -151,7 +165,7 @@ export const SponsorshipTransactionsManager = () => {
         started_at: d.started_at,
         ended_at: d.ended_at,
         transaction_type: 'donation' as const,
-        sponsor_profile: d.donor_id ? donorProfiles[d.donor_id] : undefined,
+        sponsor_profile: d.donor_id ? profilesMap[d.donor_id] : undefined,
       }));
 
       // Merge and sort by date
