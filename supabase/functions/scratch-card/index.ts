@@ -13,12 +13,17 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const authHeader = req.headers.get('Authorization')!;
     
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    // User client for user-specific operations
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    
+    // Admin client for reading collection config (non-sensitive game data)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const { cardId } = await req.json();
 
@@ -46,20 +51,23 @@ serve(async (req) => {
       );
     }
 
-    // Get collection with rarity percentages and stickers_per_pack
-    const { data: collection, error: collectionError } = await supabase
+    // Get collection with rarity percentages and stickers_per_pack (use admin client)
+    const { data: collection, error: collectionError } = await supabaseAdmin
       .from('sticker_collections')
       .select('rarity_percentages, use_default_rarity, stickers_per_pack')
       .eq('id', card.collection_id)
       .single();
 
-    if (collectionError) throw collectionError;
+    if (collectionError) {
+      console.error('Error fetching collection:', collectionError);
+      throw collectionError;
+    }
 
     let rarityPercentages: Record<string, number>;
 
     // If collection uses defaults, fetch from app_settings
     if (collection.use_default_rarity) {
-      const { data: settingsData, error: settingsError } = await supabase
+      const { data: settingsData, error: settingsError } = await supabaseAdmin
         .from('app_settings')
         .select('setting_value')
         .eq('setting_key', 'default_rarity_percentages')
@@ -75,8 +83,8 @@ serve(async (req) => {
     const stickersPerPack = collection.stickers_per_pack || 1;
     const revealedStickers = [];
 
-    // Get all active stickers for this collection
-    const { data: allStickers, error: allStickersError } = await supabase
+    // Get all active stickers for this collection (use admin client)
+    const { data: allStickers, error: allStickersError } = await supabaseAdmin
       .from('stickers')
       .select('*')
       .eq('collection_id', card.collection_id)
