@@ -381,7 +381,7 @@ export const UnifiedHeader = () => {
                     className="gap-2 relative"
                   >
                     <Users className="w-4 h-4" />
-                    <span className="hidden sm:inline font-semibold">My Besties</span>
+                    <span className="font-semibold">My Besties</span>
                     {sponsorUnreadCount > 0 && (
                       <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
                         {sponsorUnreadCount}
