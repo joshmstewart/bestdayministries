@@ -348,8 +348,8 @@ export const UnifiedHeader = () => {
         <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-0 relative">
         <div className="flex flex-col">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-shrink-0">
               {logoUrl ? (
                 <img 
                   src={logoUrl} 
@@ -362,7 +362,7 @@ export const UnifiedHeader = () => {
               )}
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
             {authLoading ? (
               <>
                 {/* Loading skeleton for buttons */}
@@ -493,9 +493,10 @@ export const UnifiedHeader = () => {
                 <Button 
                   variant="ghost" 
                   onClick={() => navigate("/newsletter")}
-                  className="font-semibold"
+                  className="font-semibold whitespace-nowrap"
                 >
-                  Join Our Newsletter
+                  <span className="hidden md:inline">Join Our Newsletter</span>
+                  <span className="md:hidden">Newsletter</span>
                 </Button>
                 <Button 
                   variant="outline" 
