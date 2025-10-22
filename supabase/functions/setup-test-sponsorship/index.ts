@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
       const { data, error: updateError } = await supabaseAdmin
         .from('sponsorships')
         .update({
+          bestie_id: TEST_BESTIE_ID,
           amount: 25.00,
           frequency: 'monthly',
           status: 'active',
@@ -114,6 +115,7 @@ Deno.serve(async (req) => {
         .from('sponsorships')
         .insert({
           sponsor_id: TEST_SUPPORTER_ID,
+          bestie_id: TEST_BESTIE_ID,
           sponsor_bestie_id: sponsorBestie.id,
           amount: 25.00,
           frequency: 'monthly',
