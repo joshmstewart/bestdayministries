@@ -60,6 +60,7 @@ import IssueReportsManager from "@/components/admin/IssueReportsManager";
 import TestRunsManager from "@/components/admin/TestRunsManager";
 import { StickerCollectionManager } from "@/components/admin/StickerCollectionManager";
 import { NewsletterManager } from "@/components/admin/NewsletterManager";
+import { AudioClipsManager } from "@/components/admin/AudioClipsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -617,6 +618,7 @@ const Admin = () => {
                     <TabsTrigger value="static-meta">Static Meta Tags</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
+                    <TabsTrigger value="audio-clips">Audio Clips</TabsTrigger>
                     <TabsTrigger value="coins">Coins</TabsTrigger>
                     <TabsTrigger value="store">Store Items</TabsTrigger>
                     <TabsTrigger value="pet-types">Pet Types</TabsTrigger>
@@ -664,6 +666,10 @@ const Admin = () => {
 
                   <TabsContent value="tts">
                     <TTSVoiceManager />
+                  </TabsContent>
+
+                  <TabsContent value="audio-clips">
+                    <AudioClipsManager />
                   </TabsContent>
 
                   <TabsContent value="coins">
