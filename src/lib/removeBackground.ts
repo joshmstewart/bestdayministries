@@ -34,7 +34,7 @@ function resizeImageIfNeeded(canvas: HTMLCanvasElement, ctx: CanvasRenderingCont
 export const removeBackground = async (imageElement: HTMLImageElement): Promise<Blob> => {
   try {
     console.log('Starting background removal process...');
-    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512',{
+    const segmenter = await pipeline('image-segmentation', 'briaai/RMBG-1.4',{
       device: 'webgpu',
     });
     
@@ -49,7 +49,7 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     console.log(`Image ${wasResized ? 'was' : 'was not'} resized. Final dimensions: ${canvas.width}x${canvas.height}`);
     
     // Get image data as base64
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    const imageData = canvas.toDataURL('image/png', 1.0);
     console.log('Image converted to base64');
     
     // Process the image with the segmentation model
@@ -81,10 +81,10 @@ export const removeBackground = async (imageElement: HTMLImageElement): Promise<
     );
     const data = outputImageData.data;
     
-    // Apply inverted mask to alpha channel
+    // Apply mask directly to alpha channel (RMBG-1.4 returns foreground mask)
     for (let i = 0; i < result[0].mask.data.length; i++) {
-      // Invert the mask value (1 - value) to keep the subject instead of the background
-      const alpha = Math.round((1 - result[0].mask.data[i]) * 255);
+      // Use mask value directly - briaai/RMBG-1.4 returns 1 for foreground, 0 for background
+      const alpha = Math.round(result[0].mask.data[i] * 255);
       data[i * 4 + 3] = alpha;
     }
     
