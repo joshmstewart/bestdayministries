@@ -40,6 +40,7 @@ interface Transaction {
   frequency: string;
   status: string;
   stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
   stripe_mode: string | null;
   started_at: string;
   ended_at: string | null;
@@ -205,6 +206,7 @@ export const SponsorshipTransactionsManager = () => {
         frequency: d.frequency,
         status: d.status,
         stripe_subscription_id: d.stripe_subscription_id,
+        stripe_customer_id: d.stripe_customer_id,
         stripe_mode: d.stripe_mode,
         started_at: d.started_at,
         ended_at: d.ended_at,
@@ -766,7 +768,7 @@ export const SponsorshipTransactionsManager = () => {
                                   setSelectedTransactionId(transaction.stripe_subscription_id);
                                   setTransactionDialogOpen(true);
                                 }}
-                                title="View Transaction ID"
+                                title="View Subscription ID"
                               >
                                 <Copy className="w-4 h-4" />
                               </Button>
@@ -778,6 +780,31 @@ export const SponsorshipTransactionsManager = () => {
                                   transaction.stripe_mode || 'test'
                                 )}
                                 title="Open in Stripe Dashboard"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            </>
+                          ) : transaction.stripe_customer_id ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedTransactionId(transaction.stripe_customer_id);
+                                  setTransactionDialogOpen(true);
+                                }}
+                                title="View Customer ID"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(
+                                  `https://dashboard.stripe.com${transaction.stripe_mode === 'test' ? '/test' : ''}/customers/${transaction.stripe_customer_id}`,
+                                  '_blank'
+                                )}
+                                title="Open Customer in Stripe"
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </Button>
