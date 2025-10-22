@@ -11,6 +11,21 @@ test.describe('Vendor-Bestie Linking Flow', () => {
     await mockSupabaseDatabase(page, state);
   });
 
+  // CRITICAL: Clean up MockSupabaseState after each test
+  test.afterEach(async ({ page }) => {
+    if (state) {
+      state.users.clear();
+      state.profiles.clear();
+      state.userRoles.clear();
+      state.sessions.clear();
+      state.caregiverBestieLinks.clear();
+      state.vendors.clear();
+      state.vendorBestieRequests.clear();
+      
+      console.log('🧹 Cleaned up MockSupabaseState after vendor-linking test');
+    }
+  });
+
   test.describe('Vendor Link Request Flow', () => {
     test('should display link option for vendors', async ({ page }) => {
       // Create and authenticate as vendor

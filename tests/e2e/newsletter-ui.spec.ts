@@ -1,8 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
 import percySnapshot from '@percy/playwright';
+import { getTestAccount } from '../fixtures/test-accounts';
 
 /**
- * Newsletter System UI E2E Tests
+ * Newsletter System UI E2E Tests - WITH SHARD-SPECIFIC ACCOUNTS
  * Tests the complete newsletter management interface including campaigns, templates, subscribers, and analytics
  */
 test.describe('Newsletter System UI @fast', () => {
@@ -17,12 +18,14 @@ test.describe('Newsletter System UI @fast', () => {
     const context = await browser.newContext();
     adminPage = await context.newPage();
 
-    // Login as admin
+    // Login as admin with shard-specific account
+    const testAccount = getTestAccount();
+    
     await adminPage.goto('/auth');
     await adminPage.waitForLoadState('networkidle');
     
-    await adminPage.fill('input[type="email"]', 'test@example.com');
-    await adminPage.fill('input[type="password"]', 'testpassword123');
+    await adminPage.fill('input[type="email"]', testAccount.email);
+    await adminPage.fill('input[type="password"]', testAccount.password);
     await adminPage.click('button:has-text("Sign In")');
     
     await adminPage.waitForURL(/\/(community|admin)/);

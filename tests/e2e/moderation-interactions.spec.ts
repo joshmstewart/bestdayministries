@@ -1,8 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
 import percySnapshot from '@percy/playwright';
+import { getTestAccount } from '../fixtures/test-accounts';
 
 /**
- * Moderation Queue Interaction E2E Tests
+ * Moderation Queue Interaction E2E Tests - WITH SHARD-SPECIFIC ACCOUNTS
  * Tests complete content moderation workflows including approve, reject, delete actions
  */
 test.describe('Moderation Queue Interactions @fast', () => {
@@ -15,12 +16,14 @@ test.describe('Moderation Queue Interactions @fast', () => {
     const context = await browser.newContext();
     moderatorPage = await context.newPage();
 
-    // Login as admin/moderator
+    // Login as admin/moderator with shard-specific account
+    const testAccount = getTestAccount();
+    
     await moderatorPage.goto('/auth');
     await moderatorPage.waitForLoadState('networkidle');
     
-    await moderatorPage.fill('input[type="email"]', 'test@example.com');
-    await moderatorPage.fill('input[type="password"]', 'testpassword123');
+    await moderatorPage.fill('input[type="email"]', testAccount.email);
+    await moderatorPage.fill('input[type="password"]', testAccount.password);
     await moderatorPage.click('button:has-text("Sign In")');
     
     await moderatorPage.waitForURL(/\/(community|admin)/);

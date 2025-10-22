@@ -110,7 +110,10 @@ test.describe('Contact Form', () => {
   });
 
   test('should allow authenticated user to submit contact form', async ({ page }) => {
-    // Login first
+    // Login first with shard-specific account
+    const { getTestAccount } = await import('../fixtures/test-accounts');
+    const testAccount = getTestAccount();
+    
     await page.goto('/auth');
     await page.waitForLoadState('networkidle');
     
@@ -119,9 +122,9 @@ test.describe('Contact Form', () => {
     const loginButton = page.locator('button:has-text("Sign In"), button:has-text("Log In")').first();
     
     if (await emailInput.isVisible()) {
-      // Use test credentials
-      await emailInput.fill('test@example.com');
-      await passwordInput.fill('testpassword123');
+      // Use shard-specific test credentials
+      await emailInput.fill(testAccount.email);
+      await passwordInput.fill(testAccount.password);
       await loginButton.click();
       await page.waitForURL(/\/(community|admin)/, { timeout: 5000 }).catch(() => {});
     }

@@ -25,6 +25,38 @@ test.describe('Authentication and Signup Flow', () => {
     await page.locator('input[type="email"], input[placeholder*="email" i]').first().waitFor({ timeout: 5000 });
   });
 
+  // CRITICAL: Clean up MockSupabaseState after each test to prevent state pollution
+  test.afterEach(async ({ page }) => {
+    if (state) {
+      // Explicitly clear all mock state collections
+      state.users.clear();
+      state.profiles.clear();
+      state.userRoles.clear();
+      state.sessions.clear();
+      state.caregiverBestieLinks.clear();
+      state.vendors.clear();
+      state.vendorBestieRequests.clear();
+      
+      console.log('🧹 Cleaned up MockSupabaseState after auth test');
+    }
+  });
+
+  // CRITICAL: Clean up MockSupabaseState after each test to prevent state pollution
+  test.afterEach(async ({ page }) => {
+    if (state) {
+      // Explicitly clear all mock state collections
+      state.users.clear();
+      state.profiles.clear();
+      state.userRoles.clear();
+      state.sessions.clear();
+      state.caregiverBestieLinks.clear();
+      state.vendors.clear();
+      state.vendorBestieRequests.clear();
+      
+      console.log('🧹 Cleaned up MockSupabaseState after test');
+    }
+  });
+
   test('should display auth page elements', async ({ page }) => {
     console.log('🔍 TEST 9: Starting auth page elements test');
     // Elements should already be visible after beforeEach waits

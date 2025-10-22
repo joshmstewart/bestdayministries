@@ -1,8 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
 import percySnapshot from '@percy/playwright';
+import { getTestAccount } from '../fixtures/test-accounts';
 
 /**
- * Games System E2E Tests
+ * Games System E2E Tests - WITH SHARD-SPECIFIC ACCOUNTS
  * Tests Memory Match and Match-3 games including gameplay, scoring, coin rewards, and difficulty modes
  */
 test.describe('Games System @fast', () => {
@@ -12,12 +13,14 @@ test.describe('Games System @fast', () => {
     const context = await browser.newContext();
     testPage = await context.newPage();
 
-    // Login as test user
+    // Login as test user with shard-specific account
+    const testAccount = getTestAccount();
+    
     await testPage.goto('/auth');
     await testPage.waitForLoadState('networkidle');
     
-    await testPage.fill('input[type="email"]', 'test@example.com');
-    await testPage.fill('input[type="password"]', 'testpassword123');
+    await testPage.fill('input[type="email"]', testAccount.email);
+    await testPage.fill('input[type="password"]', testAccount.password);
     await testPage.click('button:has-text("Sign In")');
     
     await testPage.waitForURL(/\/(community|admin)/);

@@ -172,12 +172,15 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
 
   test('acceptance is recorded in database with IP', async ({ page }) => {
     // After successful acceptance, verify database record
+    const { getTestAccount } = await import('../fixtures/test-accounts');
+    const testAccount = getTestAccount();
+    
     await page.goto('/auth');
     await page.waitForLoadState('networkidle');
     
-    // Login as a user who has accepted terms
-    await page.fill('input[type="email"]', 'test@example.com');
-    await page.fill('input[type="password"]', 'testpassword123');
+    // Login as a user who has accepted terms (shard-specific)
+    await page.fill('input[type="email"]', testAccount.email);
+    await page.fill('input[type="password"]', testAccount.password);
     await page.click('button:has-text("Sign In")');
     
     await page.waitForTimeout(2000);
@@ -238,12 +241,15 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
   });
 
   test('returning user does not see terms dialog', async ({ page }) => {
-    // Login as user who already accepted terms
+    // Login as user who already accepted terms (shard-specific)
+    const { getTestAccount } = await import('../fixtures/test-accounts');
+    const testAccount = getTestAccount();
+    
     await page.goto('/auth');
     await page.waitForLoadState('networkidle');
     
-    await page.fill('input[type="email"]', 'test@example.com');
-    await page.fill('input[type="password"]', 'testpassword123');
+    await page.fill('input[type="email"]', testAccount.email);
+    await page.fill('input[type="password"]', testAccount.password);
     await page.click('button:has-text("Sign In")');
     
     await page.waitForTimeout(3000);

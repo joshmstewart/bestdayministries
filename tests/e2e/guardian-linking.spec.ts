@@ -49,6 +49,21 @@ test.describe('Guardian-Bestie Linking Flow', () => {
     // Additional wait for auth state to fully propagate
   });
 
+  // CRITICAL: Clean up MockSupabaseState after each test
+  test.afterEach(async ({ page }) => {
+    if (state) {
+      state.users.clear();
+      state.profiles.clear();
+      state.userRoles.clear();
+      state.sessions.clear();
+      state.caregiverBestieLinks.clear();
+      state.vendors.clear();
+      state.vendorBestieRequests.clear();
+      
+      console.log('🧹 Cleaned up MockSupabaseState after guardian-linking test');
+    }
+  });
+
   // ============================================
   // FAST SMOKE TESTS - Verify UI Presence
   // ============================================

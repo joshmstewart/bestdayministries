@@ -19,14 +19,21 @@ async function globalTeardown(config: FullConfig) {
     await page.goto(config.projects[0].use.baseURL || 'http://localhost:8080');
     await page.waitForLoadState('networkidle', { timeout: 10000 });
     
-    // Execute cleanup with retry logic
+    // Execute cleanup with exponential backoff retry logic
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 5; // INCREASED: More retries for reliability
     let success = false;
     
     while (attempts < maxAttempts && !success) {
       attempts++;
-      console.log(`  Attempt ${attempts}/${maxAttempts}...`);
+      const backoff = Math.pow(2, attempts - 1) * 1000; // 1s, 2s, 4s, 8s, 16s
+      
+      if (attempts > 1) {
+        console.log(`  Waiting ${backoff}ms before retry ${attempts}/${maxAttempts}...`);
+        await page.waitForTimeout(backoff);
+      } else {
+        console.log(`  Attempt ${attempts}/${maxAttempts}...`);
+      }
       
       const result = await page.evaluate(async () => {
         try {
@@ -59,9 +66,7 @@ async function globalTeardown(config: FullConfig) {
         success = true;
       } else {
         console.error(`  ❌ Cleanup failed on attempt ${attempts}:`, result.error);
-        if (attempts < maxAttempts) {
-          await page.waitForTimeout(2000);
-        }
+        // Exponential backoff already handled above
       }
     }
     

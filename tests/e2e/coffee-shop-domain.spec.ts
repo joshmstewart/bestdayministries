@@ -1,8 +1,9 @@
 import { test, expect, Page } from '@playwright/test';
 import percySnapshot from '@percy/playwright';
+import { getTestAccount } from '../fixtures/test-accounts';
 
 /**
- * Coffee Shop Domain E2E Tests
+ * Coffee Shop Domain E2E Tests - WITH SHARD-SPECIFIC ACCOUNTS
  * Tests subdomain routing, content display, and navigation for coffee shop domain
  */
 test.describe('Coffee Shop Domain System @fast', () => {
@@ -205,12 +206,14 @@ test.describe('Coffee Shop Domain System @fast', () => {
   });
 
   test('admin can edit coffee shop content', async ({ page }) => {
-    // Login as admin
+    // Login as admin with shard-specific account
+    const testAccount = getTestAccount();
+    
     await page.goto('/auth');
     await page.waitForLoadState('networkidle');
     
-    await page.fill('input[type="email"]', 'test@example.com');
-    await page.fill('input[type="password"]', 'testpassword123');
+    await page.fill('input[type="email"]', testAccount.email);
+    await page.fill('input[type="password"]', testAccount.password);
     await page.click('button:has-text("Sign In")');
     await page.waitForLoadState('networkidle');
     

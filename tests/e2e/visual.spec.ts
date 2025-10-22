@@ -1,14 +1,17 @@
 import { test } from '@playwright/test';
 import percySnapshot from '@percy/playwright';
+import { getTestAccount } from '../fixtures/test-accounts';
 
-// Helper function to log in before tests
+// Helper function to log in before tests - WITH SHARD-SPECIFIC ACCOUNTS
 async function login(page: any) {
+  const testAccount = getTestAccount();
+  
   await page.goto('/auth');
   await page.waitForLoadState('networkidle');
   
-  // Fill in login credentials (use test account)
-  await page.fill('input[type="email"]', 'test@example.com');
-  await page.fill('input[type="password"]', 'testpassword123');
+  // Fill in login credentials (use shard-specific test account)
+  await page.fill('input[type="email"]', testAccount.email);
+  await page.fill('input[type="password"]', testAccount.password);
   
   // Click login button
   await page.click('button:has-text("Sign In")');

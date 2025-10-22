@@ -10,6 +10,21 @@ test.describe('Page Navigation @fast', () => {
     await mockSupabaseDatabase(page, state);
   });
 
+  // CRITICAL: Clean up MockSupabaseState after each test
+  test.afterEach(async ({ page }) => {
+    if (state) {
+      state.users.clear();
+      state.profiles.clear();
+      state.userRoles.clear();
+      state.sessions.clear();
+      state.caregiverBestieLinks.clear();
+      state.vendors.clear();
+      state.vendorBestieRequests.clear();
+      
+      console.log('🧹 Cleaned up MockSupabaseState after navigation test');
+    }
+  });
+
   const pages = [
     { path: '/', name: 'Homepage' },
     { path: '/about', name: 'About' },

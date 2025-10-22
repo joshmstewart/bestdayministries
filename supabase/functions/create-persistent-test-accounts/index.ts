@@ -7,31 +7,213 @@ const corsHeaders = {
 };
 
 /**
- * PERSISTENT TEST ACCOUNTS
+ * PERSISTENT TEST ACCOUNTS - EXPANDED FOR PARALLEL SHARDS
  * These accounts are used for testing different user experiences and should NEVER be deleted.
- * They are excluded from all cleanup operations.
+ * Now includes shard-specific accounts (test1-test6) for CI parallel execution.
  */
 const PERSISTENT_TEST_ACCOUNTS = [
+  // Original default accounts (local testing)
   {
-    email: 'testbestie@example.com',
-    password: 'TestBestie123!',
-    displayName: 'Test Bestie',
-    role: 'bestie',
+    email: 'test@example.com',
+    password: 'testpassword123',
+    displayName: 'Test User',
+    role: 'supporter',
     avatarNumber: 1
   },
   {
-    email: 'testguardian@example.com',
-    password: 'TestGuardian123!',
-    displayName: 'Test Guardian',
-    role: 'caregiver',
+    email: 'testbestie@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Bestie',
+    role: 'bestie',
     avatarNumber: 2
   },
   {
+    email: 'testguardian@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Guardian',
+    role: 'caregiver',
+    avatarNumber: 3
+  },
+  {
     email: 'testsupporter@example.com',
-    password: 'TestSupporter123!',
+    password: 'testpassword123',
     displayName: 'Test Supporter',
     role: 'supporter',
+    avatarNumber: 4
+  },
+  // Shard 1 accounts
+  {
+    email: 'test1@example.com',
+    password: 'testpassword123',
+    displayName: 'Test User 1',
+    role: 'supporter',
+    avatarNumber: 1
+  },
+  {
+    email: 'testbestie1@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Bestie 1',
+    role: 'bestie',
+    avatarNumber: 2
+  },
+  {
+    email: 'testguardian1@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Guardian 1',
+    role: 'caregiver',
     avatarNumber: 3
+  },
+  {
+    email: 'testsupporter1@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Supporter 1',
+    role: 'supporter',
+    avatarNumber: 4
+  },
+  // Shard 2 accounts
+  {
+    email: 'test2@example.com',
+    password: 'testpassword123',
+    displayName: 'Test User 2',
+    role: 'supporter',
+    avatarNumber: 1
+  },
+  {
+    email: 'testbestie2@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Bestie 2',
+    role: 'bestie',
+    avatarNumber: 2
+  },
+  {
+    email: 'testguardian2@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Guardian 2',
+    role: 'caregiver',
+    avatarNumber: 3
+  },
+  {
+    email: 'testsupporter2@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Supporter 2',
+    role: 'supporter',
+    avatarNumber: 4
+  },
+  // Shard 3 accounts
+  {
+    email: 'test3@example.com',
+    password: 'testpassword123',
+    displayName: 'Test User 3',
+    role: 'supporter',
+    avatarNumber: 1
+  },
+  {
+    email: 'testbestie3@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Bestie 3',
+    role: 'bestie',
+    avatarNumber: 2
+  },
+  {
+    email: 'testguardian3@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Guardian 3',
+    role: 'caregiver',
+    avatarNumber: 3
+  },
+  {
+    email: 'testsupporter3@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Supporter 3',
+    role: 'supporter',
+    avatarNumber: 4
+  },
+  // Shard 4 accounts
+  {
+    email: 'test4@example.com',
+    password: 'testpassword123',
+    displayName: 'Test User 4',
+    role: 'supporter',
+    avatarNumber: 1
+  },
+  {
+    email: 'testbestie4@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Bestie 4',
+    role: 'bestie',
+    avatarNumber: 2
+  },
+  {
+    email: 'testguardian4@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Guardian 4',
+    role: 'caregiver',
+    avatarNumber: 3
+  },
+  {
+    email: 'testsupporter4@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Supporter 4',
+    role: 'supporter',
+    avatarNumber: 4
+  },
+  // Shard 5 accounts
+  {
+    email: 'test5@example.com',
+    password: 'testpassword123',
+    displayName: 'Test User 5',
+    role: 'supporter',
+    avatarNumber: 1
+  },
+  {
+    email: 'testbestie5@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Bestie 5',
+    role: 'bestie',
+    avatarNumber: 2
+  },
+  {
+    email: 'testguardian5@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Guardian 5',
+    role: 'caregiver',
+    avatarNumber: 3
+  },
+  {
+    email: 'testsupporter5@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Supporter 5',
+    role: 'supporter',
+    avatarNumber: 4
+  },
+  // Shard 6 accounts
+  {
+    email: 'test6@example.com',
+    password: 'testpassword123',
+    displayName: 'Test User 6',
+    role: 'supporter',
+    avatarNumber: 1
+  },
+  {
+    email: 'testbestie6@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Bestie 6',
+    role: 'bestie',
+    avatarNumber: 2
+  },
+  {
+    email: 'testguardian6@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Guardian 6',
+    role: 'caregiver',
+    avatarNumber: 3
+  },
+  {
+    email: 'testsupporter6@example.com',
+    password: 'testpassword123',
+    displayName: 'Test Supporter 6',
+    role: 'supporter',
+    avatarNumber: 4
   }
 ];
 
@@ -41,7 +223,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🔧 Creating/verifying persistent test accounts...');
+    console.log('🔧 Creating/verifying persistent test accounts (including shard-specific accounts)...');
     
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -144,11 +326,13 @@ serve(async (req) => {
     }
 
     console.log('✅ Persistent test accounts verification complete');
+    console.log(`📊 Total accounts: ${PERSISTENT_TEST_ACCOUNTS.length}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Persistent test accounts created/verified',
+        message: 'Persistent test accounts created/verified (including shard-specific accounts)',
+        totalAccounts: PERSISTENT_TEST_ACCOUNTS.length,
         results 
       }),
       { 

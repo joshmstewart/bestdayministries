@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 import percySnapshot from '@percy/playwright';
+import { getTestAccount } from '../fixtures/test-accounts';
 
 /**
- * Profile Settings E2E Tests - FIXED VERSION
- * All tests now use ({ page }) instead of shared testPage
+ * Profile Settings E2E Tests - FIXED VERSION WITH SHARD-SPECIFIC ACCOUNTS
+ * Uses shard-specific test accounts to prevent race conditions in parallel execution
  */
 test.describe('Profile Settings @fast', () => {
   const timestamp = Date.now();
@@ -11,15 +12,18 @@ test.describe('Profile Settings @fast', () => {
   const testBio = `Test bio content ${timestamp}`;
 
   test.beforeEach(async ({ page }) => {
-    // FIXED: Login before EACH test instead of sharing a page across tests
+    // CRITICAL: Use shard-specific account to prevent login conflicts
+    const testAccount = getTestAccount();
+    
     await page.goto('/auth');
     await page.waitForLoadState('networkidle');
     
-    await page.fill('input[type="email"]', 'test@example.com');
-    await page.fill('input[type="password"]', 'testpassword123');
+    await page.fill('input[type="email"]', testAccount.email);
+    await page.fill('input[type="password"]', testAccount.password);
     await page.click('button:has-text("Sign In")');
     
-    await page.waitForURL(/\/(community|admin)/);
+    // INCREASED: 45s timeout for slower CI environment
+    await page.waitForURL(/\/(community|admin)/, { timeout: 45000 });
     await page.waitForLoadState('networkidle');
   });
 

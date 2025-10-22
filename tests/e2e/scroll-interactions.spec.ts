@@ -10,6 +10,21 @@ test.describe('Scroll Interactions', () => {
     await mockSupabaseDatabase(page, state);
   });
 
+  // CRITICAL: Clean up MockSupabaseState after each test
+  test.afterEach(async ({ page }) => {
+    if (state) {
+      state.users.clear();
+      state.profiles.clear();
+      state.userRoles.clear();
+      state.sessions.clear();
+      state.caregiverBestieLinks.clear();
+      state.vendors.clear();
+      state.vendorBestieRequests.clear();
+      
+      console.log('🧹 Cleaned up MockSupabaseState after scroll test');
+    }
+  });
+
   test('header buttons remain clickable after scrolling down', async ({ page }) => {
     // Navigate to a page with scrollable content
     await page.goto('/admin');

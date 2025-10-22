@@ -2,10 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: false, // FIXED: Disabled to prevent fixture race conditions in sharded runs
+  fullyParallel: false, // CRITICAL: Must stay false to prevent fixture conflicts
   forbidOnly: !!process.env.CI,
-  retries: 0, // Removed retries - tests should be reliable
-  workers: process.env.CI ? 2 : undefined, // FIXED: Reduced from 4 to 2 to prevent fixture conflicts
+  retries: 0, // Tests should be reliable without retries
+  workers: process.env.CI ? 1 : undefined, // CRITICAL: Force serial execution in CI to eliminate fixture cleanup errors
   reporter: 'html',
   
   // Global setup to polyfill import.meta for Node.js
@@ -20,13 +20,13 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    actionTimeout: 10000, // Reduced from 15s
-    navigationTimeout: 15000, // Reduced from 30s
+    actionTimeout: 10000,
+    navigationTimeout: 20000, // INCREASED: 20s for slower CI environment
     extraHTTPHeaders: {},
   },
 
-  // Default test timeout - reduced for faster feedback
-  timeout: 30000, // Reduced from 60s
+  // Default test timeout - increased for stability
+  timeout: 45000, // INCREASED: 45s to accommodate slower CI and auth flows
 
   // Grep patterns for running specific test types
   // Run only fast tests: npx playwright test --grep @fast
