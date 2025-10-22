@@ -20,12 +20,14 @@ test.describe('Favicon and App Manifest @fast', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
+    // Link tags in <head> are not "visible" - check for existence instead
     const faviconLink = await page.locator('link[rel="icon"]');
-    await expect(faviconLink).toBeVisible({ timeout: 2000 });
+    await expect(faviconLink).toHaveCount(1, { timeout: 2000 });
     const faviconHref = await faviconLink.getAttribute('href');
     
     // Verify favicon has been set (should not be default)
     expect(faviconHref).toBeTruthy();
+    expect(faviconHref).toMatch(/\.(png|jpg|jpeg|ico|svg)(\?|$)/i);
   });
 
   test('app manifest meta tags are present', async ({ page }) => {

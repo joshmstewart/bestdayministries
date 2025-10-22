@@ -153,24 +153,44 @@ serve(async (req) => {
         }
       }
       
-      // Also delete replies by email pattern
+      // ENHANCED: Delete replies by email/name patterns (catches more test data)
       const testEmailPatterns = [
         'test@%',
         '%@test.com',
         'emailtest-%',
-        'Test User%',
-        'E2E User%'
+        'Test%User%',
+        'E2E%User%',
+        '%Anonymous%Test%',
+        '%Authenticated%Test%'
       ];
       
       for (const pattern of testEmailPatterns) {
-        await supabaseAdmin
+        const { error: replyPatternError } = await supabaseAdmin
           .from('contact_form_replies')
           .delete()
           .or(`sender_email.like.${pattern},sender_name.like.${pattern}`);
+        
+        if (replyPatternError) {
+          console.error(`Error deleting replies with pattern ${pattern}:`, replyPatternError);
+        }
       }
       
       // 5. Delete contact form submissions
       console.log('🧹 Deleting contact form submissions...');
+      
+      // Delete by user_id if authenticated submissions exist
+      if (testUserIds.length > 0) {
+        const { error: submissionsUserError } = await supabaseAdmin
+          .from('contact_form_submissions')
+          .delete()
+          .in('user_id', testUserIds);
+        
+        if (submissionsUserError) {
+          console.error('Error deleting contact form submissions by user:', submissionsUserError);
+        }
+      }
+      
+      // Delete by email/name patterns
       for (const pattern of testEmailPatterns) {
         const { error: submissionsError } = await supabaseAdmin
           .from('contact_form_submissions')
@@ -687,12 +707,24 @@ serve(async (req) => {
     const { error: orphanedSubmissionsError } = await supabaseAdmin
       .from('contact_form_submissions')
       .delete()
-      .or('email.like.%test-%@%,name.ilike.%Test%,name.ilike.%E2E%');
+      .or('email.like.%test-%@%,name.ilike.%Test%,name.ilike.%E2E%,name.ilike.%Anonymous%Test%,name.ilike.%Authenticated%Test%');
     
     if (orphanedSubmissionsError) {
       console.error('Error deleting orphaned submissions:', orphanedSubmissionsError);
     } else {
       console.log('✅ Cleaned orphaned contact submissions');
+    }
+    
+    // Delete orphaned contact form replies with test patterns
+    const { error: orphanedRepliesError } = await supabaseAdmin
+      .from('contact_form_replies')
+      .delete()
+      .or('sender_email.like.%test-%@%,sender_name.ilike.%Test%,sender_name.ilike.%E2E%,sender_name.ilike.%Anonymous%Test%');
+    
+    if (orphanedRepliesError) {
+      console.error('Error deleting orphaned replies:', orphanedRepliesError);
+    } else {
+      console.log('✅ Cleaned orphaned contact form replies');
     }
 
     // Delete any remaining notifications about test content
