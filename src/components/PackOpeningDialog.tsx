@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import confetti from "canvas-confetti";
-import { Sparkles, Package } from "lucide-react";
+import { Sparkles, Package, BookOpen, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface PackOpeningDialogProps {
   open: boolean;
@@ -41,6 +42,7 @@ const rarityConfettiConfig = {
 
 export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: PackOpeningDialogProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [opened, setOpened] = useState(false);
   const [opening, setOpening] = useState(false);
   const [revealedStickers, setRevealedStickers] = useState<any[]>([]);
@@ -568,13 +570,27 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
                     ))}
                   </div>
 
-                  <Button 
-                    onClick={() => handleDialogClose(false)}
-                    size="lg"
-                    className="mt-4"
-                  >
-                    Continue
-                  </Button>
+                  <div className="flex items-center gap-3 mt-4">
+                    <Button 
+                      onClick={() => handleDialogClose(false)}
+                      size="lg"
+                      variant="outline"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Close
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => {
+                        handleDialogClose(false);
+                        navigate('/sticker-album');
+                      }}
+                      size="lg"
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      View Collection
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
