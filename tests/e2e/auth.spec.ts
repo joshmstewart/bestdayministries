@@ -28,7 +28,7 @@ test.describe('Authentication and Signup Flow', () => {
   // CRITICAL: Clean up MockSupabaseState after each test to prevent state pollution
   test.afterEach(async ({ page }) => {
     if (state) {
-      // Explicitly clear all mock state collections
+      // AGGRESSIVE: Clear ALL mock state collections
       state.users.clear();
       state.profiles.clear();
       state.userRoles.clear();
@@ -37,23 +37,10 @@ test.describe('Authentication and Signup Flow', () => {
       state.vendors.clear();
       state.vendorBestieRequests.clear();
       
-      console.log('🧹 Cleaned up MockSupabaseState after auth test');
-    }
-  });
-
-  // CRITICAL: Clean up MockSupabaseState after each test to prevent state pollution
-  test.afterEach(async ({ page }) => {
-    if (state) {
-      // Explicitly clear all mock state collections
-      state.users.clear();
-      state.profiles.clear();
-      state.userRoles.clear();
-      state.sessions.clear();
-      state.caregiverBestieLinks.clear();
-      state.vendors.clear();
-      state.vendorBestieRequests.clear();
+      console.log(`🧹 Cleaned up MockSupabaseState (users: ${state.users.size}, profiles: ${state.profiles.size})`);
       
-      console.log('🧹 Cleaned up MockSupabaseState after test');
+      // Small delay to ensure cleanup completes
+      await page.waitForTimeout(100);
     }
   });
 

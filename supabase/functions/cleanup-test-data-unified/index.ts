@@ -106,7 +106,51 @@ serve(async (req) => {
         if (notificationsError) {
           console.error('Error deleting notifications:', notificationsError);
         } else {
-          console.log('✅ Deleted notifications');
+          console.log('✅ Deleted notifications owned by test users');
+        }
+        
+        // CRITICAL FIX: Delete notifications ABOUT test data sent TO real admin users
+        console.log('🧹 Deleting notifications about test data...');
+        
+        // Get all contact form submissions from test users to find related notifications
+        const { data: testSubmissions } = await supabaseAdmin
+          .from('contact_form_submissions')
+          .select('id')
+          .or(
+            testUserIds.length > 0 
+              ? `user_id.in.(${testUserIds.join(',')}),${namePatterns.map(p => `name.ilike.%${p}%`).join(',')}`
+              : namePatterns.map(p => `name.ilike.%${p}%`).join(',')
+          );
+        
+        if (testSubmissions && testSubmissions.length > 0) {
+          const submissionIds = testSubmissions.map(s => s.id);
+          
+          // Delete notifications about these submissions (sent to ANY user, including admins)
+          const { error: submissionNotifError } = await supabaseAdmin
+            .from('notifications')
+            .delete()
+            .eq('type', 'contact_form_submission')
+            .in('metadata->submission_id', submissionIds);
+          
+          if (submissionNotifError) {
+            console.error('Error deleting notifications about test submissions:', submissionNotifError);
+          } else {
+            console.log('✅ Deleted notifications about test contact form submissions');
+          }
+        }
+        
+        // Also delete by name pattern in metadata message
+        for (const pattern of namePatterns) {
+          const { error: patternNotifError } = await supabaseAdmin
+            .from('notifications')
+            .delete()
+            .ilike('message', `%${pattern}%`);
+          
+          if (patternNotifError) {
+            console.error(`Error deleting notifications with pattern ${pattern}:`, patternNotifError);
+          } else {
+            console.log(`✅ Deleted notifications with pattern: ${pattern}`);
+          }
         }
         
         // 2. Delete notification preferences
@@ -201,7 +245,24 @@ serve(async (req) => {
           console.error(`Error deleting contact form submissions with pattern ${pattern}:`, submissionsError);
         }
       }
-      console.log('✅ Deleted contact form submissions');
+      console.log('✅ Deleted contact form submissions by patterns');
+      
+      // CRITICAL FIX: Also delete contact form submissions by EMAIL pattern (for email tests)
+      console.log('🧹 Deleting contact form submissions by email pattern...');
+      const emailPatterns = ['test-%@example.com', 'test-reply-%@example.com', 'test-admin-%@example.com', 'test-thread-%@example.com'];
+      for (const pattern of emailPatterns) {
+        const { error: emailSubmissionsError } = await supabaseAdmin
+          .from('contact_form_submissions')
+          .delete()
+          .ilike('email', pattern);
+        
+        if (emailSubmissionsError) {
+          console.error(`Error deleting submissions with email pattern ${pattern}:`, emailSubmissionsError);
+        } else {
+          console.log(`✅ Deleted submissions with email pattern: ${pattern}`);
+        }
+      }
+      console.log('✅ Deleted all contact form submissions');
       
       // 6. Delete discussion comments by test users OR by name pattern
       console.log('🧹 Deleting discussion comments...');

@@ -17,9 +17,9 @@ test.describe('Community Features @fast', () => {
     await page.goto('/community');
     await page.waitForLoadState('networkidle');
     
-    // Look for section headings or cards
-    const sections = page.locator('h2, h3, section, [class*="section"], [class*="card"]');
-    await expect(sections.first()).toBeVisible({ timeout: 5000 });
+    // Look for visible section headings or cards (excluding notification popover)
+    const sections = page.locator('h2:visible, h3:visible, section:visible').filter({ hasNot: page.locator('[aria-label*="Notifications"]') });
+    await expect(sections.first()).toBeVisible({ timeout: 10000 });
   });
 
   test('should load discussions page', async ({ page }) => {

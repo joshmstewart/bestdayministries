@@ -42,8 +42,24 @@ async function globalTeardown(config: FullConfig) {
           
           const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
             body: {
-              // CRITICAL: Only match actual test data, not production users
-              namePatterns: ['Test User', 'Test Bestie', 'Test Guardian', 'Test Supporter', 'E2E', 'Email Test', 'Accept Test', 'Content Test', 'Visual Test']
+              // CRITICAL: Comprehensive patterns to match ALL test variations
+              namePatterns: [
+                'Test User',
+                'Test Bestie', 
+                'Test Guardian', 
+                'Test Supporter',
+                'Reply Test User',      // Email test users
+                'Admin Test User',
+                'Thread Test User',
+                'Anonymous Test User',
+                'Authenticated Test User',
+                'E2E', 
+                'Email Test', 
+                'Accept Test', 
+                'Content Test', 
+                'Visual Test'
+              ],
+              emailPrefix: 'test-'  // Catches test-reply-, test-admin-, test-thread-, etc.
             }
           });
 
