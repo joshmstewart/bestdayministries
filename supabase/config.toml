@@ -1,5 +1,8 @@
 project_id = "nbvijawmjkycyweioglk"
 
+[functions.setup-test-sponsorship]
+verify_jwt = false
+
 [functions.create-user]
 verify_jwt = true
 
