@@ -61,7 +61,8 @@ export const UnifiedHeader = () => {
   const { count: messageModerationCount } = useMessageModerationCount();
   const { count: contactFormCount } = useContactFormCount();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
-  const { canModerate, hasStoreAccess } = useUserPermissions();
+  const { canModerate } = useUserPermissions();
+  const [hasStoreAccess, setHasStoreAccess] = useState(false);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -285,6 +286,25 @@ export const UnifiedHeader = () => {
       
       // Note: Test account checking removed as email is no longer stored in profiles
       setIsTestAccount(false);
+
+      // Check if any store items are visible to this user's role
+      const { data: storeItems, error: storeError } = await supabase
+        .from("store_items")
+        .select("id, visible_to_roles")
+        .eq("is_active", true)
+        .limit(1);
+
+      if (!storeError && storeItems) {
+        const hasVisibleItems = storeItems.some(item => {
+          // Admin/owner can always see store
+          if (profile.role === "admin" || profile.role === "owner") return true;
+          // Check if item is visible to user's role
+          const visibleRoles = (item as any).visible_to_roles;
+          if (!visibleRoles || visibleRoles.length === 0) return true;
+          return visibleRoles.includes(profile.role);
+        });
+        setHasStoreAccess(hasVisibleItems || profile.role === "admin" || profile.role === "owner");
+      }
 
       // Check if bestie has shared sponsorships
       if (profile.role === "bestie") {

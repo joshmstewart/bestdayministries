@@ -11,6 +11,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingBag, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 interface StoreItem {
   id: string;
@@ -29,9 +32,22 @@ const Store = () => {
   const [items, setItems] = useState<StoreItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   const fetchItems = async () => {
     try {
+      // Fetch user role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .single();
+        
+        setUserRole(roleData?.role || "supporter");
+      }
+
       const { data, error } = await supabase
         .from("store_items")
         .select("*")
@@ -51,11 +67,21 @@ const Store = () => {
     fetchItems();
   }, []);
 
-  const categories = ["all", ...new Set(items.map(item => item.category))];
+  // Filter items by role visibility first
+  const roleFilteredItems = items.filter(item => {
+    // Admin can see all items
+    if (userRole === "admin" || userRole === "owner") return true;
+    // Check if item is visible to user's role
+    const visibleRoles = (item as any).visible_to_roles;
+    if (!visibleRoles || visibleRoles.length === 0) return true;
+    return userRole && visibleRoles.includes(userRole);
+  });
+
+  const categories = ["all", ...new Set(roleFilteredItems.map(item => item.category))];
   
   const filteredItems = selectedCategory === "all" 
-    ? items 
-    : items.filter(item => item.category === selectedCategory);
+    ? roleFilteredItems 
+    : roleFilteredItems.filter(item => item.category === selectedCategory);
 
   return (
     <div className="min-h-screen flex flex-col">

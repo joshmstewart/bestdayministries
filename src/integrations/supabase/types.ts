@@ -3939,6 +3939,7 @@ export type Database = {
           price: number
           required_role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           category?: string
@@ -3952,6 +3953,7 @@ export type Database = {
           price: number
           required_role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           category?: string
@@ -3965,6 +3967,7 @@ export type Database = {
           price?: number
           required_role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: []
       }

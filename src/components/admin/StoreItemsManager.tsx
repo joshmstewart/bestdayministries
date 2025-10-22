@@ -11,6 +11,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database['public']['Enums']['user_role'];
+
+const USER_ROLES = [
+  { value: "supporter" as UserRole, label: "Supporter" },
+  { value: "bestie" as UserRole, label: "Bestie" },
+  { value: "caregiver" as UserRole, label: "Caregiver" },
+  { value: "admin" as UserRole, label: "Admin" },
+  { value: "owner" as UserRole, label: "Owner" },
+];
 
 export const StoreItemsManager = () => {
   const { toast } = useToast();
@@ -22,6 +35,7 @@ export const StoreItemsManager = () => {
     price: "",
     category: "general",
     image_url: "",
+    visible_to_roles: ["supporter", "bestie", "caregiver", "admin", "owner"] as UserRole[],
   });
 
   const { data: items, refetch } = useQuery({
@@ -50,6 +64,7 @@ export const StoreItemsManager = () => {
             price: parseInt(formData.price),
             category: formData.category,
             image_url: formData.image_url || null,
+            visible_to_roles: formData.visible_to_roles,
           })
           .eq('id', editingItem.id);
 
@@ -64,13 +79,14 @@ export const StoreItemsManager = () => {
             price: parseInt(formData.price),
             category: formData.category,
             image_url: formData.image_url || null,
+            visible_to_roles: formData.visible_to_roles,
           });
 
         if (error) throw error;
         toast({ title: "Store item created successfully" });
       }
 
-      setFormData({ name: "", description: "", price: "", category: "general", image_url: "" });
+      setFormData({ name: "", description: "", price: "", category: "general", image_url: "", visible_to_roles: ["supporter", "bestie", "caregiver", "admin", "owner"] as UserRole[] });
       setEditingItem(null);
       setIsDialogOpen(false);
       refetch();
@@ -134,6 +150,7 @@ export const StoreItemsManager = () => {
       price: item.price.toString(),
       category: item.category,
       image_url: item.image_url || "",
+      visible_to_roles: item.visible_to_roles || ["supporter", "bestie", "caregiver", "admin", "owner"] as UserRole[],
     });
     setIsDialogOpen(true);
   };
@@ -153,7 +170,7 @@ export const StoreItemsManager = () => {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setEditingItem(null); setFormData({ name: "", description: "", price: "", category: "general", image_url: "" }); }}>
+              <Button onClick={() => { setEditingItem(null); setFormData({ name: "", description: "", price: "", category: "general", image_url: "", visible_to_roles: ["supporter", "bestie", "caregiver", "admin", "owner"] as UserRole[] }); }}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Item
               </Button>
@@ -218,6 +235,32 @@ export const StoreItemsManager = () => {
                     onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                   />
                 </div>
+                <div>
+                  <Label>Visible to Roles *</Label>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    {USER_ROLES.map((role) => (
+                      <div key={role.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`role-${role.value}`}
+                          checked={formData.visible_to_roles?.includes(role.value)}
+                          onCheckedChange={(checked) => {
+                            const currentRoles = formData.visible_to_roles || [];
+                            const newRoles = checked
+                              ? [...currentRoles, role.value]
+                              : currentRoles.filter(r => r !== role.value);
+                            setFormData({ ...formData, visible_to_roles: newRoles });
+                          }}
+                        />
+                        <label
+                          htmlFor={`role-${role.value}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize"
+                        >
+                          {role.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <Button type="submit" className="w-full">
                   {editingItem ? 'Update' : 'Create'} Item
                 </Button>
@@ -233,6 +276,7 @@ export const StoreItemsManager = () => {
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
+              <TableHead>Visible to Roles</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -243,6 +287,15 @@ export const StoreItemsManager = () => {
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="capitalize">{item.category.replace('_', ' ')}</TableCell>
                 <TableCell>{item.price} coins</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {item.visible_to_roles?.map((role: string) => (
+                      <Badge key={role} variant="secondary" className="text-xs capitalize">
+                        {role}
+                      </Badge>
+                    )) || <Badge variant="outline">All Roles</Badge>}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs ${item.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                     {item.is_active ? 'Active' : 'Inactive'}
