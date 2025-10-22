@@ -45,6 +45,8 @@ interface Transaction {
   started_at: string;
   ended_at: string | null;
   transaction_type: 'sponsorship' | 'donation';
+  receipt_number: string | null;
+  receipt_generated_at: string | null;
   sponsor_profile?: {
     display_name: string;
     avatar_url: string | null;
@@ -97,6 +99,13 @@ export const SponsorshipTransactionsManager = () => {
           sponsor_bestie:sponsor_besties(bestie_name)
         `)
         .order('started_at', { ascending: false });
+      
+      // Load receipts for sponsorships and donations
+      console.log('🔵 [TRANSACTIONS] Fetching receipts...');
+      const { data: receiptsData, error: receiptsError } = await supabase
+        .from('sponsorship_receipts')
+        .select('sponsorship_id, receipt_number, created_at')
+        .order('created_at', { ascending: false });
 
       if (sponsorshipsError) {
         console.error('🔴 [TRANSACTIONS] Sponsorships query failed:', {
@@ -108,6 +117,25 @@ export const SponsorshipTransactionsManager = () => {
         throw sponsorshipsError;
       }
       console.log('✅ [TRANSACTIONS] Sponsorships loaded:', sponsorshipsData?.length || 0);
+      
+      if (receiptsError) {
+        console.error('🔴 [TRANSACTIONS] Receipts query failed:', receiptsError);
+        // Don't throw, just log - receipts are optional
+      }
+      console.log('✅ [TRANSACTIONS] Receipts loaded:', receiptsData?.length || 0);
+      
+      // Create receipts map by sponsorship_id
+      const receiptsMap: Record<string, { receipt_number: string, created_at: string }> = {};
+      if (receiptsData) {
+        receiptsData.forEach(r => {
+          if (r.sponsorship_id) {
+            receiptsMap[r.sponsorship_id] = {
+              receipt_number: r.receipt_number,
+              created_at: r.created_at
+            };
+          }
+        });
+      }
 
       // Load donations
       console.log('🔵 [TRANSACTIONS] Fetching donations...');
@@ -187,32 +215,42 @@ export const SponsorshipTransactionsManager = () => {
 
       // Transform sponsorships
       console.log('🔵 [TRANSACTIONS] Transforming sponsorships...');
-      const sponsorships: Transaction[] = (sponsorshipsData || []).map(s => ({
-        ...s,
-        transaction_type: 'sponsorship' as const,
-        sponsor_profile: s.sponsor_id ? profilesMap[s.sponsor_id] : undefined,
-        bestie_profile: s.bestie_id ? profilesMap[s.bestie_id] : undefined,
-      }));
+      const sponsorships: Transaction[] = (sponsorshipsData || []).map(s => {
+        const receipt = receiptsMap[s.id];
+        return {
+          ...s,
+          transaction_type: 'sponsorship' as const,
+          sponsor_profile: s.sponsor_id ? profilesMap[s.sponsor_id] : undefined,
+          bestie_profile: s.bestie_id ? profilesMap[s.bestie_id] : undefined,
+          receipt_number: receipt?.receipt_number || null,
+          receipt_generated_at: receipt?.created_at || null,
+        };
+      });
 
       // Transform donations
       console.log('🔵 [TRANSACTIONS] Transforming donations...');
-      const donations: Transaction[] = (donationsData || []).map(d => ({
-        id: d.id,
-        sponsor_id: d.donor_id,
-        sponsor_email: d.donor_email,
-        bestie_id: null,
-        sponsor_bestie_id: null,
-        amount: d.amount,
-        frequency: d.frequency,
-        status: d.status,
-        stripe_subscription_id: d.stripe_subscription_id,
-        stripe_customer_id: d.stripe_customer_id,
-        stripe_mode: d.stripe_mode,
-        started_at: d.started_at,
-        ended_at: d.ended_at,
-        transaction_type: 'donation' as const,
-        sponsor_profile: d.donor_id ? profilesMap[d.donor_id] : undefined,
-      }));
+      const donations: Transaction[] = (donationsData || []).map(d => {
+        const receipt = receiptsMap[d.id];
+        return {
+          id: d.id,
+          sponsor_id: d.donor_id,
+          sponsor_email: d.donor_email,
+          bestie_id: null,
+          sponsor_bestie_id: null,
+          amount: d.amount,
+          frequency: d.frequency,
+          status: d.status,
+          stripe_subscription_id: d.stripe_subscription_id,
+          stripe_customer_id: d.stripe_customer_id,
+          stripe_mode: d.stripe_mode,
+          started_at: d.started_at,
+          ended_at: d.ended_at,
+          transaction_type: 'donation' as const,
+          sponsor_profile: d.donor_id ? profilesMap[d.donor_id] : undefined,
+          receipt_number: receipt?.receipt_number || null,
+          receipt_generated_at: receipt?.created_at || null,
+        };
+      });
 
       // Merge and sort by date
       const allTransactions = [...sponsorships, ...donations].sort((a, b) => 
@@ -748,6 +786,33 @@ export const SponsorshipTransactionsManager = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          {/* Receipt Status */}
+                          {transaction.receipt_number ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedTransactionId(transaction.receipt_number);
+                                setTransactionDialogOpen(true);
+                              }}
+                              title={`Receipt: ${transaction.receipt_number}`}
+                              className="text-green-600"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                          ) : (transaction.status === 'active' || transaction.status === 'completed') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled
+                              title="No receipt generated"
+                              className="text-yellow-600"
+                            >
+                              <Clock className="w-4 h-4" />
+                            </Button>
+                          )}
+                          
+                          {/* Audit Logs */}
                           {transaction.transaction_type === 'sponsorship' && (
                             <Button
                               variant="ghost"
@@ -759,6 +824,8 @@ export const SponsorshipTransactionsManager = () => {
                               <FileText className="w-4 h-4" />
                             </Button>
                           )}
+                          
+                          {/* Stripe Links */}
                           {transaction.stripe_subscription_id ? (
                             <>
                               <Button
