@@ -2,10 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  fullyParallel: false, // FIXED: Disabled to prevent fixture race conditions in sharded runs
   forbidOnly: !!process.env.CI,
   retries: 0, // Removed retries - tests should be reliable
-  workers: process.env.CI ? 4 : undefined,
+  workers: process.env.CI ? 2 : undefined, // FIXED: Reduced from 4 to 2 to prevent fixture conflicts
   reporter: 'html',
   
   // Global setup to polyfill import.meta for Node.js
@@ -43,7 +43,13 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        // Ensure fixtures cleanup properly
+        launchOptions: {
+          args: ['--disable-dev-shm-usage']
+        }
+      },
     },
     // Only run Chromium in CI for speed - covers 95% of users
     // Firefox and Webkit can be run locally or in separate jobs if needed

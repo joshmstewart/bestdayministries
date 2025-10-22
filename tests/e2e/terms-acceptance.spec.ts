@@ -10,6 +10,23 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
   const testEmail = `newuser${timestamp}@example.com`;
   const testPassword = 'testpassword123';
 
+  // FIXED: Add cleanup for all created test accounts
+  test.afterEach(async ({ page }) => {
+    await page.evaluate(async () => {
+      try {
+        // @ts-ignore
+        const { supabase } = await import('/src/integrations/supabase/client.ts');
+        await supabase.functions.invoke('cleanup-test-data-unified', {
+          body: { 
+            namePatterns: ['Test User', 'Accept Test', 'Content Test', 'Visual Test', 'Test', 'Accept']
+          }
+        });
+      } catch (error) {
+        console.log('Cleanup warning:', error);
+      }
+    });
+  });
+
   test('new user sees terms dialog on signup', async ({ page }) => {
     await page.goto('/auth');
     await page.waitForLoadState('networkidle');
