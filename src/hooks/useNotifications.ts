@@ -171,9 +171,10 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, is_read: true }))
-      );
+      // Update both notifications and grouped notifications
+      const updatedNotifications = notifications.map(n => ({ ...n, is_read: true }));
+      setNotifications(updatedNotifications);
+      setGroupedNotifications(groupNotifications(updatedNotifications));
       setUnreadCount(0);
 
       toast({
@@ -198,10 +199,14 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      // Update both notifications and grouped notifications
+      const updatedNotifications = notifications.filter(n => n.id !== notificationId);
+      const deletedNotification = notifications.find(n => n.id === notificationId);
+      
+      setNotifications(updatedNotifications);
+      setGroupedNotifications(groupNotifications(updatedNotifications));
       setUnreadCount(prev => {
-        const notification = notifications.find(n => n.id === notificationId);
-        return notification && !notification.is_read ? Math.max(0, prev - 1) : prev;
+        return deletedNotification && !deletedNotification.is_read ? Math.max(0, prev - 1) : prev;
       });
 
       toast({
@@ -230,7 +235,10 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications(prev => prev.filter(n => !n.is_read));
+      // Update both notifications and grouped notifications
+      const updatedNotifications = notifications.filter(n => !n.is_read);
+      setNotifications(updatedNotifications);
+      setGroupedNotifications(groupNotifications(updatedNotifications));
 
       toast({
         title: "Read notifications cleared",
