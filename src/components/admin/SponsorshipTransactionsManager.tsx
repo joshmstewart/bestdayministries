@@ -30,12 +30,12 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface Sponsorship {
+interface Transaction {
   id: string;
   sponsor_id: string | null;
   sponsor_email: string | null;
   bestie_id: string | null;
-  sponsor_bestie_id: string;
+  sponsor_bestie_id: string | null;
   amount: number;
   frequency: string;
   status: string;
@@ -43,6 +43,7 @@ interface Sponsorship {
   stripe_mode: string | null;
   started_at: string;
   ended_at: string | null;
+  transaction_type: 'sponsorship' | 'donation';
   sponsor_profile?: {
     display_name: string;
     avatar_url: string | null;
@@ -57,13 +58,14 @@ interface Sponsorship {
 }
 
 export const SponsorshipTransactionsManager = () => {
-  const [sponsorships, setSponshorships] = useState<Sponsorship[]>([]);
-  const [filteredSponshorships, setFilteredSponshorships] = useState<Sponsorship[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBestie, setFilterBestie] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterFrequency, setFilterFrequency] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
   const [auditLogsOpen, setAuditLogsOpen] = useState(false);
@@ -73,17 +75,19 @@ export const SponsorshipTransactionsManager = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadSponshorships();
+    loadTransactions();
   }, []);
 
   useEffect(() => {
-    filterSponshorships();
-  }, [searchTerm, sponsorships, filterBestie, filterStatus, filterFrequency]);
+    filterTransactions();
+  }, [searchTerm, transactions, filterBestie, filterStatus, filterFrequency, filterType]);
 
-  const loadSponshorships = async () => {
+  const loadTransactions = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Load sponsorships
+      const { data: sponsorshipsData, error: sponsorshipsError } = await supabase
         .from('sponsorships')
         .select(`
           *,
@@ -93,13 +97,55 @@ export const SponsorshipTransactionsManager = () => {
         `)
         .order('started_at', { ascending: false });
 
-      if (error) throw error;
-      setSponshorships(data || []);
+      if (sponsorshipsError) throw sponsorshipsError;
+
+      // Load donations
+      const { data: donationsData, error: donationsError } = await supabase
+        .from('donations')
+        .select(`
+          *,
+          donor_profile:profiles!donations_donor_id_fkey(display_name, avatar_url)
+        `)
+        .order('started_at', { ascending: false });
+
+      if (donationsError) throw donationsError;
+
+      // Transform sponsorships
+      const sponsorships: Transaction[] = (sponsorshipsData || []).map(s => ({
+        ...s,
+        transaction_type: 'sponsorship' as const,
+        sponsor_profile: s.sponsor_profile,
+      }));
+
+      // Transform donations
+      const donations: Transaction[] = (donationsData || []).map(d => ({
+        id: d.id,
+        sponsor_id: d.donor_id,
+        sponsor_email: d.donor_email,
+        bestie_id: null,
+        sponsor_bestie_id: null,
+        amount: d.amount,
+        frequency: d.frequency,
+        status: d.status,
+        stripe_subscription_id: d.stripe_subscription_id,
+        stripe_mode: d.stripe_mode,
+        started_at: d.started_at,
+        ended_at: d.ended_at,
+        transaction_type: 'donation' as const,
+        sponsor_profile: (d as any).donor_profile,
+      }));
+
+      // Merge and sort by date
+      const allTransactions = [...sponsorships, ...donations].sort((a, b) => 
+        new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+      );
+
+      setTransactions(allTransactions);
     } catch (error: any) {
-      console.error('Error loading sponsorships:', error);
+      console.error('Error loading transactions:', error);
       toast({
         title: "Error",
-        description: "Failed to load sponsorships",
+        description: "Failed to load transactions",
         variant: "destructive",
       });
     } finally {
@@ -107,18 +153,18 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
-  const filterSponshorships = () => {
-    let filtered = [...sponsorships];
+  const filterTransactions = () => {
+    let filtered = [...transactions];
 
     // Apply search term filter
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(s => {
-        const sponsorName = s.sponsor_profile?.display_name?.toLowerCase() || '';
-        const sponsorEmail = s.sponsor_email?.toLowerCase() || '';
-        const bestieName = s.sponsor_bestie?.bestie_name?.toLowerCase() || 
-                           s.bestie_profile?.display_name?.toLowerCase() || '';
-        const subscriptionId = s.stripe_subscription_id?.toLowerCase() || '';
+      filtered = filtered.filter(t => {
+        const sponsorName = t.sponsor_profile?.display_name?.toLowerCase() || '';
+        const sponsorEmail = t.sponsor_email?.toLowerCase() || '';
+        const bestieName = t.sponsor_bestie?.bestie_name?.toLowerCase() || 
+                           t.bestie_profile?.display_name?.toLowerCase() || '';
+        const subscriptionId = t.stripe_subscription_id?.toLowerCase() || '';
         
         return sponsorName.includes(term) ||
                sponsorEmail.includes(term) ||
@@ -127,28 +173,33 @@ export const SponsorshipTransactionsManager = () => {
       });
     }
 
-    // Apply bestie filter
+    // Apply type filter
+    if (filterType !== "all") {
+      filtered = filtered.filter(t => t.transaction_type === filterType);
+    }
+
+    // Apply bestie filter (only for sponsorships)
     if (filterBestie !== "all") {
-      filtered = filtered.filter(s => 
-        s.sponsor_bestie_id === filterBestie
+      filtered = filtered.filter(t => 
+        t.transaction_type === 'sponsorship' && t.sponsor_bestie_id === filterBestie
       );
     }
 
     // Apply status filter
     if (filterStatus !== "all") {
       if (filterStatus === "scheduled_cancel") {
-        filtered = filtered.filter(s => s.status === 'active' && s.ended_at);
+        filtered = filtered.filter(t => t.status === 'active' && t.ended_at);
       } else {
-        filtered = filtered.filter(s => s.status === filterStatus);
+        filtered = filtered.filter(t => t.status === filterStatus);
       }
     }
 
     // Apply frequency filter
     if (filterFrequency !== "all") {
-      filtered = filtered.filter(s => s.frequency === filterFrequency);
+      filtered = filtered.filter(t => t.frequency === filterFrequency);
     }
 
-    setFilteredSponshorships(filtered);
+    setFilteredTransactions(filtered);
   };
 
   const clearFilters = () => {
@@ -156,14 +207,15 @@ export const SponsorshipTransactionsManager = () => {
     setFilterBestie("all");
     setFilterStatus("all");
     setFilterFrequency("all");
+    setFilterType("all");
   };
 
   // Get unique besties for filter dropdown
   const uniqueBesties = Array.from(
     new Map(
-      sponsorships
-        .filter(s => s.sponsor_bestie)
-        .map(s => [s.sponsor_bestie_id, s.sponsor_bestie?.bestie_name])
+      transactions
+        .filter(t => t.transaction_type === 'sponsorship' && t.sponsor_bestie)
+        .map(t => [t.sponsor_bestie_id, t.sponsor_bestie?.bestie_name])
     )
   ).map(([id, name]) => ({ id, name }));
 
@@ -249,24 +301,33 @@ export const SponsorshipTransactionsManager = () => {
   };
 
   const deleteTestTransactions = async () => {
-    if (!confirm("Are you sure you want to delete ALL test mode sponsorships? This cannot be undone.")) {
+    if (!confirm("Are you sure you want to delete ALL test mode transactions (sponsorships AND donations)? This cannot be undone.")) {
       return;
     }
 
     try {
-      const { error } = await supabase
+      // Delete test sponsorships
+      const { error: sponsorshipsError } = await supabase
         .from('sponsorships')
         .delete()
         .eq('stripe_mode', 'test');
 
-      if (error) throw error;
+      if (sponsorshipsError) throw sponsorshipsError;
+
+      // Delete test donations
+      const { error: donationsError } = await supabase
+        .from('donations')
+        .delete()
+        .eq('stripe_mode', 'test');
+
+      if (donationsError) throw donationsError;
 
       toast({
         title: "Success",
         description: "All test transactions have been deleted",
       });
       
-      await loadSponshorships();
+      await loadTransactions();
     } catch (error: any) {
       console.error('Error deleting test transactions:', error);
       toast({
@@ -277,25 +338,34 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
-  const deleteIndividualTransaction = async (sponsorshipId: string, sponsorName: string) => {
-    if (!confirm(`Are you sure you want to delete the test sponsorship for ${sponsorName}? This cannot be undone.`)) {
+  const deleteIndividualTransaction = async (transactionId: string, donorName: string) => {
+    if (!confirm(`Are you sure you want to delete the test transaction for ${donorName}? This cannot be undone.`)) {
       return;
     }
 
     try {
-      const { error } = await supabase
+      // Try to delete from sponsorships first
+      const { error: sponsorshipsError } = await supabase
         .from('sponsorships')
         .delete()
-        .eq('id', sponsorshipId);
+        .eq('id', transactionId);
 
-      if (error) throw error;
+      // If not found in sponsorships, try donations
+      if (sponsorshipsError) {
+        const { error: donationsError } = await supabase
+          .from('donations')
+          .delete()
+          .eq('id', transactionId);
+        
+        if (donationsError) throw donationsError;
+      }
 
       toast({
         title: "Success",
         description: "Test transaction has been deleted",
       });
       
-      await loadSponshorships();
+      await loadTransactions();
     } catch (error: any) {
       console.error('Error deleting transaction:', error);
       toast({
@@ -353,15 +423,15 @@ export const SponsorshipTransactionsManager = () => {
 
   // Calculate stats (Live mode only)
   const stats = {
-    total: sponsorships.length,
-    active: sponsorships.filter(s => s.status === 'active').length,
-    cancelled: sponsorships.filter(s => s.status === 'cancelled').length,
-    totalMonthlyRevenue: sponsorships
-      .filter(s => s.status === 'active' && s.frequency === 'monthly' && s.stripe_mode === 'live')
-      .reduce((sum, s) => sum + s.amount, 0),
-    totalOneTime: sponsorships
-      .filter(s => s.frequency === 'one-time' && s.stripe_mode === 'live')
-      .reduce((sum, s) => sum + s.amount, 0),
+    total: transactions.length,
+    active: transactions.filter(t => t.status === 'active').length,
+    cancelled: transactions.filter(t => t.status === 'cancelled').length,
+    totalMonthlyRevenue: transactions
+      .filter(t => t.status === 'active' && t.frequency === 'monthly' && t.stripe_mode === 'live')
+      .reduce((sum, t) => sum + t.amount, 0),
+    totalOneTime: transactions
+      .filter(t => t.frequency === 'one-time' && t.stripe_mode === 'live')
+      .reduce((sum, t) => sum + t.amount, 0),
   };
 
   if (loading) {
@@ -378,7 +448,7 @@ export const SponsorshipTransactionsManager = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Sponsorships</CardDescription>
+            <CardDescription>Total Transactions</CardDescription>
             <CardTitle className="text-3xl">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
@@ -407,16 +477,16 @@ export const SponsorshipTransactionsManager = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Sponsorship Transactions</CardTitle>
+              <CardTitle>All Transactions</CardTitle>
               <CardDescription>
-                View and manage all sponsorship payments and subscriptions
+                View and manage all donations and sponsorships
               </CardDescription>
             </div>
             <div className="flex gap-2">
               <Button onClick={deleteTestTransactions} variant="destructive" size="sm">
                 Delete Test Transactions
               </Button>
-              <Button onClick={loadSponshorships} variant="outline" size="sm">
+              <Button onClick={loadTransactions} variant="outline" size="sm">
                 <Loader2 className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
@@ -429,7 +499,7 @@ export const SponsorshipTransactionsManager = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search by sponsor name, email, bestie name, or subscription ID..."
+                placeholder="Search by donor name, email, bestie name, or subscription ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -437,6 +507,19 @@ export const SponsorshipTransactionsManager = () => {
             </div>
             
             <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex-1 min-w-[150px]">
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="sponsorship">Sponsorships</SelectItem>
+                    <SelectItem value="donation">Donations</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex-1 min-w-[200px]">
                 <Select value={filterBestie} onValueChange={setFilterBestie}>
                   <SelectTrigger>
@@ -481,7 +564,7 @@ export const SponsorshipTransactionsManager = () => {
                 </Select>
               </div>
 
-              {(filterBestie !== "all" || filterStatus !== "all" || filterFrequency !== "all" || searchTerm) && (
+              {(filterType !== "all" || filterBestie !== "all" || filterStatus !== "all" || filterFrequency !== "all" || searchTerm) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -500,8 +583,9 @@ export const SponsorshipTransactionsManager = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sponsor</TableHead>
-                  <TableHead>Bestie</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Donor/Sponsor</TableHead>
+                  <TableHead>Recipient</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Frequency</TableHead>
                   <TableHead>Status</TableHead>
@@ -512,74 +596,83 @@ export const SponsorshipTransactionsManager = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSponshorships.length === 0 ? (
+                {filteredTransactions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                      {searchTerm ? 'No sponsorships match your search' : 'No sponsorships yet'}
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                      {searchTerm ? 'No transactions match your search' : 'No transactions yet'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredSponshorships.map((sponsorship) => (
-                    <TableRow key={sponsorship.id}>
+                  filteredTransactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        <Badge variant={transaction.transaction_type === 'sponsorship' ? 'default' : 'secondary'}>
+                          {transaction.transaction_type === 'sponsorship' ? 'Sponsorship' : 'Donation'}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-muted-foreground" />
                             <span className="font-medium">
-                              {sponsorship.sponsor_profile?.display_name || 'Guest'}
+                              {transaction.sponsor_profile?.display_name || 'Guest'}
                             </span>
                           </div>
-                          {sponsorship.sponsor_email && (
+                          {transaction.sponsor_email && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Mail className="w-3 h-3" />
-                              <span>{sponsorship.sponsor_email}</span>
+                              <span>{transaction.sponsor_email}</span>
                             </div>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <span className="font-medium">
-                          {sponsorship.sponsor_bestie?.bestie_name || 
-                           sponsorship.bestie_profile?.display_name || 
-                           'Unknown'}
+                          {transaction.transaction_type === 'sponsorship' 
+                            ? (transaction.sponsor_bestie?.bestie_name || 
+                               transaction.bestie_profile?.display_name || 
+                               'Unknown')
+                            : 'General Fund'}
                         </span>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-semibold">{formatAmount(sponsorship.amount)}</span>
+                          <span className="font-semibold">{formatAmount(transaction.amount)}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{getFrequencyBadge(sponsorship.frequency)}</TableCell>
-                      <TableCell>{getStatusBadge(sponsorship.status, sponsorship.ended_at)}</TableCell>
-                      <TableCell>{getModeBadge(sponsorship.stripe_mode)}</TableCell>
+                      <TableCell>{getFrequencyBadge(transaction.frequency)}</TableCell>
+                      <TableCell>{getStatusBadge(transaction.status, transaction.ended_at)}</TableCell>
+                      <TableCell>{getModeBadge(transaction.stripe_mode)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="w-3 h-3 text-muted-foreground" />
-                          {formatDate(sponsorship.started_at)}
+                          {formatDate(transaction.started_at)}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(sponsorship.ended_at)}
+                        {formatDate(transaction.ended_at)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => loadAuditLogs(sponsorship.id)}
-                            title="View Receipt Generation Logs"
-                            disabled={loadingLogs}
-                          >
-                            <FileText className="w-4 h-4" />
-                          </Button>
-                          {sponsorship.stripe_subscription_id ? (
+                          {transaction.transaction_type === 'sponsorship' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => loadAuditLogs(transaction.id)}
+                              title="View Receipt Generation Logs"
+                              disabled={loadingLogs}
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {transaction.stripe_subscription_id ? (
                             <>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  setSelectedTransactionId(sponsorship.stripe_subscription_id);
+                                  setSelectedTransactionId(transaction.stripe_subscription_id);
                                   setTransactionDialogOpen(true);
                                 }}
                                 title="View Transaction ID"
@@ -590,26 +683,26 @@ export const SponsorshipTransactionsManager = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => openStripeSubscription(
-                                  sponsorship.stripe_subscription_id!,
-                                  sponsorship.stripe_mode || 'test'
+                                  transaction.stripe_subscription_id!,
+                                  transaction.stripe_mode || 'test'
                                 )}
                                 title="Open in Stripe Dashboard"
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </Button>
                             </>
-                          ) : sponsorship.frequency === 'monthly' ? (
+                          ) : transaction.frequency === 'monthly' ? (
                             <Badge variant="secondary" className="text-xs">
                               No Subscription ID
                             </Badge>
                           ) : null}
-                          {sponsorship.stripe_mode === 'test' && (
+                          {transaction.stripe_mode === 'test' && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => deleteIndividualTransaction(
-                                sponsorship.id,
-                                sponsorship.sponsor_profile?.display_name || sponsorship.sponsor_email || 'this sponsor'
+                                transaction.id,
+                                transaction.sponsor_profile?.display_name || transaction.sponsor_email || 'this donor'
                               )}
                               title="Delete Test Transaction"
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
