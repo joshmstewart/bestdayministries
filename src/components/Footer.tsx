@@ -3,7 +3,6 @@ import { Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ContactForm } from "@/components/ContactForm";
-import ReportIssueButton from "@/components/ReportIssueButton";
 
 // Build timestamp for admin visibility
 const BUILD_TIMESTAMP = new Date().toISOString();
@@ -234,8 +233,6 @@ const Footer = () => {
 
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col items-center gap-4">
-            <ReportIssueButton />
-            
             <div className="text-center text-muted-foreground">
               <p className="flex items-center justify-center gap-2">
                 Made with <Heart className="w-4 h-4 text-primary fill-primary" /> by Best Day Ministries Community
