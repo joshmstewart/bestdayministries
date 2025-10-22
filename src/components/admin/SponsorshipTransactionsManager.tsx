@@ -83,11 +83,12 @@ export const SponsorshipTransactionsManager = () => {
   }, [searchTerm, transactions, filterBestie, filterStatus, filterFrequency, filterType]);
 
   const loadTransactions = async () => {
+    console.log('🔵 [TRANSACTIONS] Starting loadTransactions...');
     try {
       setLoading(true);
       
       // Load sponsorships
-      // Load sponsorships (without profile joins)
+      console.log('🔵 [TRANSACTIONS] Fetching sponsorships...');
       const { data: sponsorshipsData, error: sponsorshipsError } = await supabase
         .from('sponsorships')
         .select(`
@@ -96,15 +97,34 @@ export const SponsorshipTransactionsManager = () => {
         `)
         .order('started_at', { ascending: false });
 
-      if (sponsorshipsError) throw sponsorshipsError;
+      if (sponsorshipsError) {
+        console.error('🔴 [TRANSACTIONS] Sponsorships query failed:', {
+          message: sponsorshipsError.message,
+          code: sponsorshipsError.code,
+          details: sponsorshipsError.details,
+          hint: sponsorshipsError.hint,
+        });
+        throw sponsorshipsError;
+      }
+      console.log('✅ [TRANSACTIONS] Sponsorships loaded:', sponsorshipsData?.length || 0);
 
       // Load donations
+      console.log('🔵 [TRANSACTIONS] Fetching donations...');
       const { data: donationsData, error: donationsError } = await supabase
         .from('donations')
         .select('*')
         .order('started_at', { ascending: false });
 
-      if (donationsError) throw donationsError;
+      if (donationsError) {
+        console.error('🔴 [TRANSACTIONS] Donations query failed:', {
+          message: donationsError.message,
+          code: donationsError.code,
+          details: donationsError.details,
+          hint: donationsError.hint,
+        });
+        throw donationsError;
+      }
+      console.log('✅ [TRANSACTIONS] Donations loaded:', donationsData?.length || 0);
 
       // Get unique profile IDs from both sponsorships and donations
       const sponsorIds = [...new Set(
@@ -126,14 +146,36 @@ export const SponsorshipTransactionsManager = () => {
       )];
 
       const allProfileIds = [...new Set([...sponsorIds, ...bestieIds, ...donorIds])];
+      
+      console.log('🔵 [TRANSACTIONS] Profile IDs to fetch:', {
+        totalUnique: allProfileIds.length,
+        sponsorIds: sponsorIds.length,
+        bestieIds: bestieIds.length,
+        donorIds: donorIds.length,
+        allIds: allProfileIds,
+      });
 
       // Fetch all profiles at once using profiles_public view to avoid RLS issues
       let profilesMap: Record<string, any> = {};
       if (allProfileIds.length > 0) {
-        const { data: profilesData } = await supabase
+        console.log('🔵 [TRANSACTIONS] Fetching profiles from profiles_public...');
+        const { data: profilesData, error: profilesError } = await supabase
           .from('profiles_public')
           .select('id, display_name, avatar_url')
           .in('id', allProfileIds);
+        
+        if (profilesError) {
+          console.error('🔴 [TRANSACTIONS] Profiles query failed:', {
+            message: profilesError.message,
+            code: profilesError.code,
+            details: profilesError.details,
+            hint: profilesError.hint,
+            requestedIds: allProfileIds,
+          });
+          throw profilesError;
+        }
+        
+        console.log('✅ [TRANSACTIONS] Profiles loaded:', profilesData?.length || 0);
         
         if (profilesData) {
           profilesMap = Object.fromEntries(
@@ -143,6 +185,7 @@ export const SponsorshipTransactionsManager = () => {
       }
 
       // Transform sponsorships
+      console.log('🔵 [TRANSACTIONS] Transforming sponsorships...');
       const sponsorships: Transaction[] = (sponsorshipsData || []).map(s => ({
         ...s,
         transaction_type: 'sponsorship' as const,
@@ -151,6 +194,7 @@ export const SponsorshipTransactionsManager = () => {
       }));
 
       // Transform donations
+      console.log('🔵 [TRANSACTIONS] Transforming donations...');
       const donations: Transaction[] = (donationsData || []).map(d => ({
         id: d.id,
         sponsor_id: d.donor_id,
@@ -173,9 +217,22 @@ export const SponsorshipTransactionsManager = () => {
         new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
       );
 
+      console.log('✅ [TRANSACTIONS] Transformation complete:', {
+        totalTransactions: allTransactions.length,
+        sponsorships: sponsorships.length,
+        donations: donations.length,
+      });
+
       setTransactions(allTransactions);
     } catch (error: any) {
-      console.error('Error loading transactions:', error);
+      console.error('🔴 [TRANSACTIONS] Fatal error:', {
+        name: error?.name,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        stack: error?.stack,
+      });
       toast({
         title: "Error",
         description: "Failed to load transactions",
@@ -183,6 +240,7 @@ export const SponsorshipTransactionsManager = () => {
       });
     } finally {
       setLoading(false);
+      console.log('🔵 [TRANSACTIONS] loadTransactions completed');
     }
   };
 
