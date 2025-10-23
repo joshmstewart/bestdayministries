@@ -11,8 +11,12 @@ interface SoundEffect {
 
 export type SoundEventType =
   | "notification"
-  | "sticker_pack_open"
-  | "sticker_reveal"
+  | "sticker_pack_reveal"
+  | "sticker_reveal_common"
+  | "sticker_reveal_uncommon"
+  | "sticker_reveal_rare"
+  | "sticker_reveal_epic"
+  | "sticker_reveal_legendary"
   | "login"
   | "logout"
   | "message_sent"

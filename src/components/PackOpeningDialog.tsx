@@ -134,7 +134,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   const handleOpen = () => {
     if (opening || opened) return;
     
-    playSound('sticker_pack_open');
     setOpening(true);
     
     // Animate tear effect
@@ -158,7 +157,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   };
 
   const triggerCelebration = (rarity: string) => {
-    playSound('sticker_reveal');
+    // Play rarity-specific sound
+    const raritySound = `sticker_reveal_${rarity}` as any;
+    playSound(raritySound);
     
     const config = rarityConfettiConfig[rarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
     
@@ -204,6 +205,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
       }
 
       if (data.success) {
+        // Play pack reveal sound
+        playSound('sticker_pack_reveal');
+        
         // Support both single and multiple stickers
         const stickers = data.stickers || (data.sticker ? [data.sticker] : []);
         

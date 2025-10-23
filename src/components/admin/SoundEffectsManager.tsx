@@ -43,8 +43,12 @@ interface AudioClip {
 
 const EVENT_LABELS: Record<string, string> = {
   notification: "Notification Received",
-  sticker_pack_open: "Sticker Pack Opened",
-  sticker_reveal: "Sticker Revealed",
+  sticker_pack_reveal: "Sticker Pack Revealed",
+  sticker_reveal_common: "Sticker Revealed (Common)",
+  sticker_reveal_uncommon: "Sticker Revealed (Uncommon)",
+  sticker_reveal_rare: "Sticker Revealed (Rare)",
+  sticker_reveal_epic: "Sticker Revealed (Epic)",
+  sticker_reveal_legendary: "Sticker Revealed (Legendary)",
   login: "User Login",
   logout: "User Logout",
   message_sent: "Message Sent",
