@@ -378,6 +378,107 @@ See `TEST_FIXES_2025_10_23.md` for recent examples and detailed philosophy.
 
 ---
 
+## Defensive Test Patterns
+
+When testing features that depend on admin-configured data or specific user roles, use defensive patterns to handle missing data gracefully.
+
+### Pattern 1: Check-Warn-Continue
+Use when an element might not exist but the test should continue:
+
+```typescript
+const element = await page.locator('button:has-text("Action")')
+  .isVisible({ timeout: 5000 })
+  .catch(() => false);
+
+if (!element) {
+  console.warn('⚠️ Element not found - may not be configured');
+}
+// Continue with other assertions
+```
+
+**When to Use**:
+- Testing optional features
+- Testing role-specific UI elements
+- Testing admin-configured content
+
+### Pattern 2: Check-Warn-Fallback
+Use when an element might not exist, but you want to verify the page still works:
+
+```typescript
+const hasFeature = await page.locator('.feature-item').count() > 0;
+
+if (!hasFeature) {
+  console.warn('⚠️ Feature not configured in admin');
+  // Fallback: verify page loaded successfully
+  const body = page.locator('body');
+  await expect(body).toBeVisible();
+} else {
+  // Test the feature
+  expect(hasFeature).toBeTruthy();
+}
+```
+
+**When to Use**:
+- Testing pages with optional sections
+- Testing features that might be disabled
+- Verifying page load success regardless of content
+
+### Pattern 3: Check-Both-States
+Use when content might be populated or in an empty state:
+
+```typescript
+const hasContent = await page.locator('.content-item').count() > 0;
+const hasEmptyState = await page.locator('text=/no items available|nothing to display/i')
+  .isVisible({ timeout: 5000 })
+  .catch(() => false);
+
+// Assert EITHER content OR empty state (both are valid)
+expect(hasContent || hasEmptyState).toBeTruthy();
+```
+
+**When to Use**:
+- Testing lists that might be empty
+- Testing admin-managed content
+- Testing database-driven UI
+
+### Service Key Requirements for Test Data Seeding
+
+When edge functions create test data, they need service-level access to bypass RLS policies.
+
+#### Required Environment Variable
+```yaml
+# In GitHub Actions workflow
+env:
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+```
+
+#### Why Service Key is Required
+- Bypasses Row Level Security (RLS) policies
+- Can create users via Admin API (`auth.admin.createUser()`)
+- Can insert into protected tables
+- Required for any admin-level database operations
+
+#### Where to Apply
+- **Email test workflow**: `.github/workflows/email-tests.yml` ✅
+- **Main test workflow**: `.github/workflows/test.yml` ✅
+- **Local test setup**: Via environment variable or `.env.local`
+
+#### Example: Seed Function
+```typescript
+// supabase/functions/seed-email-test-data/index.ts
+const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+if (!serviceKey) {
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required'); // ← Defensive check
+}
+
+// Create admin client with service key
+const supabase = createClient(supabaseUrl, serviceKey, {
+  auth: { autoRefreshToken: false, persistSession: false }
+});
+```
+
+---
+
 ## Common Pitfalls
 
 ### 1. Race Conditions

@@ -30,6 +30,7 @@ jobs:
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         
     - name: Run email tests
       run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium

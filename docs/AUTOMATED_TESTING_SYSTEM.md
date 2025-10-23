@@ -388,7 +388,132 @@ See `docs/EMAIL_TESTING_SYSTEM_COMPLETE.md` for detailed troubleshooting guidanc
 - See detailed logs, artifacts, and timings
 - Get email notifications on failures (configure in GitHub settings)
 
-## Troubleshooting
+## Troubleshooting Common Test Failures
+
+### Email Tests Failing with "Expected > 0, Received: 0"
+
+**Symptom**: All email tests fail immediately with identical error about expected count > 0
+
+**Root Cause**: The `seed-email-test-data` edge function cannot create test data because it lacks the `SUPABASE_SERVICE_ROLE_KEY` environment variable.
+
+**Solution**:
+1. Verify `SUPABASE_SERVICE_ROLE_KEY` is set in GitHub Repository Secrets (Settings → Secrets → Actions)
+2. Check that the workflow YAML includes the key in the seed step:
+   ```yaml
+   env:
+     SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+   ```
+3. Review edge function logs for "Missing service role key" error message
+
+**Files to Check**:
+- `.github/workflows/email-tests.yml` (seed test data step)
+- Edge function: `supabase/functions/seed-email-test-data/index.ts`
+
+**Why This Happens**: Edge functions that create users need service-level access to bypass RLS policies and use `auth.admin.createUser()`.
+
+---
+
+### E2E Tests Timing Out on Element Selectors
+
+**Symptom**: Test times out after 60 seconds waiting for a button or UI element
+
+**Root Cause**: Element doesn't exist due to:
+- Missing admin-configured data
+- User role restrictions (e.g., "Create Post" button only for guardians)
+- Optional features not enabled
+
+**Solution**: Add defensive check with shorter timeout
+
+```typescript
+// Instead of assuming element exists
+// await page.locator('button:has-text("Action")').click(); // ❌ Times out
+
+// Use defensive pattern
+const button = await page.locator('button:has-text("Action")')
+  .isVisible({ timeout: 5000 })
+  .catch(() => false);
+
+if (!button) {
+  console.warn('⚠️ Action button not found - may be role-restricted');
+  test.skip(); // Or continue with alternative assertion
+} else {
+  await page.locator('button:has-text("Action")').click();
+}
+```
+
+**Prevention**: Use defensive test patterns (see `TESTING_BEST_PRACTICES.md`)
+
+---
+
+### Tests Fail Due to Missing Admin-Configured Data
+
+**Symptom**: Tests expect videos, products, or content that don't exist in test environment
+
+**Root Cause**: Test environment doesn't have admin-created content (videos, FAQs, tours, etc.)
+
+**Solution**: Implement "Check-Both-States" pattern
+
+```typescript
+// Check for content OR empty state (both valid)
+const hasVideos = await page.locator('video, iframe[src*="youtube"]').count() > 0;
+const hasEmptyState = await page.locator('text=/no videos available/i')
+  .isVisible({ timeout: 5000 })
+  .catch(() => false);
+
+// Assert EITHER populated or empty state
+expect(hasVideos || hasEmptyState).toBeTruthy();
+```
+
+**Best Practice**: Always test both populated and empty states for admin-managed content.
+
+---
+
+### Tests Pass Locally but Fail in CI
+
+**Symptom**: Tests work on local machine but fail in GitHub Actions
+
+**Root Cause**: CI environments are 2-3x slower than local development machines
+
+**Solution**:
+1. Increase timeouts for CI:
+   ```typescript
+   // Local: 30s might be fine
+   // CI: Need 60s for auth flows
+   await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
+   ```
+2. Add intermediate waits in multi-step flows:
+   ```typescript
+   await page.click('button:has-text("Submit")');
+   await page.waitForTimeout(2000); // Give CI time to process
+   await page.waitForURL('/success', { timeout: 60000 });
+   ```
+
+**See**: `TESTING_BEST_PRACTICES.md` → "Timeout Guidelines" for recommended timeouts
+
+---
+
+### Persistent Test Accounts Not Found
+
+**Symptom**: Tests fail because expected test accounts (testbestie@example.com, etc.) don't exist
+
+**Root Cause**: Accounts haven't been created or were accidentally deleted
+
+**Solution**:
+1. Run `global-setup.ts` to create persistent accounts:
+   ```bash
+   npx playwright test --config=playwright.config.ts
+   ```
+2. Verify accounts exist in database:
+   ```sql
+   SELECT email FROM auth.users WHERE email LIKE 'test%@example.com';
+   ```
+3. If missing, create manually or re-run setup
+
+**Protection**: These accounts are protected from cleanup operations (see `cleanup-test-data-unified` edge function)
+
+---
+
+## Troubleshooting (Original Sections)
 
 ### Tests Fail Locally but Pass in CI
 - Check Node/browser versions match
