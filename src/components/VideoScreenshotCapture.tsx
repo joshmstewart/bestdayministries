@@ -25,6 +25,8 @@ export const VideoScreenshotCapture = ({
   const [screenshots, setScreenshots] = useState<Array<{ url: string; timestamp: number }>>([]);
   const [selectedScreenshot, setSelectedScreenshot] = useState<number | null>(null);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('16:9');
+  const [detectedAspectRatio, setDetectedAspectRatio] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('16:9');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -34,6 +36,26 @@ export const VideoScreenshotCapture = ({
       const video = videoRef.current;
       const handleLoadedMetadata = () => {
         const duration = video.duration;
+        
+        // Detect video aspect ratio
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        const ratio = width / height;
+        
+        // Map to closest standard aspect ratio
+        let detectedRatio: '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3' = '16:9';
+        
+        if (Math.abs(ratio - 1) < 0.1) detectedRatio = '1:1';
+        else if (Math.abs(ratio - 16/9) < 0.1) detectedRatio = '16:9';
+        else if (Math.abs(ratio - 9/16) < 0.1) detectedRatio = '9:16';
+        else if (Math.abs(ratio - 4/3) < 0.1) detectedRatio = '4:3';
+        else if (Math.abs(ratio - 3/4) < 0.1) detectedRatio = '3:4';
+        else if (Math.abs(ratio - 3/2) < 0.1) detectedRatio = '3:2';
+        else if (Math.abs(ratio - 2/3) < 0.1) detectedRatio = '2:3';
+        
+        setDetectedAspectRatio(detectedRatio);
+        setAspectRatioKey(detectedRatio);
+        
         if (duration && duration > 0) {
           // Generate screenshots at 25%, 50%, 75% of the video
           const times = [duration * 0.25, duration * 0.5, duration * 0.75];
@@ -233,9 +255,11 @@ export const VideoScreenshotCapture = ({
           onOpenChange={setCropDialogOpen}
           imageUrl={screenshots[selectedScreenshot].url}
           onCropComplete={handleCropComplete}
-          aspectRatio={16 / 9}
+          allowAspectRatioChange={true}
+          selectedRatioKey={aspectRatioKey}
+          onAspectRatioKeyChange={setAspectRatioKey}
           title="Crop Cover Image"
-          description="Adjust the crop to show what will be visible as the video cover (16:9 format)"
+          description={`Adjust the crop area. Detected video aspect ratio: ${detectedAspectRatio}. You can change it if needed.`}
         />
       )}
     </>
