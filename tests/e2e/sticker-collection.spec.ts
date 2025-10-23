@@ -52,12 +52,11 @@ test.describe('Daily Scratch Card @fast', () => {
     const stickerElement = page.locator('[class*="sticker"], button').filter({ hasText: /view|collection|album/i }).first();
     const isClickable = await stickerElement.isVisible({ timeout: 5000 }).catch(() => false);
     
-    // FIXED: Proper assertion instead of tautology
-    if (isClickable) {
-      await expect(stickerElement).toBeVisible();
-    } else {
-      test.skip(); // Feature not yet implemented
+    // Feature SHOULD be implemented - fail if not found
+    if (!isClickable) {
+      throw new Error('IMPLEMENTATION ISSUE: Sticker element should be clickable but was not found. Sticker feature IS implemented.');
     }
+    await expect(stickerElement).toBeVisible();
   });
 });
 
@@ -101,12 +100,11 @@ test.describe('Sticker Album Viewing @fast', () => {
     const grid = page.locator('[class*="grid"], [class*="collection"]').first();
     const hasGrid = await grid.isVisible({ timeout: 5000 }).catch(() => false);
     
-    // FIXED: Proper assertion
-    if (hasGrid) {
-      await expect(grid).toBeVisible();
-    } else {
-      test.skip(); // Feature not yet implemented
+    // Feature SHOULD be implemented - fail if not found
+    if (!hasGrid) {
+      throw new Error('IMPLEMENTATION ISSUE: Sticker collection grid should exist but was not found. Check StickerAlbum component.');
     }
+    await expect(grid).toBeVisible();
   });
 
   test('should show collection progress', async ({ page }) => {
@@ -117,12 +115,11 @@ test.describe('Sticker Album Viewing @fast', () => {
     const progress = page.locator('[role="progressbar"], text=/progress/i, text=/collected/i').first();
     const hasProgress = await progress.isVisible({ timeout: 5000 }).catch(() => false);
     
-    // FIXED: Proper assertion
-    if (hasProgress) {
-      await expect(progress).toBeVisible();
-    } else {
-      test.skip(); // Feature not yet implemented
+    // Feature SHOULD be implemented - fail if not found
+    if (!hasProgress) {
+      throw new Error('IMPLEMENTATION ISSUE: Collection progress indicator should exist but was not found. Check StickerAlbum component.');
     }
+    await expect(progress).toBeVisible();
   });
 });
 
@@ -135,12 +132,11 @@ test.describe('Admin Sticker Management @fast', () => {
     const stickerTab = page.locator('[role="tab"], button, a').filter({ hasText: /sticker|collection/i }).first();
     const hasTab = await stickerTab.isVisible({ timeout: 5000 }).catch(() => false);
     
-    // FIXED: Proper assertion
-    if (hasTab) {
-      await expect(stickerTab).toBeVisible();
-    } else {
-      test.skip(); // Feature not yet implemented
+    // Sticker tab MUST exist (confirmed in Admin.tsx line 253)
+    if (!hasTab) {
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx - tab should be at line 253.');
     }
+    await expect(stickerTab).toBeVisible();
   });
 
   test('should display sticker collections list', async ({ page }) => {
@@ -159,14 +155,13 @@ test.describe('Admin Sticker Management @fast', () => {
       const collectionsList = page.locator('[class*="collection"], [class*="list"]').first();
       const hasList = await collectionsList.isVisible({ timeout: 3000 }).catch(() => false);
       
-      // FIXED: Proper assertion
-      if (hasList) {
-        await expect(collectionsList).toBeVisible();
-      } else {
-        test.skip(); // Collections list not yet implemented
+      // Feature SHOULD be implemented
+      if (!hasList) {
+        throw new Error('IMPLEMENTATION ISSUE: Collections list should exist in sticker manager. Check StickerCollectionManager component.');
       }
+      await expect(collectionsList).toBeVisible();
     } else {
-      test.skip(); // Sticker tab not yet implemented
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 
@@ -186,14 +181,13 @@ test.describe('Admin Sticker Management @fast', () => {
       const createButton = page.locator('button').filter({ hasText: /create|new|add/i }).first();
       const hasButton = await createButton.isVisible({ timeout: 3000 }).catch(() => false);
       
-      // FIXED: Proper assertion
-      if (hasButton) {
-        await expect(createButton).toBeVisible();
-      } else {
-        test.skip(); // Create button not yet implemented
+      // Feature SHOULD be implemented
+      if (!hasButton) {
+        throw new Error('IMPLEMENTATION ISSUE: Create collection button should exist in sticker manager. Check StickerCollectionManager component.');
       }
+      await expect(createButton).toBeVisible();
     } else {
-      test.skip(); // Sticker tab not yet implemented
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 
@@ -213,14 +207,13 @@ test.describe('Admin Sticker Management @fast', () => {
       const dragHandle = page.locator('[class*="grip"], [class*="drag"]').first();
       const hasDragHandle = await dragHandle.isVisible({ timeout: 3000 }).catch(() => false);
       
-      // FIXED: Proper assertion
-      if (hasDragHandle) {
-        await expect(dragHandle).toBeVisible();
-      } else {
-        test.skip(); // Drag handles not yet implemented
+      // Feature SHOULD be implemented
+      if (!hasDragHandle) {
+        throw new Error('IMPLEMENTATION ISSUE: Drag handles should exist for sticker reordering. Check StickerCollectionManager component.');
       }
+      await expect(dragHandle).toBeVisible();
     } else {
-      test.skip(); // Sticker tab not yet implemented
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 
@@ -240,14 +233,13 @@ test.describe('Admin Sticker Management @fast', () => {
       const rarityBadge = page.locator('text=/Common|Uncommon|Rare|Epic|Legendary/i').first();
       const hasBadge = await rarityBadge.isVisible({ timeout: 3000 }).catch(() => false);
       
-      // FIXED: Proper assertion
-      if (hasBadge) {
-        await expect(rarityBadge).toBeVisible();
-      } else {
-        test.skip(); // Rarity badges not yet implemented
+      // Feature SHOULD be implemented
+      if (!hasBadge) {
+        throw new Error('IMPLEMENTATION ISSUE: Rarity badges should exist for stickers. Check StickerCollectionManager component.');
       }
+      await expect(rarityBadge).toBeVisible();
     } else {
-      test.skip(); // Sticker tab not yet implemented
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 
@@ -267,14 +259,13 @@ test.describe('Admin Sticker Management @fast', () => {
       const actionButtons = page.locator('button[class*="icon"], button:has(svg)');
       const buttonCount = await actionButtons.count();
       
-      // FIXED: Proper assertion
-      if (buttonCount > 0) {
-        expect(buttonCount).toBeGreaterThan(0);
-      } else {
-        test.skip(); // Action buttons not yet implemented
+      // Feature SHOULD be implemented
+      if (buttonCount === 0) {
+        throw new Error('IMPLEMENTATION ISSUE: Action buttons should exist for sticker management. Check StickerCollectionManager component.');
       }
+      expect(buttonCount).toBeGreaterThan(0);
     } else {
-      test.skip(); // Sticker tab not yet implemented
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 });
@@ -296,14 +287,13 @@ test.describe('Admin Sticker Upload @fast', () => {
       const uploadForm = page.locator('form, [class*="upload"]').first();
       const hasForm = await uploadForm.isVisible({ timeout: 3000 }).catch(() => false);
       
-      // FIXED: Proper assertion
-      if (hasForm) {
-        await expect(uploadForm).toBeVisible();
-      } else {
-        test.skip(); // Upload form not yet implemented
+      // Feature SHOULD be implemented
+      if (!hasForm) {
+        throw new Error('IMPLEMENTATION ISSUE: Upload form should exist for adding stickers. Check StickerCollectionManager component.');
       }
+      await expect(uploadForm).toBeVisible();
     } else {
-      test.skip(); // Sticker tab not yet implemented
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 
@@ -323,10 +313,10 @@ test.describe('Admin Sticker Upload @fast', () => {
       const positionInput = page.locator('input[name*="position"], input[name*="number"], label:has-text("Position")');
       const hasPositionInput = await positionInput.isVisible({ timeout: 2000 }).catch(() => false);
       
-      // FIXED: Proper assertion - should NOT have position input
+      // Should NOT have position input (automatic positioning)
       expect(hasPositionInput).toBe(false);
     } else {
-      test.skip(); // Sticker tab not yet implemented
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 
@@ -346,14 +336,13 @@ test.describe('Admin Sticker Upload @fast', () => {
       const raritySelector = page.locator('select, [role="combobox"]').filter({ hasText: /rarity|common|rare/i }).first();
       const hasSelector = await raritySelector.isVisible({ timeout: 3000 }).catch(() => false);
       
-      // FIXED: Proper assertion
-      if (hasSelector) {
-        await expect(raritySelector).toBeVisible();
-      } else {
-        test.skip(); // Rarity selector not yet implemented
+      // Feature SHOULD be implemented
+      if (!hasSelector) {
+        throw new Error('IMPLEMENTATION ISSUE: Rarity selector should exist in sticker upload form. Check StickerCollectionManager component.');
       }
+      await expect(raritySelector).toBeVisible();
     } else {
-      test.skip(); // Sticker tab not yet implemented
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 });
@@ -375,14 +364,13 @@ test.describe('Admin Reset Daily Cards @fast', () => {
       const resetButton = page.locator('button').filter({ hasText: /reset.*daily.*card|reset.*test/i }).first();
       const hasButton = await resetButton.isVisible({ timeout: 3000 }).catch(() => false);
       
-      // FIXED: Proper assertion
-      if (hasButton) {
-        await expect(resetButton).toBeVisible();
-      } else {
-        test.skip();
+      // Feature SHOULD be implemented
+      if (!hasButton) {
+        throw new Error('IMPLEMENTATION ISSUE: Reset daily cards button should exist in sticker manager. Check StickerCollectionManager component.');
       }
+      await expect(resetButton).toBeVisible();
     } else {
-      test.skip();
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 
@@ -409,15 +397,15 @@ test.describe('Admin Reset Daily Cards @fast', () => {
         const toast = page.locator('[class*="toast"], [role="alert"]').first();
         const hasToast = await toast.isVisible({ timeout: 2000 }).catch(() => false);
         
-        // FIXED: Proper assertion
+        // Toast confirmation is optional but good UX
         if (hasToast) {
           await expect(toast).toBeVisible();
         }
       } else {
-        test.skip();
+        throw new Error('IMPLEMENTATION ISSUE: Reset daily cards button should exist. Check StickerCollectionManager component.');
       }
     } else {
-      test.skip();
+      throw new Error('PRECONDITION FAILED: Stickers tab does not exist in admin panel. Check Admin.tsx.');
     }
   });
 });
@@ -431,12 +419,11 @@ test.describe('Sticker Collection Rarity System @fast', () => {
     const rarityElements = page.locator('text=/Common|Uncommon|Rare|Epic|Legendary/i');
     const count = await rarityElements.count();
     
-    // FIXED: Proper assertion
-    if (count > 0) {
-      expect(count).toBeGreaterThan(0);
-    } else {
-      test.skip();
+    // Feature SHOULD be implemented
+    if (count === 0) {
+      throw new Error('IMPLEMENTATION ISSUE: Rarity levels should be displayed in sticker album. Check StickerAlbum component.');
     }
+    expect(count).toBeGreaterThan(0);
   });
 
   test('should show drop rate percentages for each rarity', async ({ page }) => {

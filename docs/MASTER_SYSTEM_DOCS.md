@@ -495,14 +495,15 @@ MOBILE:tab-bar-wraps[inline-flex+flex-wrap+whitespace-nowrap]
 DOC:NEWSLETTER_SYSTEM.md
 
 ## TEST_PHILOSOPHY
-CRITICAL-RULES:fix-root-cause-never-force-pass|document-all-learnings|tests-are-source-of-truth|conditional-skips-ok-arbitrary-skips-bad
-APPROACH:when-test-fails[investigate-root-cause→fix-code-or-test→document-learning→update-best-practices]
-SKIPPING:GOOD[conditional-skip-with-reason+external-dependency+clear-condition+will-run-when-ready]|BAD[always-skip+no-reason+"flaky"+hide-bug+make-CI-green]
-NEVER:skip-tests-without-docs|modify-tests-just-to-pass|add-random-timeouts|comment-out-failing-tests|arbitrary-skips
-ALWAYS:fix-actual-bugs|update-docs-with-learnings|add-patterns-to-guidelines|make-tests-educational|conditional-skips-only
-RATIONALE:tests-are-safety-net|compromised-tests=no-bug-detection|failures-are-learning-opportunities|skips-must-be-justified
-CURRENT-SKIPS:34-total[all-legitimate-conditional]→5-contact-form-notifications+4-email-approvals+5-email-receipts+17-sticker-collection+3-vendor-dashboard
-DOC:TEST_FIXES_2025_10_23.md[philosophy+examples]|TESTING_BEST_PRACTICES.md[comprehensive-guidelines]|TEST_SKIP_PHILOSOPHY.md[skip-patterns]
+CRITICAL-RULES:fix-root-cause-never-skip|document-all-learnings|tests-must-pass-or-fail|address-preconditions-immediately
+APPROACH:test-skip→investigate-why→fix-precondition[seed-data|feature|environment]→throw-error-if-missing→document-fix
+NEVER:skip-to-pass-CI|hide-broken-features|accept-missing-preconditions|arbitrary-skips|test-dependencies
+ALWAYS:throw-errors-for-missing-preconditions|fix-seed-functions|implement-or-remove-features|make-tests-independent|document-every-fix
+SKIPPED-TESTS:zero-acceptable|either-PASS-or-FAIL|skips-hide-real-problems|decay-over-time
+PRECONDITIONS:missing-seed→fix-seed-email-test-data|feature-missing→fix-selector-or-implement|dependencies→make-independent
+DOCUMENTATION:every-fix→TEST_FIXES-doc|root-cause|solution|prevention-pattern
+RATIONALE:skips-hide-bugs|tests-decay|false-security|expose-dont-hide
+DOC:TEST_SKIP_PHILOSOPHY.md[zero-skips-approach]|TEST_FIXES_2025_10_23.md[recent-fixes]|TESTING_BEST_PRACTICES.md[guidelines]
 
 ## AUTOMATED_TESTING
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab

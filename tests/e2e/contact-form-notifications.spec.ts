@@ -68,7 +68,10 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('new submission creates notification and increments badge @notifications', async ({ page }) => {
-    test.skip(!adminUserId, 'No admin user found');
+    // Verify admin user was created successfully
+    if (!adminUserId) {
+      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    }
 
     // Login as admin (assuming test helper exists)
     // await loginAsAdmin(page);
@@ -118,7 +121,9 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('user reply creates notification and shows red dot @notifications', async ({ page }) => {
-    test.skip(!adminUserId, 'No admin user found');
+    if (!adminUserId) {
+      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    }
 
     // Create a test submission directly
     const testEmail = `reply-badge-${Date.now()}@example.com`;
@@ -185,7 +190,9 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('opening reply dialog clears notifications @notifications', async ({ page }) => {
-    test.skip(!adminUserId, 'No admin user found');
+    if (!adminUserId) {
+      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    }
 
     // Create submission and notification
     const testEmail = `clear-notif-${Date.now()}@example.com`;
@@ -241,7 +248,9 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('badge shows count of new submissions plus unread replies @notifications', async ({ page }) => {
-    test.skip(!adminUserId, 'No admin user found');
+    if (!adminUserId) {
+      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    }
 
     // Create 2 new submissions
     const email1 = `count-test-1-${Date.now()}@example.com`;
@@ -302,7 +311,9 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('reply button badge shows unread reply count @notifications', async ({ page }) => {
-    test.skip(!adminUserId, 'No admin user found');
+    if (!adminUserId) {
+      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    }
 
     // Create submission
     const testEmail = `reply-count-${Date.now()}@example.com`;

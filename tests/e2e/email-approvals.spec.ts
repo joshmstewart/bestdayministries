@@ -103,9 +103,7 @@ test.describe('Approval Notification Email Tests', () => {
       .limit(1);
 
     if (!links || links.length === 0) {
-      console.log('⚠️ No guardian-bestie links with post approval found');
-      test.skip();
-      return;
+      throw new Error('PRECONDITION FAILED: No guardian-bestie links with post approval found. The seed function should create these relationships. Check seed-email-test-data function.');
     }
 
     const link = links[0];
@@ -184,8 +182,7 @@ test.describe('Approval Notification Email Tests', () => {
       .limit(1);
 
     if (!links || links.length === 0) {
-      test.skip();
-      return;
+      throw new Error('PRECONDITION FAILED: No guardian-bestie links with comment approval found. The seed function should create these relationships. Check seed-email-test-data function.');
     }
 
     const link = links[0];
@@ -198,8 +195,7 @@ test.describe('Approval Notification Email Tests', () => {
       .limit(1);
 
     if (!posts || posts.length === 0) {
-      test.skip();
-      return;
+      throw new Error('PRECONDITION FAILED: No approved posts found for commenting. The seed function should create approved posts. Check seed-email-test-data function.');
     }
 
     // Create pending comment
@@ -272,8 +268,7 @@ test.describe('Approval Notification Email Tests', () => {
       .limit(1);
 
     if (!requests || requests.length === 0) {
-      test.skip();
-      return;
+      throw new Error('PRECONDITION FAILED: No approved vendor-bestie requests found. The seed function should create these relationships. Check seed-email-test-data function.');
     }
 
     const request = requests[0];

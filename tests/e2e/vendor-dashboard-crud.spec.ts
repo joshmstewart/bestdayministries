@@ -150,9 +150,29 @@ test.describe('Vendor Dashboard CRUD @fast', () => {
   });
 
   test('vendor can edit product', async () => {
+    // Instead of depending on earlier test, create product if needed
     if (!testProductId) {
-      test.skip();
-      return;
+      console.log('No test product exists - creating one for edit test');
+      const product = await vendorPage.evaluate(async ({ name }) => {
+        // @ts-ignore
+        const { supabase } = await import('/src/integrations/supabase/client.ts');
+        const { data, error } = await supabase
+          .from('products')
+          .insert({
+            name: name,
+            description: 'Test product for edit test',
+            price: 29.99,
+            stock_quantity: 10,
+            is_active: true
+          })
+          .select()
+          .single();
+        
+        if (error) throw new Error(`Failed to create test product: ${error.message}`);
+        return data;
+      }, { name: testProductName });
+      
+      testProductId = product.id;
     }
     
     await vendorPage.goto('/vendor-dashboard');
@@ -197,9 +217,29 @@ test.describe('Vendor Dashboard CRUD @fast', () => {
   });
 
   test('vendor can toggle product visibility', async () => {
+    // Instead of depending on earlier test, create product if needed
     if (!testProductId) {
-      test.skip();
-      return;
+      console.log('No test product exists - creating one for visibility toggle test');
+      const product = await vendorPage.evaluate(async ({ name }) => {
+        // @ts-ignore
+        const { supabase } = await import('/src/integrations/supabase/client.ts');
+        const { data, error } = await supabase
+          .from('products')
+          .insert({
+            name: name,
+            description: 'Test product for visibility toggle test',
+            price: 29.99,
+            stock_quantity: 10,
+            is_active: true
+          })
+          .select()
+          .single();
+        
+        if (error) throw new Error(`Failed to create test product: ${error.message}`);
+        return data;
+      }, { name: testProductName });
+      
+      testProductId = product.id;
     }
     
     await vendorPage.goto('/vendor-dashboard');
@@ -317,9 +357,29 @@ test.describe('Vendor Dashboard CRUD @fast', () => {
   });
 
   test('vendor can delete product', async () => {
+    // Instead of depending on earlier test, create product if needed
     if (!testProductId) {
-      test.skip();
-      return;
+      console.log('No test product exists - creating one for delete test');
+      const product = await vendorPage.evaluate(async ({ name }) => {
+        // @ts-ignore
+        const { supabase } = await import('/src/integrations/supabase/client.ts');
+        const { data, error } = await supabase
+          .from('products')
+          .insert({
+            name: name,
+            description: 'Test product for delete test',
+            price: 29.99,
+            stock_quantity: 10,
+            is_active: true
+          })
+          .select()
+          .single();
+        
+        if (error) throw new Error(`Failed to create test product: ${error.message}`);
+        return data;
+      }, { name: testProductName });
+      
+      testProductId = product.id;
     }
     
     await vendorPage.goto('/vendor-dashboard');

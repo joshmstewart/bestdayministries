@@ -78,9 +78,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
       .limit(1);
 
     if (!sponsorships || sponsorships.length === 0) {
-      console.log('⚠️ No active monthly sponsorships found');
-      test.skip();
-      return;
+      throw new Error('PRECONDITION FAILED: No active monthly sponsorships found. The seed function should create monthly sponsorships. Check seed-email-test-data function.');
     }
 
     const sponsorship = sponsorships[0];
@@ -127,9 +125,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
       .limit(1);
 
     if (!sponsorships || sponsorships.length === 0) {
-      console.log('⚠️ No one-time sponsorships found');
-      test.skip();
-      return;
+      throw new Error('PRECONDITION FAILED: No one-time sponsorships found. The seed function should create one-time sponsorships. Check seed-email-test-data function.');
     }
 
     const sponsorship = sponsorships[0];
@@ -170,8 +166,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
       .limit(1);
 
     if (!sponsorships || sponsorships.length === 0) {
-      test.skip();
-      return;
+      throw new Error('PRECONDITION FAILED: No active sponsorships found for organization info test. The seed function should create sponsorships. Check seed-email-test-data function.');
     }
 
     const sponsorship = sponsorships[0];
@@ -215,8 +210,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
       .limit(5);
 
     if (!sponsorships || sponsorships.length === 0) {
-      test.skip();
-      return;
+      throw new Error('PRECONDITION FAILED: No active sponsorships found for missing receipts test. The seed function should create sponsorships. Check seed-email-test-data function.');
     }
 
     // Get sponsorships that don't have receipts
@@ -229,9 +223,30 @@ test.describe('Sponsorship Receipt Email Tests', () => {
     const missingReceipts = sponsorships.filter(s => !existingIds.has(s.id));
 
     if (missingReceipts.length === 0) {
-      console.log('⚠️ All sponsorships have receipts');
-      test.skip();
-      return;
+      console.log('ℹ️ All sponsorships already have receipts - this is actually a pass condition');
+      // This is not a failure - if all sponsorships have receipts, the system is working correctly
+      // We'll create a new sponsorship without a receipt to test the generation
+      const { data: newSponsorship, error: newSponsorshipError } = await sponsorClient
+        .from('sponsorships')
+        .insert({
+          sponsor_id: seedData.userIds.sponsor,
+          bestie_id: seedData.userIds.bestie,
+          sponsor_bestie_id: sponsorships[0].sponsor_bestie_id,
+          amount: 25,
+          frequency: 'one-time',
+          status: 'completed',
+          stripe_payment_intent_id: `pi_test_receipt_${Date.now()}`,
+          stripe_customer_id: `cus_test_${Date.now()}`,
+          stripe_mode: 'test'
+        })
+        .select()
+        .single();
+      
+      if (newSponsorshipError || !newSponsorship) {
+        throw new Error('Failed to create test sponsorship for receipt generation test');
+      }
+      
+      missingReceipts = [newSponsorship];
     }
 
     // Trigger missing receipt generation
