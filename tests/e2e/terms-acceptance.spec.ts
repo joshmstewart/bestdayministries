@@ -113,19 +113,19 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     await page.fill('input[placeholder*="Name" i]', 'Test User');
     await page.fill('input[type="email"]', `testuser${Date.now()}@example.com`);
     await page.fill('input[type="password"]', 'testpassword123');
+    await page.waitForLoadState('networkidle');
     
-    const signUpBtn = page.locator('button:has-text("Sign Up")').first();
-    await signUpBtn.click();
+    // Get the "Create Account" button on the auth form
+    const signUpBtn = page.locator('button[type="submit"]').filter({ hasText: /create account/i });
+    await expect(signUpBtn).toBeVisible({ timeout: 5000 });
     
-    await expect(page.locator('button:has-text("Accept"), button:has-text("I Accept")').first()).toBeVisible({ timeout: 5000 });
+    // Wait for state to stabilize
+    await page.waitForTimeout(500);
     
-    // Look for accept button (should be disabled without checkbox)
-    const acceptBtn = page.locator('button:has-text("Accept"), button:has-text("I Accept")').first();
-    if (await acceptBtn.isVisible()) {
-      const isDisabled = await acceptBtn.isDisabled();
-      expect(isDisabled).toBeTruthy();
-      console.log('✅ Accept button disabled without checkbox');
-    }
+    // The button should be disabled because terms aren't checked yet
+    const isDisabled = await signUpBtn.isDisabled();
+    expect(isDisabled).toBeTruthy();
+    console.log('✅ Create Account button disabled without terms checkbox');
   });
 
   test('can accept terms and proceed', async ({ page }) => {
@@ -142,32 +142,46 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     await page.fill('input[placeholder*="Name" i]', 'Accept Test User');
     await page.fill('input[type="email"]', uniqueEmail);
     await page.fill('input[type="password"]', 'testpassword123');
+    await page.waitForLoadState('networkidle');
     
-    const signUpBtn = page.locator('button:has-text("Sign Up")').first();
+    // Check the terms checkbox on the auth form
+    const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
+    await expect(termsCheckbox).toBeVisible({ timeout: 5000 });
+    await termsCheckbox.check();
+    await expect(termsCheckbox).toBeChecked({ timeout: 2000 });
+    console.log('✅ Terms checkbox checked');
+    
+    // Wait for React state update
+    await page.waitForTimeout(500);
+    
+    // Click the "Create Account" button
+    const signUpBtn = page.locator('button[type="submit"]').filter({ hasText: /create account/i });
+    await expect(signUpBtn).toBeEnabled({ timeout: 5000 });
     await signUpBtn.click();
     
-    await expect(page.locator('input[type="checkbox"]').first()).toBeVisible({ timeout: 5000 });
+    // Wait for either Terms dialog OR redirect to community
+    await Promise.race([
+      page.waitForSelector('button:has-text("Accept"), button:has-text("I Accept")', { timeout: 5000 }).catch(() => null),
+      page.waitForURL(/\/community/, { timeout: 5000 }).catch(() => null)
+    ]);
     
-    // Check terms checkbox
-    const termsCheckbox = page.locator('input[type="checkbox"]').first();
-    if (await termsCheckbox.isVisible()) {
-      await termsCheckbox.click();
-      await expect(termsCheckbox).toBeChecked({ timeout: 2000 });
-    }
-    
-    // Click accept button
+    // If terms dialog appears, accept it
     const acceptBtn = page.locator('button:has-text("Accept"), button:has-text("I Accept")').first();
-    if (await acceptBtn.isVisible()) {
+    if (await acceptBtn.isVisible().catch(() => false)) {
+      const dialogCheckbox = page.locator('input[type="checkbox"]').first();
+      await dialogCheckbox.check();
+      await expect(dialogCheckbox).toBeChecked({ timeout: 2000 });
+      await expect(acceptBtn).toBeEnabled({ timeout: 2000 });
       await acceptBtn.click();
-      await page.waitForTimeout(3000);
-      
-      // Should redirect to app (community or home)
-      const currentUrl = page.url();
-      const isRedirected = currentUrl.includes('/community') || currentUrl.includes('/') && !currentUrl.includes('/auth');
-      
-      expect(isRedirected).toBeTruthy();
-      console.log('✅ Terms accepted, redirected to app');
+      await page.waitForTimeout(2000);
     }
+    
+    // Should redirect to app (community or home)
+    const currentUrl = page.url();
+    const isRedirected = currentUrl.includes('/community') || (currentUrl.includes('/') && !currentUrl.includes('/auth'));
+    
+    expect(isRedirected).toBeTruthy();
+    console.log('✅ Successfully signed up and redirected to app');
   });
 
   test('acceptance is recorded in database with IP', async ({ page }) => {

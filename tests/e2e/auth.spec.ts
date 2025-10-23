@@ -208,23 +208,24 @@ test.describe('Authentication and Signup Flow', () => {
         console.log('🔍 TEST 13-15: Clicked avatar');
       }
       
-      // Declare submit button first
-      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      // Get submit button - use more specific selector for "Create Account"
+      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /create account/i });
+      await expect(submitButton).toBeVisible({ timeout: 5000 });
+      console.log('🔍 TEST 13-15: Submit button visible');
       
-      // Accept terms
+      // Accept terms - this should enable the button
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
-      const termsVisible = await termsCheckbox.isVisible().catch(() => false);
-      console.log('🔍 TEST 13-15: Terms checkbox visible:', termsVisible);
-      if (termsVisible) {
-        await termsCheckbox.check();
-        await expect(submitButton).toBeEnabled();
-        console.log('🔍 TEST 13-15: Checked terms');
-      }
+      await expect(termsCheckbox).toBeVisible({ timeout: 5000 });
+      console.log('🔍 TEST 13-15: Terms checkbox visible');
       
-      // Verify button is enabled before clicking
-      const buttonEnabled = await submitButton.isEnabled().catch(() => false);
-      console.log('🔍 TEST 13-15: Submit button enabled:', buttonEnabled);
-      await expect(submitButton).toBeEnabled();
+      await termsCheckbox.check();
+      await expect(termsCheckbox).toBeChecked({ timeout: 2000 });
+      console.log('🔍 TEST 13-15: Checked terms');
+      
+      // Wait for React state to update and button to become enabled
+      await page.waitForTimeout(500);
+      await expect(submitButton).toBeEnabled({ timeout: 5000 });
+      console.log('🔍 TEST 13-15: Submit button enabled');
       
       // Submit form
       console.log('🔍 TEST 13-15: About to click submit');
@@ -286,18 +287,19 @@ test.describe('Authentication and Signup Flow', () => {
         await page.waitForLoadState('networkidle');
       }
       
-      // Declare submit button first
-      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      // Get submit button - use more specific selector for "Create Account"
+      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /create account/i });
+      await expect(submitButton).toBeVisible({ timeout: 5000 });
       
-      // Accept terms
+      // Accept terms - this should enable the button
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
-      if (await termsCheckbox.isVisible()) {
-        await termsCheckbox.check();
-        await expect(submitButton).toBeEnabled();
-      }
+      await expect(termsCheckbox).toBeVisible({ timeout: 5000 });
+      await termsCheckbox.check();
+      await expect(termsCheckbox).toBeChecked({ timeout: 2000 });
       
-      // Verify button is enabled before clicking
-      await expect(submitButton).toBeEnabled();
+      // Wait for React state to update and button to become enabled
+      await page.waitForTimeout(500);
+      await expect(submitButton).toBeEnabled({ timeout: 5000 });
       
       // Submit form
       await submitButton.click({ noWaitAfter: true });
@@ -326,6 +328,7 @@ test.describe('Authentication and Signup Flow', () => {
     await page.getByPlaceholder(/email/i).fill('test@test.com');
     await page.getByLabel(/password/i).fill('TestPass123!');
     await page.getByPlaceholder(/name|display name/i).fill('Test User');
+    await page.waitForLoadState('networkidle');
     console.log('🔍 TEST 17: Filled required fields');
     
     // Select avatar
@@ -343,7 +346,13 @@ test.describe('Authentication and Signup Flow', () => {
       console.log('🔍 TEST 17: Terms checkbox checked:', isChecked);
       await expect(termsCheckbox).not.toBeChecked();
       
-      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      // Get the "Create Account" button specifically
+      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /create account/i });
+      await expect(submitButton).toBeVisible({ timeout: 5000 });
+      
+      // Wait for state to stabilize
+      await page.waitForTimeout(500);
+      
       const isDisabled = await submitButton.isDisabled();
       console.log('🔍 TEST 17: Submit button disabled without terms:', isDisabled);
       
