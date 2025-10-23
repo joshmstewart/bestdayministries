@@ -220,8 +220,10 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
           setOpened(true);
           setShowConfetti(true);
           
-          // Trigger celebration for first sticker
-          triggerCelebration(stickers[0].rarity);
+          // Delay rarity sound to let pack reveal sound play first
+          setTimeout(() => {
+            triggerCelebration(stickers[0].rarity);
+          }, 500);
         } else {
           throw new Error('No stickers revealed');
         }
