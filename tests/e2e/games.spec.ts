@@ -15,20 +15,24 @@ test.describe('Games System @fast', () => {
 
     // Login as test user with shard-specific account
     const testAccount = getTestAccount();
+    const { email, password } = testAccount;
     
+    console.log('🔐 Starting auth flow for games tests...');
     await testPage.goto('/auth');
     await testPage.waitForLoadState('networkidle');
+    console.log('✓ Auth page loaded');
     
-    await testPage.fill('input[type="email"]', testAccount.email);
-    await testPage.fill('input[type="password"]', testAccount.password);
+    await testPage.fill('input[type="email"]', email);
+    console.log('✓ Email filled');
+    
+    await testPage.fill('input[type="password"]', password);
+    console.log('✓ Password filled');
+    
     await testPage.click('button:has-text("Sign In")');
+    console.log('✓ Sign in clicked');
     
-    // Wait for auth processing
-    await testPage.waitForLoadState('domcontentloaded');
-    await testPage.waitForTimeout(2000); // Give auth service time to process
-    
-    // INCREASED: 90s timeout for slower CI auth service
-    await testPage.waitForURL(/\/(community|admin)/, { timeout: 90000 });
+    await testPage.waitForURL(/\/(community|admin)/, { timeout: 60000 });
+    console.log('✓ URL changed to:', testPage.url());
     await testPage.waitForLoadState('networkidle');
   });
 

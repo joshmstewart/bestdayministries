@@ -15,19 +15,23 @@ test.describe('Profile Settings @fast', () => {
     // CRITICAL: Use shard-specific account to prevent login conflicts
     const testAccount = getTestAccount();
     
+    console.log('🔐 Starting auth flow for profile settings...');
     await page.goto('/auth');
     await page.waitForLoadState('networkidle');
+    console.log('✓ Auth page loaded');
     
     await page.fill('input[type="email"]', testAccount.email);
+    console.log('✓ Email filled');
+    
     await page.fill('input[type="password"]', testAccount.password);
+    console.log('✓ Password filled');
+    
     await page.click('button:has-text("Sign In")');
+    console.log('✓ Sign in clicked');
     
-    // Wait for auth processing
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000); // Give auth service time to process
-    
-    // INCREASED: 90s timeout for slower CI auth service
-    await page.waitForURL(/\/(community|admin)/, { timeout: 90000 });
+    await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
+    console.log('✓ URL changed to:', page.url());
+  });
     await page.waitForLoadState('networkidle');
   });
 

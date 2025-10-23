@@ -124,6 +124,15 @@ test.describe('Sticker Album Viewing @fast', () => {
 });
 
 test.describe('Admin Sticker Management @fast', () => {
+  test.beforeEach(async ({ page }) => {
+    // Authenticate as admin before each test
+    await page.goto('/auth');
+    await page.fill('input[type="email"]', 'test@example.com');
+    await page.fill('input[type="password"]', 'testpassword123');
+    await page.click('button:has-text("Sign In")');
+    await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
+  });
+
   test('should access sticker management from admin panel', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
@@ -271,6 +280,15 @@ test.describe('Admin Sticker Management @fast', () => {
 });
 
 test.describe('Admin Sticker Upload @fast', () => {
+  test.beforeEach(async ({ page }) => {
+    // Authenticate as admin before each test
+    await page.goto('/auth');
+    await page.fill('input[type="email"]', 'test@example.com');
+    await page.fill('input[type="password"]', 'testpassword123');
+    await page.click('button:has-text("Sign In")');
+    await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
+  });
+
   test('should have upload sticker form', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
@@ -348,6 +366,15 @@ test.describe('Admin Sticker Upload @fast', () => {
 });
 
 test.describe('Admin Reset Daily Cards @fast', () => {
+  test.beforeEach(async ({ page }) => {
+    // Authenticate as admin before each test
+    await page.goto('/auth');
+    await page.fill('input[type="email"]', 'test@example.com');
+    await page.fill('input[type="password"]', 'testpassword123');
+    await page.click('button:has-text("Sign In")');
+    await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
+  });
+
   test('should have reset daily cards button', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
