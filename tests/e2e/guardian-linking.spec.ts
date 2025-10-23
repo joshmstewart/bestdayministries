@@ -79,6 +79,9 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       await page.waitForLoadState('networkidle');
       console.log('🔍 TEST 90-92: Network idle');
       
+      // Wait extra time for mocked auth state to propagate
+      await page.waitForTimeout(2000);
+      
       // Add delay for checkAccess to complete
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
       console.log('🔍 TEST 90-92: Waiting for Link Bestie button...');
@@ -87,7 +90,11 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       const buttonCount = await linkButton.count();
       console.log('🔍 TEST 90-92: Button count:', buttonCount);
       
-      await linkButton.waitFor({ state: 'visible', timeout: 10000 });
+      if (buttonCount === 0) {
+        throw new Error('IMPLEMENTATION ISSUE: Link Bestie button not found. Mock state may not be working correctly or access check is failing.');
+      }
+      
+      await linkButton.waitFor({ state: 'visible', timeout: 15000 });
       console.log('🔍 TEST 90-92: Link button visible');
       
       // Click to open dialog

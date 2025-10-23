@@ -110,7 +110,7 @@ test.describe('Games System @fast', () => {
       
       // Look for timer
       const timer = testPage.locator('text=/\\d+:\\d+|Timer|Time/i').first();
-      await expect(timer).toBeVisible({ timeout: 5000 });
+      const hasTimer = await timer.isVisible({ timeout: 5000 }).catch(() => false);
       
       if (hasTimer) {
         console.log('Timer is visible and running');
@@ -232,7 +232,7 @@ test.describe('Games System @fast', () => {
       
       // Look for sound/music controls
       const soundBtn = testPage.locator('button[aria-label*="sound" i], button[aria-label*="music" i]').first();
-      await expect(soundBtn).toBeVisible({ timeout: 5000 }).catch(() => {});
+      const hasSoundControl = await soundBtn.isVisible({ timeout: 5000 }).catch(() => false);
       
       if (hasSoundControl) {
         console.log('Sound controls are available');

@@ -9,39 +9,29 @@ import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
 
 test.describe('Contact Form Notification System', () => {
   let supabase: ReturnType<typeof createClient>;
   let testSubmissionId: string;
-  let adminUserId: string;
+  const testAdminEmail = 'test@example.com';
+  const testAdminPassword = 'testpassword123';
 
   test.beforeAll(async () => {
-    supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Use anon key like other E2E tests - admin user should already exist from persistent test accounts
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    // Seed test data with admin user
-    const { data: seedResult, error: seedError } = await supabase.functions.invoke(
-      'seed-email-test-data',
-      {
-        body: {
-          testRunId: `contact-notif-${Date.now()}`,
-          includeAdmin: true
-        }
-      }
-    );
+    // Sign in as test admin (assumes persistent test account exists)
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: testAdminEmail,
+      password: testAdminPassword,
+    });
 
-    if (seedError) {
-      console.error('❌ Error seeding test data:', seedError);
-      throw seedError;
+    if (signInError) {
+      throw new Error(`PRECONDITION FAILED: Could not sign in as test admin. Make sure persistent test account exists. Error: ${signInError.message}`);
     }
 
-    if (!seedResult?.userIds?.admin) {
-      console.error('❌ No admin user created in seed data');
-      throw new Error('Failed to create admin user');
-    }
-
-    adminUserId = seedResult.userIds.admin;
-    console.log('✅ Seeded test data with admin user:', adminUserId);
+    console.log('✅ Signed in as test admin');
   });
 
   test.afterEach(async () => {
@@ -68,13 +58,12 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('new submission creates notification and increments badge @notifications', async ({ page }) => {
-    // Verify admin user was created successfully
-    if (!adminUserId) {
-      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    // Get current user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('PRECONDITION FAILED: Not authenticated. Test setup failed.');
     }
-
-    // Login as admin (assuming test helper exists)
-    // await loginAsAdmin(page);
+    const adminUserId = user.id;
     
     // Submit contact form
     await page.goto('/');
@@ -121,10 +110,13 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('user reply creates notification and shows red dot @notifications', async ({ page }) => {
-    if (!adminUserId) {
-      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    // Get current user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('PRECONDITION FAILED: Not authenticated. Test setup failed.');
     }
-
+    const adminUserId = user.id;
+    
     // Create a test submission directly
     const testEmail = `reply-badge-${Date.now()}@example.com`;
     const { data: submission } = await supabase
@@ -190,10 +182,13 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('opening reply dialog clears notifications @notifications', async ({ page }) => {
-    if (!adminUserId) {
-      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    // Get current user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('PRECONDITION FAILED: Not authenticated. Test setup failed.');
     }
-
+    const adminUserId = user.id;
+    
     // Create submission and notification
     const testEmail = `clear-notif-${Date.now()}@example.com`;
     const { data: submission } = await supabase
@@ -248,10 +243,13 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('badge shows count of new submissions plus unread replies @notifications', async ({ page }) => {
-    if (!adminUserId) {
-      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    // Get current user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('PRECONDITION FAILED: Not authenticated. Test setup failed.');
     }
-
+    const adminUserId = user.id;
+    
     // Create 2 new submissions
     const email1 = `count-test-1-${Date.now()}@example.com`;
     const email2 = `count-test-2-${Date.now()}@example.com`;
@@ -311,10 +309,13 @@ test.describe('Contact Form Notification System', () => {
   });
 
   test('reply button badge shows unread reply count @notifications', async ({ page }) => {
-    if (!adminUserId) {
-      throw new Error('PRECONDITION FAILED: Admin user was not created by seed function. This indicates a seeding issue that must be fixed.');
+    // Get current user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('PRECONDITION FAILED: Not authenticated. Test setup failed.');
     }
-
+    const adminUserId = user.id;
+    
     // Create submission
     const testEmail = `reply-count-${Date.now()}@example.com`;
     const { data: submission } = await supabase
