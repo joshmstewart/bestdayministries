@@ -27,30 +27,6 @@ export function useSoundEffects() {
   const [soundEffects, setSoundEffects] = useState<Record<string, SoundEffect>>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadSoundEffects();
-
-    // Subscribe to changes
-    const channel = supabase
-      .channel("sound_effects_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "app_sound_effects",
-        },
-        () => {
-          loadSoundEffects();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, []);
-
   const loadSoundEffects = async () => {
     try {
       const { data, error } = await supabase
@@ -77,6 +53,30 @@ export function useSoundEffects() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadSoundEffects();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel("sound_effects_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "app_sound_effects",
+        },
+        () => {
+          loadSoundEffects();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
 
   const playSound = (eventType: SoundEventType) => {
     const effect = soundEffects[eventType];

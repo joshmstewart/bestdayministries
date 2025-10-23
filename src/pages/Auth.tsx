@@ -297,6 +297,7 @@ const Auth = () => {
                 type="submit" 
                 className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
                 disabled={loading}
+                playClickSound
               >
                 {loading ? "Sending..." : "Send Reset Link"}
               </Button>
@@ -492,6 +493,7 @@ const Auth = () => {
               type="submit" 
               className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
               disabled={loading || (isSignUp && !acceptedTerms)}
+              playClickSound
             >
               {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
             </Button>
@@ -517,6 +519,7 @@ const Auth = () => {
               variant="ghost"
               className="w-full"
               onClick={() => navigate("/")}
+              playClickSound
             >
               Back to Home
             </Button>
