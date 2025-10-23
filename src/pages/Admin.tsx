@@ -248,7 +248,6 @@ const Admin = () => {
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="featured">Besties</TabsTrigger>
-            <TabsTrigger value="partners">Partners</TabsTrigger>
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="stickers">Stickers</TabsTrigger>
@@ -394,10 +393,6 @@ const Admin = () => {
             <FeaturedBestieManager />
           </TabsContent>
 
-          <TabsContent value="partners">
-            <PartnersManager />
-          </TabsContent>
-
           <TabsContent value="sponsorships">
             <Card>
               <CardHeader>
@@ -484,6 +479,7 @@ const Admin = () => {
                     <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
                     <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
+                    <TabsTrigger value="partners">Partners</TabsTrigger>
                     <TabsTrigger value="footer">Footer</TabsTrigger>
                     <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
                   </TabsList>
@@ -510,6 +506,10 @@ const Admin = () => {
 
                   <TabsContent value="family-orgs">
                     <FamilyOrganizationsManager />
+                  </TabsContent>
+
+                  <TabsContent value="partners">
+                    <PartnersManager />
                   </TabsContent>
 
                   <TabsContent value="footer">
