@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Trash2, Edit2, Save, X } from "lucide-react";
+import { Loader2, Upload, Trash2, Edit2, Save, X, Camera } from "lucide-react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
+import { VideoScreenshotCapture } from "@/components/VideoScreenshotCapture";
 
 interface Video {
   id: string;
@@ -43,6 +44,11 @@ export const VideoManager = () => {
   const [isActive, setIsActive] = useState(true);
   const [videoType, setVideoType] = useState<"upload" | "youtube">("upload");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [screenshotCaptureOpen, setScreenshotCaptureOpen] = useState(false);
+  const [videoUrlForScreenshot, setVideoUrlForScreenshot] = useState("");
+  const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
+  const [coverTimestamp, setCoverTimestamp] = useState<number | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadVideos();
@@ -107,6 +113,7 @@ export const VideoManager = () => {
 
       let videoUrl = "";
       let thumbnailUrl = null;
+      let coverUrl = null;
 
       // Handle uploaded video
       if (videoType === "upload" && videoFile) {
@@ -123,7 +130,22 @@ export const VideoManager = () => {
           .getPublicUrl(videoPath);
         videoUrl = publicUrl;
 
-        // Upload thumbnail if provided
+        // Upload cover image from screenshot capture if available
+        if (coverBlob) {
+          const coverPath = `covers/${Date.now()}-${Math.random()}.jpg`;
+          const { error: coverError } = await supabase.storage
+            .from("videos")
+            .upload(coverPath, coverBlob);
+
+          if (!coverError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("videos")
+              .getPublicUrl(coverPath);
+            coverUrl = publicUrl;
+          }
+        }
+
+        // Upload thumbnail if provided (legacy support)
         if (thumbnailFile) {
           const thumbExt = thumbnailFile.name.split(".").pop();
           const thumbPath = `thumbnails/${Date.now()}-${Math.random()}.${thumbExt}`;
@@ -152,6 +174,8 @@ export const VideoManager = () => {
       if (videoType === "upload") {
         if (videoUrl) videoData.video_url = videoUrl;
         if (thumbnailUrl) videoData.thumbnail_url = thumbnailUrl;
+        if (coverUrl) videoData.cover_url = coverUrl;
+        if (coverTimestamp !== null) videoData.cover_timestamp = coverTimestamp;
       } else {
         videoData.youtube_url = youtubeUrl;
       }
@@ -185,6 +209,9 @@ export const VideoManager = () => {
       setVideoType("upload");
       setYoutubeUrl("");
       setEditingId(null);
+      setCoverBlob(null);
+      setCoverTimestamp(null);
+      setCoverPreviewUrl(null);
       loadVideos();
     } catch (error: any) {
       console.error("Error saving video:", error);
@@ -247,6 +274,42 @@ export const VideoManager = () => {
     setIsActive(true);
     setVideoType("upload");
     setYoutubeUrl("");
+    setCoverBlob(null);
+    setCoverTimestamp(null);
+    setCoverPreviewUrl(null);
+  };
+
+  const handleOpenScreenshotCapture = () => {
+    if (videoFile) {
+      // Create a temporary URL for the uploaded video file
+      const url = URL.createObjectURL(videoFile);
+      setVideoUrlForScreenshot(url);
+      setScreenshotCaptureOpen(true);
+    }
+  };
+
+  const handleScreenshotCaptureComplete = (blob: Blob, timestamp: number) => {
+    setCoverBlob(blob);
+    setCoverTimestamp(timestamp);
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(blob);
+    setCoverPreviewUrl(previewUrl);
+    setScreenshotCaptureOpen(false);
+    
+    // Clean up the temporary video URL
+    if (videoUrlForScreenshot) {
+      URL.revokeObjectURL(videoUrlForScreenshot);
+      setVideoUrlForScreenshot("");
+    }
+  };
+
+  const handleCancelScreenshotCapture = () => {
+    setScreenshotCaptureOpen(false);
+    // Clean up the temporary video URL
+    if (videoUrlForScreenshot) {
+      URL.revokeObjectURL(videoUrlForScreenshot);
+      setVideoUrlForScreenshot("");
+    }
   };
 
   if (loading) {
@@ -324,14 +387,44 @@ export const VideoManager = () => {
                   />
                 </div>
 
+                {videoFile && (
+                  <div className="space-y-2">
+                    <Label>Cover Image</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleOpenScreenshotCapture}
+                      className="w-full"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Capture Screenshots to Choose Cover
+                    </Button>
+                    {coverPreviewUrl && (
+                      <div className="relative">
+                        <img
+                          src={coverPreviewUrl}
+                          alt="Cover preview"
+                          className="w-full aspect-video object-cover rounded-lg"
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Cover image set at {Math.floor(coverTimestamp || 0)}s
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
-                  <Label htmlFor="thumbnail">Thumbnail Image (Optional)</Label>
+                  <Label htmlFor="thumbnail">Thumbnail Image (Optional - Legacy)</Label>
                   <Input
                     id="thumbnail"
                     type="file"
                     accept="image/*"
                     onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Use screenshot capture above instead for better results
+                  </p>
                 </div>
               </>
             ) : (
@@ -436,6 +529,14 @@ export const VideoManager = () => {
           </Card>
         ))}
       </div>
+
+      <VideoScreenshotCapture
+        open={screenshotCaptureOpen}
+        onOpenChange={setScreenshotCaptureOpen}
+        videoUrl={videoUrlForScreenshot}
+        onCaptureComplete={handleScreenshotCaptureComplete}
+        onCancel={handleCancelScreenshotCapture}
+      />
     </div>
   );
 };

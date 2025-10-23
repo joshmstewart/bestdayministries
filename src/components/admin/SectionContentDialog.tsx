@@ -1187,43 +1187,87 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="video_id">Select Video</Label>
+              <Label htmlFor="video_type">Video Type</Label>
               <Select
-                value={content.video_id || ""}
-                onValueChange={(value) => {
-                  const selectedVideo = videos.find(v => v.id === value);
-                  if (selectedVideo) {
-                    setContent({
-                      ...content,
-                      video_id: value,
-                      video_type: selectedVideo.video_type || 'uploaded',
-                      video_url: selectedVideo.video_url,
-                      youtube_url: selectedVideo.youtube_url || ''
-                    });
-                  }
+                value={content.video_type || "uploaded"}
+                onValueChange={(value: 'uploaded' | 'youtube') => {
+                  setContent({ 
+                    ...content, 
+                    video_type: value,
+                    video_id: undefined,
+                    video_url: undefined,
+                    youtube_url: undefined
+                  });
                 }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a video" />
+                <SelectTrigger id="video_type">
+                  <SelectValue placeholder="Select video type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {videos.length === 0 ? (
-                    <SelectItem value="none" disabled>
-                      No videos available
-                    </SelectItem>
-                  ) : (
-                    videos.map((video) => (
-                      <SelectItem key={video.id} value={video.id}>
-                        {video.title}
-                      </SelectItem>
-                    ))
-                  )}
+                  <SelectItem value="uploaded">Uploaded Video</SelectItem>
+                  <SelectItem value="youtube">YouTube Video</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Upload videos through Admin → Videos tab first
-              </p>
             </div>
+            
+            {content.video_type === "uploaded" ? (
+              <div className="space-y-2">
+                <Label htmlFor="video_id">Select Video</Label>
+                <Select
+                  value={content.video_id || ""}
+                  onValueChange={(value) => {
+                    const selectedVideo = videos.find(v => v.id === value);
+                    if (selectedVideo) {
+                      setContent({
+                        ...content,
+                        video_id: value,
+                        video_type: 'uploaded',
+                        video_url: selectedVideo.video_url,
+                        youtube_url: undefined
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a video" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {videos.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No videos available
+                      </SelectItem>
+                    ) : (
+                      videos.map((video) => (
+                        <SelectItem key={video.id} value={video.id}>
+                          {video.title}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Upload videos through Admin → Videos tab first
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="youtube_url">YouTube URL</Label>
+                <Input
+                  id="youtube_url"
+                  value={content.youtube_url || ""}
+                  onChange={(e) => setContent({ 
+                    ...content, 
+                    youtube_url: e.target.value,
+                    video_id: undefined,
+                    video_url: undefined
+                  })}
+                  placeholder="https://www.youtube.com/watch?v=... or video ID"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Paste the full YouTube URL or just the video ID
+                </p>
+              </div>
+            )}
           </div>
         );
 
