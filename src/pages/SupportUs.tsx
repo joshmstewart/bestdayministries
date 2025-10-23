@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import { DonationForm } from "@/components/DonationForm";
+import HomepageVideo from "@/components/HomepageVideo";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -131,6 +132,13 @@ const SupportUs = () => {
               <p className="text-muted-foreground">{section.content.description || "Make a general donation to support our work"}</p>
             </div>
             <DonationForm />
+          </div>
+        );
+
+      case 'support_video':
+        return (
+          <div key="support_video">
+            <HomepageVideo content={section.content} />
           </div>
         );
 

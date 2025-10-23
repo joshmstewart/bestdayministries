@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { GripVertical, Eye, EyeOff, Loader2, ShoppingBag, Gift, Settings, Plus, Trash2, Edit } from "lucide-react";
 import {
@@ -123,6 +124,7 @@ export const SupportPageManager = () => {
   const [waysToGive, setWaysToGive] = useState<WayToGive[]>([]);
   const [editingWay, setEditingWay] = useState<WayToGive | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [videos, setVideos] = useState<Array<{ id: string; title: string; video_url: string; video_type?: string; youtube_url?: string | null }>>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -135,6 +137,7 @@ export const SupportPageManager = () => {
     loadSections();
     loadWishlistSettings();
     loadWaysToGive();
+    loadVideos();
   }, []);
 
   const loadSections = async () => {
@@ -186,6 +189,21 @@ export const SupportPageManager = () => {
     } catch (error) {
       console.error("Error loading ways to give:", error);
       toast.error("Failed to load ways to give");
+    }
+  };
+
+  const loadVideos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("videos")
+        .select("id, title, video_url, video_type, youtube_url")
+        .eq("is_active", true)
+        .order("title", { ascending: true });
+
+      if (error) throw error;
+      if (data) setVideos(data);
+    } catch (error) {
+      console.error("Error loading videos:", error);
     }
   };
 
@@ -415,6 +433,7 @@ export const SupportPageManager = () => {
       case "sponsor_bestie":
       case "other_ways":
       case "wishlists":
+      case "donation_form":
         return (
           <div className="space-y-4">
             <div>
@@ -439,6 +458,128 @@ export const SupportPageManager = () => {
                 })}
               />
             </div>
+          </div>
+        );
+
+      case "support_video":
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">Section Title (Optional)</Label>
+              <Input
+                id="title"
+                value={content.title || ""}
+                onChange={(e) => setEditingSection({
+                  ...section,
+                  content: { ...content, title: e.target.value }
+                })}
+                placeholder="Learn About Our Impact"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                value={content.description || ""}
+                onChange={(e) => setEditingSection({
+                  ...section,
+                  content: { ...content, description: e.target.value }
+                })}
+                rows={2}
+                placeholder="A brief description of the video"
+              />
+            </div>
+            <div>
+              <Label htmlFor="video_type">Video Type</Label>
+              <Select
+                value={content.video_type || "uploaded"}
+                onValueChange={(value: 'uploaded' | 'youtube') => {
+                  setEditingSection({
+                    ...section,
+                    content: { 
+                      ...content, 
+                      video_type: value,
+                      video_id: undefined,
+                      video_url: undefined,
+                      youtube_url: undefined
+                    }
+                  });
+                }}
+              >
+                <SelectTrigger id="video_type">
+                  <SelectValue placeholder="Select video type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="uploaded">Uploaded Video</SelectItem>
+                  <SelectItem value="youtube">YouTube Video</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {content.video_type === "uploaded" ? (
+              <div>
+                <Label htmlFor="video_id">Select Video</Label>
+                <Select
+                  value={content.video_id || ""}
+                  onValueChange={(value) => {
+                    const selectedVideo = videos.find(v => v.id === value);
+                    if (selectedVideo) {
+                      setEditingSection({
+                        ...section,
+                        content: {
+                          ...content,
+                          video_id: value,
+                          video_type: 'uploaded',
+                          video_url: selectedVideo.video_url,
+                          youtube_url: undefined
+                        }
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a video" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {videos.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No videos available
+                      </SelectItem>
+                    ) : (
+                      videos.map((video) => (
+                        <SelectItem key={video.id} value={video.id}>
+                          {video.title}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upload videos through Admin → Videos tab first
+                </p>
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="youtube_url">YouTube URL</Label>
+                <Input
+                  id="youtube_url"
+                  value={content.youtube_url || ""}
+                  onChange={(e) => setEditingSection({
+                    ...section,
+                    content: { 
+                      ...content, 
+                      youtube_url: e.target.value,
+                      video_id: undefined,
+                      video_url: undefined
+                    }
+                  })}
+                  placeholder="https://www.youtube.com/watch?v=... or video ID"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Paste the full YouTube URL or just the video ID
+                </p>
+              </div>
+            )}
           </div>
         );
 

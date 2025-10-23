@@ -132,11 +132,12 @@ BADGE:useGuardianApprovalsCount→SUM-pending→realtime×4
 RLS:is_guardian_of()→UPDATE
 
 ## VIDEO
-COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)|HomepageVideo(section-component+title+desc+video-type-selector)|VideoScreenshotCapture(auto-3-frames+manual-capture+crop)
-DB:videos[cover_url+cover_timestamp]|about_sections.youtube_channel|homepage_sections.homepage_video[video_type+video_id|youtube_url]|storage:videos-bucket+covers-folder
-ADMIN:VideoManager[screenshot-capture-workflow]|YouTube-Channel-config|HomepageVideo-section[type-selector:uploaded-dropdown|youtube-URL-input]
-SCREENSHOT-CAPTURE:upload-video→capture-btn→auto-3-frames[25%+50%+75%]→manual-capture-optional→select→crop→save-cover
-ADMIN-PATTERN:VideoManager[upload→screenshot-btn→select-frame→crop→preview]|SectionContentDialog[video_type→conditional-inputs]
+COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)|HomepageVideo(section-component+title+desc+video-type-selector)|VideoScreenshotCapture(auto-3-frames+manual-capture+crop+aspect-detection)
+DB:videos[cover_url+cover_timestamp]|about_sections.youtube_channel|homepage_sections.homepage_video[video_type+video_id|youtube_url]|support_page_sections.support_video[video_type+video_id|youtube_url]|storage:videos-bucket+covers-folder
+ADMIN:VideoManager[screenshot-capture-workflow]|YouTube-Channel-config|HomepageVideo-section[type-selector:uploaded-dropdown|youtube-URL-input]|SupportVideo-section[type-selector:uploaded-dropdown|youtube-URL-input]
+SCREENSHOT-CAPTURE:upload-video→capture-btn→auto-3-frames[25%+50%+75%]→manual-capture-optional→select→crop[aspect-detection]→save-cover
+ADMIN-PATTERN:VideoManager[upload→screenshot-btn→select-frame→crop→preview]|SectionContentDialog[video_type→conditional-inputs]|SupportPageManager[video_type→conditional-inputs]
+VIDEO-ASPECT:auto-detect-dimensions→map-to-standard[1:1|16:9|9:16|4:3|3:4|3:2|2:3]→set-default-crop-ratio
 DOC:VIDEO_SYSTEM_COMPLETE.md
 
 ## AUDIO_RECORDING_STANDARD
