@@ -13,20 +13,45 @@ serve(async (req) => {
 
   try {
     console.log('🌱 Starting email test data seeding...');
+    console.log('📋 Request method:', req.method);
     
     // Track critical errors that should cause seeding to fail
     const criticalErrors: string[] = [];
 
+    // Parse request body with defensive handling
+    let requestBody;
+    try {
+      const text = await req.text();
+      console.log('📋 Request body text:', text || '(empty)');
+      requestBody = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      console.error('❌ Error parsing request body:', parseError);
+      requestBody = {};
+    }
+
     const { 
       testRunId = 'default',
       includeAdmin = false 
-    } = await req.json();
+    } = requestBody;
     const emailPrefix = `emailtest-${testRunId}`;
+
+    // Verify required environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('❌ Missing required environment variables');
+      console.error('SUPABASE_URL:', supabaseUrl ? 'present' : 'MISSING');
+      console.error('SUPABASE_SERVICE_ROLE_KEY:', serviceRoleKey ? 'present' : 'MISSING');
+      throw new Error('Missing required environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    }
+    
+    console.log('✅ Environment variables verified');
 
     // Create admin client
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      supabaseUrl,
+      serviceRoleKey,
       { auth: { persistSession: false } }
     );
 

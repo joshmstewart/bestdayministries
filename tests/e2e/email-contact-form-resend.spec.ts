@@ -26,7 +26,12 @@ test.describe('Contact Form Email Tests (Resend)', () => {
     await cleanupTestSubmissions('%test-%@example.com');
     
     // Also clean up any users and related data created during tests
-    const { supabase } = await import('@/integrations/supabase/client');
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL!,
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+    );
+    
     const { error } = await supabase.functions.invoke('cleanup-test-data-unified', {
       body: {
         namePatterns: ['Test User', 'Reply Test User', 'Admin Test User', 'Thread Test User']
