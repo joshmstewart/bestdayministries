@@ -20,7 +20,7 @@ test.describe('Vendor Dashboard CRUD @fast', () => {
     await vendorPage.waitForLoadState('networkidle');
     
     // Try to sign in first (vendor may already exist)
-    const signInTab = vendorPage.locator('button:has-text("Sign In"), text="Sign In"').first();
+    const signInTab = vendorPage.getByRole('button', { name: /sign in/i });
     if (await signInTab.isVisible()) {
       await signInTab.click();
       await vendorPage.waitForTimeout(500);

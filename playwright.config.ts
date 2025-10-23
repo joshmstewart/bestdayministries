@@ -26,7 +26,7 @@ export default defineConfig({
   },
 
   // Default test timeout - increased for stability
-  timeout: 45000, // INCREASED: 45s to accommodate slower CI and auth flows
+  timeout: 60000, // INCREASED: 60s to accommodate slower CI and auth flows
 
   // Grep patterns for running specific test types
   // Run only fast tests: npx playwright test --grep @fast

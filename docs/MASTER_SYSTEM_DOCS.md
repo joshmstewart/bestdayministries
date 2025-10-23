@@ -540,6 +540,7 @@ DEFENSIVE-FILTERING:SponsorBestieDisplay+FeaturedBestieDisplay→filter-out-test
 TEST-LEAKAGE-PREVENTION:sponsor-besties-MUST-NOT-show-in-carousel|featured-besties-MUST-NOT-show-on-homepage|afterEach-hooks-MORE-reliable-than-afterAll
 BEST-PRACTICES:60s-timeout-auth-flows|handle-empty-states|role-based-selectors|email-tests-separate-workflow
 CRITICAL-LEARNINGS:45s-timeout-insufficient-CI|auth-flows-need-intermediate-waits|content-may-not-exist|email-tests-need-service-key
+FIXES-APPLIED:TEST_FIXES_2025_10_23.md[jest-dom-added|selector-syntax-fixed|timeouts-increased-60s|contact-form-defensive-checks|35-tests-unblocked]
 
 ## INTERNAL_PAGES
 FILE:lib/internalPages.ts
