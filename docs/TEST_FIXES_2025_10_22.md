@@ -135,6 +135,24 @@ if (criticalErrors.length > 0) {
 3. Consider adding test data markers (metadata field) for easier cleanup
 4. Monitor cleanup effectiveness in CI runs
 
+## CRITICAL TEST PHILOSOPHY
+
+### Rule #1: Always Fix Root Cause, Never Force Tests to Pass ⚠️
+When a test fails, we MUST:
+- ✅ Investigate and fix the actual bug in the code
+- ✅ Update the test if it's testing the wrong behavior
+- ❌ NEVER modify tests just to make them pass without fixing the root issue
+- ❌ NEVER skip or disable tests without documenting why
+
+### Rule #2: Document All Learnings from Test Failures 📚
+Every time we fix a test failure, we MUST:
+- Document the root cause in this file or create a new doc
+- Explain what we learned and how to prevent it
+- Update best practices documentation
+- Add the pattern to coding guidelines if applicable
+
+**Rationale**: Tests are our safety net. If we compromise test integrity, we lose the ability to catch real bugs. Every test failure is a learning opportunity that makes our codebase stronger.
+
 ## Related Documentation
 
 **See**: `TEST_ANALYSIS_2025_10_22.md` for comprehensive analysis of October 22 test run revealing:

@@ -147,6 +147,44 @@ expect(count).toBeGreaterThan(0);
 
 ---
 
+## Template Literals in Dynamic Tests
+
+When creating tests in loops, always use backticks for template literals:
+
+**CORRECT** ✅:
+```typescript
+const pages = [
+  { path: '/', name: 'Homepage' },
+  { path: '/about', name: 'About' }
+];
+
+for (const page of pages) {
+  // Backticks allow variable interpolation
+  test(`should load ${page.name} page`, async ({ page: browser }) => {
+    await browser.goto(page.path);
+    expect(await browser.title()).toContain(page.name);
+  });
+}
+```
+
+**WRONG** ❌:
+```typescript
+for (const page of pages) {
+  // Single quotes create literal string - all tests have same title!
+  test('should load ${page.name} page', async ({ page: browser }) => {
+    // This creates duplicate test titles → Playwright error
+  });
+}
+```
+
+**Why This Matters**:
+- Playwright requires unique test titles
+- Template literals with single quotes don't interpolate variables
+- Results in "duplicate test title" errors
+- Makes test debugging impossible (all tests have same name)
+
+---
+
 ## Selector Best Practices
 
 ### Selector Hierarchy (Best to Worst)
@@ -254,6 +292,89 @@ jobs:
 - **Manual trigger only** to avoid accidental runs
 - **May send real emails** (use test email addresses)
 - **Database state verification only** (can't verify email content without catching emails)
+
+---
+
+## Testing Library Setup
+
+### Required Import for DOM Matchers
+
+`@testing-library/jest-dom` provides DOM-specific matchers. You MUST import it to use matchers like `toBeInTheDocument()`:
+
+**CORRECT** ✅:
+```typescript
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom'; // ← Required for DOM matchers
+import MyComponent from '@/components/MyComponent';
+
+test('renders component', () => {
+  render(<MyComponent />);
+  expect(screen.getByText('Hello')).toBeInTheDocument(); // ✅ Works!
+});
+```
+
+**WRONG** ❌:
+```typescript
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+// Missing: import '@testing-library/jest-dom';
+
+test('renders component', () => {
+  render(<MyComponent />);
+  expect(screen.getByText('Hello')).toBeInTheDocument(); // ❌ Error: Invalid Chai property
+});
+```
+
+### Common Testing Library Matchers
+
+All require `import '@testing-library/jest-dom'`:
+
+| Matcher | Purpose | Example |
+|---------|---------|---------|
+| `toBeInTheDocument()` | Element exists in DOM | `expect(element).toBeInTheDocument()` |
+| `toBeVisible()` | Element is visible | `expect(element).toBeVisible()` |
+| `toHaveTextContent()` | Element contains text | `expect(element).toHaveTextContent('Hello')` |
+| `toHaveAttribute()` | Element has attribute | `expect(element).toHaveAttribute('href', '/about')` |
+| `toBeDisabled()` / `toBeEnabled()` | Form element state | `expect(button).toBeDisabled()` |
+| `toHaveClass()` | Element has CSS class | `expect(element).toHaveClass('active')` |
+| `toHaveValue()` | Input has value | `expect(input).toHaveValue('test')` |
+
+### Setup File Option
+
+For projects with many tests, import once in setup file:
+
+```typescript
+// vitest.setup.ts
+import '@testing-library/jest-dom';
+
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    setupFiles: ['./vitest.setup.ts'],
+  },
+});
+```
+
+---
+
+## CRITICAL TEST PHILOSOPHY ⚠️
+
+### Rule #1: Always Fix Root Cause, Never Force Tests to Pass
+When a test fails:
+- ✅ Investigate and fix the actual bug in the code
+- ✅ Update the test if it's testing the wrong behavior
+- ❌ NEVER modify tests just to make them pass without fixing the root issue
+- ❌ NEVER skip or disable tests without documenting why
+
+### Rule #2: Document All Learnings from Test Failures
+Every test failure teaches us something. Document:
+- What failed and why (root cause)
+- How it was fixed
+- How to prevent it in the future
+- Update relevant documentation with the learning
+
+See `TEST_FIXES_2025_10_23.md` for recent examples and detailed philosophy.
 
 ---
 

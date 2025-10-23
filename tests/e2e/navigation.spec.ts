@@ -38,7 +38,7 @@ test.describe('Page Navigation @fast', () => {
   ];
 
   for (const page of pages) {
-  test('should load ${page.name} page', async ({ page: browser }) => {
+  test(`should load ${page.name} page`, async ({ page: browser }) => {
       console.log(`🔍 NAV TEST: Starting ${page.name} page test - ${page.path}`);
       
       // Community page requires authentication

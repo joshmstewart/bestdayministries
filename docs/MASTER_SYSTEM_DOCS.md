@@ -494,6 +494,14 @@ RLS:admins-only-campaigns-templates|anyone-subscribe|admins-view-logs
 MOBILE:tab-bar-wraps[inline-flex+flex-wrap+whitespace-nowrap]
 DOC:NEWSLETTER_SYSTEM.md
 
+## TEST_PHILOSOPHY
+CRITICAL-RULES:fix-root-cause-never-force-pass|document-all-learnings|tests-are-source-of-truth
+APPROACH:when-test-fails[investigate-root-cause→fix-code-or-test→document-learning→update-best-practices]
+NEVER:skip-tests-without-docs|modify-tests-just-to-pass|add-random-timeouts|comment-out-failing-tests
+ALWAYS:fix-actual-bugs|update-docs-with-learnings|add-patterns-to-guidelines|make-tests-educational
+RATIONALE:tests-are-safety-net|compromised-tests=no-bug-detection|failures-are-learning-opportunities
+DOC:TEST_FIXES_2025_10_23.md[philosophy+examples]|TESTING_BEST_PRACTICES.md[comprehensive-guidelines]
+
 ## AUTOMATED_TESTING
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
 TEST-ACCOUNT:test@example.com|testpassword123|REQUIRED-for-auth-pages
