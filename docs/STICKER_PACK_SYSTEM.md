@@ -243,6 +243,15 @@ Main pack opening experience with tear animation.
 - **Duplicate Detection:** Shows "Duplicate!" badge and quantity
 - **Collection Info:** Displays collection name and sticker details
 
+**Audio Workflow:**
+- **Pack Reveal Sound:** `sticker_pack_reveal` plays ONCE when dialog opens and pack first appears
+  - Uses `useRef` to track if sound has played
+  - Plays after audio clips are loaded
+  - Only plays on initial pack display, NOT on sticker reveal
+- **Rarity Sound:** Plays after tear animation when sticker is revealed
+  - Different sound per rarity level
+- **Load Order:** Audio clips load → Pack reveal sound → User tears → Rarity sound
+
 **Visual Effects:**
 - Holographic gradient on packs and revealed stickers
 - CSS `@keyframes holographic` for color cycling

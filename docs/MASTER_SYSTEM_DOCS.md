@@ -132,9 +132,11 @@ BADGE:useGuardianApprovalsCount→SUM-pending→realtime×4
 RLS:is_guardian_of()→UPDATE
 
 ## VIDEO
-COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)
-DB:videos|about_sections.youtube_channel|storage:videos-bucket
-ADMIN:VideoManager|YouTube-Channel-config
+COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)|HomepageVideo(section-component+title+desc+video-selector)
+DB:videos|about_sections.youtube_channel|homepage_sections.homepage_video|storage:videos-bucket
+ADMIN:VideoManager|YouTube-Channel-config|HomepageVideo-section[SectionContentDialog→video-dropdown→auto-populate]
+ADMIN-PATTERN:load-videos-table→Select-dropdown→onValueChange[auto-set:video_type+video_url+youtube_url]
+DOC:VIDEO_SYSTEM_COMPLETE.md
 
 ## AUDIO_RECORDING_STANDARD
 ICON:Mic[w-5-h-5+text-red-500+strokeWidth-2.5+mr-2]
@@ -458,7 +460,7 @@ FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry
 OVERVIEW:daily-free-packs+purchasable-bonus-packs+rarity-based-drops+animated-pack-opening+collection-progress+duplicate-tracking
 DB:sticker_collections|stickers|daily_scratch_cards|user_stickers|badges
 EDGE:scratch-card[opens-pack→determines-rarity→reveals-sticker]|purchase-bonus-card[exponential-pricing→deduct-coins→create-bonus-card]|reset-daily-cards[admin-only+scope:self|admins|all]
-COMPONENTS:PackOpeningDialog[tear-animation+holographic-effects+rarity-confetti]|DailyScratchCard[community-widget+realtime-updates]|StickerAlbum[full-view+purchase+progress]
+COMPONENTS:PackOpeningDialog[tear-animation+holographic-effects+rarity-confetti+AUDIO:pack-reveal-on-open+rarity-sound-on-tear]|DailyScratchCard[community-widget+realtime-updates]|StickerAlbum[full-view+purchase+progress]
 RARITY:common[50%]|uncommon[30%]|rare[15%]|epic[4%]|legendary[1%]→configurable-per-collection
 PACKS:daily-free[1/day-MST-reset]|bonus[purchasable-exponential:100→200→400→800-coins]
 FEATURES:duplicate-detection+quantity-tracking+collection-completion-badges+role-based-visibility+custom-pack-images
@@ -466,6 +468,7 @@ TIMEZONE:MST-UTC-7→midnight-reset→date-field-YYYY-MM-DD
 REALTIME:supabase-subscription→instant-state-updates→filter-by-user_id
 RLS:users-view-own-cards+scratch-own-cards|admins-manage-all
 ANIMATION:tear-effect+holographic-shimmer+sparkles+rarity-based-confetti
+AUDIO:sticker_pack_reveal[plays-once-on-dialog-open→useRef-pattern]|rarity-sounds[play-after-tear→different-per-rarity]
 ADMIN:StickerCollectionManager[CRUD-collections+stickers+rarity-config+preview-test+reset-daily-cards-dialog]
 RESET:admin-dialog→choose-scope[Only-Me|All-Admins-Owners|All-Users-confirm]→delete-cards-by-scope
 DOC:STICKER_PACK_SYSTEM.md

@@ -38,7 +38,7 @@ test.describe('Page Navigation @fast', () => {
   ];
 
   for (const page of pages) {
-    test(`should load ${page.name} page`, async ({ page: browser }) => {
+  test('should load ${page.name} page', async ({ page: browser }) => {
       console.log(`🔍 NAV TEST: Starting ${page.name} page test - ${page.path}`);
       
       // Community page requires authentication
@@ -72,6 +72,16 @@ test.describe('Page Navigation @fast', () => {
         }).catch(() => {
           console.log(`🔍 NAV TEST: Timeout waiting for specific content on ${page.name}`);
         });
+      }
+      
+      // For Homepage, verify video section if it exists
+      if (page.path === '/') {
+        const videoSection = browser.locator('section').filter({ hasText: /featured video/i }).first();
+        const videoExists = await videoSection.count() > 0;
+        if (videoExists) {
+          console.log(`🔍 NAV TEST: Homepage video section found`);
+          await expect(videoSection).toBeVisible({ timeout: 5000 });
+        }
       }
       
       await browser.waitForLoadState('domcontentloaded');
