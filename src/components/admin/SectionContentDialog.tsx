@@ -34,6 +34,7 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
   const [imageFieldName, setImageFieldName] = useState<string>("image_url");
   const [uploading, setUploading] = useState(false);
   const [albums, setAlbums] = useState<Array<{ id: string; title: string }>>([]);
+  const [videos, setVideos] = useState<Array<{ id: string; title: string; video_url: string; video_type?: string; youtube_url?: string | null }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -52,6 +53,24 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
         }
       };
       loadAlbums();
+    }
+  }, [section.section_key]);
+
+  // Load videos for Homepage Video section
+  useEffect(() => {
+    if (section.section_key === 'homepage_video') {
+      const loadVideos = async () => {
+        const { data } = await supabase
+          .from('videos')
+          .select('id, title, video_url, video_type, youtube_url')
+          .eq('is_active', true)
+          .order('title', { ascending: true });
+        
+        if (data) {
+          setVideos(data);
+        }
+      };
+      loadVideos();
     }
   }, [section.section_key]);
 
@@ -1168,46 +1187,43 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="video_type">Video Type</Label>
+              <Label htmlFor="video_id">Select Video</Label>
               <Select
-                value={content.video_type || "youtube"}
-                onValueChange={(value) => setContent({ ...content, video_type: value })}
+                value={content.video_id || ""}
+                onValueChange={(value) => {
+                  const selectedVideo = videos.find(v => v.id === value);
+                  if (selectedVideo) {
+                    setContent({
+                      ...content,
+                      video_id: value,
+                      video_type: selectedVideo.video_type || 'uploaded',
+                      video_url: selectedVideo.video_url,
+                      youtube_url: selectedVideo.youtube_url || ''
+                    });
+                  }
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Choose a video" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="youtube">YouTube</SelectItem>
-                  <SelectItem value="uploaded">Uploaded Video</SelectItem>
+                  {videos.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      No videos available
+                    </SelectItem>
+                  ) : (
+                    videos.map((video) => (
+                      <SelectItem key={video.id} value={video.id}>
+                        {video.title}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Upload videos through Admin → Videos tab first
+              </p>
             </div>
-            {content.video_type === "youtube" ? (
-              <div className="space-y-2">
-                <Label htmlFor="youtube_url">YouTube URL</Label>
-                <Input
-                  id="youtube_url"
-                  type="url"
-                  value={content.youtube_url || ""}
-                  onChange={(e) => setContent({ ...content, youtube_url: e.target.value })}
-                  placeholder="https://youtu.be/..."
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="video_url">Video URL</Label>
-                <Input
-                  id="video_url"
-                  type="url"
-                  value={content.video_url || ""}
-                  onChange={(e) => setContent({ ...content, video_url: e.target.value })}
-                  placeholder="Video URL from storage"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Upload videos through Admin → Videos tab, then paste the URL here
-                </p>
-              </div>
-            )}
           </div>
         );
 
