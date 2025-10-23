@@ -82,6 +82,14 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
     }
   }, [open]);
 
+  // Play pack reveal sound when pack is loaded and sounds are ready
+  useEffect(() => {
+    if (open && !loading && !soundsLoading && !opened) {
+      console.log('Pack loaded and sounds ready. Playing pack reveal sound.');
+      playSound('sticker_pack_reveal');
+    }
+  }, [open, loading, soundsLoading, opened, playSound]);
+
 
   const loadCollectionInfo = async () => {
     if (!cardId) return;
@@ -128,10 +136,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
       console.error('Error loading collection info:', error);
     } finally {
       setLoading(false);
-      
-      // Play pack reveal sound when pack is first displayed
-      console.log('Pack loaded and displayed. Playing pack reveal sound. Sound effects loaded:', !soundsLoading, 'Available:', !!soundEffects['sticker_pack_reveal']);
-      playSound('sticker_pack_reveal');
     }
   };
 
