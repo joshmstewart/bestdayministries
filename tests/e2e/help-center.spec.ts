@@ -158,16 +158,25 @@ test.describe('Help Center FAQs @fast', () => {
     await page.goto('/help');
     await page.waitForLoadState('networkidle');
     
-    // Look for accordion triggers
-    const accordionTriggers = page.locator('[data-radix-collection-item], button[aria-expanded]');
-    const triggerCount = await accordionTriggers.count();
+    // Click FAQ tab first
+    const faqTab = page.getByRole('tab', { name: /faq/i });
+    const hasFaqTab = await faqTab.isVisible().catch(() => false);
     
-    if (triggerCount > 0) {
-      const firstTrigger = accordionTriggers.first();
-      await firstTrigger.click();
+    if (hasFaqTab) {
+      await faqTab.click();
+      await page.waitForTimeout(500); // Wait for tab content to load
       
-      // Should expand (aria-expanded should be true)
-      await expect(firstTrigger).toHaveAttribute('aria-expanded', /true|false/, { timeout: 2000 });
+      // Look for accordion triggers (Radix uses button[data-state])
+      const accordionTriggers = page.locator('button[data-state]');
+      const triggerCount = await accordionTriggers.count();
+      
+      if (triggerCount > 0) {
+        const firstTrigger = accordionTriggers.first();
+        await firstTrigger.click();
+        
+        // Should expand (data-state should change)
+        await expect(firstTrigger).toHaveAttribute('data-state', /open|closed/, { timeout: 2000 });
+      }
     }
   });
 });

@@ -208,6 +208,9 @@ test.describe('Authentication and Signup Flow', () => {
         console.log('🔍 TEST 13-15: Clicked avatar');
       }
       
+      // Declare submit button first
+      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      
       // Accept terms
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
       const termsVisible = await termsCheckbox.isVisible().catch(() => false);
@@ -219,7 +222,6 @@ test.describe('Authentication and Signup Flow', () => {
       }
       
       // Verify button is enabled before clicking
-      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
       const buttonEnabled = await submitButton.isEnabled().catch(() => false);
       console.log('🔍 TEST 13-15: Submit button enabled:', buttonEnabled);
       await expect(submitButton).toBeEnabled();
@@ -284,6 +286,9 @@ test.describe('Authentication and Signup Flow', () => {
         await page.waitForLoadState('networkidle');
       }
       
+      // Declare submit button first
+      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      
       // Accept terms
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
       if (await termsCheckbox.isVisible()) {
@@ -292,7 +297,6 @@ test.describe('Authentication and Signup Flow', () => {
       }
       
       // Verify button is enabled before clicking
-      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
       await expect(submitButton).toBeEnabled();
       
       // Submit form
