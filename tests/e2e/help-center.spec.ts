@@ -194,8 +194,8 @@ test.describe('Help Center FAQs @fast', () => {
         const firstTrigger = accordionTriggers.first();
         await firstTrigger.click();
         
-        // Should expand (data-state should change)
-        await expect(firstTrigger).toHaveAttribute('data-state', /open|closed/, { timeout: 2000 });
+        // Should expand (data-state should change to active/inactive for Tabs component)
+        await expect(firstTrigger).toHaveAttribute('data-state', /active|inactive/, { timeout: 2000 });
       }
     }
   });

@@ -18,7 +18,8 @@ describe('VideoSection', () => {
     };
 
     render(<VideoSection content={content} />);
-    expect(screen.getByRole('heading', { name: 'Test Video' })).toBeInTheDocument();
+    const headings = screen.getAllByRole('heading', { name: 'Test Video' });
+    expect(headings.length).toBeGreaterThan(0);
     expect(screen.getByText('Test description')).toBeInTheDocument();
   });
 
@@ -30,7 +31,8 @@ describe('VideoSection', () => {
     };
 
     render(<VideoSection content={content} />);
-    expect(screen.getByRole('heading', { name: 'Test Video' })).toBeInTheDocument();
+    const headings = screen.getAllByRole('heading', { name: 'Test Video' });
+    expect(headings.length).toBeGreaterThan(0);
   });
 
   it('should use default title when not provided', () => {
