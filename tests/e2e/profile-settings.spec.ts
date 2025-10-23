@@ -31,8 +31,9 @@ test.describe('Profile Settings @fast', () => {
     
     await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
     console.log('✓ URL changed to:', page.url());
-  });
+    
     await page.waitForLoadState('networkidle');
+    console.log('✓ Network idle');
   });
 
   test('can navigate to profile settings page', async ({ page }) => {
