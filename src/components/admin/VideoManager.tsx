@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ export const VideoManager = () => {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const formRef = useRef<HTMLDivElement>(null);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -233,6 +234,11 @@ export const VideoManager = () => {
     setIsActive(video.is_active);
     setVideoType((video.video_type as "upload" | "youtube") || "upload");
     setYoutubeUrl(video.youtube_url || "");
+    
+    // Scroll to form
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleDelete = async (id: string, videoUrl: string) => {
@@ -322,9 +328,18 @@ export const VideoManager = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card ref={formRef}>
         <CardHeader>
-          <CardTitle>{editingId ? "Edit Video" : "Upload New Video"}</CardTitle>
+          <CardTitle>
+            {editingId ? (
+              <span className="flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-primary" />
+                Edit Video
+              </span>
+            ) : (
+              "Upload New Video"
+            )}
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
             Maximum file size: 250MB. Supported formats: MP4, WebM, OGG, MOV
           </p>
