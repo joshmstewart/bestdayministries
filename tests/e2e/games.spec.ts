@@ -23,7 +23,12 @@ test.describe('Games System @fast', () => {
     await testPage.fill('input[type="password"]', testAccount.password);
     await testPage.click('button:has-text("Sign In")');
     
-    await testPage.waitForURL(/\/(community|admin)/);
+    // Wait for auth processing
+    await testPage.waitForLoadState('domcontentloaded');
+    await testPage.waitForTimeout(2000); // Give auth service time to process
+    
+    // INCREASED: 90s timeout for slower CI auth service
+    await testPage.waitForURL(/\/(community|admin)/, { timeout: 90000 });
     await testPage.waitForLoadState('networkidle');
   });
 

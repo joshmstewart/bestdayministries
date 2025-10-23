@@ -78,13 +78,21 @@ test.describe('Contact Form Notification System', () => {
     await expect(page.getByText(/thank you|success/i)).toBeVisible();
 
     // Wait for submission to be created
-    const { data: submission } = await supabase
+    const { data: submission, error: submissionError } = await supabase
       .from('contact_form_submissions')
       .select('id')
       .eq('email', testEmail)
-      .single();
+      .maybeSingle();
 
-    testSubmissionId = submission?.id!;
+    if (submissionError) {
+      throw new Error(`Failed to query contact form submission: ${submissionError.message}`);
+    }
+    
+    if (!submission) {
+      throw new Error(`❌ PRECONDITION FAILED: No contact form submission found for ${testEmail}. Check RLS policies on contact_form_submissions table.`);
+    }
+
+    testSubmissionId = submission.id;
     expect(testSubmissionId).toBeTruthy();
 
     // Verify notification was created
@@ -119,7 +127,7 @@ test.describe('Contact Form Notification System', () => {
     
     // Create a test submission directly
     const testEmail = `reply-badge-${Date.now()}@example.com`;
-    const { data: submission } = await supabase
+    const { data: submission, error: insertError } = await supabase
       .from('contact_form_submissions')
       .insert({
         name: 'Reply Badge Test',
@@ -131,7 +139,11 @@ test.describe('Contact Form Notification System', () => {
       .select()
       .single();
 
-    testSubmissionId = submission!.id;
+    if (insertError || !submission) {
+      throw new Error(`❌ PRECONDITION FAILED: Could not create contact form submission. Error: ${insertError?.message}. Check RLS policies.`);
+    }
+
+    testSubmissionId = submission.id;
 
     // Simulate admin replying (sets replied_at)
     const replyTime = new Date().toISOString();
@@ -191,7 +203,7 @@ test.describe('Contact Form Notification System', () => {
     
     // Create submission and notification
     const testEmail = `clear-notif-${Date.now()}@example.com`;
-    const { data: submission } = await supabase
+    const { data: submission, error: insertError } = await supabase
       .from('contact_form_submissions')
       .insert({
         name: 'Clear Notification Test',
@@ -203,7 +215,11 @@ test.describe('Contact Form Notification System', () => {
       .select()
       .single();
 
-    testSubmissionId = submission!.id;
+    if (insertError || !submission) {
+      throw new Error(`❌ PRECONDITION FAILED: Could not create contact form submission. Error: ${insertError?.message}. Check RLS policies.`);
+    }
+
+    testSubmissionId = submission.id;
 
     await supabase
       .from('notifications')
@@ -254,7 +270,7 @@ test.describe('Contact Form Notification System', () => {
     const email1 = `count-test-1-${Date.now()}@example.com`;
     const email2 = `count-test-2-${Date.now()}@example.com`;
     
-    const { data: sub1 } = await supabase
+    const { data: sub1, error: insert1Error } = await supabase
       .from('contact_form_submissions')
       .insert({
         name: 'Count Test 1',
@@ -265,7 +281,11 @@ test.describe('Contact Form Notification System', () => {
       .select()
       .single();
 
-    const { data: sub2 } = await supabase
+    if (insert1Error || !sub1) {
+      throw new Error(`❌ PRECONDITION FAILED: Could not create submission 1. Error: ${insert1Error?.message}. Check RLS policies.`);
+    }
+
+    const { data: sub2, error: insert2Error } = await supabase
       .from('contact_form_submissions')
       .insert({
         name: 'Count Test 2',
@@ -275,6 +295,10 @@ test.describe('Contact Form Notification System', () => {
       })
       .select()
       .single();
+
+    if (insert2Error || !sub2) {
+      throw new Error(`❌ PRECONDITION FAILED: Could not create submission 2. Error: ${insert2Error?.message}. Check RLS policies.`);
+    }
 
     // Add unread reply to sub2
     await supabase
@@ -318,7 +342,7 @@ test.describe('Contact Form Notification System', () => {
     
     // Create submission
     const testEmail = `reply-count-${Date.now()}@example.com`;
-    const { data: submission } = await supabase
+    const { data: submission, error: insertError } = await supabase
       .from('contact_form_submissions')
       .insert({
         name: 'Reply Count Test',
@@ -329,7 +353,11 @@ test.describe('Contact Form Notification System', () => {
       .select()
       .single();
 
-    testSubmissionId = submission!.id;
+    if (insertError || !submission) {
+      throw new Error(`❌ PRECONDITION FAILED: Could not create contact form submission. Error: ${insertError?.message}. Check RLS policies.`);
+    }
+
+    testSubmissionId = submission.id;
 
     // Add 3 unread user replies
     for (let i = 1; i <= 3; i++) {

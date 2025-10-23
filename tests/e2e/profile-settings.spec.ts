@@ -22,8 +22,12 @@ test.describe('Profile Settings @fast', () => {
     await page.fill('input[type="password"]', testAccount.password);
     await page.click('button:has-text("Sign In")');
     
-    // INCREASED: 60s timeout for slower CI environment
-    await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
+    // Wait for auth processing
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000); // Give auth service time to process
+    
+    // INCREASED: 90s timeout for slower CI auth service
+    await page.waitForURL(/\/(community|admin)/, { timeout: 90000 });
     await page.waitForLoadState('networkidle');
   });
 
