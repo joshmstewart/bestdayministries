@@ -44,7 +44,7 @@ const rarityConfettiConfig = {
 export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: PackOpeningDialogProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { playSound } = useSoundEffects();
+  const { playSound, loading: soundsLoading, soundEffects } = useSoundEffects();
   const [opened, setOpened] = useState(false);
   const [opening, setOpening] = useState(false);
   const [revealedStickers, setRevealedStickers] = useState<any[]>([]);
@@ -159,6 +159,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
   const triggerCelebration = (rarity: string) => {
     // Play rarity-specific sound
     const raritySound = `sticker_reveal_${rarity}` as any;
+    console.log('Trying to play rarity sound:', raritySound, 'Sound effects loaded:', !soundsLoading, 'Available:', !!soundEffects[raritySound]);
     playSound(raritySound);
     
     const config = rarityConfettiConfig[rarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
@@ -206,6 +207,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
 
       if (data.success) {
         // Play pack reveal sound
+        console.log('Trying to play pack reveal sound. Sound effects loaded:', !soundsLoading, 'Available:', !!soundEffects['sticker_pack_reveal']);
         playSound('sticker_pack_reveal');
         
         // Support both single and multiple stickers
