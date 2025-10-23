@@ -13,7 +13,6 @@ import { useDomainRouting } from "@/hooks/useDomainRouting";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeSentry } from "@/lib/sentry";
-import { SoundProvider } from "@/contexts/SoundContext";
 import Index from "./pages/Index";
 import CoffeeShopHome from "./pages/CoffeeShopHome";
 import Auth from "./pages/Auth";
@@ -142,10 +141,9 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SoundProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
           <ScrollToTop />
           <FaviconManager />
           <ImpersonationBanner />
@@ -197,7 +195,6 @@ const App = () => {
           </Routes>
           </TermsAcceptanceGuard>
         </BrowserRouter>
-        </SoundProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
