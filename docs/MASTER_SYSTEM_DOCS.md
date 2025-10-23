@@ -503,7 +503,8 @@ SKIPPED-TESTS:zero-acceptable|either-PASS-or-FAIL|skips-hide-real-problems|decay
 PRECONDITIONS:missing-seed→fix-seed-email-test-data|feature-missing→fix-selector-or-implement|dependencies→make-independent
 DOCUMENTATION:every-fix→TEST_FIXES-doc|root-cause|solution|prevention-pattern
 RATIONALE:skips-hide-bugs|tests-decay|false-security|expose-dont-hide
-DOC:TEST_SKIP_PHILOSOPHY.md[zero-skips-approach]|TEST_FIXES_2025_10_23.md[recent-fixes]|TESTING_BEST_PRACTICES.md[guidelines]
+ANALYSIS-PROCESS:TEST_ANALYSIS_PROCESS.md[7-step-systematic-approach]→parse→root-cause→search-context→propose-solutions→document→implement→update
+DOC:TEST_SKIP_PHILOSOPHY.md[zero-skips-approach]|TEST_FIXES_2025_10_23.md[recent-fixes]|TESTING_BEST_PRACTICES.md[guidelines]|TEST_ANALYSIS_PROCESS.md[analysis-workflow]
 
 ## AUTOMATED_TESTING
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
