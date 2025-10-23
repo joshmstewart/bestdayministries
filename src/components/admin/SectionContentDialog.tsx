@@ -1145,6 +1145,72 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
           </div>
         );
 
+      case "homepage_video":
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={content.title || ""}
+                onChange={(e) => setContent({ ...content, title: e.target.value })}
+                placeholder="Featured Video"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                value={content.description || ""}
+                onChange={(e) => setContent({ ...content, description: e.target.value })}
+                rows={2}
+                placeholder="A brief description of the video"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="video_type">Video Type</Label>
+              <Select
+                value={content.video_type || "youtube"}
+                onValueChange={(value) => setContent({ ...content, video_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="youtube">YouTube</SelectItem>
+                  <SelectItem value="uploaded">Uploaded Video</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {content.video_type === "youtube" ? (
+              <div className="space-y-2">
+                <Label htmlFor="youtube_url">YouTube URL</Label>
+                <Input
+                  id="youtube_url"
+                  type="url"
+                  value={content.youtube_url || ""}
+                  onChange={(e) => setContent({ ...content, youtube_url: e.target.value })}
+                  placeholder="https://youtu.be/..."
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="video_url">Video URL</Label>
+                <Input
+                  id="video_url"
+                  type="url"
+                  value={content.video_url || ""}
+                  onChange={(e) => setContent({ ...content, video_url: e.target.value })}
+                  placeholder="Video URL from storage"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload videos through Admin → Videos tab, then paste the URL here
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
       default:
         return (
           <div className="space-y-2">

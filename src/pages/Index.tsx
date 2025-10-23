@@ -13,6 +13,7 @@ import PublicEvents from "@/components/PublicEvents";
 import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
 import { SEOHead, getOrganizationStructuredData } from "@/components/SEOHead";
+import HomepageVideo from "@/components/HomepageVideo";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,7 +106,7 @@ const Index = () => {
 
   // Mark synchronous sections as loaded on mount
   useEffect(() => {
-    const syncSections = ['hero', 'mission', 'community_features', 'our_family', 'public_events', 'community_gallery', 'joy_rocks', 'about'];
+    const syncSections = ['hero', 'mission', 'community_features', 'our_family', 'public_events', 'community_gallery', 'joy_rocks', 'about', 'homepage_video'];
     syncSections.forEach(key => {
       if (sections.find(s => s.section_key === key)) {
         markSectionLoaded(key);
@@ -156,6 +157,7 @@ const Index = () => {
     community_gallery: <CommunityGallery content={content} />,
     joy_rocks: <JoyRocks content={content} />,
     about: <About content={content} />,
+    homepage_video: <HomepageVideo content={content} />,
   };
   
     return componentMap[section.section_key];
