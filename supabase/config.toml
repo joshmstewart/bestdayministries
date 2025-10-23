@@ -120,6 +120,9 @@ verify_jwt = false
 [functions.seed-email-test-data]
 verify_jwt = false
 
+[functions.cleanup-test-data-unified]
+verify_jwt = false
+
 [functions.send-newsletter]
 verify_jwt = true
 
