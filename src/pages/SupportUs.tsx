@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import { DonationForm } from "@/components/DonationForm";
-import HomepageVideo from "@/components/HomepageVideo";
+import VideoSection from "@/components/VideoSection";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,7 +138,7 @@ const SupportUs = () => {
       case 'support_video':
         return (
           <div key="support_video">
-            <HomepageVideo content={section.content} />
+            <VideoSection content={section.content} />
           </div>
         );
 

@@ -13,7 +13,7 @@ import PublicEvents from "@/components/PublicEvents";
 import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
 import { SEOHead, getOrganizationStructuredData } from "@/components/SEOHead";
-import HomepageVideo from "@/components/HomepageVideo";
+import VideoSection from "@/components/VideoSection";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -157,7 +157,7 @@ const Index = () => {
     community_gallery: <CommunityGallery content={content} />,
     joy_rocks: <JoyRocks content={content} />,
     about: <About content={content} />,
-    homepage_video: <HomepageVideo content={content} />,
+    homepage_video: <VideoSection content={content} />,
   };
   
     return componentMap[section.section_key];

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import HomepageVideo from '@/components/HomepageVideo';
+import VideoSection from '@/components/VideoSection';
 
-describe('HomepageVideo', () => {
+describe('VideoSection', () => {
   it('should not render when no video URL is provided', () => {
-    const { container } = render(<HomepageVideo content={{}} />);
+    const { container } = render(<VideoSection content={{}} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -16,7 +16,7 @@ describe('HomepageVideo', () => {
       youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     };
 
-    render(<HomepageVideo content={content} />);
+    render(<VideoSection content={content} />);
     expect(screen.getByText('Test Video')).toBeInTheDocument();
     expect(screen.getByText('Test description')).toBeInTheDocument();
   });
@@ -28,7 +28,7 @@ describe('HomepageVideo', () => {
       video_url: 'https://example.com/video.mp4',
     };
 
-    render(<HomepageVideo content={content} />);
+    render(<VideoSection content={content} />);
     expect(screen.getByText('Test Video')).toBeInTheDocument();
   });
 
@@ -38,7 +38,7 @@ describe('HomepageVideo', () => {
       youtube_url: 'https://www.youtube.com/watch?v=test',
     };
 
-    render(<HomepageVideo content={content} />);
+    render(<VideoSection content={content} />);
     expect(screen.getByText('Featured Video')).toBeInTheDocument();
   });
 });

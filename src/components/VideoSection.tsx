@@ -1,7 +1,7 @@
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
 
-interface HomepageVideoProps {
+interface VideoSectionProps {
   content?: {
     title?: string;
     description?: string;
@@ -11,7 +11,7 @@ interface HomepageVideoProps {
   };
 }
 
-const HomepageVideo = ({ content = {} }: HomepageVideoProps) => {
+const VideoSection = ({ content = {} }: VideoSectionProps) => {
   const {
     title = "Featured Video",
     description,
@@ -67,4 +67,4 @@ const HomepageVideo = ({ content = {} }: HomepageVideoProps) => {
   );
 };
 
-export default HomepageVideo;
+export default VideoSection;

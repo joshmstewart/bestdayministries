@@ -158,6 +158,20 @@ export class MockSupabaseState {
         subtitle: 'Your support helps us create amazing experiences'
       }
     });
+
+    this.supportPageSections.set('support_video', {
+      id: 'section-support-video',
+      section_key: 'support_video',
+      section_name: 'Support Video',
+      display_order: 5,
+      is_visible: true,
+      content: {
+        title: 'Watch Our Story',
+        description: 'Learn more about our mission and impact',
+        video_type: 'youtube',
+        youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+      }
+    });
   }
 
   // Helper methods
