@@ -128,6 +128,10 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
       console.error('Error loading collection info:', error);
     } finally {
       setLoading(false);
+      
+      // Play pack reveal sound when pack is first displayed
+      console.log('Pack loaded and displayed. Playing pack reveal sound. Sound effects loaded:', !soundsLoading, 'Available:', !!soundEffects['sticker_pack_reveal']);
+      playSound('sticker_pack_reveal');
     }
   };
 
@@ -206,10 +210,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
       }
 
       if (data.success) {
-        // Play pack reveal sound
-        console.log('Trying to play pack reveal sound. Sound effects loaded:', !soundsLoading, 'Available:', !!soundEffects['sticker_pack_reveal']);
-        playSound('sticker_pack_reveal');
-        
         // Support both single and multiple stickers
         const stickers = data.stickers || (data.sticker ? [data.sticker] : []);
         
@@ -220,10 +220,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
           setOpened(true);
           setShowConfetti(true);
           
-          // Delay rarity sound to let pack reveal sound play first
-          setTimeout(() => {
-            triggerCelebration(stickers[0].rarity);
-          }, 500);
+          // Trigger celebration for first sticker
+          triggerCelebration(stickers[0].rarity);
         } else {
           throw new Error('No stickers revealed');
         }
