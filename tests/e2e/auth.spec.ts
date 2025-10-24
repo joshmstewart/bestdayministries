@@ -140,7 +140,7 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Wait for form submission to complete
       await page.waitForLoadState('networkidle');
-      // CRITICAL: Add wait after signup before sign-in
+      // CRITICAL: Add wait after signup before sign-in (force push trigger)
       await page.waitForTimeout(2000);
       
       // Verify user was created
