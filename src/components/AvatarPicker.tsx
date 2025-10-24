@@ -238,7 +238,7 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
           type="button"
           className="flex items-center justify-between w-full text-left hover:opacity-70 transition-opacity"
         >
-          <Label className="cursor-pointer">Choose Your Avatar (Optional)</Label>
+          <Label className="cursor-pointer">Change Avatar (Optional)</Label>
           <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
         </button>
       </CollapsibleTrigger>

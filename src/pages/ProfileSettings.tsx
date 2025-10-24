@@ -504,14 +504,32 @@ const ProfileSettings = () => {
                 onSelectAvatar={setSelectedAvatar}
               />
 
+              {/* Email (Read-only) */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  placeholder="your.email@example.com"
+                  className="bg-muted/50 cursor-not-allowed"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Email cannot be changed
+                </p>
+              </div>
+
               {/* Display Name */}
               <div className="space-y-2">
                 <Label htmlFor="displayName">Display Name *</Label>
                 <Input
                   id="displayName"
+                  name="display_name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder="Display Name"
                   maxLength={50}
                 />
               </div>
@@ -521,6 +539,7 @@ const ProfileSettings = () => {
                 <Label htmlFor="bio">Bio (Optional)</Label>
                 <Textarea
                   id="bio"
+                  name="bio"
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Tell us about yourself..."
