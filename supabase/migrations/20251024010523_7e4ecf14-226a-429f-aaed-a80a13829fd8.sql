@@ -1,0 +1,2 @@
+-- Drop the conflicting authenticated-only INSERT policy that conflicts with the existing public INSERT policy
+DROP POLICY IF EXISTS "Users can insert their own submissions" ON contact_form_submissions;
