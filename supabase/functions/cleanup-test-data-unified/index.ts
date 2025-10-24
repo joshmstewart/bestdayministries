@@ -53,9 +53,18 @@ serve(async (req) => {
     // PERSISTENT TEST ACCOUNTS - NEVER DELETE THESE
     // These are used for testing different user experiences and must remain
     const PERSISTENT_TEST_EMAILS = [
+      // Persistent role-based test accounts
       'testbestie@example.com',
       'testguardian@example.com',
-      'testsupporter@example.com'
+      'testsupporter@example.com',
+      // Shard-specific test accounts (created by globalSetup for parallel testing)
+      'test@example.com',      // Shard 0 (local testing default)
+      'test1@example.com',     // Shard 1
+      'test2@example.com',     // Shard 2
+      'test3@example.com',     // Shard 3
+      'test4@example.com',     // Shard 4
+      'test5@example.com',     // Shard 5
+      'test6@example.com'      // Shard 6
     ];
 
     // Filter test users by email prefix OR generic test patterns
