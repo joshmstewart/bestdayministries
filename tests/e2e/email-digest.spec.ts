@@ -31,9 +31,9 @@ test.describe('Digest Email Tests', () => {
   const createdDigestLogIds: string[] = [];
 
   test.beforeAll(async () => {
-    // Seed test data once
+    // Seed test data once using retry wrapper
     const testRunId = Date.now().toString();
-    const { data, error } = await supabase.functions.invoke('seed-email-test-data', {
+    const { data, error } = await supabase.functions.invoke('seed-email-test-data-with-retry', {
       body: { testRunId }
     });
 

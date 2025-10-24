@@ -23,7 +23,7 @@ jobs:
     - name: Seed test data
       run: |
         TEST_RUN_ID="${{ github.run_id }}"
-        curl -X POST "${VITE_SUPABASE_URL}/functions/v1/seed-email-test-data" \
+        curl -X POST "${VITE_SUPABASE_URL}/functions/v1/seed-email-test-data-with-retry" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer ${VITE_SUPABASE_ANON_KEY}" \
           -d "{\"testRunId\": \"${TEST_RUN_ID}\"}"

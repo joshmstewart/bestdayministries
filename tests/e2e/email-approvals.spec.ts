@@ -33,9 +33,9 @@ test.describe('Approval Notification Email Tests', () => {
   const createdVendorAssetIds: string[] = [];
 
   test.beforeAll(async () => {
-    // Seed test data once for all tests
+    // Seed test data once for all tests using retry wrapper
     const testRunId = Date.now().toString();
-    const { data, error } = await supabase.functions.invoke('seed-email-test-data', {
+    const { data, error } = await supabase.functions.invoke('seed-email-test-data-with-retry', {
       body: { testRunId }
     });
 

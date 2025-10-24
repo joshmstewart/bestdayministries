@@ -367,7 +367,7 @@ test.describe('Profile Settings @fast', () => {
       await page.goto('/profile');
       await page.waitForLoadState('networkidle');
       
-      const notificationsTab = page.locator('button:has-text("Notifications"), text="Notifications"').first();
+      const notificationsTab = page.getByRole('button', { name: /notifications/i });
       if (await notificationsTab.isVisible()) {
         await notificationsTab.click();
         await expect(page.locator('text=/Email|Digest/i').first()).toBeVisible({ timeout: 3000 });
@@ -379,7 +379,7 @@ test.describe('Profile Settings @fast', () => {
       await page.goto('/profile');
       await page.waitForLoadState('networkidle');
       
-      const newsletterTab = page.locator('button:has-text("Newsletter"), text="Newsletter"').first();
+      const newsletterTab = page.getByRole('button', { name: /newsletter/i });
       if (await newsletterTab.isVisible()) {
         await newsletterTab.click();
         await expect(page.locator('text=/Subscribe|Newsletter/i').first()).toBeVisible({ timeout: 3000 });

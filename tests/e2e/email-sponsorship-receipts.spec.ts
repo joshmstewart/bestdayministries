@@ -30,7 +30,7 @@ test.describe('Sponsorship Receipt Email Tests', () => {
 
   test.beforeAll(async () => {
     const testRunId = Date.now().toString();
-    const { data, error } = await supabase.functions.invoke('seed-email-test-data', {
+    const { data, error } = await supabase.functions.invoke('seed-email-test-data-with-retry', {
       body: { testRunId }
     });
 

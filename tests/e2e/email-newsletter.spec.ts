@@ -13,8 +13,8 @@ test.describe('Newsletter System Tests', () => {
   let adminPage: any;
 
   test.beforeAll(async ({ browser }) => {
-    // Seed test data with admin user
-    const { data, error } = await supabase.functions.invoke('seed-email-test-data', {
+    // Seed test data with admin user using retry wrapper
+    const { data, error } = await supabase.functions.invoke('seed-email-test-data-with-retry', {
       body: { 
         includeAdmin: true,
         includeGuardian: true,

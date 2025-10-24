@@ -108,11 +108,26 @@ test.describe('Contact Form Notification System', () => {
     expect(notification!.is_read).toBe(false);
     expect(notification!.title).toContain('New');
 
-    // Navigate to admin dashboard
-    await page.goto('/admin?tab=contact');
+    // Navigate to admin dashboard with robust table verification
+    await page.goto('/admin?tab=contact', { timeout: 30000 });
+    await page.waitForLoadState('networkidle', { timeout: 20000 });
     
-    // Wait for badge to appear (would need to check specific element)
-    // await expect(page.locator('[data-testid="contact-badge"]')).toContainText('1');
+    // Wait for Contact tab to be active
+    const contactTab = page.locator('[role="tab"]').filter({ hasText: /contact/i });
+    await expect(contactTab).toHaveAttribute('data-state', 'active', { timeout: 10000 });
+    
+    // Wait for table and verify it's the contact table
+    await page.waitForSelector('table', { timeout: 15000, state: 'visible' });
+    const headers = await page.locator('th').allTextContents();
+    const isContactTable = headers.some(h => 
+      h.toLowerCase().includes('name') || 
+      h.toLowerCase().includes('email') ||
+      h.toLowerCase().includes('message')
+    );
+    
+    if (!isContactTable) {
+      throw new Error('Contact submissions table not found - check admin tab routing');
+    }
 
     console.log('✅ New submission notification test passed');
   });
@@ -182,22 +197,21 @@ test.describe('Contact Form Notification System', () => {
         },
       });
 
-    // Navigate to admin contact page
-    await page.goto('/admin?tab=contact');
+    // Navigate to admin contact page with robust verification
+    await page.goto('/admin?tab=contact', { timeout: 30000 });
+    await page.waitForLoadState('networkidle', { timeout: 20000 });
     
-    // Wait for any table to appear with robust verification
-    await page.waitForSelector('table', { 
-      timeout: 15000,
-      state: 'visible' 
-    });
+    // Wait for Contact tab to be active
+    const contactTab = page.locator('[role="tab"]').filter({ hasText: /contact/i });
+    await expect(contactTab).toHaveAttribute('data-state', 'active', { timeout: 10000 });
     
-    // Verify it's the contact submissions table by checking headers
+    // Wait for table and verify it's the contact table
+    await page.waitForSelector('table', { timeout: 15000, state: 'visible' });
     const headers = await page.locator('th').allTextContents();
     const isContactTable = headers.some(h => 
       h.toLowerCase().includes('name') || 
       h.toLowerCase().includes('email') ||
-      h.toLowerCase().includes('message') ||
-      h.toLowerCase().includes('status')
+      h.toLowerCase().includes('message')
     );
     
     if (!isContactTable) {
@@ -256,9 +270,16 @@ test.describe('Contact Form Notification System', () => {
         },
       });
 
-    // Login and navigate to admin
-    await page.goto('/admin?tab=contact');
-    await page.waitForSelector('table');
+    // Login and navigate to admin with robust verification
+    await page.goto('/admin?tab=contact', { timeout: 30000 });
+    await page.waitForLoadState('networkidle', { timeout: 20000 });
+    
+    // Wait for Contact tab to be active
+    const contactTab = page.locator('[role="tab"]').filter({ hasText: /contact/i });
+    await expect(contactTab).toHaveAttribute('data-state', 'active', { timeout: 10000 });
+    
+    // Wait for table
+    await page.waitForSelector('table', { timeout: 15000, state: 'visible' });
 
     // Click reply button (would need specific selector)
     // await page.click(`[data-submission-id="${testSubmissionId}"] button:has-text("Reply")`);
@@ -332,22 +353,21 @@ test.describe('Contact Form Notification System', () => {
         message: 'Unread reply',
       });
 
-    // Navigate to admin
-    await page.goto('/admin?tab=contact');
+    // Navigate to admin with robust verification
+    await page.goto('/admin?tab=contact', { timeout: 30000 });
+    await page.waitForLoadState('networkidle', { timeout: 20000 });
     
-    // Wait for any table with robust verification
-    await page.waitForSelector('table', { 
-      timeout: 15000,
-      state: 'visible' 
-    });
+    // Wait for Contact tab to be active
+    const contactTab = page.locator('[role="tab"]').filter({ hasText: /contact/i });
+    await expect(contactTab).toHaveAttribute('data-state', 'active', { timeout: 10000 });
     
-    // Verify it's the contact submissions table
+    // Wait for table and verify it's the contact table
+    await page.waitForSelector('table', { timeout: 15000, state: 'visible' });
     const headers = await page.locator('th').allTextContents();
     const isContactTable = headers.some(h => 
       h.toLowerCase().includes('name') || 
       h.toLowerCase().includes('email') ||
-      h.toLowerCase().includes('message') ||
-      h.toLowerCase().includes('status')
+      h.toLowerCase().includes('message')
     );
     
     if (!isContactTable) {
@@ -416,22 +436,21 @@ test.describe('Contact Form Notification System', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Navigate to admin
-    await page.goto('/admin?tab=contact');
+    // Navigate to admin with robust verification
+    await page.goto('/admin?tab=contact', { timeout: 30000 });
+    await page.waitForLoadState('networkidle', { timeout: 20000 });
     
-    // Wait for any table with robust verification
-    await page.waitForSelector('table', { 
-      timeout: 15000,
-      state: 'visible' 
-    });
+    // Wait for Contact tab to be active
+    const contactTab = page.locator('[role="tab"]').filter({ hasText: /contact/i });
+    await expect(contactTab).toHaveAttribute('data-state', 'active', { timeout: 10000 });
     
-    // Verify it's the contact submissions table
+    // Wait for table and verify it's the contact table
+    await page.waitForSelector('table', { timeout: 15000, state: 'visible' });
     const headers = await page.locator('th').allTextContents();
     const isContactTable = headers.some(h => 
       h.toLowerCase().includes('name') || 
       h.toLowerCase().includes('email') ||
-      h.toLowerCase().includes('message') ||
-      h.toLowerCase().includes('status')
+      h.toLowerCase().includes('message')
     );
     
     if (!isContactTable) {
