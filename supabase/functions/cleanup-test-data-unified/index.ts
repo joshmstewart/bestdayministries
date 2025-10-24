@@ -53,18 +53,17 @@ serve(async (req) => {
     // PERSISTENT TEST ACCOUNTS - NEVER DELETE THESE
     // These are used for testing different user experiences and must remain
     const PERSISTENT_TEST_EMAILS = [
-      // Persistent role-based test accounts
       'testbestie@example.com',
       'testguardian@example.com',
       'testsupporter@example.com',
-      // Shard-specific test accounts (created by globalSetup for parallel testing)
-      'test@example.com',      // Shard 0 (local testing default)
-      'test1@example.com',     // Shard 1
-      'test2@example.com',     // Shard 2
-      'test3@example.com',     // Shard 3
-      'test4@example.com',     // Shard 4
-      'test5@example.com',     // Shard 5
-      'test6@example.com'      // Shard 6
+      // Shard accounts that persist for parallel testing
+      'test@example.com',
+      'test1@example.com',
+      'test2@example.com',
+      'test3@example.com',
+      'test4@example.com',
+      'test5@example.com',
+      'test6@example.com'
     ];
 
     // Filter test users by email prefix OR generic test patterns
@@ -100,12 +99,220 @@ serve(async (req) => {
 
     const testUserIds = testUsers.map(u => u.id);
 
+    // Get persistent test account IDs (accounts we keep but clean their data)
+    const persistentAccounts = authUsers.users.filter(user => 
+      PERSISTENT_TEST_EMAILS.includes(user.email?.toLowerCase() || '')
+    );
+    const persistentAccountIds = persistentAccounts.map(u => u.id);
+    
+    console.log(`Found ${persistentAccountIds.length} persistent test accounts to clean data from`);
+    console.log('Persistent accounts:', persistentAccounts.map(u => u.email).join(', '));
+
     // COMPREHENSIVE CLEANUP: Delete all test-related records in correct order
-    if (testUserIds.length > 0 || namePatterns.length > 0) {
-      console.log('🧹 Starting comprehensive cleanup...');
+    console.log('🧹 Starting comprehensive cleanup...');
+    
+    // === STRATEGY 1: Clean data FROM persistent accounts (keep accounts, delete their data) ===
+    if (persistentAccountIds.length > 0) {
+      console.log('🧹 Cleaning data from persistent test accounts...');
       
-      // 1. Delete notifications for test users
-      if (testUserIds.length > 0) {
+      // Delete notifications owned by persistent accounts
+      const { error: persistentNotifError } = await supabaseAdmin
+        .from('notifications')
+        .delete()
+        .in('user_id', persistentAccountIds);
+      
+      if (persistentNotifError) {
+        console.error('Error deleting notifications from persistent accounts:', persistentNotifError);
+      } else {
+        console.log('✅ Deleted notifications from persistent accounts');
+      }
+      
+      // Delete notification preferences
+      const { error: persistentPrefsError } = await supabaseAdmin
+        .from('notification_preferences')
+        .delete()
+        .in('user_id', persistentAccountIds);
+      
+      if (persistentPrefsError) {
+        console.error('Error deleting notification preferences from persistent accounts:', persistentPrefsError);
+      } else {
+        console.log('✅ Deleted notification preferences from persistent accounts');
+      }
+      
+      // Delete email notification logs
+      const { error: persistentEmailLogsError } = await supabaseAdmin
+        .from('email_notifications_log')
+        .delete()
+        .in('user_id', persistentAccountIds);
+      
+      if (persistentEmailLogsError) {
+        console.error('Error deleting email logs from persistent accounts:', persistentEmailLogsError);
+      } else {
+        console.log('✅ Deleted email logs from persistent accounts');
+      }
+      
+      // Delete contact form replies sent by persistent accounts
+      const { error: persistentRepliesError } = await supabaseAdmin
+        .from('contact_form_replies')
+        .delete()
+        .in('sender_id', persistentAccountIds);
+      
+      if (persistentRepliesError) {
+        console.error('Error deleting contact form replies from persistent accounts:', persistentRepliesError);
+      } else {
+        console.log('✅ Deleted contact form replies from persistent accounts');
+      }
+      
+      // Delete contact form submissions by persistent accounts
+      const { error: persistentSubmissionsError } = await supabaseAdmin
+        .from('contact_form_submissions')
+        .delete()
+        .in('user_id', persistentAccountIds);
+      
+      if (persistentSubmissionsError) {
+        console.error('Error deleting contact form submissions from persistent accounts:', persistentSubmissionsError);
+      } else {
+        console.log('✅ Deleted contact form submissions from persistent accounts');
+      }
+      
+      // Delete discussion comments by persistent accounts
+      const { error: persistentCommentsError } = await supabaseAdmin
+        .from('discussion_comments')
+        .delete()
+        .in('author_id', persistentAccountIds);
+      
+      if (persistentCommentsError) {
+        console.error('Error deleting discussion comments from persistent accounts:', persistentCommentsError);
+      } else {
+        console.log('✅ Deleted discussion comments from persistent accounts');
+      }
+      
+      // Delete discussion posts by persistent accounts
+      const { error: persistentPostsError } = await supabaseAdmin
+        .from('discussion_posts')
+        .delete()
+        .in('author_id', persistentAccountIds);
+      
+      if (persistentPostsError) {
+        console.error('Error deleting discussion posts from persistent accounts:', persistentPostsError);
+      } else {
+        console.log('✅ Deleted discussion posts from persistent accounts');
+      }
+      
+      // Delete featured bestie hearts
+      const { error: persistentHeartsError } = await supabaseAdmin
+        .from('featured_bestie_hearts')
+        .delete()
+        .in('user_id', persistentAccountIds);
+      
+      if (persistentHeartsError) {
+        console.error('Error deleting featured bestie hearts from persistent accounts:', persistentHeartsError);
+      } else {
+        console.log('✅ Deleted featured bestie hearts from persistent accounts');
+      }
+      
+      // Delete featured besties
+      const { error: persistentFeaturedError } = await supabaseAdmin
+        .from('featured_besties')
+        .delete()
+        .in('bestie_id', persistentAccountIds);
+      
+      if (persistentFeaturedError) {
+        console.error('Error deleting featured besties from persistent accounts:', persistentFeaturedError);
+      } else {
+        console.log('✅ Deleted featured besties from persistent accounts');
+      }
+      
+      // Delete sponsorships
+      const { error: persistentSponsorshipsError } = await supabaseAdmin
+        .from('sponsorships')
+        .delete()
+        .or(`sponsor_id.in.(${persistentAccountIds.join(',')}),bestie_id.in.(${persistentAccountIds.join(',')})`);
+      
+      if (persistentSponsorshipsError) {
+        console.error('Error deleting sponsorships from persistent accounts:', persistentSponsorshipsError);
+      } else {
+        console.log('✅ Deleted sponsorships from persistent accounts');
+      }
+      
+      // Delete sponsor_besties
+      const { error: persistentSponsorBestiesError } = await supabaseAdmin
+        .from('sponsor_besties')
+        .delete()
+        .in('bestie_id', persistentAccountIds);
+      
+      if (persistentSponsorBestiesError) {
+        console.error('Error deleting sponsor_besties from persistent accounts:', persistentSponsorBestiesError);
+      } else {
+        console.log('✅ Deleted sponsor_besties from persistent accounts');
+      }
+      
+      // Delete guardian-bestie links
+      const { error: persistentLinksError } = await supabaseAdmin
+        .from('caregiver_bestie_links')
+        .delete()
+        .or(`caregiver_id.in.(${persistentAccountIds.join(',')}),bestie_id.in.(${persistentAccountIds.join(',')})`);
+      
+      if (persistentLinksError) {
+        console.error('Error deleting guardian-bestie links from persistent accounts:', persistentLinksError);
+      } else {
+        console.log('✅ Deleted guardian-bestie links from persistent accounts');
+      }
+      
+      // Delete events
+      const { data: persistentEvents } = await supabaseAdmin
+        .from('events')
+        .select('id')
+        .in('created_by', persistentAccountIds);
+      
+      const persistentEventIds = persistentEvents?.map(e => e.id) || [];
+      
+      if (persistentEventIds.length > 0) {
+        await supabaseAdmin.from('event_attendees').delete().in('event_id', persistentEventIds);
+        await supabaseAdmin.from('event_dates').delete().in('event_id', persistentEventIds);
+      }
+      
+      const { error: persistentEventsError } = await supabaseAdmin
+        .from('events')
+        .delete()
+        .in('created_by', persistentAccountIds);
+      
+      if (persistentEventsError) {
+        console.error('Error deleting events from persistent accounts:', persistentEventsError);
+      } else {
+        console.log('✅ Deleted events from persistent accounts');
+      }
+      
+      // Delete albums
+      const { data: persistentAlbums } = await supabaseAdmin
+        .from('albums')
+        .select('id')
+        .in('created_by', persistentAccountIds);
+      
+      const persistentAlbumIds = persistentAlbums?.map(a => a.id) || [];
+      
+      if (persistentAlbumIds.length > 0) {
+        await supabaseAdmin.from('album_images').delete().in('album_id', persistentAlbumIds);
+      }
+      
+      const { error: persistentAlbumsError } = await supabaseAdmin
+        .from('albums')
+        .delete()
+        .in('created_by', persistentAccountIds);
+      
+      if (persistentAlbumsError) {
+        console.error('Error deleting albums from persistent accounts:', persistentAlbumsError);
+      } else {
+        console.log('✅ Deleted albums from persistent accounts');
+      }
+      
+      console.log('✅ Completed cleaning data from persistent test accounts');
+    }
+    
+    // === STRATEGY 2: Clean data FROM users being deleted + pattern-based cleanup ===
+    
+    // 1. Delete notifications for test users being deleted
+    if (testUserIds.length > 0) {
         console.log('🧹 Deleting notifications...');
         const { error: notificationsError } = await supabaseAdmin
           .from('notifications')
@@ -177,8 +384,8 @@ serve(async (req) => {
       }
       
       // 3. Delete email notification logs for test users
+      console.log('🧹 Deleting email notification logs...');
       if (testUserIds.length > 0) {
-        console.log('🧹 Deleting email notification logs...');
         const { error: emailLogsError } = await supabaseAdmin
           .from('email_notifications_log')
           .delete()
@@ -240,6 +447,8 @@ serve(async (req) => {
         
         if (submissionsUserError) {
           console.error('Error deleting contact form submissions by user:', submissionsUserError);
+        } else {
+          console.log('✅ Deleted contact form submissions by user');
         }
       }
       
@@ -273,7 +482,7 @@ serve(async (req) => {
       }
       console.log('✅ Deleted all contact form submissions');
       
-      // 6. Delete discussion comments by test users OR by name pattern
+      // 6. Delete discussion comments by test users
       console.log('🧹 Deleting discussion comments...');
       if (testUserIds.length > 0) {
         const { error: commentsError } = await supabaseAdmin
@@ -288,7 +497,7 @@ serve(async (req) => {
         }
       }
       
-      // 7. Delete discussion posts by test users OR by name pattern
+      // 7. Delete discussion posts by test users
       console.log('🧹 Deleting discussion posts...');
       if (testUserIds.length > 0) {
         const { error: postsError } = await supabaseAdmin
@@ -304,18 +513,16 @@ serve(async (req) => {
       }
       
       // Also delete posts by title pattern for E2E tests
-      if (namePatterns.length > 0) {
-        for (const pattern of namePatterns) {
-          const { error: postPatternError } = await supabaseAdmin
-            .from('discussion_posts')
-            .delete()
-            .ilike('title', `%${pattern}%`);
-          
-          if (postPatternError) {
-            console.error(`Error deleting posts with pattern ${pattern}:`, postPatternError);
-          } else {
-            console.log(`✅ Deleted posts with pattern: ${pattern}`);
-          }
+      for (const pattern of namePatterns) {
+        const { error: postPatternError } = await supabaseAdmin
+          .from('discussion_posts')
+          .delete()
+          .ilike('title', `%${pattern}%`);
+        
+        if (postPatternError) {
+          console.error(`Error deleting posts with pattern ${pattern}:`, postPatternError);
+        } else {
+          console.log(`✅ Deleted posts with pattern: ${pattern}`);
         }
       }
       
@@ -353,18 +560,16 @@ serve(async (req) => {
       }
       
       // Also delete by name pattern for E2E tests
-      if (namePatterns.length > 0) {
-        for (const pattern of namePatterns) {
-          const { error: bestiePatternError } = await supabaseAdmin
-            .from('featured_besties')
-            .delete()
-            .ilike('bestie_name', `%${pattern}%`);
-          
-          if (bestiePatternError) {
-            console.error(`Error deleting featured besties with pattern ${pattern}:`, bestiePatternError);
-          } else {
-            console.log(`✅ Deleted featured besties with pattern: ${pattern}`);
-          }
+      for (const pattern of namePatterns) {
+        const { error: bestiePatternError } = await supabaseAdmin
+          .from('featured_besties')
+          .delete()
+          .ilike('bestie_name', `%${pattern}%`);
+        
+        if (bestiePatternError) {
+          console.error(`Error deleting featured besties with pattern ${pattern}:`, bestiePatternError);
+        } else {
+          console.log(`✅ Deleted featured besties with pattern: ${pattern}`);
         }
       }
       
@@ -457,18 +662,16 @@ serve(async (req) => {
       }
       
       // 12. Also delete vendors by name pattern
-      if (namePatterns.length > 0) {
-        for (const pattern of namePatterns) {
-          const { error: vendorPatternError } = await supabaseAdmin
-            .from('vendors')
-            .delete()
-            .ilike('business_name', `%${pattern}%`);
-          
-          if (vendorPatternError) {
-            console.error(`Error deleting vendors with pattern ${pattern}:`, vendorPatternError);
-          } else {
-            console.log(`✅ Deleted vendors with pattern: ${pattern}`);
-          }
+      for (const pattern of namePatterns) {
+        const { error: vendorPatternError } = await supabaseAdmin
+          .from('vendors')
+          .delete()
+          .ilike('business_name', `%${pattern}%`);
+        
+        if (vendorPatternError) {
+          console.error(`Error deleting vendors with pattern ${pattern}:`, vendorPatternError);
+        } else {
+          console.log(`✅ Deleted vendors with pattern: ${pattern}`);
         }
       }
       
@@ -516,18 +719,16 @@ serve(async (req) => {
       }
       
       // CRITICAL: Also delete sponsor_besties by name pattern (test data may not have user_id)
-      if (namePatterns.length > 0) {
-        for (const pattern of namePatterns) {
-          const { error: sponsorBestiePatternError } = await supabaseAdmin
-            .from('sponsor_besties')
-            .delete()
-            .ilike('bestie_name', `%${pattern}%`);
-          
-          if (sponsorBestiePatternError) {
-            console.error(`Error deleting sponsor_besties with pattern ${pattern}:`, sponsorBestiePatternError);
-          } else {
-            console.log(`✅ Deleted sponsor_besties with pattern: ${pattern}`);
-          }
+      for (const pattern of namePatterns) {
+        const { error: sponsorBestiePatternError } = await supabaseAdmin
+          .from('sponsor_besties')
+          .delete()
+          .ilike('bestie_name', `%${pattern}%`);
+        
+        if (sponsorBestiePatternError) {
+          console.error(`Error deleting sponsor_besties with pattern ${pattern}:`, sponsorBestiePatternError);
+        } else {
+          console.log(`✅ Deleted sponsor_besties with pattern: ${pattern}`);
         }
       }
       
@@ -578,18 +779,16 @@ serve(async (req) => {
       }
       
       // Delete events by title pattern
-      if (namePatterns.length > 0) {
-        for (const pattern of namePatterns) {
-          const { error: eventPatternError } = await supabaseAdmin
-            .from('events')
-            .delete()
-            .ilike('title', `%${pattern}%`);
-          
-          if (eventPatternError) {
-            console.error(`Error deleting events with pattern ${pattern}:`, eventPatternError);
-          } else {
-            console.log(`✅ Deleted events with pattern: ${pattern}`);
-          }
+      for (const pattern of namePatterns) {
+        const { error: eventPatternError } = await supabaseAdmin
+          .from('events')
+          .delete()
+          .ilike('title', `%${pattern}%`);
+        
+        if (eventPatternError) {
+          console.error(`Error deleting events with pattern ${pattern}:`, eventPatternError);
+        } else {
+          console.log(`✅ Deleted events with pattern: ${pattern}`);
         }
       }
       
@@ -623,18 +822,16 @@ serve(async (req) => {
       }
       
       // Delete albums by title pattern
-      if (namePatterns.length > 0) {
-        for (const pattern of namePatterns) {
-          const { error: albumPatternError } = await supabaseAdmin
-            .from('albums')
-            .delete()
-            .ilike('title', `%${pattern}%`);
-          
-          if (albumPatternError) {
-            console.error(`Error deleting albums with pattern ${pattern}:`, albumPatternError);
-          } else {
-            console.log(`✅ Deleted albums with pattern: ${pattern}`);
-          }
+      for (const pattern of namePatterns) {
+        const { error: albumPatternError } = await supabaseAdmin
+          .from('albums')
+          .delete()
+          .ilike('title', `%${pattern}%`);
+        
+        if (albumPatternError) {
+          console.error(`Error deleting albums with pattern ${pattern}:`, albumPatternError);
+        } else {
+          console.log(`✅ Deleted albums with pattern: ${pattern}`);
         }
       }
       
@@ -698,8 +895,9 @@ serve(async (req) => {
       console.log('✅ Deleted newsletter campaigns');
       
       console.log('✅ Completed comprehensive pre-user deletion cleanup');
-      
-      // PRIORITY 2 FIX: Nullify foreign key references BEFORE deleting users
+    
+    // PRIORITY 2 FIX: Nullify foreign key references BEFORE deleting users
+    if (testUserIds.length > 0) {
       console.log('🧹 Nullifying foreign key references...');
       
       // Get vendor IDs again (some may have been deleted in cleanup above)
