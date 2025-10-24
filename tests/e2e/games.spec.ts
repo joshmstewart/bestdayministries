@@ -254,7 +254,7 @@ test.describe('Games System @fast', () => {
       await testPage.waitForLoadState('networkidle');
       
       // Look for challenge mode option
-      const challengeBtn = testPage.locator('button:has-text("Challenge"), text="Challenge"').first();
+      const challengeBtn = testPage.locator('button:has-text("Challenge")').first();
       if (await challengeBtn.isVisible()) {
         await challengeBtn.click();
         

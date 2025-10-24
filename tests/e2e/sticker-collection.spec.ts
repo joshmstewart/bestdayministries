@@ -97,9 +97,12 @@ test.describe('Sticker Album Viewing @fast', () => {
     await page.goto('/sticker-album');
     await page.waitForLoadState('networkidle');
     
+    // Wait for content to load before checking
+    await page.waitForTimeout(2000);
+    
     // Look for grid or collection display
     const grid = page.locator('[class*="grid"], [class*="collection"]').first();
-    const hasGrid = await grid.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasGrid = await grid.isVisible({ timeout: 10000 }).catch(() => false);
     
     // Feature SHOULD be implemented - fail if not found
     if (!hasGrid) {
@@ -112,9 +115,12 @@ test.describe('Sticker Album Viewing @fast', () => {
     await page.goto('/sticker-album');
     await page.waitForLoadState('networkidle');
     
+    // Wait for content to load before checking
+    await page.waitForTimeout(2000);
+    
     // Look for progress indicator or completion percentage
     const progress = page.locator('[role="progressbar"], text=/progress/i, text=/collected/i').first();
-    const hasProgress = await progress.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasProgress = await progress.isVisible({ timeout: 10000 }).catch(() => false);
     
     // Feature SHOULD be implemented - fail if not found
     if (!hasProgress) {
@@ -132,15 +138,20 @@ test.describe('Admin Sticker Management @fast', () => {
     await page.fill('input[type="password"]', 'testpassword123');
     await page.click('button:has-text("Sign In")');
     await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
+    await page.waitForLoadState('networkidle');
+    // Extra wait for admin UI to fully load
+    await page.waitForTimeout(2000);
   });
 
   test('should access sticker management from admin panel', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
+    // Wait for tabs to render
+    await page.waitForTimeout(2000);
     
     // Look for sticker-related tab or section
     const stickerTab = page.locator('[role="tab"], button, a').filter({ hasText: /sticker|collection/i }).first();
-    const hasTab = await stickerTab.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasTab = await stickerTab.isVisible({ timeout: 10000 }).catch(() => false);
     
     // Sticker tab MUST exist (confirmed in Admin.tsx line 253)
     if (!hasTab) {

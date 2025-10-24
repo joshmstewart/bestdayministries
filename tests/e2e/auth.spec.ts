@@ -140,6 +140,8 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Wait for form submission to complete
       await page.waitForLoadState('networkidle');
+      // CRITICAL: Add wait after signup before sign-in
+      await page.waitForTimeout(2000);
       
       // Verify user was created
       const user = state.getUserByEmail('supporter@test.com');

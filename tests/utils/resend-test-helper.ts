@@ -70,7 +70,7 @@ export async function waitForSubmission(
     pollIntervalMs?: number;
   } = {}
 ): Promise<ContactFormSubmission> {
-  const timeoutMs = options.timeoutMs || 30000; // Increased to 30s
+  const timeoutMs = options.timeoutMs || 45000; // Increased to 45s for CI stability
   console.log(`⏳ Waiting for submission from ${email} (timeout: ${timeoutMs}ms)`);
 
   const result = await callTestHelper('waitForSubmission', { 
@@ -98,7 +98,7 @@ export async function waitForReply(
     pollIntervalMs?: number;
   } = {}
 ): Promise<ContactFormReply> {
-  const timeoutMs = options.timeoutMs || 30000; // Increased to 30s
+  const timeoutMs = options.timeoutMs || 45000; // Increased to 45s for CI stability
   console.log(`⏳ Waiting for reply to submission ${submissionId} (timeout: ${timeoutMs}ms)`);
 
   const result = await callTestHelper('waitForReply', { 

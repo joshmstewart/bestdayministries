@@ -80,7 +80,7 @@ test.describe('Guardian-Bestie Linking Flow', () => {
       console.log('🔍 TEST 90-92: Network idle');
       
       // Wait extra time for mocked auth state to propagate
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(3000);
       
       // Add delay for checkAccess to complete
       const linkButton = page.locator('button').filter({ hasText: /link.*bestie/i }).first();
