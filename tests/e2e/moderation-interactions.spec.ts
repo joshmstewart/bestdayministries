@@ -110,6 +110,39 @@ test.describe('Moderation Queue Interactions @fast', () => {
     }
     
     console.log(`✅ Seeded ${seededPostIds.length} posts and 5 pending comments for moderation tests`);
+    
+    // VERIFY seeded data is accessible to admin
+    console.log('🔍 Verifying seeded moderation data is accessible...');
+    
+    try {
+      const { data: pendingPosts, error: queryError } = await supabase
+        .from('discussion_posts')
+        .select('id, title, approval_status, is_moderated, author_id')
+        .eq('approval_status', 'pending_approval');
+
+      if (queryError) {
+        console.error('❌ Failed to query pending posts:', queryError);
+        throw new Error(
+          `Cannot query seeded moderation data - possible RLS issue\n` +
+          `Error: ${queryError.message}`
+        );
+      }
+
+      console.log(`📊 Found ${pendingPosts?.length || 0} pending posts`);
+      console.log('First post:', pendingPosts?.[0]);
+
+      if ((pendingPosts?.length || 0) < 5) {
+        throw new Error(
+          `Expected at least 5 pending posts but found: ${pendingPosts?.length}\n` +
+          `This suggests posts were created but are not visible due to RLS policies`
+        );
+      }
+
+      console.log('✅ Seeded moderation data is accessible');
+    } catch (error: any) {
+      console.error('❌ Moderation data verification failed:', error.message);
+      throw error;
+    }
   });
 
   test.afterAll(async () => {

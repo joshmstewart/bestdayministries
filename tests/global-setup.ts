@@ -37,6 +37,9 @@ async function globalSetup(config: FullConfig) {
   // Create persistent test account for contact-form-notifications tests
   await createPersistentTestAccount();
   
+  // CRITICAL: Ensure all test accounts have daily scratch cards
+  await ensureScratchCards();
+  
   console.log('✅ Global setup complete\n');
 }
 
@@ -93,9 +96,35 @@ async function createPersistentTestAccount() {
               body: JSON.stringify({ userIds: [signInData.user.id] })
             });
             
-            if (response.ok) {
-              console.log(`✅ Admin role set for ${testEmail} via edge function`);
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Edge function failed: ${response.status} - ${errorText}`);
             }
+            
+            const result = await response.json();
+            console.log(`📋 Edge function response:`, JSON.stringify(result));
+            
+            // CRITICAL: Wait for database transaction to commit
+            console.log(`⏳ Waiting 2 seconds for role to propagate...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // VERIFY the role was written
+            const { data: roleCheck, error: verifyError } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', signInData.user.id)
+              .eq('role', 'admin')
+              .single();
+            
+            if (verifyError || !roleCheck) {
+              throw new Error(
+                `❌ ROLE VERIFICATION FAILED for ${testEmail}\n` +
+                `Error: ${verifyError?.message || 'Role not found'}\n` +
+                `Response: ${JSON.stringify(result)}`
+              );
+            }
+            
+            console.log(`✅ VERIFIED admin role exists for ${testEmail}`);
           } catch (error) {
             console.error(`❌ Error setting admin role for ${testEmail}:`, error);
           }
@@ -139,14 +168,37 @@ async function createPersistentTestAccount() {
             body: JSON.stringify({ userIds: [signUpData.user.id] })
           });
           
-          if (response.ok) {
-            console.log(`✅ Admin role set for ${testEmail} via edge function`);
-          } else {
-            const error = await response.text();
-            console.log(`⚠️  Failed to set admin role for ${testEmail}:`, error);
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Edge function failed: ${response.status} - ${errorText}`);
           }
+          
+          const result = await response.json();
+          console.log(`📋 Edge function response:`, JSON.stringify(result));
+          
+          // CRITICAL: Wait for database transaction to commit
+          console.log(`⏳ Waiting 2 seconds for role to propagate...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // VERIFY the role was written
+          const { data: roleCheck, error: verifyError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', signUpData.user.id)
+            .eq('role', 'admin')
+            .single();
+          
+          if (verifyError || !roleCheck) {
+            throw new Error(
+              `❌ ROLE VERIFICATION FAILED for ${testEmail}\n` +
+              `Error: ${verifyError?.message || 'Role not found'}\n` +
+              `Response: ${JSON.stringify(result)}`
+            );
+          }
+          
+          console.log(`✅ VERIFIED admin role exists for ${testEmail}`);
         } catch (error) {
-          console.error(`❌ Error calling set-test-admin-roles for ${testEmail}:`, error);
+          console.error(`❌ Error setting admin role for ${testEmail}:`, error);
         }
       }
       
@@ -159,6 +211,93 @@ async function createPersistentTestAccount() {
   }
   
   console.log('✅ All shard test accounts processed');
+}
+
+// Create daily scratch cards for ALL test accounts
+async function ensureScratchCards() {
+  console.log('🎴 Ensuring daily scratch cards for all test accounts...');
+  
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('❌ Missing Supabase credentials');
+    return;
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  
+  // Get Christmas 2025 collection
+  const { data: collection, error: collectionError } = await supabase
+    .from('sticker_collections')
+    .select('id, name')
+    .eq('name', 'Christmas 2025')
+    .eq('is_active', true)
+    .single();
+  
+  if (collectionError || !collection) {
+    console.warn('⚠️  Christmas 2025 collection not found - sticker tests may fail');
+    return;
+  }
+  
+  console.log(`✅ Found collection: ${collection.name} (${collection.id})`);
+  
+  const today = new Date().toISOString().split('T')[0];
+  const shards = [0, 1, 2, 3, 4, 5, 6];
+  
+  for (const shardNum of shards) {
+    const testEmail = shardNum === 0 ? 'test@example.com' : `test${shardNum}@example.com`;
+    
+    try {
+      // Sign in to get user ID
+      const { data: authData } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: 'testpassword123',
+      });
+      
+      if (!authData?.user) {
+        console.warn(`⚠️  Could not sign in as ${testEmail}`);
+        continue;
+      }
+      
+      // Check if card exists
+      const { data: existingCard } = await supabase
+        .from('daily_scratch_cards')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .eq('collection_id', collection.id)
+        .eq('date', today)
+        .maybeSingle();
+      
+      if (existingCard) {
+        console.log(`✅ Card exists for ${testEmail}`);
+      } else {
+        // Create card
+        const { error: cardError } = await supabase
+          .from('daily_scratch_cards')
+          .insert({
+            user_id: authData.user.id,
+            collection_id: collection.id,
+            date: today,
+            is_bonus_card: false,
+            is_scratched: false,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          });
+        
+        if (cardError) {
+          console.error(`❌ Failed to create card for ${testEmail}:`, cardError.message);
+        } else {
+          console.log(`✅ Created card for ${testEmail}`);
+        }
+      }
+      
+      await supabase.auth.signOut();
+    } catch (error: any) {
+      console.error(`❌ Error for ${testEmail}:`, error.message);
+    }
+  }
+  
+  console.log('✅ Scratch card setup complete');
 }
 
 export default globalSetup;

@@ -438,19 +438,8 @@ serve(async (req) => {
       // 5. Delete contact form submissions
       console.log('🧹 Deleting contact form submissions...');
       
-      // Delete by user_id if authenticated submissions exist
-      if (testUserIds.length > 0) {
-        const { error: submissionsUserError } = await supabaseAdmin
-          .from('contact_form_submissions')
-          .delete()
-          .in('user_id', testUserIds);
-        
-        if (submissionsUserError) {
-          console.error('Error deleting contact form submissions by user:', submissionsUserError);
-        } else {
-          console.log('✅ Deleted contact form submissions by user');
-        }
-      }
+      // NOTE: contact_form_submissions table has NO user_id column
+      // Delete by email/name patterns only
       
       // Delete by email/name patterns
       for (const pattern of testEmailPatterns) {

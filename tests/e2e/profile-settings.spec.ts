@@ -211,6 +211,24 @@ test.describe('Profile Settings @fast', () => {
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
     
+    // Debug: Verify tabs are rendering
+    console.log('🔍 Checking profile tabs...');
+    
+    const tabList = await page.locator('[role="tablist"]').count();
+    if (tabList === 0) {
+      console.error('❌ No tab container found');
+      const bodyContent = await page.locator('body').textContent();
+      console.error('Page content:', bodyContent?.substring(0, 1000));
+      throw new Error('Profile tabs not rendering');
+    }
+    
+    const tabs = await page.locator('[role="tab"]').count();
+    console.log(`Found ${tabs} tabs`);
+    
+    if (tabs < 3) {
+      console.warn(`⚠️  Expected at least 3 tabs, found ${tabs}`);
+    }
+    
     // Click on Notifications tab - works on mobile (icon) and desktop (text)
     const notificationsTab = page.locator('button[value="notifications"], [role="tab"][value="notifications"]').first();
     await notificationsTab.click();

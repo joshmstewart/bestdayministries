@@ -184,7 +184,28 @@ test.describe('Contact Form Notification System', () => {
 
     // Navigate to admin contact page
     await page.goto('/admin?tab=contact');
-    await page.waitForSelector('table');
+    
+    // Wait for any table to appear with robust verification
+    await page.waitForSelector('table', { 
+      timeout: 15000,
+      state: 'visible' 
+    });
+    
+    // Verify it's the contact submissions table by checking headers
+    const headers = await page.locator('th').allTextContents();
+    const isContactTable = headers.some(h => 
+      h.toLowerCase().includes('name') || 
+      h.toLowerCase().includes('email') ||
+      h.toLowerCase().includes('message') ||
+      h.toLowerCase().includes('status')
+    );
+    
+    if (!isContactTable) {
+      console.error('❌ Wrong table found. Headers:', headers);
+      throw new Error('Contact submissions table not found - wrong table displayed');
+    }
+    
+    console.log('✅ Contact submissions table verified');
 
     // Check for red dot indicator on the row
     // This would need a data-testid or specific selector
@@ -313,7 +334,28 @@ test.describe('Contact Form Notification System', () => {
 
     // Navigate to admin
     await page.goto('/admin?tab=contact');
-    await page.waitForSelector('table');
+    
+    // Wait for any table with robust verification
+    await page.waitForSelector('table', { 
+      timeout: 15000,
+      state: 'visible' 
+    });
+    
+    // Verify it's the contact submissions table
+    const headers = await page.locator('th').allTextContents();
+    const isContactTable = headers.some(h => 
+      h.toLowerCase().includes('name') || 
+      h.toLowerCase().includes('email') ||
+      h.toLowerCase().includes('message') ||
+      h.toLowerCase().includes('status')
+    );
+    
+    if (!isContactTable) {
+      console.error('❌ Wrong table found. Headers:', headers);
+      throw new Error('Contact submissions table not found');
+    }
+    
+    console.log('✅ Contact submissions table verified');
 
     // Badge should show 2 (1 new submission + 1 with unread reply)
     // await expect(page.locator('[data-testid="contact-badge"]')).toContainText('2');
@@ -376,7 +418,28 @@ test.describe('Contact Form Notification System', () => {
 
     // Navigate to admin
     await page.goto('/admin?tab=contact');
-    await page.waitForSelector('table');
+    
+    // Wait for any table with robust verification
+    await page.waitForSelector('table', { 
+      timeout: 15000,
+      state: 'visible' 
+    });
+    
+    // Verify it's the contact submissions table
+    const headers = await page.locator('th').allTextContents();
+    const isContactTable = headers.some(h => 
+      h.toLowerCase().includes('name') || 
+      h.toLowerCase().includes('email') ||
+      h.toLowerCase().includes('message') ||
+      h.toLowerCase().includes('status')
+    );
+    
+    if (!isContactTable) {
+      console.error('❌ Wrong table found. Headers:', headers);
+      throw new Error('Contact submissions table not found');
+    }
+    
+    console.log('✅ Contact submissions table verified');
 
     // Reply button should show badge with "3"
     // await expect(
