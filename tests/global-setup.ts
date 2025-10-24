@@ -41,7 +41,7 @@ async function globalSetup(config: FullConfig) {
 }
 
 async function createPersistentTestAccount() {
-  console.log('🔐 Setting up persistent test account...');
+  console.log('🔐 Setting up persistent test accounts for all shards...');
   
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -52,84 +52,92 @@ async function createPersistentTestAccount() {
   }
   
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  
-  const testEmail = 'test@example.com';
   const testPassword = 'testpassword123';
   
-  try {
-    // Try to sign in first to check if account exists
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: testEmail,
-      password: testPassword,
-    });
+  // Create accounts for shards 0-6 to match test-accounts.ts pattern
+  // Shard 0: test@example.com (local testing default)
+  // Shards 1-6: test1@example.com through test6@example.com
+  const shards = [0, 1, 2, 3, 4, 5, 6];
+  
+  for (const shardNum of shards) {
+    const testEmail = shardNum === 0 ? 'test@example.com' : `test${shardNum}@example.com`;
+    const displayName = shardNum === 0 ? 'Test Admin User' : `Test Admin User ${shardNum}`;
     
-    if (signInData?.user) {
-      console.log('✅ Persistent test account already exists');
-      
-      // Verify admin role exists
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', signInData.user.id)
-        .eq('role', 'admin')
-        .single();
-      
-      if (!roleData) {
-        console.log('⚠️  Admin role missing, attempting to add...');
-        // Note: This will likely fail with RLS, but worth trying
-        await supabase.from('user_roles').insert({
-          user_id: signInData.user.id,
-          role: 'admin'
-        });
-      }
-      
-      // Sign out
-      await supabase.auth.signOut();
-      return;
-    }
-    
-    // Account doesn't exist or password wrong, try to create
-    console.log('📝 Creating persistent test account...');
-    
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: testEmail,
-      password: testPassword,
-      options: {
-        data: {
-          name: 'Test Admin User',
-        },
-        emailRedirectTo: `${supabaseUrl}/`
-      }
-    });
-    
-    if (signUpError) {
-      console.error('❌ Failed to create test account:', signUpError.message);
-      return;
-    }
-    
-    if (signUpData?.user) {
-      console.log('✅ Test account created successfully');
-      
-      // Try to add admin role (may fail with RLS)
-      const { error: roleError } = await supabase.from('user_roles').insert({
-        user_id: signUpData.user.id,
-        role: 'admin'
+    try {
+      // Try to sign in first to check if account exists
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword,
       });
       
-      if (roleError) {
-        console.log('⚠️  Could not add admin role via client (RLS protected)');
-        console.log('   Please run the edge function: create-persistent-test-accounts');
-      } else {
-        console.log('✅ Admin role added successfully');
+      if (signInData?.user) {
+        console.log(`✅ Account exists: ${testEmail} (shard ${shardNum})`);
+        
+        // Verify admin role exists
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', signInData.user.id)
+          .eq('role', 'admin')
+          .single();
+        
+        if (!roleData) {
+          console.log(`⚠️  Admin role missing for ${testEmail}, attempting to add...`);
+          await supabase.from('user_roles').insert({
+            user_id: signInData.user.id,
+            role: 'admin'
+          });
+        }
+        
+        // Sign out before next account
+        await supabase.auth.signOut();
+        continue;
       }
+      
+      // Account doesn't exist, create it
+      console.log(`📝 Creating account: ${testEmail} (shard ${shardNum})...`);
+      
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: testEmail,
+        password: testPassword,
+        options: {
+          data: {
+            name: displayName,
+          },
+          emailRedirectTo: `${supabaseUrl}/`
+        }
+      });
+      
+      if (signUpError) {
+        console.error(`❌ Failed to create ${testEmail}:`, signUpError.message);
+        continue;
+      }
+      
+      if (signUpData?.user) {
+        console.log(`✅ Created account: ${testEmail} (shard ${shardNum})`);
+        
+        // Try to add admin role (may fail with RLS)
+        const { error: roleError } = await supabase.from('user_roles').insert({
+          user_id: signUpData.user.id,
+          role: 'admin'
+        });
+        
+        if (roleError) {
+          console.log(`⚠️  Could not add admin role for ${testEmail} (RLS protected)`);
+        } else {
+          console.log(`✅ Admin role added for ${testEmail}`);
+        }
+      }
+      
+      // Sign out before next account
+      await supabase.auth.signOut();
+      
+    } catch (error) {
+      console.error(`❌ Error setting up ${testEmail}:`, error);
     }
-    
-    // Sign out
-    await supabase.auth.signOut();
-    
-  } catch (error) {
-    console.error('❌ Error setting up persistent test account:', error);
   }
+  
+  console.log('✅ All shard test accounts processed');
 }
 
 export default globalSetup;
