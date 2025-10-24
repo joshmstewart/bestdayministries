@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { getTestAccount } from '../fixtures/test-accounts';
 
 test.describe('Daily Scratch Card @fast', () => {
   test('should display scratch card component on community page', async ({ page }) => {
@@ -367,10 +368,13 @@ test.describe('Admin Sticker Upload @fast', () => {
 
 test.describe('Admin Reset Daily Cards @fast', () => {
   test.beforeEach(async ({ page }) => {
+    // Get shard-specific test account
+    const testAccount = getTestAccount();
+    
     // Authenticate as admin before each test
     await page.goto('/auth');
-    await page.fill('input[type="email"]', 'test@example.com');
-    await page.fill('input[type="password"]', 'testpassword123');
+    await page.fill('input[type="email"]', testAccount.email);
+    await page.fill('input[type="password"]', testAccount.password);
     await page.click('button:has-text("Sign In")');
     await page.waitForURL(/\/(community|admin)/, { timeout: 60000 });
   });
