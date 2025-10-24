@@ -122,6 +122,9 @@ test.describe('Authentication and Signup Flow', () => {
         await page.waitForLoadState('networkidle'); // Wait for state update
       }
       
+      // ✅ Get submit button reference FIRST
+      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
+      
       // ✅ Accept terms
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
       if (await termsCheckbox.isVisible()) {
@@ -130,7 +133,6 @@ test.describe('Authentication and Signup Flow', () => {
       }
       
       // ✅ NOW button should be enabled
-      const submitButton = page.locator('button[type="submit"]').filter({ hasText: /sign up|create account|register/i }).first();
       await expect(submitButton).toBeEnabled();
       
       // Submit form

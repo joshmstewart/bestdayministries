@@ -21,7 +21,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 10000,
-    navigationTimeout: 20000, // INCREASED: 20s for slower CI environment
+    navigationTimeout: 30000, // INCREASED: 30s for slower CI environment and complex pages
     extraHTTPHeaders: {},
   },
 

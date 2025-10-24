@@ -32,7 +32,7 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     await page.waitForLoadState('networkidle');
     
     // Go to Sign Up tab
-    const signUpTab = page.locator('button:has-text("Sign Up"), text="Sign Up"').first();
+    const signUpTab = page.locator('button:has-text("Sign Up")').first();
     if (await signUpTab.isVisible()) {
       await signUpTab.click();
       await expect(page.locator('input[placeholder*="Name" i]').first()).toBeVisible({ timeout: 3000 });

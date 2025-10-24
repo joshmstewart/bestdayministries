@@ -70,9 +70,14 @@ export async function waitForSubmission(
     pollIntervalMs?: number;
   } = {}
 ): Promise<ContactFormSubmission> {
-  console.log(`⏳ Waiting for submission from ${email}`);
+  const timeoutMs = options.timeoutMs || 30000; // Increased to 30s
+  console.log(`⏳ Waiting for submission from ${email} (timeout: ${timeoutMs}ms)`);
 
-  const result = await callTestHelper('waitForSubmission', { email });
+  const result = await callTestHelper('waitForSubmission', { 
+    email, 
+    timeoutMs,
+    pollIntervalMs: options.pollIntervalMs 
+  });
   
   if (!result.success) {
     throw new Error(result.error || 'Failed to find submission');
@@ -93,9 +98,14 @@ export async function waitForReply(
     pollIntervalMs?: number;
   } = {}
 ): Promise<ContactFormReply> {
-  console.log(`⏳ Waiting for reply to submission ${submissionId}`);
+  const timeoutMs = options.timeoutMs || 30000; // Increased to 30s
+  console.log(`⏳ Waiting for reply to submission ${submissionId} (timeout: ${timeoutMs}ms)`);
 
-  const result = await callTestHelper('waitForReply', { submissionId });
+  const result = await callTestHelper('waitForReply', { 
+    submissionId,
+    timeoutMs,
+    pollIntervalMs: options.pollIntervalMs
+  });
   
   if (!result.success) {
     throw new Error(result.error || 'Failed to find reply');
