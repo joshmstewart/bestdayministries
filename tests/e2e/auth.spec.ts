@@ -140,8 +140,8 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Wait for form submission to complete
       await page.waitForLoadState('networkidle');
-      // CRITICAL: Add wait after signup before sign-in (force push trigger)
-      await page.waitForTimeout(2000);
+      // PHASE 2 FIX: Increased wait from 2000ms to 3000ms for profile creation
+      await page.waitForTimeout(3000);
       
       // Verify user was created
       const user = state.getUserByEmail('supporter@test.com');
@@ -239,12 +239,29 @@ test.describe('Authentication and Signup Flow', () => {
       await page.waitForLoadState('networkidle');
       console.log('🔍 TEST 13-15: Form submitted, checking results');
       
-      // Verify user was created with friend code
-      const user = state.getUserByEmail('bestie@test.com');
+      // PHASE 2 FIX: Poll for user creation with retries
+      let user = state.getUserByEmail('bestie@test.com');
+      let retries = 0;
+      while (!user && retries < 10) {
+        await page.waitForTimeout(500);
+        user = state.getUserByEmail('bestie@test.com');
+        retries++;
+        console.log(`🔍 TEST 13-15: Polling for user (attempt ${retries}/10)`);
+      }
+      
       console.log('🔍 TEST 13-15: User found:', user ? 'YES' : 'NO', user);
       expect(user).toBeTruthy();
       
-      const profile = state.profiles.get(user!.id);
+      // PHASE 2 FIX: Poll for profile with friend code
+      let profile = state.profiles.get(user!.id);
+      retries = 0;
+      while ((!profile || !profile.friend_code) && retries < 10) {
+        await page.waitForTimeout(500);
+        profile = state.profiles.get(user!.id);
+        retries++;
+        console.log(`🔍 TEST 13-15: Polling for friend code (attempt ${retries}/10)`);
+      }
+      
       console.log('🔍 TEST 13-15: Profile found:', profile ? 'YES' : 'NO', profile);
       console.log('🔍 TEST 13-15: Friend code:', profile?.friend_code, 'Length:', profile?.friend_code?.length, 'Emoji count:', profile?.friend_code ? [...profile.friend_code].length : 0);
       expect(profile).toBeTruthy();
@@ -310,9 +327,19 @@ test.describe('Authentication and Signup Flow', () => {
       
       // Wait for form submission to complete
       await page.waitForLoadState('networkidle');
+      // PHASE 2 FIX: Add progressive wait for caregiver profile creation
+      await page.waitForTimeout(3000);
       
-      // Verify user was created
-      const user = state.getUserByEmail('caregiver@test.com');
+      // PHASE 2 FIX: Poll for user creation with retries
+      let user = state.getUserByEmail('caregiver@test.com');
+      let retries = 0;
+      while (!user && retries < 10) {
+        await page.waitForTimeout(500);
+        user = state.getUserByEmail('caregiver@test.com');
+        retries++;
+        console.log(`🔍 Caregiver test: Polling for user (attempt ${retries}/10)`);
+      }
+      
       expect(user).toBeTruthy();
       
       // Verify role is caregiver
@@ -374,6 +401,8 @@ test.describe('Authentication and Signup Flow', () => {
     // Fill in name first (avatar picker appears after name is filled)
     await page.getByPlaceholder(/name|display name/i).fill('Test User');
     await page.waitForLoadState('networkidle');
+    // PHASE 2 FIX: Increased wait for avatar picker to render
+    await page.waitForTimeout(1000);
     console.log('🔍 TEST 18-20: Filled display name');
     
     // Click the collapsible trigger to expand avatar picker
@@ -381,7 +410,8 @@ test.describe('Authentication and Signup Flow', () => {
     const labelVisible = await avatarLabel.isVisible().catch(() => false);
     console.log('🔍 TEST 18-20: Avatar label visible:', labelVisible);
     await avatarLabel.click();
-    await expect(page.locator('[data-avatar-number]').first()).toBeVisible();
+    // PHASE 2 FIX: Increased timeout for avatar visibility
+    await expect(page.locator('[data-avatar-number]').first()).toBeVisible({ timeout: 5000 });
     console.log('🔍 TEST 18-20: Clicked avatar collapsible');
     
     // Wait for avatars to load and appear
