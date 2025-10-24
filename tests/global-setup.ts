@@ -82,11 +82,23 @@ async function createPersistentTestAccount() {
           .single();
         
         if (!roleData) {
-          console.log(`⚠️  Admin role missing for ${testEmail}, attempting to add...`);
-          await supabase.from('user_roles').insert({
-            user_id: signInData.user.id,
-            role: 'admin'
-          });
+          console.log(`⚠️  Admin role missing for ${testEmail}, attempting to add via edge function...`);
+          try {
+            const response = await fetch(`${supabaseUrl}/functions/v1/set-test-admin-roles`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ userIds: [signInData.user.id] })
+            });
+            
+            if (response.ok) {
+              console.log(`✅ Admin role set for ${testEmail} via edge function`);
+            }
+          } catch (error) {
+            console.error(`❌ Error setting admin role for ${testEmail}:`, error);
+          }
         }
         
         // Sign out before next account
@@ -116,16 +128,25 @@ async function createPersistentTestAccount() {
       if (signUpData?.user) {
         console.log(`✅ Created account: ${testEmail} (shard ${shardNum})`);
         
-        // Try to add admin role (may fail with RLS)
-        const { error: roleError } = await supabase.from('user_roles').insert({
-          user_id: signUpData.user.id,
-          role: 'admin'
-        });
-        
-        if (roleError) {
-          console.log(`⚠️  Could not add admin role for ${testEmail} (RLS protected)`);
-        } else {
-          console.log(`✅ Admin role added for ${testEmail}`);
+        // Call edge function to set admin role (bypasses RLS)
+        try {
+          const response = await fetch(`${supabaseUrl}/functions/v1/set-test-admin-roles`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userIds: [signUpData.user.id] })
+          });
+          
+          if (response.ok) {
+            console.log(`✅ Admin role set for ${testEmail} via edge function`);
+          } else {
+            const error = await response.text();
+            console.log(`⚠️  Failed to set admin role for ${testEmail}:`, error);
+          }
+        } catch (error) {
+          console.error(`❌ Error calling set-test-admin-roles for ${testEmail}:`, error);
         }
       }
       

@@ -320,37 +320,48 @@ serve(async (req) => {
       throw approvedPostError;
     }
 
-    const { data: pendingPost, error: pendingPostError } = await supabaseAdmin
-      .from('discussion_posts')
-      .insert({
-        author_id: userIds.bestie,
-        title: 'Test Pending Post',
-        content: 'This is a pending post for approval testing',
-        approval_status: 'pending_approval'
-      })
-      .select()
-      .single();
+    // Create multiple pending posts for moderation testing (3-5 posts)
+    const pendingPosts = [];
+    for (let i = 1; i <= 5; i++) {
+      const { data: pendingPost, error: pendingPostError } = await supabaseAdmin
+        .from('discussion_posts')
+        .insert({
+          author_id: userIds.bestie,
+          title: `${emailPrefix} Pending Post ${i}`,
+          content: `This is pending post #${i} for moderation testing`,
+          approval_status: 'pending_approval',
+          is_moderated: false,
+          visible_to_roles: ['caregiver', 'bestie', 'supporter']
+        })
+        .select()
+        .single();
 
-    if (pendingPostError) {
-      console.error('Error creating pending post:', pendingPostError);
+      if (pendingPostError) {
+        console.error(`Error creating pending post ${i}:`, pendingPostError);
+      } else {
+        pendingPosts.push(pendingPost);
+      }
     }
 
-    const { data: pendingComment, error: pendingCommentError } = await supabaseAdmin
-      .from('discussion_comments')
-      .insert({
-        post_id: approvedPost.id,
-        author_id: userIds.bestie,
-        content: 'Test pending comment',
-        approval_status: 'pending_approval'
-      })
-      .select()
-      .single();
+    // Create multiple pending comments for moderation testing (3-5 comments)
+    for (let i = 1; i <= 5; i++) {
+      const { data: pendingComment, error: pendingCommentError } = await supabaseAdmin
+        .from('discussion_comments')
+        .insert({
+          post_id: approvedPost.id,
+          author_id: userIds.guardian,
+          content: `${emailPrefix} Pending comment ${i} for moderation testing`,
+          approval_status: 'pending_approval'
+        })
+        .select()
+        .single();
 
-    if (pendingCommentError) {
-      console.error('Error creating pending comment:', pendingCommentError);
+      if (pendingCommentError) {
+        console.error(`Error creating pending comment ${i}:`, pendingCommentError);
+      }
     }
 
-    console.log('✅ Created discussion content');
+    console.log(`✅ Created discussion content (1 approved post, ${pendingPosts.length} pending posts, 5 pending comments)`);
 
     // Step 9: Create vendor
     console.log('📝 Creating vendor...');

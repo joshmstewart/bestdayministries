@@ -211,46 +211,42 @@ test.describe('Profile Settings @fast', () => {
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
     
-    // Look for Notifications tab
-    const notificationsTab = page.locator('button:has-text("Notifications"), text="Notifications"').first();
-    if (await notificationsTab.isVisible()) {
-      await notificationsTab.click();
-      await expect(page.locator('text=/Email|Digest|Notification/i').first()).toBeVisible({ timeout: 3000 });
-      
-      // Verify notification settings display
-      const notifSettings = page.locator('text=/Email|Digest|Notification/i').first();
-      await expect(notifSettings).toBeVisible({ timeout: 10000 });
-      
-      // Look for toggle switches
-      const toggles = page.locator('button[role="switch"], input[type="checkbox"]');
-      const toggleCount = await toggles.count();
-      expect(toggleCount).toBeGreaterThan(0);
-    } else {
-      console.log('Notifications tab not found');
-    }
+    // Click on Notifications tab - works on mobile (icon) and desktop (text)
+    const notificationsTab = page.locator('button[value="notifications"], [role="tab"][value="notifications"]').first();
+    await notificationsTab.click();
+    
+    // Wait for notification preferences content to load
+    await expect(page.locator('text=/Email|Digest|Notification/i').first()).toBeVisible({ timeout: 10000 });
+    
+    // Verify notification settings display
+    const notifSettings = page.locator('text=/Email|Digest|Notification/i').first();
+    await expect(notifSettings).toBeVisible();
+    
+    // Look for toggle switches
+    const toggles = page.locator('button[role="switch"], input[type="checkbox"]');
+    const toggleCount = await toggles.count();
+    expect(toggleCount).toBeGreaterThan(0);
   });
 
   test('can manage newsletter subscription', async ({ page }) => {
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
     
-    // Look for Newsletter tab
-    const newsletterTab = page.locator('button:has-text("Newsletter"), text="Newsletter"').first();
-    if (await newsletterTab.isVisible()) {
-      await newsletterTab.click();
-      await expect(page.locator('text=/Subscribe|Unsubscribe|Newsletter/i').first()).toBeVisible({ timeout: 3000 });
-      
-      // Verify newsletter subscription controls
-      const newsletterContent = page.locator('text=/Subscribe|Unsubscribe|Newsletter/i').first();
-      await expect(newsletterContent).toBeVisible({ timeout: 10000 });
-      
-      // Look for subscription toggle
-      const subscribeToggle = page.locator('button[role="switch"], input[type="checkbox"]').first();
-      if (await subscribeToggle.isVisible()) {
-        console.log('Newsletter subscription toggle found');
-      }
-    } else {
-      console.log('Newsletter tab not found');
+    // Click on Newsletter tab - works on mobile (icon) and desktop (text)
+    const newsletterTab = page.locator('button[value="newsletter"], [role="tab"][value="newsletter"]').first();
+    await newsletterTab.click();
+    
+    // Wait for newsletter content to load
+    await expect(page.locator('text=/Subscribe|Unsubscribe|Newsletter/i').first()).toBeVisible({ timeout: 10000 });
+    
+    // Verify newsletter subscription controls
+    const newsletterContent = page.locator('text=/Subscribe|Unsubscribe|Newsletter/i').first();
+    await expect(newsletterContent).toBeVisible();
+    
+    // Look for subscription toggle
+    const subscribeToggle = page.locator('button[role="switch"], input[type="checkbox"]').first();
+    if (await subscribeToggle.isVisible()) {
+      console.log('Newsletter subscription toggle found');
     }
   });
 
