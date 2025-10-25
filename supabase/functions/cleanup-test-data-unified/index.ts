@@ -355,7 +355,48 @@ serve(async (req) => {
       console.log('✅ Completed cleaning data from persistent test accounts');
     }
     
-    // === STRATEGY 2: Clean data FROM users being deleted + pattern-based cleanup ===
+    // === PATTERN-BASED NOTIFICATION CLEANUP (Always runs) ===
+    console.log('🧹 Deleting notifications by message patterns...');
+    
+    const notificationPatterns = [
+      ...namePatterns, 
+      'Badge Test',
+      'Thread Test User',
+      'Admin Test User',
+      'Reply Test User',
+      '@send.bestdayministries.org'  // Catch Resend email notifications
+    ];
+    
+    let notifDeletedTotal = 0;
+    
+    for (const pattern of notificationPatterns) {
+      const { error: patternNotifError, count } = await supabaseAdmin
+        .from('notifications')
+        .delete({ count: 'exact' })
+        .ilike('message', `%${pattern}%`);
+      
+      if (patternNotifError) {
+        console.error(`❌ Error deleting notifications with pattern ${pattern}:`, patternNotifError);
+      } else if (count && count > 0) {
+        console.log(`✅ Deleted ${count} notifications with pattern: ${pattern}`);
+        notifDeletedTotal += count;
+      }
+    }
+    console.log(`✅ Total notifications deleted by patterns: ${notifDeletedTotal}`);
+    
+    // Also delete by notification type for test contact forms
+    const { error: typeNotifError, count: typeCount } = await supabaseAdmin
+      .from('notifications')
+      .delete({ count: 'exact' })
+      .or('type.eq.contact_form_submission,type.eq.contact_form_reply');
+    
+    if (typeNotifError) {
+      console.error('❌ Error deleting contact form notifications:', typeNotifError);
+    } else if (typeCount && typeCount > 0) {
+      console.log(`✅ Deleted ${typeCount} contact form notifications`);
+    }
+    
+    // === STRATEGY 2: Clean data FROM users being deleted ===
     
     // 1. Delete notifications for test users being deleted
     if (testUserIds.length > 0) {
@@ -400,34 +441,6 @@ serve(async (req) => {
             console.log('✅ Deleted notifications about test contact form submissions');
           }
         }
-        
-        // Also delete by name pattern in metadata message
-        const notificationPatterns = [
-          ...namePatterns, 
-          'Badge Test',
-          'Thread Test User',
-          'Admin Test User',
-          'Reply Test User',
-          '@send.bestdayministries.org'  // Catch Resend email notifications
-        ];
-        
-        console.log(`🧹 Deleting notifications by ${notificationPatterns.length} message patterns...`);
-        let notifDeletedTotal = 0;
-        
-        for (const pattern of notificationPatterns) {
-          const { error: patternNotifError, count } = await supabaseAdmin
-            .from('notifications')
-            .delete({ count: 'exact' })
-            .ilike('message', `%${pattern}%`);
-          
-          if (patternNotifError) {
-            console.error(`❌ Error deleting notifications with pattern ${pattern}:`, patternNotifError);
-          } else if (count && count > 0) {
-            console.log(`✅ Deleted ${count} notifications with pattern: ${pattern}`);
-            notifDeletedTotal += count;
-          }
-        }
-        console.log(`✅ Total notifications deleted by patterns: ${notifDeletedTotal}`);
         
         // 2. Delete notification preferences
         console.log('🧹 Deleting notification preferences...');
