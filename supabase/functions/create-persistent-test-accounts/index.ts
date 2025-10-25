@@ -16,28 +16,28 @@ const PERSISTENT_TEST_ACCOUNTS = [
   {
     email: 'test@example.com',
     password: 'testpassword123',
-    displayName: 'Test User',
+    displayName: '[TEST] Main User',
     role: 'supporter',
     avatarNumber: 1
   },
   {
     email: 'testbestie@example.com',
     password: 'testpassword123',
-    displayName: 'Test Bestie',
+    displayName: '[TEST] Bestie Account',
     role: 'bestie',
     avatarNumber: 2
   },
   {
     email: 'testguardian@example.com',
     password: 'testpassword123',
-    displayName: 'Test Guardian',
+    displayName: '[TEST] Guardian Account',
     role: 'caregiver',
     avatarNumber: 3
   },
   {
     email: 'testsupporter@example.com',
     password: 'testpassword123',
-    displayName: 'Test Supporter',
+    displayName: '[TEST] Supporter Account',
     role: 'supporter',
     avatarNumber: 4
   },
@@ -45,28 +45,28 @@ const PERSISTENT_TEST_ACCOUNTS = [
   {
     email: 'test1@example.com',
     password: 'testpassword123',
-    displayName: 'Test User 1',
+    displayName: '[TEST] Shard 1 User',
     role: 'supporter',
     avatarNumber: 1
   },
   {
     email: 'testbestie1@example.com',
     password: 'testpassword123',
-    displayName: 'Test Bestie 1',
+    displayName: '[TEST] Shard 1 Bestie',
     role: 'bestie',
     avatarNumber: 2
   },
   {
     email: 'testguardian1@example.com',
     password: 'testpassword123',
-    displayName: 'Test Guardian 1',
+    displayName: '[TEST] Shard 1 Guardian',
     role: 'caregiver',
     avatarNumber: 3
   },
   {
     email: 'testsupporter1@example.com',
     password: 'testpassword123',
-    displayName: 'Test Supporter 1',
+    displayName: '[TEST] Shard 1 Supporter',
     role: 'supporter',
     avatarNumber: 4
   },
@@ -74,28 +74,28 @@ const PERSISTENT_TEST_ACCOUNTS = [
   {
     email: 'test2@example.com',
     password: 'testpassword123',
-    displayName: 'Test User 2',
+    displayName: '[TEST] Shard 2 User',
     role: 'supporter',
     avatarNumber: 1
   },
   {
     email: 'testbestie2@example.com',
     password: 'testpassword123',
-    displayName: 'Test Bestie 2',
+    displayName: '[TEST] Shard 2 Bestie',
     role: 'bestie',
     avatarNumber: 2
   },
   {
     email: 'testguardian2@example.com',
     password: 'testpassword123',
-    displayName: 'Test Guardian 2',
+    displayName: '[TEST] Shard 2 Guardian',
     role: 'caregiver',
     avatarNumber: 3
   },
   {
     email: 'testsupporter2@example.com',
     password: 'testpassword123',
-    displayName: 'Test Supporter 2',
+    displayName: '[TEST] Shard 2 Supporter',
     role: 'supporter',
     avatarNumber: 4
   },
@@ -103,28 +103,28 @@ const PERSISTENT_TEST_ACCOUNTS = [
   {
     email: 'test3@example.com',
     password: 'testpassword123',
-    displayName: 'Test User 3',
+    displayName: '[TEST] Shard 3 User',
     role: 'supporter',
     avatarNumber: 1
   },
   {
     email: 'testbestie3@example.com',
     password: 'testpassword123',
-    displayName: 'Test Bestie 3',
+    displayName: '[TEST] Shard 3 Bestie',
     role: 'bestie',
     avatarNumber: 2
   },
   {
     email: 'testguardian3@example.com',
     password: 'testpassword123',
-    displayName: 'Test Guardian 3',
+    displayName: '[TEST] Shard 3 Guardian',
     role: 'caregiver',
     avatarNumber: 3
   },
   {
     email: 'testsupporter3@example.com',
     password: 'testpassword123',
-    displayName: 'Test Supporter 3',
+    displayName: '[TEST] Shard 3 Supporter',
     role: 'supporter',
     avatarNumber: 4
   },
@@ -132,28 +132,28 @@ const PERSISTENT_TEST_ACCOUNTS = [
   {
     email: 'test4@example.com',
     password: 'testpassword123',
-    displayName: 'Test User 4',
+    displayName: '[TEST] Shard 4 User',
     role: 'supporter',
     avatarNumber: 1
   },
   {
     email: 'testbestie4@example.com',
     password: 'testpassword123',
-    displayName: 'Test Bestie 4',
+    displayName: '[TEST] Shard 4 Bestie',
     role: 'bestie',
     avatarNumber: 2
   },
   {
     email: 'testguardian4@example.com',
     password: 'testpassword123',
-    displayName: 'Test Guardian 4',
+    displayName: '[TEST] Shard 4 Guardian',
     role: 'caregiver',
     avatarNumber: 3
   },
   {
     email: 'testsupporter4@example.com',
     password: 'testpassword123',
-    displayName: 'Test Supporter 4',
+    displayName: '[TEST] Shard 4 Supporter',
     role: 'supporter',
     avatarNumber: 4
   },
@@ -161,28 +161,28 @@ const PERSISTENT_TEST_ACCOUNTS = [
   {
     email: 'test5@example.com',
     password: 'testpassword123',
-    displayName: 'Test User 5',
+    displayName: '[TEST] Shard 5 User',
     role: 'supporter',
     avatarNumber: 1
   },
   {
     email: 'testbestie5@example.com',
     password: 'testpassword123',
-    displayName: 'Test Bestie 5',
+    displayName: '[TEST] Shard 5 Bestie',
     role: 'bestie',
     avatarNumber: 2
   },
   {
     email: 'testguardian5@example.com',
     password: 'testpassword123',
-    displayName: 'Test Guardian 5',
+    displayName: '[TEST] Shard 5 Guardian',
     role: 'caregiver',
     avatarNumber: 3
   },
   {
     email: 'testsupporter5@example.com',
     password: 'testpassword123',
-    displayName: 'Test Supporter 5',
+    displayName: '[TEST] Shard 5 Supporter',
     role: 'supporter',
     avatarNumber: 4
   },
@@ -190,28 +190,28 @@ const PERSISTENT_TEST_ACCOUNTS = [
   {
     email: 'test6@example.com',
     password: 'testpassword123',
-    displayName: 'Test User 6',
+    displayName: '[TEST] Shard 6 User',
     role: 'supporter',
     avatarNumber: 1
   },
   {
     email: 'testbestie6@example.com',
     password: 'testpassword123',
-    displayName: 'Test Bestie 6',
+    displayName: '[TEST] Shard 6 Bestie',
     role: 'bestie',
     avatarNumber: 2
   },
   {
     email: 'testguardian6@example.com',
     password: 'testpassword123',
-    displayName: 'Test Guardian 6',
+    displayName: '[TEST] Shard 6 Guardian',
     role: 'caregiver',
     avatarNumber: 3
   },
   {
     email: 'testsupporter6@example.com',
     password: 'testpassword123',
-    displayName: 'Test Supporter 6',
+    displayName: '[TEST] Shard 6 Supporter',
     role: 'supporter',
     avatarNumber: 4
   }

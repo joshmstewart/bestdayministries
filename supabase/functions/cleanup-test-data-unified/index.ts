@@ -52,7 +52,7 @@ serve(async (req) => {
     }
 
     const prefix = options.emailPrefix || (options.testRunId ? `emailtest-${options.testRunId}` : null);
-    const namePatterns = options.namePatterns || ['Test', 'E2E'];
+    const namePatterns = options.namePatterns || ['Test', 'E2E', 'New Member'];
 
     // PERSISTENT TEST ACCOUNTS - NEVER DELETE THESE
     // These are used for testing different user experiences and must remain
@@ -102,7 +102,33 @@ serve(async (req) => {
       return false;
     });
 
-    console.log(`Found ${testUsers.length} test users to clean up`);
+    console.log(`Found ${testUsers.length} test users by email patterns`);
+    
+    // Also find users by display name pattern (like "New Member")
+    const { data: profilesByName, error: profilesError } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id, display_name')
+      .or(namePatterns.map(p => `display_name.ilike.%${p}%`).join(','));
+    
+    if (profilesError) {
+      console.error('Error finding users by display name:', profilesError);
+    } else if (profilesByName && profilesByName.length > 0) {
+      // Get user IDs from profiles and find corresponding auth users
+      const userIdsByName = profilesByName.map(p => p.user_id).filter(Boolean);
+      const usersByName = authUsers.users.filter(u => 
+        userIdsByName.includes(u.id) && 
+        !PERSISTENT_TEST_EMAILS.includes(u.email?.toLowerCase() || '')
+      );
+      
+      console.log(`Found ${usersByName.length} additional test users by display name`);
+      
+      // Combine both sets of test users (avoid duplicates)
+      const existingIds = new Set(testUsers.map(u => u.id));
+      const newUsers = usersByName.filter(u => !existingIds.has(u.id));
+      testUsers.push(...newUsers);
+    }
+
+    console.log(`Total test users to clean up: ${testUsers.length}`);
 
     const testUserIds = testUsers.map(u => u.id);
 
@@ -1098,6 +1124,9 @@ serve(async (req) => {
     }
 
     // Delete any remaining notifications about test content
+    console.log('🧹 Deleting orphaned test notifications...');
+    
+    // Delete notifications with test patterns in title/message
     const { error: orphanedNotificationsError } = await supabaseAdmin
       .from('notifications')
       .delete()
@@ -1107,6 +1136,18 @@ serve(async (req) => {
       console.error('Error deleting orphaned notifications:', orphanedNotificationsError);
     } else {
       console.log('✅ Cleaned orphaned test notifications');
+    }
+    
+    // Delete contact form email notifications (from @send.bestdayministries.org test emails)
+    const { error: emailNotifError } = await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .or('message.ilike.%@send.bestdayministries.org%,type.eq.contact_form_submission,type.eq.contact_form_reply');
+    
+    if (emailNotifError) {
+      console.error('Error deleting email test notifications:', emailNotifError);
+    } else {
+      console.log('✅ Cleaned email test notifications');
     }
 
     console.log('✅ ============================================');
