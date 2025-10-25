@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
+  testIgnore: '**/archived/**', // Exclude archived tests from CI runs
   fullyParallel: false, // CRITICAL: Must stay false to prevent fixture conflicts
   forbidOnly: !!process.env.CI,
   retries: 0, // Tests should be reliable without retries

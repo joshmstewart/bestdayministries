@@ -38,49 +38,52 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ---
 
 ### Week 1: Unit Test Conversion (Pure Logic)
-**Status:** 🚧 IN PROGRESS  
-**Target:** 50 unit tests
+**Status:** ✅ COMPLETE  
+**Target:** 50 unit tests | **Actual:** 93 unit tests
 
 #### Shopping Cart Math (15 tests)
-- [ ] Calculate subtotal
-- [ ] Calculate tax
-- [ ] Calculate shipping
-- [ ] Calculate total with discounts
-- [ ] Fee coverage calculations (donation/sponsorship)
+- ✅ Calculate subtotal
+- ✅ Calculate tax
+- ✅ Calculate shipping
+- ✅ Calculate total with discounts
+- ✅ Fee coverage calculations (donation/sponsorship)
 - **Files to create:**
   - ✅ `tests/unit/donation-calculations.test.ts` (DONE)
-  - [ ] `tests/unit/cart-calculations.test.ts`
+  - ✅ `tests/unit/cart-calculations.test.ts` (DONE)
 
 #### Date/Time Utilities (10 tests)
-- [ ] MST date conversion
-- [ ] Date formatting
-- [ ] Timezone detection
-- [ ] Date comparison
-- [ ] Time difference calculations
+- ✅ MST date conversion
+- ✅ Date formatting
+- ✅ Timezone detection
+- ✅ Date comparison
+- ✅ Time difference calculations
 - **Files to create:**
   - ✅ `tests/unit/date-utils.test.ts` (DONE)
 
 #### Validation Functions (20 tests)
-- [ ] Email validation
-- [ ] Password strength
-- [ ] URL validation
-- [ ] Friend code validation
-- [ ] Input sanitization
+- ✅ Email validation
+- ✅ Password strength
+- ✅ URL validation
+- ✅ Friend code validation
+- ✅ Input sanitization
 - **Files to create:**
   - ✅ `tests/unit/validation.test.ts` (DONE)
 
 #### Rarity Calculations (5 tests)
-- [ ] Drop rate calculations
-- [ ] Rarity distribution validation
-- [ ] Collection progress
-- [ ] Duplicate detection
+- ✅ Drop rate calculations
+- ✅ Rarity distribution validation
+- ✅ Collection progress
+- ✅ Duplicate detection
 - **Files to create:**
   - ✅ `tests/unit/rarity-calculations.test.ts` (DONE)
 
 **Week 1 Deliverables:**
-- ✅ 4 unit test files created
-- [ ] 50 unit tests passing
-- [ ] Delete corresponding 50 E2E tests
+- ✅ 5 unit test files created (93 tests total)
+- ✅ All unit tests passing with reliable precision
+- ✅ Archive structure created (`tests/e2e/archived/`)
+- ✅ CI configured to skip archived tests
+
+**Note**: Week 1 archived minimal E2E tests because unit tests extract *logic* from within components, not entire test flows. Major E2E archiving happens in Week 2-4 with integration tests.
 
 ---
 
@@ -280,7 +283,7 @@ Converting 414 E2E tests into a Test Pyramid structure:
 |----------|--------|-------|--------|
 | **E2E Tests** | 414 | 18 | 🚧 In Progress |
 | **Integration Tests** | 48 | 188 | 🚧 In Progress |
-| **Unit Tests** | ? | 50 | 🚧 In Progress |
+| **Unit Tests** | 0 | 93 | ✅ Complete |
 | **Percy Snapshots** | 24 | 50 | ⏳ Not Started |
 
 ### CI Performance
@@ -295,11 +298,13 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ## Files Created
 
 ### Unit Tests
-- ✅ `tests/unit/donation-calculations.test.ts`
-- ✅ `tests/unit/date-utils.test.ts`
-- ✅ `tests/unit/validation.test.ts`
-- ✅ `tests/unit/rarity-calculations.test.ts`
-- [ ] `tests/unit/cart-calculations.test.ts`
+- ✅ `tests/unit/donation-calculations.test.ts` (13 tests)
+- ✅ `tests/unit/date-utils.test.ts` (28 tests)
+- ✅ `tests/unit/validation.test.ts` (19 tests)
+- ✅ `tests/unit/rarity-calculations.test.ts` (18 tests)
+- ✅ `tests/unit/cart-calculations.test.ts` (15 tests)
+
+**Total**: 93 unit tests
 
 ### Integration Tests
 - ✅ `tests/integration/sticker-collection.test.tsx` (Phase 1.5)
@@ -323,6 +328,11 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ### E2E Tests
 - ✅ `tests/e2e/critical-paths.spec.ts` (skeleton)
 
+### Archive Structure
+- ✅ `tests/e2e/archived/README.md`
+- ✅ `tests/e2e/archived/week1-unit-conversions/README.md`
+- ✅ Playwright config updated to exclude archived tests
+
 ### Documentation
 - ✅ `docs/OPTION_1_PLUS_IMPLEMENTATION.md` (this file)
 - [ ] Updated `docs/TESTING_STRATEGY.md`
@@ -333,10 +343,11 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ## Next Actions
 
 ### Immediate (This Week)
-1. ✅ Create unit test files (DONE)
-2. [ ] Implement all 50 unit tests
-3. [ ] Run unit tests and verify passing
-4. [ ] Delete corresponding E2E tests
+1. ✅ Create unit test files (DONE - Week 1 COMPLETE)
+2. ✅ Implement all unit tests (93 tests created and passing)
+3. ✅ Run unit tests and verify passing (All passing with reliable precision)
+4. ✅ Create archive structure (DONE)
+5. [ ] Start Week 2 integration tests (discussions + events)
 
 ### Next Week
 1. [ ] Start Week 2 integration tests (discussion + events)
@@ -381,7 +392,10 @@ Converting 414 E2E tests into a Test Pyramid structure:
 - None
 
 ### Notes
-- Unit test files created with examples to establish patterns
+- ✅ Week 1 exceeded target: 93 unit tests vs 50 planned
+- ✅ Precision issues resolved for reliable test execution
+- ✅ Archive strategy implemented with progressive archiving approach
+- Unit tests extract logic from components; E2E tests remain until integration tests replace them
 - Critical paths E2E skeleton created with all 18 test categories
 - Need to implement actual test logic in Week 5
 - Consider creating reusable test helpers for E2E flows
@@ -391,7 +405,7 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ## Team Communication
 
 ### Weekly Updates
-- [ ] Week 1: Unit tests complete
+- ✅ **Week 1: Unit tests complete** (93 tests, all passing, archive structure created)
 - [ ] Week 2: Integration tests batch 1 complete
 - [ ] Week 3: Integration tests batch 2 complete
 - [ ] Week 4: All conversions complete
