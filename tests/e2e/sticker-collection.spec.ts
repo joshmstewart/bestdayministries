@@ -491,31 +491,35 @@ test.describe('Sticker Collection Completion @fast', () => {
     await page.goto('/sticker-album');
     await page.waitForLoadState('networkidle');
     
+    // PHASE 3 FIX: Increased wait for content to load
+    await page.waitForTimeout(2000);
+    
     // Look for completion indicators
     const completionText = page.locator('text=/complete|collected|progress/i').first();
     const hasCompletion = await completionText.isVisible({ timeout: 5000 }).catch(() => false);
     
-    // FIXED: Proper assertion
-    if (hasCompletion) {
-      await expect(completionText).toBeVisible();
-    } else {
-      test.skip();
+    // PHASE 3 FIX: Throw error instead of skip - feature SHOULD be implemented
+    if (!hasCompletion) {
+      throw new Error('IMPLEMENTATION ISSUE: Collection completion status should exist but was not found. Check StickerAlbum component for progress/completion display.');
     }
+    await expect(completionText).toBeVisible();
   });
 
   test('should display total stickers in collection', async ({ page }) => {
     await page.goto('/sticker-album');
     await page.waitForLoadState('networkidle');
     
+    // PHASE 3 FIX: Increased wait for content to load
+    await page.waitForTimeout(2000);
+    
     // Look for sticker count (e.g., "5/20 stickers")
     const stickerCount = page.locator('text=/\\d+\\/\\d+.*sticker/i, text=/sticker.*\\d+\\/\\d+/i').first();
-    const hasCount = await stickerCount.isVisible({ timeout: 3000 }).catch(() => false);
+    const hasCount = await stickerCount.isVisible({ timeout: 5000 }).catch(() => false);
     
-    // FIXED: Proper assertion
-    if (hasCount) {
-      await expect(stickerCount).toBeVisible();
-    } else {
-      test.skip();
+    // PHASE 3 FIX: Throw error instead of skip - feature SHOULD be implemented
+    if (!hasCount) {
+      throw new Error('IMPLEMENTATION ISSUE: Sticker count display (e.g., "5/20 stickers") should exist but was not found. Check StickerAlbum component for total stickers display.');
     }
+    await expect(stickerCount).toBeVisible();
   });
 });
