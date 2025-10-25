@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Mail, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const US_STATES = [
   "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
@@ -36,9 +37,11 @@ const COUNTRIES = [
 
 interface NewsletterSignupProps {
   compact?: boolean;
+  redirectOnSuccess?: boolean;
 }
 
-export const NewsletterSignup = ({ compact = false }: NewsletterSignupProps) => {
+export const NewsletterSignup = ({ compact = false, redirectOnSuccess = false }: NewsletterSignupProps) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -93,6 +96,12 @@ export const NewsletterSignup = ({ compact = false }: NewsletterSignupProps) => 
       setState("");
       setCountry("");
       setConsent(false);
+      
+      if (redirectOnSuccess) {
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
+      }
     },
     onError: (error: any) => {
       if (error.message?.includes("duplicate")) {

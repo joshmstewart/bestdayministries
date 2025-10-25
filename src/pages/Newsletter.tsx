@@ -13,7 +13,7 @@ const Newsletter = () => {
       <UnifiedHeader />
       
       <main className="flex-1 container mx-auto px-4 pt-24 pb-12">
-        <NewsletterSignup />
+        <NewsletterSignup redirectOnSuccess={true} />
       </main>
 
       <Footer />
