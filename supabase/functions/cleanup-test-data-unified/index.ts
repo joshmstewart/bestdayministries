@@ -363,7 +363,16 @@ serve(async (req) => {
         }
         
         // Also delete by name pattern in metadata message
-        for (const pattern of namePatterns) {
+        const notificationPatterns = [
+          ...namePatterns, 
+          'Badge Test',
+          'Thread Test User',
+          'Admin Test User',
+          'Reply Test User',
+          '@send.bestdayministries.org'  // Catch Resend email notifications
+        ];
+        
+        for (const pattern of notificationPatterns) {
           const { error: patternNotifError } = await supabaseAdmin
             .from('notifications')
             .delete()
@@ -424,11 +433,21 @@ serve(async (req) => {
       const testEmailPatterns = [
         'test@%',
         '%@test.com',
+        '%@send.bestdayministries.org',  // Resend email IDs
         'emailtest-%',
+        'accepttest%',
+        'contenttest%',
+        'visualtest%',
         'Test%User%',
         'E2E%User%',
         '%Anonymous%Test%',
-        '%Authenticated%Test%'
+        '%Authenticated%Test%',
+        '%Badge%Test%',
+        '%Thread%Test%',
+        '%Admin%Test%',
+        '%Test User',  // Catches "Thread Test User", "Admin Test User", etc
+        'Badge Test%',
+        'Reply Test%'
       ];
       
       for (const pattern of testEmailPatterns) {
@@ -463,7 +482,16 @@ serve(async (req) => {
       
       // CRITICAL FIX: Also delete contact form submissions by EMAIL pattern (for email tests)
       console.log('🧹 Deleting contact form submissions by email pattern...');
-      const emailPatterns = ['test-%@example.com', 'test-reply-%@example.com', 'test-admin-%@example.com', 'test-thread-%@example.com'];
+      const emailPatterns = [
+        'test-%@example.com', 
+        'test-reply-%@example.com', 
+        'test-admin-%@example.com', 
+        'test-thread-%@example.com',
+        '%@send.bestdayministries.org',  // Resend test email IDs
+        'accepttest%@example.com',
+        'contenttest%@example.com',
+        'visualtest%@example.com'
+      ];
       for (const pattern of emailPatterns) {
         const { error: emailSubmissionsError } = await supabaseAdmin
           .from('contact_form_submissions')
