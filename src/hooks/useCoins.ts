@@ -9,12 +9,15 @@ export const useCoins = () => {
 
   const fetchCoins = async () => {
     try {
+      console.log('💰 HOOK: useCoins fetching coins...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('💰 HOOK: No user found, setting loading false');
         setLoading(false);
         return;
       }
 
+      console.log('💰 HOOK: Fetching coins for user:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('coins')
@@ -22,9 +25,10 @@ export const useCoins = () => {
         .single();
 
       if (error) throw error;
+      console.log('💰 HOOK: Coins fetched successfully:', data?.coins || 0);
       setCoins(data?.coins || 0);
     } catch (error) {
-      console.error('Error fetching coins:', error);
+      console.error('💰 HOOK ERROR: Error fetching coins:', error);
     } finally {
       setLoading(false);
     }

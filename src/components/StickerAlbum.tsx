@@ -236,27 +236,47 @@ export const StickerAlbum = () => {
   }, [selectedCollection]);
 
   const fetchCollections = async () => {
+    console.log('🎴 FETCH: fetchCollections starting...');
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      console.log('🎴 FETCH: No user found, returning');
+      return;
+    }
 
+    console.log('🎴 FETCH: Fetching active collections for user:', user.id);
     const { data, error } = await supabase
       .from('sticker_collections')
       .select('*')
       .eq('is_active', true)
       .order('display_order');
 
+    if (error) {
+      console.error('🎴 FETCH ERROR: Error fetching collections:', error);
+    } else {
+      console.log('🎴 FETCH: Collections fetched:', data?.length || 0, 'collections');
+    }
+
     if (!error && data && data.length > 0) {
       setCollections(data);
       setSelectedCollection(data[0].id);
+      console.log('🎴 FETCH: Selected first collection:', data[0].id, data[0].name);
       // Rarity percentages will be loaded in the useEffect
+    } else {
+      console.log('🎴 FETCH: No active collections found');
     }
   };
 
   const fetchStickers = async () => {
     setLoading(true);
+    console.log('🎴 FETCH: fetchStickers starting...');
     
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      console.log('🎴 FETCH: No user found for stickers');
+      return;
+    }
+
+    console.log('🎴 FETCH: Fetching stickers for user:', user.id);
 
     // Get coin balance and today's card count
     const { data: profile } = await supabase
@@ -265,6 +285,7 @@ export const StickerAlbum = () => {
       .eq('id', user.id)
       .single();
     
+    console.log('🎴 FETCH: Coin balance:', profile?.coins || 0);
     setCoinBalance(profile?.coins || 0);
 
     // Calculate MST date (same as edge function)
