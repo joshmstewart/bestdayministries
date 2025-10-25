@@ -88,19 +88,19 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ---
 
 ### Week 2: Component Logic Integration Tests (Part 1)
-**Status:** ⏳ NOT STARTED  
+**Status:** 🔄 IN PROGRESS (Discussion Rendering Complete)  
 **Target:** 74 integration tests
 
-#### Discussion Post Rendering (24 tests)
-- [ ] Post display with media
-- [ ] Comment rendering
-- [ ] Edit post functionality
-- [ ] Role badges
-- [ ] TTS integration
+#### Discussion Post Rendering (24 tests) ✅ COMPLETE
+- [x] Post display with media
+- [x] Comment rendering
+- [x] Edit post functionality
+- [x] Role badges
+- [x] TTS integration
 - **Source E2E:** `tests/e2e/discussions.spec.ts`
-- **Files to create:**
-  - [ ] `tests/integration/discussion-rendering.test.tsx`
-  - [ ] `tests/integration/discussion-comments.test.tsx`
+- **Files created:**
+  - [x] `tests/integration/discussion-rendering.test.tsx` (24 tests)
+  - [x] `tests/integration/discussion-comments.test.tsx` (12 tests)
 
 #### Event Card Display (20 tests)
 - [ ] Event card rendering
@@ -281,8 +281,8 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ### Test Count Summary
 | Category | Before | After | Status |
 |----------|--------|-------|--------|
-| **E2E Tests** | 414 | 18 | 🚧 In Progress |
-| **Integration Tests** | 48 | 188 | 🚧 In Progress |
+| **E2E Tests** | 414 | 18 | 🚧 In Progress (394 active) |
+| **Integration Tests** | 48 | 188 | 🚧 In Progress (84 current) |
 | **Unit Tests** | 0 | 93 | ✅ Complete |
 | **Percy Snapshots** | 24 | 50 | ⏳ Not Started |
 
@@ -311,8 +311,8 @@ Converting 414 E2E tests into a Test Pyramid structure:
 - ✅ `tests/integration/contact-form.test.tsx` (Phase 1.5)
 - ✅ `tests/integration/terms-guard.test.tsx` (Phase 1.5)
 - ✅ `tests/integration/guardian-linking.test.tsx` (Phase 1.5)
-- [ ] `tests/integration/discussion-rendering.test.tsx`
-- [ ] `tests/integration/discussion-comments.test.tsx`
+- ✅ `tests/integration/discussion-rendering.test.tsx` (24 tests - Week 2)
+- ✅ `tests/integration/discussion-comments.test.tsx` (12 tests - Week 2)
 - [ ] `tests/integration/event-card.test.tsx`
 - [ ] `tests/integration/event-dates.test.tsx`
 - [ ] `tests/integration/navigation.test.tsx`
@@ -325,12 +325,15 @@ Converting 414 E2E tests into a Test Pyramid structure:
 - [ ] `tests/integration/shopping-cart-ui.test.tsx`
 - [ ] `tests/integration/vendor-dashboard.test.tsx`
 
+**Total**: 48 (Phase 1.5) + 36 (Week 2 discussions) = 84 integration tests
+
 ### E2E Tests
 - ✅ `tests/e2e/critical-paths.spec.ts` (skeleton)
 
 ### Archive Structure
 - ✅ `tests/e2e/archived/README.md`
 - ✅ `tests/e2e/archived/week1-unit-conversions/README.md`
+- ✅ `tests/e2e/archived/week2-integration-conversions/README.md`
 - ✅ Playwright config updated to exclude archived tests
 
 ### Documentation
