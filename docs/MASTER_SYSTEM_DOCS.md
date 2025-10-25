@@ -686,3 +686,74 @@ STRATEGY:dark-launch-main-branch|feature-flags|phased-approach|zero-downtime
 ARCHITECTURE:row-level-tenancy|organization_id-all-tables|RLS-data-isolation
 BILLING:Stripe-subscriptions|Starter-$99|Professional-$299|Enterprise-$799|$20-per-seat
 STATUS:PLANNING-PHASE|NOT-IMPLEMENTED
+
+## TEST_PYRAMID_CONVERSION
+STATUS:ACTIVE-CONVERSION-IN-PROGRESS[Week-1-COMPLETE|Week-2-NEXT]
+MASTER-PLAN:docs/OPTION_1_PLUS_IMPLEMENTATION.md[SOURCE-OF-TRUTH]
+TIMELINE:6-weeks[93-unit+188-integration+18-critical-E2E]
+TARGET:414-E2E-tests→93-unit+188-integration+18-E2E[80%-reduction-E2E]
+
+⚠️ MANDATORY-BEFORE-ANY-TEST-WORK ⚠️
+STEP-1:READ-docs/OPTION_1_PLUS_IMPLEMENTATION.md→current-week-status-and-deliverables
+STEP-2:VERIFY-which-E2E-tests-converting-this-week[specific-files-and-scenarios]
+STEP-3:CHECK-archive-strategy[tests/e2e/archived/week{N}-{category}]
+STEP-4:CONFIRM-target-test-counts-and-expected-outcomes
+STEP-5:UPDATE-progress-tracker-after-completing-work
+
+WEEK-BY-WEEK-BREAKDOWN:
+Week-1[✅COMPLETE]:93-unit-tests→cart-calculations|donation-calculations|date-formatting|validation-rules|rarity-calculations
+Week-2[🎯NEXT]:74-integration-tests→discussions-rendering|events-rendering|navigation-behavior|ARCHIVE-~74-E2E
+Week-3[PLANNED]:52-integration-tests→forms-validation|admin-tabs|notifications-UI|ARCHIVE-~52-E2E
+Week-4[PLANNED]:28-integration-tests→video-player|help-center|cart-UI|vendor-dashboard|ARCHIVE-~28-E2E
+Week-5[PLANNED]:18-critical-E2E→revenue|email|content-approval|auth-flows|vendor-linking|gamification|ARCHIVE-~242-E2E
+Week-6[PLANNED]:Percy-visual-regression+comprehensive-docs+final-cleanup
+
+ARCHIVING-PATTERN[CRITICAL]:
+1-CREATE:integration-test-file[tests/integration/{feature}.test.tsx]
+2-VERIFY:covers-all-scenarios-from-corresponding-E2E-tests
+3-RUN:ensure-all-integration-tests-pass
+4-ARCHIVE:move-E2E-test-to[tests/e2e/archived/week{N}-{category}/]
+5-UPDATE:docs/OPTION_1_PLUS_IMPLEMENTATION.md→Progress-Tracker-section
+6-COMMIT:show-visible-progress[E2E-count-drops-immediately]
+
+TEST-TYPE-DECISION-MATRIX:
+UNIT-TEST:pure-functions|calculations|utilities|validators|formatters|NO-React|NO-Supabase
+INTEGRATION-TEST:React-components|UI-rendering|user-interactions|mocked-Supabase|MSW-API-responses
+E2E-TEST:critical-revenue-flows|auth-complete-flows|cross-system-workflows|real-Supabase|real-browser
+
+CRITICAL-RULES[NO-EXCEPTIONS]:
+❌NEVER-create-modify-test-files-WITHOUT-checking-OPTION_1_PLUS_IMPLEMENTATION.md-FIRST
+❌NEVER-skip-archiving-E2E-tests-after-creating-replacements[causes-error-pile-up]
+❌NEVER-work-on-wrong-week[follow-sequential-order:Week-1→2→3→4→5→6]
+✅ALWAYS-update-Progress-Tracker-in-OPTION_1_PLUS_IMPLEMENTATION.md-after-changes
+✅ALWAYS-use-test-builders[tests/builders/]→GuardianBuilder|SponsorshipBuilder|DiscussionBuilder
+✅ALWAYS-archive-to-correct-week-folder[tests/e2e/archived/week{N}-{category}/]
+✅ALWAYS-show-visible-progress[user-sees-E2E-count-drop-as-conversion-progresses]
+
+EXPECTED-CI-IMPACT-PER-WEEK:
+Week-1:414-E2E→~405-E2E[minimal-archive|unit-extracts-logic-not-flows]
+Week-2:~405-E2E→~340-E2E[MAJOR-archive|integration-replaces-entire-test-files]
+Week-3:~340-E2E→~288-E2E[continued-integration-conversions]
+Week-4:~288-E2E→~260-E2E[final-integration-conversions]
+Week-5:~260-E2E→18-E2E[MASSIVE-archive|only-critical-paths-remain]
+Week-6:18-E2E-FINAL[optimized|reliable|fast]
+
+RELATED-DOCUMENTATION:
+PRIMARY:docs/OPTION_1_PLUS_IMPLEMENTATION.md[master-plan|weekly-deliverables|progress-tracker]
+STRATEGY:docs/TESTING_STRATEGY.md[pyramid-rationale|decision-matrix|best-practices]
+SUMMARY:docs/OPTION_1_PLUS_SUMMARY.md[quick-overview|18-critical-E2E-list]
+BUILDERS:docs/TESTING_BUILDERS.md[fluent-API|test-data-patterns]
+INTEGRATION:docs/TESTING_INTEGRATION.md[MSW-setup|component-testing|mocking-guide]
+ARCHIVE:tests/e2e/archived/README.md[why-archived|resurrection-process]
+
+WHY-THIS-MATTERS:
+Without-checking-these-docs-FIRST→AI-will:
+- Create-tests-without-understanding-current-week-context
+- Miss-archiving-step[tests-accumulate-as-"errors"]
+- Work-on-wrong-week-tasks[breaks-sequential-plan]
+- Not-update-progress-documentation[user-loses-visibility]
+- Duplicate-effort[recreate-existing-tests]
+- Break-CI[mix-archived-and-active-tests]
+
+CURRENT-STATUS:Week-1-complete[93-unit-tests-passing]|Week-2-ready-to-start[74-integration-tests-target]
+DOC:docs/OPTION_1_PLUS_IMPLEMENTATION.md
