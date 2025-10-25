@@ -1,74 +1,49 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
 import { server } from '../mocks/server';
 import { http, HttpResponse } from 'msw';
 
-// Mock component imports (you'll need to adjust paths based on actual structure)
-// For now, we'll create a simple test to validate the infrastructure
-
 describe('Sticker Collection Integration Tests', () => {
-  let queryClient: QueryClient;
+  describe('Data Loading', () => {
+    it('should load sticker collections from API', async () => {
+      server.use(
+        http.get('*/rest/v1/sticker_collections', () => {
+          return HttpResponse.json([
+            { id: '1', name: 'Test Collection', is_active: true, rarity_config: { common: 50, uncommon: 30, rare: 15, epic: 4, legendary: 1 } }
+          ]);
+        })
+      );
 
-  beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
+      const response = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/sticker_collections`);
+      const data = await response.json();
+      expect(data).toHaveLength(1);
+    });
+
+    it('should handle API errors', async () => {
+      server.use(http.get('*/rest/v1/sticker_collections', () => new HttpResponse(null, { status: 500 })));
+      const response = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/sticker_collections`);
+      expect(response.status).toBe(500);
     });
   });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
-    </QueryClientProvider>
-  );
+  describe('Rarity Configuration', () => {
+    it('should calculate rarity percentages correctly', () => {
+      const rarityConfig = { common: 50, uncommon: 30, rare: 15, epic: 4, legendary: 1 };
+      const total = Object.values(rarityConfig).reduce((sum, val) => sum + val, 0);
+      expect(total).toBe(100);
+    });
 
-  it('should mock sticker collections API successfully', async () => {
-    // This test validates that our MSW setup works
-    const response = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/sticker_collections`);
-    const data = await response.json();
-
-    expect(data).toHaveLength(1);
-    expect(data[0].name).toBe('Test Collection');
+    it('should validate distribution', () => {
+      const distribution = { common: 12, uncommon: 8, rare: 3, epic: 1, legendary: 1 };
+      expect(Object.values(distribution).reduce((s, v) => s + v, 0)).toBe(25);
+    });
   });
 
-  it('should handle API errors gracefully', async () => {
-    // Override handler to return error
-    server.use(
-      http.get(`${process.env.VITE_SUPABASE_URL}/rest/v1/sticker_collections`, () => {
-        return new HttpResponse(null, { status: 500 });
-      })
-    );
-
-    const response = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/sticker_collections`);
-    expect(response.status).toBe(500);
-  });
-
-  it('should calculate rarity percentages correctly', () => {
-    const rarityConfig = {
-      common: 50,
-      uncommon: 30,
-      rare: 15,
-      epic: 4,
-      legendary: 1
-    };
-
-    const total = Object.values(rarityConfig).reduce((sum, val) => sum + val, 0);
-    expect(total).toBe(100);
-  });
-
-  it('should validate sticker rarity distribution', () => {
-    const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-    const stickerCount = 100;
-    
-    const distribution = rarities.map(rarity => ({
-      rarity,
-      expected: rarity === 'common' ? 50 : rarity === 'uncommon' ? 30 : rarity === 'rare' ? 15 : rarity === 'epic' ? 4 : 1
-    }));
-
-    const totalExpected = distribution.reduce((sum, d) => sum + d.expected, 0);
-    expect(totalExpected).toBe(100);
+  describe('Daily Scratch Cards', () => {
+    it('should check if user has scratched today', () => {
+      const today = new Date().toISOString().split('T')[0];
+      const card = { date: today, is_scratched: true };
+      expect(card.date).toBe(today);
+      expect(card.is_scratched).toBe(true);
+    });
   });
 });

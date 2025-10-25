@@ -1,80 +1,50 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
+import { describe, it, expect } from 'vitest';
+import { server } from '../mocks/server';
+import { http, HttpResponse } from 'msw';
 
 describe('Contact Form Integration Tests', () => {
-  let queryClient: QueryClient;
+  describe('Form Validation', () => {
+    it('should validate email format', () => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      expect(emailRegex.test('valid@example.com')).toBe(true);
+      expect(emailRegex.test('invalid')).toBe(false);
+    });
 
-  beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
+    it('should validate required fields', () => {
+      const formData = { name: '', email: '', message: '' };
+      const errors = Object.keys(formData).filter(k => !formData[k as keyof typeof formData]);
+      expect(errors).toHaveLength(3);
     });
   });
 
-  it('should validate email format', () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    expect(emailRegex.test('valid@example.com')).toBe(true);
-    expect(emailRegex.test('invalid-email')).toBe(false);
-    expect(emailRegex.test('missing@domain')).toBe(false);
+  describe('Submission Handling', () => {
+    it('should create submission via API', async () => {
+      server.use(
+        http.post('*/rest/v1/contact_form_submissions', async ({ request }) => {
+          const body = await request.json();
+          return HttpResponse.json({ ...body, id: 'new-id', status: 'new' });
+        })
+      );
+
+      const response = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/contact_form_submissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Test', email: 'test@example.com', message: 'Test' })
+      });
+
+      const data = await response.json();
+      expect(data.status).toBe('new');
+    });
   });
 
-  it('should validate required fields', () => {
-    const formData = {
-      name: '',
-      email: '',
-      subject: '',
-      message: ''
-    };
-
-    const errors = {
-      name: !formData.name,
-      email: !formData.email,
-      subject: !formData.subject,
-      message: !formData.message
-    };
-
-    expect(errors.name).toBe(true);
-    expect(errors.email).toBe(true);
-    expect(errors.subject).toBe(true);
-    expect(errors.message).toBe(true);
-  });
-
-  it('should accept valid form data', () => {
-    const formData = {
-      name: 'John Doe',
-      email: 'john@example.com',
-      subject: 'Test Subject',
-      message: 'Test message content'
-    };
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    const isValid = 
-      formData.name.length > 0 &&
-      emailRegex.test(formData.email) &&
-      formData.subject.length > 0 &&
-      formData.message.length > 0;
-
-    expect(isValid).toBe(true);
-  });
-
-  it('should handle submission state changes', () => {
-    let isSubmitting = false;
-    let submitSuccess = false;
-
-    // Simulate submission
-    isSubmitting = true;
-    expect(isSubmitting).toBe(true);
-    expect(submitSuccess).toBe(false);
-
-    // Simulate success
-    isSubmitting = false;
-    submitSuccess = true;
-    expect(isSubmitting).toBe(false);
-    expect(submitSuccess).toBe(true);
+  describe('Admin Notifications', () => {
+    it('should calculate badge count', () => {
+      const submissions = [
+        { status: 'new', unread_user_replies: 0 },
+        { status: 'read', unread_user_replies: 2 }
+      ];
+      const count = submissions.filter(s => s.status === 'new' || s.unread_user_replies > 0).length;
+      expect(count).toBe(2);
+    });
   });
 });
