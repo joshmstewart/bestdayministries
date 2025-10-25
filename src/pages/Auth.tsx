@@ -139,7 +139,6 @@ const Auth = () => {
         if (error) throw error;
 
         // Record terms acceptance immediately after successful signup
-        // CRITICAL: Wait for terms to be recorded BEFORE allowing redirect
         if (data.user && acceptedTerms) {
           try {
             const termsResult = await supabase.functions.invoke("record-terms-acceptance", {
@@ -153,13 +152,9 @@ const Auth = () => {
               console.error("Terms recording failed:", termsResult.error);
             } else {
               console.log('✅ Terms recorded successfully after signup');
-              // Wait a moment to ensure database write completes
-              await new Promise(resolve => setTimeout(resolve, 500));
             }
           } catch (termsError) {
             console.error("Error recording terms:", termsError);
-            // Wait anyway to give edge function time to complete
-            await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
 

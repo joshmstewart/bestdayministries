@@ -15,17 +15,13 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUserId(session?.user?.id);
-      // Add small delay to allow terms recording to complete during signup
-      await new Promise(resolve => setTimeout(resolve, 100));
       setCheckComplete(true);
     };
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUserId(session?.user?.id);
-      // Add small delay to allow terms recording to complete during signup
-      await new Promise(resolve => setTimeout(resolve, 100));
       setCheckComplete(true);
     });
 
