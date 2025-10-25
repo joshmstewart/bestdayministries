@@ -86,8 +86,8 @@ test.describe('Sticker Album Viewing @fast', () => {
     await page.goto('/sticker-album');
     await page.waitForLoadState('networkidle');
     
-    // Look for percentage values (Common: 50%, Uncommon: 30%, etc.)
-    const percentageText = page.locator('text=/50%|30%|15%|4%|1%/').first();
+    // Look for any percentage values (dynamic, configurable by admin)
+    const percentageText = page.locator('text=/\\d+%/').first();
     const hasPercentages = await percentageText.isVisible({ timeout: 5000 }).catch(() => false);
     
     expect(hasPercentages).toBeTruthy();

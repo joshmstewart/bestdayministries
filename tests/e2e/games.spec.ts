@@ -43,7 +43,7 @@ test.describe('Games System @fast', () => {
   // MEMORY MATCH TESTS
   test.describe('Memory Match Game', () => {
     test('displays game lobby with difficulty options', async () => {
-      await testPage.goto('/memory-match');
+      await testPage.goto('/games/memory-match');
       await testPage.waitForLoadState('networkidle');
       
       // Check for difficulty cards
@@ -56,7 +56,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('can start easy game and display grid', async () => {
-      await testPage.goto('/memory-match');
+      await testPage.goto('/games/memory-match');
       await testPage.waitForLoadState('networkidle');
       
       // Click easy difficulty or start button
@@ -74,7 +74,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('can flip cards and see content', async () => {
-      await testPage.goto('/memory-match');
+      await testPage.goto('/games/memory-match');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -93,7 +93,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('tracks moves and matched pairs', async () => {
-      await testPage.goto('/memory-match');
+      await testPage.goto('/games/memory-match');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -110,7 +110,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('displays timer during gameplay', async () => {
-      await testPage.goto('/memory-match');
+      await testPage.goto('/games/memory-match');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -128,7 +128,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('can return to lobby', async () => {
-      await testPage.goto('/memory-match');
+      await testPage.goto('/games/memory-match');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -150,7 +150,7 @@ test.describe('Games System @fast', () => {
   // MATCH-3 TESTS
   test.describe('Match-3 Game', () => {
     test('displays game mode selection screen', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       // Check for game mode selection
@@ -159,7 +159,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('can start free play mode', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       // Look for "Easy" or "Free Play" or "Start" button
@@ -173,7 +173,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('displays game grid with items', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -188,7 +188,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('can select and swap items', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -211,7 +211,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('tracks score and moves', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -232,7 +232,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('has sound/music toggle controls', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -250,7 +250,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('can access challenge mode', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       // Look for challenge mode option
@@ -267,7 +267,7 @@ test.describe('Games System @fast', () => {
     });
 
     test('can return to mode selection', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       // Start game
@@ -332,13 +332,13 @@ test.describe('Games System @fast', () => {
   // VISUAL REGRESSION TESTS
   test.describe('Games Visual Regression', () => {
     test('memory match lobby visual snapshot', async () => {
-      await testPage.goto('/memory-match');
+      await testPage.goto('/games/memory-match');
       await testPage.waitForLoadState('networkidle');
       await percySnapshot(testPage, 'Memory Match - Game Lobby');
     });
 
     test('memory match gameplay visual snapshot', async () => {
-      await testPage.goto('/memory-match');
+      await testPage.goto('/games/memory-match');
       await testPage.waitForLoadState('networkidle');
       
       const startBtn = testPage.locator('button:has-text("Start")').first();
@@ -348,13 +348,13 @@ test.describe('Games System @fast', () => {
     });
 
     test('match-3 mode selection visual snapshot', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       await percySnapshot(testPage, 'Match-3 - Mode Selection');
     });
 
     test('match-3 gameplay visual snapshot', async () => {
-      await testPage.goto('/match3');
+      await testPage.goto('/games/match3');
       await testPage.waitForLoadState('networkidle');
       
       const startBtn = testPage.locator('button:has-text("Start"), button:has-text("Easy")').first();

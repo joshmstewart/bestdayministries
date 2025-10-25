@@ -74,8 +74,8 @@ test.describe('Newsletter System UI @fast', () => {
     await adminPage.goto('/admin');
     await adminPage.waitForLoadState('networkidle');
     
-    // Click Besties tab
-    await adminPage.click('button:has-text("Besties")');
+    // Click Newsletter tab directly
+    await adminPage.click('button:has-text("Newsletter")');
     await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for newsletter-related content within tabs
@@ -87,8 +87,8 @@ test.describe('Newsletter System UI @fast', () => {
     await adminPage.goto('/admin');
     await adminPage.waitForLoadState('networkidle');
     
-    // Navigate to Besties section
-    await adminPage.click('button:has-text("Besties")');
+    // Navigate to Newsletter section directly
+    await adminPage.click('button:has-text("Newsletter")');
     await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for Campaigns tab or New Campaign button
@@ -138,8 +138,8 @@ test.describe('Newsletter System UI @fast', () => {
     await adminPage.goto('/admin');
     await adminPage.waitForLoadState('networkidle');
     
-    // Navigate to Besties section
-    await adminPage.click('button:has-text("Besties")');
+    // Navigate to Newsletter section directly
+    await adminPage.click('button:has-text("Newsletter")');
     await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for Templates tab
@@ -186,8 +186,8 @@ test.describe('Newsletter System UI @fast', () => {
     await adminPage.goto('/admin');
     await adminPage.waitForLoadState('networkidle');
     
-    // Navigate to Besties section
-    await adminPage.click('button:has-text("Besties")');
+    // Navigate to Newsletter section directly
+    await adminPage.click('button:has-text("Newsletter")');
     await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for Subscribers tab
@@ -233,8 +233,8 @@ test.describe('Newsletter System UI @fast', () => {
     await adminPage.goto('/admin');
     await adminPage.waitForLoadState('networkidle');
     
-    // Navigate to Besties section
-    await adminPage.click('button:has-text("Besties")');
+    // Navigate to Newsletter section directly
+    await adminPage.click('button:has-text("Newsletter")');
     await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Look for Analytics tab
@@ -255,8 +255,8 @@ test.describe('Newsletter System UI @fast', () => {
     await adminPage.goto('/admin');
     await adminPage.waitForLoadState('networkidle');
     
-    // Navigate to Besties section
-    await adminPage.click('button:has-text("Besties")');
+    // Navigate to Newsletter section directly
+    await adminPage.click('button:has-text("Newsletter")');
     await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
     
     // Check for key newsletter tabs (may vary based on implementation)
@@ -279,7 +279,7 @@ test.describe('Newsletter System UI @fast', () => {
       await adminPage.goto('/admin');
       await adminPage.waitForLoadState('networkidle');
       
-      await adminPage.click('button:has-text("Besties")');
+      await adminPage.click('button:has-text("Newsletter")');
       await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
       
       const campaignsTab = adminPage.locator('button:has-text("Campaigns"), text="Campaigns"').first();
@@ -294,7 +294,7 @@ test.describe('Newsletter System UI @fast', () => {
       await adminPage.goto('/admin');
       await adminPage.waitForLoadState('networkidle');
       
-      await adminPage.click('button:has-text("Besties")');
+      await adminPage.click('button:has-text("Newsletter")');
       await expect(adminPage.locator('text=/Newsletter|Campaigns/i').first()).toBeVisible({ timeout: 15000 });
       
       const subscribersTab = adminPage.locator('button:has-text("Subscribers"), text="Subscribers"').first();
@@ -309,7 +309,7 @@ test.describe('Newsletter System UI @fast', () => {
       await adminPage.goto('/admin');
       await adminPage.waitForLoadState('networkidle');
       
-      await adminPage.click('button:has-text("Besties")');
+      await adminPage.click('button:has-text("Newsletter")');
       await adminPage.waitForTimeout(1500);
       
       const newCampaignBtn = adminPage.locator('button:has-text("New Campaign")').first();
