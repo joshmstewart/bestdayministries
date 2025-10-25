@@ -123,7 +123,8 @@ test.describe('Virtual Pet', () => {
   });
 });
 
-test.describe('Memory Match Game', () => {
+// DISABLED: Games feature not yet available to users
+test.describe.skip('Memory Match Game', () => {
   test('should load memory match game', async ({ page }) => {
     await page.goto('/memory-match');
     await page.waitForLoadState('networkidle');

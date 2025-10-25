@@ -5,8 +5,9 @@ import { getTestAccount } from '../fixtures/test-accounts';
 /**
  * Games System E2E Tests - WITH SHARD-SPECIFIC ACCOUNTS
  * Tests Memory Match and Match-3 games including gameplay, scoring, coin rewards, and difficulty modes
+ * DISABLED: Games feature not yet available to users
  */
-test.describe('Games System @fast', () => {
+test.describe.skip('Games System @fast', () => {
   let testPage: Page;
 
   test.beforeAll(async ({ browser }) => {
