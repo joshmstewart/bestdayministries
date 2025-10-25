@@ -302,14 +302,15 @@ DOC:CONTENT_MODERATION_CASCADE_DELETES.md
 
 ## AUTH
 ROUTE:/auth
-SIGNUP:email-pwd-name-role+avatar→signUp→handle_new_user()→record-terms→redirect
+SIGNUP:email-pwd-name-role+avatar→signUp→handle_new_user()→record-terms-IMMEDIATE→redirect
 LOGIN:signInWithPassword→check-vendor→redirect
 ROLES:supporter|bestie|caregiver|moderator|admin|owner
 AVATAR:1-12→composite-{n}.png
-TERMS:Guard+Dialog→versions-in-useTermsCheck
-EDGE:record-acceptance[auth-required|IP-tracking+audit-trail]
+TERMS:Guard+Dialog→versions-in-useTermsCheck→FIXED-2025-10-25[no-double-prompt]
+EDGE:record-acceptance[auth-required|IP-tracking+audit-trail]→called-DURING-signup
 SECURITY:handle_new_user()[DEFINER]|has_role()[DEFINER]
 RLS:profiles[own+guardians-linked+admins-all]|user_roles[SELECT-auth|INSERT-UPDATE-DELETE-admins]
+DOC:AUTH_SYSTEM_CONCISE.md|CHANGELOG_2025_10_25.md
 
 ## BUTTON_STYLING
 VARIANTS:default[gradient-CTAs]|outline[border-secondary]|secondary[solid-supporting]|ghost[transparent-tertiary]
@@ -424,9 +425,11 @@ STATUS-COLORS:pending-yellow|shipped-blue|delivered-green|completed-green|cancel
 DB:terms_acceptance[user+versions+IP+user-agent+UNIQUE]
 VERSION:useTermsCheck.ts[CURRENT_TERMS_VERSION-1.0+CURRENT_PRIVACY_VERSION-1.0]
 COMPS:Dialog[non-dismissible+checkbox]|Guard[wraps-App+hides-public]|useTermsCheck
-EDGE:record-acceptance[auth+IP+user-agent]
-WORKFLOWS:First[signup→dialog→accept→reload]|Update[version-change→dialog]|Guest[sponsor→signup→dialog]
+EDGE:record-acceptance[auth+IP+user-agent]→called-IMMEDIATELY-after-signup
+WORKFLOWS:Signup[checkbox→record-immediate→no-second-dialog✓]|Update[version-change→dialog]|Guest[sponsor→signup→dialog]
 SECURITY:audit-trail-IP-timestamp|non-dismissible|unique-constraint|edge-adds-metadata
+FIXED-2025-10-25:double-terms-prompt-eliminated→record-during-signup-not-deferred
+
 
 ## SPONSOR_PAGE
 ROUTE:/sponsor-bestie?bestieId=xxx
@@ -480,7 +483,7 @@ DOC:STICKER_PACK_SYSTEM.md
 OVERVIEW:email-campaigns+automated-templates+subscriber-management+analytics+testing+comprehensive-logging
 DB:newsletter_campaigns|newsletter_subscribers|newsletter_analytics|newsletter_templates|campaign_templates|newsletter_links|newsletter_emails_log|newsletter_drip_steps
 EDGE:send-newsletter[admin+campaign+subscribers→resend]|send-test-newsletter[admin+self-email]|send-test-automated-template[admin+test-template]|send-automated-campaign[trigger-based]
-FRONTEND:NewsletterManager[7-tabs:Campaigns|Automated|Templates|Email-Log|Subscribers|Analytics|Settings]
+FRONTEND:NewsletterManager[7-tabs:Campaigns|Automated|Templates|Email-Log|Subscribers|Analytics|Settings]|NewsletterSignup[compact-widget|full-page+redirect]
 TABS:Campaigns[manual-campaigns+draft-scheduled-sent]|Automated[trigger-templates+log]|Templates[reusable-content]|Email-Log[sent-tracking]|Subscribers[manage-list]|Analytics[open-click-rates]|Settings[header-footer-org]
 CAMPAIGNS:create→edit-rich-text→preview→test-send→schedule→send→track
 AUTOMATED:create-template→set-trigger[welcome|anniversary|etc]→auto-send-on-event
@@ -492,6 +495,8 @@ HEADER-FOOTER:reusable-header-footer→enabled-toggle→inject-into-emails
 TRACKING:link-tracking[short-codes]|open-tracking[pixel]|click-analytics
 RLS:admins-only-campaigns-templates|anyone-subscribe|admins-view-logs
 MOBILE:tab-bar-wraps[inline-flex+flex-wrap+whitespace-nowrap]
+SIGNUP-FLOW:header-btn→/newsletter-page→form→success-toast→auto-redirect-home-1.5s
+FIXED-2025-10-25:landing-page-redirect-after-signup→improves-UX→user-knows-signup-complete
 DOC:NEWSLETTER_SYSTEM.md
 
 ## TEST_PHILOSOPHY

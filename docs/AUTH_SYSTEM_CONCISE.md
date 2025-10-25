@@ -27,8 +27,14 @@ Authentication system (`/auth`) with signup/login, role assignment, terms accept
 4. **Trigger:** `on_auth_user_created` → `handle_new_user()` function
    - Inserts into `profiles` (id, display_name, email)
    - Inserts into `user_roles` (user_id, role)
-5. Call `record-terms-acceptance` edge function (stores IP, user agent)
-6. Redirect based on role/vendor status
+5. **Terms Recording:** Immediately call `record-terms-acceptance` edge function
+   - Stores user_id, terms_version, privacy_version, accepted_at
+   - Captures IP address and user agent for audit trail
+   - Error is caught and logged but doesn't block signup
+6. Subscribe to newsletter if opted in
+7. Redirect based on role/vendor status
+
+**Critical Fix (2025-10-25):** Terms acceptance is now recorded immediately during signup, not deferred. This prevents users from seeing the terms dialog twice.
 
 ## Login Flow
 1. User enters email/password
@@ -119,8 +125,9 @@ SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = _user_id AND role = _rol
 | Can't sign up | Check terms acceptance, valid email |
 | Wrong redirect | Verify vendor status check |
 | Role not assigned | Check `handle_new_user()` trigger |
-| Terms loop | Verify `terms_acceptance` record created |
+| ~~Terms loop~~ | **FIXED 2025-10-25:** Terms now recorded during signup |
 | Avatar not showing | Check `avatar_number` in profiles |
+| Newsletter redirect | Form redirects to landing page after 1.5s |
 
 **Files:** `Auth.tsx`, `TermsAcceptanceGuard.tsx`, `TermsAcceptanceDialog.tsx`, `useTermsCheck.ts`, `record-terms-acceptance/index.ts`
 

@@ -5,6 +5,10 @@ import { getTestAccount } from '../fixtures/test-accounts';
 /**
  * Newsletter System UI E2E Tests - WITH SHARD-SPECIFIC ACCOUNTS
  * Tests the complete newsletter management interface including campaigns, templates, subscribers, and analytics
+ * 
+ * RECENT ADDITIONS (2025-10-25):
+ * - Public newsletter signup flow test with redirect verification
+ * - Tests user journey: landing page → newsletter button → form → success → redirect back to landing
  */
 test.describe('Newsletter System UI @fast', () => {
   let adminPage: Page;

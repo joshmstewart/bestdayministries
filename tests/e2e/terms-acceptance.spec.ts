@@ -159,29 +159,25 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
     await expect(signUpBtn).toBeEnabled({ timeout: 5000 });
     await signUpBtn.click();
     
-    // Wait for either Terms dialog OR redirect to community
-    await Promise.race([
-      page.waitForSelector('button:has-text("Accept"), button:has-text("I Accept")', { timeout: 5000 }).catch(() => null),
-      page.waitForURL(/\/community/, { timeout: 5000 }).catch(() => null)
-    ]);
+    // CRITICAL: After signup with terms checked, user should NOT see terms dialog again
+    // Wait for redirect to community
+    await page.waitForURL(/\/community/, { timeout: 10000 });
+    console.log('✅ Redirected to community page');
     
-    // If terms dialog appears, accept it
-    const acceptBtn = page.locator('button:has-text("Accept"), button:has-text("I Accept")').first();
-    if (await acceptBtn.isVisible().catch(() => false)) {
-      const dialogCheckbox = page.locator('input[type="checkbox"]').first();
-      await dialogCheckbox.check();
-      await expect(dialogCheckbox).toBeChecked({ timeout: 2000 });
-      await expect(acceptBtn).toBeEnabled({ timeout: 2000 });
-      await acceptBtn.click();
-      await page.waitForTimeout(2000);
-    }
+    // Wait a bit for any potential dialog to appear
+    await page.waitForTimeout(2000);
     
-    // Should redirect to app (community or home)
+    // Terms dialog should NOT appear (terms were recorded during signup)
+    const termsDialog = page.locator('text=/Accept Terms|I Accept/i').first();
+    const dialogVisible = await termsDialog.isVisible().catch(() => false);
+    
+    expect(dialogVisible).toBe(false);
+    console.log('✅ No second terms dialog - terms recorded during signup');
+    
+    // Verify we're on community page and can use the app
     const currentUrl = page.url();
-    const isRedirected = currentUrl.includes('/community') || (currentUrl.includes('/') && !currentUrl.includes('/auth'));
-    
-    expect(isRedirected).toBeTruthy();
-    console.log('✅ Successfully signed up and redirected to app');
+    expect(currentUrl).toContain('/community');
+    console.log('✅ Successfully signed up without double terms dialog');
   });
 
   test('acceptance is recorded in database with IP', async ({ page }) => {

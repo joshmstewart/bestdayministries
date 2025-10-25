@@ -1,5 +1,23 @@
 # Unified Test Data Cleanup System
 
+## ⚠️ RECENT FIXES (2025-10-25)
+
+**Fixed Critical Cleanup Issues:**
+1. ✅ **Notifications Cleanup** - Moved pattern-based notification cleanup outside conditional block so it always runs, even when no test users exist
+2. ✅ **User Cleanup** - Added "New Member" to name patterns to catch users created during tests who never changed their display name
+3. ✅ **Persistent Account Naming** - All 10 persistent test accounts now have `[TEST]` prefix for clarity (e.g., `[TEST] Main User`, `[TEST] Shard 1 User`)
+
+**What Changed:**
+- Notifications from test contact forms (e.g., `@send.bestdayministries.org`) now delete properly
+- Test users with default "New Member" names now delete properly
+- Persistent test accounts are clearly labeled to indicate their purpose
+
+**Files Modified:**
+- `supabase/functions/cleanup-test-data-unified/index.ts` (notification and user cleanup logic)
+- `supabase/functions/create-persistent-test-accounts/index.ts` (display name updates)
+
+---
+
 ## Overview
 
 This system provides **ONE comprehensive cleanup mechanism** for all test data created during both email testing and general E2E testing. It combines the meticulous 13-table cascade cleanup from the email testing system with flexible pattern-based cleanup for E2E tests.
