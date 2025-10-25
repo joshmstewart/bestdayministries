@@ -713,17 +713,67 @@ serve(async (req) => {
         }
       }
       
-      // 12. Also delete vendors by name pattern
+      // 12. Also delete vendors by name pattern (with proper FK cleanup)
       for (const pattern of namePatterns) {
-        const { error: vendorPatternError } = await supabaseAdmin
+        // First, find all vendors matching this pattern
+        const { data: patternVendors, error: findVendorsError } = await supabaseAdmin
           .from('vendors')
-          .delete()
+          .select('id')
           .ilike('business_name', `%${pattern}%`);
         
-        if (vendorPatternError) {
-          console.error(`Error deleting vendors with pattern ${pattern}:`, vendorPatternError);
-        } else {
-          console.log(`✅ Deleted vendors with pattern: ${pattern}`);
+        if (findVendorsError) {
+          console.error(`Error finding vendors with pattern ${pattern}:`, findVendorsError);
+          continue;
+        }
+        
+        if (patternVendors && patternVendors.length > 0) {
+          const patternVendorIds = patternVendors.map(v => v.id);
+          
+          // Find all products for these vendors
+          const { data: patternProducts } = await supabaseAdmin
+            .from('products')
+            .select('id')
+            .in('vendor_id', patternVendorIds);
+          
+          if (patternProducts && patternProducts.length > 0) {
+            const patternProductIds = patternProducts.map(p => p.id);
+            
+            // Delete order_items first
+            const { error: orderItemsError } = await supabaseAdmin
+              .from('order_items')
+              .delete()
+              .in('product_id', patternProductIds);
+            
+            if (orderItemsError) {
+              console.error(`Error deleting order_items for pattern ${pattern}:`, orderItemsError);
+            } else {
+              console.log(`✅ Deleted order_items for vendor pattern: ${pattern}`);
+            }
+            
+            // Now delete products
+            const { error: productsError } = await supabaseAdmin
+              .from('products')
+              .delete()
+              .in('id', patternProductIds);
+            
+            if (productsError) {
+              console.error(`Error deleting products for pattern ${pattern}:`, productsError);
+            } else {
+              console.log(`✅ Deleted products for vendor pattern: ${pattern}`);
+            }
+          }
+          
+          // Finally delete the vendors
+          const { error: vendorPatternError } = await supabaseAdmin
+            .from('vendors')
+            .delete()
+            .in('id', patternVendorIds);
+          
+          if (vendorPatternError) {
+            console.error(`Error deleting vendors with pattern ${pattern}:`, vendorPatternError);
+          } else {
+            console.log(`✅ Deleted vendors with pattern: ${pattern}`);
+          }
         }
       }
       
