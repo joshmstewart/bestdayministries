@@ -317,3 +317,73 @@ test.describe('Newsletter System UI @fast', () => {
     });
   });
 });
+
+/**
+ * Public Newsletter Signup Flow Tests
+ * Tests the user-facing newsletter signup from landing page
+ */
+test.describe('Public Newsletter Signup @fast', () => {
+  test('user can sign up for newsletter from landing page and is redirected', async ({ page }) => {
+    const testEmail = `newsletter-signup-${Date.now()}@example.com`;
+    
+    // Navigate to landing page
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    
+    // Find and click newsletter button in header
+    const newsletterButton = page.locator('a[href="/newsletter"], button:has-text("Newsletter")').first();
+    await expect(newsletterButton).toBeVisible({ timeout: 10000 });
+    await newsletterButton.click();
+    
+    // Should be on newsletter page
+    await expect(page).toHaveURL('/newsletter');
+    await page.waitForLoadState('networkidle');
+    
+    // Verify newsletter signup form is visible
+    await expect(page.locator('h2:has-text("Join Our Newsletter")')).toBeVisible({ timeout: 10000 });
+    
+    // Fill out the form
+    await page.fill('input[type="email"]', testEmail);
+    
+    // Check the consent checkbox
+    await page.click('label:has-text("I agree to receive email")');
+    
+    // Submit the form
+    await page.click('button:has-text("Subscribe to Newsletter")');
+    
+    // Should see success message
+    await expect(page.locator('text=/Successfully subscribed/i')).toBeVisible({ timeout: 10000 });
+    
+    // Should be redirected back to landing page
+    await expect(page).toHaveURL('/', { timeout: 3000 });
+    
+    // Verify subscriber was created in database
+    const result = await page.evaluate(async (email) => {
+      // @ts-ignore
+      const { supabase } = await import('/src/integrations/supabase/client.ts');
+      
+      const { data } = await supabase
+        .from('newsletter_subscribers')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+      
+      return data;
+    }, testEmail);
+    
+    expect(result).toBeTruthy();
+    expect(result.email).toBe(testEmail);
+    expect(result.source).toBe('website_signup');
+    
+    // Cleanup
+    await page.evaluate(async (email) => {
+      // @ts-ignore
+      const { supabase } = await import('/src/integrations/supabase/client.ts');
+      
+      await supabase
+        .from('newsletter_subscribers')
+        .delete()
+        .eq('email', email);
+    }, testEmail);
+  });
+});
