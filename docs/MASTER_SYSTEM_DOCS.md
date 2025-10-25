@@ -499,6 +499,30 @@ SIGNUP-FLOW:header-btn→/newsletter-page→form→success-toast→auto-redirect
 FIXED-2025-10-25:landing-page-redirect-after-signup→improves-UX→user-knows-signup-complete
 DOC:NEWSLETTER_SYSTEM.md
 
+## TEST_ANALYSIS_WORKFLOW
+MANDATORY:output-PRE-ANALYSIS-CHECKLIST-before-any-conclusions
+PRE-CHECKLIST:
+```
+□ Parsed ALL test logs [not-summary]
+□ Listed EVERY failing test [file+line+error]
+□ Searched codebase ≥10× for context
+□ Read EVERY test file in logs
+□ Read EVERY component referenced in tests
+□ Verified claims vs actual code
+□ Created comparison table [test-expect vs actual-code]
+□ Documented patterns across failures
+□ Proposed fixes [file:line references]
+□ Ready: [yes/no]
+```
+STEPS:1)parse-complete-logs→2)search-read-minimum-10-files→3)read-implementation-code→4)create-comparison-table[test-vs-code]→5)verify-with-quotes→6)document-patterns
+COMPARISON-TABLE-REQUIRED:Test-File+Line|Test-Expects|Code-Actually-Has|Match[YES/NO]|Root-Cause|Proposed-Fix[file:line]
+NEVER:assumptions-without-verification|claim-comprehensive-with-<10-reads|conclusions-before-reading-full-files|claim-features-missing-without-reading-components
+ALWAYS:quote-actual-code-proving-claims|read-complete-files-not-excerpts|search-patterns-across-tests|verify-selectors-exist-in-rendered-output
+CONSEQUENCES:lazy-analysis→wrong-conclusions→wasted-user-time→lost-trust→multiple-correction-rounds
+CORRECT-APPROACH:output-checklist→read-logs→search-10+×→read-all-test-files→read-all-components→compare-table→verify-quotes→document-patterns→present-findings
+WRONG-APPROACH:❌read-summary-only❌search-2-3×-claim-done❌assume-without-verify❌skip-implementation-code❌no-file:line-refs
+IF-USER-SAYS:"not-thorough"→YOU-WEREN'T|"that-exists"→YOU-MISSED-IT|"search-more"→YOU-DIDN'T-SEARCH-ENOUGH
+
 ## TEST_PHILOSOPHY
 CRITICAL-RULES:fix-root-cause-never-skip|document-all-learnings|tests-must-pass-or-fail|address-preconditions-immediately
 APPROACH:test-skip→investigate-why→fix-precondition[seed-data|feature|environment]→throw-error-if-missing→document-fix
