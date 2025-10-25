@@ -170,16 +170,29 @@ serve(async (req) => {
         console.log('✅ Deleted contact form replies from persistent accounts');
       }
       
-      // Delete contact form submissions by persistent accounts
-      const { error: persistentSubmissionsError } = await supabaseAdmin
-        .from('contact_form_submissions')
-        .delete()
-        .in('user_id', persistentAccountIds);
+      // Delete contact form submissions by persistent accounts (NO user_id column - use email pattern)
+      console.log('🧹 Cleaning contact form submissions from persistent accounts by email...');
+      const { data: persistentProfiles } = await supabaseAdmin
+        .from('profiles')
+        .select('email')
+        .in('id', persistentAccountIds);
       
-      if (persistentSubmissionsError) {
-        console.error('Error deleting contact form submissions from persistent accounts:', persistentSubmissionsError);
-      } else {
-        console.log('✅ Deleted contact form submissions from persistent accounts');
+      if (persistentProfiles && persistentProfiles.length > 0) {
+        const persistentEmails = persistentProfiles.map(p => p.email).filter(Boolean);
+        console.log(`Found ${persistentEmails.length} persistent account emails:`, persistentEmails);
+        
+        if (persistentEmails.length > 0) {
+          const { error: persistentSubmissionsError, count } = await supabaseAdmin
+            .from('contact_form_submissions')
+            .delete({ count: 'exact' })
+            .in('email', persistentEmails);
+          
+          if (persistentSubmissionsError) {
+            console.error('❌ Error deleting contact form submissions from persistent accounts:', persistentSubmissionsError);
+          } else {
+            console.log(`✅ Deleted ${count || 0} contact form submissions from persistent accounts`);
+          }
+        }
       }
       
       // Delete discussion comments by persistent accounts
@@ -372,18 +385,23 @@ serve(async (req) => {
           '@send.bestdayministries.org'  // Catch Resend email notifications
         ];
         
+        console.log(`🧹 Deleting notifications by ${notificationPatterns.length} message patterns...`);
+        let notifDeletedTotal = 0;
+        
         for (const pattern of notificationPatterns) {
-          const { error: patternNotifError } = await supabaseAdmin
+          const { error: patternNotifError, count } = await supabaseAdmin
             .from('notifications')
-            .delete()
+            .delete({ count: 'exact' })
             .ilike('message', `%${pattern}%`);
           
           if (patternNotifError) {
-            console.error(`Error deleting notifications with pattern ${pattern}:`, patternNotifError);
-          } else {
-            console.log(`✅ Deleted notifications with pattern: ${pattern}`);
+            console.error(`❌ Error deleting notifications with pattern ${pattern}:`, patternNotifError);
+          } else if (count && count > 0) {
+            console.log(`✅ Deleted ${count} notifications with pattern: ${pattern}`);
+            notifDeletedTotal += count;
           }
         }
+        console.log(`✅ Total notifications deleted by patterns: ${notifDeletedTotal}`);
         
         // 2. Delete notification preferences
         console.log('🧹 Deleting notification preferences...');
@@ -467,21 +485,29 @@ serve(async (req) => {
       // NOTE: contact_form_submissions table has NO user_id column
       // Delete by email/name patterns only
       
-      // Delete by email/name patterns
+      // Delete by email/name patterns with detailed logging
+      console.log(`🧹 Deleting contact form submissions by ${testEmailPatterns.length} patterns...`);
+      let totalDeleted = 0;
+      
       for (const pattern of testEmailPatterns) {
-        const { error: submissionsError } = await supabaseAdmin
+        const { error: submissionsError, count } = await supabaseAdmin
           .from('contact_form_submissions')
-          .delete()
+          .delete({ count: 'exact' })
           .or(`email.like.${pattern},name.like.${pattern}`);
         
         if (submissionsError) {
-          console.error(`Error deleting contact form submissions with pattern ${pattern}:`, submissionsError);
+          console.error(`❌ Error deleting contact form submissions with pattern ${pattern}:`, submissionsError);
+        } else if (count && count > 0) {
+          console.log(`✅ Deleted ${count} submissions with pattern: ${pattern}`);
+          totalDeleted += count;
         }
       }
-      console.log('✅ Deleted contact form submissions by patterns');
+      console.log(`✅ Total contact form submissions deleted by patterns: ${totalDeleted}`);
       
       // CRITICAL FIX: Also delete contact form submissions by EMAIL pattern (for email tests)
-      console.log('🧹 Deleting contact form submissions by email pattern...');
+      console.log('🧹 Deleting contact form submissions by email-specific patterns...');
+      let emailDeletedTotal = 0;
+      
       const emailPatterns = [
         'test-%@example.com', 
         'test-reply-%@example.com', 
@@ -492,19 +518,21 @@ serve(async (req) => {
         'contenttest%@example.com',
         'visualtest%@example.com'
       ];
+      
       for (const pattern of emailPatterns) {
-        const { error: emailSubmissionsError } = await supabaseAdmin
+        const { error: emailSubmissionsError, count } = await supabaseAdmin
           .from('contact_form_submissions')
-          .delete()
+          .delete({ count: 'exact' })
           .ilike('email', pattern);
         
         if (emailSubmissionsError) {
-          console.error(`Error deleting submissions with email pattern ${pattern}:`, emailSubmissionsError);
-        } else {
-          console.log(`✅ Deleted submissions with email pattern: ${pattern}`);
+          console.error(`❌ Error deleting submissions with email pattern ${pattern}:`, emailSubmissionsError);
+        } else if (count && count > 0) {
+          console.log(`✅ Deleted ${count} submissions with email pattern: ${pattern}`);
+          emailDeletedTotal += count;
         }
       }
-      console.log('✅ Deleted all contact form submissions');
+      console.log(`✅ Total email pattern submissions deleted: ${emailDeletedTotal}`);
       
       // 6. Delete discussion comments by test users
       console.log('🧹 Deleting discussion comments...');
