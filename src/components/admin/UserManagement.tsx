@@ -43,8 +43,6 @@ export const UserManagement = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState("");
   const [creatingTestAccounts, setCreatingTestAccounts] = useState(false);
-  const [cleaningTestData, setCleaningTestData] = useState(false);
-  const [cleanupDialogOpen, setCleanupDialogOpen] = useState(false);
   const [loggingInAs, setLoggingInAs] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -376,63 +374,6 @@ export const UserManagement = () => {
     await loadUsers();
   };
 
-  const handleCleanTestData = async () => {
-    setCleaningTestData(true);
-    setCleanupDialogOpen(false);
-
-    try {
-      console.log('🧹 Starting manual test data cleanup...');
-      
-      const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
-        body: {
-          namePatterns: [
-            'Test User',
-            'Test Bestie', 
-            'Test Guardian', 
-            'Test Supporter',
-            'Reply Test User',
-            'Admin Test User',
-            'Thread Test User',
-            'Anonymous Test User',
-            'Authenticated Test User',
-            'E2E', 
-            'Email Test', 
-            'Accept Test', 
-            'Content Test', 
-            'Visual Test'
-          ],
-          emailPrefix: 'test-'
-        }
-      });
-
-      if (error) {
-        console.error('❌ Cleanup error:', error);
-        toast({
-          title: "Cleanup failed",
-          description: error.message || 'Failed to clean test data',
-          variant: "destructive",
-        });
-      } else {
-        console.log('✅ Cleanup result:', data);
-        toast({
-          title: "Test data cleaned",
-          description: `Successfully cleaned test data. Deleted ${data.deletedUsers || 0} test users and data from ${data.persistentAccountsCleaned || 0} persistent accounts.`,
-        });
-        
-        // Reload users to reflect changes
-        await loadUsers();
-      }
-    } catch (error: any) {
-      console.error('❌ Exception during cleanup:', error);
-      toast({
-        title: "Cleanup error",
-        description: error.message || 'An unexpected error occurred',
-        variant: "destructive",
-      });
-    }
-
-    setCleaningTestData(false);
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -741,58 +682,6 @@ export const UserManagement = () => {
               </>
             )}
           </Button>
-          
-          <AlertDialog open={cleanupDialogOpen} onOpenChange={setCleanupDialogOpen}>
-            <AlertDialogTrigger asChild>
-              <Button
-                disabled={cleaningTestData}
-                className="w-full gap-2"
-                variant="destructive"
-              >
-                {cleaningTestData ? (
-                  <>
-                    <div className="w-4 h-4 rounded-full bg-white animate-pulse" />
-                    Cleaning Test Data...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Clean Test Data
-                  </>
-                )}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Clean Test Data?</AlertDialogTitle>
-                <AlertDialogDescription className="space-y-2">
-                  <p>This will permanently delete:</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li>Test users and their profiles</li>
-                    <li>Test notifications and contact forms</li>
-                    <li>Test discussion posts and comments</li>
-                    <li>Test sponsorships and events</li>
-                    <li>All data created by test users</li>
-                  </ul>
-                  <p className="font-semibold mt-2">The following accounts will be preserved:</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li>testbestie@example.com</li>
-                    <li>testguardian@example.com</li>
-                    <li>testsupporter@example.com</li>
-                  </ul>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    These accounts remain but their test data will be cleaned.
-                  </p>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleCleanTestData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Clean Test Data
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </CardContent>
       </Card>
 
