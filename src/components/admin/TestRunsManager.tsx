@@ -69,11 +69,10 @@ const TestRunsManager = () => {
         description: "Removing all test entries from the database. This may take a moment...",
       });
 
-      // Call cleanup with both name patterns and email prefix to catch all test data
+      // Call cleanup to catch all test data patterns
       const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
         body: {
-          emailPrefix: 'emailtest',  // Catches all emailtest-* users
-          namePatterns: ['Test', 'E2E']  // Catches name-based test data
+          namePatterns: ['Test', 'E2E', 'Email Test', 'Accept Test', 'Content Test', 'Visual Test']
         }
       });
 

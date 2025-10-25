@@ -87,6 +87,9 @@ serve(async (req) => {
       // Enhanced generic email patterns - catches orphaned test users
       if (
         email.includes('emailtest-') ||  // Catches emailtest-default-* and emailtest-{runId}-*
+        email.includes('accepttest') ||  // Catches accepttest{timestamp}@example.com
+        email.includes('contenttest') ||  // Catches content test users
+        email.includes('visualtest') ||  // Catches visual test users
         email === 'testvendor@example.com' ||
         (email.includes('test') && email.includes('@test.com')) ||
         email.startsWith('test-') ||  // Matches test-{timestamp}@example.com
