@@ -28,9 +28,13 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🧹 Starting unified test data cleanup...');
+    console.log('🧹 ============================================');
+    console.log('🧹 UNIFIED TEST DATA CLEANUP - START');
+    console.log('🧹 ============================================');
+    console.log(`🧹 Timestamp: ${new Date().toISOString()}`);
     
     const options: CleanupOptions = await req.json();
+    console.log('🧹 Cleanup options:', JSON.stringify(options, null, 2));
 
     // Create admin client
     const supabaseAdmin = createClient(
@@ -996,13 +1000,21 @@ serve(async (req) => {
       console.log('✅ Cleaned orphaned test notifications');
     }
 
-    console.log('✅ Unified test data cleanup complete!');
+    console.log('✅ ============================================');
+    console.log('✅ UNIFIED TEST DATA CLEANUP - COMPLETE');
+    console.log('✅ ============================================');
+    console.log(`✅ Deleted users: ${testUsers.length}`);
+    console.log(`✅ Persistent accounts cleaned: ${persistentAccountIds.length}`);
+    console.log(`✅ Timestamp: ${new Date().toISOString()}`);
+    console.log('✅ ============================================');
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Test data cleaned up successfully',
-        deletedUsers: testUsers.length
+        deletedUsers: testUsers.length,
+        persistentAccountsCleaned: persistentAccountIds.length,
+        timestamp: new Date().toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -1012,11 +1024,20 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ Error cleaning up test data:', error);
+    console.error('❌ ============================================');
+    console.error('❌ ERROR IN TEST DATA CLEANUP');
+    console.error('❌ ============================================');
+    console.error('❌ Error:', error);
+    console.error('❌ Message:', errorMessage);
+    console.error('❌ Stack:', error instanceof Error ? error.stack : 'N/A');
+    console.error('❌ Timestamp:', new Date().toISOString());
+    console.error('❌ ============================================');
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: errorMessage
+        error: errorMessage,
+        timestamp: new Date().toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
