@@ -54,9 +54,8 @@ const Auth = () => {
     }
   });
 
-  // 🚀 PRODUCTION FIX: Removed terms recording from Auth.tsx
-  // Terms are now ONLY recorded through TermsAcceptanceDialog for reliability
-  // This eliminates the race condition where edge function was called before session was stable
+  // Terms acceptance is recorded immediately after successful signup (see line ~142)
+  // This ensures users don't see the terms dialog again after accepting during signup
 
   useEffect(() => {
     const redirectPath = searchParams.get('redirect');
@@ -139,6 +138,22 @@ const Auth = () => {
 
         if (error) throw error;
 
+        // Record terms acceptance immediately after successful signup
+        if (data.user && acceptedTerms) {
+          try {
+            await supabase.functions.invoke("record-terms-acceptance", {
+              body: {
+                termsVersion: "1.0",
+                privacyVersion: "1.0",
+              },
+            });
+            console.log('✅ Terms recorded successfully after signup');
+          } catch (termsError) {
+            console.error("Error recording terms:", termsError);
+            // Don't block signup if terms recording fails - guard will catch it later
+          }
+        }
+
         // Subscribe to newsletter if checked
         if (subscribeToNewsletter && data.user) {
           try {
@@ -180,10 +195,6 @@ const Auth = () => {
             },
           });
         }, 0);
-
-        // Set flag to record terms acceptance once session is confirmed
-        localStorage.setItem('pendingTermsAcceptance', 'true');
-        localStorage.setItem('signupTimestamp', Date.now().toString());
 
         toast({
           title: "Welcome to Best Day Ministries!",

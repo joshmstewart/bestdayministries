@@ -54,9 +54,6 @@ export const useTermsCheck = (userId: string | undefined) => {
       if (error) throw error;
 
       setNeedsAcceptance(false);
-      // Clear any pending flags
-      localStorage.removeItem('pendingTermsAcceptance');
-      localStorage.removeItem('signupTimestamp');
       
       toast({
         title: "Terms Accepted",

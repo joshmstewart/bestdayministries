@@ -31,12 +31,7 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
   }, []);
 
   const handleAccepted = async () => {
-    // 🚀 PRODUCTION FIX: Just clear flags, let React re-render naturally
-    // No page reload needed since TermsAcceptanceDialog now handles recording reliably
-    localStorage.removeItem('pendingTermsAcceptance');
-    localStorage.removeItem('signupTimestamp');
-    
-    // Force a re-check of terms status
+    // Force a re-check of terms status after acceptance
     window.location.href = '/community';
   };
 
@@ -44,28 +39,9 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
   const publicPages = ['/auth', '/auth/vendor', '/terms', '/privacy', '/', '/newsletter'];
   const isPublicPage = publicPages.includes(location.pathname);
 
-  // Check if user just signed up (within last 30 seconds)
-  const signupTimestamp = localStorage.getItem('signupTimestamp');
-  const isRecentSignup = signupTimestamp && (Date.now() - parseInt(signupTimestamp)) < 30000;
-
   // Wait for initial check to complete
   if (!checkComplete || loading) {
     return <>{children}</>;
-  }
-
-  // Give newly signed up users a brief grace period before showing dialog
-  if (isRecentSignup && needsAcceptance) {
-    const gracePeriod = 2000; // 2 seconds
-    const elapsed = Date.now() - parseInt(signupTimestamp || '0');
-    
-    if (elapsed < gracePeriod) {
-      // Still within grace period, show children without dialog
-      setTimeout(() => {
-        // Force a re-check after grace period
-        window.location.reload();
-      }, gracePeriod - elapsed);
-      return <>{children}</>;
-    }
   }
 
   // Only show dialog if user is logged in, not on a public page, and needs acceptance
