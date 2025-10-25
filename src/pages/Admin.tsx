@@ -48,6 +48,7 @@ import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
 import CoffeeShopManager from "@/components/admin/CoffeeShopManager";
 import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
+import { TestEnvironmentManager } from "@/components/admin/TestEnvironmentManager";
 import { TTSVoiceManager } from "@/components/admin/TTSVoiceManager";
 import { CoinsManager } from "@/components/admin/CoinsManager";
 import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
@@ -594,15 +595,27 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="testing">
-            <Card>
-              <CardHeader>
-                <CardTitle>Automated Test Runs</CardTitle>
-                <CardDescription>View GitHub Actions test run history and results</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TestRunsManager />
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Test Environment Management</CardTitle>
+                  <CardDescription>Reset test data and manage test accounts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TestEnvironmentManager />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Automated Test Runs</CardTitle>
+                  <CardDescription>View GitHub Actions test run history and results</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TestRunsManager />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="issues">

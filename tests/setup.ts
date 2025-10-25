@@ -1,16 +1,22 @@
-import { afterEach, afterAll, vi } from 'vitest';
+import { afterEach, afterAll, beforeAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { server } from './mocks/server';
+
+// Establish API mocking before all tests
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+  // Reset any request handlers that we may add during the tests
+  server.resetHandlers();
 });
 
 // Global cleanup after all tests complete
 afterAll(async () => {
-  console.log('🧹 Running final test data cleanup...');
-  // Note: Database cleanup is handled by the cleanup edge function
-  // which can be called manually if needed
+  server.close();
+  console.log('🧹 MSW server closed. Database cleanup available via admin panel.');
 });
 
 // Mock window.matchMedia
