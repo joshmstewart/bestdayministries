@@ -139,6 +139,7 @@ const Auth = () => {
         if (error) throw error;
 
         // Record terms acceptance immediately after successful signup
+        // AWAIT the edge function to ensure it completes before redirect
         if (data.user && acceptedTerms) {
           try {
             const termsResult = await supabase.functions.invoke("record-terms-acceptance", {
@@ -149,12 +150,14 @@ const Auth = () => {
             });
             
             if (termsResult.error) {
-              console.error("Terms recording failed:", termsResult.error);
+              console.error("⚠️  Terms recording failed:", termsResult.error);
+              // Don't block signup, but log for monitoring
             } else {
               console.log('✅ Terms recorded successfully after signup');
             }
           } catch (termsError) {
-            console.error("Error recording terms:", termsError);
+            console.error("⚠️  Error recording terms:", termsError);
+            // Don't block signup, but log for monitoring
           }
         }
 

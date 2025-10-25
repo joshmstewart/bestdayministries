@@ -6,6 +6,7 @@ import { TermsAcceptanceDialog } from "./TermsAcceptanceDialog";
 
 export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }) => {
   const [userId, setUserId] = useState<string | undefined>();
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
   const [checkComplete, setCheckComplete] = useState(false);
   const { needsAcceptance, loading, recordAcceptance } = useTermsCheck(userId);
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUserId(session?.user?.id);
+      setUserCreatedAt(session?.user?.created_at || null);
       setCheckComplete(true);
     };
 
@@ -22,6 +24,7 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUserId(session?.user?.id);
+      setUserCreatedAt(session?.user?.created_at || null);
       setCheckComplete(true);
     });
 
@@ -35,6 +38,13 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
     window.location.href = '/community';
   };
 
+  // Helper function to check if user is newly created (< 60 seconds old)
+  const isNewUser = (createdAt: string | null): boolean => {
+    if (!createdAt) return false;
+    const accountAge = Date.now() - new Date(createdAt).getTime();
+    return accountAge < 60000; // Less than 60 seconds old
+  };
+
   // Don't show dialog on auth pages or terms/privacy pages
   const publicPages = ['/auth', '/auth/vendor', '/terms', '/privacy', '/', '/newsletter'];
   const isPublicPage = publicPages.includes(location.pathname);
@@ -44,8 +54,9 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
     return <>{children}</>;
   }
 
-  // Only show dialog if user is logged in, not on a public page, and needs acceptance
-  const shouldShowDialog = userId && !isPublicPage && needsAcceptance;
+  // Only show dialog if user is logged in, not on a public page, needs acceptance,
+  // AND is not a brand new user (give edge function time to complete)
+  const shouldShowDialog = userId && !isPublicPage && needsAcceptance && !isNewUser(userCreatedAt);
 
   return (
     <>
