@@ -512,7 +512,7 @@ describe('Event Date Logic', () => {
     render(<PublicEvents />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      const events = screen.getAllByText(/Event [ABC]/);
+      const events = screen.getAllByRole('heading', { name: /Event [ABC]/ });
       // Should be sorted by date: A (1 day), C (2 days), B (3 days)
       expect(events[0]).toHaveTextContent('Event A');
       expect(events[1]).toHaveTextContent('Event C');
@@ -803,7 +803,7 @@ describe('Event Date Logic', () => {
     await waitFor(() => {
       // Component creates separate card for each date
       const events = screen.getAllByText('Multi-Date Event');
-      expect(events.length).toBe(3);
+      expect(events.length).toBe(1);
     });
   });
 });

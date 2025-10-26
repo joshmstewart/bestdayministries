@@ -397,7 +397,7 @@ describe('Event Card Display', () => {
       expect(screen.getByText('Conference')).toBeInTheDocument();
     });
 
-    const locationLink = container.querySelector('a[href*="google.com/maps"]');
-    expect(locationLink).toBeInTheDocument();
+    const locationButton = container.querySelector('button[title="Open in Google Maps"]');
+    expect(locationButton).toBeInTheDocument();
   });
 });
