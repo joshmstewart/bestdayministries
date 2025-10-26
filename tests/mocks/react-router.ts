@@ -11,6 +11,7 @@ export const mockUseLocation = vi.fn(() => ({
 }));
 export const mockUseParams = vi.fn(() => ({}));
 export const mockUseSearchParams = vi.fn(() => [new URLSearchParams(), vi.fn()]);
+export const mockUseRoutes = vi.fn(() => null);
 
 // Mock the entire react-router-dom module
 vi.mock('react-router-dom', async () => {
@@ -21,5 +22,6 @@ vi.mock('react-router-dom', async () => {
     useLocation: mockUseLocation,
     useParams: mockUseParams,
     useSearchParams: mockUseSearchParams,
+    useRoutes: mockUseRoutes,
   };
 });
