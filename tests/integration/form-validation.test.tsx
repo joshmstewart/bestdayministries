@@ -1,0 +1,322 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ContactForm } from '@/components/ContactForm';
+import '@testing-library/jest-dom';
+
+// Mock Supabase
+const mockSupabase = {
+  from: vi.fn(() => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        maybeSingle: vi.fn(() => Promise.resolve({
+          data: {
+            is_enabled: true,
+            title: "Contact Us",
+            description: "We'd love to hear from you",
+            success_message: "Thank you for your message!"
+          }
+        }))
+      }))
+    })),
+    insert: vi.fn(() => Promise.resolve({ error: null }))
+  })),
+  auth: {
+    getUser: vi.fn(() => Promise.resolve({ data: { user: null } }))
+  },
+  storage: {
+    from: vi.fn(() => ({
+      upload: vi.fn(() => Promise.resolve({ data: { path: 'test-path' }, error: null })),
+      getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://test.com/image.jpg' } }))
+    }))
+  },
+  functions: {
+    invoke: vi.fn(() => Promise.resolve({ error: null }))
+  }
+};
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: mockSupabase
+}));
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false }
+    }
+  });
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+};
+
+describe('Form Validation - Contact Form', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('displays the contact form when enabled', async () => {
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByText('Contact Us')).toBeInTheDocument();
+    });
+  });
+
+  it('validates required fields', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument();
+    });
+
+    const submitButton = screen.getByRole('button', { name: /send message/i });
+    await user.click(submitButton);
+    
+    await waitFor(() => {
+      expect(screen.getByText(/name must be at least 2 characters/i)).toBeInTheDocument();
+    });
+  });
+
+  it('validates email format', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    const emailInput = screen.getByLabelText(/email/i);
+    await user.type(emailInput, 'invalid-email');
+    await user.tab();
+    
+    await waitFor(() => {
+      expect(screen.getByText(/invalid email address/i)).toBeInTheDocument();
+    });
+  });
+
+  it('validates minimum message length', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByLabelText(/message/i)).toBeInTheDocument();
+    });
+
+    const messageInput = screen.getByLabelText(/message/i);
+    await user.type(messageInput, 'Short');
+    await user.tab();
+    
+    await waitFor(() => {
+      expect(screen.getByText(/message must be at least 10 characters/i)).toBeInTheDocument();
+    });
+  });
+
+  it('enforces maximum field lengths', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+    });
+
+    const nameInput = screen.getByLabelText(/name/i) as HTMLInputElement;
+    const longName = 'a'.repeat(101);
+    await user.type(nameInput, longName);
+    await user.tab();
+    
+    await waitFor(() => {
+      expect(screen.getByText(/name must be less than/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows success message on valid submission', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/name/i), 'Test User');
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
+    await user.type(screen.getByLabelText(/message/i), 'This is a valid test message');
+    
+    const submitButton = screen.getByRole('button', { name: /send message/i });
+    await user.click(submitButton);
+    
+    await waitFor(() => {
+      expect(mockSupabase.from).toHaveBeenCalledWith('contact_form_submissions');
+    });
+  });
+
+  it('clears form after successful submission', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+    });
+
+    const nameInput = screen.getByLabelText(/name/i) as HTMLInputElement;
+    await user.type(nameInput, 'Test User');
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
+    await user.type(screen.getByLabelText(/message/i), 'This is a valid test message');
+    
+    const submitButton = screen.getByRole('button', { name: /send message/i });
+    await user.click(submitButton);
+    
+    await waitFor(() => {
+      expect(nameInput.value).toBe('');
+    });
+  });
+
+  it('disables submit button during submission', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/name/i), 'Test User');
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
+    await user.type(screen.getByLabelText(/message/i), 'This is a valid test message');
+    
+    const submitButton = screen.getByRole('button', { name: /send message/i });
+    await user.click(submitButton);
+    
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('handles image upload validation', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByText(/click to upload an image/i)).toBeInTheDocument();
+    });
+
+    const file = new File(['test'], 'test.png', { type: 'image/png' });
+    const input = screen.getByLabelText(/click to upload an image/i).querySelector('input[type="file"]') as HTMLInputElement;
+    
+    if (input) {
+      await user.upload(input, file);
+      await waitFor(() => {
+        expect(screen.getByAltText(/preview/i)).toBeInTheDocument();
+      });
+    }
+  });
+
+  it('allows removing uploaded image', async () => {
+    const user = userEvent.setup();
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      expect(screen.getByText(/click to upload an image/i)).toBeInTheDocument();
+    });
+
+    const file = new File(['test'], 'test.png', { type: 'image/png' });
+    const input = screen.getByLabelText(/click to upload an image/i).querySelector('input[type="file"]') as HTMLInputElement;
+    
+    if (input) {
+      await user.upload(input, file);
+      
+      await waitFor(() => {
+        expect(screen.getByAltText(/preview/i)).toBeInTheDocument();
+      });
+
+      const removeButton = screen.getByRole('button', { name: '' });
+      await user.click(removeButton);
+      
+      await waitFor(() => {
+        expect(screen.queryByAltText(/preview/i)).not.toBeInTheDocument();
+      });
+    }
+  });
+
+  it('prefills email for authenticated users', async () => {
+    mockSupabase.auth.getUser = vi.fn(() => 
+      Promise.resolve({ 
+        data: { user: { email: 'authenticated@example.com' } } 
+      })
+    );
+
+    render(<ContactForm />, { wrapper: createWrapper() });
+    
+    await waitFor(() => {
+      const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement;
+      expect(emailInput.value).toBe('authenticated@example.com');
+    });
+  });
+});
+
+describe('Form Validation - Profile Settings', () => {
+  it('validates display name length', () => {
+    const shortName = 'ab';
+    const result = profileSchema.safeParse({
+      display_name: shortName,
+      bio: '',
+      tts_voice: 'Aria',
+      tts_enabled: true
+    });
+    
+    expect(result.success).toBe(false);
+  });
+
+  it('validates bio max length', () => {
+    const longBio = 'a'.repeat(501);
+    const result = profileSchema.safeParse({
+      display_name: 'Valid Name',
+      bio: longBio,
+      tts_voice: 'Aria',
+      tts_enabled: true
+    });
+    
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts valid profile data', () => {
+    const result = profileSchema.safeParse({
+      display_name: 'Valid Name',
+      bio: 'This is a valid bio',
+      tts_voice: 'Aria',
+      tts_enabled: true
+    });
+    
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('Form Validation - Input Sanitization', () => {
+  it('trims whitespace from inputs', () => {
+    const input = '  test@example.com  ';
+    const result = validateInput(input, 'email');
+    expect(result.trimmed).toBe('test@example.com');
+  });
+
+  it('removes HTML tags from text inputs', () => {
+    const input = '<script>alert("xss")</script>Hello';
+    const result = validateInput(input, 'text');
+    expect(result.sanitized).not.toContain('<script>');
+  });
+
+  it('validates email format', () => {
+    expect(validateInput('valid@email.com', 'email').isValid).toBe(true);
+    expect(validateInput('invalid-email', 'email').isValid).toBe(false);
+  });
+
+  it('validates URL format', () => {
+    expect(validateInput('https://example.com', 'url').isValid).toBe(true);
+    expect(validateInput('not-a-url', 'url').isValid).toBe(false);
+  });
+
+  it('enforces maximum length', () => {
+    const longText = 'a'.repeat(1001);
+    const result = validateInput(longText, 'text', { maxLength: 1000 });
+    expect(result.isValid).toBe(false);
+  });
+});
