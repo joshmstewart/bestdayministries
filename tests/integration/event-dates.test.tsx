@@ -6,23 +6,29 @@ import { PublicEvents } from '@/components/PublicEvents';
 import { format } from 'date-fns';
 
 // Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [],
-            error: null
-          }))
+vi.mock('@/integrations/supabase/client', () => {
+  const mockFrom = vi.fn(() => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        order: vi.fn(() => Promise.resolve({
+          data: [],
+          error: null
         }))
       }))
-    })),
-    auth: {
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null }))
+    }))
+  }));
+
+  const mockAuth = {
+    getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null }))
+  };
+
+  return {
+    supabase: {
+      from: mockFrom,
+      auth: mockAuth
     }
-  }
-}));
+  };
+});
 
 // Mock hooks
 vi.mock('@/hooks/useRoleImpersonation', () => ({
