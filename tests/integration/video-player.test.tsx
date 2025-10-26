@@ -109,9 +109,10 @@ describe('Video Player - Video Rendering', () => {
   it('renders uploaded videos with controls', () => {
     render(<VideoListTest />, { wrapper: createWrapper() });
     
-    const video = screen.getByRole('video');
-    expect(video).toBeInTheDocument();
-    expect(video).toHaveAttribute('controls');
+    const videoItems = screen.getAllByTestId('video-item');
+    const videoElement = videoItems[0].querySelector('video');
+    expect(videoElement).toBeInTheDocument();
+    expect(videoElement).toHaveAttribute('controls');
   });
 
   it('renders YouTube embeds with correct src', () => {

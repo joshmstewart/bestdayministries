@@ -142,7 +142,8 @@ describe('Admin Tabs - Tab Navigation', () => {
     fireEvent.click(eventsTab);
     
     await waitFor(() => {
-      expect(screen.queryByText('Users Content')).not.toBeVisible();
+      const usersContent = screen.getByText('Users Content');
+      expect(usersContent).not.toBeVisible();
       expect(screen.getByText('Events Content')).toBeVisible();
     });
   });
@@ -250,7 +251,9 @@ describe('Admin Tabs - Tab Content Loading', () => {
     render(<AdminTabsTest />, { wrapper: createWrapper() });
     
     expect(screen.getByText('Users Content')).toBeVisible();
-    expect(screen.queryByText('Analytics Content')).not.toBeVisible();
-    expect(screen.queryByText('Events Content')).not.toBeVisible();
+    const analyticsContent = screen.getByText('Analytics Content');
+    const eventsContent = screen.getByText('Events Content');
+    expect(analyticsContent).not.toBeVisible();
+    expect(eventsContent).not.toBeVisible();
   });
 });

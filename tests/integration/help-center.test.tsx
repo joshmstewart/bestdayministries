@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -101,14 +101,16 @@ describe('Help Center - Tab Navigation', () => {
     expect(screen.getByRole('tab', { name: /faqs/i })).toBeInTheDocument();
   });
 
-  it('switches between tabs', () => {
+  it('switches between tabs', async () => {
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     const guidesTab = screen.getByRole('tab', { name: /guides/i });
     fireEvent.click(guidesTab);
     
-    expect(screen.getByText('User Guide')).toBeVisible();
-    expect(screen.getByText('Admin Guide')).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByText('User Guide')).toBeVisible();
+      expect(screen.getByText('Admin Guide')).toBeVisible();
+    });
   });
 
   it('displays default tab content on load', () => {
@@ -143,55 +145,65 @@ describe('Help Center - Tours', () => {
 });
 
 describe('Help Center - Guides', () => {
-  it('displays guide items when guides tab is clicked', () => {
+  it('displays guide items when guides tab is clicked', async () => {
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     const guidesTab = screen.getByRole('tab', { name: /guides/i });
     fireEvent.click(guidesTab);
     
-    expect(screen.getByText('User Guide')).toBeInTheDocument();
-    expect(screen.getByText('Admin Guide')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('User Guide')).toBeInTheDocument();
+      expect(screen.getByText('Admin Guide')).toBeInTheDocument();
+    });
   });
 
-  it('shows view guide buttons', () => {
+  it('shows view guide buttons', async () => {
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     fireEvent.click(screen.getByRole('tab', { name: /guides/i }));
     
-    const viewButtons = screen.getAllByRole('button', { name: /view guide/i });
-    expect(viewButtons).toHaveLength(mockGuides.length);
+    await waitFor(() => {
+      const viewButtons = screen.getAllByRole('button', { name: /view guide/i });
+      expect(viewButtons).toHaveLength(mockGuides.length);
+    });
   });
 });
 
 describe('Help Center - FAQs', () => {
-  it('displays FAQ accordion when FAQ tab is clicked', () => {
+  it('displays FAQ accordion when FAQ tab is clicked', async () => {
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     const faqTab = screen.getByRole('tab', { name: /faqs/i });
     fireEvent.click(faqTab);
     
-    expect(screen.getByText('How do I sign up?')).toBeInTheDocument();
-    expect(screen.getByText('How do I reset my password?')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('How do I sign up?')).toBeInTheDocument();
+      expect(screen.getByText('How do I reset my password?')).toBeInTheDocument();
+    });
   });
 
-  it('expands FAQ accordion items on click', () => {
+  it('expands FAQ accordion items on click', async () => {
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     fireEvent.click(screen.getByRole('tab', { name: /faqs/i }));
     
-    const firstQuestion = screen.getByText('How do I sign up?');
-    fireEvent.click(firstQuestion);
-    
-    expect(screen.getByText('Click the signup button')).toBeVisible();
+    await waitFor(() => {
+      const firstQuestion = screen.getByText('How do I sign up?');
+      fireEvent.click(firstQuestion);
+      
+      expect(screen.getByText('Click the signup button')).toBeVisible();
+    });
   });
 
-  it('renders all FAQ items', () => {
+  it('renders all FAQ items', async () => {
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     fireEvent.click(screen.getByRole('tab', { name: /faqs/i }));
     
-    const faqItems = screen.getAllByTestId('faq-item');
-    expect(faqItems).toHaveLength(2);
+    await waitFor(() => {
+      const faqItems = screen.getAllByTestId('faq-item');
+      expect(faqItems).toHaveLength(2);
+    });
   });
 });
 
