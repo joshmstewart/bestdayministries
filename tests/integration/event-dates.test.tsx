@@ -5,47 +5,45 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PublicEvents } from '@/components/PublicEvents';
 import { format } from 'date-fns';
 
-// Mock Supabase - Module level mocks for test access
-const mockFrom = vi.fn((table: string) => {
-  // Default: user_roles returns null (no user logged in)
-  if (table === 'user_roles') {
-    return {
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
-        }))
-      }))
-    };
-  }
-  
-  // Default: events returns empty array
-  if (table === 'events') {
-    return {
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({ data: [], error: null }))
-        }))
-      }))
-    };
-  }
-  
-  // Fallback
+// Mock Supabase
+vi.mock('@/integrations/supabase/client', () => {
   return {
-    select: vi.fn(() => Promise.resolve({ data: [], error: null }))
+    supabase: {
+      from: vi.fn((table: string) => {
+        // Default: user_roles returns null (no user logged in)
+        if (table === 'user_roles') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+              }))
+            }))
+          };
+        }
+        
+        // Default: events returns empty array
+        if (table === 'events') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+              }))
+            }))
+          };
+        }
+        
+        // Fallback
+        return {
+          select: vi.fn(() => Promise.resolve({ data: [], error: null }))
+        };
+      }),
+      auth: {
+        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+        getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null }))
+      }
+    }
   };
 });
-
-const mockAuth = {
-  getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-  getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null }))
-};
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: mockFrom,
-    auth: mockAuth
-  }
-}));
 
 // Mock hooks
 vi.mock('@/hooks/useRoleImpersonation', () => ({
@@ -69,11 +67,13 @@ const createWrapper = () => {
 };
 
 describe('Event Date Logic', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     // Reset to default mock behavior
-    mockFrom.mockImplementation((table: string) => {
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -81,7 +81,7 @@ describe('Event Date Logic', () => {
               maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
             }))
           }))
-        };
+        } as any;
       }
       if (table === 'events') {
         return {
@@ -90,22 +90,24 @@ describe('Event Date Logic', () => {
               order: vi.fn(() => Promise.resolve({ data: [], error: null }))
             }))
           }))
-        };
+        } as any;
       }
       return {
         select: vi.fn(() => Promise.resolve({ data: [], error: null }))
-      };
+      } as any;
     });
     
     // Reset auth mocks
-    mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: null });
-    mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: null }, error: null } as any);
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: null }, error: null } as any);
   });
 
   it('displays single date event correctly', async () => {
     const eventDate = new Date(Date.now() + 86400000); // Tomorrow
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -113,7 +115,7 @@ describe('Event Date Logic', () => {
               maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
             }))
           }))
-        };
+        } as any;
       }
       if (table === 'events') {
         return {
@@ -139,9 +141,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
@@ -155,7 +157,9 @@ describe('Event Date Logic', () => {
     const futureDate = new Date(Date.now() + 86400000);
     const pastDate = new Date(Date.now() - 86400000);
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -206,9 +210,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
@@ -222,7 +226,9 @@ describe('Event Date Logic', () => {
   it('formats date correctly', async () => {
     const eventDate = new Date('2025-12-25T15:30:00');
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -256,9 +262,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
@@ -273,7 +279,9 @@ describe('Event Date Logic', () => {
   it('displays time correctly', async () => {
     const eventDate = new Date('2025-12-25T15:30:00');
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -307,9 +315,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
@@ -326,7 +334,9 @@ describe('Event Date Logic', () => {
     const date2 = new Date(Date.now() + 86400000); // 1 day from now
     const date3 = new Date(Date.now() + 259200000); // 3 days from now
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -392,9 +402,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
@@ -412,7 +422,9 @@ describe('Event Date Logic', () => {
     const date1 = new Date(Date.now() + 86400000);
     const date2 = new Date(Date.now() + 172800000);
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -449,9 +461,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
@@ -466,7 +478,9 @@ describe('Event Date Logic', () => {
   it('displays clock icon for time', async () => {
     const eventDate = new Date(Date.now() + 86400000);
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -500,9 +514,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     const { container } = render(<PublicEvents />, { wrapper: createWrapper() });
@@ -519,7 +533,9 @@ describe('Event Date Logic', () => {
   it('handles events with no specific time', async () => {
     const eventDate = new Date('2025-12-25T00:00:00');
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -553,9 +569,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
@@ -569,7 +585,9 @@ describe('Event Date Logic', () => {
     // ISO string in UTC
     const utcDate = '2025-12-25T20:00:00Z';
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -603,9 +621,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
@@ -627,7 +645,9 @@ describe('Event Date Logic', () => {
       new Date(Date.now() + 259200000)
     ];
     
-    mockFrom.mockImplementation((table: string) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
           select: vi.fn(() => ({
@@ -661,9 +681,9 @@ describe('Event Date Logic', () => {
               }))
             }))
           }))
-        };
+        } as any;
       }
-      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
     });
 
     render(<PublicEvents />, { wrapper: createWrapper() });

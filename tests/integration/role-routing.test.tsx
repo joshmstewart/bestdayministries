@@ -55,17 +55,19 @@ const createWrapper = (initialRoute = '/') => {
 };
 
 describe('Role-Based Routing', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     // Default: no auth session
-    mockAuth.getSession.mockResolvedValue({ 
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: null }, 
       error: null 
-    });
+    } as any);
     
     // Default: empty data for all queries
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -75,15 +77,17 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
   });
 
   it('redirects non-authenticated users from protected routes', async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     // No session = not authenticated
-    mockAuth.getSession.mockResolvedValue({ 
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: null }, 
       error: null 
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/admin') });
 
@@ -104,12 +108,14 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -126,7 +132,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/profile') });
 
@@ -146,13 +152,15 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
     // Mock non-admin role
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -165,7 +173,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/admin') });
 
@@ -186,13 +194,15 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
     // Mock admin role
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -205,7 +215,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/admin') });
 
@@ -225,13 +235,15 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
     // Mock bestie role (not caregiver)
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -244,7 +256,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/guardian-links') });
 
@@ -265,13 +277,15 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
     // Mock caregiver role
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -284,7 +298,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/guardian-links') });
 
@@ -304,13 +318,15 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
     // Mock non-vendor
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -323,7 +339,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/vendor-dashboard') });
 
@@ -344,13 +360,15 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
     // Mock bestie role
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -363,7 +381,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/sponsor-bestie') });
 
@@ -387,12 +405,14 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
-    mockFrom.mockImplementation(() => ({
+    vi.mocked(supabase.from).mockImplementation(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -405,7 +425,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    }));
+    } as any));
 
     const { unmount } = render(<App />, { wrapper: createWrapper('/') });
 
@@ -436,13 +456,15 @@ describe('Role-Based Routing', () => {
       expires_at: Date.now() + 3600000
     };
 
-    mockAuth.getSession.mockResolvedValue({ 
+    const { supabase } = await import('@/integrations/supabase/client');
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
       data: { session: mockSession }, 
       error: null 
-    });
+    } as any);
 
     // Mock admin with impersonation
-    mockFrom.mockReturnValue({
+    vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           order: vi.fn(() => ({
@@ -455,7 +477,7 @@ describe('Role-Based Routing', () => {
         })),
         order: vi.fn(() => Promise.resolve({ data: [], error: null }))
       }))
-    });
+    } as any);
 
     render(<App />, { wrapper: createWrapper('/') });
 
@@ -467,11 +489,13 @@ describe('Role-Based Routing', () => {
   it('shows public pages to all users regardless of role', async () => {
     const publicRoutes = ['/', '/about', '/events', '/help', '/support'];
     
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     for (const route of publicRoutes) {
-      mockAuth.getSession.mockResolvedValue({ 
+      vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
         data: { session: null }, 
         error: null 
-      });
+      } as any);
 
       const { unmount } = render(<App />, { wrapper: createWrapper(route) });
 
