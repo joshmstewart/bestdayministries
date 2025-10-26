@@ -417,7 +417,8 @@ export const DailyScratchCard = () => {
             if (isBonus) {
               setShowBonusDialog(true);
             } else {
-              setShowDialog(true);
+              // Show collection selector for free daily pack
+              setShowCollectionSelector(true);
             }
           } else {
             navigate('/sticker-album');
@@ -455,31 +456,10 @@ export const DailyScratchCard = () => {
 
       {/* Explanation text */}
       <div className="text-xs text-center text-muted-foreground max-w-[120px]">
-        {!card.is_scratched && <span>Scratch to collect stickers!</span>}
+        {!card.is_scratched && <span>Choose a pack to open!</span>}
         {card.is_scratched && bonusCard && !bonusCard.is_scratched && <span>Scratch bonus to collect more!</span>}
         {card.is_scratched && (!bonusCard || bonusCard.is_scratched) && <span>View your collection</span>}
       </div>
-
-      {/* Other collections button */}
-      {card.is_scratched && (!bonusCard || bonusCard.is_scratched) && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowCollectionSelector(true)}
-          className="text-xs"
-        >
-          <Sparkles className="mr-1 h-3 w-3" />
-          Other Packs
-        </Button>
-      )}
-
-      {/* Free card dialog */}
-      <PackOpeningDialog
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        cardId={card.id}
-        onOpened={checkDailyCard}
-      />
 
       {/* Bonus card dialog */}
       {bonusCard && (
@@ -491,11 +471,15 @@ export const DailyScratchCard = () => {
         />
       )}
 
-      {/* Collection selector dialog */}
+      {/* Collection selector dialog - for daily pack */}
       <CollectionSelectorDialog
         open={showCollectionSelector}
         onOpenChange={setShowCollectionSelector}
-        onSelectCollection={setSelectedCollectionId}
+        onSelectCollection={(collectionId) => {
+          setSelectedCollectionId(collectionId);
+          setShowCollectionSelector(false);
+        }}
+        isDailyPack={!card.is_scratched}
       />
 
       {/* Selected collection pack dialog */}
@@ -503,7 +487,7 @@ export const DailyScratchCard = () => {
         <PackOpeningDialog
           open={!!selectedCollectionId}
           onOpenChange={(open) => !open && setSelectedCollectionId(null)}
-          cardId={null}
+          cardId={!card.is_scratched ? card.id : null}
           collectionId={selectedCollectionId}
           onOpened={() => {
             setSelectedCollectionId(null);

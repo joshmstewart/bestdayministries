@@ -25,7 +25,7 @@ serve(async (req) => {
     // Admin client for reading collection config (non-sensitive game data)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { cardId } = await req.json();
+    const { cardId, collectionId } = await req.json();
 
     if (!cardId) {
       throw new Error('Card ID is required');
@@ -51,11 +51,23 @@ serve(async (req) => {
       );
     }
 
+    // If collectionId provided, update the card's collection (for daily pack selection)
+    let targetCollectionId = card.collection_id;
+    if (collectionId && !card.is_bonus_card) {
+      const { error: updateError } = await supabase
+        .from('daily_scratch_cards')
+        .update({ collection_id: collectionId })
+        .eq('id', cardId);
+      
+      if (updateError) throw updateError;
+      targetCollectionId = collectionId;
+    }
+
     // Get collection with rarity percentages and stickers_per_pack (use admin client)
     const { data: collection, error: collectionError } = await supabaseAdmin
       .from('sticker_collections')
       .select('rarity_percentages, use_default_rarity, stickers_per_pack')
-      .eq('id', card.collection_id)
+      .eq('id', targetCollectionId)
       .single();
 
     if (collectionError) {
@@ -87,7 +99,7 @@ serve(async (req) => {
     const { data: allStickers, error: allStickersError } = await supabaseAdmin
       .from('stickers')
       .select('*')
-      .eq('collection_id', card.collection_id)
+      .eq('collection_id', targetCollectionId)
       .eq('is_active', true);
 
     if (allStickersError) throw allStickersError;

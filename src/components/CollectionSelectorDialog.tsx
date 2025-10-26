@@ -24,12 +24,14 @@ interface CollectionSelectorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectCollection: (collectionId: string) => void;
+  isDailyPack?: boolean;
 }
 
 export const CollectionSelectorDialog = ({
   open,
   onOpenChange,
   onSelectCollection,
+  isDailyPack = false,
 }: CollectionSelectorDialogProps) => {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,10 @@ export const CollectionSelectorDialog = ({
         <DialogHeader>
           <DialogTitle>Select Sticker Collection</DialogTitle>
           <DialogDescription>
-            Choose which collection you'd like to open a pack from
+            {isDailyPack 
+              ? "Choose which collection you'd like to open for your free daily pack" 
+              : "Choose which collection you'd like to open a pack from"
+            }
           </DialogDescription>
         </DialogHeader>
 
