@@ -102,11 +102,6 @@ jobs:
     if: ${{ inputs.run_e2e_tests }}
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
     steps:
     - uses: actions/checkout@v4
     
@@ -122,18 +117,17 @@ jobs:
       run: npx playwright install chromium
       
     - name: Run Playwright tests (Chromium only for speed)
-      run: npx playwright test --ignore-snapshots --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list --project=chromium tests/e2e/ --grep-invert "visual.spec.ts"
+      run: npx playwright test --ignore-snapshots --reporter=list --project=chromium tests/e2e/ --grep-invert "visual.spec.ts"
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        SHARD_INDEX: ${{ matrix.shardIndex }}
       
     - name: Upload Playwright report
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: playwright-report-${{ matrix.shardIndex }}
+        name: playwright-report
         path: playwright-report/
         retention-days: 30
 
@@ -141,11 +135,6 @@ jobs:
     if: ${{ inputs.run_visual_tests }}
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
     steps:
     - uses: actions/checkout@v4
     
@@ -162,7 +151,7 @@ jobs:
       
     - name: Run Percy visual tests
       if: ${{ env.PERCY_TOKEN != '' }}
-      run: npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts --project=chromium --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+      run: npx @percy/cli exec -- npx playwright test tests/e2e/visual.spec.ts --project=chromium
       env:
         PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
         
@@ -170,7 +159,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: percy-logs-${{ matrix.shardIndex }}
+        name: percy-logs
         path: |
           percy-logs/
           playwright-report/
@@ -180,11 +169,6 @@ jobs:
     if: ${{ inputs.run_email_tests }}
     timeout-minutes: 45
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
     steps:
     - uses: actions/checkout@v4
     
@@ -200,7 +184,7 @@ jobs:
       run: npx playwright install chromium
       
     - name: Run email tests
-      run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+      run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -210,7 +194,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: email-test-report-${{ matrix.shardIndex }}
+        name: email-test-report
         path: playwright-report/
         retention-days: 30
 

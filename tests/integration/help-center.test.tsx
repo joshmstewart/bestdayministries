@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -102,10 +103,11 @@ describe('Help Center - Tab Navigation', () => {
   });
 
   it('switches between tabs', async () => {
+    const user = userEvent.setup();
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     const guidesTab = screen.getByRole('tab', { name: /guides/i });
-    fireEvent.click(guidesTab);
+    await user.click(guidesTab);
     
     await waitFor(() => {
       expect(screen.getByText('User Guide')).toBeInTheDocument();
@@ -146,10 +148,11 @@ describe('Help Center - Tours', () => {
 
 describe('Help Center - Guides', () => {
   it('displays guide items when guides tab is clicked', async () => {
+    const user = userEvent.setup();
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     const guidesTab = screen.getByRole('tab', { name: /guides/i });
-    fireEvent.click(guidesTab);
+    await user.click(guidesTab);
     
     await waitFor(() => {
       expect(screen.getByText('User Guide')).toBeInTheDocument();
@@ -158,9 +161,10 @@ describe('Help Center - Guides', () => {
   });
 
   it('shows view guide buttons', async () => {
+    const user = userEvent.setup();
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
-    fireEvent.click(screen.getByRole('tab', { name: /guides/i }));
+    await user.click(screen.getByRole('tab', { name: /guides/i }));
     
     await waitFor(() => {
       const viewButtons = screen.getAllByRole('button', { name: /view guide/i });
@@ -171,10 +175,11 @@ describe('Help Center - Guides', () => {
 
 describe('Help Center - FAQs', () => {
   it('displays FAQ accordion when FAQ tab is clicked', async () => {
+    const user = userEvent.setup();
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
     const faqTab = screen.getByRole('tab', { name: /faqs/i });
-    fireEvent.click(faqTab);
+    await user.click(faqTab);
     
     await waitFor(() => {
       expect(screen.getByText('How do I sign up?')).toBeInTheDocument();
@@ -183,23 +188,29 @@ describe('Help Center - FAQs', () => {
   });
 
   it('expands FAQ accordion items on click', async () => {
+    const user = userEvent.setup();
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
-    fireEvent.click(screen.getByRole('tab', { name: /faqs/i }));
+    await user.click(screen.getByRole('tab', { name: /faqs/i }));
     
     await waitFor(() => {
       const firstQuestion = screen.getByText('How do I sign up?');
-      fireEvent.click(firstQuestion);
-      
-      // Use the actual mock data answer
+      expect(firstQuestion).toBeInTheDocument();
+    });
+    
+    const firstQuestion = screen.getByText('How do I sign up?');
+    await user.click(firstQuestion);
+    
+    await waitFor(() => {
       expect(screen.getByText('Click the signup button')).toBeVisible();
     });
   });
 
   it('renders all FAQ items', async () => {
+    const user = userEvent.setup();
     render(<HelpCenterTest />, { wrapper: createWrapper() });
     
-    fireEvent.click(screen.getByRole('tab', { name: /faqs/i }));
+    await user.click(screen.getByRole('tab', { name: /faqs/i }));
     
     // Wait for FAQ content to load - query INSIDE waitFor callback
     await waitFor(() => {

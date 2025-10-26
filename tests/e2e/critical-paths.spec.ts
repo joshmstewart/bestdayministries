@@ -260,11 +260,10 @@ test.describe('Critical Path E2E Tests', () => {
       const password = 'testpassword123';
       const timestamp = Date.now();
       
-      // Step 1: Login as bestie and create post
+      // Step 1: Create post as bestie
       await page.goto('/auth');
-      await page.waitForLoadState('networkidle');
-      await page.getByPlaceholder(/email/i).fill(bestieEmail);
-      await page.getByLabel(/password/i).fill(password);
+      await page.getByPlaceholder(/email/i).fill('testbestie@example.com');
+      await page.getByLabel(/password/i).fill('testpassword123');
       await page.locator('button[type="submit"]').first().click();
       await page.waitForTimeout(3000);
       
@@ -286,6 +285,23 @@ test.describe('Critical Path E2E Tests', () => {
         await page.waitForTimeout(2000);
       }
       
+      // PRE-CHECK: Verify post exists in database as pending
+      const postCheck = await page.evaluate(async (ts) => {
+        const supabase = (window as any).supabase;
+        const { data, error } = await supabase
+          .from('discussion_posts')
+          .select('*')
+          .ilike('title', `%Test Post ${ts}%`)
+          .single();
+        
+        console.log('Post pre-check:', { data, error });
+        return { exists: !!data, status: data?.approval_status, id: data?.id };
+      }, timestamp);
+      
+      console.log('[E2E] Post created, pre-check:', postCheck);
+      expect(postCheck.exists).toBeTruthy();
+      expect(postCheck.status).toBe('pending_approval');
+      
       // Logout
       await page.goto('/');
       const userMenu = page.locator('button[aria-label*="user"]').first();
@@ -299,8 +315,8 @@ test.describe('Critical Path E2E Tests', () => {
       // Step 2: Login as guardian and approve
       await page.goto('/auth');
       await page.waitForLoadState('networkidle');
-      await page.getByPlaceholder(/email/i).fill(guardianEmail);
-      await page.getByLabel(/password/i).fill(password);
+      await page.getByPlaceholder(/email/i).fill('testguardian@example.com');
+      await page.getByLabel(/password/i).fill('testpassword123');
       await page.locator('button[type="submit"]').first().click();
       await page.waitForTimeout(3000);
       
@@ -320,8 +336,25 @@ test.describe('Critical Path E2E Tests', () => {
         console.log('[E2E] Clicking approve button...');
         await approveButton.click();
         console.log('[E2E] Approve button clicked');
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(3000);
       }
+      
+      // POST-CHECK: Verify approval in database
+      const approvalCheck = await page.evaluate(async (ts) => {
+        const supabase = (window as any).supabase;
+        const { data, error } = await supabase
+          .from('discussion_posts')
+          .select('*')
+          .ilike('title', `%Test Post ${ts}%`)
+          .single();
+        
+        console.log('Approval post-check:', { data, error });
+        return { exists: !!data, status: data?.approval_status };
+      }, timestamp);
+      
+      console.log('[E2E] Post approval check:', approvalCheck);
+      expect(approvalCheck.exists).toBeTruthy();
+      expect(approvalCheck.status).toBe('approved');
       
       // Step 3: Verify post is visible in discussions (robust propagation handling)
       await page.waitForTimeout(8000);
@@ -435,16 +468,21 @@ test.describe('Critical Path E2E Tests', () => {
         await page.getByRole('option', { name: /supporter/i }).click();
       }
 
-      // Accept terms - click the label/container instead of .check()
-      const termsLabel = page.locator('label').filter({ hasText: /terms/i }).first();
-      await termsLabel.click();
+      // Accept terms using Radix UI role selector
+      const termsCheckbox = page.locator('[role="checkbox"]').filter({ hasText: /terms|privacy/i }).first();
+      await termsCheckbox.waitFor({ state: 'visible', timeout: 10000 });
+      await termsCheckbox.click();
+      
+      // Wait for state update
       await page.waitForTimeout(500);
-
+      
+      // Verify checkbox is checked using aria-checked attribute (Radix UI pattern)
+      await expect(termsCheckbox).toHaveAttribute('aria-checked', 'true');
+      
       // Verify form is fully valid before submission
       await expect(page.locator('input[type="email"]')).toHaveValue(/.+@.+\..+/);
       await expect(page.locator('input[type="password"]').first()).toHaveValue(/.{8,}/);
       await expect(page.locator('input[placeholder*="name" i]')).toHaveValue(/.+/);
-      await expect(page.locator('input[type="checkbox"][name="terms"]').or(page.locator('input[type="checkbox"]').first())).toBeChecked();
       await page.waitForTimeout(1000);
 
       // Step 4: Submit signup
@@ -602,48 +640,72 @@ test.describe('Critical Path E2E Tests', () => {
   
   test.describe('Gamification', () => {
     test('Sticker Pack Opening', async ({ page }) => {
-      // Test: Admin creates pack → user opens → receives random sticker → sees in album
-      // WHY E2E: Admin → user flow, randomness verification, duplicate tracking
+      // Test: User opens pack → receives random sticker → sees in album
+      // WHY E2E: Complete flow from scratch card to album display
       
-      // Navigate to page first to ensure Supabase client is initialized
+      // Login as testbestie
+      await page.goto('/auth');
+      await page.getByPlaceholder('Email').fill('testbestie@example.com');
+      await page.getByPlaceholder('Password').fill('testpassword123');
+      await page.getByRole('button', { name: /sign in/i }).click();
+      await page.waitForURL('/community', { timeout: 15000 });
+      
+      // Verify Halloween 2025 collection exists (preferred over Christmas)
+      const collectionCheck = await page.evaluate(async () => {
+        const supabase = (window as any).supabase;
+        const { data, error } = await supabase
+          .from('sticker_collections')
+          .select('id, name')
+          .eq('name', 'Halloween 2025')
+          .maybeSingle();
+        
+        console.log('Halloween collection check:', { data, error });
+        return { exists: !!data, name: data?.name };
+      });
+      
+      console.log('[E2E] Collection check result:', collectionCheck);
+      
+      if (!collectionCheck.exists) {
+        console.warn('⚠️ Halloween 2025 collection not found - test may fail');
+      }
+      
+      // Navigate to community page to find scratch card
       await page.goto('/community');
       await page.waitForLoadState('networkidle');
       
-      // Collection seeding now handled in global-setup.ts
-      console.log('[E2E] Christmas 2025 collection should exist from global-setup');
+      // Find the scratch card (should be Halloween)
+      const scratchCard = page.locator('[data-testid="scratch-card"], .scratch-card, [class*="sticker"]').first();
+      const cardVisible = await scratchCard.waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
       
-      await page.waitForTimeout(2000);
-      
-      await page.goto('/community');
-      await page.waitForLoadState('networkidle');
-      
-      // Find sticker pack widget
-      const stickerWidget = page.locator('[data-testid="sticker-pack"], [class*="scratch"], [class*="sticker"]').first();
-      const hasWidget = await stickerWidget.isVisible({ timeout: 5000 }).catch(() => false);
-      
-      if (hasWidget) {
-        // Try to open pack
-        const openButton = page.locator('button').filter({ hasText: /open|scratch|reveal/i }).first();
-        if (await openButton.isVisible()) {
-          await openButton.click();
-          await page.waitForTimeout(2000);
-          
-          // Should show sticker reveal animation
-          const revealDialog = page.locator('[role="dialog"]').first();
-          const dialogVisible = await revealDialog.isVisible({ timeout: 3000 }).catch(() => false);
-          expect(dialogVisible).toBeTruthy();
+      if (cardVisible) {
+        // Open the pack
+        const openButton = scratchCard.locator('button:has-text("Open"), button:has-text("Scratch")').first();
+        await openButton.click();
+        
+        // Wait for pack opening dialog
+        await page.waitForSelector('[data-testid="pack-opening-dialog"], .pack-opening, [role="dialog"]', { timeout: 10000 });
+        
+        // Wait for sticker reveal (may take several seconds with animation)
+        await page.waitForTimeout(5000);
+        
+        // Verify sticker appears
+        const stickerRevealed = await page.locator('[data-testid="revealed-sticker"], .sticker-card, img').isVisible({ timeout: 10000 });
+        expect(stickerRevealed).toBeTruthy();
+        
+        // Close dialog
+        const closeButton = page.getByRole('button', { name: /close|done/i });
+        if (await closeButton.isVisible({ timeout: 2000 })) {
+          await closeButton.click();
         }
       }
       
-      // Verify album exists (check for main album content, not just heading)
+      // Navigate to sticker album
       await page.goto('/sticker-album');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000); // Wait for content to render
       
-      // StickerAlbumPage may not have a heading - check for album content instead
-      const albumContent = page.locator('[data-testid="sticker-album"], .sticker-album, text=/collection|album/i').first();
-      const hasAlbum = await albumContent.isVisible({ timeout: 5000 }).catch(() => false);
-      expect(hasAlbum).toBeTruthy();
+      // Verify album has content (collection or stickers)
+      const albumHasContent = await page.locator('[data-testid="sticker-item"], .sticker, [class*="collection"]').count();
+      expect(albumHasContent).toBeGreaterThan(0);
     });
 
     test('Coin Earning & Spending', async ({ page }) => {

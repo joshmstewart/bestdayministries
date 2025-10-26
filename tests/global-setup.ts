@@ -184,7 +184,6 @@ async function createPersistentTestAccount() {
 }
 
 
-// Create daily scratch cards for ALL test accounts
 async function ensureScratchCards() {
   console.log('🎴 Ensuring daily scratch cards for all test accounts...');
   
@@ -198,36 +197,63 @@ async function ensureScratchCards() {
   
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   
-  // Get Christmas 2025 collection
+  // Get Halloween 2025 collection (preferred over Christmas for GA release)
   const { data: collection, error: collectionError } = await supabase
     .from('sticker_collections')
     .select('id, name')
-    .eq('name', 'Christmas 2025')
+    .eq('name', 'Halloween 2025')
     .eq('is_active', true)
     .single();
   
   if (collectionError || !collection) {
-    console.warn('⚠️  Christmas 2025 collection not found - sticker tests may fail');
-    return;
+    console.warn('⚠️  Halloween 2025 collection not found - trying Christmas 2025...');
+    
+    // Fallback to Christmas if Halloween doesn't exist
+    const { data: christmasCollection } = await supabase
+      .from('sticker_collections')
+      .select('id, name')
+      .eq('name', 'Christmas 2025')
+      .eq('is_active', true)
+      .single();
+    
+    if (!christmasCollection) {
+      console.warn('⚠️  No active sticker collections found - sticker tests may fail');
+      return;
+    }
+    
+    console.log(`✅ Using fallback collection: ${christmasCollection.name}`);
+  } else {
+    console.log(`✅ Found collection: ${collection.name} (${collection.id})`);
   }
   
-  console.log(`✅ Found collection: ${collection.name} (${collection.id})`);
+  const activeCollection = collection || await supabase
+    .from('sticker_collections')
+    .select('id, name')
+    .eq('name', 'Christmas 2025')
+    .eq('is_active', true)
+    .single()
+    .then(r => r.data);
+  
+  if (!activeCollection) return;
   
   const today = new Date().toISOString().split('T')[0];
-  const shards = [0, 1, 2, 3, 4, 5, 6];
+  const testAccounts = [
+    'test@example.com',
+    'testbestie@example.com',
+    'testguardian@example.com',
+    'testsupporter@example.com'
+  ];
   
-  for (const shardNum of shards) {
-    const testEmail = shardNum === 0 ? 'test@example.com' : `test${shardNum}@example.com`;
-    
+  for (const email of testAccounts) {
     try {
       // Sign in to get user ID
       const { data: authData } = await supabase.auth.signInWithPassword({
-        email: testEmail,
+        email,
         password: 'testpassword123',
       });
       
       if (!authData?.user) {
-        console.warn(`⚠️  Could not sign in as ${testEmail}`);
+        console.warn(`⚠️  Could not sign in as ${email}`);
         continue;
       }
       
@@ -236,19 +262,19 @@ async function ensureScratchCards() {
         .from('daily_scratch_cards')
         .select('id')
         .eq('user_id', authData.user.id)
-        .eq('collection_id', collection.id)
+        .eq('collection_id', activeCollection.id)
         .eq('date', today)
         .maybeSingle();
       
       if (existingCard) {
-        console.log(`✅ Card exists for ${testEmail}`);
+        console.log(`✅ Card exists for ${email}`);
       } else {
         // Create card
         const { error: cardError } = await supabase
           .from('daily_scratch_cards')
           .insert({
             user_id: authData.user.id,
-            collection_id: collection.id,
+            collection_id: activeCollection.id,
             date: today,
             is_bonus_card: false,
             is_scratched: false,
@@ -256,22 +282,19 @@ async function ensureScratchCards() {
           });
         
         if (cardError) {
-          console.error(`❌ Failed to create card for ${testEmail}:`, cardError.message);
+          console.error(`❌ Failed to create card for ${email}:`, cardError.message);
         } else {
-          console.log(`✅ Created card for ${testEmail}`);
+          console.log(`✅ Created card for ${email}`);
         }
       }
       
       await supabase.auth.signOut();
     } catch (error: any) {
-      console.error(`❌ Error for ${testEmail}:`, error.message);
+      console.error(`❌ Error for ${email}:`, error.message);
     }
   }
   
   console.log('✅ Scratch card setup complete');
-  
-  // Ensure Christmas 2025 collection exists for sticker pack tests
-  await ensureChristmasCollection(supabase);
 }
 
 async function ensureChristmasCollection(supabase: any) {
