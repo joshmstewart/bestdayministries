@@ -16,6 +16,7 @@ interface PackOpeningDialogProps {
   cardId?: string | null;
   collectionId?: string;
   onOpened: () => void;
+  onChangeCollection?: () => void;
 }
 
 const rarityColors = {
@@ -42,7 +43,7 @@ const rarityConfettiConfig = {
   legendary: { particleCount: 300, spread: 140, bursts: 5 },
 };
 
-export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, onOpened }: PackOpeningDialogProps) => {
+export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, onOpened, onChangeCollection }: PackOpeningDialogProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { playSound, loading: soundsLoading, soundEffects } = useSoundEffects();
@@ -309,12 +310,26 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/10 to-primary/5">
         <DialogHeader>
-          <DialogTitle className="text-center">
-            {opened ? "You Got:" : "Open Your Pack"}
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            {opened ? "Added to your collection!" : "Tap to open your pack!"}
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <DialogTitle className="text-center">
+                {opened ? "You Got:" : "Open Your Pack"}
+              </DialogTitle>
+              <DialogDescription className="text-center">
+                {opened ? "Added to your collection!" : "Tap to open your pack!"}
+              </DialogDescription>
+            </div>
+            {onChangeCollection && !opened && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onChangeCollection}
+                className="shrink-0"
+              >
+                Other Packs
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-6 py-4">

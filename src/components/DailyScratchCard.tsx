@@ -417,8 +417,8 @@ export const DailyScratchCard = () => {
             if (isBonus) {
               setShowBonusDialog(true);
             } else {
-              // Show collection selector for free daily pack
-              setShowCollectionSelector(true);
+              // Open featured pack directly, but with option to change
+              setShowDialog(true);
             }
           } else {
             navigate('/sticker-album');
@@ -461,6 +461,20 @@ export const DailyScratchCard = () => {
         {card.is_scratched && (!bonusCard || bonusCard.is_scratched) && <span>View your collection</span>}
       </div>
 
+      {/* Daily pack dialog - opens featured collection with option to change */}
+      {!card.is_scratched && (
+        <PackOpeningDialog
+          open={showDialog}
+          onOpenChange={setShowDialog}
+          cardId={card.id}
+          onOpened={checkDailyCard}
+          onChangeCollection={() => {
+            setShowDialog(false);
+            setShowCollectionSelector(true);
+          }}
+        />
+      )}
+
       {/* Bonus card dialog */}
       {bonusCard && (
         <PackOpeningDialog
@@ -471,7 +485,7 @@ export const DailyScratchCard = () => {
         />
       )}
 
-      {/* Collection selector dialog - for daily pack */}
+      {/* Collection selector dialog */}
       <CollectionSelectorDialog
         open={showCollectionSelector}
         onOpenChange={setShowCollectionSelector}
