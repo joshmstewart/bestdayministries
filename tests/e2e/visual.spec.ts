@@ -194,3 +194,162 @@ test.describe('Visual Regression Tests - Tablet (768x1024)', () => {
     await percySnapshot(page, 'Store - Tablet');
   });
 });
+
+test.describe('Visual Regression Tests - Additional Desktop Pages', () => {
+  test('about page appearance', async ({ page }) => {
+    await page.goto('/about');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'About Page');
+  });
+
+  test('vendor auth page appearance', async ({ page }) => {
+    await page.goto('/vendor-auth');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Vendor Auth Page');
+  });
+
+  test('newsletter page appearance', async ({ page }) => {
+    await page.goto('/newsletter');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Newsletter Page');
+  });
+
+  test('coffee shop page appearance', async ({ page }) => {
+    await page.goto('/coffee-shop');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Coffee Shop Page');
+  });
+
+  test('guardian links page appearance', async ({ page }) => {
+    await login(page);
+    await page.goto('/guardian-links');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Guardian Links Page');
+  });
+
+  test('vendor dashboard appearance', async ({ page }) => {
+    await login(page);
+    await page.goto('/vendor-dashboard');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Vendor Dashboard');
+  });
+
+  test('notifications center appearance', async ({ page }) => {
+    await login(page);
+    await page.goto('/notifications');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Notifications Center');
+  });
+
+  test('admin dashboard appearance', async ({ page }) => {
+    await login(page);
+    await page.goto('/admin');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Admin Dashboard');
+  });
+
+  test('sticker album appearance', async ({ page }) => {
+    await login(page);
+    await page.goto('/sticker-album');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Sticker Album');
+  });
+
+  test('profile settings appearance', async ({ page }) => {
+    await login(page);
+    await page.goto('/profile-settings');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Profile Settings');
+  });
+
+  test('order history appearance', async ({ page }) => {
+    await login(page);
+    await page.goto('/order-history');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Order History');
+  });
+});
+
+test.describe('Visual Regression Tests - Additional Mobile Pages', () => {
+  test.use({ viewport: { width: 375, height: 667 } });
+
+  test('about - mobile', async ({ page }) => {
+    await page.goto('/about');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'About - Mobile');
+  });
+
+  test('newsletter - mobile', async ({ page }) => {
+    await page.goto('/newsletter');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Newsletter - Mobile');
+  });
+
+  test('coffee shop - mobile', async ({ page }) => {
+    await page.goto('/coffee-shop');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Coffee Shop - Mobile');
+  });
+
+  test('help center - mobile', async ({ page }) => {
+    await page.goto('/help');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Help Center - Mobile');
+  });
+
+  test('support - mobile', async ({ page }) => {
+    await page.goto('/support');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Support - Mobile');
+  });
+
+  test('discussions - mobile', async ({ page }) => {
+    await login(page);
+    await page.goto('/discussions');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Discussions - Mobile');
+  });
+
+  test('admin - mobile', async ({ page }) => {
+    await login(page);
+    await page.goto('/admin');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Admin - Mobile');
+  });
+});
+
+test.describe('Visual Regression Tests - Additional Tablet Pages', () => {
+  test.use({ viewport: { width: 768, height: 1024 } });
+
+  test('about - tablet', async ({ page }) => {
+    await page.goto('/about');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'About - Tablet');
+  });
+
+  test('support - tablet', async ({ page }) => {
+    await page.goto('/support');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Support - Tablet');
+  });
+
+  test('help center - tablet', async ({ page }) => {
+    await page.goto('/help');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Help Center - Tablet');
+  });
+
+  test('sponsor bestie - tablet', async ({ page }) => {
+    await login(page);
+    await page.goto('/sponsor-bestie');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Sponsor Bestie - Tablet');
+  });
+
+  test('admin - tablet', async ({ page }) => {
+    await login(page);
+    await page.goto('/admin');
+    await page.waitForLoadState('networkidle');
+    await percySnapshot(page, 'Admin - Tablet');
+  });
+});
