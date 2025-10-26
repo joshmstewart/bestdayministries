@@ -5,30 +5,47 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PublicEvents } from '@/components/PublicEvents';
 import { format } from 'date-fns';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => {
-  const mockFrom = vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        order: vi.fn(() => Promise.resolve({
-          data: [],
-          error: null
+// Mock Supabase - Module level mocks for test access
+const mockFrom = vi.fn((table: string) => {
+  // Default: user_roles returns null (no user logged in)
+  if (table === 'user_roles') {
+    return {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
         }))
       }))
-    }))
-  }));
-
-  const mockAuth = {
-    getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null }))
-  };
-
+    };
+  }
+  
+  // Default: events returns empty array
+  if (table === 'events') {
+    return {
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+        }))
+      }))
+    };
+  }
+  
+  // Fallback
   return {
-    supabase: {
-      from: mockFrom,
-      auth: mockAuth
-    }
+    select: vi.fn(() => Promise.resolve({ data: [], error: null }))
   };
 });
+
+const mockAuth = {
+  getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+  getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null }))
+};
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: mockFrom,
+    auth: mockAuth
+  }
+}));
 
 // Mock hooks
 vi.mock('@/hooks/useRoleImpersonation', () => ({
@@ -54,35 +71,78 @@ const createWrapper = () => {
 describe('Event Date Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Reset to default mock behavior
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
+          }))
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+            }))
+          }))
+        };
+      }
+      return {
+        select: vi.fn(() => Promise.resolve({ data: [], error: null }))
+      };
+    });
+    
+    // Reset auth mocks
+    mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
   });
 
   it('displays single date event correctly', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const eventDate = new Date(Date.now() + 86400000); // Tomorrow
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [{
-              id: '1',
-              title: 'Single Date Event',
-              description: 'One time event',
-              location: 'Venue',
-              image_url: '/img.jpg',
-              aspect_ratio: '16:9',
-              is_active: true,
-              is_public: true,
-              visible_to_roles: ['supporter'],
-              audio_url: null,
-              expires_after_date: true,
-              recurrence_type: null,
-              event_dates: [{ id: 'd1', event_date: eventDate.toISOString() }]
-            }],
-            error: null
+    
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: '1',
+                  title: 'Single Date Event',
+                  description: 'One time event',
+                  location: 'Venue',
+                  image_url: '/img.jpg',
+                  aspect_ratio: '16:9',
+                  is_active: true,
+                  is_public: true,
+                  visible_to_roles: ['supporter'],
+                  audio_url: null,
+                  expires_after_date: true,
+                  recurrence_type: null,
+                  event_dates: [{ id: 'd1', event_date: eventDate.toISOString() }]
+                }],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -92,51 +152,64 @@ describe('Event Date Logic', () => {
   });
 
   it('displays upcoming events only', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const futureDate = new Date(Date.now() + 86400000);
     const pastDate = new Date(Date.now() - 86400000);
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [
-              {
-                id: '1',
-                title: 'Future Event',
-                description: 'Upcoming',
-                location: 'Location 1',
-                image_url: '/future.jpg',
-                aspect_ratio: '16:9',
-                is_active: true,
-                is_public: true,
-                visible_to_roles: ['supporter'],
-                audio_url: null,
-                expires_after_date: true,
-                recurrence_type: null,
-                event_dates: [{ id: 'd1', event_date: futureDate.toISOString() }]
-              },
-              {
-                id: '2',
-                title: 'Past Event',
-                description: 'Already happened',
-                location: 'Location 2',
-                image_url: '/past.jpg',
-                aspect_ratio: '16:9',
-                is_active: true,
-                is_public: true,
-                visible_to_roles: ['supporter'],
-                audio_url: null,
-                expires_after_date: true,
-                recurrence_type: null,
-                event_dates: [{ id: 'd2', event_date: pastDate.toISOString() }]
-              }
-            ],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [
+                  {
+                    id: '1',
+                    title: 'Future Event',
+                    description: 'Upcoming',
+                    location: 'Location 1',
+                    image_url: '/future.jpg',
+                    aspect_ratio: '16:9',
+                    is_active: true,
+                    is_public: true,
+                    visible_to_roles: ['supporter'],
+                    audio_url: null,
+                    expires_after_date: true,
+                    recurrence_type: null,
+                    event_dates: [{ id: 'd1', event_date: futureDate.toISOString() }]
+                  },
+                  {
+                    id: '2',
+                    title: 'Past Event',
+                    description: 'Already happened',
+                    location: 'Location 2',
+                    image_url: '/past.jpg',
+                    aspect_ratio: '16:9',
+                    is_active: true,
+                    is_public: true,
+                    visible_to_roles: ['supporter'],
+                    audio_url: null,
+                    expires_after_date: true,
+                    recurrence_type: null,
+                    event_dates: [{ id: 'd2', event_date: pastDate.toISOString() }]
+                  }
+                ],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -147,33 +220,46 @@ describe('Event Date Logic', () => {
   });
 
   it('formats date correctly', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const eventDate = new Date('2025-12-25T15:30:00');
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [{
-              id: '3',
-              title: 'Christmas Event',
-              description: 'Holiday celebration',
-              location: 'Town Hall',
-              image_url: '/xmas.jpg',
-              aspect_ratio: '16:9',
-              is_active: true,
-              is_public: true,
-              visible_to_roles: ['supporter'],
-              audio_url: null,
-              expires_after_date: true,
-              recurrence_type: null,
-              event_dates: [{ id: 'd3', event_date: eventDate.toISOString() }]
-            }],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: '3',
+                  title: 'Christmas Event',
+                  description: 'Holiday celebration',
+                  location: 'Town Hall',
+                  image_url: '/xmas.jpg',
+                  aspect_ratio: '16:9',
+                  is_active: true,
+                  is_public: true,
+                  visible_to_roles: ['supporter'],
+                  audio_url: null,
+                  expires_after_date: true,
+                  recurrence_type: null,
+                  event_dates: [{ id: 'd3', event_date: eventDate.toISOString() }]
+                }],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -185,33 +271,46 @@ describe('Event Date Logic', () => {
   });
 
   it('displays time correctly', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const eventDate = new Date('2025-12-25T15:30:00');
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [{
-              id: '4',
-              title: 'Timed Event',
-              description: 'Specific time',
-              location: 'Location',
-              image_url: '/time.jpg',
-              aspect_ratio: '16:9',
-              is_active: true,
-              is_public: true,
-              visible_to_roles: ['supporter'],
-              audio_url: null,
-              expires_after_date: true,
-              recurrence_type: null,
-              event_dates: [{ id: 'd4', event_date: eventDate.toISOString() }]
-            }],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: '4',
+                  title: 'Timed Event',
+                  description: 'Specific time',
+                  location: 'Location',
+                  image_url: '/time.jpg',
+                  aspect_ratio: '16:9',
+                  is_active: true,
+                  is_public: true,
+                  visible_to_roles: ['supporter'],
+                  audio_url: null,
+                  expires_after_date: true,
+                  recurrence_type: null,
+                  event_dates: [{ id: 'd4', event_date: eventDate.toISOString() }]
+                }],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -223,67 +322,80 @@ describe('Event Date Logic', () => {
   });
 
   it('sorts events by date ascending', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const date1 = new Date(Date.now() + 172800000); // 2 days from now
     const date2 = new Date(Date.now() + 86400000); // 1 day from now
     const date3 = new Date(Date.now() + 259200000); // 3 days from now
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [
-              {
-                id: '1',
-                title: 'Event C',
-                description: 'Third',
-                location: 'Loc',
-                image_url: '/c.jpg',
-                aspect_ratio: '16:9',
-                is_active: true,
-                is_public: true,
-                visible_to_roles: ['supporter'],
-                audio_url: null,
-                expires_after_date: true,
-                recurrence_type: null,
-                event_dates: [{ id: 'd1', event_date: date1.toISOString() }]
-              },
-              {
-                id: '2',
-                title: 'Event A',
-                description: 'First',
-                location: 'Loc',
-                image_url: '/a.jpg',
-                aspect_ratio: '16:9',
-                is_active: true,
-                is_public: true,
-                visible_to_roles: ['supporter'],
-                audio_url: null,
-                expires_after_date: true,
-                recurrence_type: null,
-                event_dates: [{ id: 'd2', event_date: date2.toISOString() }]
-              },
-              {
-                id: '3',
-                title: 'Event B',
-                description: 'Second',
-                location: 'Loc',
-                image_url: '/b.jpg',
-                aspect_ratio: '16:9',
-                is_active: true,
-                is_public: true,
-                visible_to_roles: ['supporter'],
-                audio_url: null,
-                expires_after_date: true,
-                recurrence_type: null,
-                event_dates: [{ id: 'd3', event_date: date3.toISOString() }]
-              }
-            ],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [
+                  {
+                    id: '1',
+                    title: 'Event C',
+                    description: 'Third',
+                    location: 'Loc',
+                    image_url: '/c.jpg',
+                    aspect_ratio: '16:9',
+                    is_active: true,
+                    is_public: true,
+                    visible_to_roles: ['supporter'],
+                    audio_url: null,
+                    expires_after_date: true,
+                    recurrence_type: null,
+                    event_dates: [{ id: 'd1', event_date: date1.toISOString() }]
+                  },
+                  {
+                    id: '2',
+                    title: 'Event A',
+                    description: 'First',
+                    location: 'Loc',
+                    image_url: '/a.jpg',
+                    aspect_ratio: '16:9',
+                    is_active: true,
+                    is_public: true,
+                    visible_to_roles: ['supporter'],
+                    audio_url: null,
+                    expires_after_date: true,
+                    recurrence_type: null,
+                    event_dates: [{ id: 'd2', event_date: date2.toISOString() }]
+                  },
+                  {
+                    id: '3',
+                    title: 'Event B',
+                    description: 'Second',
+                    location: 'Loc',
+                    image_url: '/b.jpg',
+                    aspect_ratio: '16:9',
+                    is_active: true,
+                    is_public: true,
+                    visible_to_roles: ['supporter'],
+                    audio_url: null,
+                    expires_after_date: true,
+                    recurrence_type: null,
+                    event_dates: [{ id: 'd3', event_date: date3.toISOString() }]
+                  }
+                ],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -297,37 +409,50 @@ describe('Event Date Logic', () => {
   });
 
   it('handles recurring events with multiple dates', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const date1 = new Date(Date.now() + 86400000);
     const date2 = new Date(Date.now() + 172800000);
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [{
-              id: '5',
-              title: 'Weekly Class',
-              description: 'Every week',
-              location: 'Studio',
-              image_url: '/weekly.jpg',
-              aspect_ratio: '16:9',
-              is_active: true,
-              is_public: true,
-              visible_to_roles: ['supporter'],
-              audio_url: null,
-              expires_after_date: true,
-              recurrence_type: 'weekly',
-              event_dates: [
-                { id: 'd1', event_date: date1.toISOString() },
-                { id: 'd2', event_date: date2.toISOString() }
-              ]
-            }],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: '5',
+                  title: 'Weekly Class',
+                  description: 'Every week',
+                  location: 'Studio',
+                  image_url: '/weekly.jpg',
+                  aspect_ratio: '16:9',
+                  is_active: true,
+                  is_public: true,
+                  visible_to_roles: ['supporter'],
+                  audio_url: null,
+                  expires_after_date: true,
+                  recurrence_type: 'weekly',
+                  event_dates: [
+                    { id: 'd1', event_date: date1.toISOString() },
+                    { id: 'd2', event_date: date2.toISOString() }
+                  ]
+                }],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -339,33 +464,46 @@ describe('Event Date Logic', () => {
   });
 
   it('displays clock icon for time', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const eventDate = new Date(Date.now() + 86400000);
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [{
-              id: '6',
-              title: 'Scheduled Event',
-              description: 'With time',
-              location: 'Location',
-              image_url: '/scheduled.jpg',
-              aspect_ratio: '16:9',
-              is_active: true,
-              is_public: true,
-              visible_to_roles: ['supporter'],
-              audio_url: null,
-              expires_after_date: true,
-              recurrence_type: null,
-              event_dates: [{ id: 'd6', event_date: eventDate.toISOString() }]
-            }],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: '6',
+                  title: 'Scheduled Event',
+                  description: 'With time',
+                  location: 'Location',
+                  image_url: '/scheduled.jpg',
+                  aspect_ratio: '16:9',
+                  is_active: true,
+                  is_public: true,
+                  visible_to_roles: ['supporter'],
+                  audio_url: null,
+                  expires_after_date: true,
+                  recurrence_type: null,
+                  event_dates: [{ id: 'd6', event_date: eventDate.toISOString() }]
+                }],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     const { container } = render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -379,33 +517,46 @@ describe('Event Date Logic', () => {
   });
 
   it('handles events with no specific time', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const eventDate = new Date('2025-12-25T00:00:00');
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [{
-              id: '7',
-              title: 'All Day Event',
-              description: 'No specific time',
-              location: 'Location',
-              image_url: '/allday.jpg',
-              aspect_ratio: '16:9',
-              is_active: true,
-              is_public: true,
-              visible_to_roles: ['supporter'],
-              audio_url: null,
-              expires_after_date: true,
-              recurrence_type: null,
-              event_dates: [{ id: 'd7', event_date: eventDate.toISOString() }]
-            }],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: '7',
+                  title: 'All Day Event',
+                  description: 'No specific time',
+                  location: 'Location',
+                  image_url: '/allday.jpg',
+                  aspect_ratio: '16:9',
+                  is_active: true,
+                  is_public: true,
+                  visible_to_roles: ['supporter'],
+                  audio_url: null,
+                  expires_after_date: true,
+                  recurrence_type: null,
+                  event_dates: [{ id: 'd7', event_date: eventDate.toISOString() }]
+                }],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -415,34 +566,47 @@ describe('Event Date Logic', () => {
   });
 
   it('handles timezone conversions correctly', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     // ISO string in UTC
     const utcDate = '2025-12-25T20:00:00Z';
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [{
-              id: '8',
-              title: 'UTC Event',
-              description: 'Timezone test',
-              location: 'Location',
-              image_url: '/utc.jpg',
-              aspect_ratio: '16:9',
-              is_active: true,
-              is_public: true,
-              visible_to_roles: ['supporter'],
-              audio_url: null,
-              expires_after_date: true,
-              recurrence_type: null,
-              event_dates: [{ id: 'd8', event_date: utcDate }]
-            }],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: '8',
+                  title: 'UTC Event',
+                  description: 'Timezone test',
+                  location: 'Location',
+                  image_url: '/utc.jpg',
+                  aspect_ratio: '16:9',
+                  is_active: true,
+                  is_public: true,
+                  visible_to_roles: ['supporter'],
+                  audio_url: null,
+                  expires_after_date: true,
+                  recurrence_type: null,
+                  event_dates: [{ id: 'd8', event_date: utcDate }]
+                }],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
@@ -457,37 +621,50 @@ describe('Event Date Logic', () => {
   });
 
   it('groups multiple dates for same event', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
     const dates = [
       new Date(Date.now() + 86400000),
       new Date(Date.now() + 172800000),
       new Date(Date.now() + 259200000)
     ];
     
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [{
-              id: '9',
-              title: 'Multi-Date Event',
-              description: 'Multiple occurrences',
-              location: 'Location',
-              image_url: '/multi.jpg',
-              aspect_ratio: '16:9',
-              is_active: true,
-              is_public: true,
-              visible_to_roles: ['supporter'],
-              audio_url: null,
-              expires_after_date: true,
-              recurrence_type: 'custom',
-              event_dates: dates.map((d, i) => ({ id: `d${i}`, event_date: d.toISOString() }))
-            }],
-            error: null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'user_roles') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
+            }))
           }))
-        }))
-      }))
-    } as any);
+        };
+      }
+      if (table === 'events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({
+                data: [{
+                  id: '9',
+                  title: 'Multi-Date Event',
+                  description: 'Multiple occurrences',
+                  location: 'Location',
+                  image_url: '/multi.jpg',
+                  aspect_ratio: '16:9',
+                  is_active: true,
+                  is_public: true,
+                  visible_to_roles: ['supporter'],
+                  audio_url: null,
+                  expires_after_date: true,
+                  recurrence_type: 'custom',
+                  event_dates: dates.map((d, i) => ({ id: `d${i}`, event_date: d.toISOString() }))
+                }],
+                error: null
+              }))
+            }))
+          }))
+        };
+      }
+      return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) };
+    });
 
     render(<PublicEvents />, { wrapper: createWrapper() });
 
