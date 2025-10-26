@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ContactForm } from '@/components/ContactForm';
 import '@testing-library/jest-dom';
@@ -66,7 +65,6 @@ describe('Form Validation - Contact Form', () => {
   });
 
   it('validates required fields', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
@@ -74,7 +72,7 @@ describe('Form Validation - Contact Form', () => {
     });
 
     const submitButton = screen.getByRole('button', { name: /send message/i });
-    await user.click(submitButton);
+    fireEvent.click(submitButton);
     
     await waitFor(() => {
       expect(screen.getByText(/name must be at least 2 characters/i)).toBeInTheDocument();
@@ -82,7 +80,6 @@ describe('Form Validation - Contact Form', () => {
   });
 
   it('validates email format', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
@@ -90,8 +87,8 @@ describe('Form Validation - Contact Form', () => {
     });
 
     const emailInput = screen.getByLabelText(/email/i);
-    await user.type(emailInput, 'invalid-email');
-    await user.tab();
+    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+    fireEvent.blur(emailInput);
     
     await waitFor(() => {
       expect(screen.getByText(/invalid email address/i)).toBeInTheDocument();
@@ -99,7 +96,6 @@ describe('Form Validation - Contact Form', () => {
   });
 
   it('validates minimum message length', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
@@ -107,8 +103,8 @@ describe('Form Validation - Contact Form', () => {
     });
 
     const messageInput = screen.getByLabelText(/message/i);
-    await user.type(messageInput, 'Short');
-    await user.tab();
+    fireEvent.change(messageInput, { target: { value: 'Short' } });
+    fireEvent.blur(messageInput);
     
     await waitFor(() => {
       expect(screen.getByText(/message must be at least 10 characters/i)).toBeInTheDocument();
@@ -116,7 +112,6 @@ describe('Form Validation - Contact Form', () => {
   });
 
   it('enforces maximum field lengths', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
@@ -125,8 +120,8 @@ describe('Form Validation - Contact Form', () => {
 
     const nameInput = screen.getByLabelText(/name/i) as HTMLInputElement;
     const longName = 'a'.repeat(101);
-    await user.type(nameInput, longName);
-    await user.tab();
+    fireEvent.change(nameInput, { target: { value: longName } });
+    fireEvent.blur(nameInput);
     
     await waitFor(() => {
       expect(screen.getByText(/name must be less than/i)).toBeInTheDocument();
@@ -134,19 +129,18 @@ describe('Form Validation - Contact Form', () => {
   });
 
   it('shows success message on valid submission', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
       expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/name/i), 'Test User');
-    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
-    await user.type(screen.getByLabelText(/message/i), 'This is a valid test message');
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Test User' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: 'This is a valid test message' } });
     
     const submitButton = screen.getByRole('button', { name: /send message/i });
-    await user.click(submitButton);
+    fireEvent.click(submitButton);
     
     await waitFor(() => {
       expect(mockSupabase.from).toHaveBeenCalledWith('contact_form_submissions');
@@ -154,7 +148,6 @@ describe('Form Validation - Contact Form', () => {
   });
 
   it('clears form after successful submission', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
@@ -162,12 +155,12 @@ describe('Form Validation - Contact Form', () => {
     });
 
     const nameInput = screen.getByLabelText(/name/i) as HTMLInputElement;
-    await user.type(nameInput, 'Test User');
-    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
-    await user.type(screen.getByLabelText(/message/i), 'This is a valid test message');
+    fireEvent.change(nameInput, { target: { value: 'Test User' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: 'This is a valid test message' } });
     
     const submitButton = screen.getByRole('button', { name: /send message/i });
-    await user.click(submitButton);
+    fireEvent.click(submitButton);
     
     await waitFor(() => {
       expect(nameInput.value).toBe('');
@@ -175,25 +168,23 @@ describe('Form Validation - Contact Form', () => {
   });
 
   it('disables submit button during submission', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
       expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/name/i), 'Test User');
-    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
-    await user.type(screen.getByLabelText(/message/i), 'This is a valid test message');
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Test User' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: 'This is a valid test message' } });
     
     const submitButton = screen.getByRole('button', { name: /send message/i });
-    await user.click(submitButton);
+    fireEvent.click(submitButton);
     
     expect(submitButton).toBeDisabled();
   });
 
   it('handles image upload validation', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
@@ -204,7 +195,11 @@ describe('Form Validation - Contact Form', () => {
     const input = screen.getByLabelText(/click to upload an image/i).querySelector('input[type="file"]') as HTMLInputElement;
     
     if (input) {
-      await user.upload(input, file);
+      Object.defineProperty(input, 'files', {
+        value: [file],
+        writable: false
+      });
+      fireEvent.change(input);
       await waitFor(() => {
         expect(screen.getByAltText(/preview/i)).toBeInTheDocument();
       });
@@ -212,7 +207,6 @@ describe('Form Validation - Contact Form', () => {
   });
 
   it('allows removing uploaded image', async () => {
-    const user = userEvent.setup();
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
@@ -223,14 +217,18 @@ describe('Form Validation - Contact Form', () => {
     const input = screen.getByLabelText(/click to upload an image/i).querySelector('input[type="file"]') as HTMLInputElement;
     
     if (input) {
-      await user.upload(input, file);
+      Object.defineProperty(input, 'files', {
+        value: [file],
+        writable: false
+      });
+      fireEvent.change(input);
       
       await waitFor(() => {
         expect(screen.getByAltText(/preview/i)).toBeInTheDocument();
       });
 
       const removeButton = screen.getByRole('button', { name: '' });
-      await user.click(removeButton);
+      fireEvent.click(removeButton);
       
       await waitFor(() => {
         expect(screen.queryByAltText(/preview/i)).not.toBeInTheDocument();

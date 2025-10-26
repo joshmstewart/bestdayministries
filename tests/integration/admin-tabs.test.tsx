@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -124,11 +123,10 @@ describe('Admin Tabs - Tab Navigation', () => {
   });
 
   it('switches tabs on click', async () => {
-    const user = userEvent.setup();
     render(<AdminTabsTest />, { wrapper: createWrapper() });
     
     const analyticsTab = screen.getByRole('tab', { name: /analytics/i });
-    await user.click(analyticsTab);
+    fireEvent.click(analyticsTab);
     
     await waitFor(() => {
       expect(screen.getByText('Analytics Content')).toBeVisible();
@@ -136,13 +134,12 @@ describe('Admin Tabs - Tab Navigation', () => {
   });
 
   it('hides previous tab content when switching', async () => {
-    const user = userEvent.setup();
     render(<AdminTabsTest />, { wrapper: createWrapper() });
     
     expect(screen.getByText('Users Content')).toBeVisible();
     
     const eventsTab = screen.getByRole('tab', { name: /events/i });
-    await user.click(eventsTab);
+    fireEvent.click(eventsTab);
     
     await waitFor(() => {
       expect(screen.queryByText('Users Content')).not.toBeVisible();
@@ -151,16 +148,15 @@ describe('Admin Tabs - Tab Navigation', () => {
   });
 
   it('allows multiple tab switches', async () => {
-    const user = userEvent.setup();
     render(<AdminTabsTest />, { wrapper: createWrapper() });
     
-    await user.click(screen.getByRole('tab', { name: /analytics/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /analytics/i }));
     expect(screen.getByText('Analytics Content')).toBeVisible();
     
-    await user.click(screen.getByRole('tab', { name: /vendors/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /vendors/i }));
     expect(screen.getByText('Vendors Content')).toBeVisible();
     
-    await user.click(screen.getByRole('tab', { name: /contact/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /contact/i }));
     expect(screen.getByText('Contact Content')).toBeVisible();
   });
 });
@@ -216,10 +212,9 @@ describe('Admin Tabs - Tab Content Loading', () => {
   });
 
   it('loads content when switching to new tab', async () => {
-    const user = userEvent.setup();
     render(<AdminTabsTest />, { wrapper: createWrapper() });
     
-    await user.click(screen.getByRole('tab', { name: /moderation/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /moderation/i }));
     
     await waitFor(() => {
       expect(screen.getByText('Moderation Content')).toBeVisible();
@@ -227,26 +222,24 @@ describe('Admin Tabs - Tab Content Loading', () => {
   });
 
   it('maintains content after switching away and back', async () => {
-    const user = userEvent.setup();
     render(<AdminTabsTest />, { wrapper: createWrapper() });
     
-    await user.click(screen.getByRole('tab', { name: /events/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /events/i }));
     expect(screen.getByText('Events Content')).toBeVisible();
     
-    await user.click(screen.getByRole('tab', { name: /users/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /users/i }));
     expect(screen.getByText('Users Content')).toBeVisible();
     
-    await user.click(screen.getByRole('tab', { name: /events/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /events/i }));
     expect(screen.getByText('Events Content')).toBeVisible();
   });
 
   it('handles rapid tab switching', async () => {
-    const user = userEvent.setup();
     render(<AdminTabsTest />, { wrapper: createWrapper() });
     
-    await user.click(screen.getByRole('tab', { name: /analytics/i }));
-    await user.click(screen.getByRole('tab', { name: /vendors/i }));
-    await user.click(screen.getByRole('tab', { name: /moderation/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /analytics/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /vendors/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /moderation/i }));
     
     await waitFor(() => {
       expect(screen.getByText('Moderation Content')).toBeVisible();
