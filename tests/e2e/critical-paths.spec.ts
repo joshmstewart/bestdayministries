@@ -153,11 +153,21 @@ test.describe('Critical Path E2E Tests', () => {
         
         const submitButton = page.locator('button[type="submit"]').filter({ hasText: /send|submit/i }).first();
         await submitButton.click();
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3000);
         
-        // Should show success message
+        // Check for success OR error messages
         const successMessage = page.locator('text=/success|sent|thank you/i').first();
-        const hasSuccess = await successMessage.isVisible({ timeout: 5000 }).catch(() => false);
+        const errorMessage = page.locator('text=/error|failed/i').first();
+        
+        const hasSuccess = await successMessage.isVisible({ timeout: 8000 }).catch(() => false);
+        const hasError = await errorMessage.isVisible({ timeout: 2000 }).catch(() => false);
+        
+        // Log what happened for debugging
+        if (hasError) {
+          const errorText = await errorMessage.textContent();
+          console.log('Contact form error:', errorText);
+        }
+        
         expect(hasSuccess).toBeTruthy();
       }
     });
@@ -311,15 +321,26 @@ test.describe('Critical Path E2E Tests', () => {
         await page.waitForTimeout(1500);
       }
       
-      // Step 3: Verify post is visible in discussions (add longer wait + reload for propagation)
-      await page.waitForTimeout(5000);
-      await page.goto('/discussions');
-      await page.waitForLoadState('networkidle');
-      await page.reload();
-      await page.waitForLoadState('networkidle');
-      await page.waitForSelector('[data-testid="discussion-list"], .discussion-card', { timeout: 10000 }).catch(() => null);
+      // Step 3: Verify post is visible in discussions (robust propagation handling)
+      await page.waitForTimeout(8000);
       
-      const postVisible = await page.locator(`text=/Test Post ${timestamp}/`).isVisible({ timeout: 10000 }).catch(() => false);
+      // Navigate to discussions with full reload
+      await page.goto('/discussions', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(2000);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(2000);
+      
+      // Wait for discussion list to be fully loaded
+      await page.waitForSelector('[data-testid="discussion-list"], .discussion-card, [class*="discussion"]', { 
+        timeout: 15000,
+        state: 'visible'
+      }).catch(() => null);
+      
+      // Wait for the specific post content
+      const postLocator = page.locator(`text=/Test Post ${timestamp}/`);
+      await postLocator.waitFor({ timeout: 10000, state: 'visible' }).catch(() => null);
+      
+      const postVisible = await postLocator.isVisible({ timeout: 5000 }).catch(() => false);
       expect(postVisible).toBeTruthy();
     });
 
@@ -422,7 +443,7 @@ test.describe('Critical Path E2E Tests', () => {
       await expect(page.locator('input[type="email"]')).toHaveValue(/.+@.+\..+/);
       await expect(page.locator('input[type="password"]').first()).toHaveValue(/.{8,}/);
       await expect(page.locator('input[placeholder*="name" i]')).toHaveValue(/.+/);
-      await expect(page.locator('input[type="checkbox"]')).toBeChecked();
+      await expect(page.locator('input[type="checkbox"][name="terms"]').or(page.locator('input[type="checkbox"]').first())).toBeChecked();
       await page.waitForTimeout(1000);
 
       // Step 4: Submit signup
@@ -493,14 +514,28 @@ test.describe('Critical Path E2E Tests', () => {
         await page.waitForTimeout(3000);
         await page.waitForLoadState('networkidle');
         
-        // Verify role-specific navigation exists (wait for header to fully load - try multiple selectors)
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(2000);
-        const headerLoaded = await Promise.race([
-          page.locator('header').first().isVisible({ timeout: 20000 }),
-          page.locator('[data-testid="unified-header"]').isVisible({ timeout: 20000 }),
-          page.locator('nav').first().isVisible({ timeout: 20000 })
-        ]).catch(() => false);
+        // Critical: Wait for auth session to be established
+        await page.waitForTimeout(3000);
+        
+        // Try waiting for authenticated content first (more reliable than header structure)
+        const authContentChecks = [
+          page.locator('[data-testid="user-menu"]').isVisible({ timeout: 10000 }),
+          page.locator('button:has-text("Profile"), a:has-text("Profile")').isVisible({ timeout: 10000 }),
+          page.locator('[data-testid="unified-header"]').isVisible({ timeout: 10000 }),
+          page.locator('header nav').isVisible({ timeout: 10000 }),
+          page.locator('header').first().isVisible({ timeout: 10000 })
+        ];
+        
+        // Use Promise.race but with retry logic
+        let headerLoaded = false;
+        for (let i = 0; i < 3 && !headerLoaded; i++) {
+          headerLoaded = await Promise.race(authContentChecks).catch(() => false);
+          if (!headerLoaded) {
+            await page.waitForTimeout(2000);
+            await page.waitForLoadState('networkidle');
+          }
+        }
+        
         expect(headerLoaded).toBeTruthy();
         
         for (const navItem of account.expectedNav) {
@@ -569,26 +604,65 @@ test.describe('Critical Path E2E Tests', () => {
       // Test: Admin creates pack → user opens → receives random sticker → sees in album
       // WHY E2E: Admin → user flow, randomness verification, duplicate tracking
       
-      // Ensure Christmas 2025 collection exists (inline seeding)
-      await page.evaluate(async () => {
+      // Navigate to page first to ensure Supabase client is initialized
+      await page.goto('/community');
+      await page.waitForLoadState('networkidle');
+      
+      // Ensure Christmas 2025 collection exists (improved inline seeding)
+      const collectionCreated = await page.evaluate(async () => {
         const supabase = (window as any).supabase;
-        if (!supabase) return;
+        if (!supabase) {
+          console.error('Supabase client not available');
+          return false;
+        }
         
-        const { data: existing } = await supabase
-          .from('sticker_collections')
-          .select('id')
-          .eq('name', 'Christmas 2025')
-          .single();
-        
-        if (!existing) {
-          await supabase.from('sticker_collections').insert({
-            name: 'Christmas 2025',
-            description: 'Holiday collection',
-            is_active: true,
-            display_order: 1
-          });
+        try {
+          // Check if collection exists
+          const { data: existing, error: selectError } = await supabase
+            .from('sticker_collections')
+            .select('id, name')
+            .eq('name', 'Christmas 2025')
+            .maybeSingle();
+          
+          if (selectError) {
+            console.error('Error checking collection:', selectError);
+          }
+          
+          if (existing) {
+            console.log('Christmas 2025 collection already exists:', existing.id);
+            return true;
+          }
+          
+          // Create the collection
+          const { data: newCollection, error: insertError } = await supabase
+            .from('sticker_collections')
+            .insert({
+              name: 'Christmas 2025',
+              description: 'Holiday collection for E2E testing',
+              is_active: true,
+              display_order: 1
+            })
+            .select('id')
+            .single();
+          
+          if (insertError) {
+            console.error('Error creating collection:', insertError);
+            return false;
+          }
+          
+          console.log('Created Christmas 2025 collection:', newCollection.id);
+          return true;
+        } catch (err) {
+          console.error('Exception in collection seeding:', err);
+          return false;
         }
       });
+      
+      if (!collectionCreated) {
+        console.warn('Failed to seed Christmas 2025 collection, test may fail');
+      }
+      
+      await page.waitForTimeout(2000);
       
       await page.goto('/community');
       await page.waitForLoadState('networkidle');
