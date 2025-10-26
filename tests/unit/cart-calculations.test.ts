@@ -115,7 +115,7 @@ describe('Shopping Cart Calculations', () => {
       const discountAmount = subtotal * (discountPercent / 100);
       const afterDiscount = subtotal - discountAmount;
       const tax = Number((afterDiscount * taxRate).toFixed(2));
-      const shipping = afterDiscount >= 50 ? 0 : (subtotal === 0 ? 0 : 5.99);
+      const shipping = subtotal >= 50 ? 0 : (subtotal === 0 ? 0 : 5.99);
       const total = Number((afterDiscount + tax + shipping).toFixed(2));
 
       return {

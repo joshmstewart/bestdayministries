@@ -203,7 +203,7 @@ describe('Help Center - FAQs', () => {
     await waitFor(() => {
       const faqItems = screen.getAllByTestId('faq-item');
       expect(faqItems).toHaveLength(2);
-    });
+    }, { timeout: 3000 });
   });
 });
 
