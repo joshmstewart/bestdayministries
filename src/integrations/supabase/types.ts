@@ -3884,6 +3884,7 @@ export type Database = {
           end_date: string | null
           id: string
           is_active: boolean
+          is_featured: boolean
           name: string
           pack_animation_url: string | null
           pack_image_url: string | null
@@ -3904,6 +3905,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           name: string
           pack_animation_url?: string | null
           pack_image_url?: string | null
@@ -3924,6 +3926,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           name?: string
           pack_animation_url?: string | null
           pack_image_url?: string | null
@@ -5015,6 +5018,7 @@ export type Database = {
       }
     }
     Functions: {
+      activate_collections_on_start_date: { Args: never; Returns: undefined }
       can_moderate: { Args: { _user_id: string }; Returns: boolean }
       can_view_sponsorship: {
         Args: { _sponsorship_id: string; _user_id: string }
@@ -5034,6 +5038,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      deactivate_collections_after_end_date: { Args: never; Returns: undefined }
       generate_daily_scratch_card: {
         Args: { _user_id: string }
         Returns: string

@@ -883,6 +883,21 @@ export const StickerCollectionManager = () => {
     fetchCollections();
   };
 
+  const toggleCollectionFeatured = async (id: string, currentlyFeatured: boolean) => {
+    const { error } = await supabase
+      .from('sticker_collections')
+      .update({ is_featured: !currentlyFeatured })
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Success", description: `Collection ${!currentlyFeatured ? 'featured' : 'unfeatured'}` });
+    fetchCollections();
+  };
+
   const updateCollectionRoles = async (collectionId: string, roles: UserRole[]) => {
     const { error } = await supabase
       .from('sticker_collections')

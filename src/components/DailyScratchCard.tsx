@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Check, Coins } from "lucide-react";
 import { PackOpeningDialog } from "./PackOpeningDialog";
+import { CollectionSelectorDialog } from "./CollectionSelectorDialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +22,8 @@ export const DailyScratchCard = () => {
   const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [coinBalance, setCoinBalance] = useState<number>(0);
+  const [showCollectionSelector, setShowCollectionSelector] = useState(false);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
 
   // Helper function to get current date in MST (UTC-7)
   const getMSTDate = () => {
@@ -457,6 +460,19 @@ export const DailyScratchCard = () => {
         {card.is_scratched && (!bonusCard || bonusCard.is_scratched) && <span>View your collection</span>}
       </div>
 
+      {/* Other collections button */}
+      {card.is_scratched && (!bonusCard || bonusCard.is_scratched) && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCollectionSelector(true)}
+          className="text-xs"
+        >
+          <Sparkles className="mr-1 h-3 w-3" />
+          Other Packs
+        </Button>
+      )}
+
       {/* Free card dialog */}
       <PackOpeningDialog
         open={showDialog}
@@ -472,6 +488,27 @@ export const DailyScratchCard = () => {
           onOpenChange={setShowBonusDialog}
           cardId={bonusCard.id}
           onOpened={checkDailyCard}
+        />
+      )}
+
+      {/* Collection selector dialog */}
+      <CollectionSelectorDialog
+        open={showCollectionSelector}
+        onOpenChange={setShowCollectionSelector}
+        onSelectCollection={setSelectedCollectionId}
+      />
+
+      {/* Selected collection pack dialog */}
+      {selectedCollectionId && (
+        <PackOpeningDialog
+          open={!!selectedCollectionId}
+          onOpenChange={(open) => !open && setSelectedCollectionId(null)}
+          cardId={null}
+          collectionId={selectedCollectionId}
+          onOpened={() => {
+            setSelectedCollectionId(null);
+            checkDailyCard();
+          }}
         />
       )}
     </div>

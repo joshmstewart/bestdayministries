@@ -13,7 +13,8 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 interface PackOpeningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  cardId: string;
+  cardId?: string | null;
+  collectionId?: string;
   onOpened: () => void;
 }
 
@@ -41,7 +42,7 @@ const rarityConfettiConfig = {
   legendary: { particleCount: 300, spread: 140, bursts: 5 },
 };
 
-export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: PackOpeningDialogProps) => {
+export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, onOpened }: PackOpeningDialogProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { playSound, loading: soundsLoading, soundEffects } = useSoundEffects();
@@ -100,24 +101,31 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
 
 
   const loadCollectionInfo = async () => {
-    if (!cardId) return;
+    if (!cardId && !collectionId) return;
     
     setLoading(true);
     try {
-      // Get card details to find collection_id
-      const { data: card, error: cardError } = await supabase
-        .from('daily_scratch_cards')
-        .select('collection_id')
-        .eq('id', cardId)
-        .single();
+      let targetCollectionId = collectionId;
+      
+      // If we have a cardId, get its collection_id
+      if (cardId) {
+        const { data: card, error: cardError } = await supabase
+          .from('daily_scratch_cards')
+          .select('collection_id')
+          .eq('id', cardId)
+          .single();
 
-      if (cardError) throw cardError;
+        if (cardError) throw cardError;
+        targetCollectionId = card.collection_id;
+      }
+
+      if (!targetCollectionId) return;
 
       // Get collection details including custom pack assets
       const { data: collection, error: collectionError } = await supabase
         .from('sticker_collections')
         .select('name, pack_image_url, pack_animation_url')
-        .eq('id', card.collection_id)
+        .eq('id', targetCollectionId)
         .single();
 
       if (collectionError) throw collectionError;
@@ -131,7 +139,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
         const { data: stickers } = await supabase
           .from('stickers')
           .select('id, name, image_url, rarity')
-          .eq('collection_id', card.collection_id)
+          .eq('collection_id', targetCollectionId)
           .limit(4);
 
         if (stickers && stickers.length > 0) {
@@ -195,6 +203,36 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, onOpened }: Pack
 
   const handleReveal = async () => {
     try {
+      // If opening by collection ID, we need to purchase a bonus card first
+      if (collectionId && !cardId) {
+        const { data, error } = await supabase.functions.invoke('purchase-bonus-card', {
+          body: { collectionId }
+        });
+        
+        if (error) throw error;
+        
+        if (data.error) {
+          toast({
+            title: "Cannot Purchase",
+            description: data.error,
+            variant: "destructive"
+          });
+          onOpenChange(false);
+          return;
+        }
+
+        if (data.success && data.stickers) {
+          setRevealedStickers(data.stickers);
+          setOpened(true);
+          setShowConfetti(true);
+          triggerCelebration(data.stickers[0].rarity);
+          return;
+        }
+      }
+
+      // Card-based opening
+      if (!cardId) return;
+
       // Check if card is already scratched
       const { data: cardCheck } = await supabase
         .from('daily_scratch_cards')
