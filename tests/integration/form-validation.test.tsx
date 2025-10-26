@@ -263,8 +263,10 @@ describe('Form Validation - Email Format', () => {
     });
     
     invalidEmails.forEach(email => {
-      const parts = email.split('@');
-      expect(parts.length !== 2 || !parts[1]?.includes('.')).toBe(true);
+      const isInvalid = !email.includes('@') || 
+                        email.split('@').length !== 2 || 
+                        !email.split('@')[1]?.includes('.');
+      expect(isInvalid).toBe(true);
     });
   });
 

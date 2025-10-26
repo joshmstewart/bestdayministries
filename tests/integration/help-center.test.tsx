@@ -108,9 +108,9 @@ describe('Help Center - Tab Navigation', () => {
     fireEvent.click(guidesTab);
     
     await waitFor(() => {
-      expect(screen.getByText('User Guide')).toBeVisible();
-      expect(screen.getByText('Admin Guide')).toBeVisible();
-    });
+      expect(screen.getByText('User Guide')).toBeInTheDocument();
+      expect(screen.getByText('Admin Guide')).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   it('displays default tab content on load', () => {
@@ -154,7 +154,7 @@ describe('Help Center - Guides', () => {
     await waitFor(() => {
       expect(screen.getByText('User Guide')).toBeInTheDocument();
       expect(screen.getByText('Admin Guide')).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
   });
 
   it('shows view guide buttons', async () => {

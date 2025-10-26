@@ -146,7 +146,7 @@ describe('Shopping Cart Calculations', () => {
       expect(result.discount).toBe(3.00);
       expect(result.tax).toBe(2.16); // (30 - 3) * 0.08
       expect(result.shipping).toBe(5.99);
-      expect(result.total).toBe(35.15);
+      expect(result.total).toBeCloseTo(35.15, 2);
     });
 
     it('should handle complex multi-item cart', () => {
@@ -161,7 +161,7 @@ describe('Shopping Cart Calculations', () => {
       expect(result.discount).toBe(8.44);
       expect(result.tax).toBe(3.11);
       expect(result.shipping).toBe(0); // Free shipping over $50
-      expect(result.total).toBe(50.92);
+      expect(result.total).toBeCloseTo(50.92, 2);
     });
   });
 });

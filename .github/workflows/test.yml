@@ -119,7 +119,7 @@ jobs:
       run: npm ci --prefer-offline --no-audit --quiet
       
     - name: Install Playwright Browsers
-      run: npx playwright install chromium --quiet
+      run: npx playwright install chromium
       
     - name: Run Playwright tests (Chromium only for speed)
       run: npx playwright test --ignore-snapshots --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list --project=chromium tests/e2e/ --grep-invert "visual.spec.ts"
@@ -158,7 +158,7 @@ jobs:
       run: npm ci --prefer-offline --no-audit --quiet
       
     - name: Install Playwright Browsers
-      run: npx playwright install chromium --quiet
+      run: npx playwright install chromium
       
     - name: Run Percy visual tests
       if: ${{ env.PERCY_TOKEN != '' }}
@@ -197,7 +197,7 @@ jobs:
       run: npm ci --prefer-offline --no-audit --quiet
       
     - name: Install Playwright Browsers
-      run: npx playwright install chromium --quiet
+      run: npx playwright install chromium
       
     - name: Run email tests
       run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
