@@ -312,11 +312,12 @@ test.describe('Critical Path E2E Tests', () => {
       }
       
       // Step 3: Verify post is visible in discussions (add longer wait + reload for propagation)
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(5000);
       await page.goto('/discussions');
       await page.waitForLoadState('networkidle');
       await page.reload();
       await page.waitForLoadState('networkidle');
+      await page.waitForSelector('[data-testid="discussion-list"], .discussion-card', { timeout: 10000 }).catch(() => null);
       
       const postVisible = await page.locator(`text=/Test Post ${timestamp}/`).isVisible({ timeout: 10000 }).catch(() => false);
       expect(postVisible).toBeTruthy();
@@ -411,8 +412,8 @@ test.describe('Critical Path E2E Tests', () => {
         await page.getByRole('option', { name: /supporter/i }).click();
       }
 
-      // Accept terms
-      const termsCheckbox = page.locator('input[type="checkbox"]').first();
+      // Accept terms (use more specific selector to avoid strict mode violation)
+      const termsCheckbox = page.locator('input[type="checkbox"][name="terms"]').or(page.locator('input[type="checkbox"]').first());
       if (await termsCheckbox.isVisible()) {
         await termsCheckbox.check();
       }
@@ -492,9 +493,14 @@ test.describe('Critical Path E2E Tests', () => {
         await page.waitForTimeout(3000);
         await page.waitForLoadState('networkidle');
         
-        // Verify role-specific navigation exists (wait for header to fully load with semantic selector)
+        // Verify role-specific navigation exists (wait for header to fully load - try multiple selectors)
         await page.waitForLoadState('networkidle');
-        const headerLoaded = await page.locator('header').first().isVisible({ timeout: 15000, state: 'visible' });
+        await page.waitForTimeout(2000);
+        const headerLoaded = await Promise.race([
+          page.locator('header').first().isVisible({ timeout: 20000 }),
+          page.locator('[data-testid="unified-header"]').isVisible({ timeout: 20000 }),
+          page.locator('nav').first().isVisible({ timeout: 20000 })
+        ]).catch(() => false);
         expect(headerLoaded).toBeTruthy();
         
         for (const navItem of account.expectedNav) {

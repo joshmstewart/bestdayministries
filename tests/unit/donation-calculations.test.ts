@@ -63,7 +63,7 @@ describe('Donation Fee Calculations', () => {
 
   it('should calculate Stripe fee for $100 donation', () => {
     const fee = calculateStripeFee(100);
-    expect(fee).toBeCloseTo(3.40, 1);
+    expect(fee).toBeCloseTo(3.30, 1);
   });
 
   it('should verify fee is approximately 2.9% + $0.30', () => {

@@ -202,9 +202,7 @@ describe('Help Center - FAQs', () => {
     
     // Wait for FAQ content to load - query INSIDE waitFor callback
     await waitFor(() => {
-      const items = screen.getAllByTestId('faq-item');
-      expect(items.length).toBeGreaterThan(0);
-      return items;
+      expect(screen.getAllByTestId('faq-item').length).toBeGreaterThan(0);
     }, { timeout: 5000 });
     
     const faqItems = screen.getAllByTestId('faq-item');

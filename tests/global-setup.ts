@@ -298,6 +298,64 @@ async function ensureScratchCards() {
   }
   
   console.log('✅ Scratch card setup complete');
+  
+  // Ensure Christmas 2025 collection exists for sticker pack tests
+  await ensureChristmasCollection(supabase);
+}
+
+async function ensureChristmasCollection(supabase: any) {
+  console.log('🎄 Ensuring Christmas 2025 sticker collection exists...');
+  
+  try {
+    // Check if collection exists
+    const { data: existingCollection } = await supabase
+      .from('sticker_collections')
+      .select('id')
+      .eq('name', 'Christmas 2025')
+      .maybeSingle();
+    
+    if (existingCollection) {
+      console.log('✅ Christmas 2025 collection already exists');
+      return;
+    }
+    
+    // Create the collection
+    const { data: newCollection, error: collectionError } = await supabase
+      .from('sticker_collections')
+      .insert({
+        name: 'Christmas 2025',
+        description: 'Festive holiday stickers for the 2025 season',
+        is_active: true,
+        release_date: new Date().toISOString(),
+      })
+      .select('id')
+      .single();
+    
+    if (collectionError) {
+      console.error('❌ Failed to create Christmas 2025 collection:', collectionError.message);
+      return;
+    }
+    
+    console.log('✅ Created Christmas 2025 collection');
+    
+    // Create at least one sticker in the collection
+    const { error: stickerError } = await supabase
+      .from('stickers')
+      .insert({
+        collection_id: newCollection.id,
+        name: 'Christmas Tree',
+        rarity: 'common',
+        image_url: '/placeholder.svg',
+      });
+    
+    if (stickerError) {
+      console.error('❌ Failed to create sticker:', stickerError.message);
+    } else {
+      console.log('✅ Created sample sticker for Christmas 2025 collection');
+    }
+  } catch (error: any) {
+    console.error('❌ Error ensuring Christmas collection:', error.message);
+  }
 }
 
 export default globalSetup;
