@@ -141,37 +141,53 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ---
 
 ### Week 4: Remaining Integration Tests
-**Status:** ⏳ NOT STARTED  
-**Target:** 28 integration tests
+**Status:** ✅ COMPLETE  
+**Target:** 28 integration tests | **Actual:** 50 integration tests
 
-#### Video Player Controls (8 tests)
-- [ ] Play/pause
-- [ ] Volume control
-- [ ] Fullscreen
+#### Video Player Controls (11 tests)
+- ✅ Video rendering with titles/descriptions
+- ✅ Uploaded video with controls
+- ✅ YouTube embed rendering
+- ✅ Thumbnail display
+- ✅ Empty states
 - **Source E2E:** `tests/e2e/video.spec.ts`
-- **Files to create:**
-  - [ ] `tests/integration/video-player.test.tsx`
+- **Files created:**
+  - ✅ `tests/integration/video-player.test.tsx` (11 tests)
 
-#### Help Center UI (6 tests)
-- [ ] Tour display
-- [ ] Guide viewer
-- [ ] FAQ accordion
+#### Help Center UI (13 tests)
+- ✅ Tab navigation
+- ✅ Tour display
+- ✅ Guide viewer
+- ✅ FAQ accordion
+- ✅ Empty states
 - **Source E2E:** `tests/e2e/help-center.spec.ts`
-- **Files to create:**
-  - [ ] `tests/integration/help-center.test.tsx`
+- **Files created:**
+  - ✅ `tests/integration/help-center.test.tsx` (13 tests)
 
-#### Remaining Conversions (14 tests)
-- [ ] Shopping cart UI
-- [ ] Vendor dashboard
-- [ ] Marketplace filters
-- **Files to create:**
-  - [ ] `tests/integration/shopping-cart-ui.test.tsx`
-  - [ ] `tests/integration/vendor-dashboard.test.tsx`
+#### Shopping Cart & Store (13 tests)
+- ✅ Marketplace display
+- ✅ Product cards
+- ✅ Store items
+- ✅ Coins balance
+- ✅ Empty states
+- **Source E2E:** `tests/e2e/shopping-cart.spec.ts`
+- **Files created:**
+  - ✅ `tests/integration/shopping-cart-ui.test.tsx` (13 tests)
+
+#### Vendor Dashboard (13 tests)
+- ✅ Tab navigation
+- ✅ Products tab
+- ✅ Orders tab
+- ✅ Earnings tab
+- ✅ Empty states
+- **Source E2E:** `tests/e2e/vendor-dashboard-crud.spec.ts` (partial)
+- **Files created:**
+  - ✅ `tests/integration/vendor-dashboard.test.tsx` (13 tests)
 
 **Week 4 Deliverables:**
-- [ ] 28 integration tests passing
-- [ ] Delete corresponding 28 E2E tests
-- [ ] **Total conversions:** 204 E2E tests → 50 unit + 154 integration
+- ✅ 50 integration tests created (exceeded target of 28)
+- [ ] Archive corresponding E2E tests
+- **Total conversions so far:** 93 unit + 247 integration tests
 
 ---
 
@@ -257,8 +273,8 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ### Test Count Summary
 | Category | Before | After | Status |
 |----------|--------|-------|--------|
-| **E2E Tests** | 414 | 18 | 🚧 In Progress (~334 after Week 3 archive: -74 Week 2, -6 Week 3) |
-| **Integration Tests** | 48 | 188 | 🚧 In Progress (197 total: 48 Phase 1.5 + 100 Week 2 + 49 Week 3) |
+| **E2E Tests** | 414 | 18 | 🚧 In Progress (~334 remaining) |
+| **Integration Tests** | 48 | 188 | 🚧 Exceeded Target (247 total: 48 Phase 1.5 + 100 Week 2 + 49 Week 3 + 50 Week 4) |
 | **Unit Tests** | 0 | 93 | ✅ Complete (ALL PASSING) |
 | **Percy Snapshots** | 24 | 50 | ⏳ Not Started |
 
@@ -296,12 +312,12 @@ Converting 414 E2E tests into a Test Pyramid structure:
 - ✅ `tests/integration/form-validation.test.tsx` (18 tests - Week 3)
 - ✅ `tests/integration/admin-tabs.test.tsx` (15 tests - Week 3)
 - ✅ `tests/integration/notification-badges.test.tsx` (16 tests - Week 3)
-- [ ] `tests/integration/video-player.test.tsx`
-- [ ] `tests/integration/help-center.test.tsx`
-- [ ] `tests/integration/shopping-cart-ui.test.tsx`
-- [ ] `tests/integration/vendor-dashboard.test.tsx`
+- ✅ `tests/integration/video-player.test.tsx` (11 tests - Week 4)
+- ✅ `tests/integration/help-center.test.tsx` (13 tests - Week 4)
+- ✅ `tests/integration/shopping-cart-ui.test.tsx` (13 tests - Week 4)
+- ✅ `tests/integration/vendor-dashboard.test.tsx` (13 tests - Week 4)
 
-**Total**: 48 (Phase 1.5) + 100 (Week 2) + 49 (Week 3) = 197 integration tests
+**Total**: 48 (Phase 1.5) + 100 (Week 2) + 49 (Week 3) + 50 (Week 4) = 247 integration tests
 
 ### E2E Tests
 - ✅ `tests/e2e/critical-paths.spec.ts` (skeleton)
@@ -329,12 +345,12 @@ Converting 414 E2E tests into a Test Pyramid structure:
 5. ✅ Complete Week 2 integration tests (100 tests created and ALL PASSING)
 6. ✅ Fix flaky integration tests (4 tests fixed - event sorting, multi-date, role visibility, height limiting)
 
-### Next Steps (Week 3 → Week 4 Transition)
+### Next Steps (Week 4 → Week 5 Transition)
 1. ✅ Week 2 E2E tests archived (discussions, events, navigation)
 2. ✅ Week 3 integration tests complete (forms + admin tabs + notification badges)
-3. [ ] Start Week 4 integration tests (video + help center + shopping cart + vendor dashboard - 28 tests target)
-4. [ ] Create MSW handlers for Week 4 integration tests
-5. [ ] Verify all Week 4 integration tests pass
+3. ✅ Week 4 integration tests complete (video + help center + shopping cart + vendor dashboard - 50 tests)
+4. [ ] Archive Week 4 E2E tests (video.spec.ts, help-center.spec.ts, shopping-cart.spec.ts)
+5. [ ] Start Week 5: Implement 18 critical path E2E tests
 
 ### Ongoing
 - [ ] Update this tracker weekly
@@ -390,11 +406,11 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ### Weekly Updates
 - ✅ **Week 1: Unit tests complete** (93 tests, all passing, archive structure created)
 - ✅ **Week 2: Integration tests batch 1 complete** (100 tests, discussions + events + navigation, 3 E2E files archived)
-- ✅ **Week 3: Integration tests batch 2 complete** (49 tests, forms + admin tabs + notification badges)
-- 🎯 **NEXT: Week 4 integration tests** (video + help center + shopping cart + vendor dashboard)
-- [ ] Week 4: All conversions complete
-- [ ] Week 5: Critical paths implemented
-- [ ] Week 6: Documentation and archive complete
+- ✅ **Week 3: Integration tests batch 2 complete** (49 tests, forms + admin tabs + notification badges, 1 E2E file archived)
+- ✅ **Week 4: Integration tests batch 3 complete** (50 tests, video + help center + shopping cart + vendor dashboard)
+- 🎯 **NEXT: Week 5 critical path E2E tests** (18 comprehensive end-to-end tests)
+- [ ] Week 5: Archive remaining ~242 E2E tests
+- [ ] Week 6: Documentation and Percy expansion complete
 
 ### Demo Sessions
 - [ ] Week 2: Show speed improvements
