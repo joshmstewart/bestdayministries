@@ -1924,6 +1924,12 @@ export const StickerCollectionManager = () => {
                         <Badge variant={collection.is_active ? "default" : "secondary"}>
                           {collection.is_active ? "Active" : "Inactive"}
                         </Badge>
+                        {collection.is_featured && (
+                          <Badge variant="default" className="gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            Featured
+                          </Badge>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
@@ -1933,6 +1939,15 @@ export const StickerCollectionManager = () => {
                         >
                           <Sparkles className="h-4 w-4 mr-2" />
                           Test Pack
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={collection.is_featured ? "default" : "outline"}
+                          onClick={() => toggleCollectionFeatured(collection.id, collection.is_featured)}
+                          title={collection.is_featured ? "Remove from featured" : "Set as featured"}
+                          className={collection.is_featured ? "bg-yellow-500 hover:bg-yellow-600 text-white" : ""}
+                        >
+                          <Sparkles className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"
