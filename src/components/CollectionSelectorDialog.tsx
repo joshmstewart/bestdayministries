@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import { Sparkles, BookOpen } from "lucide-react";
 
 interface Collection {
   id: string;
@@ -33,6 +34,7 @@ export const CollectionSelectorDialog = ({
   onSelectCollection,
   isDailyPack = false,
 }: CollectionSelectorDialogProps) => {
+  const navigate = useNavigate();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -124,17 +126,32 @@ export const CollectionSelectorDialog = ({
                     )}
                   </div>
 
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="w-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelect(collection.id);
-                    }}
-                  >
-                    Open Pack
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelect(collection.id);
+                      }}
+                    >
+                      Open Pack
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenChange(false);
+                        navigate('/sticker-album');
+                      }}
+                    >
+                      <BookOpen className="w-4 h-4 mr-1" />
+                      Collection
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

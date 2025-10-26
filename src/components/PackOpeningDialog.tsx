@@ -311,26 +311,12 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/10 to-primary/5">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <DialogTitle className="text-center">
-                {opened ? "You Got:" : "Open Your Pack"}
-              </DialogTitle>
-              <DialogDescription className="text-center">
-                {opened ? "Added to your collection!" : "Tap to open your pack!"}
-              </DialogDescription>
-            </div>
-            {onChangeCollection && !opened && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onChangeCollection}
-                className="shrink-0"
-              >
-                Other Packs
-              </Button>
-            )}
-          </div>
+          <DialogTitle className="text-center">
+            {opened ? "You Got:" : "Open Your Pack"}
+          </DialogTitle>
+          <DialogDescription className="text-center">
+            {opened ? "Added to your collection!" : "Tap to open your pack!"}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-6 py-4">
@@ -672,6 +658,33 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
               )}
             </div>
           ) : null}
+          
+          {/* Buttons for pack management - show when not opened */}
+          {!opened && revealedStickers.length === 0 && (
+            <div className="flex gap-2 w-full max-w-xs mx-auto pt-4">
+              {onChangeCollection && (
+                <Button
+                  variant="outline"
+                  onClick={onChangeCollection}
+                  className="flex-1"
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Change Pack
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  handleDialogClose(false);
+                  navigate('/sticker-album');
+                }}
+                className="flex-1"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                View Collection
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
