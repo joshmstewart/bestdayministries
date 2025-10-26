@@ -135,7 +135,8 @@ Converting 414 E2E tests into a Test Pyramid structure:
 
 **Week 3 Deliverables:**
 - ✅ 55 integration tests passing (exceeded target of 52)
-- [ ] Archive corresponding E2E test sections
+- ✅ Archived `forms.spec.ts` → `tests/e2e/archived/week3-integration-conversions/`
+- ✅ Created archive documentation
 
 ---
 
@@ -256,7 +257,7 @@ Converting 414 E2E tests into a Test Pyramid structure:
 ### Test Count Summary
 | Category | Before | After | Status |
 |----------|--------|-------|--------|
-| **E2E Tests** | 414 | 18 | 🚧 In Progress (~340 after Week 2 archive, currently 414) |
+| **E2E Tests** | 414 | 18 | 🚧 In Progress (~334 after Week 3 archive: -74 Week 2, -6 Week 3) |
 | **Integration Tests** | 48 | 188 | 🚧 In Progress (197 total: 48 Phase 1.5 + 100 Week 2 + 49 Week 3) |
 | **Unit Tests** | 0 | 93 | ✅ Complete (ALL PASSING) |
 | **Percy Snapshots** | 24 | 50 | ⏳ Not Started |
