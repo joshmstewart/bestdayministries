@@ -317,7 +317,9 @@ test.describe('Critical Path E2E Tests', () => {
       
       const approveButton = page.locator('button').filter({ hasText: /approve/i }).first();
       if (await approveButton.isVisible()) {
+        console.log('[E2E] Clicking approve button...');
         await approveButton.click();
+        console.log('[E2E] Approve button clicked');
         await page.waitForTimeout(1500);
       }
       
@@ -433,11 +435,10 @@ test.describe('Critical Path E2E Tests', () => {
         await page.getByRole('option', { name: /supporter/i }).click();
       }
 
-      // Accept terms (use more specific selector to avoid strict mode violation)
-      const termsCheckbox = page.locator('input[type="checkbox"][name="terms"]').or(page.locator('input[type="checkbox"]').first());
-      if (await termsCheckbox.isVisible()) {
-        await termsCheckbox.check();
-      }
+      // Accept terms - click the label/container instead of .check()
+      const termsLabel = page.locator('label').filter({ hasText: /terms/i }).first();
+      await termsLabel.click();
+      await page.waitForTimeout(500);
 
       // Verify form is fully valid before submission
       await expect(page.locator('input[type="email"]')).toHaveValue(/.+@.+\..+/);
@@ -608,59 +609,8 @@ test.describe('Critical Path E2E Tests', () => {
       await page.goto('/community');
       await page.waitForLoadState('networkidle');
       
-      // Ensure Christmas 2025 collection exists (improved inline seeding)
-      const collectionCreated = await page.evaluate(async () => {
-        const supabase = (window as any).supabase;
-        if (!supabase) {
-          console.error('Supabase client not available');
-          return false;
-        }
-        
-        try {
-          // Check if collection exists
-          const { data: existing, error: selectError } = await supabase
-            .from('sticker_collections')
-            .select('id, name')
-            .eq('name', 'Christmas 2025')
-            .maybeSingle();
-          
-          if (selectError) {
-            console.error('Error checking collection:', selectError);
-          }
-          
-          if (existing) {
-            console.log('Christmas 2025 collection already exists:', existing.id);
-            return true;
-          }
-          
-          // Create the collection
-          const { data: newCollection, error: insertError } = await supabase
-            .from('sticker_collections')
-            .insert({
-              name: 'Christmas 2025',
-              description: 'Holiday collection for E2E testing',
-              is_active: true,
-              display_order: 1
-            })
-            .select('id')
-            .single();
-          
-          if (insertError) {
-            console.error('Error creating collection:', insertError);
-            return false;
-          }
-          
-          console.log('Created Christmas 2025 collection:', newCollection.id);
-          return true;
-        } catch (err) {
-          console.error('Exception in collection seeding:', err);
-          return false;
-        }
-      });
-      
-      if (!collectionCreated) {
-        console.warn('Failed to seed Christmas 2025 collection, test may fail');
-      }
+      // Collection seeding now handled in global-setup.ts
+      console.log('[E2E] Christmas 2025 collection should exist from global-setup');
       
       await page.waitForTimeout(2000);
       

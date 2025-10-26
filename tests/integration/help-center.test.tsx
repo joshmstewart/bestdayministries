@@ -191,6 +191,7 @@ describe('Help Center - FAQs', () => {
       const firstQuestion = screen.getByText('How do I sign up?');
       fireEvent.click(firstQuestion);
       
+      // Use the actual mock data answer
       expect(screen.getByText('Click the signup button')).toBeVisible();
     });
   });

@@ -44,174 +44,145 @@ async function globalSetup(config: FullConfig) {
 }
 
 async function createPersistentTestAccount() {
-  console.log('🔐 Setting up persistent test accounts for all shards...');
-  
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('❌ Missing Supabase credentials');
     return;
   }
   
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const testPassword = 'testpassword123';
+  console.log('[Setup] Creating/verifying persistent test accounts with SERVICE KEY...');
   
-  // Create accounts for shards 0-6 to match test-accounts.ts pattern
-  // Shard 0: test@example.com (local testing default)
-  // Shards 1-6: test1@example.com through test6@example.com
-  const shards = [0, 1, 2, 3, 4, 5, 6];
-  
-  for (const shardNum of shards) {
-    const testEmail = shardNum === 0 ? 'test@example.com' : `test${shardNum}@example.com`;
-    const displayName = shardNum === 0 ? 'Test Admin User' : `Test Admin User ${shardNum}`;
-    
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    }
+  });
+
+  const testAccounts = [
+    { 
+      email: 'test@example.com', 
+      password: 'testpassword123', 
+      name: 'Test User',
+      role: 'admin'
+    },
+    { 
+      email: 'testbestie@example.com', 
+      password: 'testpassword123', 
+      name: 'Test Bestie',
+      role: 'bestie'
+    },
+    { 
+      email: 'testguardian@example.com', 
+      password: 'testpassword123', 
+      name: 'Test Guardian',
+      role: 'caregiver'
+    },
+    { 
+      email: 'testsupporter@example.com', 
+      password: 'testpassword123', 
+      name: 'Test Supporter',
+      role: 'supporter'
+    }
+  ];
+
+  for (const account of testAccounts) {
     try {
+      console.log(`[Setup] Processing ${account.email}...`);
+      
       // Try to sign in first to check if account exists
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: testEmail,
-        password: testPassword,
+        email: account.email,
+        password: account.password,
       });
       
       if (signInData?.user) {
-        console.log(`✅ Account exists: ${testEmail} (shard ${shardNum})`);
+        console.log(`[Setup] Account exists: ${account.email}`);
         
-        // Verify admin role exists
-        const { data: roleData } = await supabase
+        // Check if user has required role using service key
+        const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', signInData.user.id)
-          .eq('role', 'admin')
-          .single();
+          .eq('role', account.role)
+          .maybeSingle();
+        
+        console.log(`[Setup] Role check for ${account.email}:`, { roleData, roleError });
         
         if (!roleData) {
-          console.log(`⚠️  Admin role missing for ${testEmail}, attempting to add via edge function...`);
-          try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/set-test-admin-roles`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${supabaseAnonKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ userIds: [signInData.user.id] })
+          console.log(`[Setup] Adding ${account.role} role directly for ${account.email}...`);
+          // Add role directly using service key (bypasses RLS)
+          const { error: insertError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: signInData.user.id,
+              role: account.role,
+              created_by: signInData.user.id
             });
-            
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`Edge function failed: ${response.status} - ${errorText}`);
-            }
-            
-            const result = await response.json();
-            console.log(`📋 Edge function response:`, JSON.stringify(result));
-            
-            // CRITICAL: Wait for database transaction to commit
-            console.log(`⏳ Waiting 2 seconds for role to propagate...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // VERIFY the role was written
-            const { data: roleCheck, error: verifyError } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', signInData.user.id)
-              .eq('role', 'admin')
-              .single();
-            
-            if (verifyError || !roleCheck) {
-              throw new Error(
-                `❌ ROLE VERIFICATION FAILED for ${testEmail}\n` +
-                `Error: ${verifyError?.message || 'Role not found'}\n` +
-                `Response: ${JSON.stringify(result)}`
-              );
-            }
-            
-            console.log(`✅ VERIFIED admin role exists for ${testEmail}`);
-          } catch (error) {
-            console.error(`❌ Error setting admin role for ${testEmail}:`, error);
+          
+          if (insertError) {
+            console.error(`[Setup] Failed to add ${account.role} role:`, insertError);
+          } else {
+            console.log(`[Setup] Successfully added ${account.role} role for ${account.email}`);
           }
+        } else {
+          console.log(`[Setup] ${account.role} role already exists for ${account.email}`);
         }
         
-        // Sign out before next account
         await supabase.auth.signOut();
         continue;
       }
       
       // Account doesn't exist, create it
-      console.log(`📝 Creating account: ${testEmail} (shard ${shardNum})...`);
+      console.log(`[Setup] Creating account: ${account.email}...`);
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: testEmail,
-        password: testPassword,
+        email: account.email,
+        password: account.password,
         options: {
           data: {
-            name: displayName,
-          },
-          emailRedirectTo: `${supabaseUrl}/`
+            display_name: account.name,
+            role: account.role
+          }
         }
       });
       
       if (signUpError) {
-        console.error(`❌ Failed to create ${testEmail}:`, signUpError.message);
+        console.error(`[Setup] Failed to create ${account.email}:`, signUpError.message);
         continue;
       }
       
       if (signUpData?.user) {
-        console.log(`✅ Created account: ${testEmail} (shard ${shardNum})`);
+        console.log(`[Setup] Created account: ${account.email}`);
         
-        // Call edge function to set admin role (bypasses RLS)
-        try {
-          const response = await fetch(`${supabaseUrl}/functions/v1/set-test-admin-roles`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseAnonKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userIds: [signUpData.user.id] })
+        // Add role directly using service key (bypasses RLS)
+        const { error: roleInsertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: signUpData.user.id,
+            role: account.role,
+            created_by: signUpData.user.id
           });
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Edge function failed: ${response.status} - ${errorText}`);
-          }
-          
-          const result = await response.json();
-          console.log(`📋 Edge function response:`, JSON.stringify(result));
-          
-          // CRITICAL: Wait for database transaction to commit
-          console.log(`⏳ Waiting 2 seconds for role to propagate...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // VERIFY the role was written
-          const { data: roleCheck, error: verifyError } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', signUpData.user.id)
-            .eq('role', 'admin')
-            .single();
-          
-          if (verifyError || !roleCheck) {
-            throw new Error(
-              `❌ ROLE VERIFICATION FAILED for ${testEmail}\n` +
-              `Error: ${verifyError?.message || 'Role not found'}\n` +
-              `Response: ${JSON.stringify(result)}`
-            );
-          }
-          
-          console.log(`✅ VERIFIED admin role exists for ${testEmail}`);
-        } catch (error) {
-          console.error(`❌ Error setting admin role for ${testEmail}:`, error);
+        
+        if (roleInsertError) {
+          console.error(`[Setup] Failed to add ${account.role} role:`, roleInsertError);
+        } else {
+          console.log(`[Setup] Successfully added ${account.role} role for ${account.email}`);
         }
       }
       
-      // Sign out before next account
       await supabase.auth.signOut();
       
     } catch (error) {
-      console.error(`❌ Error setting up ${testEmail}:`, error);
+      console.error(`[Setup] Error setting up ${account.email}:`, error);
     }
   }
   
-  console.log('✅ All shard test accounts processed');
+  console.log('[Setup] All persistent test accounts processed');
 }
+
 
 // Create daily scratch cards for ALL test accounts
 async function ensureScratchCards() {
@@ -304,57 +275,102 @@ async function ensureScratchCards() {
 }
 
 async function ensureChristmasCollection(supabase: any) {
-  console.log('🎄 Ensuring Christmas 2025 sticker collection exists...');
+  console.log('[Setup] Ensuring Christmas 2025 collection exists with stickers...');
   
   try {
     // Check if collection exists
-    const { data: existingCollection } = await supabase
+    const { data: existingCollection, error: checkError } = await supabase
       .from('sticker_collections')
-      .select('id')
+      .select('id, name')
       .eq('name', 'Christmas 2025')
       .maybeSingle();
     
+    if (checkError) {
+      console.error('[Setup] Error checking for collection:', checkError);
+    }
+    
     if (existingCollection) {
-      console.log('✅ Christmas 2025 collection already exists');
-      return;
+      console.log('[Setup] Christmas 2025 collection already exists:', existingCollection);
+      
+      // Verify it has stickers
+      const { data: stickers, error: stickerCheckError } = await supabase
+        .from('stickers')
+        .select('id')
+        .eq('collection_id', existingCollection.id);
+      
+      if (!stickerCheckError && stickers && stickers.length > 0) {
+        console.log(`[Setup] Collection has ${stickers.length} stickers`);
+        return existingCollection.id;
+      }
+      
+      console.log('[Setup] Collection exists but has no stickers, will add them...');
     }
     
-    // Create the collection
-    const { data: newCollection, error: collectionError } = await supabase
-      .from('sticker_collections')
-      .insert({
-        name: 'Christmas 2025',
-        description: 'Festive holiday stickers for the 2025 season',
-        is_active: true,
-        release_date: new Date().toISOString(),
-      })
-      .select('id')
-      .single();
+    // Create or get collection
+    let collectionId = existingCollection?.id;
     
-    if (collectionError) {
-      console.error('❌ Failed to create Christmas 2025 collection:', collectionError.message);
-      return;
+    if (!collectionId) {
+      console.log('[Setup] Creating Christmas 2025 collection...');
+      const { data: collection, error: collectionError } = await supabase
+        .from('sticker_collections')
+        .insert({
+          name: 'Christmas 2025',
+          description: 'Holiday stickers for testing',
+          is_active: true,
+          visible_to_roles: ['admin', 'owner', 'supporter', 'bestie', 'caregiver'],
+          start_date: new Date().toISOString().split('T')[0],
+          rarity_config: {
+            common: 50,
+            uncommon: 30,
+            rare: 15,
+            epic: 4,
+            legendary: 1
+          }
+        })
+        .select()
+        .single();
+      
+      if (collectionError) {
+        console.error('[Setup] Failed to create collection:', collectionError);
+        throw collectionError;
+      }
+      
+      console.log('[Setup] Created collection:', collection);
+      collectionId = collection.id;
     }
     
-    console.log('✅ Created Christmas 2025 collection');
+    // Create sample stickers (at least 5 for variety)
+    const stickers = [
+      { name: 'Snowflake', rarity: 'common' },
+      { name: 'Santa Hat', rarity: 'uncommon' },
+      { name: 'Reindeer', rarity: 'rare' },
+      { name: 'Christmas Tree', rarity: 'epic' },
+      { name: 'Golden Star', rarity: 'legendary' }
+    ];
     
-    // Create at least one sticker in the collection
-    const { error: stickerError } = await supabase
-      .from('stickers')
-      .insert({
-        collection_id: newCollection.id,
-        name: 'Christmas Tree',
-        rarity: 'common',
-        image_url: '/placeholder.svg',
-      });
-    
-    if (stickerError) {
-      console.error('❌ Failed to create sticker:', stickerError.message);
-    } else {
-      console.log('✅ Created sample sticker for Christmas 2025 collection');
+    for (const sticker of stickers) {
+      const { error: stickerError } = await supabase
+        .from('stickers')
+        .insert({
+          collection_id: collectionId,
+          name: sticker.name,
+          rarity: sticker.rarity,
+          image_url: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7',
+          is_active: true
+        });
+      
+      if (stickerError) {
+        console.error(`[Setup] Failed to create sticker ${sticker.name}:`, stickerError);
+      } else {
+        console.log(`[Setup] Created sticker: ${sticker.name}`);
+      }
     }
+    
+    console.log('[Setup] Christmas 2025 collection setup complete with stickers');
+    return collectionId;
   } catch (error: any) {
-    console.error('❌ Error ensuring Christmas collection:', error.message);
+    console.error('[Setup] Error ensuring Christmas collection:', error.message);
+    throw error;
   }
 }
 
