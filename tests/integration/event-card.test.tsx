@@ -4,25 +4,6 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PublicEvents } from '@/components/PublicEvents';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({
-            data: [],
-            error: null
-          }))
-        }))
-      }))
-    })),
-    auth: {
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null }))
-    }
-  }
-}));
-
 // Mock hooks
 vi.mock('@/hooks/useRoleImpersonation', () => ({
   useRoleImpersonation: () => ({

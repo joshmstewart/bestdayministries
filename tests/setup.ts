@@ -2,6 +2,8 @@ import { afterEach, afterAll, beforeAll, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { server } from './mocks/server';
+import './mocks/supabase';
+import './mocks/react-router';
 
 // Establish API mocking before all tests
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
