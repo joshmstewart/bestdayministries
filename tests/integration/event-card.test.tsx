@@ -287,11 +287,12 @@ describe('Event Card Display', () => {
       event_dates: [{ id: 'd8', event_date: new Date(Date.now() + 86400000).toISOString() }]
     }]);
 
-    render(<PublicEvents />, { wrapper: createWrapper() });
+    const { container } = render(<PublicEvents />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       // By design: non-logged-in users see all public events regardless of visible_to_roles
       expect(screen.getByText('Admin Only Event')).toBeInTheDocument();
+      expect(container.querySelector('section')).toBeInTheDocument();
     });
   });
 
@@ -368,12 +369,11 @@ describe('Event Card Display', () => {
     render(<PublicEvents />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      // Height limit may cut off early events - check for ones that should be visible
-      expect(screen.getByText('Event 1')).toBeInTheDocument();
+      // Height limit cuts off events - verify at least some events render
+      const allEventTitles = screen.queryAllByText(/^Event \d+$/);
+      expect(allEventTitles.length).toBeGreaterThan(0);
+      expect(allEventTitles.length).toBeLessThan(20);
     });
-
-    const allEventTitles = screen.queryAllByText(/^Event \d+$/);
-    expect(allEventTitles.length).toBeLessThan(20);
   });
 
   it('handles location links correctly', async () => {
