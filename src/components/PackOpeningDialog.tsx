@@ -106,10 +106,11 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     
     setLoading(true);
     try {
+      // Prioritize collectionId if provided (user selected different collection)
       let targetCollectionId = collectionId;
       
-      // If we have a cardId, get its collection_id
-      if (cardId) {
+      // Only fetch card's collection if no collectionId was explicitly provided
+      if (cardId && !collectionId) {
         const { data: card, error: cardError } = await supabase
           .from('daily_scratch_cards')
           .select('collection_id')
