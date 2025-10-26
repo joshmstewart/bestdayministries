@@ -5,30 +5,56 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PublicEvents } from '@/components/PublicEvents';
 import { format } from 'date-fns';
 
-// Mock Supabase
+// Mock Supabase with diagnostic logging
 vi.mock('@/integrations/supabase/client', () => {
   return {
     supabase: {
       from: vi.fn((table: string) => {
+        console.log('[MOCK] from() called with table:', table);
+        
         // Default: user_roles returns null (no user logged in)
         if (table === 'user_roles') {
           return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
-              }))
-            }))
+            select: vi.fn((columns) => {
+              console.log('[MOCK] user_roles select() called with:', columns);
+              return {
+                eq: vi.fn((column, value) => {
+                  console.log('[MOCK] user_roles eq() called with:', column, '=', value);
+                  return {
+                    maybeSingle: vi.fn(() => {
+                      console.log('[MOCK] user_roles maybeSingle() called, returning null');
+                      return Promise.resolve({ data: null, error: null });
+                    })
+                  };
+                })
+              };
+            })
           };
         }
         
-        // Default: events returns empty array
+        // Default: events returns empty array with double .eq() chain
         if (table === 'events') {
           return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                order: vi.fn(() => Promise.resolve({ data: [], error: null }))
-              }))
-            }))
+            select: vi.fn((columns) => {
+              console.log('[MOCK] events select() called with:', columns);
+              return {
+                eq: vi.fn((column, value) => {
+                  console.log('[MOCK] events first eq() called with:', column, '=', value);
+                  return {
+                    eq: vi.fn((column2, value2) => {
+                      console.log('[MOCK] events second eq() called with:', column2, '=', value2);
+                      return {
+                        order: vi.fn((orderCol, options) => {
+                          console.log('[MOCK] events order() called with:', orderCol, options);
+                          console.log('[MOCK] Returning empty array');
+                          return Promise.resolve({ data: [], error: null });
+                        })
+                      };
+                    })
+                  };
+                })
+              };
+            })
           };
         }
         
@@ -67,12 +93,42 @@ const createWrapper = () => {
 };
 
 describe('Event Date Logic', () => {
+  it('DIAGNOSTIC: verifies mock chain supports double .eq() call', async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    console.log('[DIAGNOSTIC] Testing mock chain structure...');
+    
+    // Call the mock exactly how the component does
+    const chain = supabase
+      .from('events')
+      .select('*')
+      .eq('is_public', true)
+      .eq('is_active', true);
+    
+    // Verify each step returns an object with the next method
+    expect(chain).toHaveProperty('order');
+    expect(typeof chain.order).toBe('function');
+    console.log('[DIAGNOSTIC] Mock chain has order method ✓');
+    
+    // Call order and verify it returns a promise
+    const result = chain.order('event_date', { ascending: true });
+    expect(result).toBeInstanceOf(Promise);
+    console.log('[DIAGNOSTIC] order() returns Promise ✓');
+    
+    // Verify the promise resolves
+    const { data, error } = await result;
+    console.log('[DIAGNOSTIC] Promise resolved with:', { data, error });
+    expect(error).toBeNull();
+    expect(Array.isArray(data)).toBe(true);
+    console.log('[DIAGNOSTIC] Mock chain verification PASSED ✓');
+  });
+
   beforeEach(async () => {
     vi.clearAllMocks();
     
     const { supabase } = await import('@/integrations/supabase/client');
     
-    // Reset to default mock behavior
+    // Reset to default mock behavior with double .eq() chain
     vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'user_roles') {
         return {
@@ -87,7 +143,9 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({ data: [], error: null }))
+              }))
             }))
           }))
         } as any;
@@ -104,43 +162,69 @@ describe('Event Date Logic', () => {
 
   it('displays single date event correctly', async () => {
     const eventDate = new Date(Date.now() + 86400000); // Tomorrow
+    const callSequence: string[] = [];
     
     const { supabase } = await import('@/integrations/supabase/client');
     
     vi.mocked(supabase.from).mockImplementation((table: string) => {
+      callSequence.push(`from(${table})`);
+      
       if (table === 'user_roles') {
         return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null }))
-            }))
-          }))
+          select: vi.fn(() => {
+            callSequence.push('user_roles:select()');
+            return {
+              eq: vi.fn(() => {
+                callSequence.push('user_roles:eq()');
+                return {
+                  maybeSingle: vi.fn(() => {
+                    callSequence.push('user_roles:maybeSingle()');
+                    return Promise.resolve({ data: null, error: null });
+                  })
+                };
+              })
+            };
+          })
         } as any;
       }
       if (table === 'events') {
         return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [{
-                  id: '1',
-                  title: 'Single Date Event',
-                  description: 'One time event',
-                  location: 'Venue',
-                  image_url: '/img.jpg',
-                  aspect_ratio: '16:9',
-                  is_active: true,
-                  is_public: true,
-                  visible_to_roles: ['supporter'],
-                  audio_url: null,
-                  expires_after_date: true,
-                  recurrence_type: null,
-                  event_dates: [{ id: 'd1', event_date: eventDate.toISOString() }]
-                }],
-                error: null
-              }))
-            }))
-          }))
+          select: vi.fn(() => {
+            callSequence.push('events:select()');
+            return {
+              eq: vi.fn((col, val) => {
+                callSequence.push(`events:eq(${col})`);
+                return {
+                  eq: vi.fn((col2, val2) => {
+                    callSequence.push(`events:eq(${col2})`);
+                    return {
+                      order: vi.fn(() => {
+                        callSequence.push('events:order()');
+                        return Promise.resolve({
+                          data: [{
+                            id: '1',
+                            title: 'Single Date Event',
+                            description: 'One time event',
+                            location: 'Venue',
+                            image_url: '/img.jpg',
+                            aspect_ratio: '16:9',
+                            is_active: true,
+                            is_public: true,
+                            visible_to_roles: ['supporter'],
+                            audio_url: null,
+                            expires_after_date: true,
+                            recurrence_type: null,
+                            event_dates: [{ id: 'd1', event_date: eventDate.toISOString() }]
+                          }],
+                          error: null
+                        });
+                      })
+                    };
+                  })
+                };
+              })
+            };
+          })
         } as any;
       }
       return { select: vi.fn(() => Promise.resolve({ data: [], error: null })) } as any;
@@ -149,8 +233,18 @@ describe('Event Date Logic', () => {
     render(<PublicEvents />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('Single Date Event')).toBeInTheDocument();
-    });
+      const eventElement = screen.queryByText('Single Date Event');
+      const loadingElement = screen.queryByText('Loading events...');
+      
+      if (!eventElement && loadingElement) {
+        console.error('[TEST FAILURE] Still loading! Call sequence:', callSequence);
+        console.error('[TEST FAILURE] Mock calls:', vi.mocked(supabase.from).mock.calls);
+      }
+      
+      expect(eventElement).toBeInTheDocument();
+    }, { timeout: 5000 });
+    
+    console.log('[TEST SUCCESS] Call sequence:', callSequence);
   });
 
   it('displays upcoming events only', async () => {
@@ -173,11 +267,12 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [
-                  {
-                    id: '1',
-                    title: 'Future Event',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [
+                    {
+                      id: '1',
+                      title: 'Future Event',
                     description: 'Upcoming',
                     location: 'Location 1',
                     image_url: '/future.jpg',
@@ -204,9 +299,10 @@ describe('Event Date Logic', () => {
                     expires_after_date: true,
                     recurrence_type: null,
                     event_dates: [{ id: 'd2', event_date: pastDate.toISOString() }]
-                  }
-                ],
-                error: null
+                    }
+                  ],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -242,10 +338,11 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [{
-                  id: '3',
-                  title: 'Christmas Event',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [{
+                    id: '3',
+                    title: 'Christmas Event',
                   description: 'Holiday celebration',
                   location: 'Town Hall',
                   image_url: '/xmas.jpg',
@@ -257,8 +354,9 @@ describe('Event Date Logic', () => {
                   expires_after_date: true,
                   recurrence_type: null,
                   event_dates: [{ id: 'd3', event_date: eventDate.toISOString() }]
-                }],
-                error: null
+                  }],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -295,10 +393,11 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [{
-                  id: '4',
-                  title: 'Timed Event',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [{
+                    id: '4',
+                    title: 'Timed Event',
                   description: 'Specific time',
                   location: 'Location',
                   image_url: '/time.jpg',
@@ -310,8 +409,9 @@ describe('Event Date Logic', () => {
                   expires_after_date: true,
                   recurrence_type: null,
                   event_dates: [{ id: 'd4', event_date: eventDate.toISOString() }]
-                }],
-                error: null
+                  }],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -350,11 +450,12 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [
-                  {
-                    id: '1',
-                    title: 'Event C',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [
+                    {
+                      id: '1',
+                      title: 'Event C',
                     description: 'Third',
                     location: 'Loc',
                     image_url: '/c.jpg',
@@ -396,9 +497,10 @@ describe('Event Date Logic', () => {
                     expires_after_date: true,
                     recurrence_type: null,
                     event_dates: [{ id: 'd3', event_date: date3.toISOString() }]
-                  }
-                ],
-                error: null
+                    }
+                  ],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -438,10 +540,11 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [{
-                  id: '5',
-                  title: 'Weekly Class',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [{
+                    id: '5',
+                    title: 'Weekly Class',
                   description: 'Every week',
                   location: 'Studio',
                   image_url: '/weekly.jpg',
@@ -456,8 +559,9 @@ describe('Event Date Logic', () => {
                     { id: 'd1', event_date: date1.toISOString() },
                     { id: 'd2', event_date: date2.toISOString() }
                   ]
-                }],
-                error: null
+                  }],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -494,10 +598,11 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [{
-                  id: '6',
-                  title: 'Scheduled Event',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [{
+                    id: '6',
+                    title: 'Scheduled Event',
                   description: 'With time',
                   location: 'Location',
                   image_url: '/scheduled.jpg',
@@ -509,8 +614,9 @@ describe('Event Date Logic', () => {
                   expires_after_date: true,
                   recurrence_type: null,
                   event_dates: [{ id: 'd6', event_date: eventDate.toISOString() }]
-                }],
-                error: null
+                  }],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -549,10 +655,11 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [{
-                  id: '7',
-                  title: 'All Day Event',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [{
+                    id: '7',
+                    title: 'All Day Event',
                   description: 'No specific time',
                   location: 'Location',
                   image_url: '/allday.jpg',
@@ -564,8 +671,9 @@ describe('Event Date Logic', () => {
                   expires_after_date: true,
                   recurrence_type: null,
                   event_dates: [{ id: 'd7', event_date: eventDate.toISOString() }]
-                }],
-                error: null
+                  }],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -601,10 +709,11 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [{
-                  id: '8',
-                  title: 'UTC Event',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [{
+                    id: '8',
+                    title: 'UTC Event',
                   description: 'Timezone test',
                   location: 'Location',
                   image_url: '/utc.jpg',
@@ -616,8 +725,9 @@ describe('Event Date Logic', () => {
                   expires_after_date: true,
                   recurrence_type: null,
                   event_dates: [{ id: 'd8', event_date: utcDate }]
-                }],
-                error: null
+                  }],
+                  error: null
+                }))
               }))
             }))
           }))
@@ -661,10 +771,11 @@ describe('Event Date Logic', () => {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({
-                data: [{
-                  id: '9',
-                  title: 'Multi-Date Event',
+              eq: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [{
+                    id: '9',
+                    title: 'Multi-Date Event',
                   description: 'Multiple occurrences',
                   location: 'Location',
                   image_url: '/multi.jpg',
@@ -676,8 +787,9 @@ describe('Event Date Logic', () => {
                   expires_after_date: true,
                   recurrence_type: 'custom',
                   event_dates: dates.map((d, i) => ({ id: `d${i}`, event_date: d.toISOString() }))
-                }],
-                error: null
+                  }],
+                  error: null
+                }))
               }))
             }))
           }))
