@@ -252,7 +252,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       }
 
       const { data, error } = await supabase.functions.invoke('scratch-card', {
-        body: { cardId }
+        body: { cardId, collectionId }
       });
 
       if (error) {
