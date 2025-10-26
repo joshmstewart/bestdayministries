@@ -97,11 +97,11 @@ export const CollectionSelectorDialog = ({
               >
                 <div className="space-y-3">
                   {collection.pack_image_url && (
-                    <div className="aspect-square rounded-md overflow-hidden bg-muted">
+                    <div className="aspect-[2/3] rounded-md overflow-hidden bg-muted">
                       <img
                         src={collection.pack_image_url}
                         alt={collection.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        className="w-full h-full object-contain group-hover:scale-105 transition-transform"
                       />
                     </div>
                   )}
