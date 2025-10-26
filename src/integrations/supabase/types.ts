@@ -3882,6 +3882,8 @@ export type Database = {
           description: string | null
           display_order: number
           end_date: string | null
+          featured_start_date: string | null
+          ga_date: string | null
           id: string
           is_active: boolean
           is_featured: boolean
@@ -3903,6 +3905,8 @@ export type Database = {
           description?: string | null
           display_order?: number
           end_date?: string | null
+          featured_start_date?: string | null
+          ga_date?: string | null
           id?: string
           is_active?: boolean
           is_featured?: boolean
@@ -3924,6 +3928,8 @@ export type Database = {
           description?: string | null
           display_order?: number
           end_date?: string | null
+          featured_start_date?: string | null
+          ga_date?: string | null
           id?: string
           is_active?: boolean
           is_featured?: boolean
@@ -5125,6 +5131,8 @@ export type Database = {
         Args: { _user_id: string; _vendor_id: string }
         Returns: boolean
       }
+      promote_collections_to_ga: { Args: never; Returns: undefined }
+      update_featured_collections: { Args: never; Returns: undefined }
     }
     Enums: {
       avatar_category: "humans" | "animals" | "monsters" | "shapes"

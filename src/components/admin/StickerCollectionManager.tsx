@@ -288,6 +288,8 @@ export const StickerCollectionManager = () => {
     theme: "",
     start_date: new Date().toISOString().split('T')[0],
     end_date: "",
+    ga_date: "",
+    featured_start_date: "",
     visible_to_roles: ["admin", "owner"] as UserRole[],
     use_default_rarity: true, // Default to using defaults
     stickers_per_pack: 1, // Default to 1 sticker per pack
@@ -815,6 +817,8 @@ export const StickerCollectionManager = () => {
           theme: collectionForm.theme,
           start_date: collectionForm.start_date,
           end_date: collectionForm.end_date || null,
+          ga_date: collectionForm.ga_date || null,
+          featured_start_date: collectionForm.featured_start_date || null,
           visible_to_roles: collectionForm.visible_to_roles as any,
           use_default_rarity: collectionForm.use_default_rarity,
           rarity_percentages: collectionForm.rarity_percentages,
@@ -850,6 +854,8 @@ export const StickerCollectionManager = () => {
         theme: "", 
         start_date: new Date().toISOString().split('T')[0], 
         end_date: "",
+        ga_date: "",
+        featured_start_date: "",
         visible_to_roles: ["admin", "owner"],
         use_default_rarity: true,
         stickers_per_pack: 1,
@@ -1680,6 +1686,31 @@ export const StickerCollectionManager = () => {
                   />
                 </div>
               </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>GA Date (Optional)</Label>
+                  <Input
+                    type="date"
+                    value={collectionForm.ga_date}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, ga_date: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Date when collection becomes available to all roles automatically
+                  </p>
+                </div>
+                <div>
+                  <Label>Featured Start Date (Optional)</Label>
+                  <Input
+                    type="date"
+                    value={collectionForm.featured_start_date}
+                    onChange={(e) => setCollectionForm({ ...collectionForm, featured_start_date: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Date when collection automatically becomes featured
+                  </p>
+                </div>
+              </div>
               <div>
                 <Label>Stickers Per Pack</Label>
                 <Input
@@ -2453,6 +2484,31 @@ export const StickerCollectionManager = () => {
                     />
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <Label>GA Date (Optional)</Label>
+                    <Input
+                      type="date"
+                      value={editingCollection.ga_date || ""}
+                      onChange={(e) => setEditingCollection({ ...editingCollection, ga_date: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Date when collection becomes available to all roles
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Featured Start Date (Optional)</Label>
+                    <Input
+                      type="date"
+                      value={editingCollection.featured_start_date || ""}
+                      onChange={(e) => setEditingCollection({ ...editingCollection, featured_start_date: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Date when collection automatically becomes featured
+                    </p>
+                  </div>
+                </div>
               </TabsContent>
 
               <TabsContent value="roles" className="space-y-4 mt-4">
@@ -2830,6 +2886,8 @@ export const StickerCollectionManager = () => {
                           theme: editingCollection.theme,
                           start_date: editingCollection.start_date,
                           end_date: editingCollection.end_date || null,
+                          ga_date: editingCollection.ga_date || null,
+                          featured_start_date: editingCollection.featured_start_date || null,
                           visible_to_roles: editingCollection.visible_to_roles,
                           stickers_per_pack: editingCollection.stickers_per_pack || 1,
                           use_default_rarity: editingCollection.use_default_rarity || false,
