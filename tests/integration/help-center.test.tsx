@@ -200,10 +200,15 @@ describe('Help Center - FAQs', () => {
     
     fireEvent.click(screen.getByRole('tab', { name: /faqs/i }));
     
+    // Wait for FAQ content to load - query INSIDE waitFor callback
     await waitFor(() => {
-      const faqItems = screen.getAllByTestId('faq-item');
-      expect(faqItems).toHaveLength(2);
-    }, { timeout: 3000 });
+      const items = screen.getAllByTestId('faq-item');
+      expect(items.length).toBeGreaterThan(0);
+      return items;
+    }, { timeout: 5000 });
+    
+    const faqItems = screen.getAllByTestId('faq-item');
+    expect(faqItems).toHaveLength(2);
   });
 });
 

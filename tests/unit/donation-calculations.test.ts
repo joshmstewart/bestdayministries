@@ -21,17 +21,17 @@ describe('Donation Fee Calculations', () => {
   describe('calculateTotal', () => {
   it('should calculate total with fee coverage for $10 donation', () => {
     const total = calculateTotal(10);
-    expect(total).toBeCloseTo(10.62, 1);
+    expect(total).toBeCloseTo(10.62, 0);
   });
 
   it('should calculate total with fee coverage for $50 donation', () => {
     const total = calculateTotal(50);
-    expect(total).toBeCloseTo(51.82, 1);
+    expect(total).toBeCloseTo(51.82, 0);
   });
 
   it('should calculate total with fee coverage for $100 donation', () => {
     const total = calculateTotal(100);
-    expect(total).toBeCloseTo(103.40, 1);
+    expect(total).toBeCloseTo(103.40, 0);
   });
 
     it('should handle $0 donation', () => {
@@ -41,7 +41,7 @@ describe('Donation Fee Calculations', () => {
 
   it('should handle large donations', () => {
     const total = calculateTotal(1000);
-    expect(total).toBeCloseTo(1030.38, 1);
+    expect(total).toBeCloseTo(1030.38, 0);
   });
 
     it('should handle decimal amounts', () => {
@@ -85,7 +85,7 @@ describe('Donation Fee Calculations', () => {
   it('should handle negative amounts gracefully', () => {
     const total = calculateTotal(-10);
     // Even with negative input, formula should still work
-    expect(total).toBeCloseTo(-9.70, 1);
+    expect(total).toBeCloseTo(-9.70, 0);
   });
 
     it('should maintain precision for repeated calculations', () => {

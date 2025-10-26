@@ -145,6 +145,16 @@ test.describe('Visual Regression Tests - Mobile (375x667)', () => {
 test.describe('Visual Regression Tests - Tablet (768x1024)', () => {
   test.use({ viewport: { width: 768, height: 1024 } });
 
+  test.beforeEach(async ({ page }) => {
+    // Dismiss terms dialog if present (prevents click interception)
+    const termsDialog = page.locator('text="Terms of Service"');
+    const isVisible = await termsDialog.isVisible({ timeout: 2000 }).catch(() => false);
+    if (isVisible) {
+      await page.locator('button:has-text("Accept")').click();
+      await page.waitForTimeout(500);
+    }
+  });
+
   test('homepage - tablet', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');

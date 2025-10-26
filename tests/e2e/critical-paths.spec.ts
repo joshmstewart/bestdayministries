@@ -311,10 +311,12 @@ test.describe('Critical Path E2E Tests', () => {
         await page.waitForTimeout(1500);
       }
       
-      // Step 3: Verify post is visible in discussions (add longer wait for realtime update)
+      // Step 3: Verify post is visible in discussions (add longer wait + reload for propagation)
+      await page.waitForTimeout(3000);
       await page.goto('/discussions');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000); // Wait for realtime subscription to propagate
+      await page.reload();
+      await page.waitForLoadState('networkidle');
       
       const postVisible = await page.locator(`text=/Test Post ${timestamp}/`).isVisible({ timeout: 10000 }).catch(() => false);
       expect(postVisible).toBeTruthy();
@@ -415,6 +417,13 @@ test.describe('Critical Path E2E Tests', () => {
         await termsCheckbox.check();
       }
 
+      // Verify form is fully valid before submission
+      await expect(page.locator('input[type="email"]')).toHaveValue(/.+@.+\..+/);
+      await expect(page.locator('input[type="password"]').first()).toHaveValue(/.{8,}/);
+      await expect(page.locator('input[placeholder*="name" i]')).toHaveValue(/.+/);
+      await expect(page.locator('input[type="checkbox"]')).toBeChecked();
+      await page.waitForTimeout(1000);
+
       // Step 4: Submit signup
       await page.locator('button[type="submit"]').filter({ hasText: /sign up|create|register/i }).first().click();
       
@@ -483,8 +492,9 @@ test.describe('Critical Path E2E Tests', () => {
         await page.waitForTimeout(3000);
         await page.waitForLoadState('networkidle');
         
-        // Verify role-specific navigation exists (wait for header to fully load)
-        const headerLoaded = await page.locator('nav, header').first().isVisible({ timeout: 10000 });
+        // Verify role-specific navigation exists (wait for header to fully load with semantic selector)
+        await page.waitForLoadState('networkidle');
+        const headerLoaded = await page.locator('header').first().isVisible({ timeout: 15000, state: 'visible' });
         expect(headerLoaded).toBeTruthy();
         
         for (const navItem of account.expectedNav) {
@@ -552,6 +562,27 @@ test.describe('Critical Path E2E Tests', () => {
     test('Sticker Pack Opening', async ({ page }) => {
       // Test: Admin creates pack → user opens → receives random sticker → sees in album
       // WHY E2E: Admin → user flow, randomness verification, duplicate tracking
+      
+      // Ensure Christmas 2025 collection exists (inline seeding)
+      await page.evaluate(async () => {
+        const supabase = (window as any).supabase;
+        if (!supabase) return;
+        
+        const { data: existing } = await supabase
+          .from('sticker_collections')
+          .select('id')
+          .eq('name', 'Christmas 2025')
+          .single();
+        
+        if (!existing) {
+          await supabase.from('sticker_collections').insert({
+            name: 'Christmas 2025',
+            description: 'Holiday collection',
+            is_active: true,
+            display_order: 1
+          });
+        }
+      });
       
       await page.goto('/community');
       await page.waitForLoadState('networkidle');
