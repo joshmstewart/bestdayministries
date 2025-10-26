@@ -5,21 +5,23 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '@/App';
 
 // Mock Supabase
-const mockAuth = {
-  getSession: vi.fn(),
-  onAuthStateChange: vi.fn(() => ({
-    data: { subscription: { unsubscribe: vi.fn() } }
-  }))
-};
+vi.mock('@/integrations/supabase/client', () => {
+  const mockAuth = {
+    getSession: vi.fn(),
+    onAuthStateChange: vi.fn(() => ({
+      data: { subscription: { unsubscribe: vi.fn() } }
+    }))
+  };
 
-const mockFrom = vi.fn();
+  const mockFrom = vi.fn();
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: mockFrom,
-    auth: mockAuth
-  }
-}));
+  return {
+    supabase: {
+      from: mockFrom,
+      auth: mockAuth
+    }
+  };
+});
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

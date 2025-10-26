@@ -9,7 +9,7 @@ import Footer from "@/components/Footer";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
-import PublicEvents from "@/components/PublicEvents";
+import { PublicEvents } from "@/components/PublicEvents";
 import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
 import { SEOHead, getOrganizationStructuredData } from "@/components/SEOHead";

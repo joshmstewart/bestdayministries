@@ -18,7 +18,7 @@ describe('Terms Guard Integration Tests', () => {
   describe('Dialog Display Logic', () => {
     it('should determine when to show dialog', () => {
       const shouldShow = (userId: string | undefined, isPublic: boolean, needs: boolean, isNew: boolean) =>
-        userId && !isPublic && needs && !isNew;
+        Boolean(userId && !isPublic && needs && !isNew);
 
       expect(shouldShow('user-123', false, true, false)).toBe(true);
       expect(shouldShow(undefined, false, true, false)).toBe(false);

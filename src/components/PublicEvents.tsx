@@ -39,7 +39,7 @@ interface Event {
   event_dates?: EventDate[];
 }
 
-export default function PublicEvents() {
+export function PublicEvents() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
