@@ -68,8 +68,8 @@ export const CollectionSelectorDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="pb-2">
           <DialogTitle>Select Sticker Collection</DialogTitle>
           <DialogDescription>
             {isDailyPack 
@@ -88,16 +88,16 @@ export const CollectionSelectorDialog = ({
             No collections available at this time
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {collections.map((collection) => (
               <div
                 key={collection.id}
-                className="border rounded-lg p-4 hover:border-primary transition-colors cursor-pointer group"
+                className="border rounded-lg p-3 hover:border-primary transition-colors cursor-pointer group"
                 onClick={() => handleSelect(collection.id)}
               >
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {collection.pack_image_url && (
-                    <div className="aspect-[2/3] rounded-md overflow-hidden bg-muted">
+                    <div className="aspect-[2/3] max-h-64 rounded-md overflow-hidden bg-muted">
                       <img
                         src={collection.pack_image_url}
                         alt={collection.name}
@@ -106,11 +106,11 @@ export const CollectionSelectorDialog = ({
                     </div>
                   )}
                   
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2 justify-between">
-                      <h3 className="font-semibold">{collection.name}</h3>
+                      <h3 className="font-semibold text-base">{collection.name}</h3>
                       {collection.is_featured && (
-                        <Badge variant="default" className="gap-1">
+                        <Badge variant="default" className="gap-1 shrink-0">
                           <Sparkles className="h-3 w-3" />
                           Featured
                         </Badge>
@@ -118,16 +118,15 @@ export const CollectionSelectorDialog = ({
                     </div>
                     
                     {collection.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <p className="text-xs text-muted-foreground line-clamp-1">
                         {collection.description}
                       </p>
                     )}
-                    
-                    <Badge variant="outline">{collection.theme}</Badge>
                   </div>
 
                   <Button 
                     variant="outline" 
+                    size="sm"
                     className="w-full"
                     onClick={(e) => {
                       e.stopPropagation();
