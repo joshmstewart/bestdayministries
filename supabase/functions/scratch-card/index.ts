@@ -118,12 +118,21 @@ serve(async (req) => {
         // Fallback to common if no stickers of selected rarity
         const commonStickers = allStickers.filter(s => s.rarity === 'common');
         if (commonStickers.length > 0) {
-          revealedStickers.push(commonStickers[Math.floor(Math.random() * commonStickers.length)]);
+          // Shuffle to ensure true randomness
+          const shuffled = commonStickers.sort(() => Math.random() - 0.5);
+          revealedStickers.push(shuffled[0]);
         }
         continue;
       }
 
-      const selectedSticker = stickersOfRarity[Math.floor(Math.random() * stickersOfRarity.length)];
+      // Shuffle array to ensure true randomness (Fisher-Yates algorithm)
+      const shuffled = [...stickersOfRarity];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      
+      const selectedSticker = shuffled[0];
       revealedStickers.push(selectedSticker);
     }
 
