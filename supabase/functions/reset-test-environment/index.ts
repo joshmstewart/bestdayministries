@@ -85,7 +85,13 @@ Deno.serve(async (req) => {
     // Seed realistic data
     console.log('🌱 Seeding realistic test data...');
 
-    const seededData = {
+    const seededData: {
+      guardians: string[];
+      besties: string[];
+      sponsors: string[];
+      discussions: string[];
+      stickerCollections: string[];
+    } = {
       guardians: [],
       besties: [],
       sponsors: [],
