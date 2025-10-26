@@ -1,10 +1,16 @@
-import { afterEach, afterAll, beforeAll, vi } from 'vitest';
+import { afterEach, afterAll, beforeAll, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { server } from './mocks/server';
 
 // Establish API mocking before all tests
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+
+// Reset before each test
+beforeEach(() => {
+  // Reset router mocks
+  vi.clearAllMocks();
+});
 
 // Cleanup after each test
 afterEach(() => {

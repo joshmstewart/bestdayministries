@@ -368,8 +368,8 @@ describe('Event Date Logic', () => {
     render(<PublicEvents />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      // Date should be formatted as "EEEE, MMMM d, yyyy"
-      const formattedDate = format(eventDate, 'EEEE, MMMM d, yyyy');
+      // Date should be formatted as "PPPP" to match component output (includes ordinal suffixes)
+      const formattedDate = format(eventDate, 'PPPP');
       expect(screen.getByText(new RegExp(formattedDate))).toBeInTheDocument();
     });
   });
@@ -744,7 +744,7 @@ describe('Event Date Logic', () => {
 
     // Date-fns format handles local timezone conversion automatically
     const localDate = new Date(utcDate);
-    const formattedDate = format(localDate, 'EEEE, MMMM d, yyyy');
+    const formattedDate = format(localDate, 'PPPP');
     expect(screen.getByText(new RegExp(formattedDate))).toBeInTheDocument();
   });
 

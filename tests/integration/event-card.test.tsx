@@ -263,7 +263,7 @@ describe('Event Card Display', () => {
     expect(audio).toBeInTheDocument();
   });
 
-  it('shows loading state', () => {
+  it('shows loading state', async () => {
     const { supabase } = await import('@/integrations/supabase/client');
     vi.mocked(supabase.from).mockReturnValue({
       select: vi.fn(() => ({
