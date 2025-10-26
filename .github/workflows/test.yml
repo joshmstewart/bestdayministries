@@ -113,12 +113,13 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: npm install
+      run: npm ci --prefer-offline --no-audit --quiet
       
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      run: npx playwright install chromium --quiet
       
     - name: Run Playwright tests (Chromium only for speed)
       run: npx playwright test --ignore-snapshots --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list --project=chromium tests/e2e/ --grep-invert "visual.spec.ts"
@@ -151,12 +152,13 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: npm install
+      run: npm ci --prefer-offline --no-audit --quiet
       
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps chromium
+      run: npx playwright install chromium --quiet
       
     - name: Run Percy visual tests
       if: ${{ env.PERCY_TOKEN != '' }}
@@ -189,12 +191,13 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: npm install
+      run: npm ci --prefer-offline --no-audit --quiet
       
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps chromium
+      run: npx playwright install chromium --quiet
       
     - name: Run email tests
       run: npx playwright test --grep "@email" tests/e2e/email-*.spec.ts --project=chromium --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
