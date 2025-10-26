@@ -14,6 +14,10 @@ export class StickerBuilder {
     epic: 4,
     legendary: 1
   };
+  private gaDate: string | null = null;
+  private featuredStartDate: string | null = null;
+  private visibleToRoles: string[] = ['admin', 'owner'];
+  private startDate: string = new Date().toISOString().split('T')[0];
 
   withCollectionName(name: string): this {
     this.collectionName = name;
@@ -35,6 +39,26 @@ export class StickerBuilder {
     return this;
   }
 
+  withGADate(date: string | null): this {
+    this.gaDate = date;
+    return this;
+  }
+
+  withFeaturedStartDate(date: string | null): this {
+    this.featuredStartDate = date;
+    return this;
+  }
+
+  withVisibleToRoles(roles: string[]): this {
+    this.visibleToRoles = roles;
+    return this;
+  }
+
+  withStartDate(date: string): this {
+    this.startDate = date;
+    return this;
+  }
+
   async build() {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -45,7 +69,10 @@ export class StickerBuilder {
         name: this.collectionName,
         description: 'Test collection for automated testing',
         is_active: this.isActive,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: this.startDate,
+        ga_date: this.gaDate,
+        featured_start_date: this.featuredStartDate,
+        visible_to_roles: this.visibleToRoles,
         rarity_config: this.rarityConfig
       })
       .select()
