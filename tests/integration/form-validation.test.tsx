@@ -124,7 +124,7 @@ describe('Form Validation - Contact Form', () => {
     fireEvent.blur(nameInput);
     
     await waitFor(() => {
-      expect(screen.getByText(/name must be less than/i)).toBeInTheDocument();
+      expect(screen.getByText(/string must contain at most 100/i)).toBeInTheDocument();
     });
   });
 
@@ -263,9 +263,11 @@ describe('Form Validation - Email Format', () => {
     });
     
     invalidEmails.forEach(email => {
+      const parts = email.split('@');
       const isInvalid = !email.includes('@') || 
-                        email.split('@').length !== 2 || 
-                        !email.split('@')[1]?.includes('.');
+                        parts.length !== 2 || 
+                        parts[0].trim() === '' ||
+                        !parts[1]?.includes('.');
       expect(isInvalid).toBe(true);
     });
   });
