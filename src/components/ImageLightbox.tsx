@@ -50,7 +50,7 @@ export default function ImageLightbox({
           )}
 
           {/* Main Image */}
-          <div className="w-full h-[90vh] flex items-center justify-center p-16">
+          <div className="w-full h-[90vh] flex items-center justify-center p-2 md:p-8 lg:p-16">
             <img
               src={currentImage.image_url}
               alt={currentImage.caption || `Image ${currentIndex + 1}`}
