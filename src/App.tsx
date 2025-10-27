@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom";
 import { useAppManifest } from "@/hooks/useAppManifest";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { TermsAcceptanceGuard } from "@/components/TermsAcceptanceGuard";
 import { FaviconManager } from "@/components/FaviconManager";
@@ -53,6 +54,7 @@ import UnsubscribeError from "./pages/UnsubscribeError";
 import VirtualPetPage from "./pages/VirtualPetPage";
 import StorePage from "./pages/Store";
 import StickerAlbumPage from "./pages/StickerAlbumPage";
+import InstallApp from "./pages/InstallApp";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -147,6 +149,7 @@ const App = () => {
           <ScrollToTop />
           <FaviconManager />
           <ImpersonationBanner />
+          <PWAInstallBanner />
           <TourManager />
           <TermsAcceptanceGuard>
             <Routes>
@@ -190,6 +193,7 @@ const App = () => {
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
           <Route path="/sticker-album" element={<StickerAlbumPage />} />
+          <Route path="/install" element={<InstallApp />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
