@@ -25,16 +25,16 @@ export default function ImageLightbox({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw] max-h-[90vh] w-auto h-auto p-0 overflow-hidden">
+      <DialogContent className="max-w-[95vw] md:max-w-[90vw] max-h-[95vh] md:max-h-[90vh] w-auto h-auto p-0 overflow-hidden">
         <div className="relative w-full h-full flex items-center justify-center bg-black/95">
           {/* Close Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white"
+            className="absolute top-2 right-2 md:top-4 md:right-4 z-50 bg-black/50 hover:bg-black/70 text-white"
             onClick={onClose}
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 md:w-6 md:h-6" />
           </Button>
 
           {/* Previous Button */}
@@ -42,15 +42,15 @@ export default function ImageLightbox({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white"
+              className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white"
               onClick={onPrevious}
             >
-              <ChevronLeft className="w-8 h-8" />
+              <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
             </Button>
           )}
 
           {/* Main Image */}
-          <div className="w-full h-[90vh] flex items-center justify-center p-2 md:p-8 lg:p-16">
+          <div className="w-full h-[95vh] md:h-[90vh] flex items-center justify-center p-0 md:p-8 lg:p-16">
             <img
               src={currentImage.image_url}
               alt={currentImage.caption || `Image ${currentIndex + 1}`}
@@ -70,16 +70,16 @@ export default function ImageLightbox({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white"
+              className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white"
               onClick={onNext}
             >
-              <ChevronRight className="w-8 h-8" />
+              <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
             </Button>
           )}
 
           {/* Image Counter */}
           {images.length > 1 && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+            <div className="absolute top-2 md:top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm">
               {currentIndex + 1} / {images.length}
             </div>
           )}
