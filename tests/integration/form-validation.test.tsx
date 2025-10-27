@@ -99,10 +99,10 @@ describe('Form Validation - Contact Form', () => {
     render(<ContactForm />, { wrapper: createWrapper() });
     
     await waitFor(() => {
-      expect(screen.getByLabelText(/message/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('Message')).toBeInTheDocument();
     });
 
-    const messageInput = screen.getByLabelText(/message/i);
+    const messageInput = screen.getByLabelText('Message');
     fireEvent.change(messageInput, { target: { value: 'Short' } });
     fireEvent.blur(messageInput);
     
@@ -137,7 +137,7 @@ describe('Form Validation - Contact Form', () => {
 
     fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Test User' } });
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: 'This is a valid test message' } });
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'This is a valid test message' } });
     
     const submitButton = screen.getByRole('button', { name: /send message/i });
     fireEvent.click(submitButton);
@@ -157,7 +157,7 @@ describe('Form Validation - Contact Form', () => {
     const nameInput = screen.getByLabelText(/name/i) as HTMLInputElement;
     fireEvent.change(nameInput, { target: { value: 'Test User' } });
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: 'This is a valid test message' } });
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'This is a valid test message' } });
     
     const submitButton = screen.getByRole('button', { name: /send message/i });
     fireEvent.click(submitButton);
@@ -176,7 +176,7 @@ describe('Form Validation - Contact Form', () => {
 
     fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Test User' } });
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'test@example.com' } });
-    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: 'This is a valid test message' } });
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'This is a valid test message' } });
     
     const submitButton = screen.getByRole('button', { name: /send message/i });
     fireEvent.click(submitButton);

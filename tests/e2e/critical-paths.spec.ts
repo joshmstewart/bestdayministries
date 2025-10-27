@@ -148,8 +148,8 @@ test.describe('Critical Path E2E Tests', () => {
       if (await nameInput.isVisible({ timeout: 3000 })) {
         await nameInput.fill('Test User');
         await page.getByLabel(/email/i).fill('test@example.com');
-        // Use specific role to avoid ambiguity with "Message Type" select
-        await page.getByRole('textbox', { name: /message/i }).fill('This is a test message from E2E test');
+        // Use exact label to avoid ambiguity with "Message Type" select
+        await page.getByLabel('Message').fill('This is a test message from E2E test');
         
         const submitButton = page.locator('button[type="submit"]').filter({ hasText: /send|submit/i }).first();
         await submitButton.click();
@@ -286,9 +286,6 @@ test.describe('Critical Path E2E Tests', () => {
       }
       
       // PRE-CHECK: Verify post exists in database as pending
-      // Wait for Supabase client to be available in browser context
-      await page.waitForFunction(() => (window as any).supabase !== undefined, { timeout: 10000 });
-      
       const postCheck = await page.evaluate(async (ts) => {
         const supabase = (window as any).supabase;
         const { data, error } = await supabase
@@ -472,11 +469,8 @@ test.describe('Critical Path E2E Tests', () => {
       }
 
       // Accept terms using Radix UI role selector
-      // Wait for terms dialog to appear first (layered wait pattern)
-      await page.locator('[role="dialog"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
-      
       const termsCheckbox = page.locator('[role="checkbox"]').filter({ hasText: /terms|privacy/i }).first();
-      await termsCheckbox.waitFor({ state: 'visible', timeout: 15000 });
+      await termsCheckbox.waitFor({ state: 'visible', timeout: 10000 });
       await termsCheckbox.click();
       
       // Wait for state update
@@ -560,14 +554,26 @@ test.describe('Critical Path E2E Tests', () => {
         await page.waitForLoadState('networkidle');
         
         // Critical: Wait for auth session to be established
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3000);
         
-        // Layered wait pattern: header element → specific content
-        await page.locator('header, nav').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
-        await page.waitForTimeout(1000);
+        // Try waiting for authenticated content first (more reliable than header structure)
+        const authContentChecks = [
+          page.locator('[data-testid="user-menu"]').isVisible({ timeout: 10000 }),
+          page.locator('button:has-text("Profile"), a:has-text("Profile")').isVisible({ timeout: 10000 }),
+          page.locator('[data-testid="unified-header"]').isVisible({ timeout: 10000 }),
+          page.locator('header nav').isVisible({ timeout: 10000 }),
+          page.locator('header').first().isVisible({ timeout: 10000 })
+        ];
         
-        // Then check for header loaded
-        const headerLoaded = await page.locator('header, nav').first().isVisible();
+        // Use Promise.race but with retry logic
+        let headerLoaded = false;
+        for (let i = 0; i < 3 && !headerLoaded; i++) {
+          headerLoaded = await Promise.race(authContentChecks).catch(() => false);
+          if (!headerLoaded) {
+            await page.waitForTimeout(2000);
+            await page.waitForLoadState('networkidle');
+          }
+        }
         expect(headerLoaded).toBeTruthy();
         
         for (const navItem of account.expectedNav) {
@@ -638,16 +644,8 @@ test.describe('Critical Path E2E Tests', () => {
       
       // Login as testbestie
       await page.goto('/auth');
-      
-      // Wait for auth form to fully load (layered wait)
-      await page.locator('form').waitFor({ state: 'visible', timeout: 10000 });
-      
-      await page.getByPlaceholder(/email/i).waitFor({ state: 'visible', timeout: 5000 });
-      await page.getByPlaceholder(/email/i).fill('testbestie@example.com');
-      
-      await page.getByPlaceholder(/password/i).waitFor({ state: 'visible', timeout: 5000 });
-      await page.getByPlaceholder(/password/i).fill('testpassword123');
-      
+      await page.getByPlaceholder('Email').fill('testbestie@example.com');
+      await page.getByPlaceholder('Password').fill('testpassword123');
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL('/community', { timeout: 15000 });
       
