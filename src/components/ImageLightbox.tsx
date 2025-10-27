@@ -25,8 +25,8 @@ export default function ImageLightbox({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] md:max-w-[90vw] max-h-[95vh] md:max-h-[90vh] w-auto h-auto p-0 overflow-hidden">
-        <div className="relative w-full h-full flex items-center justify-center bg-black/95">
+      <DialogContent className="max-w-[100vw] md:max-w-[90vw] max-h-[100vh] md:max-h-[90vh] w-auto h-auto p-0 overflow-hidden border-0">
+        <div className="relative flex items-center justify-center bg-black">
           {/* Close Button */}
           <Button
             variant="ghost"
@@ -50,20 +50,18 @@ export default function ImageLightbox({
           )}
 
           {/* Main Image */}
-          <div className="w-full h-[95vh] md:h-[90vh] flex items-center justify-center p-0 md:p-8 lg:p-16">
-            <img
-              src={currentImage.image_url}
-              alt={currentImage.caption || `Image ${currentIndex + 1}`}
-              className="max-w-full max-h-full w-auto h-auto object-contain"
-            />
-            
-            {/* Caption */}
-            {currentImage.caption && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-8 text-center">
-                <p className="text-white text-lg">{currentImage.caption}</p>
-              </div>
-            )}
-          </div>
+          <img
+            src={currentImage.image_url}
+            alt={currentImage.caption || `Image ${currentIndex + 1}`}
+            className="w-full md:w-auto max-w-full max-h-[100vh] md:max-h-[90vh] object-contain"
+          />
+          
+          {/* Caption */}
+          {currentImage.caption && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 md:p-8 text-center">
+              <p className="text-white text-sm md:text-lg">{currentImage.caption}</p>
+            </div>
+          )}
 
           {/* Next Button */}
           {images.length > 1 && (
