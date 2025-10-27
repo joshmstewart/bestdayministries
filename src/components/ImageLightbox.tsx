@@ -53,7 +53,7 @@ export default function ImageLightbox({
           <img
             src={currentImage.image_url}
             alt={currentImage.caption || `Image ${currentIndex + 1}`}
-            className="w-full md:w-auto max-w-full max-h-[100vh] md:max-h-[90vh] object-contain"
+            className="w-[95vw] h-[95vh] md:w-auto md:h-auto md:max-w-[90vw] md:max-h-[90vh] object-contain"
           />
           
           {/* Caption */}
