@@ -360,10 +360,10 @@ const Auth = () => {
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             <Heart className="w-4 h-4 text-primary" />
-                            <span className="font-semibold">Bestie (Community Member)</span>
+                            <span className="font-semibold">Bestie (Adult with Special Needs)</span>
                           </div>
                           <span className="text-xs text-muted-foreground pl-6">
-                            I'm part of the Best Day community and want to share my story, connect with others, and participate in activities.
+                            I'm an adult with special needs or a disability and want to share my story, connect with others, and participate in activities.
                           </span>
                         </div>
                       </SelectItem>
