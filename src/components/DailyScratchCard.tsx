@@ -413,7 +413,7 @@ export const DailyScratchCard = () => {
       {/* Single sticker button - shows either daily or bonus card */}
       <button
         onClick={() => {
-          if (!isActiveCardScratched && !isExpired) {
+          if (!isActiveCardScratched) {
             if (isBonus) {
               setShowBonusDialog(true);
             } else {
