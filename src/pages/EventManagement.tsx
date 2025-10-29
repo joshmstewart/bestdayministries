@@ -308,6 +308,10 @@ export default function EventManagement() {
       // Ensure admin and owner are always included
       const finalVisibleRoles = [...new Set([...visibleToRoles, 'admin', 'owner'])] as any;
       
+      // Check if there are any future dates (main date or additional dates)
+      const now = new Date();
+      const hasFutureDates = combinedDate > now || additionalDates.some(date => date > now);
+      
       const eventData = {
         title,
         description,
@@ -324,6 +328,7 @@ export default function EventManagement() {
         recurrence_end_date: isRecurring && recurrenceEndDate ? format(recurrenceEndDate, "yyyy-MM-dd") : null,
         aspect_ratio: aspectRatioKey,
         created_by: user.id,
+        is_active: hasFutureDates ? true : (editingEvent?.is_active ?? true),
       };
       
       console.log("Event data being saved:", eventData);
