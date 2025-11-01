@@ -461,20 +461,17 @@ const ProfileSettings = () => {
           </div>
 
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="inline-flex flex-wrap h-auto">
+            <TabsList className="inline-flex flex-wrap h-auto gap-1">
               <TabsTrigger value="profile" className="whitespace-nowrap">Profile</TabsTrigger>
               <TabsTrigger value="tts" className="whitespace-nowrap">Text-to-Speech</TabsTrigger>
               <TabsTrigger value="notifications" className="whitespace-nowrap">
-                <Bell className="w-4 h-4 lg:hidden" />
-                <span className="hidden lg:inline">Notifications</span>
+                Notifications
               </TabsTrigger>
-              <TabsTrigger value="newsletter">
-                <Mail className="w-4 h-4 lg:hidden" />
-                <span className="hidden lg:inline">Newsletter</span>
+              <TabsTrigger value="newsletter" className="whitespace-nowrap">
+                Newsletter
               </TabsTrigger>
-              <TabsTrigger value="security">
-                <Lock className="w-4 h-4 lg:hidden" />
-                <span className="hidden lg:inline">Security</span>
+              <TabsTrigger value="security" className="whitespace-nowrap">
+                Security
               </TabsTrigger>
             </TabsList>
 
