@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Volume2, Copy, RefreshCw, Bell, Mail } from "lucide-react";
+import { Save, Volume2, Copy, RefreshCw, Bell, Mail, Lock } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
@@ -472,7 +472,10 @@ const ProfileSettings = () => {
                 <Mail className="w-4 h-4 lg:hidden" />
                 <span className="hidden lg:inline">Newsletter</span>
               </TabsTrigger>
-              <TabsTrigger value="security" className="hidden lg:block">Security</TabsTrigger>
+              <TabsTrigger value="security">
+                <Lock className="w-4 h-4 lg:hidden" />
+                <span className="hidden lg:inline">Security</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Profile Tab */}
