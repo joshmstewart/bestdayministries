@@ -371,7 +371,40 @@ export const StickerCollectionManager = () => {
       return;
     }
 
-    setCollections(data || []);
+    // Determine which collection should be featured based on featured_start_date logic
+    const today = new Date().toISOString().split('T')[0];
+    const collectionsWithCalculatedFeatured = (data || []).map(collection => {
+      // Calculate if this collection should be featured based on scheduling logic
+      const shouldBeFeatured = collection.featured_start_date && 
+        collection.featured_start_date <= today &&
+        collection.is_active &&
+        (collection.end_date === null || collection.end_date >= today);
+      
+      return {
+        ...collection,
+        // Store both the database value and the calculated value
+        is_featured_db: collection.is_featured,
+        is_featured_calculated: shouldBeFeatured
+      };
+    });
+
+    // Find the collection with the most recent featured_start_date that should be featured
+    const eligibleFeatured = collectionsWithCalculatedFeatured
+      .filter(c => c.is_featured_calculated)
+      .sort((a, b) => {
+        const dateCompare = (b.featured_start_date || '').localeCompare(a.featured_start_date || '');
+        return dateCompare !== 0 ? dateCompare : (a.display_order || 0) - (b.display_order || 0);
+      });
+
+    const actualFeaturedId = eligibleFeatured.length > 0 ? eligibleFeatured[0].id : null;
+
+    // Mark only the most recent as featured
+    const finalCollections = collectionsWithCalculatedFeatured.map(c => ({
+      ...c,
+      is_featured: c.id === actualFeaturedId
+    }));
+
+    setCollections(finalCollections);
   };
 
   const loadStickerSetting = async () => {
