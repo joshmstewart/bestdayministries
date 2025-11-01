@@ -31,6 +31,20 @@ serve(async (req) => {
       throw new Error("No email in webhook payload");
     }
 
+    // Skip analytics for non-newsletter emails (contact form, notifications, etc.)
+    if (!campaignId) {
+      console.log("Skipping analytics for non-newsletter email:", {
+        from: data.from,
+        to: email,
+        subject: data.subject,
+        type
+      });
+      return new Response(
+        JSON.stringify({ received: true, skipped: "non-newsletter email" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Find subscriber by email if not in headers
     let finalSubscriberId = subscriberId;
     if (!subscriberId) {
