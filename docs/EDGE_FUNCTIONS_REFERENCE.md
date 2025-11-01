@@ -39,7 +39,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`send-message-notification`** - [Internal] Notifies about new sponsor messages
 - **`send-contact-reply`** - [Auth Required] Sends admin replies to contact form submissions
 - **`notify-admin-new-contact`** - [Internal] Notifies admins of new contact form submissions
-- **`process-inbound-email`** - [Webhook] Processes CloudFlare email routing, auto-threads replies
+- **`process-inbound-email`** - [Webhook] Processes CloudFlare email routing, auto-threads replies, filters system emails
 - **`send-newsletter`** - [Admin Only] Sends newsletter campaigns to subscribers, logs all emails
 - **`send-test-newsletter`** - [Admin Only] Sends test newsletter to logged-in admin
 - **`send-test-automated-template`** - [Admin Only] Sends test automated template to logged-in admin
@@ -172,7 +172,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - `stripe-webhook` - Verifies Stripe signature
 - `github-test-webhook` - Verifies GitHub signature
 - `sentry-webhook` - Verifies Sentry signature
-- `resend-webhook` - Verifies Resend signature
+- `resend-webhook` - Verifies Resend signature, skips non-campaign emails
 - `process-inbound-email` - Verifies CloudFlare signature
 - `aftership-webhook` - ⚠️ NOT FUNCTIONAL
 - `verify-sponsorship-payment` - Verifies Stripe checkout

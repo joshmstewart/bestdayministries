@@ -136,6 +136,9 @@ With CloudFlare Email Routing configured (see CLOUDFLARE_EMAIL_ROUTING_SETUP.md)
 - No manual entry needed
 - Notifications sent to admins for new replies
 - Real-time updates in admin dashboard
+- **System email filtering:** Prevents duplicate submissions from system notification emails
+  - Filters out emails from `@bestdayministries.org` and `@send.bestdayministries.org`
+  - Prevents notification emails from being logged as new submissions
 
 ## Performance Optimizations
 
@@ -478,6 +481,7 @@ graph LR
 - Admin notifications
 - Content sanitization
 - Handles both Cloudflare and standard formats
+- **System email filtering:** Ignores emails from system domains to prevent duplicate submissions
 
 ### Potential Additional Features
 - Rich text editor for admin replies

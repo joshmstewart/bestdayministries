@@ -356,7 +356,7 @@ NOTIFICATIONS:contact_form_submission[new-submissions]|contact_form_reply[user-r
 BADGE:useContactFormCount→new-submissions+unread-replies→realtime+single-query-optimization
 PERFORMANCE:single-query-pattern[fetch-all-replies-once]|client-side-filtering[JS-Map]|prevents-timeout-errors
 UI-INDICATORS:red-dot[new-OR-unread-replies]|reply-button-badge[unread-count]|clear-on-open-dialog
-CLOUDFLARE:email-routing→worker→process-inbound-email→auto-thread+notify
+CLOUDFLARE:email-routing→worker→process-inbound-email→auto-thread+notify+system-email-filter
 REPLY:auto[CloudFlare-routing]|manual[admin-interface]
 SETUP:Resend[verify-domain-SPF-DKIM]+CloudFlare[email-routing+worker+webhook-secret]
 DOC:CONTACT_FORM_SYSTEM.md|CONTACT_FORM_NOTIFICATIONS.md|CLOUDFLARE_EMAIL_ROUTING_SETUP.md
@@ -492,7 +492,7 @@ LOGGING:newsletter_emails_log[campaign_id|template_id|recipient_email|recipient_
 EMAIL-LOG-UI:search-by-email|filter-by-status[sent|failed|bounced]|view-details-dialog[full-email-content+metadata]|pagination
 RICH-EDITOR:tiptap[formatting|images|links|alignment]|image-crop-dialog[aspect-ratio-selection]
 HEADER-FOOTER:reusable-header-footer→enabled-toggle→inject-into-emails
-TRACKING:link-tracking[short-codes]|open-tracking[pixel]|click-analytics
+TRACKING:link-tracking[short-codes]|open-tracking[pixel]|click-analytics|resend-webhook-skips-non-campaign-emails
 RLS:admins-only-campaigns-templates|anyone-subscribe|admins-view-logs
 MOBILE:tab-bar-wraps[inline-flex+flex-wrap+whitespace-nowrap]
 SIGNUP-FLOW:header-btn→/newsletter-page→form→success-toast→auto-redirect-home-1.5s

@@ -71,6 +71,8 @@ Email engagement tracking:
 - SELECT: Admins only
 - INSERT: System (via edge functions)
 
+**Note:** Only newsletter campaign emails are tracked here. Non-campaign emails (contact form notifications, system emails) are skipped by the webhook to prevent insertion errors.
+
 #### `newsletter_templates`
 Reusable content templates:
 - `id` - UUID primary key
