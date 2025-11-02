@@ -71,6 +71,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     onOpenChange(isOpen);
   };
 
+  // Play pack reveal sound immediately when dialog opens
+  const hasPlayedRevealSound = useRef(false);
+  
   useEffect(() => {
     if (open) {
       setOpened(false);
@@ -80,25 +83,22 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       setShowConfetti(false);
       setOpening(false);
       setTearProgress(0);
+      
+      // Play sound IMMEDIATELY when dialog opens (don't wait for loading)
+      if (!hasPlayedRevealSound.current && !soundsLoading) {
+        console.log('Dialog opened, playing pack reveal sound immediately');
+        playSound('sticker_pack_reveal');
+        hasPlayedRevealSound.current = true;
+      }
+      
       loadCollectionInfo();
-    }
-  }, [open]);
-
-  // Play pack reveal sound when pack is loaded and sounds are ready
-  const hasPlayedRevealSound = useRef(false);
-  
-  useEffect(() => {
-    if (open && !loading && !soundsLoading && !opened && !hasPlayedRevealSound.current) {
-      console.log('Pack loaded and sounds ready. Playing pack reveal sound.');
-      playSound('sticker_pack_reveal');
-      hasPlayedRevealSound.current = true;
     }
     
     // Reset when dialog closes
     if (!open) {
       hasPlayedRevealSound.current = false;
     }
-  }, [open, loading, soundsLoading, opened]);
+  }, [open, soundsLoading]);
 
 
   const loadCollectionInfo = async () => {
