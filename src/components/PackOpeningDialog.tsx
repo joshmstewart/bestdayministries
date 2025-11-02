@@ -162,6 +162,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     
     setOpening(true);
     
+    // Start API call immediately (don't wait for animation)
+    const revealPromise = handleReveal();
+    
     // Animate tear effect
     const startTime = Date.now();
     const duration = 800; // 800ms tear animation
@@ -175,7 +178,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       if (progress < 1) {
         requestAnimationFrame(animateTear);
       } else {
-        handleReveal();
+        // Play a generic reveal sound immediately when tear completes
+        // The rarity-specific sound will play when API responds
+        playSound('sticker_reveal_common'); // Optimistic sound while waiting
       }
     };
     
@@ -183,10 +188,14 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
   };
 
   const triggerCelebration = (rarity: string) => {
-    // Play rarity-specific sound
+    // Only play rarity-specific sound if it's different from common (which already played)
     const raritySound = `sticker_reveal_${rarity}` as any;
-    console.log('Trying to play rarity sound:', raritySound, 'Sound effects loaded:', !soundsLoading, 'Available:', !!soundEffects[raritySound]);
-    playSound(raritySound);
+    
+    // If not common rarity, play the special sound (will layer nicely over the optimistic sound)
+    if (rarity !== 'common') {
+      console.log('Playing special rarity sound:', raritySound);
+      playSound(raritySound);
+    }
     
     const config = rarityConfettiConfig[rarity as keyof typeof rarityConfettiConfig] || rarityConfettiConfig.common;
     
