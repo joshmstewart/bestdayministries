@@ -73,10 +73,11 @@ serve(async (req) => {
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseKey);
       
+      // Normalize voice name to lowercase and match either by voice_name or voice_label (case-insensitive)
       const { data: voiceData } = await supabase
         .from('tts_voices')
         .select('voice_id')
-        .eq('voice_name', voice)
+        .or(`voice_name.ilike.${voice},voice_label.ilike.${voice}`)
         .eq('is_active', true)
         .single();
       
