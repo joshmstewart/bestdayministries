@@ -172,7 +172,7 @@ const Index = () => {
         structuredData={getOrganizationStructuredData()}
       />
       <UnifiedHeader />
-      <main>
+      <main className="pt-24">
         {loading ? (
           <div className="container mx-auto px-4 py-16">
             <div className="animate-pulse space-y-8">
