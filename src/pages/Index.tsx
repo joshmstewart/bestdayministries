@@ -42,16 +42,21 @@ const Index = () => {
   const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Check vendor status but don't block page load
-    checkVendorStatus();
+    // Redirect authenticated users to community page
+    checkAuthAndRedirect();
     
     // Fetch sections immediately and show loading state until ready
     fetchSections();
   }, []);
 
-  const checkVendorStatus = async () => {
-    // No automatic redirects - users can navigate freely
-    // The Index page is the public landing page
+  const checkAuthAndRedirect = async () => {
+    // Check if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      console.log('User is logged in, redirecting to community page');
+      navigate('/community', { replace: true });
+    }
   };
 
   const fetchSections = async () => {

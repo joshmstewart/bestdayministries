@@ -385,8 +385,14 @@ export const DailyScratchCard = () => {
     );
   }
 
+  // Show loading skeleton while sticker image is being fetched
   if (!sampleSticker) {
-    return null;
+    return (
+      <div className="flex flex-col items-center gap-2 animate-pulse">
+        <div className="w-24 h-24 bg-muted rounded-xl" />
+        <div className="h-4 w-32 bg-muted rounded" />
+      </div>
+    );
   }
 
   if (error) {
