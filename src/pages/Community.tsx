@@ -18,6 +18,8 @@ import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
 import { DailyScratchCard } from "@/components/DailyScratchCard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { isProblematicIOSVersion } from "@/lib/browserDetection";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -334,13 +336,13 @@ const Community = () => {
                     {/* Daily Sticker Pack Button - positioned naturally in top right with slight rotation */}
                     {user && (
                       <div 
-                        className="absolute top-16 md:-top-2 right-4 md:right-8 z-10 animate-fade-in bg-transparent" 
-                        style={{ 
-                          transform: 'rotate(-8deg)',
-                          transformOrigin: 'center center'
-                        }}
+                        className={`absolute top-16 md:-top-2 right-4 md:right-8 z-10 animate-fade-in bg-transparent ${
+                          !isProblematicIOSVersion() ? '[transform:rotate(-8deg)] [transform-origin:center_center] [will-change:transform] [backface-visibility:hidden]' : ''
+                        }`}
                       >
-                        <DailyScratchCard />
+                        <ErrorBoundary fallback={null}>
+                          <DailyScratchCard />
+                        </ErrorBoundary>
                       </div>
                     )}
                     
