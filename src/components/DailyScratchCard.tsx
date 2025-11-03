@@ -14,6 +14,7 @@ export const DailyScratchCard = () => {
   const [card, setCard] = useState<any>(null);
   const [bonusCard, setBonusCard] = useState<any>(null);
   const [sampleSticker, setSampleSticker] = useState<string>("");
+  const [stickerLoading, setStickerLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showBonusDialog, setShowBonusDialog] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -240,50 +241,78 @@ export const DailyScratchCard = () => {
       setCard(cardToUse);
       setBonusCard(existingBonusCards?.[0] || null);
 
-      // Fetch preview sticker asynchronously (don't block rendering)
+      // Fetch preview sticker asynchronously with error handling and timeout
       console.log('📋 CHECK: Fetching preview sticker in background...');
       if (cardToUse) {
-        // Don't await - let this happen in the background
         (async () => {
-          const [
-            { data: collection },
-            { data: fallbackStickers }
-          ] = await Promise.all([
-            supabase
-              .from('sticker_collections')
-              .select('preview_sticker_id')
-              .eq('id', cardToUse.collection_id)
-              .single(),
-            supabase
-              .from('stickers')
-              .select('image_url')
-              .eq('collection_id', cardToUse.collection_id)
-              .eq('is_active', true)
-              .limit(1)
-          ]);
-          
-          console.log('📋 CHECK: Collection preview sticker ID:', collection?.preview_sticker_id);
-          
-          let stickerImageUrl = null;
-          
-          if (collection?.preview_sticker_id) {
-            const { data: previewSticker } = await supabase
-              .from('stickers')
-              .select('image_url')
-              .eq('id', collection.preview_sticker_id)
-              .single();
-            
-            stickerImageUrl = previewSticker?.image_url;
-            console.log('📋 CHECK: Preview sticker URL:', stickerImageUrl);
-          }
-          
-          if (!stickerImageUrl && fallbackStickers && fallbackStickers.length > 0) {
-            stickerImageUrl = fallbackStickers[0].image_url;
-            console.log('📋 CHECK: Fallback sticker URL:', stickerImageUrl);
-          }
-          
-          if (stickerImageUrl) {
-            setSampleSticker(stickerImageUrl);
+          try {
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Sticker load timeout')), 3000)
+            );
+
+            const fetchPromise = (async () => {
+              const [
+                { data: collection },
+                { data: fallbackStickers }
+              ] = await Promise.all([
+                supabase
+                  .from('sticker_collections')
+                  .select('preview_sticker_id')
+                  .eq('id', cardToUse.collection_id)
+                  .single(),
+                supabase
+                  .from('stickers')
+                  .select('id, image_url')
+                  .eq('collection_id', cardToUse.collection_id)
+                  .eq('is_active', true)
+                  .order('display_order')
+                  .limit(1)
+              ]);
+              
+              console.log('📋 CHECK: Collection preview sticker ID:', collection?.preview_sticker_id);
+              
+              let stickerImageUrl = null;
+              
+              if (collection?.preview_sticker_id) {
+                const { data: previewSticker } = await supabase
+                  .from('stickers')
+                  .select('image_url')
+                  .eq('id', collection.preview_sticker_id)
+                  .single();
+                
+                stickerImageUrl = previewSticker?.image_url;
+                console.log('📋 CHECK: Preview sticker URL:', stickerImageUrl);
+              }
+              
+              // Auto-update database if preview_sticker_id is null
+              if (!stickerImageUrl && fallbackStickers && fallbackStickers.length > 0) {
+                stickerImageUrl = fallbackStickers[0].image_url;
+                console.log('📋 CHECK: Fallback sticker URL:', stickerImageUrl);
+
+                if (!collection?.preview_sticker_id) {
+                  const firstStickerId = fallbackStickers[0].id;
+                  await supabase
+                    .from('sticker_collections')
+                    .update({ preview_sticker_id: firstStickerId })
+                    .eq('id', cardToUse.collection_id);
+                  
+                  console.log('✅ CHECK: Auto-set preview_sticker_id to:', firstStickerId);
+                }
+              }
+              
+              if (stickerImageUrl) {
+                setSampleSticker(stickerImageUrl);
+              } else {
+                setSampleSticker('https://images.unsplash.com/photo-1649972904349-6e44c42644a7');
+              }
+            })();
+
+            await Promise.race([fetchPromise, timeoutPromise]);
+          } catch (error) {
+            console.error('❌ CHECK: Failed to load sticker preview:', error);
+            setSampleSticker('https://images.unsplash.com/photo-1649972904349-6e44c42644a7');
+          } finally {
+            setStickerLoading(false);
           }
         })();
       }
@@ -386,7 +415,7 @@ export const DailyScratchCard = () => {
   }
 
   // Show loading skeleton while sticker image is being fetched
-  if (!sampleSticker) {
+  if (stickerLoading) {
     return (
       <div className="flex flex-col items-center gap-2 animate-pulse">
         <div className="w-24 h-24 bg-muted rounded-xl" />
