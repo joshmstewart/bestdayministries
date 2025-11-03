@@ -143,6 +143,12 @@ export default function ContactSubmissions() {
     toast({ title: "Marked as read" });
   };
 
+  const markAsNew = async (id: string) => {
+    await supabase.from("contact_form_submissions").update({ status: "new" }).eq("id", id);
+    loadSubmissions();
+    toast({ title: "Marked as new" });
+  };
+
   const deleteSubmission = async (id: string) => {
     await supabase.from("contact_form_submissions").delete().eq("id", id);
     loadSubmissions();
@@ -333,7 +339,16 @@ export default function ContactSubmissions() {
                               </TooltipTrigger>
                               <TooltipContent>Mark as read</TooltipContent>
                             </Tooltip>
-                          ) : null}
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="ghost" onClick={() => markAsNew(sub.id)}>
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Mark as new</TooltipContent>
+                            </Tooltip>
+                          )}
                           
                           <Tooltip>
                             <TooltipTrigger asChild>
