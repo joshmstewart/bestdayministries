@@ -22,7 +22,17 @@ interface ReceiptSettings {
 }
 
 export const ReceiptSettingsManager = () => {
-  const [settings, setSettings] = useState<ReceiptSettings | null>(null);
+  const [settings, setSettings] = useState<ReceiptSettings | null>({
+    id: '',
+    organization_name: '',
+    organization_ein: '',
+    receipt_message: '',
+    tax_deductible_notice: '',
+    from_email: '',
+    reply_to_email: null,
+    organization_address: null,
+    website_url: null,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -90,22 +100,40 @@ export const ReceiptSettingsManager = () => {
     try {
       setSaving(true);
       
-      const { error } = await supabase
-        .from('receipt_settings')
-        .update({
-          organization_name: settings.organization_name,
-          organization_ein: settings.organization_ein,
-          receipt_message: settings.receipt_message,
-          tax_deductible_notice: settings.tax_deductible_notice,
-          from_email: settings.from_email,
-          reply_to_email: settings.reply_to_email || null,
-          organization_address: settings.organization_address || null,
-          website_url: settings.website_url || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', settings.id);
+      const payload = {
+        organization_name: settings.organization_name,
+        organization_ein: settings.organization_ein,
+        receipt_message: settings.receipt_message,
+        tax_deductible_notice: settings.tax_deductible_notice,
+        from_email: settings.from_email,
+        reply_to_email: settings.reply_to_email || null,
+        organization_address: settings.organization_address || null,
+        website_url: settings.website_url || null,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
+      let result;
+      if (settings.id) {
+        // UPDATE existing record
+        result = await supabase
+          .from('receipt_settings')
+          .update(payload)
+          .eq('id', settings.id)
+          .select()
+          .single();
+      } else {
+        // INSERT new record
+        result = await supabase
+          .from('receipt_settings')
+          .insert(payload)
+          .select()
+          .single();
+      }
+
+      if (result.error) throw result.error;
+      
+      // Update state with the returned record (includes the new ID)
+      setSettings(result.data);
 
       toast({
         title: "Success",
@@ -300,23 +328,16 @@ export const ReceiptSettingsManager = () => {
     );
   }
 
-  if (!settings) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">No receipt settings found. Please contact support.</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Sponsorship Receipt Settings</CardTitle>
         <CardDescription>
-          Customize the content and information included in sponsorship receipts sent to donors.
-          These receipts are automatically sent when sponsors complete their payments.
+          {settings?.id 
+            ? "Customize the content and information included in sponsorship receipts sent to donors. These receipts are automatically sent when sponsors complete their payments."
+            : "Create your receipt settings to enable automatic receipt emails for sponsorships."
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
