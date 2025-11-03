@@ -27,26 +27,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Get Stripe mode from app_settings
-    const { data: modeSetting } = await supabaseAdmin
-      .from('app_settings')
-      .select('setting_value')
-      .eq('setting_key', 'stripe_mode')
-      .single();
-    
-    const mode = modeSetting?.setting_value || 'test';
-    const stripeKey = mode === 'live' 
-      ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
-      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
-    
-    if (!stripeKey) {
-      throw new Error(`Stripe ${mode} secret key not configured`);
-    }
-
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: '2025-08-27.basil',
-    });
-
     const requestData = await req.json();
     
     // Validate request data
@@ -68,6 +48,24 @@ serve(async (req) => {
     
     const { session_id } = validationResult.data;
     console.log('Verifying sponsorship payment for session:', session_id);
+    
+    // Detect mode from session ID prefix instead of app_settings
+    // This allows test payments to work even when app is in live mode
+    const isTestSession = session_id.startsWith('cs_test_');
+    const mode = isTestSession ? 'test' : 'live';
+    console.log('Detected session mode from prefix:', mode);
+    
+    const stripeKey = mode === 'live'
+      ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
+      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+    
+    if (!stripeKey) {
+      throw new Error(`Stripe ${mode} secret key not configured`);
+    }
+
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: '2025-08-27.basil',
+    });
 
     // Retrieve the checkout session
     const session = await stripe.checkout.sessions.retrieve(session_id);
