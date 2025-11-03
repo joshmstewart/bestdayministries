@@ -229,25 +229,7 @@ serve(async (req) => {
 
     const frequencyText = frequency === 'monthly' ? 'Monthly Recurring' : 'One-Time';
 
-    // Check if receipt already exists BEFORE sending email
-    const { data: existingReceipt } = await supabaseAdmin
-      .from('sponsorship_receipts')
-      .select('id, receipt_number')
-      .eq('transaction_id', transactionId)
-      .maybeSingle();
-
-    if (existingReceipt) {
-      console.log('[AUDIT] Receipt already exists, skipping email:', transactionId);
-      return new Response(JSON.stringify({ 
-        success: true, 
-        receiptNumber: existingReceipt.receipt_number,
-        alreadyExists: true,
-        skippedEmail: true 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
+    // This function ONLY sends emails - calling functions handle receipt record creation
     const emailHtml = `
       <!DOCTYPE html>
       <html>
