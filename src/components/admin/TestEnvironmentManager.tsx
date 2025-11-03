@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { RefreshCw, Trash2, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { RefreshCw, CheckCircle, AlertCircle, Info, CreditCard, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export function TestEnvironmentManager() {
   const [isResetting, setIsResetting] = useState(false);
   const [resetResult, setResetResult] = useState<any>(null);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const { toast } = useToast();
 
   const handleResetEnvironment = async () => {
@@ -37,8 +38,158 @@ export function TestEnvironmentManager() {
     }
   };
 
+  const handleCreateTestDonation = async (frequency: 'one-time' | 'monthly') => {
+    try {
+      setIsCreatingPayment(true);
+
+      const { data, error } = await supabase.functions.invoke('create-donation-checkout', {
+        body: {
+          amount: 10,
+          frequency,
+          email: 'testdonor@example.com',
+          coverStripeFee: false,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast({
+          title: 'Test Checkout Created',
+          description: `Opening ${frequency} donation checkout. Use test card 4242 4242 4242 4242.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error creating test donation:', error);
+      toast({
+        title: 'Failed to Create Checkout',
+        description: error instanceof Error ? error.message : 'Failed to create test checkout',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreatingPayment(false);
+    }
+  };
+
+  const handleCreateTestSponsorship = async () => {
+    try {
+      setIsCreatingPayment(true);
+
+      // First get a sponsor bestie ID
+      const { data: sponsorBesties, error: bestieError } = await supabase
+        .from('sponsor_besties')
+        .select('id')
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+
+      if (bestieError || !sponsorBesties) {
+        throw new Error('No active sponsor besties found. Create one first.');
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-sponsorship-checkout', {
+        body: {
+          sponsor_bestie_id: sponsorBesties.id,
+          amount: 25,
+          frequency: 'monthly',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast({
+          title: 'Test Sponsorship Created',
+          description: 'Opening sponsorship checkout. Use test card 4242 4242 4242 4242.',
+        });
+      }
+    } catch (error) {
+      console.error('Error creating test sponsorship:', error);
+      toast({
+        title: 'Failed to Create Checkout',
+        description: error instanceof Error ? error.message : 'Failed to create test checkout',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreatingPayment(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Payments & Webhooks</CardTitle>
+          <CardDescription>
+            Create test donations and sponsorships to verify the full payment flow including webhook processing
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              These buttons create real Stripe checkout sessions in test mode. Complete the checkout with
+              test card <strong>4242 4242 4242 4242</strong> (any future date, any CVC). This will trigger
+              the webhook flow and send receipt emails.
+            </AlertDescription>
+          </Alert>
+
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm">Donations</h4>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleCreateTestDonation('one-time')}
+                  disabled={isCreatingPayment}
+                  variant="outline"
+                  size="sm"
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Test One-Time Donation ($10)
+                </Button>
+                <Button
+                  onClick={() => handleCreateTestDonation('monthly')}
+                  disabled={isCreatingPayment}
+                  variant="outline"
+                  size="sm"
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Test Monthly Donation ($10)
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm">Sponsorships</h4>
+              <Button
+                onClick={handleCreateTestSponsorship}
+                disabled={isCreatingPayment}
+                variant="outline"
+                size="sm"
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Test Sponsorship ($25/month)
+              </Button>
+            </div>
+          </div>
+
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs space-y-1">
+              <p><strong>After completing checkout:</strong></p>
+              <ul className="list-disc list-inside ml-2 space-y-1">
+                <li>Check Stripe Dashboard → Webhooks → Recent deliveries</li>
+                <li>Verify 200 OK response with no errors</li>
+                <li>Check testdonor@example.com for receipt email</li>
+                <li>View edge function logs for webhook processing</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Test Environment Management</CardTitle>
