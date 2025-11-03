@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { RefreshCw, CheckCircle, AlertCircle, Info, CreditCard, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +12,7 @@ export function TestEnvironmentManager() {
   const [isResetting, setIsResetting] = useState(false);
   const [resetResult, setResetResult] = useState<any>(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
   const { toast } = useToast();
 
   const handleResetEnvironment = async () => {
@@ -46,7 +49,7 @@ export function TestEnvironmentManager() {
         body: {
           amount: 10,
           frequency,
-          email: 'testdonor@example.com',
+          email: testEmail || 'testdonor@example.com',
           coverStripeFee: false,
           force_test_mode: true,
         },
@@ -94,7 +97,7 @@ export function TestEnvironmentManager() {
           bestie_id: sponsorBesties.id,
           amount: 25,
           frequency,
-          email: 'testsponsor@example.com',
+          email: testEmail || 'testsponsor@example.com',
           coverStripeFee: false,
           force_test_mode: true,
         },
@@ -139,6 +142,22 @@ export function TestEnvironmentManager() {
               the webhook flow and send receipt emails.
             </AlertDescription>
           </Alert>
+
+          <div className="space-y-2">
+            <Label htmlFor="test-email">Test Email Address</Label>
+            <Input
+              id="test-email"
+              type="email"
+              placeholder="your-real-email@example.com"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {testEmail 
+                ? `Receipt will be sent to: ${testEmail}` 
+                : 'Leave empty to use default test emails (may not be deliverable)'}
+            </p>
+          </div>
 
           <div className="grid gap-4">
             <div className="space-y-2">
@@ -197,7 +216,7 @@ export function TestEnvironmentManager() {
               <ul className="list-disc list-inside ml-2 space-y-1">
                 <li>Check Stripe Dashboard → Webhooks → Recent deliveries</li>
                 <li>Verify 200 OK response with no errors</li>
-                <li>Check testdonor@example.com for receipt email</li>
+                <li>Check {testEmail || 'the test email address'} inbox for receipt email</li>
                 <li>View edge function logs for webhook processing</li>
               </ul>
             </AlertDescription>
