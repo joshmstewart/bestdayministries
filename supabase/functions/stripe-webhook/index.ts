@@ -219,27 +219,38 @@ serve(async (req) => {
             } else {
               console.log(`Completed one-time donation for ${customerEmail}, amount: $${amount}`);
               
-              // Send receipt email for one-time donation
-              try {
-                await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                  },
-                  body: JSON.stringify({
-                    sponsorEmail: customerEmail,
-                    bestieName: "General Support",
-                    amount: amount,
-                    frequency: "one-time",
-                    transactionId: session.payment_intent || session.id,
-                    transactionDate: new Date().toISOString(),
-                    stripeMode: donationData?.stripe_mode || 'live',
-                  }),
-                });
-                console.log('Receipt email sent for one-time donation:', customerEmail);
-              } catch (emailError) {
-                console.error('Failed to send donation receipt email:', emailError);
+              // Check if receipt was already sent for this session
+              const { data: existingReceipt } = await supabaseAdmin
+                .from('sponsorship_receipts')
+                .select('id')
+                .eq('stripe_session_id', session.id)
+                .maybeSingle();
+
+              if (existingReceipt) {
+                console.log('Receipt already sent for donation session:', session.id);
+              } else {
+                // Send receipt email for one-time donation
+                try {
+                  await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                    },
+                    body: JSON.stringify({
+                      sponsorEmail: customerEmail,
+                      bestieName: "General Support",
+                      amount: amount,
+                      frequency: "one-time",
+                      transactionId: session.payment_intent || session.id,
+                      transactionDate: new Date().toISOString(),
+                      stripeMode: donationData?.stripe_mode || 'live',
+                    }),
+                  });
+                  console.log('Receipt email sent for one-time donation:', customerEmail);
+                } catch (emailError) {
+                  console.error('Failed to send donation receipt email:', emailError);
+                }
               }
             }
           } else if (session.mode === "subscription" && session.subscription) {
@@ -265,27 +276,38 @@ serve(async (req) => {
             } else {
               console.log(`Activated monthly donation for ${customerEmail}, amount: $${amount}/month`);
               
-              // Send receipt email for monthly donation
-              try {
-                await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                  },
-                  body: JSON.stringify({
-                    sponsorEmail: customerEmail,
-                    bestieName: "General Support",
-                    amount: amount,
-                    frequency: "monthly",
-                    transactionId: session.payment_intent || session.id,
-                    transactionDate: new Date().toISOString(),
-                    stripeMode: donationData?.stripe_mode || 'live',
-                  }),
-                });
-                console.log('Receipt email sent for monthly donation:', customerEmail);
-              } catch (emailError) {
-                console.error('Failed to send donation receipt email:', emailError);
+              // Check if receipt was already sent for this session
+              const { data: existingReceipt } = await supabaseAdmin
+                .from('sponsorship_receipts')
+                .select('id')
+                .eq('stripe_session_id', session.id)
+                .maybeSingle();
+
+              if (existingReceipt) {
+                console.log('Receipt already sent for monthly donation session:', session.id);
+              } else {
+                // Send receipt email for monthly donation
+                try {
+                  await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                    },
+                    body: JSON.stringify({
+                      sponsorEmail: customerEmail,
+                      bestieName: "General Support",
+                      amount: amount,
+                      frequency: "monthly",
+                      transactionId: session.payment_intent || session.id,
+                      transactionDate: new Date().toISOString(),
+                      stripeMode: donationData?.stripe_mode || 'live',
+                    }),
+                  });
+                  console.log('Receipt email sent for monthly donation:', customerEmail);
+                } catch (emailError) {
+                  console.error('Failed to send donation receipt email:', emailError);
+                }
               }
             }
           }
@@ -348,21 +370,32 @@ serve(async (req) => {
         } else {
           console.log(`Created/updated sponsorship ${sponsorshipData.id} for user ${user.id}, sponsor_bestie ${sponsorBestieId}`);
           
-          // Send receipt email using the actual sponsorship ID
-          try {
-            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-              },
-              body: JSON.stringify({
-                sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
-              }),
-            });
-            console.log('Receipt email sent for sponsorship:', sponsorshipData.id);
-          } catch (emailError) {
-            console.error('Failed to send receipt email:', emailError);
+          // Check if receipt was already sent for this sponsorship to prevent duplicates
+          const { data: existingReceipt } = await supabaseAdmin
+            .from('sponsorship_receipts')
+            .select('id')
+            .eq('sponsorship_id', sponsorshipData.id)
+            .maybeSingle();
+
+          if (existingReceipt) {
+            console.log('Receipt already sent for sponsorship:', sponsorshipData.id);
+          } else {
+            // Send receipt email using the actual sponsorship ID
+            try {
+              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({
+                  sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
+                }),
+              });
+              console.log('Receipt email sent for sponsorship:', sponsorshipData.id);
+            } catch (emailError) {
+              console.error('Failed to send receipt email:', emailError);
+            }
           }
         }
         }
@@ -419,20 +452,31 @@ serve(async (req) => {
             .single();
 
           if (sponsorshipData) {
-            try {
-              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                },
-                body: JSON.stringify({
-                  sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
-                }),
-              });
-              console.log('Receipt email sent for recurring payment:', sponsorshipData.id);
-            } catch (emailError) {
-              console.error('Failed to send receipt email:', emailError);
+            // Check if receipt was already sent for this invoice
+            const { data: existingReceipt } = await supabaseAdmin
+              .from('sponsorship_receipts')
+              .select('id')
+              .eq('stripe_transaction_id', invoice.id)
+              .maybeSingle();
+
+            if (existingReceipt) {
+              console.log('Receipt already sent for invoice:', invoice.id);
+            } else {
+              try {
+                await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  },
+                  body: JSON.stringify({
+                    sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
+                  }),
+                });
+                console.log('Receipt email sent for recurring payment:', sponsorshipData.id);
+              } catch (emailError) {
+                console.error('Failed to send receipt email:', emailError);
+              }
             }
           }
         } else {
@@ -448,8 +492,18 @@ serve(async (req) => {
             .single();
 
           if (donationData) {
-            try {
-              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+            // Check if receipt was already sent for this invoice
+            const { data: existingReceipt } = await supabaseAdmin
+              .from('sponsorship_receipts')
+              .select('id')
+              .eq('stripe_transaction_id', invoice.id)
+              .maybeSingle();
+
+            if (existingReceipt) {
+              console.log('Receipt already sent for donation invoice:', invoice.id);
+            } else {
+              try {
+                await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -468,6 +522,7 @@ serve(async (req) => {
               console.log('Receipt email sent for recurring donation payment:', customerEmail);
             } catch (emailError) {
               console.error('Failed to send recurring donation receipt email:', emailError);
+            }
             }
           }
         }

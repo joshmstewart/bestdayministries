@@ -153,16 +153,26 @@ serve(async (req) => {
 
     console.log('Sponsorship created:', sponsorship.id, userId ? '(authenticated)' : '(guest)');
 
-    // Send receipt email in background
-    const { data: bestieData } = await supabaseAdmin
-      .from('sponsor_besties')
-      .select('bestie_name')
-      .eq('id', session.metadata.bestie_id)
-      .single();
+    // Check if receipt was already sent for this session to prevent duplicates
+    const { data: existingReceipt } = await supabaseAdmin
+      .from('sponsorship_receipts')
+      .select('id')
+      .eq('stripe_session_id', session_id)
+      .maybeSingle();
 
-    if (bestieData) {
-      try {
-        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+    if (existingReceipt) {
+      console.log('Receipt already sent for session:', session_id);
+    } else {
+      // Send receipt email in background
+      const { data: bestieData } = await supabaseAdmin
+        .from('sponsor_besties')
+        .select('bestie_name')
+        .eq('id', session.metadata.bestie_id)
+        .single();
+
+      if (bestieData) {
+        try {
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -176,11 +186,12 @@ serve(async (req) => {
             transactionId: session.id,
             transactionDate: new Date().toISOString(),
           }),
-        });
-        console.log('Receipt email sent');
-      } catch (emailError) {
-        console.error('Failed to send receipt email:', emailError);
-        // Don't fail the whole transaction if email fails
+          });
+          console.log('Receipt email sent for session:', session_id);
+        } catch (emailError) {
+          console.error('Failed to send receipt email:', emailError);
+          // Don't fail the whole transaction if email fails
+        }
       }
     }
 
