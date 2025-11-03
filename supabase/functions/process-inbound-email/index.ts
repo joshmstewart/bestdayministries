@@ -182,7 +182,8 @@ Deno.serve(async (req) => {
           subject: subject || 'Email to Contact',
           message: messageContent,
           status: 'new',
-          message_type: 'general'
+          message_type: 'general',
+          source: 'email'
         })
         .select()
         .single();
@@ -206,7 +207,7 @@ Deno.serve(async (req) => {
             type: 'contact_form_submission',
             title: 'New Email Received',
             message: `${senderName} (${senderEmail}) sent an email`,
-            link: '/admin?tab=contact',
+            link: '/admin?tab=messages',
             metadata: {
               submission_id: newSubmission.id,
               sender_email: senderEmail,
@@ -270,7 +271,7 @@ Deno.serve(async (req) => {
           type: 'contact_form_reply',
           title: 'New Contact Form Reply',
           message: `${matchedSubmission.name} replied to their message`,
-          link: '/admin?tab=contact',
+          link: '/admin?tab=messages',
           metadata: {
             submission_id: matchedSubmission.id,
             sender_email: senderEmail,

@@ -822,6 +822,7 @@ export type Database = {
           replied_at: string | null
           replied_by: string | null
           reply_message: string | null
+          source: string | null
           status: string
           subject: string | null
         }
@@ -837,6 +838,7 @@ export type Database = {
           replied_at?: string | null
           replied_by?: string | null
           reply_message?: string | null
+          source?: string | null
           status?: string
           subject?: string | null
         }
@@ -852,6 +854,7 @@ export type Database = {
           replied_at?: string | null
           replied_by?: string | null
           reply_message?: string | null
+          source?: string | null
           status?: string
           subject?: string | null
         }

@@ -25,7 +25,7 @@ import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
 import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
-import { useContactFormCount } from "@/hooks/useContactFormCount";
+import { useMessagesCount } from "@/hooks/useMessagesCount";
 import LandingPageOrderManager from "@/components/admin/HomepageOrderManager";
 import CommunityOrderManager from "@/components/admin/CommunityOrderManager";
 import AboutPageManager from "@/components/admin/AboutPageManager";
@@ -36,7 +36,7 @@ import { FooterLinksManager } from "@/components/admin/FooterLinksManager";
 import QuickLinksManager from "@/components/admin/QuickLinksManager";
 import { NavigationBarManager } from "@/components/admin/NavigationBarManager";
 import { VendorManagement } from "@/components/admin/VendorManagement";
-import { ContactFormManager } from "@/components/admin/ContactFormManager";
+import { MessagesManager } from "@/components/admin/MessagesManager";
 import { VideoManager } from "@/components/admin/VideoManager";
 import { MessageModerationQueue } from "@/components/admin/MessageModerationQueue";
 import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyManager";
@@ -79,7 +79,7 @@ const Admin = () => {
   const { count: moderationCount } = useModerationCount();
   const { count: pendingVendorsCount } = usePendingVendorsCount();
   const { count: messageModerationCount } = useMessageModerationCount();
-  const { count: contactFormCount } = useContactFormCount();
+  const { count: messagesCount } = useMessagesCount();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
@@ -285,14 +285,14 @@ const Admin = () => {
               Updates
             </TabsTrigger>
             <TabsTrigger value="testing">Testing</TabsTrigger>
-            <TabsTrigger value="contact" className="relative">
-              Contact
-              {contactFormCount > 0 && (
+            <TabsTrigger value="messages" className="relative">
+              Messages
+              {messagesCount > 0 && (
                 <Badge 
                   variant="destructive" 
                   className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
                 >
-                  {contactFormCount}
+                  {messagesCount}
                 </Badge>
               )}
             </TabsTrigger>
@@ -561,8 +561,8 @@ const Admin = () => {
             <EmailTemplatePreview />
           </TabsContent>
 
-          <TabsContent value="contact">
-            <ContactFormManager />
+          <TabsContent value="messages">
+            <MessagesManager />
           </TabsContent>
 
           <TabsContent value="help">

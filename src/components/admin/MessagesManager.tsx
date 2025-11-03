@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw, CheckCircle, XCircle, Globe, Inbox } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -45,6 +45,7 @@ interface Submission {
   admin_notes: string | null;
   reply_count?: number;
   unread_user_replies?: number; // Count of user replies since last admin reply
+  source?: string; // 'form' or 'email'
 }
 
 interface Reply {
@@ -58,7 +59,7 @@ interface Reply {
   created_at: string;
 }
 
-export const ContactFormManager = () => {
+export const MessagesManager = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -600,9 +601,9 @@ export const ContactFormManager = () => {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Contact Form Submissions</CardTitle>
+                <CardTitle>All Messages</CardTitle>
                 <CardDescription>
-                  View and manage messages received through the contact form
+                  Messages received through the website contact form and emails sent to your domain
                 </CardDescription>
               </div>
               <Button
@@ -666,6 +667,7 @@ export const ContactFormManager = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Status</TableHead>
@@ -713,6 +715,21 @@ export const ContactFormManager = () => {
                         "secondary"
                       }>
                         {(submission.message_type || "general").replace(/_/g, " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={submission.source === "email" ? "outline" : "secondary"} className="gap-1">
+                        {submission.source === "email" ? (
+                          <>
+                            <Inbox className="h-3 w-3" />
+                            Email
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="h-3 w-3" />
+                            Form
+                          </>
+                        )}
                       </Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>

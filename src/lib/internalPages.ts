@@ -40,6 +40,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/guardian-approvals", label: "Guardian Approvals" },
   { value: "/bestie-messages", label: "Bestie Messages" },
   { value: "/help", label: "Help Center" },
+  { value: "/newsletter", label: "Newsletter" },
   { value: "/notifications", label: "Notifications" },
   { value: "/games/memory-match", label: "Memory Match Game" },
   { value: "/games/match3", label: "Match-3 Game" },
