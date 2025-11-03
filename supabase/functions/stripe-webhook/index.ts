@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+// Webhook handler - Updated 2025-11-03 to load new webhook secret
 // Note: Webhooks will receive events from the mode they were created in
 // Configure separate webhook endpoints in Stripe for test and live modes
 const stripeTestKey = Deno.env.get('STRIPE_SECRET_KEY_TEST') || "";
