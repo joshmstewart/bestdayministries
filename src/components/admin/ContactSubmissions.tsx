@@ -286,7 +286,18 @@ export default function ContactSubmissions() {
                       <Badge variant="outline">{sub.message_type?.replace(/_/g, ' ') || 'general'}</Badge>
                     </TableCell>
                     <TableCell>
-                      {sub.source === 'email' ? <Mail className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="inline-flex">
+                              {sub.source === 'email' ? <Mail className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {sub.source === 'email' ? 'Received via email' : 'Submitted via contact form'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell>
                       <Badge variant={sub.status === 'new' ? 'default' : 'secondary'}>{sub.status}</Badge>
