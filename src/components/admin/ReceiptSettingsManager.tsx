@@ -13,12 +13,17 @@ interface ReceiptSettings {
   id: string;
   organization_name: string;
   organization_ein: string;
-  receipt_message: string;
-  tax_deductible_notice: string;
+  sponsorship_receipt_message: string;
+  sponsorship_tax_deductible_notice: string;
+  donation_receipt_message: string;
+  donation_tax_deductible_notice: string;
   from_email: string;
   reply_to_email: string | null;
   organization_address: string | null;
   website_url: string | null;
+  // Legacy fields for backward compatibility
+  receipt_message?: string;
+  tax_deductible_notice?: string;
 }
 
 export const ReceiptSettingsManager = () => {
@@ -26,8 +31,10 @@ export const ReceiptSettingsManager = () => {
     id: '',
     organization_name: '',
     organization_ein: '',
-    receipt_message: '',
-    tax_deductible_notice: '',
+    sponsorship_receipt_message: '',
+    sponsorship_tax_deductible_notice: '',
+    donation_receipt_message: '',
+    donation_tax_deductible_notice: '',
     from_email: '',
     reply_to_email: null,
     organization_address: null,
@@ -103,8 +110,10 @@ export const ReceiptSettingsManager = () => {
       const payload = {
         organization_name: settings.organization_name,
         organization_ein: settings.organization_ein,
-        receipt_message: settings.receipt_message,
-        tax_deductible_notice: settings.tax_deductible_notice,
+        sponsorship_receipt_message: settings.sponsorship_receipt_message,
+        sponsorship_tax_deductible_notice: settings.sponsorship_tax_deductible_notice,
+        donation_receipt_message: settings.donation_receipt_message,
+        donation_tax_deductible_notice: settings.donation_tax_deductible_notice,
         from_email: settings.from_email,
         reply_to_email: settings.reply_to_email || null,
         organization_address: settings.organization_address || null,
@@ -204,9 +213,9 @@ export const ReceiptSettingsManager = () => {
                     <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
                       Dear John Sponsor,
                     </p>
-                    <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
-                      ${settings.receipt_message}
-                    </p>
+                     <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                       ${settings.sponsorship_receipt_message || settings.receipt_message || ''}
+                     </p>
                   </td>
                 </tr>
 
@@ -258,9 +267,9 @@ export const ReceiptSettingsManager = () => {
                       <h3 style="margin: 0 0 10px; font-size: 16px; font-weight: 600; color: #92400E;">
                         Tax-Deductible Donation
                       </h3>
-                      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350F;">
-                        ${settings.tax_deductible_notice}
-                      </p>
+                       <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350F;">
+                         ${settings.sponsorship_tax_deductible_notice || settings.tax_deductible_notice || ''}
+                       </p>
                        ${settings.organization_ein ? `
                          <p style="margin: 10px 0 0; font-size: 14px; color: #78350F;">
                            <strong>Tax ID:</strong> ${settings.organization_ein}
@@ -332,11 +341,11 @@ export const ReceiptSettingsManager = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sponsorship Receipt Settings</CardTitle>
+        <CardTitle>Receipt Settings</CardTitle>
         <CardDescription>
           {settings?.id 
-            ? "Customize the content and information included in sponsorship receipts sent to donors. These receipts are automatically sent when sponsors complete their payments."
-            : "Create your receipt settings to enable automatic receipt emails for sponsorships."
+            ? "Customize receipt content for both sponsorships and donations. Each type has its own message and tax notice."
+            : "Create your receipt settings to enable automatic receipt emails."
           }
         </CardDescription>
       </CardHeader>
@@ -424,35 +433,74 @@ export const ReceiptSettingsManager = () => {
           </div>
         </div>
 
-        {/* Receipt Content */}
+        {/* Sponsorship Receipt Content */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Receipt Content</h3>
+          <h3 className="text-lg font-semibold border-b pb-2">Sponsorship Receipt Content</h3>
+          <p className="text-sm text-muted-foreground">
+            Content specifically for bestie sponsorship receipts
+          </p>
           
           <div className="space-y-2">
-            <Label htmlFor="receipt_message">Thank You Message</Label>
+            <Label htmlFor="sponsorship_receipt_message">Sponsorship Thank You Message</Label>
             <Textarea
-              id="receipt_message"
-              value={settings.receipt_message}
-              onChange={(e) => updateField('receipt_message', e.target.value)}
-              placeholder="Thank you for your generous sponsorship..."
+              id="sponsorship_receipt_message"
+              value={settings.sponsorship_receipt_message}
+              onChange={(e) => updateField('sponsorship_receipt_message', e.target.value)}
+              placeholder="Thank you for sponsoring [Bestie Name]..."
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
-              Personal message displayed at the top of the receipt
+              Personal message displayed on sponsorship receipts
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tax_deductible_notice">Tax-Deductible Notice</Label>
+            <Label htmlFor="sponsorship_tax_deductible_notice">Sponsorship Tax Notice (508c1a)</Label>
             <Textarea
-              id="tax_deductible_notice"
-              value={settings.tax_deductible_notice}
-              onChange={(e) => updateField('tax_deductible_notice', e.target.value)}
-              placeholder="Your donation is tax-deductible..."
+              id="sponsorship_tax_deductible_notice"
+              value={settings.sponsorship_tax_deductible_notice}
+              onChange={(e) => updateField('sponsorship_tax_deductible_notice', e.target.value)}
+              placeholder="Your sponsorship is tax-deductible under 508(c)(1)(a)..."
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
-              Legal notice about tax deductibility - consult your legal/tax advisor
+              Legal notice for sponsorship tax deductibility - consult your legal/tax advisor
+            </p>
+          </div>
+        </div>
+
+        {/* Donation Receipt Content */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Donation Receipt Content</h3>
+          <p className="text-sm text-muted-foreground">
+            Content specifically for general donation receipts
+          </p>
+          
+          <div className="space-y-2">
+            <Label htmlFor="donation_receipt_message">Donation Thank You Message</Label>
+            <Textarea
+              id="donation_receipt_message"
+              value={settings.donation_receipt_message}
+              onChange={(e) => updateField('donation_receipt_message', e.target.value)}
+              placeholder="Thank you for your generous donation..."
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Personal message displayed on donation receipts
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="donation_tax_deductible_notice">Donation Tax Notice (508c1a)</Label>
+            <Textarea
+              id="donation_tax_deductible_notice"
+              value={settings.donation_tax_deductible_notice}
+              onChange={(e) => updateField('donation_tax_deductible_notice', e.target.value)}
+              placeholder="Your donation is tax-deductible under 508(c)(1)(a)..."
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Legal notice for donation tax deductibility - consult your legal/tax advisor
             </p>
           </div>
         </div>

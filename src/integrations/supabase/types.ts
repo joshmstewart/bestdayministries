@@ -3323,6 +3323,8 @@ export type Database = {
       }
       receipt_settings: {
         Row: {
+          donation_receipt_message: string | null
+          donation_tax_deductible_notice: string | null
           from_email: string
           id: string
           organization_address: string | null
@@ -3330,12 +3332,16 @@ export type Database = {
           organization_name: string
           receipt_message: string
           reply_to_email: string | null
+          sponsorship_receipt_message: string | null
+          sponsorship_tax_deductible_notice: string | null
           tax_deductible_notice: string
           updated_at: string | null
           updated_by: string | null
           website_url: string | null
         }
         Insert: {
+          donation_receipt_message?: string | null
+          donation_tax_deductible_notice?: string | null
           from_email?: string
           id?: string
           organization_address?: string | null
@@ -3343,12 +3349,16 @@ export type Database = {
           organization_name?: string
           receipt_message?: string
           reply_to_email?: string | null
+          sponsorship_receipt_message?: string | null
+          sponsorship_tax_deductible_notice?: string | null
           tax_deductible_notice?: string
           updated_at?: string | null
           updated_by?: string | null
           website_url?: string | null
         }
         Update: {
+          donation_receipt_message?: string | null
+          donation_tax_deductible_notice?: string | null
           from_email?: string
           id?: string
           organization_address?: string | null
@@ -3356,6 +3366,8 @@ export type Database = {
           organization_name?: string
           receipt_message?: string
           reply_to_email?: string | null
+          sponsorship_receipt_message?: string | null
+          sponsorship_tax_deductible_notice?: string | null
           tax_deductible_notice?: string
           updated_at?: string | null
           updated_by?: string | null

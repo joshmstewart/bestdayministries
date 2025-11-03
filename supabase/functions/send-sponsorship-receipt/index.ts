@@ -191,6 +191,19 @@ serve(async (req) => {
       .eq('setting_key', 'logo_url')
       .maybeSingle();
 
+    // Determine if this is a sponsorship (has sponsorshipId) or donation
+    const isSponsorship = !!sponsorshipId;
+    const receiptType = isSponsorship ? 'Sponsorship' : 'Donation';
+    
+    // Select the appropriate message and tax notice based on type
+    const receiptMessage = isSponsorship 
+      ? (settings.sponsorship_receipt_message || settings.receipt_message || '')
+      : (settings.donation_receipt_message || settings.receipt_message || '');
+    
+    const taxNotice = isSponsorship
+      ? (settings.sponsorship_tax_deductible_notice || settings.tax_deductible_notice || '')
+      : (settings.donation_tax_deductible_notice || settings.tax_deductible_notice || '');
+
     // Parse the JSON-stringified value
     let logoUrl: string | null = null;
     if (logoSetting?.setting_value) {
@@ -239,8 +252,8 @@ serve(async (req) => {
                       ${settings.organization_name}
                     </h1>
                     <p style="margin: 10px 0 0; color: #ffffff; font-size: 16px;">
-                      Sponsorship Receipt
-                    </p>
+                       ${receiptType} Receipt
+                     </p>
                   </td>
                 </tr>
 
@@ -250,9 +263,9 @@ serve(async (req) => {
                     <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
                       ${sponsorName ? `Dear ${sponsorName},` : 'Dear Sponsor,'}
                     </p>
-                    <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
-                      ${settings.receipt_message}
-                    </p>
+                     <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
+                       ${receiptMessage}
+                     </p>
                   </td>
                 </tr>
 
@@ -262,35 +275,37 @@ serve(async (req) => {
                     <table role="presentation" style="width: 100%; border: 2px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
                       <tr>
                         <td style="padding: 20px; background-color: #F9FAFB; border-bottom: 1px solid #E5E7EB;">
-                          <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">
-                            Sponsorship Details
-                          </h2>
+                           <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">
+                             ${receiptType} Details
+                           </h2>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 20px;">
-                          <table role="presentation" style="width: 100%;">
-                            <tr>
-                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Bestie Sponsored:</td>
-                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${bestieName}</td>
-                            </tr>
-                            <tr>
-                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Amount:</td>
-                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${formattedAmount}</td>
-                            </tr>
-                            <tr>
-                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Frequency:</td>
-                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${frequencyText}</td>
-                            </tr>
-                            <tr>
-                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Date:</td>
-                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${formattedDate}</td>
-                            </tr>
-                            <tr>
-                              <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Transaction ID:</td>
-                              <td style="padding: 8px 0; font-size: 12px; font-weight: 600; color: #111827; text-align: right; word-break: break-all;">${transactionId}</td>
-                            </tr>
-                          </table>
+                           <table role="presentation" style="width: 100%;">
+                             ${isSponsorship ? `
+                             <tr>
+                               <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Bestie Sponsored:</td>
+                               <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${bestieName}</td>
+                             </tr>
+                             ` : ''}
+                             <tr>
+                               <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Amount:</td>
+                               <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${formattedAmount}</td>
+                             </tr>
+                             <tr>
+                               <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Frequency:</td>
+                               <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${frequencyText}</td>
+                             </tr>
+                             <tr>
+                               <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Date:</td>
+                               <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">${formattedDate}</td>
+                             </tr>
+                             <tr>
+                               <td style="padding: 8px 0; font-size: 14px; color: #6B7280;">Transaction ID:</td>
+                               <td style="padding: 8px 0; font-size: 12px; font-weight: 600; color: #111827; text-align: right; word-break: break-all;">${transactionId}</td>
+                             </tr>
+                           </table>
                         </td>
                       </tr>
                     </table>
@@ -304,9 +319,9 @@ serve(async (req) => {
                       <h3 style="margin: 0 0 10px; font-size: 16px; font-weight: 600; color: #92400E;">
                         Tax-Deductible Donation
                       </h3>
-                      <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350F;">
-                        ${settings.tax_deductible_notice}
-                      </p>
+                       <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350F;">
+                         ${taxNotice}
+                       </p>
                       ${settings.organization_ein ? `
                         <p style="margin: 10px 0 0; font-size: 14px; color: #78350F;">
                           <strong>Tax ID:</strong> ${settings.organization_ein}
