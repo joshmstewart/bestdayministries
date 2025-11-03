@@ -229,6 +229,25 @@ serve(async (req) => {
 
     const frequencyText = frequency === 'monthly' ? 'Monthly Recurring' : 'One-Time';
 
+    // Check if receipt already exists BEFORE sending email
+    const { data: existingReceipt } = await supabaseAdmin
+      .from('sponsorship_receipts')
+      .select('id, receipt_number')
+      .eq('transaction_id', transactionId)
+      .maybeSingle();
+
+    if (existingReceipt) {
+      console.log('[AUDIT] Receipt already exists, skipping email:', transactionId);
+      return new Response(JSON.stringify({ 
+        success: true, 
+        receiptNumber: existingReceipt.receipt_number,
+        alreadyExists: true,
+        skippedEmail: true 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -401,88 +420,8 @@ serve(async (req) => {
       });
     }
 
-    // Check if receipt already exists for this transaction
-    const { data: existingReceipt } = await supabaseAdmin
-      .from('sponsorship_receipts')
-      .select('id, receipt_number')
-      .eq('transaction_id', transactionId)
-      .eq('sponsor_email', sponsorEmail)
-      .maybeSingle();
-
-    let receiptNumber: string;
-    
-    if (existingReceipt) {
-      console.log('Receipt already exists for transaction:', transactionId);
-      receiptNumber = existingReceipt.receipt_number;
-      // Receipt already sent, just return success
-      return new Response(JSON.stringify({ 
-        success: true, 
-        emailId: emailResponse.data?.id,
-        receiptNumber,
-        alreadyExists: true 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Generate unique receipt number (format: RCP-TIMESTAMP-RANDOM)
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
-    receiptNumber = `RCP-${timestamp}-${randomStr}`;
-
-    // Get user_id from email if user exists
-    const { data: userData } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('email', sponsorEmail)
-      .maybeSingle();
-
-    // Store receipt in database for history/year-end summaries
-    console.log('[AUDIT] Storing receipt in database');
-    const { data: receiptData, error: insertError } = await supabaseAdmin
-      .from('sponsorship_receipts')
-      .insert({
-        sponsorship_id: sponsorshipId || null,
-        sponsor_email: sponsorEmail,
-        sponsor_name: sponsorName,
-        bestie_name: bestieName,
-        amount,
-        frequency,
-        transaction_id: transactionId,
-        transaction_date: transactionDate,
-        receipt_number: receiptNumber,
-        tax_year: new Date(transactionDate).getFullYear(),
-        stripe_mode: stripeMode,
-        user_id: userData?.id || null,
-        organization_name: settings.organization_name,
-        organization_ein: settings.organization_ein
-      })
-      .select('id')
-      .single();
-
-    if (insertError) {
-      console.error('[AUDIT] Failed to store receipt:', insertError);
-      if (sponsorshipId) {
-        await supabaseAdmin.from('receipt_generation_logs').insert({
-          sponsorship_id: sponsorshipId,
-          stage: 'database_insert',
-          status: 'failure',
-          error_message: insertError.message
-        });
-      }
-      // Don't fail the request if receipt tracking fails
-    } else {
-      console.log('[AUDIT] Receipt stored successfully');
-      if (sponsorshipId) {
-        await supabaseAdmin.from('receipt_generation_logs').insert({
-          sponsorship_id: sponsorshipId,
-          receipt_id: receiptData?.id,
-          stage: 'database_insert',
-          status: 'success',
-          metadata: { receipt_number: receiptNumber }
-        });
-      }
-    }
+    // Email sent successfully - calling function handles receipt record creation
+    const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
     return new Response(JSON.stringify({ 
       success: true, 

@@ -16,6 +16,9 @@ const verifyPaymentSchema = z.object({
     .max(255, "Session ID too long"),
 });
 
+// Simple in-memory cache to prevent duplicate processing
+const processingCache = new Map<string, boolean>();
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -47,7 +50,21 @@ serve(async (req) => {
     }
     
     const { session_id } = validationResult.data;
-    console.log('Verifying sponsorship payment for session:', session_id);
+    
+    // Check if we're already processing this session
+    if (processingCache.has(session_id)) {
+      console.log('Already processing session:', session_id);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Already processing' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+    
+    // Mark as processing
+    processingCache.set(session_id, true);
+    
+    try {
+      console.log('Verifying sponsorship payment for session:', session_id);
     
     // Detect mode from session ID prefix instead of app_settings
     // This allows test payments to work even when app is in live mode
@@ -231,6 +248,23 @@ serve(async (req) => {
         status: 200,
       }
     );
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        sponsorship_id: sponsorship.id,
+        amount: session.metadata.amount,
+        frequency: session.metadata.frequency,
+        message: userId ? undefined : 'Your sponsorship will automatically link when you create an account with this email.',
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
+    } finally {
+      // Clean up cache after processing
+      processingCache.delete(session_id);
+    }
   } catch (error) {
     console.error('Error in verify-sponsorship-payment:', error);
     
