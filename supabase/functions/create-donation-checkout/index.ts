@@ -22,7 +22,8 @@ const donationSchema = z.object({
     .max(255, "Email must be less than 255 characters")
     .toLowerCase()
     .trim(),
-  coverStripeFee: z.boolean().optional().default(false)
+  coverStripeFee: z.boolean().optional().default(false),
+  force_test_mode: z.boolean().optional().default(false)
 });
 
 serve(async (req) => {
@@ -38,14 +39,30 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Get Stripe mode from app_settings
-    const { data: modeSetting } = await supabaseAdmin
-      .from('app_settings')
-      .select('setting_value')
-      .eq('setting_key', 'stripe_mode')
-      .single();
+    const requestBody = await req.json();
+
+    // Validate inputs with Zod
+    const validationResult = donationSchema.safeParse(requestBody);
     
-    const mode = modeSetting?.setting_value || 'test';
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => e.message).join(', ');
+      console.error('Validation error:', errors);
+      throw new Error(`Validation failed: ${errors}`);
+    }
+
+    const { force_test_mode } = validationResult.data;
+
+    // Get Stripe mode from app_settings (unless force_test_mode is true)
+    let mode = 'test';
+    if (!force_test_mode) {
+      const { data: modeSetting } = await supabaseAdmin
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'stripe_mode')
+        .single();
+      mode = modeSetting?.setting_value || 'test';
+    }
+    
     const stripeKey = mode === 'live' 
       ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
       : Deno.env.get('STRIPE_SECRET_KEY_TEST');
@@ -57,17 +74,6 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2025-08-27.basil',
     });
-
-    const requestBody = await req.json();
-
-    // Validate inputs with Zod
-    const validationResult = donationSchema.safeParse(requestBody);
-    
-    if (!validationResult.success) {
-      const errors = validationResult.error.errors.map(e => e.message).join(', ');
-      console.error('Validation error:', errors);
-      throw new Error(`Validation failed: ${errors}`);
-    }
 
     const { amount, frequency, email, coverStripeFee } = validationResult.data;
 

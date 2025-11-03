@@ -48,6 +48,7 @@ export function TestEnvironmentManager() {
           frequency,
           email: 'testdonor@example.com',
           coverStripeFee: false,
+          force_test_mode: true,
         },
       });
 
@@ -95,6 +96,7 @@ export function TestEnvironmentManager() {
           frequency,
           email: 'testsponsor@example.com',
           coverStripeFee: false,
+          force_test_mode: true,
         },
       });
 
