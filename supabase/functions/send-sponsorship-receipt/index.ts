@@ -393,6 +393,10 @@ serve(async (req) => {
     });
 
     console.log('[AUDIT] Email sent successfully:', emailResponse.data?.id);
+    
+    // Generate receipt number
+    const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    
     if (sponsorshipId) {
       await supabaseAdmin.from('receipt_generation_logs').insert({
         sponsorship_id: sponsorshipId,
@@ -402,9 +406,36 @@ serve(async (req) => {
       });
     }
 
-    // Email sent successfully - calling function handles receipt record creation
-    const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    // Log to universal email audit trail
+    try {
+      await supabaseAdmin.from('email_audit_log').insert({
+        resend_email_id: emailResponse.data?.id,
+        email_type: 'receipt',
+        recipient_email: sponsorEmail,
+        recipient_name: sponsorName || null,
+        from_email: settings.from_email,
+        from_name: settings.organization_name,
+        subject: `Sponsorship Receipt - ${bestieName} - ${formattedAmount}`,
+        html_content: emailHtml,
+        status: 'sent',
+        related_id: sponsorshipId,
+        related_type: 'sponsorship',
+        sent_at: new Date().toISOString(),
+        metadata: { 
+          receipt_number: receiptNumber,
+          stripe_mode: stripeMode,
+          transaction_id: transactionId,
+          amount: amount,
+          frequency: frequency,
+          bestie_name: bestieName
+        }
+      });
+    } catch (logError) {
+      console.error('[email-audit] Failed to log email send:', logError);
+      // Don't fail the request if logging fails
+    }
 
+    // Email sent successfully - calling function handles receipt record creation
     return new Response(JSON.stringify({ 
       success: true, 
       emailId: emailResponse.data?.id,

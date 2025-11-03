@@ -42,6 +42,7 @@ import { MessageModerationQueue } from "@/components/admin/MessageModerationQueu
 import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyManager";
 import { SavedLocationsManager } from "@/components/admin/SavedLocationsManager";
 import { PartnersManager } from "@/components/admin/PartnersManager";
+import EmailAuditLog from "@/components/admin/EmailAuditLog";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
