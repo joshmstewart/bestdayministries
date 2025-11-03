@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Eye, Check, X, Reply, RefreshCw, Mail, Globe, Inbox } from "lucide-react";
+import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 
@@ -242,7 +242,7 @@ export default function ContactSubmissions() {
                 <span className="text-sm font-medium">{selectedIds.size} selected</span>
                 <div className="flex gap-2 ml-auto">
                   <Button size="sm" variant="outline" onClick={markSelectedAsRead} disabled={bulkProcessing}>
-                    <Check className="w-4 h-4 mr-2" />
+                    <MailOpen className="w-4 h-4 mr-2" />
                     Mark as Read
                   </Button>
                   <Button size="sm" variant="destructive" onClick={deleteSelected} disabled={bulkProcessing}>
@@ -334,7 +334,7 @@ export default function ContactSubmissions() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="sm" variant="ghost" onClick={() => markAsRead(sub.id)}>
-                                  <Check className="w-4 h-4" />
+                                  <MailOpen className="w-4 h-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Mark as read</TooltipContent>
@@ -343,10 +343,10 @@ export default function ContactSubmissions() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="sm" variant="ghost" onClick={() => markAsNew(sub.id)}>
-                                  <X className="w-4 h-4" />
+                                  <Mail className="w-4 h-4" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Mark as new</TooltipContent>
+                              <TooltipContent>Mark as unread</TooltipContent>
                             </Tooltip>
                           )}
                           
