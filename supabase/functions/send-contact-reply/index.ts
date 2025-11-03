@@ -214,6 +214,28 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
 
     console.log("[send-contact-reply] Email sent successfully:", emailData);
 
+    // Log to universal email audit trail
+    try {
+      await supabase.from('email_audit_log').insert({
+        resend_email_id: emailData?.id,
+        email_type: 'contact_reply',
+        recipient_email: submission.email,
+        recipient_name: submission.name,
+        from_email: fromEmail,
+        from_name: fromName,
+        subject: `Re: ${submission.subject || 'Your message'}`,
+        html_content: emailHtml,
+        status: 'sent',
+        related_id: submissionId,
+        related_type: 'contact_submission',
+        sent_at: new Date().toISOString(),
+        metadata: { admin_name: adminName, admin_id: user.id }
+      });
+    } catch (logError) {
+      console.error('[email-audit] Failed to log email send:', logError);
+      // Don't fail the request if logging fails
+    }
+
     // Save reply to the threaded conversation table
     const { error: replyError } = await supabase
       .from("contact_form_replies")

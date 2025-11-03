@@ -314,6 +314,28 @@ serve(async (req) => {
       resendEmailId = emailResponse.data?.id || null;
       console.log('Year-end summary email sent to:', user.email, 'Email ID:', resendEmailId);
 
+      // Log to universal email audit trail
+      try {
+        await supabaseAdmin.from('email_audit_log').insert({
+          resend_email_id: resendEmailId,
+          email_type: 'year_end_summary',
+          recipient_email: user.email,
+          recipient_user_id: user.id,
+          recipient_name: summaryData.sponsor_name,
+          from_email: receiptSettings.from_email,
+          from_name: receiptSettings.organization_name,
+          subject: emailSubject,
+          html_content: emailHtml,
+          status: 'sent',
+          related_type: 'tax_summary',
+          sent_at: new Date().toISOString(),
+          metadata: { tax_year: year, total_amount: summaryData.total_amount, total_donations: summaryData.total_donations }
+        });
+      } catch (logError) {
+        console.error('[email-audit] Failed to log email send:', logError);
+        // Don't fail the request if logging fails
+      }
+
       // Log sent email to database (only if real data)
       if (summary) {
         await supabaseAdmin

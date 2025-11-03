@@ -190,6 +190,27 @@ ${submission.message}
 
     console.log("[notify-admin-new-contact] Email sent successfully:", emailData);
 
+    // Log to universal email audit trail
+    try {
+      await supabase.from('email_audit_log').insert({
+        resend_email_id: emailData?.id,
+        email_type: 'admin_notification',
+        recipient_email: adminEmail,
+        from_email: "notifications@bestdayministries.org",
+        from_name: "Contact Form",
+        subject: `New ${messageType} submission from ${submission.name}`,
+        html_content: html,
+        status: 'sent',
+        related_id: submission.id,
+        related_type: 'contact_submission',
+        sent_at: new Date().toISOString(),
+        metadata: { message_type: submission.message_type, sender_email: submission.email }
+      });
+    } catch (logError) {
+      console.error('[email-audit] Failed to log email send:', logError);
+      // Don't fail the request if logging fails
+    }
+
     return new Response(
       JSON.stringify({ success: true, emailId: emailData?.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

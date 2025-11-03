@@ -1,8 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,23 +80,45 @@ const handler = async (req: Request): Promise<Response> => {
     // Get recipient email from settings (you could also fetch this from Supabase)
     const recipientEmail = Deno.env.get("CONTACT_RECIPIENT_EMAIL") || "contact@bestdayministries.org";
 
+    const emailHtml = `
+      <h2>New Contact Form Submission</h2>
+      <p><strong>From:</strong> ${sanitizedName} (${email})</p>
+      ${subject ? `<p><strong>Subject:</strong> ${subject.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>` : ''}
+      <p><strong>Message:</strong></p>
+      <p>${sanitizedMessage}</p>
+      <hr>
+      <p><em>This message was sent via the Best Day Ministries contact form.</em></p>
+    `;
+
     const emailResponse = await resend.emails.send({
       from: "Best Day Ministries <contact@bestdayministries.org>",
       to: [recipientEmail],
       reply_to: email,
       subject: subject || `New Contact Form Message from ${sanitizedName}`,
-      html: `
-        <h2>New Contact Form Submission</h2>
-        <p><strong>From:</strong> ${sanitizedName} (${email})</p>
-        ${subject ? `<p><strong>Subject:</strong> ${subject.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>` : ''}
-        <p><strong>Message:</strong></p>
-        <p>${sanitizedMessage}</p>
-        <hr>
-        <p><em>This message was sent via the Best Day Ministries contact form.</em></p>
-      `,
+      html: emailHtml,
     });
 
     console.log("Email sent successfully:", emailResponse);
+
+    // Log to universal email audit trail
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    try {
+      await supabase.from('email_audit_log').insert({
+        resend_email_id: emailResponse.data?.id,
+        email_type: 'contact_confirmation',
+        recipient_email: email,
+        recipient_name: name,
+        from_email: "contact@bestdayministries.org",
+        from_name: "Best Day Ministries",
+        subject: subject || `New Contact Form Message from ${sanitizedName}`,
+        html_content: emailHtml,
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+        metadata: { contact_name: name }
+      });
+    } catch (logError) {
+      console.error('[email-audit] Failed to log email send:', logError);
+    }
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,

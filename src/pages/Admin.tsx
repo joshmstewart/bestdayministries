@@ -662,6 +662,7 @@ const Admin = () => {
                     <TabsTrigger value="store">Store Items</TabsTrigger>
                     <TabsTrigger value="pet-types">Pet Types</TabsTrigger>
                     <TabsTrigger value="locations">Locations</TabsTrigger>
+                    <TabsTrigger value="email-audit">Email Audit</TabsTrigger>
                     <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
                   </TabsList>
 
@@ -721,6 +722,10 @@ const Admin = () => {
 
                   <TabsContent value="locations">
                     <SavedLocationsManager />
+                  </TabsContent>
+
+                  <TabsContent value="email-audit">
+                    <EmailAuditLog />
                   </TabsContent>
 
                   <TabsContent value="impersonation">

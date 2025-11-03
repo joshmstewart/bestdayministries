@@ -1197,6 +1197,66 @@ export type Database = {
         }
         Relationships: []
       }
+      email_audit_log: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          from_email: string
+          from_name: string | null
+          html_content: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          recipient_name: string | null
+          recipient_user_id: string | null
+          related_id: string | null
+          related_type: string | null
+          resend_email_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          from_email: string
+          from_name?: string | null
+          html_content?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          recipient_name?: string | null
+          recipient_user_id?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          from_email?: string
+          from_name?: string | null
+          html_content?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          recipient_name?: string | null
+          recipient_user_id?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       email_notifications_log: {
         Row: {
           error_message: string | null

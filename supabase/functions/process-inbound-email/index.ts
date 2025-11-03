@@ -133,34 +133,11 @@ Deno.serve(async (req) => {
     }
 
     if (!matchedSubmission) {
-      console.log('[process-inbound-email] No matching submission found - checking if system email');
+      console.log('[process-inbound-email] No matching submission found');
       
-      // Don't create submissions for emails FROM the system itself
-      const systemEmailDomains = [
-        '@bestdayministries.org',
-        '@send.bestdayministries.org'
-      ];
-      
-      const isSystemEmail = systemEmailDomains.some(domain => 
-        senderEmail.toLowerCase().includes(domain)
-      );
-      
-      if (isSystemEmail) {
-        console.log('[process-inbound-email] Ignoring system email:', senderEmail);
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'System email ignored',
-            senderEmail 
-          }),
-          { 
-            status: 200, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-      
-      console.log('[process-inbound-email] Creating new submission for external email');
+      // ALWAYS create a new submission for incoming emails
+      // This ensures no emails are lost and all correspondence is tracked
+      console.log('[process-inbound-email] Creating new submission for email from:', senderEmail);
       
       // Extract clean message content for new submission
       const messageContent = extractMessageContent(emailText);
