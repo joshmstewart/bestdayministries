@@ -72,7 +72,7 @@ export function TestEnvironmentManager() {
     }
   };
 
-  const handleCreateTestSponsorship = async () => {
+  const handleCreateTestSponsorship = async (frequency: 'one-time' | 'monthly') => {
     try {
       setIsCreatingPayment(true);
 
@@ -90,9 +90,11 @@ export function TestEnvironmentManager() {
 
       const { data, error } = await supabase.functions.invoke('create-sponsorship-checkout', {
         body: {
-          sponsor_bestie_id: sponsorBesties.id,
+          bestie_id: sponsorBesties.id,
           amount: 25,
-          frequency: 'monthly',
+          frequency,
+          email: 'testsponsor@example.com',
+          coverStripeFee: false,
         },
       });
 
@@ -102,7 +104,7 @@ export function TestEnvironmentManager() {
         window.open(data.url, '_blank');
         toast({
           title: 'Test Sponsorship Created',
-          description: 'Opening sponsorship checkout. Use test card 4242 4242 4242 4242.',
+          description: `Opening ${frequency} sponsorship checkout. Use test card 4242 4242 4242 4242.`,
         });
       }
     } catch (error) {
@@ -163,15 +165,26 @@ export function TestEnvironmentManager() {
 
             <div className="space-y-2">
               <h4 className="font-semibold text-sm">Sponsorships</h4>
-              <Button
-                onClick={handleCreateTestSponsorship}
-                disabled={isCreatingPayment}
-                variant="outline"
-                size="sm"
-              >
-                <CreditCard className="mr-2 h-4 w-4" />
-                Test Sponsorship ($25/month)
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleCreateTestSponsorship('one-time')}
+                  disabled={isCreatingPayment}
+                  variant="outline"
+                  size="sm"
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Test One-Time Sponsorship ($25)
+                </Button>
+                <Button
+                  onClick={() => handleCreateTestSponsorship('monthly')}
+                  disabled={isCreatingPayment}
+                  variant="outline"
+                  size="sm"
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Test Monthly Sponsorship ($25)
+                </Button>
+              </div>
             </div>
           </div>
 
