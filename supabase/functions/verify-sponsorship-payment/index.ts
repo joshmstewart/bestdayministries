@@ -50,25 +50,44 @@ serve(async (req) => {
     
     console.log('Verifying sponsorship payment for session:', session_id);
     
-    // Check if receipt already exists at the VERY START to prevent double processing
-    const { data: existingReceipt } = await supabaseAdmin
+    // Use database INSERT as a distributed lock - try to claim this transaction first
+    // This prevents race conditions where multiple instances check "no receipt exists" simultaneously
+    const { data: placeholderReceipt, error: placeholderError } = await supabaseAdmin
       .from('sponsorship_receipts')
-      .select('id, receipt_number')
-      .eq('transaction_id', session_id)
-      .maybeSingle();
+      .insert({
+        transaction_id: session_id,
+        sponsor_email: 'pending@processing.temp', // Temporary placeholder
+        sponsor_name: 'Processing',
+        bestie_name: 'Processing',
+        amount: 0,
+        frequency: 'monthly',
+        transaction_date: new Date().toISOString(),
+        receipt_number: `PENDING-${session_id}`,
+        tax_year: new Date().getFullYear(),
+        stripe_mode: session_id.startsWith('cs_test_') ? 'test' : 'live',
+      })
+      .select('id')
+      .single();
     
-    if (existingReceipt) {
-      console.log('Receipt already exists for this session, skipping:', session_id);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Receipt already sent',
-          receiptNumber: existingReceipt.receipt_number,
-          alreadyProcessed: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
+    // If INSERT fails with unique constraint, another instance already claimed this transaction
+    if (placeholderError) {
+      if (placeholderError.code === '23505') {
+        console.log('Transaction already being processed by another instance:', session_id);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Already processing',
+            alreadyProcessed: true
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      } else {
+        console.error('Unexpected error creating placeholder receipt:', placeholderError);
+        throw new Error('Failed to claim transaction');
+      }
     }
+    
+    console.log('Transaction claimed successfully, placeholder receipt created:', placeholderReceipt.id);
     
     // Detect mode from session ID prefix instead of app_settings
     // This allows test payments to work even when app is in live mode
@@ -182,39 +201,30 @@ serve(async (req) => {
       .single();
 
     if (bestieData) {
-      console.log('Attempting to create receipt record for session:', session_id);
+      console.log('Updating placeholder receipt with final details for session:', session_id);
       
-      // Try to insert receipt record first - database constraint will prevent duplicates
-      const { data: receiptRecord, error: insertError } = await supabaseAdmin
+      // Update the placeholder receipt we created earlier with actual details
+      const { error: updateError } = await supabaseAdmin
         .from('sponsorship_receipts')
-        .insert({
+        .update({
           sponsorship_id: sponsorship.id,
           sponsor_email: customerEmail,
           sponsor_name: customerEmail.split('@')[0],
           bestie_name: bestieData.bestie_name,
           amount: parseFloat(session.metadata.amount),
           frequency: session.metadata.frequency,
-          transaction_id: session_id,
           transaction_date: new Date().toISOString(),
           receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-          tax_year: new Date().getFullYear(),
-          stripe_mode: mode,
           user_id: userId,
         })
-        .select()
-        .single();
+        .eq('id', placeholderReceipt.id);
 
-      // Handle duplicate gracefully - unique constraint violation
-      if (insertError) {
-        if (insertError.code === '23505') {
-          console.log('Receipt already created for session (handled by other function):', session_id);
-        } else {
-          console.error('Error inserting receipt record:', insertError);
-          // Don't fail the whole transaction if receipt fails
-        }
+      if (updateError) {
+        console.error('Error updating receipt record:', updateError);
+        // Don't fail the whole transaction if receipt update fails
       } else {
-        // Only send email if database insert succeeded
-        console.log('Receipt record created, sending email...');
+        // Only send email after database update succeeded
+        console.log('Receipt record updated, sending email...');
         try {
           await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
             method: 'POST',

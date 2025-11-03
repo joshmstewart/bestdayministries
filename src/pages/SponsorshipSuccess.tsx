@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -19,6 +19,7 @@ const SponsorshipSuccess = () => {
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const verificationInProgress = useRef(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -39,6 +40,14 @@ const SponsorshipSuccess = () => {
   };
 
   const verifyPayment = async () => {
+    // Prevent duplicate calls (React Strict Mode in dev causes double invocations)
+    if (verificationInProgress.current) {
+      console.log('Verification already in progress, skipping duplicate call');
+      return;
+    }
+    
+    verificationInProgress.current = true;
+    
     try {
       const { data, error } = await supabase.functions.invoke('verify-sponsorship-payment', {
         body: { session_id: sessionId }
@@ -60,6 +69,10 @@ const SponsorshipSuccess = () => {
       toast.error(`Failed to verify payment: ${errorMessage}. Please contact support with your session ID.`);
     } finally {
       setVerifying(false);
+      // Delay reset to prevent rapid re-triggers
+      setTimeout(() => {
+        verificationInProgress.current = false;
+      }, 2000);
     }
   };
 
