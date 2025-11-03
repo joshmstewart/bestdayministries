@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, Eye, Check, X, Reply, RefreshCw, Mail, Globe, Inbox } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 
 interface Submission {
@@ -291,19 +292,48 @@ export default function ContactSubmissions() {
                       <Badge variant={sub.status === 'new' ? 'default' : 'secondary'}>{sub.status}</Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => { setSelectedSubmission(sub); setViewDialogOpen(true); }}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setSelectedSubmission(sub); setReplyMessage(""); setAdminNotes(sub.admin_notes || ""); setReplyDialogOpen(true); loadReplies(sub.id); }}>
-                          <Reply className="w-4 h-4" />
-                          {sub.unread_user_replies! > 0 && <Badge variant="destructive" className="ml-1">{sub.unread_user_replies}</Badge>}
-                        </Button>
-                        {sub.status === 'new' ? (
-                          <Button size="sm" variant="ghost" onClick={() => markAsRead(sub.id)}><Check className="w-4 h-4" /></Button>
-                        ) : null}
-                        <Button size="sm" variant="ghost" onClick={() => deleteSubmission(sub.id)}><Trash2 className="w-4 h-4" /></Button>
-                      </div>
+                      <TooltipProvider>
+                        <div className="flex gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => { setSelectedSubmission(sub); setViewDialogOpen(true); }}>
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>View message</TooltipContent>
+                          </Tooltip>
+                          
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => { setSelectedSubmission(sub); setReplyMessage(""); setAdminNotes(sub.admin_notes || ""); setReplyDialogOpen(true); loadReplies(sub.id); }}>
+                                <Reply className="w-4 h-4" />
+                                {sub.unread_user_replies! > 0 && <Badge variant="destructive" className="ml-1">{sub.unread_user_replies}</Badge>}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Reply to message</TooltipContent>
+                          </Tooltip>
+                          
+                          {sub.status === 'new' ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="ghost" onClick={() => markAsRead(sub.id)}>
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Mark as read</TooltipContent>
+                            </Tooltip>
+                          ) : null}
+                          
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => deleteSubmission(sub.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete message</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                 ))}
