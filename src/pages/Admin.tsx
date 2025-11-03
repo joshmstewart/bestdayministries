@@ -43,6 +43,8 @@ import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyMana
 import { SavedLocationsManager } from "@/components/admin/SavedLocationsManager";
 import { PartnersManager } from "@/components/admin/PartnersManager";
 import EmailAuditLog from "@/components/admin/EmailAuditLog";
+import ContactFormSettings from "@/components/admin/ContactFormSettings";
+import ContactSubmissions from "@/components/admin/ContactSubmissions";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
@@ -563,7 +565,33 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="messages">
-            <MessagesManager />
+            <Card>
+              <CardHeader>
+                <CardTitle>Messages</CardTitle>
+                <CardDescription>Manage contact form messages and settings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="all" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="all">All Messages</TabsTrigger>
+                    <TabsTrigger value="settings">Contact Form Settings</TabsTrigger>
+                    <TabsTrigger value="email-audit">Email Audit</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="all">
+                    <ContactSubmissions />
+                  </TabsContent>
+
+                  <TabsContent value="settings">
+                    <ContactFormSettings />
+                  </TabsContent>
+
+                  <TabsContent value="email-audit">
+                    <EmailAuditLog />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="help">
@@ -663,7 +691,6 @@ const Admin = () => {
                     <TabsTrigger value="store">Store Items</TabsTrigger>
                     <TabsTrigger value="pet-types">Pet Types</TabsTrigger>
                     <TabsTrigger value="locations">Locations</TabsTrigger>
-                    <TabsTrigger value="email-audit">Email Audit</TabsTrigger>
                     <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
                   </TabsList>
 
@@ -723,10 +750,6 @@ const Admin = () => {
 
                   <TabsContent value="locations">
                     <SavedLocationsManager />
-                  </TabsContent>
-
-                  <TabsContent value="email-audit">
-                    <EmailAuditLog />
                   </TabsContent>
 
                   <TabsContent value="impersonation">
