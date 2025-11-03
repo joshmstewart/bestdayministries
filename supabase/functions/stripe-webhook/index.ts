@@ -201,7 +201,7 @@ serve(async (req) => {
           
           if (session.mode === "payment") {
             // One-time donation
-            const { error: updateError } = await supabaseAdmin
+            const { data: donationData, error: updateError } = await supabaseAdmin
               .from("donations")
               .update({
                 status: "completed",
@@ -209,18 +209,43 @@ serve(async (req) => {
               .eq("donor_email", customerEmail)
               .eq("amount", amount)
               .eq("frequency", "one-time")
-              .eq("status", "pending");
+              .eq("status", "pending")
+              .select()
+              .single();
 
             if (updateError) {
               console.error("Error updating one-time donation:", updateError);
             } else {
               console.log(`Completed one-time donation for ${customerEmail}, amount: $${amount}`);
+              
+              // Send receipt email for one-time donation
+              try {
+                await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  },
+                  body: JSON.stringify({
+                    sponsorEmail: customerEmail,
+                    bestieName: "General Support",
+                    amount: amount,
+                    frequency: "one-time",
+                    transactionId: session.payment_intent || session.id,
+                    transactionDate: new Date().toISOString(),
+                    stripeMode: donationData?.stripe_mode || 'live',
+                  }),
+                });
+                console.log('Receipt email sent for one-time donation:', customerEmail);
+              } catch (emailError) {
+                console.error('Failed to send donation receipt email:', emailError);
+              }
             }
           } else if (session.mode === "subscription" && session.subscription) {
             // Monthly donation
             const subscriptionId = session.subscription as string;
             
-            const { error: updateError } = await supabaseAdmin
+            const { data: donationData, error: updateError } = await supabaseAdmin
               .from("donations")
               .update({
                 status: "active",
@@ -230,12 +255,37 @@ serve(async (req) => {
               .eq("donor_email", customerEmail)
               .eq("amount", amount)
               .eq("frequency", "monthly")
-              .eq("status", "pending");
+              .eq("status", "pending")
+              .select()
+              .single();
 
             if (updateError) {
               console.error("Error updating monthly donation:", updateError);
             } else {
               console.log(`Activated monthly donation for ${customerEmail}, amount: $${amount}/month`);
+              
+              // Send receipt email for monthly donation
+              try {
+                await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  },
+                  body: JSON.stringify({
+                    sponsorEmail: customerEmail,
+                    bestieName: "General Support",
+                    amount: amount,
+                    frequency: "monthly",
+                    transactionId: session.payment_intent || session.id,
+                    transactionDate: new Date().toISOString(),
+                    stripeMode: donationData?.stripe_mode || 'live',
+                  }),
+                });
+                console.log('Receipt email sent for monthly donation:', customerEmail);
+              } catch (emailError) {
+                console.error('Failed to send donation receipt email:', emailError);
+              }
             }
           }
         } else if (session.mode === "subscription" && session.subscription) {
@@ -357,34 +407,67 @@ serve(async (req) => {
         const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
         const sponsorBestieId = subscription.metadata?.bestie_id;
         
-        if (!sponsorBestieId) {
-          console.log("No bestie_id in subscription metadata");
-          break;
-        }
+        if (sponsorBestieId) {
+          // This is a sponsorship
+          // Find the sponsorship record
+          const { data: sponsorshipData } = await supabaseAdmin
+            .from('sponsorships')
+            .select('id')
+            .eq('sponsor_id', user.id)
+            .eq('sponsor_bestie_id', sponsorBestieId)
+            .single();
 
-        // Find the sponsorship record
-        const { data: sponsorshipData } = await supabaseAdmin
-          .from('sponsorships')
-          .select('id')
-          .eq('sponsor_id', user.id)
-          .eq('sponsor_bestie_id', sponsorBestieId)
-          .single();
+          if (sponsorshipData) {
+            try {
+              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({
+                  sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
+                }),
+              });
+              console.log('Receipt email sent for recurring payment:', sponsorshipData.id);
+            } catch (emailError) {
+              console.error('Failed to send receipt email:', emailError);
+            }
+          }
+        } else {
+          // This is a donation (no bestie_id in metadata)
+          // Find the donation record
+          const amount = invoice.amount_paid ? invoice.amount_paid / 100 : 0;
+          const { data: donationData } = await supabaseAdmin
+            .from('donations')
+            .select('*')
+            .eq('donor_email', customerEmail)
+            .eq('stripe_subscription_id', invoice.subscription as string)
+            .eq('status', 'active')
+            .single();
 
-        if (sponsorshipData) {
-          try {
-            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-              },
-              body: JSON.stringify({
-                sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
-              }),
-            });
-            console.log('Receipt email sent for recurring payment:', sponsorshipData.id);
-          } catch (emailError) {
-            console.error('Failed to send receipt email:', emailError);
+          if (donationData) {
+            try {
+              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({
+                  sponsorEmail: customerEmail,
+                  bestieName: "General Support",
+                  amount: amount,
+                  frequency: "monthly",
+                  transactionId: invoice.payment_intent || invoice.id,
+                  transactionDate: new Date(invoice.created * 1000).toISOString(),
+                  stripeMode: donationData.stripe_mode || 'live',
+                }),
+              });
+              console.log('Receipt email sent for recurring donation payment:', customerEmail);
+            } catch (emailError) {
+              console.error('Failed to send recurring donation receipt email:', emailError);
+            }
           }
         }
         break;
