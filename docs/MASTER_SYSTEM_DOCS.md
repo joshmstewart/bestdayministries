@@ -265,23 +265,105 @@ DB:events|event_dates|event_attendees
 RLS:SELECT[all-auth]|INSERT[auth]|UPDATE-DELETE[author-admin]
 
 ## SPONSORSHIP
-GUEST:no-account→sponsor_email→auto-link-on-signup
-FUNDING:monthly_goal>0→SUM-active-monthly→progress
-MSG-APPROVAL:require_message_approval→guardian-edit→approve
-DB:sponsor_besties|sponsorships|sponsor_messages|receipt_settings|year_end_summary_settings|sponsorship_receipts
-VIEWS:sponsor_bestie_funding_progress|sponsorship_year_end_summary
-EDGE:create-checkout|verify-payment|manage|update|send-receipt|gen-receipts|year-end
-WEBHOOKS:subscription.deleted→cancelled|subscription.updated→3-states|checkout.completed
-REALTIME:useGuardianApprovalsCount|useSponsorUnreadCount
-RECEIPTS-SECURITY:CRITICAL-PRIVACY→users-see-ONLY-own-receipts→RLS[user_id-OR-sponsor_email-match]→explicit-filter[defense-in-depth]
-RECEIPTS-RLS:removed-admin-view-all-policy→NO-role-sees-all-receipts→privacy-protected
-RECEIPTS-QUERY:DonationHistory→explicit-filter[.or(user_id.eq+sponsor_email.eq)]→never-query-all
-PAGES:/sponsor-bestie|/sponsorship-success|/guardian-links|/bestie-messages|/guardian-approvals
-PAGES:/sponsor-bestie|/sponsorship-success|/guardian-links|/bestie-messages|/guardian-approvals
-TRIGGERS:link_guest_sponsorships()
-STORAGE:app-assets|featured-bestie-audio
-CRITICAL-CAROUSEL:SponsorBestieDisplay→ALWAYS-queries-LIVE-mode-only→hardcoded-stripe_mode='live'→public-display-shows-real-funding-regardless-app-mode
-DOC:SPONSOR_PAGE_SYSTEM.md
+OVERVIEW:monthly-recurring-sponsorships+guest-sponsors+tax-receipts+guardian-communication+funding-progress+Stripe-integration
+PURPOSE:connect-sponsors-with-besties→monthly-donations→tax-deductible-receipts→progress-tracking→messaging
+GUEST:no-account→sponsor_email→auto-link-on-signup→trigger[link_guest_sponsorships]
+FUNDING:monthly_goal>0→SUM-active-monthly-sponsorships→progress-bar→VIEW[sponsor_bestie_funding_progress]
+MSG-APPROVAL:require_message_approval→guardian-edit-caregiver_bestie_links→pending→approve→delivered
+
+DATABASE:
+  sponsor_besties[bestie_id|monthly_goal|is_active|stripe_mode]→defines-which-besties-available-for-sponsorship
+  sponsorships[sponsor_email|user_id|bestie_id|amount|status|stripe_customer_id|stripe_subscription_id|tier_name]→active-sponsorships
+  sponsorship_receipts[transaction_id|sponsorship_id|user_id|sponsor_email|amount|organization_name|organization_ein|receipt_number|tax_year|status|generated_at|sent_at|resend_email_id]→tax-receipts
+  receipt_settings[organization_name|organization_ein|contact_email|is_501c3|enable_receipts|receipt_footer_text]→tax-exempt-org-info
+  year_end_summary_settings[enable_summaries|summary_message|contact_email]→annual-giving-summaries
+  sponsor_messages[bestie_id|sponsor_email|message|status|approval_status]→guardian-sponsor-communication
+  caregiver_bestie_links[require_message_approval|allow_sponsor_messages]→guardian-approval-flags
+
+VIEWS:
+  sponsor_bestie_funding_progress→SUM-active-monthly-by-bestie-and-stripe-mode
+  sponsorship_year_end_summary→annual-giving-totals-per-sponsor
+
+EDGE-FUNCTIONS:
+  create-sponsorship-checkout[POST]→Stripe-checkout-session→metadata[bestieId+tierName+amount+sponsorEmail]
+  verify-sponsorship-payment[POST]→CRITICAL-IDEMPOTENCY-PATTERN→placeholder-receipt-INSERT→claim-transaction→create-sponsorship→update-receipt→send-email
+  stripe-webhook[POST]→checkout.session.completed|subscription.updated|subscription.deleted→update-sponsorship-status
+  manage-sponsorship[POST]→Stripe-customer-portal-URL→sponsor-can-update-payment-cancel
+  update-sponsorship[POST]→change-tier-or-amount→prorate-Stripe-subscription
+  send-sponsorship-receipt[POST]→generate-PDF-receipt→send-via-Resend→log-email
+  generate-receipts[POST]→monthly-batch→previous-month-transactions→auto-generate-all-receipts
+  generate-year-end-summary[POST]→annual-batch→previous-year-totals→send-summary-emails
+
+CRITICAL-DUPLICATE-EMAIL-PREVENTION:
+  FRONTEND-IDEMPOTENCY:SponsorshipSuccess.tsx→verificationInProgress-useRef→prevents-React-Strict-Mode-double-calls
+  BACKEND-IDEMPOTENCY:verify-sponsorship-payment→INSERT-placeholder-receipt-FIRST→transaction_id-unique-constraint→claim-transaction→one-process-wins→only-one-email
+  PATTERN:distributed-locking-via-database-constraint→INSERT-attempt→23505-error-code→early-exit→race-condition-eliminated
+  RATIONALE:SELECT-then-INSERT-allows-race→INSERT-first-uses-DB-as-lock→guaranteed-single-email-per-transaction
+
+WORKFLOWS:
+  NEW-SPONSORSHIP:sponsor-page→select-bestie-tier→create-checkout→Stripe-payment→webhook→verify-payment→create-sponsorship→send-receipt-email
+  GUEST-SPONSOR:no-account→enter-email→complete-payment→signup-later→trigger-links-guest-sponsorships
+  UPDATE-TIER:manage-sponsorship→customer-portal→change-subscription→webhook→update-sponsorship-record
+  CANCEL:manage-sponsorship→customer-portal→cancel→webhook→update-status[cancelled]→no-future-receipts
+  MONTHLY-RECEIPTS:cron→generate-receipts→previous-month→all-active-sponsorships→batch-send
+  YEAR-END:cron→generate-year-end-summary→previous-year→total-giving→summary-email
+
+STRIPE-WEBHOOKS:
+  checkout.session.completed→payment-success→verify-payment-creates-sponsorship
+  subscription.updated→tier-change→update-amount-tier-status
+  subscription.deleted→cancellation→update-status[cancelled]
+  subscription.paused→pause→update-status[paused]
+  subscription.resumed→resume→update-status[active]
+
+FRONTEND-COMPONENTS:
+  SponsorBestiePage→select-bestie-tier-amount→create-checkout
+  SponsorshipSuccess→verify-payment-idempotent→display-confirmation→manage-link
+  DonationHistory→user-sponsorships-receipts→download-PDF→view-history
+  GuardianSponsorMessenger→send-messages-to-sponsor→require-approval-optional
+  SponsorMessageInbox→sponsors-receive-messages→reply-to-guardian
+  SponsorBestieDisplay→carousel-featured-besties→funding-progress→ALWAYS-LIVE-MODE-ONLY
+
+RECEIPTS-SECURITY:
+  CRITICAL-PRIVACY→users-see-ONLY-own-receipts→RLS[user_id-OR-sponsor_email-match]→explicit-filter[defense-in-depth]
+  RECEIPTS-RLS→removed-admin-view-all-policy→NO-role-sees-all-receipts→privacy-protected
+  RECEIPTS-QUERY→DonationHistory→explicit-filter[.or(user_id.eq+sponsor_email.eq)]→never-query-all
+  TAX-INFO→receipt_settings[organization_ein|is_501c3]→required-for-tax-deductible-receipts
+  AUDIT-TRAIL→transaction_id|resend_email_id|generated_at|sent_at→complete-audit-log
+
+REALTIME:
+  useGuardianApprovalsCount→pending-messages-badge→realtime-subscription
+  useSponsorUnreadCount→unread-messages-badge→realtime-subscription
+
+PAGES:
+  /sponsor-bestie→public-page→select-bestie→create-sponsorship
+  /sponsorship-success→post-payment→verify-payment→display-receipt-link
+  /guardian-links→guardian-view→manage-besties→send-messages-to-sponsors
+  /bestie-messages→sponsors-view→inbox→reply-to-guardians
+  /guardian-approvals→guardian-approve-messages→pending-approval-tab
+
+TRIGGERS:
+  link_guest_sponsorships→runs-on-new-user-signup→matches-sponsor_email→links-sponsorships-to-user_id
+
+STORAGE:
+  app-assets→bestie-images-audio
+  featured-bestie-audio→guardian-uploaded-audio-files
+
+CRITICAL-CAROUSEL:
+  SponsorBestieDisplay→ALWAYS-queries-LIVE-mode-only→hardcoded-stripe_mode='live'
+  RATIONALE→public-display-shows-real-funding-regardless-of-app-mode-setting
+  LOCATIONS→homepage|community|sponsor-page|support→all-use-same-LIVE-only-logic
+
+SECRETS-REQUIRED:
+  STRIPE_SECRET_KEY→Stripe-API-access
+  RESEND_API_KEY→email-sending
+  STRIPE_WEBHOOK_SECRET→webhook-signature-verification
+
+TESTING:
+  email-sponsorship-receipts.spec.ts→Playwright-E2E-tests
+  TEST-ACCOUNT→persistent-test-accounts-NOT-cleaned-up
+  CLEANUP→cleanup-test-data-unified→email-prefix[emailtest-]
+
+DOC:SPONSORSHIP_RECEIPT_SYSTEM_COMPLETE.md|SPONSOR_PAGE_SYSTEM.md|EDGE_FUNCTIONS_REFERENCE.md
 
 ## VENDOR_BESTIE
 OVERVIEW:vendors-display-approved-bestie-content-on-profile
