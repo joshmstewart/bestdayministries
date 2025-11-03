@@ -12,8 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw, CheckCircle, XCircle, Globe, Inbox } from "lucide-react";
+import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw, CheckCircle, XCircle, Globe, Inbox, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -74,6 +75,7 @@ export const MessagesManager = () => {
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -454,16 +456,28 @@ export const MessagesManager = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Form Settings</CardTitle>
-          <CardDescription>
-            Configure the contact form displayed at the bottom of every page
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Contact Form Settings</CardTitle>
+                <CardDescription>
+                  Configure the contact form displayed at the bottom of every page
+                </CardDescription>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  {settingsOpen ? "Hide" : "Show"} Settings
+                  <ChevronDown className={`h-4 w-4 transition-transform ${settingsOpen ? "rotate-180" : ""}`} />
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="is_enabled"
@@ -594,7 +608,9 @@ export const MessagesManager = () => {
             </form>
           </Form>
         </CardContent>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       <Card>
         <CardHeader>
