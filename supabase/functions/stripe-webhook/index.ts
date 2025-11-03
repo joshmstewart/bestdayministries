@@ -219,17 +219,37 @@ serve(async (req) => {
             } else {
               console.log(`Completed one-time donation for ${customerEmail}, amount: $${amount}`);
               
-              // Check if receipt was already sent for this session
-              const { data: existingReceipt } = await supabaseAdmin
+              console.log('Attempting to create receipt record for session:', session.id);
+              
+              // Try to insert receipt record first - database constraint will prevent duplicates
+              const { data: receiptRecord, error: insertError } = await supabaseAdmin
                 .from('sponsorship_receipts')
-                .select('id')
-                .eq('stripe_session_id', session.id)
-                .maybeSingle();
+                .insert({
+                  sponsor_email: customerEmail,
+                  sponsor_name: customerEmail.split('@')[0],
+                  bestie_name: 'General Support',
+                  amount: amount,
+                  frequency: 'one-time',
+                  transaction_id: session.id,
+                  transaction_date: new Date().toISOString(),
+                  receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                  tax_year: new Date().getFullYear(),
+                  stripe_mode: donationData?.stripe_mode || 'live',
+                  user_id: user?.id,
+                })
+                .select()
+                .single();
 
-              if (existingReceipt) {
-                console.log('Receipt already sent for donation session:', session.id);
+              // Handle duplicate gracefully - unique constraint violation
+              if (insertError) {
+                if (insertError.code === '23505') {
+                  console.log('Receipt already created for session (handled by other function):', session.id);
+                } else {
+                  console.error('Error inserting receipt record:', insertError);
+                }
               } else {
-                // Send receipt email for one-time donation
+                // Only send email if database insert succeeded
+                console.log('Receipt record created, sending email...');
                 try {
                   await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
                     method: 'POST',
@@ -239,10 +259,10 @@ serve(async (req) => {
                     },
                     body: JSON.stringify({
                       sponsorEmail: customerEmail,
-                      bestieName: "General Support",
+                      bestieName: 'General Support',
                       amount: amount,
-                      frequency: "one-time",
-                      transactionId: session.payment_intent || session.id,
+                      frequency: 'one-time',
+                      transactionId: session.id,
                       transactionDate: new Date().toISOString(),
                       stripeMode: donationData?.stripe_mode || 'live',
                     }),
@@ -276,17 +296,37 @@ serve(async (req) => {
             } else {
               console.log(`Activated monthly donation for ${customerEmail}, amount: $${amount}/month`);
               
-              // Check if receipt was already sent for this session
-              const { data: existingReceipt } = await supabaseAdmin
+              console.log('Attempting to create receipt record for session:', session.id);
+              
+              // Try to insert receipt record first - database constraint will prevent duplicates
+              const { data: receiptRecord, error: insertError } = await supabaseAdmin
                 .from('sponsorship_receipts')
-                .select('id')
-                .eq('stripe_session_id', session.id)
-                .maybeSingle();
+                .insert({
+                  sponsor_email: customerEmail,
+                  sponsor_name: customerEmail.split('@')[0],
+                  bestie_name: 'General Support',
+                  amount: amount,
+                  frequency: 'monthly',
+                  transaction_id: session.id,
+                  transaction_date: new Date().toISOString(),
+                  receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                  tax_year: new Date().getFullYear(),
+                  stripe_mode: donationData?.stripe_mode || 'live',
+                  user_id: user?.id,
+                })
+                .select()
+                .single();
 
-              if (existingReceipt) {
-                console.log('Receipt already sent for monthly donation session:', session.id);
+              // Handle duplicate gracefully - unique constraint violation
+              if (insertError) {
+                if (insertError.code === '23505') {
+                  console.log('Receipt already created for session (handled by other function):', session.id);
+                } else {
+                  console.error('Error inserting receipt record:', insertError);
+                }
               } else {
-                // Send receipt email for monthly donation
+                // Only send email if database insert succeeded
+                console.log('Receipt record created, sending email...');
                 try {
                   await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
                     method: 'POST',
@@ -296,10 +336,10 @@ serve(async (req) => {
                     },
                     body: JSON.stringify({
                       sponsorEmail: customerEmail,
-                      bestieName: "General Support",
+                      bestieName: 'General Support',
                       amount: amount,
-                      frequency: "monthly",
-                      transactionId: session.payment_intent || session.id,
+                      frequency: 'monthly',
+                      transactionId: session.id,
                       transactionDate: new Date().toISOString(),
                       stripeMode: donationData?.stripe_mode || 'live',
                     }),
@@ -370,17 +410,38 @@ serve(async (req) => {
         } else {
           console.log(`Created/updated sponsorship ${sponsorshipData.id} for user ${user.id}, sponsor_bestie ${sponsorBestieId}`);
           
-          // Check if receipt was already sent for this sponsorship to prevent duplicates
-          const { data: existingReceipt } = await supabaseAdmin
+          console.log('Attempting to create receipt record for session:', session.id);
+          
+          // Try to insert receipt record first - database constraint will prevent duplicates
+          const { data: receiptRecord, error: insertError } = await supabaseAdmin
             .from('sponsorship_receipts')
-            .select('id')
-            .eq('sponsorship_id', sponsorshipData.id)
-            .maybeSingle();
+            .insert({
+              sponsorship_id: sponsorshipData.id,
+              sponsor_email: customerEmail,
+              sponsor_name: customerEmail.split('@')[0],
+              bestie_name: 'Bestie',
+              amount: amount,
+              frequency: frequency,
+              transaction_id: session.id,
+              transaction_date: new Date().toISOString(),
+              receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+              tax_year: new Date().getFullYear(),
+              stripe_mode: stripeMode,
+              user_id: user.id,
+            })
+            .select()
+            .single();
 
-          if (existingReceipt) {
-            console.log('Receipt already sent for sponsorship:', sponsorshipData.id);
+          // Handle duplicate gracefully - unique constraint violation
+          if (insertError) {
+            if (insertError.code === '23505') {
+              console.log('Receipt already created for session (handled by other function):', session.id);
+            } else {
+              console.error('Error inserting receipt record:', insertError);
+            }
           } else {
-            // Send receipt email using the actual sponsorship ID
+            // Only send email if database insert succeeded
+            console.log('Receipt record created, sending email...');
             try {
               await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
                 method: 'POST',
@@ -389,7 +450,7 @@ serve(async (req) => {
                   'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
                 },
                 body: JSON.stringify({
-                  sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
+                  sponsorshipId: sponsorshipData.id,
                 }),
               });
               console.log('Receipt email sent for sponsorship:', sponsorshipData.id);
@@ -452,16 +513,39 @@ serve(async (req) => {
             .single();
 
           if (sponsorshipData) {
-            // Check if receipt was already sent for this invoice
-            const { data: existingReceipt } = await supabaseAdmin
+            console.log('Attempting to create receipt record for invoice:', invoice.id);
+            
+            // Try to insert receipt record first - database constraint will prevent duplicates
+            const amount = invoice.amount_paid ? invoice.amount_paid / 100 : 0;
+            const { data: receiptRecord, error: insertError } = await supabaseAdmin
               .from('sponsorship_receipts')
-              .select('id')
-              .eq('stripe_transaction_id', invoice.id)
-              .maybeSingle();
+              .insert({
+                sponsorship_id: sponsorshipData.id,
+                sponsor_email: customerEmail,
+                sponsor_name: customerEmail.split('@')[0],
+                bestie_name: 'Bestie',
+                amount: amount,
+                frequency: 'monthly',
+                transaction_id: invoice.id,
+                transaction_date: new Date(invoice.created * 1000).toISOString(),
+                receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                tax_year: new Date().getFullYear(),
+                stripe_mode: stripeMode,
+                user_id: user.id,
+              })
+              .select()
+              .single();
 
-            if (existingReceipt) {
-              console.log('Receipt already sent for invoice:', invoice.id);
+            // Handle duplicate gracefully - unique constraint violation
+            if (insertError) {
+              if (insertError.code === '23505') {
+                console.log('Receipt already created for invoice (duplicate webhook):', invoice.id);
+              } else {
+                console.error('Error inserting receipt record:', insertError);
+              }
             } else {
+              // Only send email if database insert succeeded
+              console.log('Receipt record created, sending email...');
               try {
                 await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
                   method: 'POST',
@@ -470,7 +554,7 @@ serve(async (req) => {
                     'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
                   },
                   body: JSON.stringify({
-                    sponsorshipId: sponsorshipData.id, // Pass the actual sponsorship ID
+                    sponsorshipId: sponsorshipData.id,
                   }),
                 });
                 console.log('Receipt email sent for recurring payment:', sponsorshipData.id);
@@ -492,37 +576,58 @@ serve(async (req) => {
             .single();
 
           if (donationData) {
-            // Check if receipt was already sent for this invoice
-            const { data: existingReceipt } = await supabaseAdmin
+            console.log('Attempting to create receipt record for invoice:', invoice.id);
+            
+            // Try to insert receipt record first - database constraint will prevent duplicates
+            const { data: receiptRecord, error: insertError } = await supabaseAdmin
               .from('sponsorship_receipts')
-              .select('id')
-              .eq('stripe_transaction_id', invoice.id)
-              .maybeSingle();
+              .insert({
+                sponsor_email: customerEmail,
+                sponsor_name: customerEmail.split('@')[0],
+                bestie_name: 'General Support',
+                amount: amount,
+                frequency: 'monthly',
+                transaction_id: invoice.id,
+                transaction_date: new Date(invoice.created * 1000).toISOString(),
+                receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+                tax_year: new Date().getFullYear(),
+                stripe_mode: donationData.stripe_mode || 'live',
+                user_id: user.id,
+              })
+              .select()
+              .single();
 
-            if (existingReceipt) {
-              console.log('Receipt already sent for donation invoice:', invoice.id);
+            // Handle duplicate gracefully - unique constraint violation
+            if (insertError) {
+              if (insertError.code === '23505') {
+                console.log('Receipt already created for invoice (duplicate webhook):', invoice.id);
+              } else {
+                console.error('Error inserting receipt record:', insertError);
+              }
             } else {
+              // Only send email if database insert succeeded
+              console.log('Receipt record created, sending email...');
               try {
                 await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                },
-                body: JSON.stringify({
-                  sponsorEmail: customerEmail,
-                  bestieName: "General Support",
-                  amount: amount,
-                  frequency: "monthly",
-                  transactionId: invoice.payment_intent || invoice.id,
-                  transactionDate: new Date(invoice.created * 1000).toISOString(),
-                  stripeMode: donationData.stripe_mode || 'live',
-                }),
-              });
-              console.log('Receipt email sent for recurring donation payment:', customerEmail);
-            } catch (emailError) {
-              console.error('Failed to send recurring donation receipt email:', emailError);
-            }
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  },
+                  body: JSON.stringify({
+                    sponsorEmail: customerEmail,
+                    bestieName: 'General Support',
+                    amount: amount,
+                    frequency: 'monthly',
+                    transactionId: invoice.id,
+                    transactionDate: new Date(invoice.created * 1000).toISOString(),
+                    stripeMode: donationData.stripe_mode || 'live',
+                  }),
+                });
+                console.log('Receipt email sent for recurring donation payment:', customerEmail);
+              } catch (emailError) {
+                console.error('Failed to send recurring donation receipt email:', emailError);
+              }
             }
           }
         }
