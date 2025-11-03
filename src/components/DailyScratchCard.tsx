@@ -14,7 +14,6 @@ export const DailyScratchCard = () => {
   const [card, setCard] = useState<any>(null);
   const [bonusCard, setBonusCard] = useState<any>(null);
   const [sampleSticker, setSampleSticker] = useState<string>("");
-  const [stickerLoading, setStickerLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showBonusDialog, setShowBonusDialog] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -146,7 +145,15 @@ export const DailyScratchCard = () => {
           .eq('is_active', true),
         supabase
           .from('daily_scratch_cards')
-          .select('*')
+          .select(`
+            *,
+            collection:sticker_collections!inner(
+              id,
+              name,
+              preview_sticker_id,
+              preview_sticker:stickers!preview_sticker_id(image_url)
+            )
+          `)
           .eq('user_id', user.id)
           .eq('date', today)
           .eq('is_bonus_card', false)
@@ -215,7 +222,15 @@ export const DailyScratchCard = () => {
         if (newCard) {
           const { data: fetchedCard } = await supabase
             .from('daily_scratch_cards')
-            .select('*')
+            .select(`
+              *,
+              collection:sticker_collections!inner(
+                id,
+                name,
+                preview_sticker_id,
+                preview_sticker:stickers!preview_sticker_id(image_url)
+              )
+            `)
             .eq('id', newCard)
             .maybeSingle();
           console.log('📋 CHECK: Fetched newly generated card:', fetchedCard);
@@ -241,80 +256,32 @@ export const DailyScratchCard = () => {
       setCard(cardToUse);
       setBonusCard(existingBonusCards?.[0] || null);
 
-      // Fetch preview sticker asynchronously with error handling and timeout
-      console.log('📋 CHECK: Fetching preview sticker in background...');
-      if (cardToUse) {
-        (async () => {
-          try {
-            const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Sticker load timeout')), 3000)
-            );
-
-            const fetchPromise = (async () => {
-              const [
-                { data: collection },
-                { data: fallbackStickers }
-              ] = await Promise.all([
-                supabase
-                  .from('sticker_collections')
-                  .select('preview_sticker_id')
-                  .eq('id', cardToUse.collection_id)
-                  .single(),
-                supabase
-                  .from('stickers')
-                  .select('id, image_url')
-                  .eq('collection_id', cardToUse.collection_id)
-                  .eq('is_active', true)
-                  .order('display_order')
-                  .limit(1)
-              ]);
-              
-              console.log('📋 CHECK: Collection preview sticker ID:', collection?.preview_sticker_id);
-              
-              let stickerImageUrl = null;
-              
-              if (collection?.preview_sticker_id) {
-                const { data: previewSticker } = await supabase
-                  .from('stickers')
-                  .select('image_url')
-                  .eq('id', collection.preview_sticker_id)
-                  .single();
-                
-                stickerImageUrl = previewSticker?.image_url;
-                console.log('📋 CHECK: Preview sticker URL:', stickerImageUrl);
-              }
-              
-              // Auto-update database if preview_sticker_id is null
-              if (!stickerImageUrl && fallbackStickers && fallbackStickers.length > 0) {
-                stickerImageUrl = fallbackStickers[0].image_url;
-                console.log('📋 CHECK: Fallback sticker URL:', stickerImageUrl);
-
-                if (!collection?.preview_sticker_id) {
-                  const firstStickerId = fallbackStickers[0].id;
-                  await supabase
-                    .from('sticker_collections')
-                    .update({ preview_sticker_id: firstStickerId })
-                    .eq('id', cardToUse.collection_id);
-                  
-                  console.log('✅ CHECK: Auto-set preview_sticker_id to:', firstStickerId);
-                }
-              }
-              
-              if (stickerImageUrl) {
-                setSampleSticker(stickerImageUrl);
-              } else {
-                setSampleSticker('https://images.unsplash.com/photo-1649972904349-6e44c42644a7');
-              }
-            })();
-
-            await Promise.race([fetchPromise, timeoutPromise]);
-          } catch (error) {
-            console.error('❌ CHECK: Failed to load sticker preview:', error);
-            setSampleSticker('https://images.unsplash.com/photo-1649972904349-6e44c42644a7');
-          } finally {
-            setStickerLoading(false);
-          }
-        })();
+      // Set preview sticker immediately from the fetched card data
+      if (cardToUse?.collection?.preview_sticker?.image_url) {
+        console.log('📋 CHECK: Preview sticker loaded from card data');
+        setSampleSticker(cardToUse.collection.preview_sticker.image_url);
+      } else if (cardToUse?.collection_id) {
+        // Fallback: fetch first sticker if preview not set
+        console.log('📋 CHECK: No preview sticker, fetching fallback...');
+        const { data: firstSticker } = await supabase
+          .from('stickers')
+          .select('id, image_url')
+          .eq('collection_id', cardToUse.collection_id)
+          .eq('is_active', true)
+          .order('display_order')
+          .limit(1)
+          .single();
+        
+        if (firstSticker?.image_url) {
+          console.log('📋 CHECK: Using fallback sticker');
+          setSampleSticker(firstSticker.image_url);
+          // Auto-update preview_sticker_id
+          await supabase
+            .from('sticker_collections')
+            .update({ preview_sticker_id: firstSticker.id })
+            .eq('id', cardToUse.collection_id);
+          console.log('✅ CHECK: Auto-set preview_sticker_id to:', firstSticker.id);
+        }
       }
     } catch (error) {
       console.error('❌ CHECK_DAILY_CARD: Error:', error);
@@ -414,16 +381,6 @@ export const DailyScratchCard = () => {
     );
   }
 
-  // Show loading skeleton while sticker image is being fetched
-  if (stickerLoading) {
-    return (
-      <div className="flex flex-col items-center gap-2 animate-pulse">
-        <div className="w-24 h-24 bg-muted rounded-xl" />
-        <div className="h-4 w-32 bg-muted rounded" />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="text-center p-8 bg-muted rounded-lg">
@@ -468,7 +425,7 @@ export const DailyScratchCard = () => {
         {/* Use preview sticker */}
         <div className="relative w-20 h-20" style={{ background: 'transparent' }}>
           <img
-            src={sampleSticker}
+            src={sampleSticker || '/placeholder.svg'}
             alt={isBonus ? "Bonus sticker" : "Daily sticker"}
             className="w-full h-full object-contain"
             style={{ background: 'transparent' }}
