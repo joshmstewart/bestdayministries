@@ -57,76 +57,28 @@ export const useMessagesCount = () => {
   const setupRealtimeSubscription = () => {
     // Subscribe to both submissions and replies changes (including deletes)
     const submissionsChannel = supabase
-      .channel("contact-form-count")
+      .channel("contact-form-count-" + Date.now()) // Unique channel name
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*", // Listen to all events (INSERT, UPDATE, DELETE)
           schema: "public",
           table: "contact_form_submissions",
         },
-        () => {
-          console.log('Contact form submission inserted, refetching count');
+        (payload) => {
+          console.log('Contact form submission changed:', payload.eventType, payload);
           fetchCount();
         }
       )
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
-          schema: "public",
-          table: "contact_form_submissions",
-        },
-        () => {
-          console.log('Contact form submission updated, refetching count');
-          fetchCount();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "contact_form_submissions",
-        },
-        () => {
-          console.log('Contact form submission deleted, refetching count');
-          fetchCount();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
+          event: "*", // Listen to all events
           schema: "public",
           table: "contact_form_replies",
         },
-        () => {
-          console.log('Contact form reply inserted, refetching count');
-          fetchCount();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "contact_form_replies",
-        },
-        () => {
-          console.log('Contact form reply updated, refetching count');
-          fetchCount();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "contact_form_replies",
-        },
-        () => {
-          console.log('Contact form reply deleted, refetching count');
+        (payload) => {
+          console.log('Contact form reply changed:', payload.eventType, payload);
           fetchCount();
         }
       )
