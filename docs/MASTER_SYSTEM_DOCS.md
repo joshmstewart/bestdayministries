@@ -168,7 +168,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 RULES:❌inline-style-transform-on-positioned-elements|✅CSS-classes-with-conditional-application|✅will-change+backface-visibility-for-iOS-optimization|✅ErrorBoundary-wrapper|✅test-on-actual-iOS-18.x-devices
 PREVENTION:avoid-inline-transforms|use-Tailwind-arbitrary-values|consider-iOS-compatibility|test-multiple-iOS-versions
 EXAMPLES:src/pages/Community.tsx[lines-333-345]|src/lib/browserDetection.ts
-DOC:BROWSER_COMPATIBILITY.md|ERROR_HANDLING_PATTERNS.md[Browser-Compatibility-Patterns-section]
+DOC:BROWSER_COMPATIBILITY.md|ERROR_HANDLING_PATTERNS.md[Browser-Compatibility-Patterns-section]|IOS_SIMULATOR_TESTING.md[testing-guide]
+TESTING:use-Mac-IP-address-not-localhost|download-iOS-18.x-simulators-via-Xcode|verify-transform-conditionals-work|check-/community-DailyScratchCard
 MAINTENANCE:update-isProblematicIOSVersion-when-new-iOS-versions-released|test-quarterly|document-new-issues
 
 ## IMAGE_CROP_DIALOG
