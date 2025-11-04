@@ -256,11 +256,22 @@ export const MessagesManager = () => {
   const markAsRead = async (id: string) => {
     const { error } = await supabase
       .from("contact_form_submissions")
-      .update({ status: "read" })
+      .update({ 
+        status: "read",
+        replied_at: new Date().toISOString() // Clear unread replies count
+      })
       .eq("id", id);
 
     if (!error) {
-      loadSubmissions();
+      // Update local state immediately
+      setSubmissions(prev => 
+        prev.map(sub => 
+          sub.id === id 
+            ? { ...sub, status: "read", unread_user_replies: 0, replied_at: new Date().toISOString() } 
+            : sub
+        )
+      );
+      
       toast({
         title: "Success",
         description: "Submission marked as read",
@@ -339,6 +350,21 @@ export const MessagesManager = () => {
 
       if (error) throw error;
       setReplies((data || []) as Reply[]);
+      
+      // Update replied_at to mark all replies as viewed
+      await supabase
+        .from("contact_form_submissions")
+        .update({ replied_at: new Date().toISOString() })
+        .eq("id", submissionId);
+      
+      // Update local state to remove red dot immediately
+      setSubmissions(prev => 
+        prev.map(sub => 
+          sub.id === submissionId 
+            ? { ...sub, unread_user_replies: 0, replied_at: new Date().toISOString() } 
+            : sub
+        )
+      );
     } catch (error: any) {
       console.error("Error loading replies:", error);
       toast({
@@ -412,10 +438,22 @@ export const MessagesManager = () => {
     try {
       const { error } = await supabase
         .from("contact_form_submissions")
-        .update({ status: "read" })
+        .update({ 
+          status: "read",
+          replied_at: new Date().toISOString() // Clear unread replies count
+        })
         .in("id", Array.from(selectedIds));
 
       if (error) throw error;
+
+      // Update local state immediately
+      setSubmissions(prev => 
+        prev.map(sub => 
+          selectedIds.has(sub.id) 
+            ? { ...sub, status: "read", unread_user_replies: 0, replied_at: new Date().toISOString() } 
+            : sub
+        )
+      );
 
       toast({
         title: "Success",
@@ -423,7 +461,6 @@ export const MessagesManager = () => {
       });
 
       setSelectedIds(new Set());
-      loadSubmissions();
     } catch (error: any) {
       toast({
         title: "Error",

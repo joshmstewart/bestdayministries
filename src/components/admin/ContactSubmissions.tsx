@@ -147,16 +147,47 @@ export default function ContactSubmissions() {
     setReplies((data || []) as Reply[]);
     setLoadingReplies(false);
     
+    // Update replied_at to mark all replies as viewed
+    await supabase
+      .from("contact_form_submissions")
+      .update({ replied_at: new Date().toISOString() })
+      .eq("id", submissionId);
+    
+    // Mark notifications as read
     await supabase
       .from("notifications")
       .update({ is_read: true })
       .in("type", ["contact_form_submission", "contact_form_reply"])
       .eq("metadata->>submission_id", submissionId);
+    
+    // Update local state to remove red dot immediately
+    setSubmissions(prev => 
+      prev.map(sub => 
+        sub.id === submissionId 
+          ? { ...sub, unread_user_replies: 0, replied_at: new Date().toISOString() } 
+          : sub
+      )
+    );
   };
 
   const markAsRead = async (id: string) => {
-    await supabase.from("contact_form_submissions").update({ status: "read" }).eq("id", id);
-    loadSubmissions();
+    await supabase
+      .from("contact_form_submissions")
+      .update({ 
+        status: "read",
+        replied_at: new Date().toISOString() // Clear unread replies count
+      })
+      .eq("id", id);
+    
+    // Update local state immediately
+    setSubmissions(prev => 
+      prev.map(sub => 
+        sub.id === id 
+          ? { ...sub, status: "read", unread_user_replies: 0, replied_at: new Date().toISOString() } 
+          : sub
+      )
+    );
+    
     toast({ title: "Marked as read" });
   };
 
@@ -205,9 +236,24 @@ export default function ContactSubmissions() {
 
   const markSelectedAsRead = async () => {
     setBulkProcessing(true);
-    await supabase.from("contact_form_submissions").update({ status: "read" }).in("id", Array.from(selectedIds));
+    await supabase
+      .from("contact_form_submissions")
+      .update({ 
+        status: "read",
+        replied_at: new Date().toISOString() // Clear unread replies count
+      })
+      .in("id", Array.from(selectedIds));
+    
+    // Update local state immediately
+    setSubmissions(prev => 
+      prev.map(sub => 
+        selectedIds.has(sub.id) 
+          ? { ...sub, status: "read", unread_user_replies: 0, replied_at: new Date().toISOString() } 
+          : sub
+      )
+    );
+    
     setSelectedIds(new Set());
-    loadSubmissions();
     toast({ title: `${selectedIds.size} marked as read` });
     setBulkProcessing(false);
   };
