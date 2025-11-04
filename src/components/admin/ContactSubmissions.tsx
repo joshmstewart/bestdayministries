@@ -45,8 +45,7 @@ export default function ContactSubmissions() {
   const [refreshing, setRefreshing] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [sending, setSending] = useState(false);
@@ -170,7 +169,6 @@ export default function ContactSubmissions() {
       });
 
       toast({ title: "Reply sent!" });
-      setReplyDialogOpen(false);
       setReplyMessage("");
       loadReplies(selectedSubmission.id);
       loadSubmissions();
@@ -281,7 +279,13 @@ export default function ContactSubmissions() {
               </TableHeader>
               <TableBody>
                 {submissions.map((sub) => (
-                  <TableRow key={sub.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSubmission(sub); setViewDialogOpen(true); }}>
+                  <TableRow key={sub.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { 
+                    setSelectedSubmission(sub); 
+                    setReplyMessage(""); 
+                    setAdminNotes(sub.admin_notes || ""); 
+                    setDialogOpen(true); 
+                    loadReplies(sub.id); 
+                  }}>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selectedIds.has(sub.id)} onChange={() => toggleSelection(sub.id)} />
                     </TableCell>
@@ -320,12 +324,18 @@ export default function ContactSubmissions() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => { setSelectedSubmission(sub); setReplyMessage(""); setAdminNotes(sub.admin_notes || ""); setReplyDialogOpen(true); loadReplies(sub.id); }}>
+                              <Button size="sm" variant="ghost" onClick={() => { 
+                                setSelectedSubmission(sub); 
+                                setReplyMessage(""); 
+                                setAdminNotes(sub.admin_notes || ""); 
+                                setDialogOpen(true); 
+                                loadReplies(sub.id); 
+                              }}>
                                 <Reply className="w-4 h-4" />
                                 {sub.unread_user_replies! > 0 && <Badge variant="destructive" className="ml-1">{sub.unread_user_replies}</Badge>}
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Reply to message</TooltipContent>
+                            <TooltipContent>View and reply</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                         
@@ -336,7 +346,13 @@ export default function ContactSubmissions() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => { setSelectedSubmission(sub); setViewDialogOpen(true); }}>
+                            <DropdownMenuItem onClick={() => { 
+                              setSelectedSubmission(sub); 
+                              setReplyMessage(""); 
+                              setAdminNotes(sub.admin_notes || ""); 
+                              setDialogOpen(true); 
+                              loadReplies(sub.id); 
+                            }}>
                               <Eye className="w-4 h-4 mr-2" />
                               View Message
                             </DropdownMenuItem>
@@ -367,53 +383,88 @@ export default function ContactSubmissions() {
         </CardContent>
       </Card>
 
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Message Details</DialogTitle>
-            <DialogDescription>View the full message and any attachments</DialogDescription>
-          </DialogHeader>
-          {selectedSubmission && (
-            <div className="space-y-4 overflow-y-auto flex-1 pr-2">
-              <div><strong>From:</strong> {selectedSubmission.name} ({selectedSubmission.email})</div>
-              <div><strong>Date:</strong> {format(new Date(selectedSubmission.created_at), 'PPpp')}</div>
-              {selectedSubmission.subject && <div><strong>Subject:</strong> {selectedSubmission.subject}</div>}
-              <div><strong>Message:</strong><p className="whitespace-pre-wrap mt-2 p-3 bg-muted rounded">{selectedSubmission.message}</p></div>
-              {selectedSubmission.image_url && (
-                <div>
-                  <strong>Attachment:</strong>
-                  <img src={selectedSubmission.image_url} alt="Attachment" className="max-w-full rounded mt-2" />
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Reply to {selectedSubmission?.name}</DialogTitle>
+            <DialogTitle>Message from {selectedSubmission?.name}</DialogTitle>
             <DialogDescription>{selectedSubmission?.email}</DialogDescription>
           </DialogHeader>
           {selectedSubmission && (
-            <div className="space-y-4">
-              {loadingReplies ? <Loader2 className="h-4 w-4 animate-spin" /> : replies.length > 0 && (
-                <div className="space-y-2 max-h-60 overflow-y-auto p-3 bg-muted rounded">
-                  {replies.map((r) => (
-                    <div key={r.id} className={`p-3 rounded ${r.sender_type === 'admin' ? 'bg-primary/10 ml-8' : 'bg-background mr-8'}`}>
-                      <div className="text-sm font-medium">{r.sender_name} ({r.sender_type})</div>
-                      <div className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'PPp')}</div>
-                      <p className="mt-1 whitespace-pre-wrap">{r.message}</p>
-                    </div>
-                  ))}
+            <div className="space-y-6 overflow-y-auto flex-1 pr-2">
+              {/* Original Message */}
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    {format(new Date(selectedSubmission.created_at), 'PPpp')}
+                  </div>
+                  <Badge variant={selectedSubmission.status === 'new' ? 'default' : 'secondary'}>
+                    {selectedSubmission.status}
+                  </Badge>
+                </div>
+                {selectedSubmission.subject && (
+                  <div><strong>Subject:</strong> {selectedSubmission.subject}</div>
+                )}
+                <div>
+                  <strong>Message:</strong>
+                  <p className="whitespace-pre-wrap mt-2 p-3 bg-background rounded">{selectedSubmission.message}</p>
+                </div>
+                {selectedSubmission.image_url && (
+                  <div>
+                    <strong>Attachment:</strong>
+                    <img src={selectedSubmission.image_url} alt="Attachment" className="max-w-full rounded mt-2 border" />
+                  </div>
+                )}
+              </div>
+
+              {/* Conversation History */}
+              {loadingReplies ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : replies.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm">Conversation History</h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {replies.map((r) => (
+                      <div key={r.id} className={`p-3 rounded ${r.sender_type === 'admin' ? 'bg-primary/10 ml-8' : 'bg-muted mr-8'}`}>
+                        <div className="text-sm font-medium">{r.sender_name} ({r.sender_type})</div>
+                        <div className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'PPp')}</div>
+                        <p className="mt-1 whitespace-pre-wrap">{r.message}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              <Textarea value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} placeholder="Type your reply..." rows={6} />
-              <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} placeholder="Admin notes (internal only)..." rows={3} />
-              <Button onClick={sendReply} disabled={sending || !replyMessage.trim()}>
-                {sending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</> : <>Send Reply</>}
-              </Button>
+
+              {/* Reply Form */}
+              <div className="space-y-3 pt-4 border-t">
+                <h3 className="font-semibold text-sm">Send Reply</h3>
+                <Textarea 
+                  value={replyMessage} 
+                  onChange={(e) => setReplyMessage(e.target.value)} 
+                  placeholder="Type your reply..." 
+                  rows={6} 
+                />
+                <Textarea 
+                  value={adminNotes} 
+                  onChange={(e) => setAdminNotes(e.target.value)} 
+                  placeholder="Admin notes (internal only)..." 
+                  rows={3} 
+                />
+                <Button onClick={sendReply} disabled={sending || !replyMessage.trim()}>
+                  {sending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Reply className="mr-2 h-4 w-4" />
+                      Send Reply
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
