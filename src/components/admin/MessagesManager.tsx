@@ -254,11 +254,13 @@ export const MessagesManager = () => {
   };
 
   const markAsRead = async (id: string) => {
+    const now = new Date();
+    now.setSeconds(now.getSeconds() + 1);
     const { error } = await supabase
       .from("contact_form_submissions")
       .update({ 
         status: "read",
-        replied_at: new Date().toISOString() // Clear unread replies count
+        replied_at: now.toISOString() // Clear unread replies count
       })
       .eq("id", id);
 
@@ -267,7 +269,7 @@ export const MessagesManager = () => {
       setSubmissions(prev => 
         prev.map(sub => 
           sub.id === id 
-            ? { ...sub, status: "read", unread_user_replies: 0, replied_at: new Date().toISOString() } 
+            ? { ...sub, status: "read", unread_user_replies: 0, replied_at: now.toISOString() } 
             : sub
         )
       );
@@ -351,17 +353,19 @@ export const MessagesManager = () => {
       if (error) throw error;
       setReplies((data || []) as Reply[]);
       
-      // Update replied_at to mark all replies as viewed
+      // Update replied_at to mark all replies as viewed (add 1 second buffer for timing)
+      const now = new Date();
+      now.setSeconds(now.getSeconds() + 1);
       await supabase
         .from("contact_form_submissions")
-        .update({ replied_at: new Date().toISOString() })
+        .update({ replied_at: now.toISOString() })
         .eq("id", submissionId);
       
       // Update local state to remove red dot immediately
       setSubmissions(prev => 
         prev.map(sub => 
           sub.id === submissionId 
-            ? { ...sub, unread_user_replies: 0, replied_at: new Date().toISOString() } 
+            ? { ...sub, unread_user_replies: 0, replied_at: now.toISOString() } 
             : sub
         )
       );
@@ -436,11 +440,13 @@ export const MessagesManager = () => {
     
     setBulkProcessing(true);
     try {
+      const now = new Date();
+      now.setSeconds(now.getSeconds() + 1);
       const { error } = await supabase
         .from("contact_form_submissions")
         .update({ 
           status: "read",
-          replied_at: new Date().toISOString() // Clear unread replies count
+          replied_at: now.toISOString() // Clear unread replies count
         })
         .in("id", Array.from(selectedIds));
 
@@ -450,7 +456,7 @@ export const MessagesManager = () => {
       setSubmissions(prev => 
         prev.map(sub => 
           selectedIds.has(sub.id) 
-            ? { ...sub, status: "read", unread_user_replies: 0, replied_at: new Date().toISOString() } 
+            ? { ...sub, status: "read", unread_user_replies: 0, replied_at: now.toISOString() } 
             : sub
         )
       );
