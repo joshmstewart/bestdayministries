@@ -368,17 +368,23 @@ export default function ContactSubmissions() {
       </Card>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Message Details</DialogTitle>
+            <DialogDescription>View the full message and any attachments</DialogDescription>
           </DialogHeader>
           {selectedSubmission && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto flex-1 pr-2">
               <div><strong>From:</strong> {selectedSubmission.name} ({selectedSubmission.email})</div>
               <div><strong>Date:</strong> {format(new Date(selectedSubmission.created_at), 'PPpp')}</div>
               {selectedSubmission.subject && <div><strong>Subject:</strong> {selectedSubmission.subject}</div>}
               <div><strong>Message:</strong><p className="whitespace-pre-wrap mt-2 p-3 bg-muted rounded">{selectedSubmission.message}</p></div>
-              {selectedSubmission.image_url && <img src={selectedSubmission.image_url} alt="Attachment" className="max-w-full rounded" />}
+              {selectedSubmission.image_url && (
+                <div>
+                  <strong>Attachment:</strong>
+                  <img src={selectedSubmission.image_url} alt="Attachment" className="max-w-full rounded mt-2" />
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
