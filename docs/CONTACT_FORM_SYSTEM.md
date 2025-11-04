@@ -94,41 +94,283 @@ The contact form system provides a comprehensive solution for managing user inqu
 - Optional subject line
 - Graceful email handling
 
-### ContactFormManager
+### ContactSubmissions (ContactFormManager)
 **Location:** Admin > Contact tab
 
+**Overview:** 
+The ContactSubmissions component provides a comprehensive interface for managing all contact form submissions and email conversations in a unified modal experience. The design prioritizes quick access to conversations while keeping less common actions organized in a dropdown menu.
+
+**UI Layout:**
+
+#### Table Columns
+1. **Checkbox** - Bulk selection
+2. **Status Indicator** - Red dot for new messages or unread replies
+3. **Date** - Numeric format (M/d/yy) for space efficiency
+4. **Name** - Sender's name
+5. **Subject** - Message subject (truncated at 200px, full text on hover)
+6. **Type** - Badge showing message_type (general, bug_report, feature_request)
+7. **Source** - Icon indicator (Mail for email, Globe for web form)
+8. **Status** - Badge (new/read)
+9. **Actions** - Primary Reply button + More dropdown
+
+#### Action Buttons
+**Primary Action - Reply Button:**
+- Always visible and prominent
+- Icon: `Reply`
+- Opens unified conversation modal
+- Shows red badge with count if unread replies exist
+- Tooltip: "View and reply"
+
+**Secondary Actions - More Dropdown:**
+- Icon: `MoreVertical` (three dots)
+- Contains:
+  - **View Message** - Opens conversation modal (same as Reply button)
+  - **Mark as Read/Unread** - Toggles submission status
+  - **Delete** - Removes submission (red text)
+
+#### Bulk Actions Bar
+**Appears when one or more submissions selected:**
+- Shows count: "{n} selected"
+- **Mark as Read** button - Batch status update
+- **Delete** button - Batch deletion (with confirmation)
+
+#### Unified Conversation Modal
+**Opens on:** Row click, Reply button click, or View Message from dropdown
+
+**Modal Structure:**
+1. **Header**
+   - Title: "Message from {name}"
+   - Description: Sender's email
+
+2. **Content Area (Scrollable)**
+   
+   **Section A: Original Message**
+   - Background: `bg-muted/50` with rounded corners
+   - Date + Status badge (top right)
+   - Subject line (if present)
+   - Message text (whitespace preserved, styled box)
+   - Image attachment (if present, full size with border)
+   
+   **Section B: Conversation History** (if replies exist)
+   - Heading: "Conversation History"
+   - Scrollable container (max-height: 240px)
+   - Messages styled by sender type:
+     - Admin replies: `bg-primary/10 ml-8` (indented right)
+     - User replies: `bg-muted mr-8` (indented left)
+   - Each message shows:
+     - Sender name + type badge
+     - Timestamp (formatted with date-fns)
+     - Message content (whitespace preserved)
+   - Loading spinner while fetching replies
+   
+   **Section C: Reply Form** (always visible)
+   - Separator: Border-top with padding
+   - Heading: "Send Reply"
+   - **Reply Message Textarea**
+     - Placeholder: "Type your reply..."
+     - Rows: 6
+     - Required for submission
+   - **Admin Notes Textarea**
+     - Placeholder: "Admin notes (internal only)..."
+     - Rows: 3
+     - Optional, not sent to user
+   - **Send Reply Button**
+     - Icon: `Reply`
+     - Text: "Send Reply"
+     - Disabled if reply message empty or sending
+     - Shows spinner + "Sending..." during submission
+
+3. **Modal Behavior**
+   - Max width: 768px (3xl)
+   - Max height: 90vh
+   - Content area uses flexbox with scroll
+   - Padding on right for scrollbar (pr-2)
+   - Closes automatically after reply sent
+   - Marks related notifications as read on open
+   - Loads conversation history on open
+
 **Features:**
-- Settings configuration
-- Submissions table with status badges
-- **Threaded conversation view**
-- Reply composition
-- Manual user reply entry
-- Admin notes (internal)
-- Status management (new/read)
-- Email quick actions
+- ✅ **Unified View+Reply** - See full message and reply in same modal
+- ✅ **Threaded Conversations** - All replies displayed chronologically
+- ✅ **Full Context** - Original message always visible when replying
+- ✅ **Scrollable Content** - Large images and long conversations handled gracefully
+- ✅ **Real-time Updates** - Automatic refresh on database changes
+- ✅ **Bulk Operations** - Multi-select for batch status changes and deletions
+- ✅ **Badge Indicators** - Red dot for new/unread, count badge for unread replies
+- ✅ **Smart Notifications** - Auto-clear when opening conversation
+- ✅ **Email Integration** - Supports both web form and email routing sources
+- ✅ **Admin Notes** - Internal notes separate from customer-facing replies
+- ✅ **Status Management** - Easy toggle between new/read states
+- ✅ **Compact Design** - Numeric dates and truncated subjects save space
 
-## Conversation Threading System
+**State Management:**
+```typescript
+// Single dialog state for unified modal
+const [dialogOpen, setDialogOpen] = useState(false);
+const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+const [replyMessage, setReplyMessage] = useState("");
+const [adminNotes, setAdminNotes] = useState("");
+const [replies, setReplies] = useState<Reply[]>([]);
+const [loadingReplies, setLoadingReplies] = useState(false);
+const [sending, setSending] = useState(false);
+```
 
-### View Dialog
-**Shows:**
-1. **Original Message** - User's initial submission with blue accent
-2. **Conversation Thread** - All replies in chronological order:
-   - Admin replies: Green background, green border
-   - User replies: Blue background, blue border
-   - Each shows: sender name, type badge, timestamp, message
-3. **Admin Notes** - Internal notes in amber box
-4. **Actions:**
-   - "Reply" - Compose new reply (clears related notifications on open)
-   - "Mark Unread" - Change status
+**Performance Optimizations:**
+- Single query fetches all reply counts for entire page
+- Client-side filtering with JavaScript Map
+- Realtime subscriptions with debounced updates
+- Parallel data loading (submissions + replies)
+
+## UI Design Patterns
+
+### Unified Modal Pattern (2025-11-04 Update)
+
+**Philosophy:** Combine viewing and replying into a single seamless experience rather than forcing users to switch between separate dialogs.
+
+**Benefits:**
+- Reduces cognitive load (one modal vs. two)
+- Maintains context (message always visible when replying)
+- Faster workflow (no modal switching)
+- Better for threaded conversations (see full history + compose reply)
+- Improved accessibility (single focus trap)
+
+**Implementation:**
+```typescript
+// BEFORE (Separated)
+const [viewDialogOpen, setViewDialogOpen] = useState(false);
+const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+
+// AFTER (Unified)
+const [dialogOpen, setDialogOpen] = useState(false);
+```
+
+### Conversation Threading System
+
+**Visual Hierarchy:**
+
+1. **Original Message (Top)**
+   - Muted background to differentiate from replies
+   - All metadata visible (date, status, subject)
+   - Full message content preserved
+   - Image attachments displayed inline
+
+2. **Conversation History (Middle)**
+   - Chronological display (oldest to newest)
+   - Color coding by sender type:
+     - Admin: Primary tint, right-aligned
+     - User: Muted background, left-aligned
+   - Timestamp on each message
+   - Sender name + type badge
+   - Scrollable if many replies
+
+3. **Reply Form (Bottom)**
+   - Always visible (no scrolling needed)
+   - Clear visual separator (border-top)
+   - Two textareas (public reply + private notes)
+   - Prominent send button
+
+### Action Button Hierarchy
+
+**Primary Actions:**
+- Most common action: Reply button
+- Always visible, never in dropdown
+- Shows state (unread count badge)
+
+**Secondary Actions:**
+- Less frequent actions: More dropdown
+- Keeps interface clean
+- Organized by function:
+  1. View (same as primary but in menu)
+  2. Status toggle (Mark as Read/Unread)
+  3. Delete (destructive, at bottom)
+
+**Pattern Benefits:**
+- Reduces visual clutter
+- Prioritizes workflow efficiency
+- Consistent with modern email clients
+- Mobile-friendly (fewer buttons)
+
+### Table Design Patterns
+
+**Column Optimization:**
+```
+[✓] [•] [Date] [Name] [Subject] [Type] [Source] [Status] [Actions]
+ └─┘  └┘   └──┘   └──┘    └────┘   └──┘   └────┘   └────┘    └─────┘
+Bulk Red  Short  Short  Truncate  Badge   Icon    Badge   Dropdown
+Select Dot 5ch   10-15ch 200px    5-8ch   1 icon  5-8ch   2 buttons
+```
+
+**Space-Saving Techniques:**
+1. **Numeric dates** - "11/4/25" vs "Nov 4, 2025" (saves 8 characters)
+2. **Truncated subjects** - 200px max-width with tooltip on hover
+3. **Icon sources** - Single icon vs text label
+4. **Badges** - Color-coded vs verbose text
+5. **Dropdown actions** - 2 visible vs 4+ buttons
+
+**Responsive Behavior:**
+- Table remains functional down to tablet width
+- Mobile uses stacked cards (not implemented yet)
+- Horizontal scroll available if needed
+
+### Status Indicators
+
+**Red Dot Indicator:**
+- Position: Second column (after checkbox)
+- Size: 8px (w-2 h-2)
+- Color: Red-500 (urgent/important)
+- Shows when:
+  - Status is 'new' OR
+  - Unread user replies exist
+
+**Badge on Reply Button:**
+- Shows count of unread user replies
+- Variant: Destructive (red)
+- Size: Small, inline with button
+- Clears when conversation opened
+
+**Status Badge:**
+- "new" - Default variant (primary color)
+- "read" - Secondary variant (muted)
+
+### Conversation Thread Styling
+
+**Message Containers:**
+```css
+/* Admin messages */
+.admin-reply {
+  background: hsl(var(--primary) / 0.1);
+  margin-left: 2rem;  /* Right indent */
+}
+
+/* User messages */
+.user-reply {
+  background: hsl(var(--muted));
+  margin-right: 2rem;  /* Left indent */
+}
+
+/* Original message */
+.original-message {
+  background: hsl(var(--muted) / 0.5);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+```
+
+**Whitespace Preservation:**
+```tsx
+<p className="whitespace-pre-wrap">
+  {message}
+</p>
+```
+- Maintains line breaks from textarea
+- Preserves spacing for formatted text
+- Wraps long lines appropriately
+
+## View Dialog
+**DEPRECATED (2025-11-04)** - Merged into unified conversation modal
 
 ### Reply Dialog
-**Shows:**
-1. **Conversation Context** - Full thread history with original message
-2. **Compose Area** - Text area for new reply
-3. **Admin Notes** - Optional internal notes field
-4. **Actions:**
-   - "Send Reply" - Email and save to thread (updates replied_at timestamp)
-   - "Cancel" - Close without sending
+**DEPRECATED (2025-11-04)** - Merged into unified conversation modal
 
 ### Automatic Email Reply Capture
 With CloudFlare Email Routing configured (see CLOUDFLARE_EMAIL_ROUTING_SETUP.md):
@@ -184,29 +426,223 @@ submissions.forEach(submission => {
 - `src/components/admin/ContactFormManager.tsx` - loadSubmissions function
 - `src/hooks/useContactFormCount.ts` - fetchCount function
 
-## UI Patterns
+## UI Component Documentation
 
-### Thread Message Styling
+### ContactSubmissions Component
+**File:** `src/components/admin/ContactSubmissions.tsx`
+
+**Dependencies:**
 ```typescript
-// User messages (original + incoming)
-bg-blue-50 border-l-4 border-blue-500
-
-// Admin messages (outgoing replies)
-bg-green-50 border-l-4 border-green-500
-
-// Original submission
-bg-muted border-l-4 border-primary
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, MoreVertical } from "lucide-react";
+import { format } from "date-fns";
 ```
 
-### Status Badges
-- **New** - Blue badge, red dot indicator
-- **Read** - Gray badge
-- **Replied** - Green checkmark indicator
+**Props:** None (self-contained)
 
-### Button States
-- Button shows "Continue Conversation" after first reply
-- Opens reply dialog with full thread context
-- No longer disabled after first reply
+**State Variables:**
+```typescript
+// Data
+const [submissions, setSubmissions] = useState<Submission[]>([]);
+const [replies, setReplies] = useState<Reply[]>([]);
+
+// Loading states
+const [loading, setLoading] = useState(true);
+const [refreshing, setRefreshing] = useState(false);
+const [loadingReplies, setLoadingReplies] = useState(false);
+const [sending, setSending] = useState(false);
+const [bulkProcessing, setBulkProcessing] = useState(false);
+
+// Modal state
+const [dialogOpen, setDialogOpen] = useState(false);
+const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+
+// Form state
+const [replyMessage, setReplyMessage] = useState("");
+const [adminNotes, setAdminNotes] = useState("");
+
+// Selection state
+const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+```
+
+**Key Functions:**
+
+1. **loadSubmissions(isRefresh?: boolean)**
+   - Fetches all submissions (limit 50, newest first)
+   - Fetches all replies in single query
+   - Calculates reply counts and unread counts client-side
+   - Updates submissions with computed values
+   - Sets loading/refreshing states
+
+2. **loadReplies(submissionId: string)**
+   - Fetches conversation thread for specific submission
+   - Marks related notifications as read
+   - Updates replies state
+   - Handles loading state
+
+3. **sendReply()**
+   - Validates reply message not empty
+   - Calls `send-contact-reply` edge function
+   - Passes: submissionId, replyMessage, adminNotes
+   - Clears reply message on success
+   - Reloads replies and submissions
+   - Shows success/error toast
+
+4. **markAsRead(id: string)**
+   - Updates submission status to 'read'
+   - Refreshes table
+   - Shows toast
+
+5. **markAsNew(id: string)**
+   - Updates submission status to 'new'
+   - Refreshes table
+   - Shows toast
+
+6. **deleteSubmission(id: string)**
+   - Deletes submission (cascades to replies)
+   - Refreshes table
+   - Shows toast
+
+7. **toggleSelection(id: string)**
+   - Adds/removes ID from selection Set
+   - Updates selectedIds state
+
+8. **markSelectedAsRead()**
+   - Batch updates all selected to 'read'
+   - Clears selection
+   - Shows count in toast
+
+9. **deleteSelected()**
+   - Confirms action with native dialog
+   - Batch deletes all selected
+   - Clears selection
+   - Shows count in toast
+
+**Realtime Subscriptions:**
+```typescript
+useEffect(() => {
+  // Subscribe to submissions table changes
+  const submissionsChannel = supabase
+    .channel('contact_submissions')
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'contact_form_submissions' 
+    }, () => {
+      loadSubmissions();
+    })
+    .subscribe();
+  
+  // Subscribe to replies table changes
+  const repliesChannel = supabase
+    .channel('contact_replies')
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'contact_form_replies' 
+    }, () => {
+      loadSubmissions();
+    })
+    .subscribe();
+  
+  // Cleanup on unmount
+  return () => {
+    supabase.removeChannel(submissionsChannel);
+    supabase.removeChannel(repliesChannel);
+  };
+}, []);
+```
+
+**TypeScript Interfaces:**
+```typescript
+interface Submission {
+  id: string;
+  name: string;
+  email: string;
+  subject: string | null;
+  message: string;
+  status: string;
+  created_at: string;
+  message_type: string;
+  image_url: string | null;
+  replied_at: string | null;
+  reply_message: string | null;
+  admin_notes: string | null;
+  reply_count?: number;           // Computed
+  unread_user_replies?: number;   // Computed
+  source?: string;                // 'email' | 'form'
+}
+
+interface Reply {
+  id: string;
+  sender_type: 'admin' | 'user';
+  sender_name: string;
+  sender_email: string;
+  message: string;
+  created_at: string;
+}
+```
+
+**Event Handlers:**
+
+**Row Click:**
+```typescript
+onClick={() => { 
+  setSelectedSubmission(sub); 
+  setReplyMessage(""); 
+  setAdminNotes(sub.admin_notes || ""); 
+  setDialogOpen(true); 
+  loadReplies(sub.id); 
+}}
+```
+
+**Reply Button Click:**
+```typescript
+onClick={() => { 
+  setSelectedSubmission(sub); 
+  setReplyMessage(""); 
+  setAdminNotes(sub.admin_notes || ""); 
+  setDialogOpen(true); 
+  loadReplies(sub.id); 
+}}
+```
+
+**Dropdown Actions:**
+- View Message: Same as Reply button
+- Mark as Read/Unread: Calls markAsRead() or markAsNew()
+- Delete: Calls deleteSubmission()
+
+**Accessibility:**
+- All buttons have ARIA labels via Tooltip
+- Dialog has proper DialogTitle and DialogDescription
+- Keyboard navigation supported
+- Screen reader friendly status indicators
+
+**Performance Considerations:**
+- Single query for all reply counts (not N queries)
+- Client-side filtering using JavaScript Map
+- Realtime subscriptions scoped to relevant tables only
+- Pagination via LIMIT (50 submissions)
+- Lazy loading of reply threads (only when modal opened)
+
+**Mobile Responsiveness:**
+- Table scrolls horizontally on narrow screens
+- Modal adjusts to 90vh max height
+- Touch-friendly button sizes
+- Truncated text shows full content on hover
+
+**Error Handling:**
+- Try-catch around sendReply with toast notification
+- Graceful fallbacks for missing data
+- Loading states prevent double-submissions
+- Confirmation dialog for bulk deletions
 
 ## RLS Policies
 
