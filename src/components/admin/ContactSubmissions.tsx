@@ -288,7 +288,7 @@ export default function ContactSubmissions() {
                     <TableCell>
                       {(sub.status === 'new' || sub.unread_user_replies! > 0) && <div className="w-2 h-2 rounded-full bg-red-500" />}
                     </TableCell>
-                    <TableCell>{format(new Date(sub.created_at), 'MMM d, yyyy')}</TableCell>
+                    <TableCell>{format(new Date(sub.created_at), 'M/d/yy')}</TableCell>
                     <TableCell>{sub.name}</TableCell>
                     <TableCell>
                       <div className="max-w-[200px] truncate" title={sub.subject || undefined}>
