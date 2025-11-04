@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox } from "lucide-react";
+import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 
@@ -271,6 +272,7 @@ export default function ContactSubmissions() {
                   <TableHead className="w-12"></TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Subject</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
@@ -288,6 +290,11 @@ export default function ContactSubmissions() {
                     </TableCell>
                     <TableCell>{format(new Date(sub.created_at), 'MMM d, yyyy')}</TableCell>
                     <TableCell>{sub.name}</TableCell>
+                    <TableCell>
+                      <div className="max-w-[200px] truncate" title={sub.subject || undefined}>
+                        {sub.subject || <span className="text-muted-foreground italic">No subject</span>}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{sub.message_type?.replace(/_/g, ' ') || 'general'}</Badge>
                     </TableCell>
@@ -309,17 +316,8 @@ export default function ContactSubmissions() {
                       <Badge variant={sub.status === 'new' ? 'default' : 'secondary'}>{sub.status}</Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <TooltipProvider>
-                        <div className="flex gap-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => { setSelectedSubmission(sub); setViewDialogOpen(true); }}>
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>View message</TooltipContent>
-                          </Tooltip>
-                          
+                      <div className="flex gap-2 items-center">
+                        <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button size="sm" variant="ghost" onClick={() => { setSelectedSubmission(sub); setReplyMessage(""); setAdminNotes(sub.admin_notes || ""); setReplyDialogOpen(true); loadReplies(sub.id); }}>
@@ -329,37 +327,37 @@ export default function ContactSubmissions() {
                             </TooltipTrigger>
                             <TooltipContent>Reply to message</TooltipContent>
                           </Tooltip>
-                          
-                          {sub.status === 'new' ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="ghost" onClick={() => markAsRead(sub.id)}>
-                                  <MailOpen className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Mark as read</TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="ghost" onClick={() => markAsNew(sub.id)}>
-                                  <Mail className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Mark as unread</TooltipContent>
-                            </Tooltip>
-                          )}
-                          
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => deleteSubmission(sub.id)}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Delete message</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TooltipProvider>
+                        </TooltipProvider>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setSelectedSubmission(sub); setViewDialogOpen(true); }}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Message
+                            </DropdownMenuItem>
+                            {sub.status === 'new' ? (
+                              <DropdownMenuItem onClick={() => markAsRead(sub.id)}>
+                                <MailOpen className="w-4 h-4 mr-2" />
+                                Mark as Read
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => markAsNew(sub.id)}>
+                                <Mail className="w-4 h-4 mr-2" />
+                                Mark as Unread
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => deleteSubmission(sub.id)} className="text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
