@@ -28,6 +28,7 @@ interface Submission {
   reply_count?: number;
   unread_user_replies?: number;
   source?: string;
+  latest_activity_date?: string;
 }
 
 interface Reply {
@@ -93,7 +94,7 @@ export default function ContactSubmissions() {
         .select("submission_id, sender_type, created_at")
         .in("submission_id", submissionIds);
       
-      const replyCounts = new Map<string, { total: number; unread: number }>();
+      const replyCounts = new Map<string, { total: number; unread: number; latestDate: string }>();
       
       data.forEach(submission => {
         const submissionReplies = allReplies?.filter(r => r.submission_id === submission.id) || [];
@@ -102,17 +103,33 @@ export default function ContactSubmissions() {
           r => r.sender_type === "user" && r.created_at >= repliedAt
         ).length;
         
+        // Find the latest date (either submission or latest reply)
+        const latestReplyDate = submissionReplies.length > 0 
+          ? Math.max(...submissionReplies.map(r => new Date(r.created_at).getTime()))
+          : 0;
+        const submissionDate = new Date(submission.created_at).getTime();
+        const latestDate = new Date(Math.max(submissionDate, latestReplyDate)).toISOString();
+        
         replyCounts.set(submission.id, {
           total: submissionReplies.length,
-          unread: unreadUserReplies
+          unread: unreadUserReplies,
+          latestDate
         });
       });
       
-      setSubmissions(data.map(submission => ({
+      const submissionsWithCounts = data.map(submission => ({
         ...submission,
         reply_count: replyCounts.get(submission.id)?.total || 0,
-        unread_user_replies: replyCounts.get(submission.id)?.unread || 0
-      })));
+        unread_user_replies: replyCounts.get(submission.id)?.unread || 0,
+        latest_activity_date: replyCounts.get(submission.id)?.latestDate || submission.created_at
+      }));
+      
+      // Sort by latest activity date
+      submissionsWithCounts.sort((a, b) => 
+        new Date(b.latest_activity_date).getTime() - new Date(a.latest_activity_date).getTime()
+      );
+      
+      setSubmissions(submissionsWithCounts);
     }
     
     setLoading(false);
@@ -292,7 +309,7 @@ export default function ContactSubmissions() {
                     <TableCell>
                       {(sub.status === 'new' || sub.unread_user_replies! > 0) && <div className="w-2 h-2 rounded-full bg-red-500" />}
                     </TableCell>
-                    <TableCell>{format(new Date(sub.created_at), 'M/d/yy')}</TableCell>
+                    <TableCell>{format(new Date(sub.latest_activity_date || sub.created_at), 'M/d/yy')}</TableCell>
                     <TableCell>{sub.name}</TableCell>
                     <TableCell>
                       <div className="max-w-[200px] truncate" title={sub.subject || undefined}>

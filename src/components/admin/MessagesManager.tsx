@@ -47,6 +47,7 @@ interface Submission {
   reply_count?: number;
   unread_user_replies?: number; // Count of user replies since last admin reply
   source?: string; // 'form' or 'email'
+  latest_activity_date?: string;
 }
 
 interface Reply {
@@ -163,7 +164,7 @@ export const MessagesManager = () => {
         .in("submission_id", submissionIds);
       
       // Count replies client-side using JavaScript
-      const replyCounts = new Map<string, { total: number; unread: number }>();
+      const replyCounts = new Map<string, { total: number; unread: number; latestDate: string }>();
       
       data.forEach(submission => {
         const submissionReplies = allReplies?.filter(r => r.submission_id === submission.id) || [];
@@ -175,17 +176,31 @@ export const MessagesManager = () => {
           r => r.sender_type === "user" && r.created_at >= repliedAt
         ).length;
         
+        // Find the latest date (either submission or latest reply)
+        const latestReplyDate = submissionReplies.length > 0 
+          ? Math.max(...submissionReplies.map(r => new Date(r.created_at).getTime()))
+          : 0;
+        const submissionDate = new Date(submission.created_at).getTime();
+        const latestDate = new Date(Math.max(submissionDate, latestReplyDate)).toISOString();
+        
         replyCounts.set(submission.id, {
           total: totalReplies,
-          unread: unreadUserReplies
+          unread: unreadUserReplies,
+          latestDate
         });
       });
       
       const submissionsWithCounts = data.map(submission => ({
         ...submission,
         reply_count: replyCounts.get(submission.id)?.total || 0,
-        unread_user_replies: replyCounts.get(submission.id)?.unread || 0
+        unread_user_replies: replyCounts.get(submission.id)?.unread || 0,
+        latest_activity_date: replyCounts.get(submission.id)?.latestDate || submission.created_at
       }));
+      
+      // Sort by latest activity date
+      submissionsWithCounts.sort((a, b) => 
+        new Date(b.latest_activity_date).getTime() - new Date(a.latest_activity_date).getTime()
+      );
       
       setSubmissions(submissionsWithCounts);
     }
@@ -721,7 +736,7 @@ export const MessagesManager = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(submission.created_at), "MMM d, yyyy")}
+                      {format(new Date(submission.latest_activity_date || submission.created_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>{submission.name}</TableCell>
                     <TableCell>
