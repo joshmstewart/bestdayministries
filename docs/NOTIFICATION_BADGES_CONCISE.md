@@ -66,6 +66,9 @@
 - Header badges aggregate multiple sources
 - **Auto-resolve system:** Database triggers automatically mark notifications as read when actions complete
 - **Visual history:** Resolved notifications remain visible with "✓ Resolved" badge
+- **Instant badge updates:** All badge locations update in real-time (< 100ms) without page refresh
+- **Red dot clearing:** Red dots disappear immediately when messages viewed or marked as read
+- **Latest activity tracking:** Messages sorted by most recent thread activity, not initial submission date
 
 ## Realtime Implementation
 **Pattern:** Separate event listeners instead of wildcard ('*')
@@ -98,3 +101,13 @@
 - Styled with 75% opacity and grayed background
 - Stays in notification history for reference
 - Can still be manually deleted
+
+## Recent Updates (Nov 2025)
+
+**Real-Time Badge Synchronization:**
+- All badge locations now update instantly when messages viewed/marked as read
+- Fixed red dot persistence issue - dots clear immediately on view
+- Implemented 1-second timestamp buffer for reliable "unread reply" detection
+- Latest activity date sorting for improved thread visibility
+
+**See:** [CONTACT_MESSAGES_REALTIME_UPDATES.md](./CONTACT_MESSAGES_REALTIME_UPDATES.md) for complete technical details

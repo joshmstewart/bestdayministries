@@ -273,9 +273,13 @@ await supabase.from('notifications').insert({
 
 ## Related Files
 - `src/hooks/useContactFormCount.ts` - Badge counter logic
+- `src/hooks/useMessagesCount.ts` - Admin messages badge counter logic
 - `src/components/admin/ContactFormManager.tsx` - UI indicators
+- `src/components/admin/ContactSubmissions.tsx` - Contact form submissions UI
+- `src/components/admin/MessagesManager.tsx` - Messages manager UI
 - `supabase/functions/process-inbound-email/index.ts` - Notification creation
 - `supabase/functions/send-contact-reply/index.ts` - Updates replied_at timestamp
 - `docs/NOTIFICATION_SYSTEM_COMPLETE.md` - Main notification system
 - `docs/CONTACT_FORM_SYSTEM.md` - Contact form features
 - `docs/CLOUDFLARE_EMAIL_ROUTING_SETUP.md` - Email routing setup
+- `docs/CONTACT_MESSAGES_REALTIME_UPDATES.md` - **NEW: Latest activity sorting, real-time badge updates, red dot fix**

@@ -454,11 +454,11 @@ VERIFICATION:DB-state[NOT-email-capture]|check-logs-tables|verify-notifications-
 
 ## CONTACT_FORM
 DB:contact_form_settings|contact_form_submissions|contact_form_replies
-FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactSubmissions[unified-modal-2025-11-04]
+FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactSubmissions[unified-modal-2025-11-04]|MessagesManager[admin-messages]
 VALIDATION:client-Zod|server-edge
 EDGE:notify-admin|send-reply|process-inbound-email
 NOTIFICATIONS:contact_form_submission[new-submissions]|contact_form_reply[user-replies]
-BADGE:useContactFormCount→new-submissions+unread-replies→realtime+single-query-optimization
+BADGE:useContactFormCount→new-submissions+unread-replies→realtime+single-query-optimization|useMessagesCount[admin-messages]
 PERFORMANCE:single-query-pattern[fetch-all-replies-once]|client-side-filtering[JS-Map]|prevents-timeout-errors
 UNIFIED-MODAL[2025-11-04]:view+reply-combined→single-dialog→original-message+history+compose-together
 UI-PATTERNS:numeric-dates[M/d/yy]|truncated-subjects[200px+tooltip]|primary-reply-btn[badge-if-unread]|more-dropdown[view+status+delete]
@@ -468,7 +468,8 @@ UI-INDICATORS:red-dot[new-OR-unread-replies]|reply-button-badge[unread-count]|cl
 CLOUDFLARE:email-routing→worker→process-inbound-email→auto-thread+notify+system-email-filter
 REPLY:auto[CloudFlare-routing]|manual[admin-interface]
 SETUP:Resend[verify-domain-SPF-DKIM]+CloudFlare[email-routing+worker+webhook-secret]
-DOC:CONTACT_FORM_SYSTEM.md|CONTACT_FORM_NOTIFICATIONS.md|CONTACT_SUBMISSIONS_UI_GUIDE.md[exhaustive]|CLOUDFLARE_EMAIL_ROUTING_SETUP.md
+REALTIME-UPDATES[NOV-2025]:latest-activity-sorting|instant-badge-updates|red-dot-fix|1-second-timestamp-buffer|replied_at-update-on-view
+DOC:CONTACT_FORM_SYSTEM.md|CONTACT_FORM_NOTIFICATIONS.md|CONTACT_SUBMISSIONS_UI_GUIDE.md[exhaustive]|CLOUDFLARE_EMAIL_ROUTING_SETUP.md|CONTACT_MESSAGES_REALTIME_UPDATES.md[NOV-2025-CHANGES]
 
 ## DISCUSSION
 ROUTE:/discussions
