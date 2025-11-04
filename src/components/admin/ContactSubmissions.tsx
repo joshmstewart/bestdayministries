@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox, MoreVertical } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox, MoreVertical, Filter, X } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 
@@ -40,6 +40,15 @@ interface Reply {
   created_at: string;
 }
 
+const STATUS_OPTIONS = [
+  { value: 'new', label: 'Unread', variant: 'destructive' as const },
+  { value: 'read', label: 'Read', variant: 'secondary' as const },
+  { value: 'backlog', label: 'Backlog', variant: 'outline' as const },
+  { value: 'in_progress', label: 'In Progress', variant: 'default' as const },
+  { value: 'done', label: 'Done', variant: 'secondary' as const },
+  { value: 'wont_fix', label: "Won't Fix", variant: 'outline' as const },
+];
+
 export default function ContactSubmissions() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -54,6 +63,7 @@ export default function ContactSubmissions() {
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadSubmissions();
@@ -172,14 +182,14 @@ export default function ContactSubmissions() {
     );
   };
 
-  const markAsRead = async (id: string) => {
+  const updateStatus = async (id: string, status: string) => {
     const now = new Date();
     now.setSeconds(now.getSeconds() + 1);
     await supabase
       .from("contact_form_submissions")
       .update({ 
-        status: "read",
-        replied_at: now.toISOString() // Clear unread replies count
+        status,
+        replied_at: status !== 'new' ? now.toISOString() : null // Clear unread when not new
       })
       .eq("id", id);
     
@@ -187,19 +197,28 @@ export default function ContactSubmissions() {
     setSubmissions(prev => 
       prev.map(sub => 
         sub.id === id 
-          ? { ...sub, status: "read", unread_user_replies: 0, replied_at: now.toISOString() } 
+          ? { ...sub, status, unread_user_replies: status !== 'new' ? 0 : sub.unread_user_replies, replied_at: status !== 'new' ? now.toISOString() : null } 
           : sub
       )
     );
     
-    toast({ title: "Marked as read" });
+    const statusLabel = STATUS_OPTIONS.find(s => s.value === status)?.label || status;
+    toast({ title: `Status updated to ${statusLabel}` });
   };
 
-  const markAsNew = async (id: string) => {
-    await supabase.from("contact_form_submissions").update({ status: "new" }).eq("id", id);
-    loadSubmissions();
-    toast({ title: "Marked as new" });
+  const toggleStatusFilter = (status: string) => {
+    const newFilter = new Set(statusFilter);
+    if (newFilter.has(status)) {
+      newFilter.delete(status);
+    } else {
+      newFilter.add(status);
+    }
+    setStatusFilter(newFilter);
   };
+
+  const filteredSubmissions = statusFilter.size > 0 
+    ? submissions.filter(sub => statusFilter.has(sub.status))
+    : submissions;
 
   const deleteSubmission = async (id: string) => {
     await supabase.from("contact_form_submissions").delete().eq("id", id);
@@ -238,15 +257,15 @@ export default function ContactSubmissions() {
     setSelectedIds(newSelected);
   };
 
-  const markSelectedAsRead = async () => {
+  const updateSelectedStatus = async (status: string) => {
     setBulkProcessing(true);
     const now = new Date();
     now.setSeconds(now.getSeconds() + 1);
     await supabase
       .from("contact_form_submissions")
       .update({ 
-        status: "read",
-        replied_at: now.toISOString() // Clear unread replies count
+        status,
+        replied_at: status !== 'new' ? now.toISOString() : null
       })
       .in("id", Array.from(selectedIds));
     
@@ -254,13 +273,14 @@ export default function ContactSubmissions() {
     setSubmissions(prev => 
       prev.map(sub => 
         selectedIds.has(sub.id) 
-          ? { ...sub, status: "read", unread_user_replies: 0, replied_at: now.toISOString() } 
+          ? { ...sub, status, unread_user_replies: status !== 'new' ? 0 : sub.unread_user_replies, replied_at: status !== 'new' ? now.toISOString() : null } 
           : sub
       )
     );
     
     setSelectedIds(new Set());
-    toast({ title: `${selectedIds.size} marked as read` });
+    const statusLabel = STATUS_OPTIONS.find(s => s.value === status)?.label || status;
+    toast({ title: `${selectedIds.size} updated to ${statusLabel}` });
     setBulkProcessing(false);
   };
 
@@ -299,20 +319,62 @@ export default function ContactSubmissions() {
                   Messages from contact form and emails sent to your domain
                 </CardDescription>
               </div>
-              <Button onClick={() => loadSubmissions(true)} disabled={refreshing} variant="outline" size="sm">
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Status {statusFilter.size > 0 && `(${statusFilter.size})`}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {STATUS_OPTIONS.map(option => (
+                      <DropdownMenuCheckboxItem
+                        key={option.value}
+                        checked={statusFilter.has(option.value)}
+                        onCheckedChange={() => toggleStatusFilter(option.value)}
+                      >
+                        {option.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                    {statusFilter.size > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setStatusFilter(new Set())}>
+                          <X className="h-4 w-4 mr-2" />
+                          Clear Filters
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button onClick={() => loadSubmissions(true)} disabled={refreshing} variant="outline" size="sm">
+                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
             </div>
             
             {selectedIds.size > 0 && (
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                 <span className="text-sm font-medium">{selectedIds.size} selected</span>
                 <div className="flex gap-2 ml-auto">
-                  <Button size="sm" variant="outline" onClick={markSelectedAsRead} disabled={bulkProcessing}>
-                    <MailOpen className="w-4 h-4 mr-2" />
-                    Mark as Read
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline" disabled={bulkProcessing}>
+                        Update Status
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {STATUS_OPTIONS.map(option => (
+                        <DropdownMenuItem key={option.value} onClick={() => updateSelectedStatus(option.value)}>
+                          {option.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button size="sm" variant="destructive" onClick={deleteSelected} disabled={bulkProcessing}>
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
@@ -323,8 +385,10 @@ export default function ContactSubmissions() {
           </div>
         </CardHeader>
         <CardContent>
-          {submissions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No submissions yet</div>
+          {filteredSubmissions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {statusFilter.size > 0 ? 'No messages match the selected filters' : 'No submissions yet'}
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -332,8 +396,8 @@ export default function ContactSubmissions() {
                   <TableHead className="w-12">
                     <input
                       type="checkbox"
-                      checked={selectedIds.size === submissions.length}
-                      onChange={() => setSelectedIds(selectedIds.size === submissions.length ? new Set() : new Set(submissions.map(s => s.id)))}
+                      checked={selectedIds.size === filteredSubmissions.length && filteredSubmissions.length > 0}
+                      onChange={() => setSelectedIds(selectedIds.size === filteredSubmissions.length ? new Set() : new Set(filteredSubmissions.map(s => s.id)))}
                     />
                   </TableHead>
                   <TableHead className="w-12"></TableHead>
@@ -347,7 +411,7 @@ export default function ContactSubmissions() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {submissions.map((sub) => (
+                {filteredSubmissions.map((sub) => (
                   <TableRow key={sub.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { 
                     setSelectedSubmission(sub); 
                     setReplyMessage(""); 
@@ -386,7 +450,9 @@ export default function ContactSubmissions() {
                       </TooltipProvider>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={sub.status === 'new' ? 'default' : 'secondary'}>{sub.status}</Badge>
+                      <Badge variant={STATUS_OPTIONS.find(s => s.value === sub.status)?.variant || 'secondary'}>
+                        {STATUS_OPTIONS.find(s => s.value === sub.status)?.label || sub.status}
+                      </Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-2 items-center">
@@ -425,17 +491,18 @@ export default function ContactSubmissions() {
                               <Eye className="w-4 h-4 mr-2" />
                               View Message
                             </DropdownMenuItem>
-                            {sub.status === 'new' ? (
-                              <DropdownMenuItem onClick={() => markAsRead(sub.id)}>
-                                <MailOpen className="w-4 h-4 mr-2" />
-                                Mark as Read
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel className="text-xs">Change Status</DropdownMenuLabel>
+                            {STATUS_OPTIONS.map(option => (
+                              <DropdownMenuItem 
+                                key={option.value} 
+                                onClick={() => updateStatus(sub.id, option.value)}
+                                disabled={sub.status === option.value}
+                              >
+                                {option.label}
                               </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem onClick={() => markAsNew(sub.id)}>
-                                <Mail className="w-4 h-4 mr-2" />
-                                Mark as Unread
-                              </DropdownMenuItem>
-                            )}
+                            ))}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => deleteSubmission(sub.id)} className="text-destructive">
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
@@ -466,8 +533,8 @@ export default function ContactSubmissions() {
                   <div className="text-sm text-muted-foreground">
                     {format(new Date(selectedSubmission.created_at), 'PPpp')}
                   </div>
-                  <Badge variant={selectedSubmission.status === 'new' ? 'default' : 'secondary'}>
-                    {selectedSubmission.status}
+                  <Badge variant={STATUS_OPTIONS.find(s => s.value === selectedSubmission.status)?.variant || 'secondary'}>
+                    {STATUS_OPTIONS.find(s => s.value === selectedSubmission.status)?.label || selectedSubmission.status}
                   </Badge>
                 </div>
                 {selectedSubmission.subject && (

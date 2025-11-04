@@ -139,7 +139,7 @@ export const useMessagesCount = () => {
 
   const fetchCount = async () => {
     try {
-      // Count new submissions
+      // Count ONLY unread (new) submissions - all other statuses are considered "read"
       const { count: newSubmissions, error: submissionsError } = await supabase
         .from("contact_form_submissions")
         .select("*", { count: "exact", head: true })
