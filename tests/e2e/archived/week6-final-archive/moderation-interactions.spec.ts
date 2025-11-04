@@ -33,20 +33,33 @@ test.describe('Moderation Queue Interactions @fast', () => {
     
     console.log('✅ Logged in as moderator/admin');
     
-    // SEED TEST DATA FOR MODERATION
-    console.log('📝 Seeding moderation test data...');
-    
-    const supabase = createClient(
-      process.env.VITE_SUPABASE_URL!,
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
-    );
-    
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated for seeding');
-    }
+  // SEED TEST DATA FOR MODERATION
+  console.log('📝 Seeding moderation test data...');
+
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+
+  // ✅ FIX: Sign in as test account BEFORE using getUser()
+  const testAccount = getTestAccount();
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: testAccount.email,
+    password: testAccount.password,
+  });
+
+  if (signInError) {
+    throw new Error(`Failed to authenticate for seeding: ${signInError.message}`);
+  }
+
+  console.log(`✅ Authenticated as ${testAccount.email} for data seeding`);
+
+  // Now getUser() will return the CORRECT test account
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated for seeding');
+  }
     
     // Create 5 pending discussion posts
     for (let i = 1; i <= 5; i++) {
@@ -154,6 +167,13 @@ test.describe('Moderation Queue Interactions @fast', () => {
         process.env.VITE_SUPABASE_URL!,
         process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
       );
+      
+      // ✅ FIX: Authenticate before cleanup
+      const testAccount = getTestAccount();
+      await supabase.auth.signInWithPassword({
+        email: testAccount.email,
+        password: testAccount.password,
+      });
       
       for (const postId of seededPostIds) {
         await supabase.from('discussion_posts').delete().eq('id', postId);

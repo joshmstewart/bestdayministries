@@ -1,100 +1,66 @@
-import { Page } from '@playwright/test';
-import { MockSupabaseState } from './supabase-mocks';
+/**
+ * Test Helper Utilities
+ * 
+ * Provides safe, authenticated Supabase client creation for E2E tests
+ * to prevent accidentally using real user accounts in test data seeding.
+ */
+
+import { createClient } from '@supabase/supabase-js';
+import { getTestAccount, verifyTestAccount } from '../fixtures/test-accounts';
 
 /**
- * Wait for page load
+ * Create an authenticated Supabase client for testing
+ * 
+ * This function:
+ * 1. Creates a Supabase client
+ * 2. Authenticates with test account credentials
+ * 3. Verifies the account is actually a test account
+ * 4. Returns the authenticated client
+ * 
+ * ALWAYS use this instead of creating unauthenticated clients
+ * to prevent test data from being created under real user IDs.
+ * 
+ * @returns Authenticated Supabase client ready for test data operations
+ * @throws Error if authentication fails or account is not a test account
+ * 
+ * @example
+ * ```typescript
+ * import { createAuthenticatedTestClient } from '../utils/test-helpers';
+ * 
+ * test.beforeAll(async () => {
+ *   const supabase = await createAuthenticatedTestClient();
+ *   
+ *   // Safe to use immediately - guaranteed to be test account
+ *   const { data: { user } } = await supabase.auth.getUser();
+ *   
+ *   await supabase.from('discussion_posts').insert({
+ *     author_id: user.id, // Will be a test account ID
+ *     title: 'Test Post'
+ *   });
+ * });
+ * ```
  */
-export async function waitForPageLoad(page: Page) {
-  await page.waitForLoadState('networkidle');
-}
-
-/**
- * Create a mock caregiver user in the test state
- */
-export function createMockCaregiver(
-  state: MockSupabaseState,
-  email = 'caregiver@test.com',
-  displayName = 'Test Guardian'
-): string {
-  return state.addUser(email, 'password123', {
-    display_name: displayName,
-    role: 'caregiver',
-    avatar_number: 1
-  });
-}
-
-/**
- * Create a mock bestie user in the test state with a friend code
- */
-export function createMockBestie(
-  state: MockSupabaseState,
-  email = 'bestie@test.com',
-  displayName = 'Test Bestie'
-): { userId: string; friendCode: string } {
-  const userId = state.addUser(email, 'password123', {
-    display_name: displayName,
-    role: 'bestie',
-    avatar_number: 2
+export async function createAuthenticatedTestClient() {
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+  
+  const testAccount = getTestAccount();
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: testAccount.email,
+    password: testAccount.password,
   });
   
-  const profile = state.profiles.get(userId);
-  return {
-    userId,
-    friendCode: profile?.friend_code || ''
-  };
-}
-
-/**
- * Create a mock vendor user in the test state
- */
-export function createMockVendor(
-  state: MockSupabaseState,
-  email = 'vendor@test.com',
-  businessName = 'Test Vendor',
-  status: 'pending' | 'approved' | 'rejected' = 'approved'
-): { userId: string; vendorId: string } {
-  const userId = state.addUser(email, 'password123', {
-    display_name: businessName,
-    role: 'supporter',
-    avatar_number: 3
-  });
+  if (signInError) {
+    throw new Error(`Failed to authenticate test client: ${signInError.message}`);
+  }
   
-  const vendorId = state.addVendor(userId, businessName, status);
+  // Verify we're using a test account (prevents real user data corruption)
+  const { data: { session } } = await supabase.auth.getSession();
+  verifyTestAccount(session?.user?.email);
   
-  return { userId, vendorId };
-}
-
-/**
- * Link a caregiver to a bestie in the test state
- */
-export function linkCaregiverToBestie(
-  state: MockSupabaseState,
-  caregiverId: string,
-  bestieId: string,
-  relationship = 'Parent'
-): string {
-  return state.addCaregiverLink(caregiverId, bestieId, relationship);
-}
-
-/**
- * Create a vendor bestie request in the test state
- */
-export function createVendorBestieRequest(
-  state: MockSupabaseState,
-  vendorId: string,
-  bestieId: string,
-  message = 'Would love to partner with you!',
-  status: 'pending' | 'approved' | 'rejected' = 'pending'
-): string {
-  const requestId = `vendor-request-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  state.vendorBestieRequests.set(requestId, {
-    id: requestId,
-    vendor_id: vendorId,
-    bestie_id: bestieId,
-    message,
-    status,
-    requested_at: new Date().toISOString(),
-    created_at: new Date().toISOString()
-  });
-  return requestId;
+  console.log(`✅ Authenticated test client as ${session?.user?.email}`);
+  
+  return supabase;
 }

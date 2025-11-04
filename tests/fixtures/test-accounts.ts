@@ -101,3 +101,37 @@ export function getSupporterTestAccount(): TestAccount {
     displayName: `Test Supporter ${shardNum}`
   };
 }
+
+/**
+ * Verify that a user ID belongs to a test account
+ * Throws an error if the user is not a test account
+ * This prevents tests from accidentally using real user accounts
+ */
+export function verifyTestAccount(email: string | undefined): void {
+  if (!email) {
+    throw new Error('CRITICAL: No email provided for test account verification!');
+  }
+  
+  const testEmailPatterns = [
+    /^test@example\.com$/,
+    /^testbestie@example\.com$/,
+    /^testguardian@example\.com$/,
+    /^testsupporter@example\.com$/,
+    /^test\d+@example\.com$/,
+    /^testbestie\d+@example\.com$/,
+    /^testguardian\d+@example\.com$/,
+    /^testsupporter\d+@example\.com$/,
+  ];
+  
+  const isTestEmail = testEmailPatterns.some(pattern => pattern.test(email));
+    
+  if (!isTestEmail) {
+    throw new Error(
+      `🚨 CRITICAL: Test is using a REAL user account (${email})!\n` +
+      `This will create fake data for real users. Test aborted.\n` +
+      `Only test accounts (test@example.com, testbestie@example.com, etc.) are allowed.`
+    );
+  }
+  
+  console.log(`✅ Verified test account: ${email}`);
+}

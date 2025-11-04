@@ -5,10 +5,11 @@ This document consolidates learnings from test runs to help write reliable, main
 ## Table of Contents
 1. [Timeout Guidelines](#timeout-guidelines)
 2. [Authentication Flows](#authentication-flows)
-3. [Content Existence Patterns](#content-existence-patterns)
-4. [Selector Best Practices](#selector-best-practices)
-5. [Email Testing](#email-testing)
-6. [Common Pitfalls](#common-pitfalls)
+3. [🚨 CRITICAL: Authenticating Supabase Clients in Tests](#-critical-authenticating-supabase-clients-in-tests)
+4. [Content Existence Patterns](#content-existence-patterns)
+5. [Selector Best Practices](#selector-best-practices)
+6. [Email Testing](#email-testing)
+7. [Common Pitfalls](#common-pitfalls)
 
 ---
 
@@ -98,6 +99,150 @@ await page.waitForURL(/\/community/); // Race condition
 await page.waitForURL(/\/community/);
 // URL changed but page might still be loading!
 ```
+
+---
+
+## 🚨 CRITICAL: Authenticating Supabase Clients in Tests
+
+**PRODUCTION BUG CAUSED BY THIS**: A real user received fake notifications about comments on posts they never made because test code created content under their user ID.
+
+### The Problem
+
+When creating Supabase clients in E2E tests for data seeding or cleanup, calling `getUser()` on an **unauthenticated client** can return:
+- `null` (best case - test fails cleanly)
+- A stale session from the environment
+- **A REAL USER'S SESSION** (worst case - creates fake data for real users!)
+
+This causes:
+1. Test posts/comments created under real user IDs
+2. Database triggers fire notifications to real users
+3. Real users receive notifications about test content that doesn't exist
+
+### ✅ CORRECT Pattern
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+import { getTestAccount, verifyTestAccount } from '../fixtures/test-accounts';
+
+// Create Supabase client for seeding test data
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL!,
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+);
+
+// ✅ ALWAYS authenticate with test account FIRST
+const testAccount = getTestAccount();
+const { error: signInError } = await supabase.auth.signInWithPassword({
+  email: testAccount.email,
+  password: testAccount.password
+});
+
+if (signInError) {
+  throw new Error(`Failed to authenticate: ${signInError.message}`);
+}
+
+console.log(`✅ Authenticated as ${testAccount.email} for data seeding`);
+
+// NOW it's safe to use getUser()
+const { data: { user } } = await supabase.auth.getUser();
+const { data: { session } } = await supabase.auth.getSession();
+
+// ✅ Verify it's actually a test account
+verifyTestAccount(session?.user?.email);
+
+// Safe to create test data now
+await supabase.from('discussion_posts').insert({
+  author_id: user.id, // ← Will be a test account ID
+  title: 'Test Post',
+  content: 'Test content'
+});
+```
+
+### ❌ WRONG Pattern - DO NOT DO THIS
+
+```typescript
+// ❌ Creating client without authentication
+const supabase = createClient(url, key);
+
+// ❌ This could return a REAL USER'S ID!
+const { data: { user } } = await supabase.auth.getUser();
+
+// ❌ Test data created under real user's ID
+await supabase.from('discussion_posts').insert({
+  author_id: user.id, // ← Could be a real user!
+  title: 'E2E Test Post'
+});
+// Result: Real user gets fake notifications!
+```
+
+### Best Practice: Use the Helper
+
+Create `tests/utils/test-helpers.ts`:
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+import { getTestAccount, verifyTestAccount } from '../fixtures/test-accounts';
+
+/**
+ * Create an authenticated Supabase client for testing
+ * Automatically signs in with test account credentials
+ */
+export async function createAuthenticatedTestClient() {
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+  
+  const testAccount = getTestAccount();
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: testAccount.email,
+    password: testAccount.password,
+  });
+  
+  if (signInError) {
+    throw new Error(`Failed to authenticate test client: ${signInError.message}`);
+  }
+  
+  // Verify we're using a test account
+  const { data: { session } } = await supabase.auth.getSession();
+  verifyTestAccount(session?.user?.email);
+  
+  console.log(`✅ Authenticated test client as ${session?.user?.email}`);
+  
+  return supabase;
+}
+```
+
+Then in tests:
+
+```typescript
+import { createAuthenticatedTestClient } from '../utils/test-helpers';
+
+test.beforeAll(async () => {
+  // ✅ Always authenticated, always verified
+  const supabase = await createAuthenticatedTestClient();
+  
+  // Safe to use immediately
+  const { data: { user } } = await supabase.auth.getUser();
+  // Guaranteed to be a test account
+});
+```
+
+### Why This Matters
+
+- **Real Impact**: This bug caused production issues with real users
+- **Silent Failure**: Tests pass, but real users are affected
+- **Hard to Debug**: Fake notifications appear hours/days after test runs
+- **Data Integrity**: Test data mixed with production data
+
+### Checklist for Test Data Seeding
+
+- [ ] Create Supabase client
+- [ ] **Sign in with test account credentials** ← NEVER SKIP THIS
+- [ ] Get user/session
+- [ ] **Verify it's a test account** using `verifyTestAccount()`
+- [ ] Create test data
+- [ ] Clean up in `afterAll` (also authenticated!)
 
 ---
 
