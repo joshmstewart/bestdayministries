@@ -141,6 +141,137 @@ await page.getByRole('tab', { name: /settings/i }).click();
 await page.waitForSelector('text=/Section Heading/i', { timeout: 15000, state: 'visible' });
 ```
 
+### 🚨 CRITICAL: Authenticating Supabase Clients in Tests
+
+**PRODUCTION BUG CAUSED BY THIS**: A real user received fake notifications about comments on posts they never made because test code created content under their user ID.
+
+#### The Problem
+
+When creating Supabase clients in E2E tests for data seeding or cleanup, calling `getUser()` on an **unauthenticated client** can return:
+- `null` (best case - test fails cleanly)
+- A stale session from the environment
+- **A REAL USER'S SESSION** (worst case - creates fake data for real users!)
+
+This causes:
+1. Test posts/comments created under real user IDs
+2. Database triggers fire notifications to real users
+3. Real users receive notifications about test content that doesn't exist
+
+#### ❌ WRONG Pattern - DO NOT DO THIS
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+// Seed test data in beforeAll hook
+test.beforeAll(async () => {
+  // ❌ Creating client without authentication
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+
+  // ❌ This could return a REAL USER'S ID!
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // ❌ Test data created under real user's ID
+  await supabase.from('discussion_posts').insert({
+    author_id: user.id, // ← Could be a real user!
+    title: 'E2E Test Post',
+    content: 'Test content'
+  });
+  
+  // Result: Real user gets fake notifications!
+});
+```
+
+#### ✅ CORRECT Pattern - Always Authenticate First
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+import { getTestAccount, verifyTestAccount } from '../fixtures/test-accounts';
+
+test.beforeAll(async () => {
+  // Create Supabase client
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!
+  );
+
+  // ✅ ALWAYS authenticate with test account FIRST
+  const testAccount = getTestAccount();
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: testAccount.email,
+    password: testAccount.password
+  });
+
+  if (signInError) {
+    throw new Error(`Failed to authenticate: ${signInError.message}`);
+  }
+
+  console.log(`✅ Authenticated as ${testAccount.email} for data seeding`);
+
+  // NOW it's safe to use getUser()
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // ✅ Verify it's actually a test account
+  verifyTestAccount(session?.user?.email);
+
+  // Safe to create test data now
+  await supabase.from('discussion_posts').insert({
+    author_id: user.id, // ← Will be a test account ID
+    title: 'Test Post',
+    content: 'Test content'
+  });
+});
+```
+
+#### ✅ BEST Practice: Use the Helper
+
+For even safer and cleaner code, use the `createAuthenticatedTestClient()` helper:
+
+```typescript
+import { createAuthenticatedTestClient } from '../utils/test-helpers';
+
+test.beforeAll(async () => {
+  // ✅ Always authenticated, always verified
+  const supabase = await createAuthenticatedTestClient();
+  
+  // Safe to use immediately - guaranteed to be test account
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  await supabase.from('discussion_posts').insert({
+    author_id: user.id, // Guaranteed to be a test account ID
+    title: 'Test Post'
+  });
+});
+```
+
+#### Why This Matters
+
+- **Real Impact**: This bug caused production issues with real users receiving fake notifications
+- **Silent Failure**: Tests pass, but real users are affected hours/days later
+- **Hard to Debug**: Fake notifications appear after test runs complete
+- **Data Integrity**: Test data mixed with production data
+
+#### Checklist for Test Data Seeding
+
+- [ ] Create Supabase client
+- [ ] **Sign in with test account credentials** ← NEVER SKIP THIS
+- [ ] Get user/session
+- [ ] **Verify it's a test account** using `verifyTestAccount()`
+- [ ] Create test data
+- [ ] Clean up in `afterAll` (also authenticated!)
+
+#### Files Involved
+
+- `tests/fixtures/test-accounts.ts` - Contains `verifyTestAccount()` function
+- `tests/utils/test-helpers.ts` - Contains `createAuthenticatedTestClient()` helper
+- `docs/TESTING_BEST_PRACTICES.md` - Complete documentation of the pattern
+- `docs/TEST_AUTH_BUG_FIX_2025_11_04.md` - Full incident report and fix details
+
+---
+
 ### Running Tests Locally
 ```bash
 # Install browsers (first time only)

@@ -680,6 +680,11 @@ TEST-LEAKAGE-PREVENTION:sponsor-besties-MUST-NOT-show-in-carousel|featured-besti
 BEST-PRACTICES:60s-timeout-auth-flows|handle-empty-states|role-based-selectors|email-tests-separate-workflow
 CRITICAL-LEARNINGS:45s-timeout-insufficient-CI|auth-flows-need-intermediate-waits|content-may-not-exist|email-tests-need-service-key
 FIXES-APPLIED:TEST_FIXES_2025_10_23.md[jest-dom-added|selector-syntax-fixed|timeouts-increased-60s|contact-form-defensive-checks|35-tests-unblocked]
+TEST-AUTH-BUG-FIX-2025-11-04:CRITICAL-PRODUCTION-BUG→moderation-interactions.spec.ts-created-unauthenticated-Supabase-client→getUser-returned-real-user-ID→test-data-created-under-real-user→real-users-got-fake-notifications
+FIX-IMPLEMENTED:authenticate-BEFORE-getUser|verifyTestAccount-function|createAuthenticatedTestClient-helper|docs-updated
+PREVENTION:ALWAYS-sign-in-test-account-BEFORE-creating-test-data|NEVER-use-unauthenticated-createClient→getUser|USE-createAuthenticatedTestClient-helper
+FILES:tests/e2e/archived/week6-final-archive/moderation-interactions.spec.ts[FIXED]|tests/fixtures/test-accounts.ts[verifyTestAccount-added]|tests/utils/test-helpers.ts[NEW-helper-created]|docs/TESTING_BEST_PRACTICES.md[critical-section-added]
+IMPACT:prevents-real-users-from-receiving-fake-test-notifications|prevents-test-data-corruption-of-production-data|validates-all-test-accounts-automatically
 
 ## INTERNAL_PAGES
 FILE:lib/internalPages.ts
