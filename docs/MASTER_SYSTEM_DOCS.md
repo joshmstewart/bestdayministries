@@ -149,6 +149,28 @@ PATTERN:Button[variant=outline]+red-Mic+text
 RATIONALE:red=record-association|larger-size=visibility|bold-strokes=clarity|consistency=familiarity
 DOC:AUDIO_RECORDING_STANDARD.md
 
+## BROWSER_COMPATIBILITY
+CRITICAL:iOS-18.x-CSS-transform-rendering-bug→pages-disappear-on-load
+DETECTION:src/lib/browserDetection.ts[getIOSVersion|isProblematicIOSVersion]
+PATTERN:conditional-className+ErrorBoundary-wrapper
+AFFECTED:iOS-18.0→18.7.1+[possibly-higher]
+SOLUTION:avoid-inline-transform-styles+use-CSS-classes+conditional-application
+SYMPTOMS:page-loads-briefly→disappears|rapid-horizontal-translations|content-shifts-off-screen|layout-thrashing
+ROOT-CAUSE:Safari-iOS-18.x-bug[absolute-positioning+inline-transform+child-animations+transform-origin]
+IMPLEMENTATION:
+```tsx
+import { isProblematicIOSVersion } from '@/lib/browserDetection';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+<div className={`absolute ${!isProblematicIOSVersion() ? '[transform:rotate(-8deg)] [will-change:transform] [backface-visibility:hidden]' : ''}`}>
+  <ErrorBoundary fallback={null}><Component /></ErrorBoundary>
+</div>
+```
+RULES:❌inline-style-transform-on-positioned-elements|✅CSS-classes-with-conditional-application|✅will-change+backface-visibility-for-iOS-optimization|✅ErrorBoundary-wrapper|✅test-on-actual-iOS-18.x-devices
+PREVENTION:avoid-inline-transforms|use-Tailwind-arbitrary-values|consider-iOS-compatibility|test-multiple-iOS-versions
+EXAMPLES:src/pages/Community.tsx[lines-333-345]|src/lib/browserDetection.ts
+DOC:BROWSER_COMPATIBILITY.md|ERROR_HANDLING_PATTERNS.md[Browser-Compatibility-Patterns-section]
+MAINTENANCE:update-isProblematicIOSVersion-when-new-iOS-versions-released|test-quarterly|document-new-issues
+
 ## IMAGE_CROP_DIALOG
 COMP:ImageCropDialog[reusable-component]
 FILE:src/components/ImageCropDialog.tsx

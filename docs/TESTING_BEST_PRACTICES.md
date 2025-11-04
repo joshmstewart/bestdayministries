@@ -479,6 +479,130 @@ const supabase = createClient(supabaseUrl, serviceKey, {
 
 ---
 
+## Mobile & Browser Compatibility Testing
+
+### iOS Safari Testing Priority
+
+**CRITICAL:** iOS Safari has unique rendering bugs that don't appear in other browsers.
+
+**Known Issues:**
+- **iOS 18.x:** CSS transform rendering bug causing pages to disappear
+- **iOS 17.x:** Viewport height inconsistencies with bottom navigation
+- **iOS 16.x:** Touch event handling differences
+
+### Testing Matrix for CSS Changes
+
+When making changes to transforms, animations, or positioning:
+
+| Priority | Device | Version | What to Test |
+|----------|--------|---------|--------------|
+| CRITICAL | iPhone | iOS 18.x | Page doesn't disappear, transforms render correctly |
+| HIGH | iPhone | iOS 19+ | No regressions from iOS 18 workarounds |
+| MEDIUM | Android | Latest Chrome | General functionality |
+| MEDIUM | Desktop | Safari | CSS compatibility |
+| LOW | Desktop | Chrome | Baseline behavior |
+
+### Browser Detection in Tests
+
+Test browser-specific code paths:
+
+```typescript
+test('renders correctly on iOS 18.x', async ({ page }) => {
+  // Simulate iOS 18.x user agent
+  await page.setUserAgent(
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15'
+  );
+  
+  await page.goto('/community');
+  
+  // Verify graceful degradation
+  const element = page.locator('[data-testid="rotated-component"]');
+  await expect(element).toBeVisible();
+  
+  // Should NOT have rotation class on iOS 18.x
+  const hasRotation = await element.evaluate(el => 
+    el.className.includes('transform:rotate')
+  );
+  expect(hasRotation).toBe(false);
+});
+
+test('renders with effects on modern browsers', async ({ page }) => {
+  await page.goto('/community');
+  
+  const element = page.locator('[data-testid="rotated-component"]');
+  await expect(element).toBeVisible();
+  
+  // Should have rotation on non-iOS-18 browsers
+  const hasRotation = await element.evaluate(el => 
+    el.className.includes('transform:rotate')
+  );
+  expect(hasRotation).toBe(true);
+});
+```
+
+### Visual Regression for Mobile
+
+Use Percy or similar to catch iOS-specific rendering:
+
+```typescript
+test.describe('iOS Compatibility', () => {
+  test('page visible on iOS 18.x', async ({ page }) => {
+    await page.setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15'
+    );
+    
+    await page.goto('/community');
+    await page.waitForLoadState('networkidle');
+    
+    // Visual snapshot
+    await percySnapshot(page, 'Community Page - iOS 18 Safari');
+  });
+});
+```
+
+### Testing Checklist for CSS Changes
+
+Before deploying transform/animation changes:
+
+- [ ] Test on iOS 18.x device (physical or BrowserStack)
+- [ ] Test on iOS 19+ device
+- [ ] Test on Android Chrome
+- [ ] Verify ErrorBoundary catches failures
+- [ ] Check console for layout warnings
+- [ ] Test both portrait and landscape
+- [ ] Verify touch interactions work
+- [ ] Check session replay for unexpected shifts
+
+### BrowserStack Configuration
+
+For comprehensive mobile testing:
+
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  projects: [
+    {
+      name: 'ios-18-safari',
+      use: {
+        browserName: 'webkit',
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15',
+        viewport: { width: 390, height: 844 }, // iPhone 13
+      },
+    },
+    {
+      name: 'ios-19-safari',
+      use: {
+        browserName: 'webkit',
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15',
+        viewport: { width: 393, height: 852 }, // iPhone 14
+      },
+    },
+  ],
+});
+```
+
+---
+
 ## Common Pitfalls
 
 ### 1. Race Conditions

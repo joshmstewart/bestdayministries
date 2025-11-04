@@ -200,6 +200,85 @@ if (retryCount < 2) {
 }
 ```
 
+## Browser Compatibility Patterns
+
+### iOS 18.x CSS Transform Issues
+
+**Issue:** iOS 18.x has known rendering problems with CSS transforms, particularly when combined with:
+- Absolute positioning
+- Transform-origin properties
+- Animation classes
+- Nested transforms in child components
+
+**Symptoms:**
+- Page appears to load but then "disappears"
+- Rapid horizontal translations in session replays
+- Content shifts off-screen unexpectedly
+- Layout thrashing during initial render
+
+**Solution Pattern:**
+
+1. **Create browser detection utility** (`src/lib/browserDetection.ts`):
+```typescript
+export function getIOSVersion(): number | null {
+  if (typeof window === 'undefined') return null;
+  
+  const userAgent = window.navigator.userAgent;
+  const match = userAgent.match(/OS (\d+)_/);
+  
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+  
+  return null;
+}
+
+export function isProblematicIOSVersion(): boolean {
+  const version = getIOSVersion();
+  // iOS 18.x has known issues with CSS transforms
+  return version !== null && version === 18;
+}
+```
+
+2. **Apply conditional styling**:
+```tsx
+import { isProblematicIOSVersion } from '@/lib/browserDetection';
+
+// Instead of inline styles:
+// style={{ transform: 'rotate(-8deg)' }}
+
+// Use conditional className:
+<div 
+  className={`absolute top-4 right-4 ${
+    !isProblematicIOSVersion() 
+      ? '[transform:rotate(-8deg)] [will-change:transform] [backface-visibility:hidden]' 
+      : ''
+  }`}
+>
+  <Component />
+</div>
+```
+
+3. **Wrap in ErrorBoundary**:
+```tsx
+<ErrorBoundary fallback={null}>
+  <ProblematicComponent />
+</ErrorBoundary>
+```
+
+**Key Principles:**
+- Detect problematic versions explicitly (don't assume all iOS)
+- Provide graceful degradation (skip effect, don't break page)
+- Use `will-change` and `backface-visibility` for optimization
+- Wrap in ErrorBoundary as final safety net
+- Test on actual devices when possible
+
+**Prevention:**
+- Avoid inline transform styles on absolutely positioned elements
+- Use CSS classes with Tailwind arbitrary values instead
+- Always consider iOS compatibility for animations
+- Test on multiple iOS versions when adding complex transforms
+
 ## Future Improvements
 
 - [ ] Add telemetry to track error rates
@@ -207,3 +286,5 @@ if (retryCount < 2) {
 - [ ] Add offline detection and user notification
 - [ ] Implement optimistic updates for better perceived performance
 - [ ] Add request deduplication to prevent duplicate fetches
+- [ ] Expand browser detection for other known compatibility issues
+- [ ] Create automated testing for iOS-specific rendering bugs
