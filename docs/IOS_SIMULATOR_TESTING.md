@@ -31,7 +31,14 @@ xcrun simctl runtime list
 xcodebuild -downloadPlatform iOS
 ```
 
-### 2. Configure Network Access
+### 2. Testing Production vs Local Development
+
+**For Production Sites (Simple!):**
+- Just open Safari in the simulator
+- Navigate to your production URL (e.g., `https://yoursite.lovable.app`)
+- That's it! No terminal commands or IP addresses needed
+
+**For Local Development (Requires IP Address):**
 
 **Problem:** iOS Simulators cannot access `localhost` from the host machine.
 
