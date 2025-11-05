@@ -74,6 +74,7 @@ export const SponsorshipTransactionsManager = () => {
   const [auditLogsOpen, setAuditLogsOpen] = useState(false);
   const [selectedSponsorshipId, setSelectedSponsorshipId] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [receiptDetails, setReceiptDetails] = useState<any>(null);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const { toast } = useToast();
 
@@ -507,18 +508,55 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
-  const loadAuditLogs = async (sponsorshipId: string) => {
+  const loadAuditLogs = async (transactionId: string, transactionType: 'sponsorship' | 'donation') => {
     setLoadingLogs(true);
+    setReceiptDetails(null);
     try {
-      const { data, error } = await supabase
+      // Try to fetch audit logs first
+      const { data: logs, error: logsError } = await supabase
         .from('receipt_generation_logs')
         .select('*')
-        .eq('sponsorship_id', sponsorshipId)
+        .eq('sponsorship_id', transactionId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setAuditLogs(data || []);
-      setSelectedSponsorshipId(sponsorshipId);
+      if (logsError) throw logsError;
+      setAuditLogs(logs || []);
+
+      // Try to fetch the actual receipt
+      if (transactionType === 'sponsorship') {
+        const { data: receipt, error: receiptError } = await supabase
+          .from('sponsorship_receipts')
+          .select('*')
+          .eq('sponsorship_id', transactionId)
+          .maybeSingle();
+
+        if (!receiptError && receipt) {
+          setReceiptDetails(receipt);
+        }
+      } else if (transactionType === 'donation') {
+        // For donations, we need to get the donation details first
+        const { data: donation, error: donationError } = await supabase
+          .from('donations')
+          .select('donor_email, amount')
+          .eq('id', transactionId)
+          .single();
+
+        if (!donationError && donation) {
+          // Find receipt by email and amount
+          const { data: receipt, error: receiptError } = await supabase
+            .from('sponsorship_receipts')
+            .select('*')
+            .eq('sponsor_email', donation.donor_email)
+            .eq('amount', donation.amount)
+            .maybeSingle();
+
+          if (!receiptError && receipt) {
+            setReceiptDetails(receipt);
+          }
+        }
+      }
+
+      setSelectedSponsorshipId(transactionId);
       setAuditLogsOpen(true);
     } catch (error) {
       console.error('Error loading audit logs:', error);
@@ -816,7 +854,7 @@ export const SponsorshipTransactionsManager = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => loadAuditLogs(transaction.id)}
+                            onClick={() => loadAuditLogs(transaction.id, transaction.transaction_type)}
                             title="View Receipt Generation Logs"
                             disabled={loadingLogs}
                           >
@@ -920,9 +958,59 @@ export const SponsorshipTransactionsManager = () => {
                 <span className="ml-2">Loading logs...</span>
               </div>
             ) : auditLogs.length === 0 ? (
-              <div className="text-center p-8 text-muted-foreground">
-                No audit logs found for this transaction
-              </div>
+              receiptDetails ? (
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-green-600">
+                        <FileText className="w-5 h-5" />
+                        <h4 className="font-semibold">Receipt Found</h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="text-muted-foreground">Receipt #:</div>
+                        <div className="font-mono">{receiptDetails.receipt_number}</div>
+                        
+                        <div className="text-muted-foreground">Amount:</div>
+                        <div>${(receiptDetails.amount / 100).toFixed(2)}</div>
+                        
+                        <div className="text-muted-foreground">Status:</div>
+                        <div>
+                          <Badge variant={receiptDetails.status === 'generated' ? 'default' : 'secondary'}>
+                            {receiptDetails.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="text-muted-foreground">Generated:</div>
+                        <div>{new Date(receiptDetails.generated_at).toLocaleString()}</div>
+                        
+                        {receiptDetails.sent_at && (
+                          <>
+                            <div className="text-muted-foreground">Sent:</div>
+                            <div>{new Date(receiptDetails.sent_at).toLocaleString()}</div>
+                          </>
+                        )}
+                        
+                        {receiptDetails.resend_email_id && (
+                          <>
+                            <div className="text-muted-foreground">Email ID:</div>
+                            <div className="font-mono text-xs">{receiptDetails.resend_email_id}</div>
+                          </>
+                        )}
+                      </div>
+                      
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-muted-foreground">
+                          This receipt was created manually. No automated audit logs are available.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  No audit logs or receipt found for this transaction
+                </div>
+              )
             ) : (
               <div className="space-y-4">
                 {auditLogs.map((log) => (
