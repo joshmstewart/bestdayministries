@@ -3339,6 +3339,7 @@ export type Database = {
       receipt_generation_logs: {
         Row: {
           created_at: string | null
+          donation_id: string | null
           error_message: string | null
           id: string
           metadata: Json | null
@@ -3349,6 +3350,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          donation_id?: string | null
           error_message?: string | null
           id?: string
           metadata?: Json | null
@@ -3359,6 +3361,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          donation_id?: string | null
           error_message?: string | null
           id?: string
           metadata?: Json | null
@@ -3368,6 +3371,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "receipt_generation_logs_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "donations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "receipt_generation_logs_receipt_id_fkey"
             columns: ["receipt_id"]

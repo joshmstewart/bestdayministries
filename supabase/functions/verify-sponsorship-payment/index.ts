@@ -223,6 +223,15 @@ serve(async (req) => {
         console.error('Error updating receipt record:', updateError);
         // Don't fail the whole transaction if receipt update fails
       } else {
+        // Log receipt creation
+        await supabaseAdmin.from('receipt_generation_logs').insert({
+          sponsorship_id: sponsorship.id,
+          receipt_id: placeholderReceipt.id,
+          stage: 'verify_payment_receipt_created',
+          status: 'success',
+          metadata: { session_id: session_id, stripe_mode: mode }
+        });
+
         // Only send email after database update succeeded
         console.log('Receipt record updated, sending email...');
         try {
@@ -243,8 +252,26 @@ serve(async (req) => {
             }),
           });
           console.log('Receipt email sent for session:', session_id);
+
+          // Log email sent
+          await supabaseAdmin.from('receipt_generation_logs').insert({
+            sponsorship_id: sponsorship.id,
+            receipt_id: placeholderReceipt.id,
+            stage: 'verify_payment_email_sent',
+            status: 'success',
+            metadata: { session_id: session_id }
+          });
         } catch (emailError) {
           console.error('Failed to send receipt email:', emailError);
+
+          // Log email failure
+          await supabaseAdmin.from('receipt_generation_logs').insert({
+            sponsorship_id: sponsorship.id,
+            receipt_id: placeholderReceipt.id,
+            stage: 'verify_payment_email_failed',
+            status: 'error',
+            error_message: emailError instanceof Error ? emailError.message : 'Unknown error'
+          });
         }
       }
     }

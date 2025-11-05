@@ -76,6 +76,20 @@ serve(async (req) => {
 
     console.log(`Updated donation status to: ${newStatus}`);
 
+    // Log the completion to receipt_generation_logs
+    const { error: logStartError } = await supabaseAdmin
+      .from('receipt_generation_logs')
+      .insert({
+        donation_id: donationId,
+        stage: 'manual_completion_started',
+        status: 'success',
+        metadata: { method: 'manual-complete-donation', admin_user: user.id }
+      });
+
+    if (logStartError) {
+      console.error('Error logging manual completion start:', logStartError);
+    }
+
     // Create receipt record
     const transactionId = stripePaymentIntentId || `manual-${Date.now()}`;
     const { data: receiptRecord, error: receiptError } = await supabaseAdmin
@@ -107,6 +121,21 @@ serve(async (req) => {
     } else {
       console.log('Receipt record created:', receiptRecord.id);
 
+      // Log receipt creation
+      const { error: logReceiptError } = await supabaseAdmin
+        .from('receipt_generation_logs')
+        .insert({
+          donation_id: donationId,
+          receipt_id: receiptRecord.id,
+          stage: 'receipt_created',
+          status: 'success',
+          metadata: { transaction_id: transactionId }
+        });
+
+      if (logReceiptError) {
+        console.error('Error logging receipt creation:', logReceiptError);
+      }
+
       // Send receipt email
       try {
         const emailResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
@@ -128,8 +157,31 @@ serve(async (req) => {
 
         const emailResult = await emailResponse.json();
         console.log('Receipt email sent:', emailResult);
+
+        // Log email sent
+        await supabaseAdmin
+          .from('receipt_generation_logs')
+          .insert({
+            donation_id: donationId,
+            receipt_id: receiptRecord.id,
+            stage: 'email_sent',
+            status: 'success',
+            metadata: { resend_email_id: emailResult.emailId }
+          });
       } catch (emailError) {
         console.error('Failed to send receipt email:', emailError);
+        
+        // Log email failure
+        await supabaseAdmin
+          .from('receipt_generation_logs')
+          .insert({
+            donation_id: donationId,
+            receipt_id: receiptRecord.id,
+            stage: 'email_failed',
+            status: 'error',
+            error_message: emailError instanceof Error ? emailError.message : 'Unknown error'
+          });
+        
         throw emailError;
       }
     }
@@ -146,7 +198,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in manual-complete-donation:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

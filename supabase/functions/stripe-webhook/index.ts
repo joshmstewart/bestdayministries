@@ -248,6 +248,15 @@ serve(async (req) => {
                   console.error('Error inserting receipt record:', insertError);
                 }
               } else {
+                // Log receipt creation
+                await supabaseAdmin.from('receipt_generation_logs').insert({
+                  donation_id: donationData.id,
+                  receipt_id: receiptRecord.id,
+                  stage: 'webhook_receipt_created',
+                  status: 'success',
+                  metadata: { session_id: session.id, stripe_mode: donationData?.stripe_mode || 'live' }
+                });
+
                 // Only send email if database insert succeeded
                 console.log('Receipt record created, sending email...');
                 try {
@@ -268,8 +277,26 @@ serve(async (req) => {
                     }),
                   });
                   console.log('Receipt email sent for one-time donation:', customerEmail);
+
+                  // Log email sent
+                  await supabaseAdmin.from('receipt_generation_logs').insert({
+                    donation_id: donationData.id,
+                    receipt_id: receiptRecord.id,
+                    stage: 'webhook_email_sent',
+                    status: 'success',
+                    metadata: { session_id: session.id }
+                  });
                 } catch (emailError) {
                   console.error('Failed to send donation receipt email:', emailError);
+                  
+                  // Log email failure
+                  await supabaseAdmin.from('receipt_generation_logs').insert({
+                    donation_id: donationData.id,
+                    receipt_id: receiptRecord.id,
+                    stage: 'webhook_email_failed',
+                    status: 'error',
+                    error_message: emailError instanceof Error ? emailError.message : 'Unknown error'
+                  });
                 }
               }
             }
@@ -325,6 +352,15 @@ serve(async (req) => {
                   console.error('Error inserting receipt record:', insertError);
                 }
               } else {
+                // Log receipt creation
+                await supabaseAdmin.from('receipt_generation_logs').insert({
+                  donation_id: donationData.id,
+                  receipt_id: receiptRecord.id,
+                  stage: 'webhook_receipt_created',
+                  status: 'success',
+                  metadata: { session_id: session.id, stripe_mode: donationData?.stripe_mode || 'live' }
+                });
+
                 // Only send email if database insert succeeded
                 console.log('Receipt record created, sending email...');
                 try {
@@ -345,8 +381,26 @@ serve(async (req) => {
                     }),
                   });
                   console.log('Receipt email sent for monthly donation:', customerEmail);
+
+                  // Log email sent
+                  await supabaseAdmin.from('receipt_generation_logs').insert({
+                    donation_id: donationData.id,
+                    receipt_id: receiptRecord.id,
+                    stage: 'webhook_email_sent',
+                    status: 'success',
+                    metadata: { session_id: session.id }
+                  });
                 } catch (emailError) {
                   console.error('Failed to send donation receipt email:', emailError);
+
+                  // Log email failure
+                  await supabaseAdmin.from('receipt_generation_logs').insert({
+                    donation_id: donationData.id,
+                    receipt_id: receiptRecord.id,
+                    stage: 'webhook_email_failed',
+                    status: 'error',
+                    error_message: emailError instanceof Error ? emailError.message : 'Unknown error'
+                  });
                 }
               }
             }

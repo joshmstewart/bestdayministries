@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -511,57 +512,77 @@ export const SponsorshipTransactionsManager = () => {
   const loadAuditLogs = async (transactionId: string, transactionType: 'sponsorship' | 'donation') => {
     setLoadingLogs(true);
     setReceiptDetails(null);
+    
     try {
-      // Try to fetch audit logs first
+      // Query logs based on transaction type
       const { data: logs, error: logsError } = await supabase
         .from('receipt_generation_logs')
         .select('*')
-        .eq('sponsorship_id', transactionId)
+        .eq(
+          transactionType === 'sponsorship' ? 'sponsorship_id' : 'donation_id',
+          transactionId
+        )
         .order('created_at', { ascending: true });
 
       if (logsError) throw logsError;
       setAuditLogs(logs || []);
 
-      // Try to fetch the actual receipt
+      // ALWAYS fetch the actual receipt as primary content
+      let receipt = null;
+      
       if (transactionType === 'sponsorship') {
-        const { data: receipt, error: receiptError } = await supabase
+        const { data, error } = await supabase
           .from('sponsorship_receipts')
           .select('*')
           .eq('sponsorship_id', transactionId)
           .maybeSingle();
-
-        if (!receiptError && receipt) {
-          setReceiptDetails(receipt);
-        }
-      } else if (transactionType === 'donation') {
-        // For donations, we need to get the donation details first
-        const { data: donation, error: donationError } = await supabase
+        
+        if (!error && data) receipt = data;
+      } else {
+        // For donations, we need to get the donation first to find the receipt
+        const { data: donationData } = await supabase
           .from('donations')
-          .select('donor_email, amount')
+          .select('id, donor_email, amount')
           .eq('id', transactionId)
-          .single();
+          .maybeSingle();
 
-        if (!donationError && donation) {
-          // Find receipt by email and amount
-          const { data: receipt, error: receiptError } = await supabase
+        if (donationData) {
+          // Find receipt by matching transaction_id or by donor_email + amount
+          const { data: receiptByTxId } = await supabase
             .from('sponsorship_receipts')
             .select('*')
-            .eq('sponsor_email', donation.donor_email)
-            .eq('amount', donation.amount)
+            .eq('transaction_id', transactionId)
             .maybeSingle();
 
-          if (!receiptError && receipt) {
-            setReceiptDetails(receipt);
+          if (receiptByTxId) {
+            receipt = receiptByTxId;
+          } else {
+            // Fallback: search by email + amount (for manually created receipts)
+            const { data: receiptByEmail } = await supabase
+              .from('sponsorship_receipts')
+              .select('*')
+              .eq('sponsor_email', donationData.donor_email)
+              .eq('amount', donationData.amount)
+              .eq('bestie_name', 'General Support')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (receiptByEmail) receipt = receiptByEmail;
           }
         }
+      }
+
+      if (receipt) {
+        setReceiptDetails(receipt);
       }
 
       setSelectedSponsorshipId(transactionId);
       setAuditLogsOpen(true);
     } catch (error) {
-      console.error('Error loading audit logs:', error);
+      console.error('Error loading receipt:', error);
       toast({ 
-        title: "Failed to load audit logs", 
+        title: "Failed to load receipt", 
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive" 
       });
@@ -946,110 +967,93 @@ export const SponsorshipTransactionsManager = () => {
       <Dialog open={auditLogsOpen} onOpenChange={setAuditLogsOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Receipt Generation Audit Log</DialogTitle>
+            <DialogTitle>Receipt Details & Audit Log</DialogTitle>
             <DialogDescription>
-              Detailed log of all stages in the receipt generation process
+              Receipt information and generation process logs
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[500px] pr-4">
+          <ScrollArea className="max-h-[600px] pr-4">
             {loadingLogs ? (
-              <div className="flex items-center justify-center p-8">
-                <Clock className="w-6 h-6 animate-spin" />
-                <span className="ml-2">Loading logs...</span>
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
-            ) : auditLogs.length === 0 ? (
-              receiptDetails ? (
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-green-600">
-                        <FileText className="w-5 h-5" />
-                        <h4 className="font-semibold">Receipt Found</h4>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-muted-foreground">Receipt #:</div>
-                        <div className="font-mono">{receiptDetails.receipt_number}</div>
-                        
-                        <div className="text-muted-foreground">Amount:</div>
-                        <div>${(receiptDetails.amount / 100).toFixed(2)}</div>
-                        
-                        <div className="text-muted-foreground">Status:</div>
-                        <div>
-                          <Badge variant={receiptDetails.status === 'generated' ? 'default' : 'secondary'}>
-                            {receiptDetails.status}
-                          </Badge>
+            ) : (
+              <div className="space-y-6">
+                {/* PRIMARY: Receipt Details */}
+                {receiptDetails ? (
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg bg-card">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Receipt Details
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Receipt #:</span>
+                          <span className="font-mono text-xs">{receiptDetails.receipt_number}</span>
                         </div>
-                        
-                        <div className="text-muted-foreground">Generated:</div>
-                        <div>{new Date(receiptDetails.generated_at).toLocaleString()}</div>
-                        
-                        {receiptDetails.sent_at && (
-                          <>
-                            <div className="text-muted-foreground">Sent:</div>
-                            <div>{new Date(receiptDetails.sent_at).toLocaleString()}</div>
-                          </>
-                        )}
-                        
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Amount:</span>
+                          <span className="font-semibold">${receiptDetails.amount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Email:</span>
+                          <span className="font-mono text-xs">{receiptDetails.sponsor_email}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Sent:</span>
+                          <span>{format(new Date(receiptDetails.generated_at || receiptDetails.created_at), 'MMM d, yyyy h:mm a')}</span>
+                        </div>
                         {receiptDetails.resend_email_id && (
-                          <>
-                            <div className="text-muted-foreground">Email ID:</div>
-                            <div className="font-mono text-xs">{receiptDetails.resend_email_id}</div>
-                          </>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Email ID:</span>
+                            <span className="font-mono text-xs">{receiptDetails.resend_email_id.slice(0, 20)}...</span>
+                          </div>
                         )}
-                      </div>
-                      
-                      <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground">
-                          This receipt was created manually. No automated audit logs are available.
-                        </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="text-center p-8 text-muted-foreground">
-                  No audit logs or receipt found for this transaction
-                </div>
-              )
-            ) : (
-              <div className="space-y-4">
-                {auditLogs.map((log) => (
-                  <Card key={log.id} className={log.status === 'failure' ? 'border-destructive' : ''}>
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1">
-                          {getStageIcon(log.stage, log.status)}
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold">{getStageName(log.stage)}</h4>
-                            <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
-                              {log.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(log.created_at).toLocaleString()}
-                          </p>
-                          {log.error_message && (
-                            <div className="mt-2 p-2 bg-destructive/10 rounded text-sm text-destructive">
-                              <strong>Error:</strong> {log.error_message}
+
+                    {/* SECONDARY: Process Logs */}
+                    {auditLogs.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-sm flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Generation Process Logs
+                        </h3>
+                        <div className="space-y-3">
+                          {auditLogs.map((log) => (
+                            <div key={log.id} className="border-l-2 border-primary/20 pl-4 py-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-medium">{log.stage.replace(/_/g, ' ').toUpperCase()}</span>
+                                <Badge variant={log.status === 'success' ? 'default' : log.status === 'error' ? 'destructive' : 'secondary'}>
+                                  {log.status}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(log.created_at), 'MMM d, yyyy h:mm a')}
+                              </p>
+                              {log.error_message && (
+                                <p className="text-xs text-destructive mt-1">{log.error_message}</p>
+                              )}
                             </div>
-                          )}
-                          {log.metadata && Object.keys(log.metadata).length > 0 && (
-                            <details className="mt-2">
-                              <summary className="text-sm cursor-pointer text-muted-foreground hover:text-foreground">
-                                View metadata
-                              </summary>
-                              <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
-                                {JSON.stringify(log.metadata, null, 2)}
-                              </pre>
-                            </details>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    )}
+
+                    {auditLogs.length === 0 && (
+                      <div className="p-3 border rounded-lg bg-muted/50">
+                        <p className="text-xs text-muted-foreground">
+                          Receipt created manually - no automated generation logs available
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No receipt found for this transaction
+                  </p>
+                )}
               </div>
             )}
           </ScrollArea>
