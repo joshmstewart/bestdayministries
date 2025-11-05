@@ -513,7 +513,9 @@ RECEIPT-STATUS:green-FileText[generated]|yellow-Clock[pending]
 AUDIT-LOGS:accessible-for-both-donations+sponsorships[NOT-restricted]
 CRITICAL-BUG:constraint-must-include-pending+completed→silent-failure-if-missing
 DIFFERENCES:vs-sponsorships[purpose|recipient|metadata:type='donation'|table|UI|receipts|year-end]
-DOC:DONATION_SYSTEM.md
+WEBHOOK-CRITICAL:MUST-configure-Stripe-webhooks→checkout.session.completed|customer.subscription.updated|customer.subscription.deleted|invoice.payment_succeeded→URL[https://nbvijawmjkycyweioglk.supabase.co/functions/v1/stripe-webhook]→secrets[STRIPE_WEBHOOK_SECRET_LIVE+STRIPE_WEBHOOK_SECRET_TEST]→without-webhooks-donations-stay-pending-forever
+MANUAL-RECOVERY:UPDATE-donations-status+INSERT-sponsorship_receipts+invoke-send-sponsorship-receipt
+DOC:DONATION_SYSTEM.md|WEBHOOK_CONFIGURATION_GUIDE.md
 
 ## HELP_CENTER
 ROUTE:/help
