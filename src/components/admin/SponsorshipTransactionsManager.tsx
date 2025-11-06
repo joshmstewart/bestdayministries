@@ -774,8 +774,16 @@ export const SponsorshipTransactionsManager = () => {
     setResendingReceipt(true);
     try {
       const { error } = await supabase.functions.invoke('send-sponsorship-receipt', {
-        body: { 
+        body: receiptDetails.sponsorship_id ? {
           sponsorshipId: receiptDetails.sponsorship_id,
+        } : {
+          // For donations, pass all receipt details directly
+          bestieName: receiptDetails.bestie_name || 'General Support',
+          sponsorEmail: receiptDetails.sponsor_email,
+          sponsorName: receiptDetails.sponsor_name,
+          amount: receiptDetails.amount,
+          frequency: receiptDetails.frequency,
+          transactionDate: receiptDetails.transaction_date || new Date().toISOString(),
         },
       });
 
