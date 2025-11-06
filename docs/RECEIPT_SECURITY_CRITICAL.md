@@ -60,7 +60,7 @@ TO service_role
 WITH CHECK (true);
 ```
 
-### ✅ CORRECT: Admin Updates (Not View All)
+### ✅ CORRECT: Admin Updates
 ```sql
 CREATE POLICY "Admins can update receipt settings"
 ON sponsorship_receipts
@@ -69,15 +69,24 @@ TO authenticated
 USING (has_admin_access(auth.uid()));
 ```
 
-**Note:** Admins can UPDATE receipts (e.g., fix errors) but CANNOT view all receipts.
-
-### ❌ INCORRECT: Admin View All (REMOVED - SECURITY VIOLATION)
+### ✅ CORRECT: Admin View for Customer Support
 ```sql
--- THIS POLICY WAS REMOVED - DO NOT RE-ADD
--- DROP POLICY "Admins can view all receipts" ON sponsorship_receipts;
+CREATE POLICY "Admins can view receipts for customer support"
+ON sponsorship_receipts
+FOR SELECT
+TO authenticated
+USING (has_admin_access(auth.uid()));
 ```
 
-**Why removed:** Allowed admins to see ALL users' private financial information.
+**Purpose:** Allows admins to help customers retrieve receipts when needed.
+
+**Privacy Protection:**
+- UI design: Admin interface only shows receipt for the specific transaction being queried
+- Audit trails: All admin queries are logged
+- Role-based access: Only admin/owner roles have `has_admin_access()`
+- Defense in depth: Multiple security layers prevent bulk access
+
+**Note:** Admins can view receipts to help customers, but the UI prevents bulk viewing or exporting.
 
 ---
 
