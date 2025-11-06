@@ -31,16 +31,60 @@ serve(async (req) => {
       throw new Error("No email in webhook payload");
     }
 
-    // Skip analytics for non-newsletter emails (contact form, notifications, etc.)
-    if (!campaignId) {
-      console.log("Skipping analytics for non-newsletter email:", {
-        from: data.from,
-        to: email,
-        subject: data.subject,
-        type
+    // Map Resend event types to our status values
+    const eventTypeMap: Record<string, string> = {
+      "email.sent": "sent",
+      "email.delivered": "delivered",
+      "email.opened": "opened",
+      "email.clicked": "clicked",
+      "email.bounced": "bounced",
+      "email.complained": "complained",
+      "email.delivery_delayed": "pending",
+      "email.failed": "failed",
+    };
+
+    const eventType = eventTypeMap[type];
+    if (!eventType) {
+      console.log("Unhandled event type:", type);
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Update email_audit_log for ALL emails (receipts, notifications, etc.)
+    if (data.email_id) {
+      const updateData: any = {
+        status: eventType,
+      };
+
+      // Add delivery timestamp for delivered status
+      if (eventType === "delivered") {
+        updateData.sent_at = new Date().toISOString();
+      }
+
+      // Add error message for bounces and failures
+      if (eventType === "bounced" || eventType === "failed") {
+        updateData.error_message = data.error || data.bounce_type || "Email delivery failed";
+      }
+
+      // Update the email_audit_log record
+      const { error: auditError } = await supabaseClient
+        .from("email_audit_log")
+        .update(updateData)
+        .eq("resend_email_id", data.email_id);
+
+      if (auditError) {
+        console.error("Error updating email_audit_log:", auditError);
+      } else {
+        console.log("Updated email_audit_log:", { email_id: data.email_id, status: eventType });
+      }
+    }
+
+    // Skip newsletter analytics for non-newsletter emails
+    if (!campaignId) {
+      console.log("Email audit log updated, skipping newsletter analytics");
       return new Response(
-        JSON.stringify({ received: true, skipped: "non-newsletter email" }),
+        JSON.stringify({ received: true, audit_updated: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -57,23 +101,7 @@ serve(async (req) => {
       finalSubscriberId = subscriber?.id;
     }
 
-    // Map Resend event types to our event types
-    const eventTypeMap: Record<string, string> = {
-      "email.sent": "sent",
-      "email.delivered": "delivered",
-      "email.opened": "opened",
-      "email.clicked": "clicked",
-      "email.bounced": "bounced",
-      "email.complained": "complained",
-    };
-
-    const eventType = eventTypeMap[type];
-    if (!eventType) {
-      console.log("Unhandled event type:", type);
-      return new Response(JSON.stringify({ received: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Newsletter-specific analytics processing
 
     // Prepare analytics data
     const analyticsData: any = {

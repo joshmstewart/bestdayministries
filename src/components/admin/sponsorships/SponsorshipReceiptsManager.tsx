@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, CheckCircle2, RefreshCw } from "lucide-react";
+import { Loader2, Mail, CheckCircle2, RefreshCw, XCircle, AlertCircle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -352,16 +352,27 @@ export const SponsorshipReceiptsManager = () => {
                       >
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center gap-2">
-                            {log.status === 'sent' ? (
+                            {log.status === 'delivered' ? (
                               <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            ) : log.status === 'opened' ? (
+                              <Mail className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            ) : log.status === 'bounced' ? (
+                              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                            ) : log.status === 'complained' ? (
+                              <AlertCircle className="h-4 w-4 text-orange-500 flex-shrink-0" />
                             ) : log.status === 'failed' ? (
-                              <Mail className="h-4 w-4 text-red-500 flex-shrink-0" />
+                              <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                            ) : log.status === 'sent' ? (
+                              <Clock className="h-4 w-4 text-yellow-500 flex-shrink-0" />
                             ) : (
-                              <Mail className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                              <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
                             )}
                             <p className="font-medium truncate">
                               {log.recipient_name || log.recipient_email}
                             </p>
+                            {log.status === 'sent' && (
+                              <span className="text-xs text-muted-foreground">(pending delivery)</span>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground truncate">
                             {log.recipient_email}
@@ -384,10 +395,21 @@ export const SponsorshipReceiptsManager = () => {
                               </Badge>
                             )}
                             <Badge 
-                              variant={log.status === 'sent' ? 'default' : log.status === 'failed' ? 'destructive' : 'secondary'}
+                              variant={
+                                log.status === 'delivered' ? 'default' : 
+                                log.status === 'opened' ? 'default' :
+                                log.status === 'bounced' || log.status === 'failed' || log.status === 'complained' ? 'destructive' : 
+                                'secondary'
+                              }
                               className="text-xs"
                             >
-                              {log.status}
+                              {log.status === 'sent' ? 'Sent (pending)' : 
+                               log.status === 'delivered' ? 'Delivered' :
+                               log.status === 'opened' ? 'Opened' :
+                               log.status === 'bounced' ? 'Bounced' :
+                               log.status === 'complained' ? 'Spam' :
+                               log.status === 'failed' ? 'Failed' :
+                               log.status}
                             </Badge>
                             {metadata.receipt_number && (
                               <Badge variant="outline" className="text-xs">
