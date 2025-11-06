@@ -777,13 +777,15 @@ export const SponsorshipTransactionsManager = () => {
         body: receiptDetails.sponsorship_id ? {
           sponsorshipId: receiptDetails.sponsorship_id,
         } : {
-          // For donations, pass all receipt details directly
-          bestieName: receiptDetails.bestie_name || 'General Support',
+          // For donations, pass all receipt details directly from receipt record
           sponsorEmail: receiptDetails.sponsor_email,
-          sponsorName: receiptDetails.sponsor_name,
-          amount: receiptDetails.amount,
+          sponsorName: receiptDetails.sponsor_name || undefined,
+          bestieName: receiptDetails.bestie_name || 'General Support',
+          amount: parseFloat(receiptDetails.amount),
           frequency: receiptDetails.frequency,
-          transactionDate: receiptDetails.transaction_date || new Date().toISOString(),
+          transactionId: receiptDetails.transaction_id || receiptDetails.id,
+          transactionDate: receiptDetails.sent_at || receiptDetails.created_at,
+          stripeMode: receiptDetails.stripe_mode || 'live',
         },
       });
 
