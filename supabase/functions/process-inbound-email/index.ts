@@ -171,28 +171,8 @@ Deno.serve(async (req) => {
       
       console.log('[process-inbound-email] New submission created:', newSubmission.id);
       
-      // Notify admins about new email submission
-      const { data: adminUsers, error: adminsError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['admin', 'owner']);
-
-      if (!adminsError && adminUsers) {
-        for (const admin of adminUsers) {
-          await supabase.from('notifications').insert({
-            user_id: admin.user_id,
-            type: 'contact_form_submission',
-            title: 'New Email Received',
-            message: `${senderName} (${senderEmail}) sent an email`,
-            link: '/admin?tab=messages',
-            metadata: {
-              submission_id: newSubmission.id,
-              sender_email: senderEmail,
-              source: 'email'
-            },
-          });
-        }
-      }
+      // Note: No notification created here - the contact form submission itself
+      // serves as the notification in the contact form UI (badge counter shows new submissions)
       
       return new Response(
         JSON.stringify({ 
@@ -235,28 +215,9 @@ Deno.serve(async (req) => {
 
     console.log('[process-inbound-email] Reply saved successfully');
 
-    // Notify admins about new user reply
-    const { data: adminUsers, error: adminsError } = await supabase
-      .from('user_roles')
-      .select('user_id')
-      .in('role', ['admin', 'owner']);
-
-    if (!adminsError && adminUsers) {
-      for (const admin of adminUsers) {
-        await supabase.from('notifications').insert({
-          user_id: admin.user_id,
-          type: 'contact_form_reply',
-          title: 'New Contact Form Reply',
-          message: `${matchedSubmission.name} replied to their message`,
-          link: '/admin?tab=messages',
-          metadata: {
-            submission_id: matchedSubmission.id,
-            sender_email: senderEmail,
-          },
-        });
-      }
-    }
-
+    // Note: No notification created here - the contact form reply
+    // shows up in the contact form UI with red dot + badge (unread_user_replies counter)
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
