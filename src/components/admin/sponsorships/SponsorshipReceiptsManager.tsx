@@ -38,6 +38,22 @@ export const SponsorshipReceiptsManager = () => {
     },
   });
 
+  // Fetch email audit log for all receipt emails
+  const { data: emailLogs } = useQuery({
+    queryKey: ['receipt-email-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('email_audit_log')
+        .select('*')
+        .eq('email_type', 'receipt')
+        .order('sent_at', { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Fetch active sponsorships without receipts
   const { data: sponsorshipsWithoutReceipts, isLoading, refetch } = useQuery({
     queryKey: ['sponsorships-without-receipts'],
@@ -173,6 +189,7 @@ export const SponsorshipReceiptsManager = () => {
           <TabsList>
             <TabsTrigger value="missing">Missing Receipts</TabsTrigger>
             <TabsTrigger value="log">Receipt Log</TabsTrigger>
+            <TabsTrigger value="emails">Email Log</TabsTrigger>
           </TabsList>
 
           <TabsContent value="missing" className="space-y-4">
@@ -300,6 +317,99 @@ export const SponsorshipReceiptsManager = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="emails" className="space-y-4">
+            {!emailLogs?.length ? (
+              <p className="text-sm text-muted-foreground">
+                No receipt emails have been sent yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Badge variant="outline" className="bg-blue-100">
+                    {emailLogs.length}
+                  </Badge>
+                  <span className="text-sm text-blue-800">
+                    total receipt email{emailLogs.length !== 1 ? 's' : ''} sent
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {emailLogs.map((log: any) => {
+                    const metadata = log.metadata || {};
+                    const isMonthly = metadata.frequency === 'monthly';
+                    const isResend = log.related_id && recentReceipts?.some(
+                      r => (r.sponsorship_id === log.related_id || r.transaction_id === log.related_id)
+                    );
+                    
+                    return (
+                      <div
+                        key={log.id}
+                        className="flex items-start justify-between p-4 border rounded-lg gap-4"
+                      >
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2">
+                            {log.status === 'sent' ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            ) : log.status === 'failed' ? (
+                              <Mail className="h-4 w-4 text-red-500 flex-shrink-0" />
+                            ) : (
+                              <Mail className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                            )}
+                            <p className="font-medium truncate">
+                              {log.recipient_name || log.recipient_email}
+                            </p>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {log.recipient_email}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs">
+                              {metadata.bestie_name || 'General Support'}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              ${metadata.amount} / {metadata.frequency}
+                            </Badge>
+                            {isMonthly && (
+                              <Badge variant="outline" className="text-xs bg-blue-50">
+                                Monthly
+                              </Badge>
+                            )}
+                            {isResend && (
+                              <Badge variant="outline" className="text-xs bg-yellow-50">
+                                Resend
+                              </Badge>
+                            )}
+                            <Badge 
+                              variant={log.status === 'sent' ? 'default' : log.status === 'failed' ? 'destructive' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {log.status}
+                            </Badge>
+                            {metadata.receipt_number && (
+                              <Badge variant="outline" className="text-xs">
+                                {metadata.receipt_number}
+                              </Badge>
+                            )}
+                          </div>
+                          {log.error_message && (
+                            <p className="text-xs text-destructive mt-1">
+                              Error: {log.error_message}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground text-right whitespace-nowrap">
+                          {format(new Date(log.sent_at), 'MMM d, yyyy')}
+                          <br />
+                          {format(new Date(log.sent_at), 'h:mm a')}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </TabsContent>
