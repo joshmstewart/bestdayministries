@@ -8,6 +8,7 @@ import { Loader2, Mail, CheckCircle2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
+import { BulkReceiptGenerator } from "./BulkReceiptGenerator";
 
 export const SponsorshipReceiptsManager = () => {
   const { toast } = useToast();
@@ -175,6 +176,8 @@ export const SponsorshipReceiptsManager = () => {
           </TabsList>
 
           <TabsContent value="missing" className="space-y-4">
+            <BulkReceiptGenerator />
+            
         {!sponsorshipsWithoutReceipts?.length ? (
           <p className="text-sm text-muted-foreground">
             All active sponsorships have receipts. Great job! 🎉
