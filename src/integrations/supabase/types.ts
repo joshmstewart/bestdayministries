@@ -4145,6 +4145,72 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          customer_email: string | null
+          customer_id: string | null
+          error_message: string | null
+          error_stack: string | null
+          event_id: string
+          event_type: string
+          http_status_code: number | null
+          id: string
+          metadata: Json | null
+          processing_duration_ms: number | null
+          processing_status: string
+          processing_steps: Json | null
+          raw_event: Json
+          related_record_id: string | null
+          related_record_type: string | null
+          retry_count: number | null
+          stripe_mode: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          error_message?: string | null
+          error_stack?: string | null
+          event_id: string
+          event_type: string
+          http_status_code?: number | null
+          id?: string
+          metadata?: Json | null
+          processing_duration_ms?: number | null
+          processing_status?: string
+          processing_steps?: Json | null
+          raw_event: Json
+          related_record_id?: string | null
+          related_record_type?: string | null
+          retry_count?: number | null
+          stripe_mode: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          error_message?: string | null
+          error_stack?: string | null
+          event_id?: string
+          event_type?: string
+          http_status_code?: number | null
+          id?: string
+          metadata?: Json | null
+          processing_duration_ms?: number | null
+          processing_status?: string
+          processing_steps?: Json | null
+          raw_event?: Json
+          related_record_id?: string | null
+          related_record_type?: string | null
+          retry_count?: number | null
+          stripe_mode?: string
+        }
+        Relationships: []
+      }
       support_page_sections: {
         Row: {
           content: Json | null
