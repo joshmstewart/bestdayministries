@@ -164,7 +164,7 @@ serve(async (req) => {
         } else {
           console.log(`   ⚠️ Missing metadata amount - cannot verify/update`);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`\n❌ Error processing sponsorship ${sponsorship.id}:`);
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         console.error(`   Stripe ID: ${sponsorship.stripe_subscription_id}`);
@@ -200,7 +200,7 @@ serve(async (req) => {
         status: 200,
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error recalculating amounts:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
