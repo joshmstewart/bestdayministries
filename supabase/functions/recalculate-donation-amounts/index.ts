@@ -77,29 +77,45 @@ serve(async (req) => {
           limit: 10,
         });
 
-        console.log(`💰 Donation ${donation.id} (base: $${donation.amount}, recorded: $${donation.amount_charged})`);
+        const expectedWithFees = (donation.amount + 0.30) / 0.971;
+        
+        console.log(`💰 Donation ${donation.id}`);
+        console.log(`   Base amount: $${donation.amount.toFixed(2)}`);
+        console.log(`   Currently recorded: $${donation.amount_charged.toFixed(2)}`);
+        console.log(`   Expected with fees: $${expectedWithFees.toFixed(2)}`);
         console.log(`   Found ${charges.data.length} charges in time window`);
+
+        if (charges.data.length > 0) {
+          console.log(`   Charge amounts found: ${charges.data.map((c: Stripe.Charge) => `$${(c.amount / 100).toFixed(2)}`).join(', ')}`);
+        }
 
         // Find the charge that matches this donation amount
         const matchingCharge = charges.data.find((charge: Stripe.Charge) => {
           const chargeAmount = charge.amount / 100;
           
-          // Calculate what the fee-covered amount should be: (amount + 0.30) / 0.971
-          const expectedWithFees = (donation.amount + 0.30) / 0.971;
-          
           // Match if within $1 of expected fee-covered amount OR base amount OR current recorded amount
-          return Math.abs(chargeAmount - expectedWithFees) < 1 || 
-                 Math.abs(chargeAmount - donation.amount) < 1 ||
-                 Math.abs(chargeAmount - donation.amount_charged) < 1;
+          const matchesExpected = Math.abs(chargeAmount - expectedWithFees) < 1;
+          const matchesBase = Math.abs(chargeAmount - donation.amount) < 1;
+          const matchesRecorded = Math.abs(chargeAmount - donation.amount_charged) < 1;
+          
+          if (matchesExpected || matchesBase || matchesRecorded) {
+            console.log(`   🎯 Matched charge: $${chargeAmount.toFixed(2)} (expected: ${matchesExpected}, base: ${matchesBase}, recorded: ${matchesRecorded})`);
+          }
+          
+          return matchesExpected || matchesBase || matchesRecorded;
         });
 
         if (matchingCharge) {
           const actualCharged = matchingCharge.amount / 100;
+          const difference = actualCharged - donation.amount_charged;
           
           // Only update if the recorded amount is wrong
-          if (Math.abs(donation.amount_charged - actualCharged) > 0.01) {
-            console.log(`   ✅ FOUND: Actual charged $${actualCharged} vs recorded $${donation.amount_charged}`);
-            console.log(`   🔧 Updating amount_charged: $${donation.amount_charged} → $${actualCharged}`);
+          if (Math.abs(difference) > 0.01) {
+            console.log(`   ✅ UPDATE NEEDED:`);
+            console.log(`      Before: $${donation.amount_charged.toFixed(2)}`);
+            console.log(`      After:  $${actualCharged.toFixed(2)}`);
+            console.log(`      Difference: ${difference >= 0 ? '+' : ''}$${difference.toFixed(2)}`);
+            console.log(`      Stripe Charge ID: ${matchingCharge.id}`);
             
             const { error: updateError } = await supabaseAdmin
               .from('donations')
@@ -107,8 +123,10 @@ serve(async (req) => {
               .eq('id', donation.id);
 
             if (updateError) {
-              console.error(`   ❌ Failed to update ${donation.id}:`, updateError);
+              console.error(`   ❌ Failed to update donation:`, updateError);
             } else {
+              console.log(`   ✅ Donation record updated successfully`);
+              
               updates.push({
                 id: donation.id,
                 oldAmount: donation.amount_charged,
@@ -125,14 +143,17 @@ serve(async (req) => {
               if (receiptError) {
                 console.log(`   ⚠️ No receipt found or failed to update receipt`);
               } else {
-                console.log(`   ✅ Receipt updated`);
+                console.log(`   ✅ Receipt updated to $${actualCharged.toFixed(2)}`);
               }
             }
           } else {
-            console.log(`   ✅ Amount already correct ($${actualCharged})`);
+            console.log(`   ✅ Amount already correct: $${actualCharged.toFixed(2)} (no update needed)`);
           }
         } else {
-          console.log(`   ⚠️ No matching charge found for this donation`);
+          console.log(`   ⚠️ NO MATCH FOUND - None of the ${charges.data.length} charges matched within tolerance`);
+          if (charges.data.length > 0) {
+            console.log(`   💡 Closest charge: $${charges.data.map((c: Stripe.Charge) => c.amount / 100).sort((a: number, b: number) => Math.abs(a - donation.amount) - Math.abs(b - donation.amount))[0].toFixed(2)}`);
+          }
         }
       } catch (error) {
         console.error(`❌ Error processing donation ${donation.id}:`, error);
