@@ -448,6 +448,19 @@ export default function GuardianLinks() {
         .select("sponsor_bestie_id, stripe_mode, current_monthly_pledges, monthly_goal")
         .in("sponsor_bestie_id", sponsorBestieIds);
 
+      // Load ALL active sponsorships for these sponsor besties (from ALL users)
+      // This is needed to correctly calculate stable vs ending amounts for progress bars
+      let allBestieSponsorships: any[] = [];
+      if (sponsorBestieIds.length > 0) {
+        const { data: allBestieSponsData } = await supabase
+          .from("sponsorships")
+          .select("sponsor_bestie_id, frequency, amount, status, stripe_mode, ended_at")
+          .in("sponsor_bestie_id", sponsorBestieIds)
+          .eq("status", "active");
+        
+        allBestieSponsorships = allBestieSponsData || [];
+      }
+
       // Combine the data
       const transformedData = allSponsorships
         .map((sponsorship: any) => {
@@ -526,7 +539,8 @@ export default function GuardianLinks() {
       const stableAmountsByBestieAndMode = new Map<string, number>();
       const endingAmountsByBestieAndMode = new Map<string, number>();
       
-      allSponsorships.forEach((s: any) => {
+      // Use ALL besties' sponsorships (from all users) to correctly calculate stable/ending amounts
+      allBestieSponsorships.forEach((s: any) => {
         const bestieKey = s.sponsor_bestie_id || s.bestie_id;
         if (!bestieKey) return;
         
