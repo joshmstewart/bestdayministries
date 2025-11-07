@@ -78,13 +78,21 @@ serve(async (req) => {
           console.log(`   Type: Subscription`);
           const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
           
-          coverStripeFee = subscription.metadata?.coverStripeFee === 'true';
-          metadataAmount = subscription.metadata?.amount ? parseFloat(subscription.metadata.amount) : null;
-          methodUsed = 'subscription_metadata';
-          determinedAmount = metadataAmount;
-          
-          console.log(`   Cover fees: ${coverStripeFee}`);
-          console.log(`   Metadata amount: $${metadataAmount?.toFixed(2) || 'N/A'}`);
+          // Get the actual subscription price amount (source of truth)
+          const subscriptionItemPrice = subscription.items.data[0]?.price?.unit_amount;
+          if (subscriptionItemPrice) {
+            determinedAmount = subscriptionItemPrice / 100;
+            methodUsed = 'subscription_price_amount';
+            console.log(`   ✅ Using subscription price: $${determinedAmount.toFixed(2)}`);
+          } else {
+            // Fallback to metadata if price not available
+            coverStripeFee = subscription.metadata?.coverStripeFee === 'true';
+            metadataAmount = subscription.metadata?.amount ? parseFloat(subscription.metadata.amount) : null;
+            methodUsed = 'subscription_metadata';
+            determinedAmount = metadataAmount;
+            console.log(`   Cover fees: ${coverStripeFee}`);
+            console.log(`   Metadata amount: $${metadataAmount?.toFixed(2) || 'N/A'}`);
+          }
         } else if (sponsorship.stripe_subscription_id.startsWith('pi_')) {
           // It's a payment intent - use sophisticated fallback chain
           console.log(`   Type: Payment Intent (one-time)`);
@@ -256,26 +264,24 @@ serve(async (req) => {
           continue;
         }
 
-        // CRITICAL: If coverStripeFee was true, the metadataAmount is the BASE amount
-        // We need to calculate UP to the full amount, not use metadata directly
-        if (coverStripeFee && metadataAmount) {
-          // Calculate the FULL amount from the base amount stored in metadata
-          const expectedWithFees = (metadataAmount + 0.30) / 0.971;
-          const difference = expectedWithFees - sponsorship.amount;
+        // Update logic: compare determined amount with stored amount
+        if (determinedAmount && determinedAmount > 0) {
+          const difference = determinedAmount - sponsorship.amount;
           
-          console.log(`   Expected with fees: $${expectedWithFees.toFixed(2)}`);
+          console.log(`   Expected amount: $${determinedAmount.toFixed(2)}`);
+          console.log(`   Current amount: $${sponsorship.amount.toFixed(2)}`);
           console.log(`   Difference: ${difference >= 0 ? '+' : ''}$${difference.toFixed(2)}`);
           
-          // Only update if the stored amount doesn't match the full amount
+          // Only update if there's a significant difference
           if (Math.abs(difference) > 0.01) {
             console.log(`   ✅ UPDATE NEEDED:`);
             console.log(`      Before: $${sponsorship.amount.toFixed(2)}`);
-            console.log(`      After:  $${expectedWithFees.toFixed(2)}`);
-            console.log(`      Base amount: $${metadataAmount.toFixed(2)}`);
+            console.log(`      After:  $${determinedAmount.toFixed(2)}`);
+            console.log(`      Method: ${methodUsed}`);
             
             const { error: updateError } = await supabaseAdmin
               .from('sponsorships')
-              .update({ amount: parseFloat(expectedWithFees.toFixed(2)) })
+              .update({ amount: parseFloat(determinedAmount.toFixed(2)) })
               .eq('id', sponsorship.id);
 
             if (updateError) {
@@ -285,44 +291,14 @@ serve(async (req) => {
               updates.push({
                 id: sponsorship.id,
                 oldAmount: sponsorship.amount,
-                newAmount: parseFloat(expectedWithFees.toFixed(2))
-              });
-            }
-          } else {
-            console.log(`   ✅ Amount already correct (no update needed)`);
-          }
-        } else if (!coverStripeFee && metadataAmount) {
-          // If fees NOT covered, metadata amount IS the correct amount
-          const difference = metadataAmount - sponsorship.amount;
-          
-          console.log(`   Expected (no fees): $${metadataAmount.toFixed(2)}`);
-          console.log(`   Difference: ${difference >= 0 ? '+' : ''}$${difference.toFixed(2)}`);
-          
-          if (Math.abs(difference) > 0.01) {
-            console.log(`   ✅ UPDATE NEEDED:`);
-            console.log(`      Before: $${sponsorship.amount.toFixed(2)}`);
-            console.log(`      After:  $${metadataAmount.toFixed(2)}`);
-            
-            const { error: updateError } = await supabaseAdmin
-              .from('sponsorships')
-              .update({ amount: metadataAmount })
-              .eq('id', sponsorship.id);
-
-            if (updateError) {
-              console.error(`   ❌ Failed to update:`, updateError);
-            } else {
-              console.log(`   ✅ Sponsorship record updated successfully`);
-              updates.push({
-                id: sponsorship.id,
-                oldAmount: sponsorship.amount,
-                newAmount: metadataAmount
+                newAmount: parseFloat(determinedAmount.toFixed(2))
               });
             }
           } else {
             console.log(`   ✅ Amount already correct (no update needed)`);
           }
         } else {
-          console.log(`   ⚠️ Missing metadata amount - cannot verify/update`);
+          console.log(`   ⚠️ Could not determine correct amount - skipping update`);
         }
       } catch (error: unknown) {
         console.error(`\n❌ Error processing sponsorship ${sponsorship.id}:`);
