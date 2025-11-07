@@ -242,7 +242,7 @@ export const SponsorshipTransactionsManager = () => {
           sponsor_email: d.donor_email,
           bestie_id: null,
           sponsor_bestie_id: null,
-          amount: d.amount,
+          amount: d.amount_charged || d.amount,
           frequency: d.frequency,
           status: d.status,
           stripe_subscription_id: d.stripe_subscription_id,

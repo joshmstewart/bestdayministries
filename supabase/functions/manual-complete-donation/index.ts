@@ -108,13 +108,14 @@ serve(async (req) => {
 
     // Create receipt record
     const transactionId = stripePaymentIntentId || `manual-${Date.now()}`;
+    const receiptAmount = donation.amount_charged || donation.amount;
     const { data: receiptRecord, error: receiptError } = await supabaseAdmin
       .from('sponsorship_receipts')
       .insert({
         sponsor_email: donorEmail,
         sponsor_name: donorEmail.split('@')[0],
         bestie_name: 'General Support',
-        amount: donation.amount,
+        amount: receiptAmount,
         frequency: donation.frequency,
         transaction_id: transactionId,
         transaction_date: new Date().toISOString(),
@@ -163,7 +164,7 @@ serve(async (req) => {
           body: JSON.stringify({
             sponsorEmail: donorEmail,
             bestieName: 'General Support',
-            amount: donation.amount,
+            amount: receiptAmount,
             frequency: donation.frequency,
             transactionId: transactionId,
             transactionDate: new Date().toISOString(),
