@@ -73,6 +73,7 @@ interface TextSection {
 interface Sponsorship {
   id: string;
   bestie_id: string;
+  sponsor_bestie_id?: string;
   amount: number;
   frequency: string;
   status: string;
@@ -82,6 +83,7 @@ interface Sponsorship {
   stripe_mode: string;
   is_shared?: boolean;
   shared_by?: string;
+  total_ending_amount?: number;
   bestie: {
     display_name: string;
     avatar_number: number;
@@ -519,7 +521,23 @@ export default function GuardianLinks() {
         })
         .filter(s => s !== null) as Sponsorship[];
 
-      setSponsorships(transformedData);
+      // Calculate total ending amounts per bestie (for one-time sponsorships)
+      const endingAmountsByBestie = new Map<string, number>();
+      allSponsorships.forEach((s: any) => {
+        const bestieKey = s.sponsor_bestie_id || s.bestie_id;
+        if (bestieKey && s.frequency === 'one-time' && s.ended_at && new Date(s.ended_at) > new Date()) {
+          const current = endingAmountsByBestie.get(bestieKey) || 0;
+          endingAmountsByBestie.set(bestieKey, current + s.amount);
+        }
+      });
+
+      // Attach ending amounts to transformed data
+      const finalData = transformedData.map(s => ({
+        ...s,
+        total_ending_amount: endingAmountsByBestie.get(s.sponsor_bestie_id || s.bestie_id) || 0
+      }));
+
+      setSponsorships(finalData);
     } catch (error: any) {
       toast({
         title: "Error loading sponsorships",
@@ -1546,12 +1564,7 @@ export default function GuardianLinks() {
                                 <FundingProgressBar
                                   currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
                                   goalAmount={sponsorship.featured_bestie.monthly_goal}
-                                  endingAmount={
-                                    sponsorship.ended_at && 
-                                    new Date(sponsorship.ended_at) > new Date()
-                                      ? sponsorship.amount 
-                                      : 0
-                                  }
+                                  endingAmount={sponsorship.total_ending_amount || 0}
                                   className="mt-4"
                                 />
                               )}
@@ -1658,7 +1671,7 @@ export default function GuardianLinks() {
                               <FundingProgressBar
                                 currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
                                 goalAmount={sponsorship.featured_bestie.monthly_goal}
-                                endingAmount={0}
+                                endingAmount={sponsorship.total_ending_amount || 0}
                                 className="mt-4"
                               />
                             )}
