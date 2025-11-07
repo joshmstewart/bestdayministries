@@ -522,20 +522,49 @@ async function processDonationCheckout(
   }
 
   const user = authData.users.find((u: any) => u.email === customerEmail);
-  const amount = session.amount_total ? session.amount_total / 100 : 0;
+  const amountCharged = session.amount_total ? session.amount_total / 100 : 0;
   
   if (session.mode === "payment") {
-    await logStep('processing_one_time_donation', 'info', { amount });
+    await logStep('processing_one_time_donation', 'info', { amount_charged: amountCharged });
     
-    const { data: donationData, error: updateError } = await supabaseAdmin
+    // First try exact match (for donations without fee coverage)
+    let { data: donationData, error: updateError } = await supabaseAdmin
       .from("donations")
-      .update({ status: "completed" })
+      .update({ 
+        status: "completed",
+        amount_charged: amountCharged
+      })
       .eq("donor_email", customerEmail)
-      .eq("amount", amount)
+      .eq("amount", amountCharged)
       .eq("frequency", "one-time")
       .eq("status", "pending")
       .select()
-      .single();
+      .maybeSingle();
+
+    // If no match, calculate base amount (reverse fee coverage formula)
+    if (!donationData && !updateError) {
+      const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
+      await logStep('trying_base_amount_match', 'info', { 
+        amount_charged: amountCharged, 
+        calculated_base: baseAmount 
+      });
+      
+      const result = await supabaseAdmin
+        .from("donations")
+        .update({ 
+          status: "completed",
+          amount_charged: amountCharged
+        })
+        .eq("donor_email", customerEmail)
+        .eq("amount", baseAmount)
+        .eq("frequency", "one-time")
+        .eq("status", "pending")
+        .select()
+        .single();
+      
+      donationData = result.data;
+      updateError = result.error;
+    }
 
     if (updateError) {
       await logStep('donation_update_failed', 'error', { error: updateError.message });
@@ -560,7 +589,7 @@ async function processDonationCheckout(
         sponsor_email: customerEmail,
         sponsor_name: customerEmail.split('@')[0],
         bestie_name: 'General Support',
-        amount,
+        amount: donationData.amount, // Use base amount for receipt
         frequency: 'one-time',
         transaction_id: session.id,
         transaction_date: new Date().toISOString(),
@@ -574,21 +603,50 @@ async function processDonationCheckout(
   } else if (session.mode === "subscription" && session.subscription) {
     const subscriptionId = session.subscription as string;
     
-    await logStep('processing_monthly_donation', 'info', { amount, subscription_id: subscriptionId });
+    await logStep('processing_monthly_donation', 'info', { amount_charged: amountCharged, subscription_id: subscriptionId });
     
-    const { data: donationData, error: updateError } = await supabaseAdmin
+    // First try exact match (for donations without fee coverage)
+    let { data: donationData, error: updateError } = await supabaseAdmin
       .from("donations")
       .update({
         status: "active",
         stripe_subscription_id: subscriptionId,
         started_at: new Date().toISOString(),
+        amount_charged: amountCharged
       })
       .eq("donor_email", customerEmail)
-      .eq("amount", amount)
+      .eq("amount", amountCharged)
       .eq("frequency", "monthly")
       .eq("status", "pending")
       .select()
-      .single();
+      .maybeSingle();
+
+    // If no match, calculate base amount (reverse fee coverage formula)
+    if (!donationData && !updateError) {
+      const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
+      await logStep('trying_base_amount_match', 'info', { 
+        amount_charged: amountCharged, 
+        calculated_base: baseAmount 
+      });
+      
+      const result = await supabaseAdmin
+        .from("donations")
+        .update({
+          status: "active",
+          stripe_subscription_id: subscriptionId,
+          started_at: new Date().toISOString(),
+          amount_charged: amountCharged
+        })
+        .eq("donor_email", customerEmail)
+        .eq("amount", baseAmount)
+        .eq("frequency", "monthly")
+        .eq("status", "pending")
+        .select()
+        .single();
+      
+      donationData = result.data;
+      updateError = result.error;
+    }
 
     if (updateError) {
       await logStep('donation_update_failed', 'error', { error: updateError.message });
@@ -613,7 +671,7 @@ async function processDonationCheckout(
         sponsor_email: customerEmail,
         sponsor_name: customerEmail.split('@')[0],
         bestie_name: 'General Support',
-        amount,
+        amount: donationData.amount, // Use base amount for receipt
         frequency: 'monthly',
         transaction_id: session.id,
         transaction_date: new Date().toISOString(),
