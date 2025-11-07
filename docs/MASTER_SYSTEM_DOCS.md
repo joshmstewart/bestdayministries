@@ -317,7 +317,18 @@ EDGE-FUNCTIONS:
   generate-receipts[POST]→monthly-batch→previous-month-transactions→auto-generate-all-receipts
   generate-year-end-summary[POST]→annual-batch→previous-year-totals→send-summary-emails
 
-CRITICAL-DUPLICATE-EMAIL-PREVENTION:
+CRITICAL-AMOUNT-STORAGE:
+  ALWAYS-store-FULL-amount-including-Stripe-fees→all-database-records-reflect-total-received
+  create-sponsorship-checkout→calculates-finalAmount=(baseAmount+0.30)/0.971→stores-in-metadata[amount=finalAmount|baseAmount=baseAmount]
+  verify-sponsorship-payment→reads-metadata.amount→stores-FULL-amount-in-sponsorships-table
+  stripe-webhook→uses-amount_total/amount_paid→stores-FULL-amount-automatically
+  NEVER-store-base-amount-only→would-underreport-revenue-and-funding-progress
+  
+HISTORICAL-DATA-FIX:
+  recalculate-sponsorship-amounts→admin-tool→Transactions-tab→Recalculate-Full-Amounts-button
+  PROCESS:reads-Stripe-subscription-metadata→checks-coverStripeFee+baseAmount→recalculates-full-amount→updates-sponsorships-and-receipts
+  USE-CASE:fixes-records-created-before-full-amount-storage-was-implemented
+  SAFE:only-updates-records-where-stored-amount-differs-from-calculated-full-amount
   FRONTEND-IDEMPOTENCY:SponsorshipSuccess.tsx→verificationInProgress-useRef→prevents-React-Strict-Mode-double-calls
   BACKEND-IDEMPOTENCY:verify-sponsorship-payment→INSERT-placeholder-receipt-FIRST→transaction_id-unique-constraint→claim-transaction→one-process-wins→only-one-email
   PATTERN:distributed-locking-via-database-constraint→INSERT-attempt→23505-error-code→early-exit→race-condition-eliminated
@@ -616,18 +627,20 @@ ROUTE:/support
 DB:donations[CRITICAL-CONSTRAINT-must-allow:pending+completed+active+cancelled+paused]
 WORKFLOW:select-frequency+amount→email→terms→Stripe→success
 GUEST:donor_email→link-on-signup
-EDGE:create-donation-checkout[creates-pending]|stripe-webhook[updates-to-completed-or-active]
+EDGE:create-donation-checkout[creates-pending]|stripe-webhook[updates-to-completed-or-active]|recalculate-sponsorship-amounts[admin-tool-fix-historical-amounts]
 STATUS:One-Time[pending→completed]|Monthly[pending→active→cancelled]
 STRIPE-IDS:stripe_customer_id[ALWAYS-set-both-types]|stripe_subscription_id[ONLY-monthly]
 FEE-COVERAGE:(amt+0.30)/0.971
-ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships]
-ACTIONS:copy-customer-id|open-stripe-customer|view-receipt-logs|delete-test
+CRITICAL-AMOUNT-STORAGE:ALWAYS-store-FULL-amount-including-Stripe-fees→all-amounts-reflect-total-received→NOT-base-amount
+ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships+recalculate-button]
+ACTIONS:copy-customer-id|open-stripe-customer|view-receipt-logs|delete-test|recalculate-full-amounts[updates-historical-records-from-Stripe-metadata]
 RECEIPT-STATUS:green-FileText[generated]|yellow-Clock[pending]
 AUDIT-LOGS:accessible-for-both-donations+sponsorships[NOT-restricted]
 CRITICAL-BUG:constraint-must-include-pending+completed→silent-failure-if-missing
 DIFFERENCES:vs-sponsorships[purpose|recipient|metadata:type='donation'|table|UI|receipts|year-end]
 WEBHOOK-CRITICAL:MUST-configure-Stripe-webhooks→checkout.session.completed|customer.subscription.updated|customer.subscription.deleted|invoice.payment_succeeded→URL[https://nbvijawmjkycyweioglk.supabase.co/functions/v1/stripe-webhook]→secrets[STRIPE_WEBHOOK_SECRET_LIVE+STRIPE_WEBHOOK_SECRET_TEST]→without-webhooks-donations-stay-pending-forever
 MANUAL-RECOVERY:UPDATE-donations-status+INSERT-sponsorship_receipts+invoke-send-sponsorship-receipt
+RECALCULATE-TOOL:Admin→Transactions→Recalculate-Full-Amounts-button→checks-Stripe-metadata[coverStripeFee+baseAmount]→recalculates-full-amount→updates-database-and-receipts
 DOC:DONATION_SYSTEM.md|WEBHOOK_CONFIGURATION_GUIDE.md
 
 ## HELP_CENTER
