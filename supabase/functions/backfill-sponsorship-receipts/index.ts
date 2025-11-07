@@ -66,7 +66,7 @@ serve(async (req) => {
     // Query sponsorships with no receipts
     const { data: sponsorships, error: sponsorshipsError } = await supabaseClient
       .from('sponsorships')
-      .select('id, sponsor_email, user_id, bestie_id, amount, frequency, tier_name, stripe_subscription_id, stripe_customer_id, stripe_mode')
+      .select('id, sponsor_email, sponsor_id, bestie_id, amount, frequency, tier_name, stripe_subscription_id, stripe_customer_id, stripe_mode')
       .eq('status', 'active')
       .eq('stripe_mode', stripeMode);
 
@@ -186,7 +186,7 @@ serve(async (req) => {
           .insert({
             transaction_id: invoice.payment_intent as string,
             sponsorship_id: sponsorship.id,
-            user_id: sponsorship.user_id,
+            user_id: sponsorship.sponsor_id,
             sponsor_email: sponsorship.sponsor_email,
             amount: sponsorship.amount,
             organization_name: receiptSettings.organization_name,
