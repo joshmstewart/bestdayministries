@@ -36,10 +36,10 @@ serve(async (req) => {
       throw new Error("Admin access required");
     }
 
-    // Get all sponsorships (including stripe_customer_id and created_at for fallback lookups)
+    // Get all sponsorships (including stripe_customer_id and started_at for fallback lookups)
     const { data: sponsorships, error: sponsorshipsError } = await supabaseAdmin
       .from('sponsorships')
-      .select('id, amount, stripe_subscription_id, stripe_customer_id, stripe_mode, frequency, created_at')
+      .select('id, amount, stripe_subscription_id, stripe_customer_id, stripe_mode, frequency, started_at')
       .not('stripe_subscription_id', 'is', null);
 
     if (sponsorshipsError) throw sponsorshipsError;
@@ -156,7 +156,7 @@ serve(async (req) => {
           if (!determinedAmount && sponsorship.stripe_customer_id) {
             console.log(`\n   🕐 STEP 3: Querying Charges by Customer ID + Time Window...`);
             try {
-              const createdAt = new Date(sponsorship.created_at);
+              const createdAt = new Date(sponsorship.started_at);
               const oneHourBefore = Math.floor(createdAt.getTime() / 1000) - 3600;
               const oneHourAfter = Math.floor(createdAt.getTime() / 1000) + 3600;
 
