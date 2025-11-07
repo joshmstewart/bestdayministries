@@ -19,6 +19,7 @@ import { SponsorshipTransactionsManager } from "@/components/admin/SponsorshipTr
 import { WebhookLogsViewer } from "@/components/admin/WebhookLogsViewer";
 import { YearEndSummarySettings } from "@/components/admin/YearEndSummarySettings";
 import { YearEndSummarySentHistory } from "@/components/admin/YearEndSummarySentHistory";
+import { RecalculateAmountsTest } from "@/components/admin/RecalculateAmountsTest";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
@@ -416,6 +417,7 @@ const Admin = () => {
                     <TabsTrigger value="year-end-settings">Year-End Settings</TabsTrigger>
                     <TabsTrigger value="sent-history">Sent History</TabsTrigger>
                     <TabsTrigger value="support-page">Support Us Page</TabsTrigger>
+                    <TabsTrigger value="test-recalc">Test Recalc</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="transactions">
@@ -452,6 +454,10 @@ const Admin = () => {
 
                   <TabsContent value="support-page">
                     <SupportPageManager />
+                  </TabsContent>
+
+                  <TabsContent value="test-recalc">
+                    <RecalculateAmountsTest />
                   </TabsContent>
                 </Tabs>
               </CardContent>
