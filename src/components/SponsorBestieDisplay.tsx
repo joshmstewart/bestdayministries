@@ -47,6 +47,7 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
   const navigate = useNavigate();
   const [besties, setBesties] = useState<SponsorBestie[]>([]);
   const [fundingProgress, setFundingProgress] = useState<Record<string, FundingProgress>>({});
+  const [endingAmounts, setEndingAmounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sponsoringBesties, setSponsoringBesties] = useState<Set<string>>(new Set());
@@ -237,6 +238,9 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
           console.log("Stable amounts by mode:", Object.fromEntries(stableAmountsByBestieAndMode));
           console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieAndMode));
 
+          // Store ending amounts in state for rendering
+          setEndingAmounts(endingAmountsByBestieAndMode);
+
           // Build progress map: prioritize LIVE data over null
           const progressMap: Record<string, FundingProgress> = {};
 
@@ -351,6 +355,7 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
                   <FundingProgressBar
                     currentAmount={progress?.current_monthly_pledges || 0}
                     goalAmount={bestie.monthly_goal}
+                    endingAmount={endingAmounts.get(`${bestie.id}_live`) || 0}
                   />
                 </div>
               )}
