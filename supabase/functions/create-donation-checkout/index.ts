@@ -168,28 +168,17 @@ serve(async (req) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (profile) {
-      await supabaseAdmin.from("donations").insert({
-        donor_id: profile.id,
-        amount: amount,
-        frequency: frequency,
-        status: 'pending',
-        started_at: new Date().toISOString(),
-        stripe_mode: mode,
-        stripe_customer_id: customer.id,
-      });
-    } else {
-      // Guest checkout
-      await supabaseAdmin.from("donations").insert({
-        donor_email: email,
-        amount: amount,
-        frequency: frequency,
-        status: 'pending',
-        started_at: new Date().toISOString(),
-        stripe_mode: mode,
-        stripe_customer_id: customer.id,
-      });
-    }
+    // ALWAYS populate both donor_id (if user exists) AND donor_email
+    await supabaseAdmin.from("donations").insert({
+      donor_id: profile?.id || null,      // Set if user exists
+      donor_email: email,                  // ALWAYS set this
+      amount: amount,
+      frequency: frequency,
+      status: 'pending',
+      started_at: new Date().toISOString(),
+      stripe_mode: mode,
+      stripe_customer_id: customer.id,
+    });
 
     return new Response(
       JSON.stringify({ url: session.url }),

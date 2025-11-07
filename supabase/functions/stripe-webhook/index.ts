@@ -527,48 +527,103 @@ async function processDonationCheckout(
   if (session.mode === "payment") {
     await logStep('processing_one_time_donation', 'info', { amount_charged: amountCharged });
     
-    // First try exact match (for donations without fee coverage)
-    let { data: donationData, error: updateError } = await supabaseAdmin
+    let donationData = null;
+    let updateError = null;
+
+    // STRATEGY 1: Try matching by stripe_customer_id + exact amount
+    await logStep('trying_customer_id_exact_match', 'info');
+    const customerIdResult = await supabaseAdmin
       .from("donations")
       .update({ 
         status: "completed",
         amount_charged: amountCharged
       })
-      .eq("donor_email", customerEmail)
+      .eq("stripe_customer_id", session.customer)
       .eq("amount", amountCharged)
       .eq("frequency", "one-time")
       .eq("status", "pending")
       .select()
       .maybeSingle();
+    
+    donationData = customerIdResult.data;
+    updateError = customerIdResult.error;
 
-    // If no match, calculate base amount (reverse fee coverage formula)
+    // STRATEGY 2: Try matching by stripe_customer_id + base amount (reverse fee coverage)
     if (!donationData && !updateError) {
       const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
-      await logStep('trying_base_amount_match', 'info', { 
+      await logStep('trying_customer_id_base_match', 'info', { 
         amount_charged: amountCharged, 
         calculated_base: baseAmount 
       });
       
-      const result = await supabaseAdmin
+      const baseAmountResult = await supabaseAdmin
+        .from("donations")
+        .update({ 
+          status: "completed",
+          amount_charged: amountCharged
+        })
+        .eq("stripe_customer_id", session.customer)
+        .eq("amount", baseAmount)
+        .eq("frequency", "one-time")
+        .eq("status", "pending")
+        .select()
+        .maybeSingle();
+      
+      donationData = baseAmountResult.data;
+      updateError = baseAmountResult.error;
+    }
+
+    // STRATEGY 3: Fallback to email matching (for edge cases)
+    if (!donationData && !updateError && customerEmail) {
+      await logStep('trying_email_match', 'info');
+      
+      // Try exact amount first
+      const emailExactResult = await supabaseAdmin
         .from("donations")
         .update({ 
           status: "completed",
           amount_charged: amountCharged
         })
         .eq("donor_email", customerEmail)
-        .eq("amount", baseAmount)
+        .eq("amount", amountCharged)
         .eq("frequency", "one-time")
         .eq("status", "pending")
         .select()
-        .single();
+        .maybeSingle();
       
-      donationData = result.data;
-      updateError = result.error;
+      donationData = emailExactResult.data;
+      updateError = emailExactResult.error;
+      
+      // Try base amount if exact didn't work
+      if (!donationData && !updateError) {
+        const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
+        
+        const emailBaseResult = await supabaseAdmin
+          .from("donations")
+          .update({ 
+            status: "completed",
+            amount_charged: amountCharged
+          })
+          .eq("donor_email", customerEmail)
+          .eq("amount", baseAmount)
+          .eq("frequency", "one-time")
+          .eq("status", "pending")
+          .select()
+          .maybeSingle();
+        
+        donationData = emailBaseResult.data;
+        updateError = emailBaseResult.error;
+      }
     }
 
-    if (updateError) {
-      await logStep('donation_update_failed', 'error', { error: updateError.message });
-      throw new Error(`Error updating one-time donation: ${updateError.message}`);
+    if (updateError || !donationData) {
+      await logStep('donation_update_failed', 'error', { 
+        error: updateError?.message || 'No matching donation found',
+        customer_id: session.customer,
+        customer_email: customerEmail,
+        amount_charged: amountCharged
+      });
+      throw new Error(`Error updating one-time donation: ${updateError?.message || 'No matching donation found'}`);
     }
     
     await logStep('donation_completed', 'success', { donation_id: donationData.id });
@@ -605,8 +660,12 @@ async function processDonationCheckout(
     
     await logStep('processing_monthly_donation', 'info', { amount_charged: amountCharged, subscription_id: subscriptionId });
     
-    // First try exact match (for donations without fee coverage)
-    let { data: donationData, error: updateError } = await supabaseAdmin
+    let donationData = null;
+    let updateError = null;
+
+    // STRATEGY 1: Try matching by stripe_customer_id + exact amount
+    await logStep('trying_customer_id_exact_match', 'info');
+    const customerIdResult = await supabaseAdmin
       .from("donations")
       .update({
         status: "active",
@@ -614,22 +673,49 @@ async function processDonationCheckout(
         started_at: new Date().toISOString(),
         amount_charged: amountCharged
       })
-      .eq("donor_email", customerEmail)
+      .eq("stripe_customer_id", session.customer)
       .eq("amount", amountCharged)
       .eq("frequency", "monthly")
       .eq("status", "pending")
       .select()
       .maybeSingle();
+    
+    donationData = customerIdResult.data;
+    updateError = customerIdResult.error;
 
-    // If no match, calculate base amount (reverse fee coverage formula)
+    // STRATEGY 2: Try matching by stripe_customer_id + base amount (reverse fee coverage)
     if (!donationData && !updateError) {
       const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
-      await logStep('trying_base_amount_match', 'info', { 
+      await logStep('trying_customer_id_base_match', 'info', { 
         amount_charged: amountCharged, 
         calculated_base: baseAmount 
       });
       
-      const result = await supabaseAdmin
+      const baseAmountResult = await supabaseAdmin
+        .from("donations")
+        .update({
+          status: "active",
+          stripe_subscription_id: subscriptionId,
+          started_at: new Date().toISOString(),
+          amount_charged: amountCharged
+        })
+        .eq("stripe_customer_id", session.customer)
+        .eq("amount", baseAmount)
+        .eq("frequency", "monthly")
+        .eq("status", "pending")
+        .select()
+        .maybeSingle();
+      
+      donationData = baseAmountResult.data;
+      updateError = baseAmountResult.error;
+    }
+
+    // STRATEGY 3: Fallback to email matching (for edge cases)
+    if (!donationData && !updateError && customerEmail) {
+      await logStep('trying_email_match', 'info');
+      
+      // Try exact amount first
+      const emailExactResult = await supabaseAdmin
         .from("donations")
         .update({
           status: "active",
@@ -638,19 +724,47 @@ async function processDonationCheckout(
           amount_charged: amountCharged
         })
         .eq("donor_email", customerEmail)
-        .eq("amount", baseAmount)
+        .eq("amount", amountCharged)
         .eq("frequency", "monthly")
         .eq("status", "pending")
         .select()
-        .single();
+        .maybeSingle();
       
-      donationData = result.data;
-      updateError = result.error;
+      donationData = emailExactResult.data;
+      updateError = emailExactResult.error;
+      
+      // Try base amount if exact didn't work
+      if (!donationData && !updateError) {
+        const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
+        
+        const emailBaseResult = await supabaseAdmin
+          .from("donations")
+          .update({
+            status: "active",
+            stripe_subscription_id: subscriptionId,
+            started_at: new Date().toISOString(),
+            amount_charged: amountCharged
+          })
+          .eq("donor_email", customerEmail)
+          .eq("amount", baseAmount)
+          .eq("frequency", "monthly")
+          .eq("status", "pending")
+          .select()
+          .maybeSingle();
+        
+        donationData = emailBaseResult.data;
+        updateError = emailBaseResult.error;
+      }
     }
 
-    if (updateError) {
-      await logStep('donation_update_failed', 'error', { error: updateError.message });
-      throw new Error(`Error updating monthly donation: ${updateError.message}`);
+    if (updateError || !donationData) {
+      await logStep('donation_update_failed', 'error', { 
+        error: updateError?.message || 'No matching donation found',
+        customer_id: session.customer,
+        customer_email: customerEmail,
+        amount_charged: amountCharged
+      });
+      throw new Error(`Error updating monthly donation: ${updateError?.message || 'No matching donation found'}`);
     }
     
     await logStep('donation_activated', 'success', { donation_id: donationData.id });
