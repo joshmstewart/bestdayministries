@@ -99,7 +99,7 @@ serve(async (req) => {
       customerEmail = (event.data.object.customer_details as any)?.email || customerEmail;
     }
 
-    // Check if this event was already processed
+    // Check if this event was already processed successfully
     const { data: existingLog } = await supabaseAdmin
       .from('stripe_webhook_logs')
       .select('id, processing_status, created_at')
@@ -107,42 +107,70 @@ serve(async (req) => {
       .single();
 
     if (existingLog) {
-      console.log(`⚠️ Duplicate event detected - already processed at ${existingLog.created_at} with status ${existingLog.processing_status}`);
-      
-      // Log the resend attempt
-      await supabaseAdmin
-        .from('stripe_webhook_logs')
-        .insert({
-          event_id: event.id + '_resend_' + Date.now(),
-          event_type: event.type,
-          stripe_mode: stripeMode,
-          raw_event: event,
-          processing_status: 'skipped',
-          customer_id: customerId,
-          customer_email: customerEmail,
-          http_status_code: 200,
-          processing_steps: [{
-            timestamp: new Date().toISOString(),
-            step: 'duplicate_event_skipped',
-            status: 'info',
-            details: { 
-              original_event_id: event.id,
-              original_log_id: existingLog.id,
-              original_processed_at: existingLog.created_at,
-              original_status: existingLog.processing_status
-            }
-          }]
+      // If previous attempt succeeded, skip this one
+      if (existingLog.processing_status === 'success') {
+        console.log(`⚠️ Duplicate event detected - already processed successfully at ${existingLog.created_at}`);
+        
+        // Log the resend attempt
+        await supabaseAdmin
+          .from('stripe_webhook_logs')
+          .insert({
+            event_id: event.id + '_resend_' + Date.now(),
+            event_type: event.type,
+            stripe_mode: stripeMode,
+            raw_event: event,
+            processing_status: 'skipped',
+            customer_id: customerId,
+            customer_email: customerEmail,
+            http_status_code: 200,
+            processing_steps: [{
+              timestamp: new Date().toISOString(),
+              step: 'duplicate_event_skipped',
+              status: 'info',
+              details: { 
+                original_event_id: event.id,
+                original_log_id: existingLog.id,
+                original_processed_at: existingLog.created_at,
+                original_status: existingLog.processing_status
+              }
+            }]
+          });
+        
+        return new Response(JSON.stringify({ 
+          received: true, 
+          skipped: true,
+          reason: 'Event already processed successfully',
+          original_log_id: existingLog.id
+        }), {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
         });
-      
-      return new Response(JSON.stringify({ 
-        received: true, 
-        skipped: true,
-        reason: 'Event already processed',
-        original_log_id: existingLog.id
-      }), {
-        headers: { "Content-Type": "application/json" },
-        status: 200,
-      });
+      } else {
+        // If previous attempt failed, reprocess and update the existing log
+        console.log(`🔄 Reprocessing failed event from ${existingLog.created_at} (status: ${existingLog.processing_status})`);
+        logId = existingLog.id;
+        
+        // Reset the log for reprocessing
+        await supabaseAdmin
+          .from('stripe_webhook_logs')
+          .update({
+            processing_status: 'processing',
+            error_message: null,
+            error_stack: null,
+            completed_at: null,
+            processing_duration_ms: null,
+            processing_steps: [{
+              timestamp: new Date().toISOString(),
+              step: 'reprocessing_failed_event',
+              status: 'info',
+              details: { 
+                previous_status: existingLog.processing_status,
+                previous_attempt_at: existingLog.created_at
+              }
+            }]
+          })
+          .eq('id', logId);
+      }
     }
 
     // Create initial log entry
