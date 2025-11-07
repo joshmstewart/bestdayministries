@@ -39,7 +39,7 @@ serve(async (req) => {
     // Get all sponsorships (including stripe_customer_id for payment intent lookup)
     const { data: sponsorships, error: sponsorshipsError } = await supabaseAdmin
       .from('sponsorships')
-      .select('id, amount, stripe_subscription_id, stripe_customer_id, stripe_mode, frequency, created_at')
+      .select('id, amount, stripe_subscription_id, stripe_customer_id, stripe_mode, frequency')
       .not('stripe_subscription_id', 'is', null);
 
     if (sponsorshipsError) throw sponsorshipsError;
