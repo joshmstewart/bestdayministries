@@ -522,34 +522,38 @@ export default function GuardianLinks() {
         })
         .filter(s => s !== null) as Sponsorship[];
 
-      // Calculate stable (monthly) and ending (one-time) amounts per bestie
-      const stableAmountsByBestie = new Map<string, number>();
-      const endingAmountsByBestie = new Map<string, number>();
+      // Calculate stable (monthly) and ending (one-time) amounts per bestie AND stripe mode
+      const stableAmountsByBestieAndMode = new Map<string, number>();
+      const endingAmountsByBestieAndMode = new Map<string, number>();
       
       allSponsorships.forEach((s: any) => {
         const bestieKey = s.sponsor_bestie_id || s.bestie_id;
         if (!bestieKey) return;
         
+        // Group by BOTH bestie AND stripe_mode
+        const groupKey = `${bestieKey}|${s.stripe_mode}`;
+        
         if (s.frequency === 'monthly' && s.status === 'active') {
-          const current = stableAmountsByBestie.get(bestieKey) || 0;
-          stableAmountsByBestie.set(bestieKey, current + s.amount);
+          const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
+          stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
         } else if (s.frequency === 'one-time' && s.status === 'active' && s.ended_at && new Date(s.ended_at) > new Date()) {
-          const current = endingAmountsByBestie.get(bestieKey) || 0;
-          endingAmountsByBestie.set(bestieKey, current + s.amount);
+          const current = endingAmountsByBestieAndMode.get(groupKey) || 0;
+          endingAmountsByBestieAndMode.set(groupKey, current + s.amount);
         }
       });
 
-      // Attach amounts to transformed data
+      // Attach amounts to transformed data using the same group key
       const finalData = transformedData.map(s => {
         const bestieKey = s.sponsor_bestie_id || s.bestie_id;
-        const stableAmount = stableAmountsByBestie.get(bestieKey) || 0;
-        const endingAmount = endingAmountsByBestie.get(bestieKey) || 0;
+        const groupKey = `${bestieKey}|${s.stripe_mode}`;
+        const stableAmount = stableAmountsByBestieAndMode.get(groupKey) || 0;
+        const endingAmount = endingAmountsByBestieAndMode.get(groupKey) || 0;
         
         return {
           ...s,
           stable_amount: stableAmount,
           total_ending_amount: endingAmount,
-          // Update current_monthly_pledges to match calculated total
+          // Update current_monthly_pledges to match calculated total for THIS MODE
           featured_bestie: s.featured_bestie ? {
             ...s.featured_bestie,
             current_monthly_pledges: stableAmount + endingAmount
