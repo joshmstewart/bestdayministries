@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox, MoreVertical, Filter, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 
@@ -529,13 +530,28 @@ export default function ContactSubmissions() {
             <div className="space-y-6 overflow-y-auto flex-1 pr-2">
               {/* Original Message */}
               <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div className="text-sm text-muted-foreground">
                     {format(new Date(selectedSubmission.created_at), 'PPpp')}
                   </div>
-                  <Badge variant={STATUS_OPTIONS.find(s => s.value === selectedSubmission.status)?.variant || 'secondary'}>
-                    {STATUS_OPTIONS.find(s => s.value === selectedSubmission.status)?.label || selectedSubmission.status}
-                  </Badge>
+                  <Select 
+                    value={selectedSubmission.status} 
+                    onValueChange={(newStatus) => {
+                      updateStatus(selectedSubmission.id, newStatus);
+                      setSelectedSubmission({ ...selectedSubmission, status: newStatus });
+                    }}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 {selectedSubmission.subject && (
                   <div><strong>Subject:</strong> {selectedSubmission.subject}</div>
