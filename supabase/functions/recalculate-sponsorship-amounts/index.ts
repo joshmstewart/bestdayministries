@@ -36,10 +36,10 @@ serve(async (req) => {
       throw new Error("Admin access required");
     }
 
-    // Get all sponsorships
+    // Get all sponsorships (including stripe_customer_id for payment intent lookup)
     const { data: sponsorships, error: sponsorshipsError } = await supabaseAdmin
       .from('sponsorships')
-      .select('id, amount, stripe_subscription_id, stripe_mode')
+      .select('id, amount, stripe_subscription_id, stripe_customer_id, stripe_mode, frequency, created_at')
       .not('stripe_subscription_id', 'is', null);
 
     if (sponsorshipsError) throw sponsorshipsError;
@@ -61,71 +61,119 @@ serve(async (req) => {
           apiVersion: '2025-08-27.basil',
         });
 
-        // Get subscription details from Stripe
-        const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
-        
-        // Check metadata for coverStripeFee and baseAmount
-        const coverStripeFee = subscription.metadata?.coverStripeFee === 'true';
-        const baseAmount = subscription.metadata?.baseAmount ? parseFloat(subscription.metadata.baseAmount) : null;
-        const metadataAmount = subscription.metadata?.amount ? parseFloat(subscription.metadata.amount) : null;
+        console.log(`\n💰 Sponsorship ${sponsorship.id}`);
+        console.log(`   Currently recorded: $${sponsorship.amount.toFixed(2)}`);
+        console.log(`   Stripe ID: ${sponsorship.stripe_subscription_id}`);
+        console.log(`   Frequency: ${sponsorship.frequency}`);
 
-        console.log(`Sponsorship ${sponsorship.id}:`, {
-          currentAmount: sponsorship.amount,
-          coverStripeFee,
-          baseAmount,
-          metadataAmount
-        });
+        let coverStripeFee = false;
+        let metadataAmount = null;
+
+        // Check if this is a subscription ID or payment intent ID
+        if (sponsorship.stripe_subscription_id.startsWith('sub_')) {
+          // It's a subscription - retrieve subscription details
+          console.log(`   Type: Subscription`);
+          const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
+          
+          coverStripeFee = subscription.metadata?.coverStripeFee === 'true';
+          metadataAmount = subscription.metadata?.amount ? parseFloat(subscription.metadata.amount) : null;
+          
+          console.log(`   Cover fees: ${coverStripeFee}`);
+          console.log(`   Metadata amount: $${metadataAmount?.toFixed(2) || 'N/A'}`);
+        } else if (sponsorship.stripe_subscription_id.startsWith('pi_')) {
+          // It's a payment intent - retrieve payment intent details
+          console.log(`   Type: Payment Intent (one-time)`);
+          const paymentIntent = await stripe.paymentIntents.retrieve(sponsorship.stripe_subscription_id);
+          
+          coverStripeFee = paymentIntent.metadata?.coverStripeFee === 'true';
+          metadataAmount = paymentIntent.metadata?.amount ? parseFloat(paymentIntent.metadata.amount) : null;
+          
+          console.log(`   Cover fees: ${coverStripeFee}`);
+          console.log(`   Metadata amount: $${metadataAmount?.toFixed(2) || 'N/A'}`);
+          console.log(`   Payment Intent amount: $${(paymentIntent.amount / 100).toFixed(2)}`);
+        } else {
+          console.log(`   ⚠️ Unknown Stripe ID format: ${sponsorship.stripe_subscription_id}`);
+          continue;
+        }
 
         // CRITICAL: If coverStripeFee was true, the metadataAmount is the BASE amount
         // We need to calculate UP to the full amount, not use metadata directly
         if (coverStripeFee && metadataAmount) {
           // Calculate the FULL amount from the base amount stored in metadata
-          const fullAmount = (metadataAmount + 0.30) / 0.971;
+          const expectedWithFees = (metadataAmount + 0.30) / 0.971;
+          const difference = expectedWithFees - sponsorship.amount;
+          
+          console.log(`   Expected with fees: $${expectedWithFees.toFixed(2)}`);
+          console.log(`   Difference: ${difference >= 0 ? '+' : ''}$${difference.toFixed(2)}`);
           
           // Only update if the stored amount doesn't match the full amount
-          if (Math.abs(sponsorship.amount - fullAmount) > 0.01) {
-            console.log(`💰 UPGRADING sponsorship ${sponsorship.id}: $${sponsorship.amount} → $${fullAmount.toFixed(2)} (base: $${metadataAmount})`);
+          if (Math.abs(difference) > 0.01) {
+            console.log(`   ✅ UPDATE NEEDED:`);
+            console.log(`      Before: $${sponsorship.amount.toFixed(2)}`);
+            console.log(`      After:  $${expectedWithFees.toFixed(2)}`);
+            console.log(`      Base amount: $${metadataAmount.toFixed(2)}`);
             
             const { error: updateError } = await supabaseAdmin
               .from('sponsorships')
-              .update({ amount: fullAmount })
+              .update({ amount: parseFloat(expectedWithFees.toFixed(2)) })
               .eq('id', sponsorship.id);
 
             if (updateError) {
-              console.error(`Failed to update ${sponsorship.id}:`, updateError);
+              console.error(`   ❌ Failed to update:`, updateError);
             } else {
+              console.log(`   ✅ Sponsorship record updated successfully`);
               updates.push({
                 id: sponsorship.id,
                 oldAmount: sponsorship.amount,
-                newAmount: parseFloat(fullAmount.toFixed(2))
+                newAmount: parseFloat(expectedWithFees.toFixed(2))
               });
             }
-          }
-        } else if (!coverStripeFee && metadataAmount && Math.abs(sponsorship.amount - metadataAmount) > 0.01) {
-          // If fees NOT covered, metadata amount IS the correct amount
-          console.log(`💰 Correcting sponsorship ${sponsorship.id} (no fee coverage): $${sponsorship.amount} → $${metadataAmount.toFixed(2)}`);
-          
-          const { error: updateError } = await supabaseAdmin
-            .from('sponsorships')
-            .update({ amount: metadataAmount })
-            .eq('id', sponsorship.id);
-
-          if (updateError) {
-            console.error(`Failed to update ${sponsorship.id}:`, updateError);
           } else {
-            updates.push({
-              id: sponsorship.id,
-              oldAmount: sponsorship.amount,
-              newAmount: metadataAmount
-            });
+            console.log(`   ✅ Amount already correct (no update needed)`);
           }
+        } else if (!coverStripeFee && metadataAmount) {
+          // If fees NOT covered, metadata amount IS the correct amount
+          const difference = metadataAmount - sponsorship.amount;
+          
+          console.log(`   Expected (no fees): $${metadataAmount.toFixed(2)}`);
+          console.log(`   Difference: ${difference >= 0 ? '+' : ''}$${difference.toFixed(2)}`);
+          
+          if (Math.abs(difference) > 0.01) {
+            console.log(`   ✅ UPDATE NEEDED:`);
+            console.log(`      Before: $${sponsorship.amount.toFixed(2)}`);
+            console.log(`      After:  $${metadataAmount.toFixed(2)}`);
+            
+            const { error: updateError } = await supabaseAdmin
+              .from('sponsorships')
+              .update({ amount: metadataAmount })
+              .eq('id', sponsorship.id);
+
+            if (updateError) {
+              console.error(`   ❌ Failed to update:`, updateError);
+            } else {
+              console.log(`   ✅ Sponsorship record updated successfully`);
+              updates.push({
+                id: sponsorship.id,
+                oldAmount: sponsorship.amount,
+                newAmount: metadataAmount
+              });
+            }
+          } else {
+            console.log(`   ✅ Amount already correct (no update needed)`);
+          }
+        } else {
+          console.log(`   ⚠️ Missing metadata amount - cannot verify/update`);
         }
       } catch (error) {
-        console.error(`Error processing sponsorship ${sponsorship.id}:`, error);
+        console.error(`\n❌ Error processing sponsorship ${sponsorship.id}:`);
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`   Stripe ID: ${sponsorship.stripe_subscription_id}`);
+        console.error(`   This sponsorship will be skipped`);
       }
     }
 
     // Also update receipts to match
+    console.log(`\n📝 Updating receipts for ${updates.length} sponsorships...`);
     for (const update of updates) {
       const { error: receiptError } = await supabaseAdmin
         .from('sponsorship_receipts')
@@ -133,9 +181,13 @@ serve(async (req) => {
         .eq('sponsorship_id', update.id);
 
       if (receiptError) {
-        console.error(`Failed to update receipt for ${update.id}:`, receiptError);
+        console.error(`   ❌ Failed to update receipt for ${update.id}:`, receiptError);
+      } else {
+        console.log(`   ✅ Receipt updated for sponsorship ${update.id}`);
       }
     }
+
+    console.log(`\n✅ Recalculation complete: ${updates.length} sponsorships updated`);
 
     return new Response(
       JSON.stringify({ 
