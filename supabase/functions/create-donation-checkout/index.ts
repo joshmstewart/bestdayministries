@@ -172,7 +172,8 @@ serve(async (req) => {
     await supabaseAdmin.from("donations").insert({
       donor_id: profile?.id || null,      // Set if user exists
       donor_email: email,                  // ALWAYS set this
-      amount: amount,
+      amount: amount,                      // Base amount without fees
+      amount_charged: finalAmount,         // Full amount including fees if covered
       frequency: frequency,
       status: 'pending',
       started_at: new Date().toISOString(),

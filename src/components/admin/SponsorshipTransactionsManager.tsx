@@ -462,6 +462,32 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
+  const recalculateDonationAmounts = async () => {
+    if (!confirm("This will recalculate all donation amounts by checking what was actually charged in Stripe. Continue?")) {
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('recalculate-donation-amounts');
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Updated ${data?.updatedCount || 0} donations with actual charged amounts`,
+      });
+      
+      await loadTransactions();
+    } catch (error: any) {
+      console.error('Error recalculating donation amounts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to recalculate donation amounts",
+        variant: "destructive",
+      });
+    }
+  };
+
   const deleteTestTransactions = async () => {
     if (!confirm("Are you sure you want to delete ALL test mode transactions (sponsorships AND donations)? This cannot be undone.")) {
       return;
@@ -955,7 +981,11 @@ export const SponsorshipTransactionsManager = () => {
             <div className="flex gap-2">
               <Button onClick={recalculateAmounts} variant="outline" size="sm">
                 <DollarSign className="w-4 h-4 mr-2" />
-                Recalculate Full Amounts
+                Recalculate Sponsorship Amounts
+              </Button>
+              <Button onClick={recalculateDonationAmounts} variant="outline" size="sm">
+                <DollarSign className="w-4 h-4 mr-2" />
+                Recalculate Donation Amounts
               </Button>
               <Button onClick={deleteTestTransactions} variant="destructive" size="sm">
                 Delete Test Transactions
