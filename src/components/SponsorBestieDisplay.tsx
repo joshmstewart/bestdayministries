@@ -182,6 +182,19 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
         if (bestiesWithGoals.length > 0) {
           const bestieIds = bestiesWithGoals.map(b => b.id);
           
+          // Load ALL sponsorships for these besties to calculate stable vs ending amounts
+          const { data: allBestieSponsorships, error: allSponsError } = await supabase
+            .from("sponsorships")
+            .select("sponsor_bestie_id, frequency, amount, status, stripe_mode, ended_at")
+            .in("sponsor_bestie_id", bestieIds)
+            .eq("status", "active");
+          
+          if (allSponsError) {
+            console.error("Error loading all bestie sponsorships:", allSponsError);
+          }
+          
+          console.log("Loaded sponsorships for progress bars:", allBestieSponsorships?.length || 0, allBestieSponsorships);
+          
           // Query funding progress for LIVE mode only
           const { data: liveModeData } = await supabase
             .from('sponsor_bestie_funding_progress_by_mode')
@@ -195,6 +208,34 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
             .select('*')
             .in('sponsor_bestie_id', bestieIds)
             .is('stripe_mode', null);
+
+          // Build maps to track stable vs ending amounts by bestie and mode
+          const stableAmountsByBestieAndMode = new Map<string, number>();
+          const endingAmountsByBestieAndMode = new Map<string, number>();
+
+          // Calculate stable and ending amounts from ALL sponsorships
+          (allBestieSponsorships || []).forEach(s => {
+            const groupKey = `${s.sponsor_bestie_id}_${s.stripe_mode || 'null'}`;
+            
+            if (s.frequency === 'monthly') {
+              // Monthly = stable (solid orange)
+              const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
+              stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
+            } else if (s.frequency === 'one-time') {
+              // One-time with future ended_at = ending (diagonal stripes)
+              if (s.ended_at && new Date(s.ended_at) > new Date()) {
+                const current = endingAmountsByBestieAndMode.get(groupKey) || 0;
+                endingAmountsByBestieAndMode.set(groupKey, current + s.amount);
+              } else {
+                // One-time already expired = stable
+                const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
+                stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
+              }
+            }
+          });
+
+          console.log("Stable amounts by mode:", Object.fromEntries(stableAmountsByBestieAndMode));
+          console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieAndMode));
 
           // Build progress map: prioritize LIVE data over null
           const progressMap: Record<string, FundingProgress> = {};
