@@ -167,6 +167,11 @@ serve(async (req) => {
 
     // Create or update sponsorship record using upsert to avoid race condition with webhook
     const stripeReferenceId = session.subscription || session.payment_intent;
+    const startedAt = new Date();
+    const endedAt = session.metadata.frequency === 'one-time' 
+      ? new Date(startedAt.getTime() + 30 * 24 * 60 * 60 * 1000) // One-time sponsorships expire after 1 month
+      : null;
+    
     const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
       .from('sponsorships')
       .upsert({
@@ -176,7 +181,8 @@ serve(async (req) => {
         amount: parseFloat(session.metadata.amount),
         frequency: session.metadata.frequency,
         status: 'active',
-        started_at: new Date().toISOString(),
+        started_at: startedAt.toISOString(),
+        ended_at: endedAt?.toISOString() || null,
         stripe_subscription_id: stripeReferenceId || null,
         stripe_mode: mode,
       }, {

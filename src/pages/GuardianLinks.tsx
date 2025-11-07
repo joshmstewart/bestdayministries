@@ -1547,7 +1547,6 @@ export default function GuardianLinks() {
                                   currentAmount={sponsorship.featured_bestie.current_monthly_pledges}
                                   goalAmount={sponsorship.featured_bestie.monthly_goal}
                                   endingAmount={
-                                    sponsorship.frequency === 'monthly' && 
                                     sponsorship.ended_at && 
                                     new Date(sponsorship.ended_at) > new Date()
                                       ? sponsorship.amount 

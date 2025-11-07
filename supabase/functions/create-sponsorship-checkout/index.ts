@@ -186,13 +186,18 @@ serve(async (req) => {
         .maybeSingle();
 
       if (profile) {
+        const startedAt = new Date();
+        const endedAt = new Date(startedAt);
+        endedAt.setMonth(endedAt.getMonth() + 1); // One-time sponsorships expire after 1 month
+        
         await supabaseAdmin.from("sponsorships").insert({
           sponsor_id: profile.id,
           bestie_id: bestie_id,
           amount: amount,
           frequency: 'one-time',
           status: 'pending',
-          started_at: new Date().toISOString(),
+          started_at: startedAt.toISOString(),
+          ended_at: endedAt.toISOString(),
           stripe_mode: mode,
         });
       }
