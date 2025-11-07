@@ -81,6 +81,7 @@ export const SponsorshipTransactionsManager = () => {
   const [resendingReceipt, setResendingReceipt] = useState(false);
   const [receiptHtml, setReceiptHtml] = useState<string>('');
   const [recalculating, setRecalculating] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -472,6 +473,39 @@ export const SponsorshipTransactionsManager = () => {
       });
     } finally {
       setRecalculating(false);
+    }
+  };
+
+  const backfillMissingReceipts = async () => {
+    if (!confirm("This will generate receipts for all active sponsorships that are missing receipts. Continue?")) {
+      return;
+    }
+
+    setBackfilling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('backfill-sponsorship-receipts');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+
+      if (data.errors && data.errors.length > 0) {
+        console.error('Backfill errors:', data.errors);
+      }
+      
+      await loadTransactions();
+    } catch (error: any) {
+      console.error('Error backfilling receipts:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to backfill receipts",
+        variant: "destructive",
+      });
+    } finally {
+      setBackfilling(false);
     }
   };
 
@@ -966,6 +1000,10 @@ export const SponsorshipTransactionsManager = () => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button onClick={backfillMissingReceipts} variant="outline" size="sm" disabled={backfilling}>
+                <FileText className="w-4 h-4 mr-2" />
+                {backfilling ? "Backfilling..." : "Backfill Missing Receipts"}
+              </Button>
               <Button onClick={recalculateAmounts} variant="outline" size="sm" disabled={recalculating}>
                 <DollarSign className="w-4 h-4 mr-2" />
                 {recalculating ? "Recalculating..." : "Recalculate Amounts"}
