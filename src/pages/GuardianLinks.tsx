@@ -83,6 +83,7 @@ interface Sponsorship {
   stripe_mode: string;
   is_shared?: boolean;
   shared_by?: string;
+  stable_amount?: number;
   total_ending_amount?: number;
   bestie: {
     display_name: string;
@@ -521,21 +522,40 @@ export default function GuardianLinks() {
         })
         .filter(s => s !== null) as Sponsorship[];
 
-      // Calculate total ending amounts per bestie (for one-time sponsorships)
+      // Calculate stable (monthly) and ending (one-time) amounts per bestie
+      const stableAmountsByBestie = new Map<string, number>();
       const endingAmountsByBestie = new Map<string, number>();
+      
       allSponsorships.forEach((s: any) => {
         const bestieKey = s.sponsor_bestie_id || s.bestie_id;
-        if (bestieKey && s.frequency === 'one-time' && s.ended_at && new Date(s.ended_at) > new Date()) {
+        if (!bestieKey) return;
+        
+        if (s.frequency === 'monthly' && s.status === 'active') {
+          const current = stableAmountsByBestie.get(bestieKey) || 0;
+          stableAmountsByBestie.set(bestieKey, current + s.amount);
+        } else if (s.frequency === 'one-time' && s.status === 'active' && s.ended_at && new Date(s.ended_at) > new Date()) {
           const current = endingAmountsByBestie.get(bestieKey) || 0;
           endingAmountsByBestie.set(bestieKey, current + s.amount);
         }
       });
 
-      // Attach ending amounts to transformed data
-      const finalData = transformedData.map(s => ({
-        ...s,
-        total_ending_amount: endingAmountsByBestie.get(s.sponsor_bestie_id || s.bestie_id) || 0
-      }));
+      // Attach amounts to transformed data
+      const finalData = transformedData.map(s => {
+        const bestieKey = s.sponsor_bestie_id || s.bestie_id;
+        const stableAmount = stableAmountsByBestie.get(bestieKey) || 0;
+        const endingAmount = endingAmountsByBestie.get(bestieKey) || 0;
+        
+        return {
+          ...s,
+          stable_amount: stableAmount,
+          total_ending_amount: endingAmount,
+          // Update current_monthly_pledges to match calculated total
+          featured_bestie: s.featured_bestie ? {
+            ...s.featured_bestie,
+            current_monthly_pledges: stableAmount + endingAmount
+          } : null
+        };
+      });
 
       setSponsorships(finalData);
     } catch (error: any) {
