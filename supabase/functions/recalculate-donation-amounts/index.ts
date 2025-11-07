@@ -80,12 +80,17 @@ serve(async (req) => {
         console.log(`💰 Donation ${donation.id} (base: $${donation.amount}, recorded: $${donation.amount_charged})`);
         console.log(`   Found ${charges.data.length} charges in time window`);
 
-        // Find the charge that matches this donation amount (within a few dollars)
+        // Find the charge that matches this donation amount
         const matchingCharge = charges.data.find((charge: Stripe.Charge) => {
           const chargeAmount = charge.amount / 100;
-          // Match if charge is within $5 of base amount OR current amount_charged
-          return Math.abs(chargeAmount - donation.amount) < 5 || 
-                 Math.abs(chargeAmount - donation.amount_charged) < 5;
+          
+          // Calculate what the fee-covered amount should be: (amount + 0.30) / 0.971
+          const expectedWithFees = (donation.amount + 0.30) / 0.971;
+          
+          // Match if within $1 of expected fee-covered amount OR base amount OR current recorded amount
+          return Math.abs(chargeAmount - expectedWithFees) < 1 || 
+                 Math.abs(chargeAmount - donation.amount) < 1 ||
+                 Math.abs(chargeAmount - donation.amount_charged) < 1;
         });
 
         if (matchingCharge) {
