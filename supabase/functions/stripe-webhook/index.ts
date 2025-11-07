@@ -99,6 +99,52 @@ serve(async (req) => {
       customerEmail = (event.data.object.customer_details as any)?.email || customerEmail;
     }
 
+    // Check if this event was already processed
+    const { data: existingLog } = await supabaseAdmin
+      .from('stripe_webhook_logs')
+      .select('id, processing_status, created_at')
+      .eq('event_id', event.id)
+      .single();
+
+    if (existingLog) {
+      console.log(`⚠️ Duplicate event detected - already processed at ${existingLog.created_at} with status ${existingLog.processing_status}`);
+      
+      // Log the resend attempt
+      await supabaseAdmin
+        .from('stripe_webhook_logs')
+        .insert({
+          event_id: event.id + '_resend_' + Date.now(),
+          event_type: event.type,
+          stripe_mode: stripeMode,
+          raw_event: event,
+          processing_status: 'skipped',
+          customer_id: customerId,
+          customer_email: customerEmail,
+          http_status_code: 200,
+          processing_steps: [{
+            timestamp: new Date().toISOString(),
+            step: 'duplicate_event_skipped',
+            status: 'info',
+            details: { 
+              original_event_id: event.id,
+              original_log_id: existingLog.id,
+              original_processed_at: existingLog.created_at,
+              original_status: existingLog.processing_status
+            }
+          }]
+        });
+      
+      return new Response(JSON.stringify({ 
+        received: true, 
+        skipped: true,
+        reason: 'Event already processed',
+        original_log_id: existingLog.id
+      }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Create initial log entry
     const { data: logEntry, error: logError } = await supabaseAdmin
       .from('stripe_webhook_logs')
