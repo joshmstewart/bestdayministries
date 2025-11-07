@@ -220,6 +220,30 @@ serve(async (req) => {
   }
 });
 
+// Helper function to extract subscription ID from invoice (handles nested structures)
+function getSubscriptionFromInvoice(invoice: Stripe.Invoice): string | null {
+  // Check top-level subscription field
+  if (invoice.subscription) {
+    return typeof invoice.subscription === 'string' 
+      ? invoice.subscription 
+      : invoice.subscription.id;
+  }
+  
+  // Check line items for subscription
+  if (invoice.lines?.data?.[0]?.subscription) {
+    const lineSub = invoice.lines.data[0].subscription;
+    return typeof lineSub === 'string' ? lineSub : lineSub;
+  }
+  
+  // Check parent.subscription_details (for newer Stripe API versions)
+  const parent = invoice as any;
+  if (parent.parent?.subscription_details?.subscription) {
+    return parent.parent.subscription_details.subscription;
+  }
+  
+  return null;
+}
+
 async function processWebhookEvent(
   event: Stripe.Event,
   stripe: Stripe,
@@ -405,12 +429,16 @@ async function processWebhookEvent(
         return;
       }
       
-      if (!invoice.subscription) {
+      const subscriptionId = getSubscriptionFromInvoice(invoice);
+      
+      if (!subscriptionId) {
         await logStep('invoice_not_subscription', 'info');
         return;
       }
+      
+      await logStep('found_subscription_id', 'info', { subscription_id: subscriptionId });
 
-      await processRecurringPayment(invoice, stripe, supabaseAdmin, stripeMode, logStep, logId);
+      await processRecurringPayment(invoice, stripe, supabaseAdmin, stripeMode, logStep, logId, subscriptionId);
       break;
     }
 
@@ -656,7 +684,8 @@ async function processRecurringPayment(
   supabaseAdmin: any,
   stripeMode: string,
   logStep: Function,
-  logId: string | null
+  logId: string | null,
+  subscriptionId: string
 ) {
   const customerEmail = invoice.customer_email;
   if (!customerEmail) {
@@ -677,8 +706,8 @@ async function processRecurringPayment(
     return;
   }
 
-  await logStep('retrieving_subscription', 'info', { subscription_id: invoice.subscription });
-  const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+  await logStep('retrieving_subscription', 'info', { subscription_id: subscriptionId });
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const sponsorBestieId = subscription.metadata?.bestie_id;
   
   const amount = invoice.amount_paid ? invoice.amount_paid / 100 : 0;
@@ -730,7 +759,7 @@ async function processRecurringPayment(
       .from('donations')
       .select('*')
       .eq('donor_email', customerEmail)
-      .eq('stripe_subscription_id', invoice.subscription as string)
+      .eq('stripe_subscription_id', subscriptionId)
       .eq('status', 'active')
       .single();
 
