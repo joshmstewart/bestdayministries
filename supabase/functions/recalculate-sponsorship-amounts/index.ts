@@ -76,13 +76,15 @@ serve(async (req) => {
           metadataAmount
         });
 
-        // If coverStripeFee was true and we have baseAmount, recalculate
-        if (coverStripeFee && baseAmount) {
-          const fullAmount = (baseAmount + 0.30) / 0.971;
+        // CRITICAL: If coverStripeFee was true, the metadataAmount is the BASE amount
+        // We need to calculate UP to the full amount, not use metadata directly
+        if (coverStripeFee && metadataAmount) {
+          // Calculate the FULL amount from the base amount stored in metadata
+          const fullAmount = (metadataAmount + 0.30) / 0.971;
           
           // Only update if the stored amount doesn't match the full amount
           if (Math.abs(sponsorship.amount - fullAmount) > 0.01) {
-            console.log(`💰 Updating sponsorship ${sponsorship.id}: $${sponsorship.amount} → $${fullAmount.toFixed(2)}`);
+            console.log(`💰 UPGRADING sponsorship ${sponsorship.id}: $${sponsorship.amount} → $${fullAmount.toFixed(2)} (base: $${metadataAmount})`);
             
             const { error: updateError } = await supabaseAdmin
               .from('sponsorships')
@@ -99,9 +101,9 @@ serve(async (req) => {
               });
             }
           }
-        } else if (metadataAmount && Math.abs(sponsorship.amount - metadataAmount) > 0.01) {
-          // Use metadata amount if available and different
-          console.log(`💰 Updating sponsorship ${sponsorship.id} from metadata: $${sponsorship.amount} → $${metadataAmount.toFixed(2)}`);
+        } else if (!coverStripeFee && metadataAmount && Math.abs(sponsorship.amount - metadataAmount) > 0.01) {
+          // If fees NOT covered, metadata amount IS the correct amount
+          console.log(`💰 Correcting sponsorship ${sponsorship.id} (no fee coverage): $${sponsorship.amount} → $${metadataAmount.toFixed(2)}`);
           
           const { error: updateError } = await supabaseAdmin
             .from('sponsorships')
