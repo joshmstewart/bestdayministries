@@ -542,10 +542,10 @@ export default function GuardianLinks() {
         }
       });
 
-      // Attach amounts to transformed data using the same group key
+      // Attach amounts to transformed data using LIVE mode only
       const finalData = transformedData.map(s => {
         const bestieKey = s.sponsor_bestie_id || s.bestie_id;
-        const groupKey = `${bestieKey}|${s.stripe_mode}`;
+        const groupKey = `${bestieKey}|live`; // Always show LIVE mode funding
         const stableAmount = stableAmountsByBestieAndMode.get(groupKey) || 0;
         const endingAmount = endingAmountsByBestieAndMode.get(groupKey) || 0;
         
