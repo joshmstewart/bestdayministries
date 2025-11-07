@@ -346,6 +346,119 @@ FRONTEND-COMPONENTS:
   SponsorMessageInbox→sponsors-receive-messages→reply-to-guardian
   SponsorBestieDisplay→carousel-featured-besties→funding-progress→ALWAYS-LIVE-MODE-ONLY
 
+FUNDING-PROGRESS-SYSTEM:
+  CRITICAL:MUST-pass-endingAmount-prop-to-FundingProgressBar-component
+  PURPOSE:visualize-stable-vs-ending-sponsorships→users-see-which-contributions-expiring
+  COMPONENT:FundingProgressBar[currentAmount+goalAmount+endingAmount]
+  DISPLAY-LOCATIONS:GuardianLinks-page|SponsorBestieDisplay-carousel|anywhere-showing-funding-progress
+
+  CALCULATION-PATTERN:
+    STEP-1:load-ALL-sponsorships[.select(sponsor_bestie_id,frequency,amount,status,stripe_mode,ended_at)]
+    STEP-2:filter[status=active]→group-by[sponsor_bestie_id+stripe_mode]
+    STEP-3:calculate-stable-amounts:
+      monthly-sponsorships→add-to-stableAmounts
+      one-time-expired→add-to-stableAmounts
+    STEP-4:calculate-ending-amounts:
+      one-time-with-future-ended_at→add-to-endingAmounts
+    STEP-5:store-in-state[Map<string,number>]→key-format[bestieId_stripeMode]
+    STEP-6:pass-to-FundingProgressBar[endingAmount=map.get(bestieId_live)]
+
+  IMPLEMENTATION-REQUIREMENTS:
+    ✅ALWAYS-load-ALL-sponsorships-not-just-VIEW-data
+    ✅ALWAYS-calculate-stable-and-ending-amounts-separately
+    ✅ALWAYS-store-endingAmounts-in-component-state[useState]
+    ✅ALWAYS-pass-endingAmount-prop-to-FundingProgressBar
+    ✅ALWAYS-use-LIVE-mode-sponsorships-for-public-display
+    ✅NEVER-rely-on-VIEW-alone-for-ending-amounts-calculation
+    ✅NEVER-skip-endingAmount-prop-will-break-visual
+
+  VISUAL-DESIGN:
+    STABLE-FUNDING:solid-orange-bar[hsl(var(--primary))]→monthly-subscriptions+expired-one-time
+    ENDING-FUNDING:diagonal-stripes[burnt-orange+accent]→one-time-with-future-ended_at
+    TEXT-INDICATOR:yellow-text-shows-ending-amount[eg:"($300.00 ending)"]
+    PROGRESS-BAR:stableAmount-first→endingAmount-stacked-after→visual-distinction-critical
+
+  EDGE-CASES:
+    NO-ENDING:endingAmount=0→no-stripes-shown→only-solid-bar
+    FULLY-ENDING:all-one-time→entire-bar-striped→high-risk-indicator
+    MIXED:monthly+one-time→solid-section+striped-section→normal-case
+    GOAL-EXCEEDED:percentage-capped-at-100%→visual-overflow-prevented
+
+  DATABASE-QUERY-PATTERN:
+```typescript
+// CRITICAL: This pattern MUST be used everywhere FundingProgressBar is rendered
+const { data: allBestieSponsorships } = await supabase
+  .from("sponsorships")
+  .select("sponsor_bestie_id, frequency, amount, status, stripe_mode, ended_at")
+  .in("sponsor_bestie_id", bestieIds)
+  .eq("status", "active");
+
+const stableAmountsByBestieAndMode = new Map<string, number>();
+const endingAmountsByBestieAndMode = new Map<string, number>();
+
+(allBestieSponsorships || []).forEach(s => {
+  const groupKey = `${s.sponsor_bestie_id}_${s.stripe_mode || 'null'}`;
+  
+  if (s.frequency === 'monthly') {
+    // Monthly = stable (solid orange)
+    const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
+    stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
+  } else if (s.frequency === 'one-time') {
+    // One-time with future ended_at = ending (diagonal stripes)
+    if (s.ended_at && new Date(s.ended_at) > new Date()) {
+      const current = endingAmountsByBestieAndMode.get(groupKey) || 0;
+      endingAmountsByBestieAndMode.set(groupKey, current + s.amount);
+    } else {
+      // One-time already expired = stable
+      const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
+      stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
+    }
+  }
+});
+```
+
+  COMPONENT-STATE-PATTERN:
+```typescript
+const [endingAmounts, setEndingAmounts] = useState<Map<string, number>>(new Map());
+// ... after calculation ...
+setEndingAmounts(endingAmountsByBestieAndMode);
+```
+
+  RENDER-PATTERN:
+```tsx
+<FundingProgressBar
+  currentAmount={progress?.current_monthly_pledges || 0}
+  goalAmount={bestie.monthly_goal}
+  endingAmount={endingAmounts.get(`${bestie.id}_live`) || 0}
+/>
+```
+
+  DEBUGGING-LOGS:
+    console.log("Loaded sponsorships for progress bars:", allBestieSponsorships?.length, allBestieSponsorships)
+    console.log("Stable amounts by mode:", Object.fromEntries(stableAmountsByBestieAndMode))
+    console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieAndMode))
+
+  COMMON-BUGS-AVOID:
+    ❌NOT-passing-endingAmount-prop→stripes-never-show→looks-correct-but-broken
+    ❌RELYING-on-VIEW-only→VIEW-shows-total-not-split→cannot-calculate-ending
+    ❌FORGETTING-useState→local-variable-not-accessible-in-render→TS-error
+    ❌WRONG-key-format→get(`${bestie.id}`)→missing-stripe-mode→returns-undefined
+    ❌USING-TEST-mode→public-pages-must-use-live→hardcode[stripe_mode='live']
+
+  FILES-MODIFIED:
+    src/components/FundingProgressBar.tsx[component-with-endingAmount-prop]
+    src/components/SponsorBestieDisplay.tsx[carousel-with-calculation-logic]
+    src/pages/GuardianLinks.tsx[guardian-page-with-calculation-logic]
+
+  TESTING-CHECKLIST:
+    □ Create-one-time-sponsorship-with-future-ended_at
+    □ Verify-diagonal-stripes-appear-in-progress-bar
+    □ Verify-yellow-text-shows-ending-amount
+    □ Verify-monthly-sponsorships-show-as-solid-orange
+    □ Verify-expired-one-time-shows-as-solid-orange
+    □ Verify-mixed-sponsorships-show-solid+striped
+    □ Verify-same-bestie-displays-identically-across-pages
+
 RECEIPTS-SECURITY:
   CRITICAL-PRIVACY→users-see-ONLY-own-receipts→RLS[user_id-OR-sponsor_email-match]→explicit-filter[defense-in-depth]
   RECEIPTS-RLS→removed-admin-view-all-policy→NO-role-sees-all-receipts→privacy-protected
@@ -386,7 +499,7 @@ TESTING:
   TEST-ACCOUNT→persistent-test-accounts-NOT-cleaned-up
   CLEANUP→cleanup-test-data-unified→email-prefix[emailtest-]
 
-DOC:SPONSORSHIP_RECEIPT_SYSTEM_COMPLETE.md|SPONSOR_PAGE_SYSTEM.md|EDGE_FUNCTIONS_REFERENCE.md
+DOC:SPONSORSHIP_RECEIPT_SYSTEM_COMPLETE.md|SPONSOR_PAGE_SYSTEM.md|EDGE_FUNCTIONS_REFERENCE.md|FUNDING_PROGRESS_SYSTEM.md
 
 ## VENDOR_BESTIE
 OVERVIEW:vendors-display-approved-bestie-content-on-profile
