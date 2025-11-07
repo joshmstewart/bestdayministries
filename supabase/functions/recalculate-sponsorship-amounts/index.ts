@@ -66,8 +66,11 @@ serve(async (req) => {
         console.log(`   Stripe ID: ${sponsorship.stripe_subscription_id}`);
         console.log(`   Frequency: ${sponsorship.frequency}`);
 
+        // Declare variables at loop level for proper scoping
         let coverStripeFee = false;
-        let metadataAmount = null;
+        let metadataAmount: number | null = null;
+        let determinedAmount: number | null = null;
+        let methodUsed = '';
 
         // Check if this is a subscription ID or payment intent ID
         if (sponsorship.stripe_subscription_id.startsWith('sub_')) {
@@ -77,6 +80,8 @@ serve(async (req) => {
           
           coverStripeFee = subscription.metadata?.coverStripeFee === 'true';
           metadataAmount = subscription.metadata?.amount ? parseFloat(subscription.metadata.amount) : null;
+          methodUsed = 'subscription_metadata';
+          determinedAmount = metadataAmount;
           
           console.log(`   Cover fees: ${coverStripeFee}`);
           console.log(`   Metadata amount: $${metadataAmount?.toFixed(2) || 'N/A'}`);
@@ -84,9 +89,6 @@ serve(async (req) => {
           // It's a payment intent - use sophisticated fallback chain
           console.log(`   Type: Payment Intent (one-time)`);
           const paymentIntent = await stripe.paymentIntents.retrieve(sponsorship.stripe_subscription_id);
-          
-          let determinedAmount: number | null = null;
-          let methodUsed = '';
 
           // STEP 1: Try using metadata (primary method)
           const metaCoverFee = paymentIntent.metadata?.coverStripeFee === 'true';
@@ -120,7 +122,7 @@ serve(async (req) => {
               
               if (charges.data.length > 0) {
                 // Use the first successful charge
-                const successfulCharge = charges.data.find(c => c.status === 'succeeded');
+                const successfulCharge = charges.data.find((c: Stripe.Charge) => c.status === 'succeeded');
                 if (successfulCharge) {
                   determinedAmount = successfulCharge.amount / 100;
                   methodUsed = 'charge_by_payment_intent';
@@ -162,7 +164,7 @@ serve(async (req) => {
                 const tolerance = 1.0;
 
                 // Try to match charge amount
-                const matchedCharge = charges.data.find(charge => {
+                const matchedCharge = charges.data.find((charge: Stripe.Charge) => {
                   const chargeAmount = charge.amount / 100;
                   return (
                     Math.abs(chargeAmount - expectedWithFees) < tolerance ||
