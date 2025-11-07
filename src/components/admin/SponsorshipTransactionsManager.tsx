@@ -80,6 +80,7 @@ export const SponsorshipTransactionsManager = () => {
   const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [resendingReceipt, setResendingReceipt] = useState(false);
   const [receiptHtml, setReceiptHtml] = useState<string>('');
+  const [recalculating, setRecalculating] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -437,18 +438,28 @@ export const SponsorshipTransactionsManager = () => {
   };
 
   const recalculateAmounts = async () => {
-    if (!confirm("This will recalculate all sponsorship amounts to include Stripe fees where applicable. Continue?")) {
+    if (!confirm("This will recalculate all sponsorship and donation amounts to match what was actually charged in Stripe. Continue?")) {
       return;
     }
 
-    try {
-      const { data, error } = await supabase.functions.invoke('recalculate-sponsorship-amounts');
+    setRecalculating(true);
+    let sponsorshipUpdates = 0;
+    let donationUpdates = 0;
 
-      if (error) throw error;
+    try {
+      // Recalculate sponsorships
+      const { data: sponsorshipData, error: sponsorshipError } = await supabase.functions.invoke('recalculate-sponsorship-amounts');
+      if (sponsorshipError) throw sponsorshipError;
+      sponsorshipUpdates = sponsorshipData?.updatedCount || 0;
+
+      // Recalculate donations
+      const { data: donationData, error: donationError } = await supabase.functions.invoke('recalculate-donation-amounts');
+      if (donationError) throw donationError;
+      donationUpdates = donationData?.updatedCount || 0;
 
       toast({
         title: "Success",
-        description: `Updated ${data?.updatedCount || 0} sponsorships with full amounts`,
+        description: `Updated ${sponsorshipUpdates} sponsorships and ${donationUpdates} donations`,
       });
       
       await loadTransactions();
@@ -459,32 +470,8 @@ export const SponsorshipTransactionsManager = () => {
         description: "Failed to recalculate amounts",
         variant: "destructive",
       });
-    }
-  };
-
-  const recalculateDonationAmounts = async () => {
-    if (!confirm("This will recalculate all donation amounts by checking what was actually charged in Stripe. Continue?")) {
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('recalculate-donation-amounts');
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Updated ${data?.updatedCount || 0} donations with actual charged amounts`,
-      });
-      
-      await loadTransactions();
-    } catch (error: any) {
-      console.error('Error recalculating donation amounts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to recalculate donation amounts",
-        variant: "destructive",
-      });
+    } finally {
+      setRecalculating(false);
     }
   };
 
@@ -979,13 +966,9 @@ export const SponsorshipTransactionsManager = () => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button onClick={recalculateAmounts} variant="outline" size="sm">
+              <Button onClick={recalculateAmounts} variant="outline" size="sm" disabled={recalculating}>
                 <DollarSign className="w-4 h-4 mr-2" />
-                Recalculate Sponsorship Amounts
-              </Button>
-              <Button onClick={recalculateDonationAmounts} variant="outline" size="sm">
-                <DollarSign className="w-4 h-4 mr-2" />
-                Recalculate Donation Amounts
+                {recalculating ? "Recalculating..." : "Recalculate Amounts"}
               </Button>
               <Button onClick={deleteTestTransactions} variant="destructive" size="sm">
                 Delete Test Transactions
