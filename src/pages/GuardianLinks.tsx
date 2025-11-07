@@ -452,13 +452,18 @@ export default function GuardianLinks() {
       // This is needed to correctly calculate stable vs ending amounts for progress bars
       let allBestieSponsorships: any[] = [];
       if (sponsorBestieIds.length > 0) {
-        const { data: allBestieSponsData } = await supabase
+        const { data: allBestieSponsData, error: allSponsError } = await supabase
           .from("sponsorships")
           .select("sponsor_bestie_id, frequency, amount, status, stripe_mode, ended_at")
           .in("sponsor_bestie_id", sponsorBestieIds)
           .eq("status", "active");
         
+        if (allSponsError) {
+          console.error("Error loading all bestie sponsorships:", allSponsError);
+        }
+        
         allBestieSponsorships = allBestieSponsData || [];
+        console.log("Loaded sponsorships for progress bars:", allBestieSponsorships.length, allBestieSponsorships);
       }
 
       // Combine the data
@@ -555,6 +560,9 @@ export default function GuardianLinks() {
           endingAmountsByBestieAndMode.set(groupKey, current + s.amount);
         }
       });
+
+      console.log("Stable amounts by mode:", Object.fromEntries(stableAmountsByBestieAndMode));
+      console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieAndMode));
 
       // Attach amounts to transformed data using LIVE mode only
       const finalData = transformedData.map(s => {
