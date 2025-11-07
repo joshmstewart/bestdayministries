@@ -88,9 +88,13 @@ serve(async (req) => {
         } else if (sponsorship.stripe_subscription_id.startsWith('pi_')) {
           // It's a payment intent - use sophisticated fallback chain
           console.log(`   Type: Payment Intent (one-time)`);
+          console.log(`\n   ╔═══════════════════════════════════════════════════════════╗`);
+          console.log(`   ║  🔍 FALLBACK CHAIN - Finding Correct Amount              ║`);
+          console.log(`   ╚═══════════════════════════════════════════════════════════╝`);
           const paymentIntent = await stripe.paymentIntents.retrieve(sponsorship.stripe_subscription_id);
 
           // STEP 1: Try using metadata (primary method)
+          console.log(`\n   📋 STEP 1: Checking Payment Intent Metadata...`);
           const metaCoverFee = paymentIntent.metadata?.coverStripeFee === 'true';
           const metaAmount = paymentIntent.metadata?.amount ? parseFloat(paymentIntent.metadata.amount) : null;
           
@@ -100,53 +104,64 @@ serve(async (req) => {
             } else {
               determinedAmount = metaAmount;
             }
-            methodUsed = 'metadata';
-            console.log(`   ✓ STEP 1 SUCCESS: Using metadata`);
-            console.log(`   Cover fees: ${metaCoverFee}`);
-            console.log(`   Metadata amount: $${metaAmount.toFixed(2)}`);
-            console.log(`   Determined amount: $${determinedAmount.toFixed(2)}`);
+            methodUsed = 'step_1_metadata';
+            console.log(`   ✅ STEP 1 SUCCESS: Using Payment Intent metadata`);
+            console.log(`      • Cover fees: ${metaCoverFee}`);
+            console.log(`      • Base amount from metadata: $${metaAmount.toFixed(2)}`);
+            console.log(`      • Calculated final amount: $${determinedAmount.toFixed(2)}`);
           } else {
-            console.log(`   ✗ STEP 1 FAILED: Metadata missing or invalid`);
+            console.log(`   ❌ STEP 1 FAILED: Metadata incomplete`);
+            console.log(`      • coverStripeFee: ${metaCoverFee}`);
+            console.log(`      • amount: ${metaAmount || 'missing'}`);
           }
 
           // STEP 2: Fallback - Query charges by payment intent ID
           if (!determinedAmount) {
-            console.log(`   Attempting STEP 2: Query charges by payment intent ID...`);
+            console.log(`\n   💳 STEP 2: Querying Stripe Charges by Payment Intent ID...`);
             try {
               const charges = await stripe.charges.list({
                 payment_intent: sponsorship.stripe_subscription_id,
                 limit: 10
               });
 
-              console.log(`   Found ${charges.data.length} charges for this payment intent`);
+              console.log(`      • Found ${charges.data.length} charge(s) for this payment intent`);
               
               if (charges.data.length > 0) {
                 // Use the first successful charge
                 const successfulCharge = charges.data.find((c: Stripe.Charge) => c.status === 'succeeded');
                 if (successfulCharge) {
                   determinedAmount = successfulCharge.amount / 100;
-                  methodUsed = 'charge_by_payment_intent';
-                  console.log(`   ✓ STEP 2 SUCCESS: Found charge ${successfulCharge.id}`);
-                  console.log(`   Charge amount: $${determinedAmount.toFixed(2)}`);
+                  methodUsed = 'step_2_charge_by_payment_intent';
+                  console.log(`   ✅ STEP 2 SUCCESS: Found successful charge`);
+                  console.log(`      • Charge ID: ${successfulCharge.id}`);
+                  console.log(`      • Charge amount: $${determinedAmount.toFixed(2)}`);
+                  console.log(`      • Charge status: ${successfulCharge.status}`);
                 } else {
-                  console.log(`   ✗ STEP 2 FAILED: No successful charges found`);
+                  console.log(`   ❌ STEP 2 FAILED: No successful charges found`);
+                  console.log(`      • Total charges: ${charges.data.length}`);
+                  console.log(`      • Charge statuses: ${charges.data.map((c: Stripe.Charge) => c.status).join(', ')}`);
                 }
               } else {
-                console.log(`   ✗ STEP 2 FAILED: No charges returned`);
+                console.log(`   ❌ STEP 2 FAILED: No charges returned from Stripe`);
               }
             } catch (chargeError) {
-              console.log(`   ✗ STEP 2 FAILED: ${chargeError instanceof Error ? chargeError.message : 'Unknown error'}`);
+              console.log(`   ❌ STEP 2 FAILED: Error querying charges`);
+              console.log(`      • Error: ${chargeError instanceof Error ? chargeError.message : 'Unknown error'}`);
             }
+          } else {
+            console.log(`\n   ⏭️  STEP 2: Skipped (amount already determined)`);
           }
 
           // STEP 3: Fallback - Query charges by customer ID + time window
           if (!determinedAmount && sponsorship.stripe_customer_id) {
-            console.log(`   Attempting STEP 3: Query charges by customer ID + time window...`);
+            console.log(`\n   🕐 STEP 3: Querying Charges by Customer ID + Time Window...`);
             try {
               const createdAt = new Date(sponsorship.created_at);
               const oneHourBefore = Math.floor(createdAt.getTime() / 1000) - 3600;
               const oneHourAfter = Math.floor(createdAt.getTime() / 1000) + 3600;
 
+              console.log(`      • Time window: ${new Date(oneHourBefore * 1000).toISOString()} to ${new Date(oneHourAfter * 1000).toISOString()}`);
+              
               const charges = await stripe.charges.list({
                 customer: sponsorship.stripe_customer_id,
                 created: {
@@ -156,13 +171,15 @@ serve(async (req) => {
                 limit: 20
               });
 
-              console.log(`   Found ${charges.data.length} charges in time window`);
+              console.log(`      • Found ${charges.data.length} charge(s) in time window`);
 
               if (charges.data.length > 0) {
                 // Calculate expected amounts for matching
                 const expectedWithFees = (sponsorship.amount + 0.30) / 0.971;
                 const tolerance = 1.0;
 
+                console.log(`      • Looking for charge matching: $${expectedWithFees.toFixed(2)} or $${sponsorship.amount.toFixed(2)} (±$${tolerance})`);
+                
                 // Try to match charge amount
                 const matchedCharge = charges.data.find((charge: Stripe.Charge) => {
                   const chargeAmount = charge.amount / 100;
@@ -174,40 +191,64 @@ serve(async (req) => {
 
                 if (matchedCharge) {
                   determinedAmount = matchedCharge.amount / 100;
-                  methodUsed = 'charge_by_customer_time';
-                  console.log(`   ✓ STEP 3 SUCCESS: Matched charge ${matchedCharge.id}`);
-                  console.log(`   Charge amount: $${determinedAmount.toFixed(2)}`);
+                  methodUsed = 'step_3_charge_by_customer_time';
+                  console.log(`   ✅ STEP 3 SUCCESS: Matched charge within time window`);
+                  console.log(`      • Charge ID: ${matchedCharge.id}`);
+                  console.log(`      • Charge amount: $${determinedAmount.toFixed(2)}`);
+                  console.log(`      • Charge created: ${new Date((matchedCharge.created || 0) * 1000).toISOString()}`);
                 } else {
-                  console.log(`   ✗ STEP 3 FAILED: No matching charges in time window`);
+                  console.log(`   ❌ STEP 3 FAILED: No matching charges in time window`);
+                  console.log(`      • Charge amounts found: ${charges.data.map((c: Stripe.Charge) => `$${(c.amount / 100).toFixed(2)}`).join(', ')}`);
                 }
               } else {
-                console.log(`   ✗ STEP 3 FAILED: No charges in time window`);
+                console.log(`   ❌ STEP 3 FAILED: No charges in time window`);
               }
             } catch (chargeError) {
-              console.log(`   ✗ STEP 3 FAILED: ${chargeError instanceof Error ? chargeError.message : 'Unknown error'}`);
+              console.log(`   ❌ STEP 3 FAILED: Error querying charges by customer`);
+              console.log(`      • Error: ${chargeError instanceof Error ? chargeError.message : 'Unknown error'}`);
             }
           } else if (!determinedAmount) {
-            console.log(`   ✗ STEP 3 SKIPPED: No stripe_customer_id available`);
+            console.log(`\n   ⏭️  STEP 3: Skipped (no stripe_customer_id available)`);
+          } else {
+            console.log(`\n   ⏭️  STEP 3: Skipped (amount already determined)`);
           }
 
           // STEP 4: Fallback - Use payment intent amount directly
           if (!determinedAmount && paymentIntent.amount > 0) {
+            console.log(`\n   🔄 STEP 4: Using Payment Intent Amount Directly (Last Resort)...`);
             determinedAmount = paymentIntent.amount / 100;
-            methodUsed = 'payment_intent_amount';
-            console.log(`   ✓ STEP 4 SUCCESS: Using payment intent amount directly`);
-            console.log(`   Payment Intent amount: $${determinedAmount.toFixed(2)}`);
+            methodUsed = 'step_4_payment_intent_direct';
+            console.log(`   ✅ STEP 4 SUCCESS: Using payment intent amount as fallback`);
+            console.log(`      • Payment Intent amount: $${determinedAmount.toFixed(2)}`);
+            console.log(`      • Note: This is the actual amount charged in Stripe`);
+          } else if (!determinedAmount) {
+            console.log(`\n   ⏭️  STEP 4: Skipped (payment intent amount is 0 or invalid)`);
+          } else {
+            console.log(`\n   ⏭️  STEP 4: Skipped (amount already determined)`);
           }
 
           // Set the metadata values for the rest of the logic
           if (determinedAmount) {
-            console.log(`   📊 Final Result: Method=${methodUsed}, Amount=$${determinedAmount.toFixed(2)}`);
+            console.log(`\n   ╔═══════════════════════════════════════════════════════════╗`);
+            console.log(`   ║  ✅ FALLBACK CHAIN RESULT                                ║`);
+            console.log(`   ╠═══════════════════════════════════════════════════════════╣`);
+            console.log(`   ║  Method Used: ${methodUsed.padEnd(43)} ║`);
+            console.log(`   ║  Final Amount: $${determinedAmount.toFixed(2).padEnd(41)} ║`);
+            console.log(`   ║  Current DB Amount: $${sponsorship.amount.toFixed(2).padEnd(36)} ║`);
+            console.log(`   ╚═══════════════════════════════════════════════════════════╝`);
+            
             // Determine if fees were covered by comparing to known patterns
             const possibleBaseLow = determinedAmount * 0.971 - 0.30;
             const possibleBaseHigh = determinedAmount;
             coverStripeFee = Math.abs(possibleBaseLow - (metaAmount || 0)) < Math.abs(possibleBaseHigh - (metaAmount || 0)) && metaAmount !== null;
             metadataAmount = determinedAmount;
           } else {
-            console.log(`   ⚠️ ALL STEPS FAILED: Cannot determine correct amount`);
+            console.log(`\n   ╔═══════════════════════════════════════════════════════════╗`);
+            console.log(`   ║  ❌ FALLBACK CHAIN FAILED                                ║`);
+            console.log(`   ╠═══════════════════════════════════════════════════════════╣`);
+            console.log(`   ║  All 4 methods failed to determine correct amount        ║`);
+            console.log(`   ║  Skipping this sponsorship                               ║`);
+            console.log(`   ╚═══════════════════════════════════════════════════════════╝`);
             continue;
           }
         } else {
