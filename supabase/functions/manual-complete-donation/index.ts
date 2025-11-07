@@ -59,6 +59,22 @@ serve(async (req) => {
 
     console.log('Found donation:', donation);
 
+    // Get donor email from profile if not in donation record
+    let donorEmail = donation.donor_email;
+    if (!donorEmail && donation.donor_id) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('email')
+        .eq('id', donation.donor_id)
+        .single();
+      
+      donorEmail = profile?.email;
+    }
+
+    if (!donorEmail) {
+      throw new Error('Cannot create receipt: donor email not found');
+    }
+
     // Update donation status
     const newStatus = donation.frequency === 'one-time' ? 'completed' : 'active';
     const { error: updateError } = await supabaseAdmin
@@ -95,8 +111,8 @@ serve(async (req) => {
     const { data: receiptRecord, error: receiptError } = await supabaseAdmin
       .from('sponsorship_receipts')
       .insert({
-        sponsor_email: donation.donor_email,
-        sponsor_name: donation.donor_email.split('@')[0],
+        sponsor_email: donorEmail,
+        sponsor_name: donorEmail.split('@')[0],
         bestie_name: 'General Support',
         amount: donation.amount,
         frequency: donation.frequency,
@@ -145,7 +161,7 @@ serve(async (req) => {
             'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
           },
           body: JSON.stringify({
-            sponsorEmail: donation.donor_email,
+            sponsorEmail: donorEmail,
             bestieName: 'General Support',
             amount: donation.amount,
             frequency: donation.frequency,
@@ -189,7 +205,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Donation ${donationId} manually completed and receipt sent to ${donation.donor_email}`,
+        message: `Donation ${donationId} manually completed and receipt sent to ${donorEmail}`,
         donation: { ...donation, status: newStatus }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
