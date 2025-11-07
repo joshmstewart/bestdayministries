@@ -80,6 +80,7 @@ serve(async (req) => {
 
     // Calculate final amount including Stripe fee if user chose to cover it
     // Stripe fee: 2.9% + $0.30
+    // This is the TOTAL amount we actually receive from the sponsor
     let finalAmount = amount;
     if (coverStripeFee) {
       // To cover the fee, we need to calculate: (amount + 0.30) / (1 - 0.029)
@@ -88,10 +89,11 @@ serve(async (req) => {
 
     // Sanitize for logging (truncate email)
     const sanitizedEmail = email.substring(0, 3) + '***@' + email.split('@')[1];
-    console.log('Creating sponsorship checkout:', { 
+    console.log('💰 Creating sponsorship checkout:', { 
       bestie_id, 
-      amount, 
-      finalAmount,
+      baseAmount: amount,
+      finalAmount: finalAmount.toFixed(2),
+      totalReceived: finalAmount.toFixed(2),
       coverStripeFee,
       frequency, 
       email: sanitizedEmail 
@@ -156,7 +158,8 @@ serve(async (req) => {
       metadata: {
         bestie_id,
         frequency,
-        amount: amount.toString(),
+        amount: finalAmount.toString(), // Store FULL amount including fees
+        baseAmount: amount.toString(), // Keep base amount for reference
         coverStripeFee: coverStripeFee.toString(),
       },
       // Add subscription metadata so webhook can access it
@@ -165,7 +168,8 @@ serve(async (req) => {
           metadata: {
             bestie_id,
             frequency,
-            amount: amount.toString(),
+            amount: finalAmount.toString(), // Store FULL amount including fees
+            baseAmount: amount.toString(), // Keep base amount for reference
             coverStripeFee: coverStripeFee.toString(),
           },
         },
@@ -190,10 +194,11 @@ serve(async (req) => {
         const endedAt = new Date(startedAt);
         endedAt.setMonth(endedAt.getMonth() + 1); // One-time sponsorships expire after 1 month
         
+        console.log('💰 Creating one-time sponsorship record with FULL amount:', finalAmount);
         await supabaseAdmin.from("sponsorships").insert({
           sponsor_id: profile.id,
           bestie_id: bestie_id,
-          amount: amount,
+          amount: finalAmount, // Store FULL amount including fees - this is what we actually receive
           frequency: 'one-time',
           status: 'pending',
           started_at: startedAt.toISOString(),

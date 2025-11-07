@@ -172,13 +172,18 @@ serve(async (req) => {
       ? new Date(startedAt.getTime() + 30 * 24 * 60 * 60 * 1000) // One-time sponsorships expire after 1 month
       : null;
     
+    // CRITICAL: Use the FULL amount from metadata (includes Stripe fees if covered)
+    // This is the total amount we actually receive from the sponsor
+    const fullAmount = parseFloat(session.metadata.amount);
+    console.log('💰 Creating sponsorship with FULL amount received:', fullAmount);
+    
     const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
       .from('sponsorships')
       .upsert({
         sponsor_id: userId,
         sponsor_email: userId ? null : customerEmail, // Store email for guest checkouts
         sponsor_bestie_id: sponsorBestieId,
-        amount: parseFloat(session.metadata.amount),
+        amount: fullAmount, // Store FULL amount - this is what we actually receive
         frequency: session.metadata.frequency,
         status: 'active',
         started_at: startedAt.toISOString(),
@@ -209,6 +214,10 @@ serve(async (req) => {
     if (bestieData) {
       console.log('Updating placeholder receipt with final details for session:', session_id);
       
+      // CRITICAL: Use the FULL amount (includes Stripe fees if covered)
+      const receiptAmount = parseFloat(session.metadata.amount);
+      console.log('💰 Receipt amount (full amount received):', receiptAmount);
+      
       // Update the placeholder receipt we created earlier with actual details
       const { error: updateError } = await supabaseAdmin
         .from('sponsorship_receipts')
@@ -217,7 +226,7 @@ serve(async (req) => {
           sponsor_email: customerEmail,
           sponsor_name: customerEmail.split('@')[0],
           bestie_name: bestieData.bestie_name,
-          amount: parseFloat(session.metadata.amount),
+          amount: receiptAmount, // FULL amount received
           frequency: session.metadata.frequency,
           transaction_date: new Date().toISOString(),
           receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`,
@@ -250,7 +259,7 @@ serve(async (req) => {
             body: JSON.stringify({
               sponsorEmail: customerEmail,
               bestieName: bestieData.bestie_name,
-              amount: parseFloat(session.metadata.amount),
+              amount: receiptAmount, // FULL amount received
               frequency: session.metadata.frequency,
               transactionId: session_id,
               transactionDate: new Date().toISOString(),
