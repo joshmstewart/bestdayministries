@@ -222,7 +222,8 @@ serve(async (req) => {
           organization_name: receiptSettings.organization_name,
           organization_ein: receiptSettings.organization_ein,
           receipt_number: receiptNumber,
-          tax_year: taxYear
+          tax_year: taxYear,
+          stripe_mode: sponsorship.stripe_mode || 'test'
         };
 
         logStep("Attempting to insert receipt", {
