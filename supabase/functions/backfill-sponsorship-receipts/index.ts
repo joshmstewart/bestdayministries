@@ -61,8 +61,7 @@ serve(async (req) => {
         stripe_customer_id,
         stripe_mode,
         sponsor_besties!inner(
-          bestie_id,
-          profiles!inner(display_name)
+          bestie_name
         )
       `)
       .eq('status', 'active');
@@ -152,8 +151,8 @@ serve(async (req) => {
           subscriptionId: sponsorship.stripe_subscription_id
         });
 
-        // Extract bestie name from joined data
-        const bestieName = (sponsorship as any).sponsor_besties?.profiles?.display_name || 'Unknown Bestie';
+        // Extract bestie name from joined sponsor_besties data
+        const bestieName = (sponsorship as any).sponsor_besties?.bestie_name || 'Unknown Bestie';
         logStep("Bestie name extracted", { sponsorshipId: sponsorship.id, bestieName });
 
         let invoiceDate: Date;
