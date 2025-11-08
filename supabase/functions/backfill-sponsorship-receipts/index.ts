@@ -128,6 +128,9 @@ serve(async (req) => {
       liveCreated: 0
     };
 
+    // Track receipt numbers by tax year to avoid race conditions
+    const receiptNumberCounters = new Map<number, number>();
+
     // Process each mode separately
     for (const [mode, modeSponsorship] of Object.entries(sponsorshipsByMode)) {
       const stripeKey = mode === 'live' 
@@ -141,6 +144,29 @@ serve(async (req) => {
 
       const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
       logStep(`Processing ${mode} mode`, { count: modeSponsorship.length });
+
+      // Pre-calculate starting receipt numbers for each tax year
+      for (const sponsorship of modeSponsorship) {
+        const tempDate = new Date();
+        const taxYear = tempDate.getFullYear();
+        
+        if (!receiptNumberCounters.has(taxYear)) {
+          // Query once per tax year
+          const { data: existingReceipts } = await supabaseClient
+            .from('sponsorship_receipts')
+            .select('receipt_number')
+            .eq('tax_year', taxYear)
+            .order('receipt_number', { ascending: false })
+            .limit(1);
+          
+          const lastNumber = existingReceipts?.[0]?.receipt_number 
+            ? parseInt(existingReceipts[0].receipt_number.split('-')[1]) 
+            : 0;
+          
+          receiptNumberCounters.set(taxYear, lastNumber);
+          logStep(`Initialized receipt counter for ${taxYear}`, { startingNumber: lastNumber });
+        }
+      }
 
       // Process each sponsorship in this mode
       for (const sponsorship of modeSponsorship) {
@@ -196,18 +222,17 @@ serve(async (req) => {
 
         const taxYear = invoiceDate.getFullYear();
 
-        // Generate receipt number
-        const { data: existingReceipts } = await supabaseClient
-          .from('sponsorship_receipts')
-          .select('receipt_number')
-          .eq('tax_year', taxYear)
-          .order('receipt_number', { ascending: false })
-          .limit(1);
+        // Get and increment receipt number for this tax year
+        const currentReceiptNumber = (receiptNumberCounters.get(taxYear) || 0) + 1;
+        receiptNumberCounters.set(taxYear, currentReceiptNumber);
+        const receiptNumber = `${taxYear}-${String(currentReceiptNumber).padStart(6, '0')}`;
 
-        const lastNumber = existingReceipts?.[0]?.receipt_number 
-          ? parseInt(existingReceipts[0].receipt_number.split('-')[1]) 
-          : 0;
-        const receiptNumber = `${taxYear}-${String(lastNumber + 1).padStart(6, '0')}`;
+        logStep("Generated receipt number", {
+          sponsorshipId: sponsorship.id,
+          taxYear,
+          receiptNumber,
+          counter: currentReceiptNumber
+        });
 
         // Prepare receipt data with detailed logging
         const receiptData = {
