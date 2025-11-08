@@ -3401,6 +3401,7 @@ export type Database = {
         Row: {
           donation_receipt_message: string | null
           donation_tax_deductible_notice: string | null
+          enable_receipts: boolean
           from_email: string
           id: string
           organization_address: string | null
@@ -3418,6 +3419,7 @@ export type Database = {
         Insert: {
           donation_receipt_message?: string | null
           donation_tax_deductible_notice?: string | null
+          enable_receipts?: boolean
           from_email?: string
           id?: string
           organization_address?: string | null
@@ -3435,6 +3437,7 @@ export type Database = {
         Update: {
           donation_receipt_message?: string | null
           donation_tax_deductible_notice?: string | null
+          enable_receipts?: boolean
           from_email?: string
           id?: string
           organization_address?: string | null
