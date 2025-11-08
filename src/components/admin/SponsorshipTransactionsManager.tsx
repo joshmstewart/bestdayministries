@@ -487,22 +487,66 @@ export const SponsorshipTransactionsManager = () => {
       
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: data.message,
-      });
-
+      // Prepare detailed message with copy button if there are errors
       if (data.errors && data.errors.length > 0) {
+        const errorDetails = JSON.stringify(data.errors, null, 2);
         console.error('Backfill errors:', data.errors);
+        
+        toast({
+          title: data.failed > 0 ? "Partial Success" : "Success",
+          description: (
+            <div className="space-y-2">
+              <p>{data.message}</p>
+              {data.failed > 0 && (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    {data.failed} sponsorship{data.failed > 1 ? 's' : ''} failed. Click to copy error details.
+                  </p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(errorDetails);
+                      toast({ title: "Error details copied to clipboard" });
+                    }}
+                    className="text-xs underline hover:no-underline"
+                  >
+                    Copy Error Details
+                  </button>
+                </>
+              )}
+            </div>
+          ),
+          duration: 10000,
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: data.message,
+        });
       }
       
       await loadTransactions();
     } catch (error: any) {
       console.error('Error backfilling receipts:', error);
+      const errorMessage = error.message || "Failed to backfill receipts";
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to backfill receipts",
+        description: (
+          <div className="space-y-2">
+            <p>{errorMessage}</p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(JSON.stringify(error, null, 2));
+                toast({ title: "Error details copied to clipboard" });
+              }}
+              className="text-xs underline hover:no-underline"
+            >
+              Copy Error Details
+            </button>
+          </div>
+        ),
         variant: "destructive",
+        duration: 10000,
       });
     } finally {
       setBackfilling(false);

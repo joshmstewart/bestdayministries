@@ -138,45 +138,45 @@ serve(async (req) => {
           subscriptionId: sponsorship.stripe_subscription_id
         });
 
-        if (!sponsorship.stripe_subscription_id) {
-          results.failed++;
-          results.errors.push({
-            sponsorshipId: sponsorship.id,
-            error: 'No Stripe subscription ID'
-          });
-          continue;
+        let invoiceDate: Date;
+        let transactionId: string;
+
+        // Try to get Stripe data, fall back to sponsorship data if not available
+        if (sponsorship.stripe_subscription_id) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
+            
+            // Get most recent invoice
+            const invoices = await stripe.invoices.list({
+              subscription: sponsorship.stripe_subscription_id,
+              limit: 1,
+              status: 'paid'
+            });
+
+            if (invoices.data && invoices.data.length > 0) {
+              const invoice = invoices.data[0];
+              invoiceDate = new Date(invoice.created * 1000);
+              transactionId = invoice.payment_intent as string;
+            } else {
+              // No paid invoices, use current date and generate transaction ID
+              invoiceDate = new Date();
+              transactionId = `backfill_${sponsorship.id}_${Date.now()}`;
+            }
+          } catch (stripeError: any) {
+            // Subscription doesn't exist in Stripe (deleted/cancelled)
+            logStep("Stripe subscription not found, using fallback data", { 
+              sponsorshipId: sponsorship.id,
+              error: stripeError.message 
+            });
+            invoiceDate = new Date();
+            transactionId = `backfill_${sponsorship.id}_${Date.now()}`;
+          }
+        } else {
+          // No subscription ID, use fallback data
+          invoiceDate = new Date();
+          transactionId = `backfill_${sponsorship.id}_${Date.now()}`;
         }
 
-        // Get subscription from Stripe
-        const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
-        
-        if (!subscription) {
-          results.failed++;
-          results.errors.push({
-            sponsorshipId: sponsorship.id,
-            error: 'Subscription not found in Stripe'
-          });
-          continue;
-        }
-
-        // Get most recent invoice
-        const invoices = await stripe.invoices.list({
-          subscription: sponsorship.stripe_subscription_id,
-          limit: 1,
-          status: 'paid'
-        });
-
-        if (!invoices.data || invoices.data.length === 0) {
-          results.failed++;
-          results.errors.push({
-            sponsorshipId: sponsorship.id,
-            error: 'No paid invoices found'
-          });
-          continue;
-        }
-
-        const invoice = invoices.data[0];
-        const invoiceDate = new Date(invoice.created * 1000);
         const taxYear = invoiceDate.getFullYear();
 
         // Generate receipt number
@@ -196,7 +196,7 @@ serve(async (req) => {
         const { error: insertError } = await supabaseClient
           .from('sponsorship_receipts')
           .insert({
-            transaction_id: invoice.payment_intent as string,
+            transaction_id: transactionId,
             sponsorship_id: sponsorship.id,
             user_id: sponsorship.sponsor_id,
             sponsor_email: sponsorship.sponsor_email,
