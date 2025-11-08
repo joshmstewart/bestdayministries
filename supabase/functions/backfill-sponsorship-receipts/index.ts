@@ -50,7 +50,21 @@ serve(async (req) => {
     // Query ALL sponsorships with no receipts (both test and live modes)
     const { data: sponsorships, error: sponsorshipsError } = await supabaseClient
       .from('sponsorships')
-      .select('id, sponsor_email, sponsor_id, bestie_id, amount, frequency, stripe_subscription_id, stripe_customer_id, stripe_mode')
+      .select(`
+        id,
+        sponsor_email,
+        sponsor_id,
+        bestie_id,
+        amount,
+        frequency,
+        stripe_subscription_id,
+        stripe_customer_id,
+        stripe_mode,
+        sponsor_besties!inner(
+          bestie_id,
+          profiles!inner(display_name)
+        )
+      `)
       .eq('status', 'active');
 
     if (sponsorshipsError) throw sponsorshipsError;
@@ -138,6 +152,10 @@ serve(async (req) => {
           subscriptionId: sponsorship.stripe_subscription_id
         });
 
+        // Extract bestie name from joined data
+        const bestieName = (sponsorship as any).sponsor_besties?.profiles?.display_name || 'Unknown Bestie';
+        logStep("Bestie name extracted", { sponsorshipId: sponsorship.id, bestieName });
+
         let invoiceDate: Date;
         let transactionId: string;
 
@@ -192,22 +210,31 @@ serve(async (req) => {
           : 0;
         const receiptNumber = `${taxYear}-${String(lastNumber + 1).padStart(6, '0')}`;
 
+        // Prepare receipt data with detailed logging
+        const receiptData = {
+          transaction_id: transactionId,
+          sponsorship_id: sponsorship.id,
+          user_id: sponsorship.sponsor_id,
+          sponsor_email: sponsorship.sponsor_email || 'unknown@example.com',
+          bestie_name: bestieName,
+          amount: sponsorship.amount,
+          frequency: sponsorship.frequency,
+          transaction_date: invoiceDate.toISOString(),
+          organization_name: receiptSettings.organization_name,
+          organization_ein: receiptSettings.organization_ein,
+          receipt_number: receiptNumber,
+          tax_year: taxYear
+        };
+
+        logStep("Attempting to insert receipt", {
+          sponsorshipId: sponsorship.id,
+          receiptData
+        });
+
         // Create receipt record
         const { error: insertError } = await supabaseClient
           .from('sponsorship_receipts')
-          .insert({
-            transaction_id: transactionId,
-            sponsorship_id: sponsorship.id,
-            user_id: sponsorship.sponsor_id,
-            sponsor_email: sponsorship.sponsor_email,
-            amount: sponsorship.amount,
-            organization_name: receiptSettings.organization_name,
-            organization_ein: receiptSettings.organization_ein,
-            receipt_number: receiptNumber,
-            tax_year: taxYear,
-            status: 'generated',
-            generated_at: invoiceDate.toISOString()
-          });
+          .insert(receiptData);
 
         if (insertError) {
           results.failed++;
@@ -215,7 +242,11 @@ serve(async (req) => {
             sponsorshipId: sponsorship.id,
             error: insertError.message
           });
-          logStep("Failed to create receipt", { error: insertError });
+          logStep("Failed to create receipt", { 
+            sponsorshipId: sponsorship.id,
+            error: insertError,
+            attemptedData: receiptData
+          });
           continue;
         }
 
