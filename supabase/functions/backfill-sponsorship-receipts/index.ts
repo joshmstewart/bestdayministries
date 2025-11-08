@@ -66,7 +66,7 @@ serve(async (req) => {
     // Query sponsorships with no receipts
     const { data: sponsorships, error: sponsorshipsError } = await supabaseClient
       .from('sponsorships')
-      .select('id, sponsor_email, sponsor_id, bestie_id, amount, frequency, tier_name, stripe_subscription_id, stripe_customer_id, stripe_mode')
+      .select('id, sponsor_email, sponsor_id, bestie_id, amount, frequency, stripe_subscription_id, stripe_customer_id, stripe_mode')
       .eq('status', 'active')
       .eq('stripe_mode', stripeMode);
 
