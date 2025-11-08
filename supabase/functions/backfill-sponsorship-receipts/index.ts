@@ -157,14 +157,22 @@ serve(async (req) => {
             .select('receipt_number')
             .eq('tax_year', taxYear)
             .order('receipt_number', { ascending: false })
-            .limit(1);
+            .limit(100); // Get more records to find properly formatted ones
           
-          const lastNumber = existingReceipts?.[0]?.receipt_number 
-            ? parseInt(existingReceipts[0].receipt_number.split('-')[1]) 
+          // Only parse receipt numbers in YYYY-NNNNNN format
+          const properlyFormattedReceipts = (existingReceipts || [])
+            .filter(r => r.receipt_number && /^\d{4}-\d{6}$/.test(r.receipt_number));
+          
+          const lastNumber = properlyFormattedReceipts.length > 0
+            ? parseInt(properlyFormattedReceipts[0].receipt_number.split('-')[1]) 
             : 0;
           
           receiptNumberCounters.set(taxYear, lastNumber);
-          logStep(`Initialized receipt counter for ${taxYear}`, { startingNumber: lastNumber });
+          logStep(`Initialized receipt counter for ${taxYear}`, { 
+            startingNumber: lastNumber,
+            totalExistingReceipts: existingReceipts?.length || 0,
+            properlyFormattedReceipts: properlyFormattedReceipts.length
+          });
         }
       }
 
