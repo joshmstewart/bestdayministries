@@ -112,6 +112,7 @@ serve(async (req) => {
     const { data: receiptRecord, error: receiptError } = await supabaseAdmin
       .from('sponsorship_receipts')
       .insert({
+        sponsorship_id: donationId,
         sponsor_email: donorEmail,
         sponsor_name: donorEmail.split('@')[0],
         bestie_name: 'General Support',

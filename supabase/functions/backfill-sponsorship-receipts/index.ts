@@ -68,34 +68,66 @@ serve(async (req) => {
 
     if (sponsorshipsError) throw sponsorshipsError;
 
-    logStep("Found sponsorships", { count: sponsorships?.length || 0 });
+    // Query ALL donations that need receipts
+    const { data: donations, error: donationsError } = await supabaseClient
+      .from('donations')
+      .select('*')
+      .in('status', ['active', 'completed']);
 
-    // Filter to only those with no receipts
+    if (donationsError) throw donationsError;
+
+    logStep("Found sponsorships and donations", { 
+      sponsorships: sponsorships?.length || 0,
+      donations: donations?.length || 0 
+    });
+
+    // Filter sponsorships to only those with no receipts
     const sponsorshipsWithReceiptCount = await Promise.all(
       (sponsorships || []).map(async (s) => {
         const { count } = await supabaseClient
           .from('sponsorship_receipts')
           .select('*', { count: 'exact', head: true })
           .eq('sponsorship_id', s.id);
-        return { ...s, receiptCount: count || 0 };
+        return { ...s, receiptCount: count || 0, type: 'sponsorship' };
+      })
+    );
+
+    // Filter donations to only those with no receipts
+    const donationsWithReceiptCount = await Promise.all(
+      (donations || []).map(async (d) => {
+        const { count } = await supabaseClient
+          .from('sponsorship_receipts')
+          .select('*', { count: 'exact', head: true })
+          .eq('sponsorship_id', d.id);
+        return { ...d, receiptCount: count || 0, type: 'donation' };
       })
     );
 
     const sponsorshipsNeedingReceipts = sponsorshipsWithReceiptCount.filter(s => s.receiptCount === 0);
+    const donationsNeedingReceipts = donationsWithReceiptCount.filter(d => d.receiptCount === 0);
     
-    logStep("Sponsorships needing receipts", { count: sponsorshipsNeedingReceipts.length });
+    logStep("Items needing receipts", { 
+      sponsorships: sponsorshipsNeedingReceipts.length,
+      donations: donationsNeedingReceipts.length 
+    });
 
-    if (sponsorshipsNeedingReceipts.length === 0) {
+    if (sponsorshipsNeedingReceipts.length === 0 && donationsNeedingReceipts.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'No sponsorships need backfilled receipts',
+          message: 'No sponsorships or donations need backfilled receipts',
           created: 0,
           failed: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Combine sponsorships and donations for processing
+    const allItemsNeedingReceipts = [
+      ...sponsorshipsNeedingReceipts,
+      ...donationsNeedingReceipts
+    ];
 
     // Get receipt settings
     const { data: receiptSettings } = await supabaseClient
@@ -107,17 +139,17 @@ serve(async (req) => {
       throw new Error('Receipt generation is not enabled');
     }
 
-    // Group sponsorships by stripe_mode
-    const sponsorshipsByMode = sponsorshipsNeedingReceipts.reduce((acc, s) => {
-      const mode = s.stripe_mode || 'test';
+    // Group all items by stripe_mode
+    const itemsByMode = allItemsNeedingReceipts.reduce((acc, item) => {
+      const mode = item.stripe_mode || 'test';
       if (!acc[mode]) acc[mode] = [];
-      acc[mode].push(s);
+      acc[mode].push(item);
       return acc;
-    }, {} as Record<string, typeof sponsorshipsNeedingReceipts>);
+    }, {} as Record<string, typeof allItemsNeedingReceipts>);
 
-    logStep("Sponsorships grouped by mode", { 
-      test: sponsorshipsByMode.test?.length || 0,
-      live: sponsorshipsByMode.live?.length || 0
+    logStep("Items grouped by mode", { 
+      test: itemsByMode.test?.length || 0,
+      live: itemsByMode.live?.length || 0
     });
 
     const results = {
@@ -132,7 +164,9 @@ serve(async (req) => {
     const receiptNumberCounters = new Map<number, number>();
 
     // Process each mode separately
-    for (const [mode, modeSponsorship] of Object.entries(sponsorshipsByMode)) {
+    for (const [mode, modeItems] of Object.entries(itemsByMode)) {
+      const items = modeItems as typeof allItemsNeedingReceipts;
+      
       const stripeKey = mode === 'live' 
         ? Deno.env.get('STRIPE_SECRET_KEY')
         : Deno.env.get('STRIPE_SECRET_KEY_TEST');
@@ -143,10 +177,10 @@ serve(async (req) => {
       }
 
       const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
-      logStep(`Processing ${mode} mode`, { count: modeSponsorship.length });
+      logStep(`Processing ${mode} mode`, { count: items.length });
 
       // Pre-calculate starting receipt numbers for each tax year
-      for (const sponsorship of modeSponsorship) {
+      for (const item of items) {
         const tempDate = new Date();
         const taxYear = tempDate.getFullYear();
         
@@ -176,30 +210,34 @@ serve(async (req) => {
         }
       }
 
-      // Process each sponsorship in this mode
-      for (const sponsorship of modeSponsorship) {
+      // Process each item (sponsorship or donation) in this mode
+      for (const item of items) {
       try {
-        logStep("Processing sponsorship", { 
-          id: sponsorship.id, 
-          email: sponsorship.sponsor_email,
-          subscriptionId: sponsorship.stripe_subscription_id
+        const isSponsorship = item.type === 'sponsorship';
+        
+        logStep(`Processing ${item.type}`, { 
+          id: item.id, 
+          email: isSponsorship ? item.sponsor_email : item.donor_email,
+          subscriptionId: isSponsorship ? item.stripe_subscription_id : null
         });
 
-        // Extract bestie name from joined sponsor_besties data
-        const bestieName = (sponsorship as any).sponsor_besties?.bestie_name || 'Unknown Bestie';
-        logStep("Bestie name extracted", { sponsorshipId: sponsorship.id, bestieName });
+        // Extract bestie name or use "General Support" for donations
+        const bestieName = isSponsorship 
+          ? ((item as any).sponsor_besties?.bestie_name || 'Unknown Bestie')
+          : 'General Support';
+        logStep("Name extracted", { itemId: item.id, name: bestieName, type: item.type });
 
         let invoiceDate: Date;
         let transactionId: string;
 
-        // Try to get Stripe data, fall back to sponsorship data if not available
-        if (sponsorship.stripe_subscription_id) {
+        // Try to get Stripe data for sponsorships, donations use simpler logic
+        if (isSponsorship && item.stripe_subscription_id) {
           try {
-            const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
+            const subscription = await stripe.subscriptions.retrieve(item.stripe_subscription_id);
             
             // Get most recent invoice
             const invoices = await stripe.invoices.list({
-              subscription: sponsorship.stripe_subscription_id,
+              subscription: item.stripe_subscription_id,
               limit: 1,
               status: 'paid'
             });
@@ -209,23 +247,21 @@ serve(async (req) => {
               invoiceDate = new Date(invoice.created * 1000);
               transactionId = invoice.payment_intent as string;
             } else {
-              // No paid invoices, use current date and generate transaction ID
               invoiceDate = new Date();
-              transactionId = `backfill_${sponsorship.id}_${Date.now()}`;
+              transactionId = `backfill_${item.id}_${Date.now()}`;
             }
           } catch (stripeError: any) {
-            // Subscription doesn't exist in Stripe (deleted/cancelled)
             logStep("Stripe subscription not found, using fallback data", { 
-              sponsorshipId: sponsorship.id,
+              itemId: item.id,
               error: stripeError.message 
             });
             invoiceDate = new Date();
-            transactionId = `backfill_${sponsorship.id}_${Date.now()}`;
+            transactionId = `backfill_${item.id}_${Date.now()}`;
           }
         } else {
-          // No subscription ID, use fallback data
+          // Donation or sponsorship without subscription ID
           invoiceDate = new Date();
-          transactionId = `backfill_${sponsorship.id}_${Date.now()}`;
+          transactionId = `backfill_${item.id}_${Date.now()}`;
         }
 
         const taxYear = invoiceDate.getFullYear();
@@ -236,31 +272,35 @@ serve(async (req) => {
         const receiptNumber = `${taxYear}-${String(currentReceiptNumber).padStart(6, '0')}`;
 
         logStep("Generated receipt number", {
-          sponsorshipId: sponsorship.id,
+          itemId: item.id,
+          type: item.type,
           taxYear,
           receiptNumber,
           counter: currentReceiptNumber
         });
 
-        // Prepare receipt data with detailed logging
+        // Prepare receipt data - handle both sponsorships and donations
         const receiptData = {
           transaction_id: transactionId,
-          sponsorship_id: sponsorship.id,
-          user_id: sponsorship.sponsor_id,
-          sponsor_email: sponsorship.sponsor_email || 'unknown@example.com',
+          sponsorship_id: item.id,
+          user_id: isSponsorship ? item.sponsor_id : item.donor_id,
+          sponsor_email: isSponsorship 
+            ? (item.sponsor_email || 'unknown@example.com')
+            : (item.donor_email || 'unknown@example.com'),
           bestie_name: bestieName,
-          amount: sponsorship.amount,
-          frequency: sponsorship.frequency,
+          amount: isSponsorship ? item.amount : (item.amount_charged || item.amount),
+          frequency: item.frequency,
           transaction_date: invoiceDate.toISOString(),
           organization_name: receiptSettings.organization_name,
           organization_ein: receiptSettings.organization_ein,
           receipt_number: receiptNumber,
           tax_year: taxYear,
-          stripe_mode: sponsorship.stripe_mode || 'test'
+          stripe_mode: item.stripe_mode || 'test'
         };
 
         logStep("Attempting to insert receipt", {
-          sponsorshipId: sponsorship.id,
+          itemId: item.id,
+          type: item.type,
           receiptData
         });
 
@@ -272,11 +312,13 @@ serve(async (req) => {
         if (insertError) {
           results.failed++;
           results.errors.push({
-            sponsorshipId: sponsorship.id,
+            itemId: item.id,
+            type: item.type,
             error: insertError.message
           });
           logStep("Failed to create receipt", { 
-            sponsorshipId: sponsorship.id,
+            itemId: item.id,
+            type: item.type,
             error: insertError,
             attemptedData: receiptData
           });
@@ -290,21 +332,23 @@ serve(async (req) => {
           results.testCreated++;
         }
         logStep("Receipt created", { 
-          sponsorshipId: sponsorship.id, 
+          itemId: item.id,
+          type: item.type,
           receiptNumber,
-          amount: sponsorship.amount,
+          amount: receiptData.amount,
           mode 
         });
 
       } catch (error: any) {
         results.failed++;
         results.errors.push({
-          sponsorshipId: sponsorship.id,
+          itemId: item.id,
+          type: item.type,
           mode,
           error: error.message
         });
-        logStep("Error processing sponsorship", { 
-          sponsorshipId: sponsorship.id,
+        logStep(`Error processing ${item.type}`, { 
+          itemId: item.id,
           mode, 
           error: error.message 
         });

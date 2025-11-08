@@ -3802,15 +3802,7 @@ export type Database = {
           transaction_id?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sponsorship_receipts_sponsorship_id_fkey"
-            columns: ["sponsorship_id"]
-            isOneToOne: false
-            referencedRelation: "sponsorships"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       sponsorship_shares: {
         Row: {
