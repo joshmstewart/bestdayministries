@@ -47,28 +47,11 @@ serve(async (req) => {
 
     logStep("Admin authenticated", { userId: user.id });
 
-    // Get Stripe mode from app_settings
-    const { data: settings } = await supabaseClient
-      .from('app_settings')
-      .select('stripe_mode')
-      .single();
-
-    const stripeMode = settings?.stripe_mode || 'test';
-    const stripeKey = stripeMode === 'live' 
-      ? Deno.env.get('STRIPE_SECRET_KEY')
-      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
-
-    if (!stripeKey) throw new Error(`Stripe key not configured for ${stripeMode} mode`);
-
-    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
-    logStep("Stripe initialized", { mode: stripeMode });
-
-    // Query sponsorships with no receipts
+    // Query ALL sponsorships with no receipts (both test and live modes)
     const { data: sponsorships, error: sponsorshipsError } = await supabaseClient
       .from('sponsorships')
       .select('id, sponsor_email, sponsor_id, bestie_id, amount, frequency, stripe_subscription_id, stripe_customer_id, stripe_mode')
-      .eq('status', 'active')
-      .eq('stripe_mode', stripeMode);
+      .eq('status', 'active');
 
     if (sponsorshipsError) throw sponsorshipsError;
 
@@ -111,14 +94,43 @@ serve(async (req) => {
       throw new Error('Receipt generation is not enabled');
     }
 
+    // Group sponsorships by stripe_mode
+    const sponsorshipsByMode = sponsorshipsNeedingReceipts.reduce((acc, s) => {
+      const mode = s.stripe_mode || 'test';
+      if (!acc[mode]) acc[mode] = [];
+      acc[mode].push(s);
+      return acc;
+    }, {} as Record<string, typeof sponsorshipsNeedingReceipts>);
+
+    logStep("Sponsorships grouped by mode", { 
+      test: sponsorshipsByMode.test?.length || 0,
+      live: sponsorshipsByMode.live?.length || 0
+    });
+
     const results = {
       created: 0,
       failed: 0,
-      errors: [] as any[]
+      errors: [] as any[],
+      testCreated: 0,
+      liveCreated: 0
     };
 
-    // Process each sponsorship
-    for (const sponsorship of sponsorshipsNeedingReceipts) {
+    // Process each mode separately
+    for (const [mode, modeSponsorship] of Object.entries(sponsorshipsByMode)) {
+      const stripeKey = mode === 'live' 
+        ? Deno.env.get('STRIPE_SECRET_KEY')
+        : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+
+      if (!stripeKey) {
+        logStep(`Skipping ${mode} mode - no Stripe key configured`);
+        continue;
+      }
+
+      const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+      logStep(`Processing ${mode} mode`, { count: modeSponsorship.length });
+
+      // Process each sponsorship in this mode
+      for (const sponsorship of modeSponsorship) {
       try {
         logStep("Processing sponsorship", { 
           id: sponsorship.id, 
@@ -208,23 +220,32 @@ serve(async (req) => {
         }
 
         results.created++;
+        if (mode === 'live') {
+          results.liveCreated++;
+        } else {
+          results.testCreated++;
+        }
         logStep("Receipt created", { 
           sponsorshipId: sponsorship.id, 
           receiptNumber,
-          amount: sponsorship.amount 
+          amount: sponsorship.amount,
+          mode 
         });
 
       } catch (error: any) {
         results.failed++;
         results.errors.push({
           sponsorshipId: sponsorship.id,
+          mode,
           error: error.message
         });
         logStep("Error processing sponsorship", { 
-          sponsorshipId: sponsorship.id, 
+          sponsorshipId: sponsorship.id,
+          mode, 
           error: error.message 
         });
       }
+    }
     }
 
     logStep("Backfill complete", results);
@@ -232,9 +253,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Backfill complete: ${results.created} receipts created, ${results.failed} failed`,
+        message: `Backfill complete: ${results.created} receipts created (${results.liveCreated} live, ${results.testCreated} test), ${results.failed} failed`,
         created: results.created,
         failed: results.failed,
+        testCreated: results.testCreated,
+        liveCreated: results.liveCreated,
         errors: results.errors
       }),
       { 
