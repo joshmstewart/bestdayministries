@@ -624,24 +624,26 @@ DOC:DIALOG_BUTTON_STANDARD.md
 
 ## DONATION
 ROUTE:/support
-DB:donations[CRITICAL-CONSTRAINT-must-allow:pending+completed+active+cancelled+paused]
+DB:donations[CRITICAL-CONSTRAINT-donor_identifier_check:EITHER-donor_id-OR-donor_email-NOT-BOTH-NOT-NEITHER|must-allow:pending+completed+active+cancelled+paused]
 WORKFLOW:select-frequency+amount→email→terms→Stripe→success
 GUEST:donor_email→link-on-signup
-EDGE:create-donation-checkout[creates-pending]|stripe-webhook[updates-to-completed-or-active]|recalculate-sponsorship-amounts[admin-tool-fix-historical-amounts]
+EDGE:create-donation-checkout[creates-pending]|stripe-webhook[updates-to-completed-or-active]|recalculate-sponsorship-amounts[admin-tool-fix-historical-amounts]|recover-all-missing-donations[RECOMMENDED-auto-recovery-from-orphaned-receipts]|recover-missing-donations[LEGACY-CSV-based]
 STATUS:One-Time[pending→completed]|Monthly[pending→active→cancelled]
 STRIPE-IDS:stripe_customer_id[ALWAYS-set-both-types]|stripe_subscription_id[ONLY-monthly]
 FEE-COVERAGE:(amt+0.30)/0.971
 CRITICAL-AMOUNT-STORAGE:ALWAYS-store-FULL-amount-including-Stripe-fees→all-amounts-reflect-total-received→NOT-base-amount
-ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships+recalculate-button]
-ACTIONS:copy-customer-id|open-stripe-customer|view-receipt-logs|delete-test|recalculate-full-amounts[updates-historical-records-from-Stripe-metadata]
+ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships+recalculate-button]|DonationRecoveryManager[auto-recovery-from-receipts]
+ACTIONS:copy-customer-id|open-stripe-customer|view-receipt-logs|delete-test|recalculate-full-amounts[updates-historical-records-from-Stripe-metadata]|recover-all[auto-recovery-button]
 RECEIPT-STATUS:green-FileText[generated]|yellow-Clock[pending]
 AUDIT-LOGS:accessible-for-both-donations+sponsorships[NOT-restricted]
 CRITICAL-BUG:constraint-must-include-pending+completed→silent-failure-if-missing
+CRITICAL-CONSTRAINT-HANDLING:donor_identifier_check-requires-EITHER[donor_id-NOT-NULL-AND-donor_email-NULL]OR[donor_id-NULL-AND-donor_email-NOT-NULL]→NEVER-both-set→NEVER-both-null→empty-strings-MUST-convert-to-null
 DIFFERENCES:vs-sponsorships[purpose|recipient|metadata:type='donation'|table|UI|receipts|year-end]
 WEBHOOK-CRITICAL:MUST-configure-Stripe-webhooks→checkout.session.completed|customer.subscription.updated|customer.subscription.deleted|invoice.payment_succeeded→URL[https://nbvijawmjkycyweioglk.supabase.co/functions/v1/stripe-webhook]→secrets[STRIPE_WEBHOOK_SECRET_LIVE+STRIPE_WEBHOOK_SECRET_TEST]→without-webhooks-donations-stay-pending-forever
 MANUAL-RECOVERY:UPDATE-donations-status+INSERT-sponsorship_receipts+invoke-send-sponsorship-receipt
+RECOVERY-SYSTEM:recover-all-missing-donations[finds-orphaned-receipts→fetches-Stripe-data-any-ID-format→creates-donations→handles-constraint-properly]→handles[cs_|pi_|in_|ch_-transaction-IDs]→checks-existing-donations→validates-timeframe[±24hrs]→proper-constraint-handling
 RECALCULATE-TOOL:Admin→Transactions→Recalculate-Full-Amounts-button→checks-Stripe-metadata[coverStripeFee+baseAmount]→recalculates-full-amount→updates-database-and-receipts
-DOC:DONATION_SYSTEM.md|WEBHOOK_CONFIGURATION_GUIDE.md
+DOC:DONATION_SYSTEM.md|WEBHOOK_CONFIGURATION_GUIDE.md|DONATION_RECOVERY_SYSTEM.md
 
 ## HELP_CENTER
 ROUTE:/help
