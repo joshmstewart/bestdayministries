@@ -949,8 +949,7 @@ async function processRecurringPayment(
 
   const user = authData.users.find((u: any) => u.email === customerEmail);
   if (!user) {
-    await logStep('user_not_found', 'info', { email: customerEmail });
-    return;
+    await logStep('user_not_found_continuing_as_guest', 'info', { email: customerEmail });
   }
 
   await logStep('retrieving_subscription', 'info', { subscription_id: subscriptionId });
@@ -962,46 +961,52 @@ async function processRecurringPayment(
   if (sponsorBestieId) {
     await logStep('processing_sponsorship_recurring', 'info', { bestie_id: sponsorBestieId });
     
-    const { data: sponsorshipData } = await supabaseAdmin
-      .from('sponsorships')
-      .select('id')
-      .eq('sponsor_id', user.id)
-      .eq('sponsor_bestie_id', sponsorBestieId)
-      .single();
+    // Only process sponsorship if user exists (sponsorships require accounts)
+    if (user) {
+      const { data: sponsorshipData } = await supabaseAdmin
+        .from('sponsorships')
+        .select('id')
+        .eq('sponsor_id', user.id)
+        .eq('sponsor_bestie_id', sponsorBestieId)
+        .single();
 
-    if (sponsorshipData) {
-      await createAndSendReceipt(
-        supabaseAdmin,
-        {
-          sponsorship_id: sponsorshipData.id,
-          sponsor_email: customerEmail,
-          sponsor_name: customerEmail.split('@')[0],
-          bestie_name: 'Bestie',
-          amount,
-          frequency: 'monthly',
-          transaction_id: invoice.id,
-          transaction_date: new Date(invoice.created * 1000).toISOString(),
-          stripe_mode: stripeMode,
-          user_id: user.id,
-        },
-        logStep,
-        sponsorshipData.id,
-        'sponsorship'
-      );
-      
-      if (logId) {
-        await supabaseAdmin
-          .from('stripe_webhook_logs')
-          .update({ 
-            related_record_type: 'sponsorship',
-            related_record_id: sponsorshipData.id 
-          })
-          .eq('id', logId);
+      if (sponsorshipData) {
+        await createAndSendReceipt(
+          supabaseAdmin,
+          {
+            sponsorship_id: sponsorshipData.id,
+            sponsor_email: customerEmail,
+            sponsor_name: customerEmail.split('@')[0],
+            bestie_name: 'Bestie',
+            amount,
+            frequency: 'monthly',
+            transaction_id: invoice.id,
+            transaction_date: new Date(invoice.created * 1000).toISOString(),
+            stripe_mode: stripeMode,
+            user_id: user.id,
+          },
+          logStep,
+          sponsorshipData.id,
+          'sponsorship'
+        );
+        
+        if (logId) {
+          await supabaseAdmin
+            .from('stripe_webhook_logs')
+            .update({ 
+              related_record_type: 'sponsorship',
+              related_record_id: sponsorshipData.id 
+            })
+            .eq('id', logId);
+        }
       }
+    } else {
+      await logStep('sponsorship_skipped_no_user', 'info', { reason: 'Sponsorships require user accounts' });
     }
   } else {
     await logStep('processing_donation_recurring', 'info');
     
+    // For donations, look up by email and subscription ID (works for both guest and registered donors)
     const { data: donationData } = await supabaseAdmin
       .from('donations')
       .select('*')
@@ -1022,7 +1027,7 @@ async function processRecurringPayment(
           transaction_id: invoice.id,
           transaction_date: new Date(invoice.created * 1000).toISOString(),
           stripe_mode: donationData.stripe_mode || 'live',
-          user_id: user.id,
+          user_id: user?.id || null,
         },
         logStep,
         donationData.id,
@@ -1038,6 +1043,12 @@ async function processRecurringPayment(
           })
           .eq('id', logId);
       }
+    } else {
+      await logStep('donation_not_found', 'error', { 
+        email: customerEmail, 
+        subscription_id: subscriptionId,
+        reason: 'No active donation record found for this subscription'
+      });
     }
   }
 }
