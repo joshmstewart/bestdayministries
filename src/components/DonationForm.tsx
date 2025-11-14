@@ -19,8 +19,9 @@ const donationSchema = z.object({
 export const DonationForm = () => {
   const navigate = useNavigate();
   const [frequency, setFrequency] = useState<"one-time" | "monthly">("monthly");
-  const [amount, setAmount] = useState<string>("");
-  const [selectedButton, setSelectedButton] = useState<"30" | "other" | null>(null);
+  const [amount, setAmount] = useState<string>("30");
+  const [customAmount, setCustomAmount] = useState<string>("");
+  const [selectedButton, setSelectedButton] = useState<"30" | "other">("30");
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -182,8 +183,11 @@ export const DonationForm = () => {
             <Input
               id="custom-amount-input"
               type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={customAmount}
+              onChange={(e) => {
+                setCustomAmount(e.target.value);
+                setAmount(e.target.value);
+              }}
               onFocus={() => setSelectedButton("other")}
               placeholder="Enter amount"
               className="pl-7"
