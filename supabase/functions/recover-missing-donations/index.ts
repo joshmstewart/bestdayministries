@@ -183,10 +183,22 @@ serve(async (req) => {
         if (profileError) {
           logStep("ERROR fetching profile", { error: profileError.message, code: profileError.code });
         } else if (profile) {
-          logStep("Profile found", { profileId: profile.id, displayName: profile.display_name });
+          logStep("Profile found", { 
+            profileId: profile.id, 
+            displayName: profile.display_name,
+            hasValidId: !!profile.id 
+          });
         } else {
           logStep("No profile found - will create guest donation");
         }
+
+        // CRITICAL: Validate profile has a valid ID before using it
+        const hasValidProfile = profile && profile.id;
+        logStep("Profile validation", { 
+          profileExists: !!profile, 
+          profileId: profile?.id,
+          hasValidProfile 
+        });
 
         // Determine if this is a subscription payment
         logStep("Checking for subscription", { customerId, hasInvoice: !!charge.invoice });
@@ -207,11 +219,11 @@ serve(async (req) => {
         const chargeDate = new Date(charge.created * 1000); // Stripe timestamps are in seconds
         
         // CRITICAL: donor_identifier_check constraint requires EXACTLY ONE of donor_id OR donor_email
-        // If profile exists, use donor_id and set donor_email to null
-        // If no profile, use donor_email and set donor_id to null
+        // If profile exists AND has valid ID, use donor_id and set donor_email to null
+        // Otherwise, use donor_email and set donor_id to null
         const donationData = {
-          donor_id: profile?.id || null,
-          donor_email: profile ? null : customer.email,
+          donor_id: hasValidProfile ? profile.id : null,
+          donor_email: hasValidProfile ? null : customer.email,
           amount: charge.amount / 100, // Convert cents to dollars
           amount_charged: charge.amount / 100,
           frequency: isSubscription ? "monthly" : "one-time",
@@ -226,13 +238,13 @@ serve(async (req) => {
         };
 
         logStep("Inserting donation record", { 
-          donationData: {
-            ...donationData,
-            donor_id: donationData.donor_id || 'NULL',
-            amount: donationData.amount,
-            frequency: donationData.frequency,
-            status: donationData.status
-          }
+          donor_id: donationData.donor_id,
+          donor_email: donationData.donor_email,
+          amount: donationData.amount,
+          frequency: donationData.frequency,
+          status: donationData.status,
+          stripe_customer_id: donationData.stripe_customer_id,
+          stripe_payment_intent_id: donationData.stripe_payment_intent_id
         });
 
         const { data: donation, error: donationError } = await supabaseAdmin
