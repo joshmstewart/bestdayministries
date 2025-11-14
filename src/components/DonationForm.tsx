@@ -19,7 +19,8 @@ const donationSchema = z.object({
 export const DonationForm = () => {
   const navigate = useNavigate();
   const [frequency, setFrequency] = useState<"one-time" | "monthly">("monthly");
-  const [amount, setAmount] = useState<string>("25");
+  const [amount, setAmount] = useState<string>("");
+  const [selectedButton, setSelectedButton] = useState<"30" | "other" | null>(null);
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -107,7 +108,6 @@ export const DonationForm = () => {
     }
   };
 
-  const presetAmounts = ["10", "25", "50", "100"];
   const total = calculateTotal();
   const stripeFee = total - parseFloat(amount || "0");
 
@@ -155,25 +155,37 @@ export const DonationForm = () => {
         {/* Amount Selection */}
         <div className="space-y-3">
           <Label className="text-base font-semibold">Amount</Label>
-          <div className="grid grid-cols-4 gap-2">
-            {presetAmounts.map((preset) => (
-              <Button
-                key={preset}
-                variant={amount === preset ? "default" : "outline"}
-                onClick={() => setAmount(preset)}
-                className="w-full"
-              >
-                ${preset}
-              </Button>
-            ))}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant={selectedButton === "30" ? "default" : "outline"}
+              onClick={() => {
+                setSelectedButton("30");
+                setAmount("30");
+              }}
+              className="w-full"
+            >
+              $30
+            </Button>
+            <Button
+              variant={selectedButton === "other" ? "default" : "outline"}
+              onClick={() => {
+                setSelectedButton("other");
+                document.getElementById("custom-amount-input")?.focus();
+              }}
+              className="w-full"
+            >
+              Other Amount
+            </Button>
           </div>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
             <Input
+              id="custom-amount-input"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Custom amount"
+              onFocus={() => setSelectedButton("other")}
+              placeholder="Enter amount"
               className="pl-7"
               min="5"
               step="1"
