@@ -32,6 +32,29 @@ ALTER TABLE donations ADD CONSTRAINT donations_status_check
 
 ---
 
+## RECOVERY SYSTEM
+
+### Automated Recovery Tool
+We've implemented a comprehensive recovery system to handle missing donations:
+
+**Location:** Admin → Besties → Recovery Tool tab
+
+**Features:**
+- CSV import from Stripe exports
+- Automatic customer email lookup
+- Donation record creation
+- Receipt generation and email delivery
+- Detailed success/failure reporting
+
+**Documentation:** See `DONATION_RECOVERY_SYSTEM.md` for complete details
+
+**Use Cases:**
+1. Oct 7-22 missing donations (10 transactions)
+2. Ongoing webhook failures
+3. Manual backfill of missed payments
+
+---
+
 ## DONATION STATUS FLOW (CORRECTED)
 
 ### One-Time Donations
