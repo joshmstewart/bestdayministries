@@ -175,31 +175,49 @@ serve(async (req) => {
           }
         }
 
-        // Look up user by email
-        const { data: profileData } = await supabaseAdmin
-          .from('profiles')
-          .select('id')
-          .eq('email', customerEmail)
-          .maybeSingle();
+        // Look up user by email (skip if email is empty)
+        const { data: profileData } = customerEmail && customerEmail.trim()
+          ? await supabaseAdmin
+              .from('profiles')
+              .select('id')
+              .eq('email', customerEmail)
+              .maybeSingle()
+          : { data: null };
+
+        logStep("Profile lookup result", { email: customerEmail, foundProfile: !!profileData, profileId: profileData?.id });
+
+        // Prepare donation data with constraint logic
+        // CRITICAL: donor_identifier_check requires EITHER donor_id OR donor_email (not both, not neither)
+        // Empty strings must be converted to null
+        const donationData = {
+          donor_email: profileData?.id ? null : (customerEmail?.trim() || null),
+          donor_id: profileData?.id || null,
+          amount: receipt.amount,
+          amount_charged: receipt.amount,
+          frequency: receipt.frequency || 'one-time',
+          status: receipt.frequency === 'monthly' ? 'active' : 'completed',
+          stripe_mode: mode,
+          stripe_customer_id: customerId,
+          stripe_payment_intent_id: paymentIntentId,
+          stripe_subscription_id: subscriptionId,
+          created_at: receipt.transaction_date || receipt.created_at,
+          started_at: receipt.transaction_date || receipt.created_at,
+        };
+
+        logStep("Inserting donation with data", { 
+          receiptId: receipt.id,
+          donor_email: donationData.donor_email,
+          donor_id: donationData.donor_id,
+          amount: donationData.amount,
+          hasEmail: !!donationData.donor_email,
+          hasId: !!donationData.donor_id
+        });
 
         // Create the missing donation record
         // IMPORTANT: donor_identifier_check constraint requires EITHER donor_id OR donor_email, not both
         const { data: newDonation, error: donationError } = await supabaseAdmin
           .from('donations')
-          .insert({
-            donor_email: profileData?.id ? null : customerEmail,
-            donor_id: profileData?.id || null,
-            amount: receipt.amount,
-            amount_charged: receipt.amount,
-            frequency: receipt.frequency || 'one-time',
-            status: receipt.frequency === 'monthly' ? 'active' : 'completed',
-            stripe_mode: mode,
-            stripe_customer_id: customerId,
-            stripe_payment_intent_id: paymentIntentId,
-            stripe_subscription_id: subscriptionId,
-            created_at: receipt.transaction_date || receipt.created_at,
-            started_at: receipt.transaction_date || receipt.created_at,
-          })
+          .insert(donationData)
           .select()
           .single();
 

@@ -10,7 +10,56 @@ Comprehensive system for recovering missing donations from Stripe when webhooks 
 
 ## Components
 
-### Edge Function: `recover-missing-donations`
+### Edge Function: `recover-all-missing-donations` (RECOMMENDED)
+**Location:** `supabase/functions/recover-all-missing-donations/index.ts`
+
+**Purpose:** Automatically recover ALL missing donations from orphaned receipts by fetching Stripe data using any transaction ID format.
+
+**Authentication:** Requires admin or owner role
+
+**Input:**
+```typescript
+{
+  mode?: "live" | "test"  // Stripe mode (defaults to "live")
+}
+```
+
+**Process:**
+1. Finds all orphaned receipts (receipts with no donation record)
+2. Retrieves Stripe data for each receipt using transaction_id
+3. Handles multiple Stripe ID formats:
+   - `cs_*` - Checkout Sessions
+   - `pi_*` - Payment Intents
+   - `in_*` - Invoices  
+   - `ch_*` - Charges
+4. Looks up user profile by email
+5. Creates donation record with correct constraint handling
+6. Links receipt to donation
+
+**Critical Constraint Handling:**
+The donations table has a `donor_identifier_check` constraint that requires EITHER:
+- `donor_id` IS NOT NULL AND `donor_email` IS NULL (registered user)
+- `donor_id` IS NULL AND `donor_email` IS NOT NULL (guest donor)
+
+**NEVER both set, NEVER both null, and empty strings must be converted to null.**
+
+**Output:**
+```typescript
+{
+  success: boolean;
+  summary: {
+    total: number;           // Total receipts processed
+    created: number;         // Donations created
+    alreadyExists: number;   // Receipts already linked
+    errors: number;          // Failed recoveries
+  };
+  results: RecoveryResult[]; // Detailed per-receipt results
+}
+```
+
+---
+
+### Edge Function: `recover-missing-donations` (LEGACY - CSV-based)
 **Location:** `supabase/functions/recover-missing-donations/index.ts`
 
 **Purpose:** Process CSV transaction data from Stripe, create missing donation records, generate receipts, and send emails.
@@ -216,6 +265,54 @@ cus_def456,10000,2025-10-15T11:00:00Z,usd,One-time donation
 - Audit trail of receipt emails sent
 - Links to receipt record
 - Tracks delivery status
+
+---
+
+## Critical Database Constraint: donor_identifier_check
+
+### The Constraint
+The `donations` table has a CHECK constraint that enforces exclusive identifier usage:
+
+```sql
+CONSTRAINT donor_identifier_check CHECK (
+  (donor_id IS NOT NULL AND donor_email IS NULL) OR 
+  (donor_id IS NULL AND donor_email IS NOT NULL)
+)
+```
+
+### Rules
+1. **EITHER donor_id OR donor_email must be set** (not both, not neither)
+2. **Registered users:** Set only `donor_id`, `donor_email` MUST be NULL
+3. **Guest donors:** Set only `donor_email`, `donor_id` MUST be NULL
+4. **Empty strings are NOT NULL** - must convert empty strings to actual NULL values
+
+### Common Errors
+**Error:** "new row for relation 'donations' violates check constraint 'donor_identifier_check'"
+
+**Causes:**
+- Both `donor_id` and `donor_email` are set (most common)
+- Both are NULL
+- `donor_email` is empty string instead of NULL
+
+### Recovery Implementation
+```typescript
+// CORRECT pattern from recover-all-missing-donations
+const { data: profileData } = customerEmail && customerEmail.trim()
+  ? await supabase.from('profiles').select('id').eq('email', customerEmail).maybeSingle()
+  : { data: null };
+
+const donationData = {
+  donor_email: profileData?.id ? null : (customerEmail?.trim() || null),
+  donor_id: profileData?.id || null,
+  // ... other fields
+};
+```
+
+**Key Points:**
+- Check if user exists in profiles table
+- If profile found: set only `donor_id`, explicitly set `donor_email` to NULL
+- If no profile: set only `donor_email` (trimmed or NULL), explicitly set `donor_id` to NULL
+- Always use `|| null` and `? null :` patterns to ensure proper NULL handling
 
 ---
 
