@@ -543,13 +543,13 @@ async function processDonationCheckout(
   }
 
   await logStep('fetching_user_for_donation', 'info', { email: customerEmail });
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-  if (authError) {
-    await logStep('user_fetch_failed', 'error', { error: authError.message });
-    throw new Error(`Error fetching users: ${authError.message}`);
-  }
-
-  const user = authData.users.find((u: any) => u.email === customerEmail);
+  const { data: profileData } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email')
+    .eq('email', customerEmail)
+    .maybeSingle();
+  
+  const user = profileData ? { id: profileData.id, email: profileData.email } : null;
   const amountCharged = session.amount_total ? session.amount_total / 100 : 0;
   
   if (session.mode === "payment") {
@@ -941,13 +941,13 @@ async function processRecurringPayment(
   }
 
   await logStep('fetching_user_for_recurring', 'info', { email: customerEmail });
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-  if (authError) {
-    await logStep('user_fetch_failed', 'error', { error: authError.message });
-    throw new Error(`Error fetching users: ${authError.message}`);
-  }
-
-  const user = authData.users.find((u: any) => u.email === customerEmail);
+  const { data: profileData } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email')
+    .eq('email', customerEmail)
+    .maybeSingle();
+  
+  const user = profileData ? { id: profileData.id, email: profileData.email } : null;
   if (!user) {
     await logStep('user_not_found_continuing_as_guest', 'info', { email: customerEmail });
   }

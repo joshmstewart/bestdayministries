@@ -3385,6 +3385,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "receipt_generation_logs_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "orphaned_receipts_analysis"
+            referencedColumns: ["potential_donation_id"]
+          },
+          {
+            foreignKeyName: "receipt_generation_logs_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "orphaned_receipts_analysis"
+            referencedColumns: ["receipt_id"]
+          },
+          {
             foreignKeyName: "receipt_generation_logs_receipt_id_fkey"
             columns: ["receipt_id"]
             isOneToOne: false
@@ -5101,6 +5115,24 @@ export type Database = {
           },
         ]
       }
+      orphaned_receipts_analysis: {
+        Row: {
+          amount: number | null
+          donation_amount: number | null
+          donation_created_at: string | null
+          donation_status: string | null
+          potential_donation_id: string | null
+          receipt_created_at: string | null
+          receipt_id: string | null
+          sponsor_email: string | null
+          sponsorship_id: string | null
+          stripe_mode: string | null
+          time_diff_seconds: number | null
+          transaction_date: string | null
+          transaction_id: string | null
+        }
+        Relationships: []
+      }
       profiles_public: {
         Row: {
           avatar_number: number | null
@@ -5177,6 +5209,16 @@ export type Database = {
     }
     Functions: {
       activate_collections_on_start_date: { Args: never; Returns: undefined }
+      backfill_missing_donations: {
+        Args: never
+        Returns: {
+          amount: number
+          created_donation_id: string
+          receipt_id: string
+          sponsor_email: string
+          status: string
+        }[]
+      }
       can_moderate: { Args: { _user_id: string }; Returns: boolean }
       can_view_sponsorship: {
         Args: { _sponsorship_id: string; _user_id: string }

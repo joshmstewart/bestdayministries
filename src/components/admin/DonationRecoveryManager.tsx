@@ -4,8 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, XCircle, Database } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+interface BackfillResult {
+  receipt_id: string;
+  created_donation_id: string | null;
+  sponsor_email: string;
+  amount: number;
+  status: string;
+}
 
 interface RecoveryResult {
   chargeId: string;
@@ -34,7 +42,39 @@ export function DonationRecoveryManager() {
   const [summary, setSummary] = useState<RecoverySummary | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [stripeMode, setStripeMode] = useState<"live" | "test">("live");
+  const [backfillLoading, setBackfillLoading] = useState(false);
+  const [backfillResults, setBackfillResults] = useState<BackfillResult[] | null>(null);
   const { toast } = useToast();
+
+  const handleBackfillOrphanedReceipts = async () => {
+    try {
+      setBackfillLoading(true);
+      setBackfillResults(null);
+
+      const { data, error } = await supabase.rpc('backfill_missing_donations');
+      
+      if (error) throw error;
+
+      setBackfillResults(data || []);
+      
+      const successCount = data?.filter((r: BackfillResult) => r.status === 'created').length || 0;
+      const errorCount = data?.filter((r: BackfillResult) => r.status.startsWith('error')).length || 0;
+
+      toast({
+        title: "Backfill Complete",
+        description: `Created ${successCount} donation records. ${errorCount} errors.`,
+      });
+    } catch (error: any) {
+      console.error('Backfill error:', error);
+      toast({
+        title: "Backfill Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBackfillLoading(false);
+    }
+  };
 
   const parseCsvData = (csv: string) => {
     const lines = csv.trim().split("\n");
@@ -155,6 +195,94 @@ export function DonationRecoveryManager() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="w-5 h-5" />
+            Quick Backfill: Orphaned Receipts
+          </CardTitle>
+          <CardDescription>
+            Automatically create missing donation records for receipts that have Stripe transaction IDs but no linked donation.
+            This fixes cases where webhooks created receipts but failed to create the donation record.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={handleBackfillOrphanedReceipts}
+              disabled={backfillLoading}
+            >
+              {backfillLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Backfill Missing Donations
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              This will scan for orphaned receipts and create their missing donation records
+            </span>
+          </div>
+
+          {backfillResults && backfillResults.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="font-medium">
+                    Created {backfillResults.filter(r => r.status === 'created').length} donations
+                  </span>
+                </div>
+                {backfillResults.some(r => r.status.startsWith('error')) && (
+                  <div className="flex items-center gap-2 text-red-600">
+                    <XCircle className="w-5 h-5" />
+                    <span>{backfillResults.filter(r => r.status.startsWith('error')).length} errors</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {backfillResults.map((result, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-3 p-3 border rounded-lg"
+                  >
+                    <div className="flex-shrink-0 mt-1">
+                      {result.status === 'created' ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-600" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{result.sponsor_email}</div>
+                      <div className="text-sm text-muted-foreground">
+                        ${result.amount.toFixed(2)} • Receipt: {result.receipt_id.slice(0, 8)}...
+                      </div>
+                      {result.created_donation_id && (
+                        <div className="text-xs text-green-600">
+                          Donation: {result.created_donation_id.slice(0, 8)}...
+                        </div>
+                      )}
+                      {result.status.startsWith('error') && (
+                        <div className="text-xs text-red-600 mt-1">
+                          {result.status}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {backfillResults && backfillResults.length === 0 && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                No orphaned receipts found. All receipts have corresponding donation records.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Donation Recovery Tool</CardTitle>
