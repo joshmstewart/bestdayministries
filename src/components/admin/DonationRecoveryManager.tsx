@@ -32,28 +32,77 @@ export function DonationRecoveryManager() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<RecoveryResult[] | null>(null);
   const [summary, setSummary] = useState<RecoverySummary | null>(null);
+  const [fileName, setFileName] = useState<string>("");
   const { toast } = useToast();
 
   const parseCsvData = (csv: string) => {
     const lines = csv.trim().split("\n");
-    const headers = lines[0].split(",").map(h => h.trim());
+    if (lines.length === 0) return [];
+    
+    // Parse CSV handling quoted fields
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+    
+    const headers = parseCSVLine(lines[0]).map(h => h.replace(/"/g, '').trim());
     
     const transactions = lines.slice(1).map(line => {
-      const values = line.split(",").map(v => v.trim());
+      const values = parseCSVLine(line).map(v => v.replace(/"/g, '').trim());
       const obj: any = {};
       headers.forEach((header, index) => {
         obj[header] = values[index];
       });
+      
       return {
-        charge_id: obj["Charge ID"] || obj["charge_id"] || obj["id"],
-        amount: obj["Amount"] || obj["amount"] ? parseFloat(obj["Amount"] || obj["amount"]) : undefined,
-        created: obj["Created"] || obj["created"],
-        currency: obj["Currency"] || obj["currency"],
-        description: obj["Description"] || obj["description"],
+        charge_id: obj["charge_id"] || obj["Charge ID"] || obj["id"],
+        amount: obj["amount"] || obj["Amount"] ? parseFloat(obj["amount"] || obj["Amount"]) : undefined,
+        created: obj["created"] || obj["Created"],
+        currency: obj["currency"] || obj["Currency"],
+        description: obj["description"] || obj["Description"],
       };
-    });
+    }).filter(t => t.charge_id); // Filter out empty rows
 
     return transactions;
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      setCsvData(text);
+      toast({
+        title: "File Loaded",
+        description: `${file.name} has been loaded successfully`,
+      });
+    };
+    reader.onerror = () => {
+      toast({
+        title: "Error",
+        description: "Failed to read file",
+        variant: "destructive",
+      });
+    };
+    reader.readAsText(file);
   };
 
   const handleRecover = async () => {
@@ -109,27 +158,54 @@ export function DonationRecoveryManager() {
         <CardHeader>
           <CardTitle>Donation Recovery Tool</CardTitle>
           <CardDescription>
-            Recover missing donations by charge ID. This tool retrieves transaction details directly from Stripe.
+            Recover missing donations by charge ID. Upload a Stripe export or paste CSV data.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>CSV Format:</strong> Your CSV must include a column named "Charge ID", "charge_id", or "id" 
-              with Stripe charge IDs (starting with "ch_"). The tool will automatically retrieve customer details, 
-              amounts, and dates from Stripe.
+              <strong>Stripe Export:</strong> Export "Itemized transactions" from Stripe's Payments Analytics. 
+              The tool automatically extracts charge IDs and retrieves all details from Stripe.
             </AlertDescription>
           </Alert>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium block">
+              Upload Stripe CSV Export
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            {fileName && (
+              <p className="text-sm text-muted-foreground">
+                Loaded: {fileName}
+              </p>
+            )}
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or paste CSV data</span>
+            </div>
+          </div>
           
           <div>
             <label className="text-sm font-medium mb-2 block">
-              Stripe Charge CSV Data
+              CSV Data
             </label>
             <Textarea
               value={csvData}
               onChange={(e) => setCsvData(e.target.value)}
-              placeholder="Charge ID,Amount,Created,Currency&#10;ch_3SL5KqIZCv5wsm2Y2bajO5GD,51524,2025-10-22 16:56:29,usd&#10;ch_3SKqA8IZCv5wsm2Y1Tj7CCan,4000,2025-10-22 00:44:25,usd"
+              placeholder={`"charge_id","customer_id","amount","created","currency"\n"ch_3SL5KqIZCv5wsm2Y2bajO5GD","cus_123","51524","2025-10-22 16:56:29","usd"`}
               rows={10}
               className="font-mono text-xs"
             />
