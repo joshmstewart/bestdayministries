@@ -141,16 +141,16 @@ serve(async (req) => {
 
         logStep("Customer fetched", { email: customer.email });
 
-        // Check if donation already exists
+        // Check if donation already exists for this specific charge
         const { data: existingDonation } = await supabaseAdmin
           .from("donations")
           .select("id")
-          .eq("stripe_customer_id", customerId)
+          .eq("stripe_payment_intent_id", charge.payment_intent)
           .eq("stripe_mode", mode)
           .maybeSingle();
 
         if (existingDonation) {
-          result.error = "Donation already exists";
+          result.error = "Donation already exists for this charge";
           results.push(result);
           continue;
         }
@@ -182,6 +182,7 @@ serve(async (req) => {
           status: isSubscription ? "active" : "completed",
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription?.id || null,
+          stripe_payment_intent_id: typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id || null,
           stripe_mode: mode,
           created_at: chargeDate.toISOString(),
           started_at: chargeDate.toISOString(),
