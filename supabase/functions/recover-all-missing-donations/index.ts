@@ -183,10 +183,11 @@ serve(async (req) => {
           .maybeSingle();
 
         // Create the missing donation record
+        // IMPORTANT: donor_identifier_check constraint requires EITHER donor_id OR donor_email, not both
         const { data: newDonation, error: donationError } = await supabaseAdmin
           .from('donations')
           .insert({
-            donor_email: customerEmail,
+            donor_email: profileData?.id ? null : customerEmail,
             donor_id: profileData?.id || null,
             amount: receipt.amount,
             amount_charged: receipt.amount,
