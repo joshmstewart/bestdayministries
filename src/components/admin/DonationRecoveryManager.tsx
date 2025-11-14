@@ -56,6 +56,44 @@ export function DonationRecoveryManager() {
   const [receiptGenResults, setReceiptGenResults] = useState<ReceiptGenerationResult[] | null>(null);
   const { toast } = useToast();
 
+  const handleRecoverAll = async () => {
+    try {
+      setBackfillLoading(true);
+      setBackfillResults(null);
+
+      const { data, error } = await supabase.functions.invoke('recover-all-missing-donations', {
+        body: { mode: 'live' }
+      });
+      
+      if (error) throw error;
+
+      if (data?.success) {
+        const results = data.results.map((r: any) => ({
+          receipt_id: r.receiptId,
+          created_donation_id: r.donationId,
+          sponsor_email: r.email,
+          amount: r.amount,
+          status: r.donationCreated ? 'created' : (r.error ? `error: ${r.error}` : 'existing')
+        }));
+        
+        setBackfillResults(results);
+        toast({
+          title: "Recovery Complete",
+          description: `Created ${data.summary.created} donations. ${data.summary.alreadyExists} already existed. ${data.summary.errors} errors.`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Recovery error:', error);
+      toast({
+        title: "Recovery Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBackfillLoading(false);
+    }
+  };
+
   const handleBackfillOrphanedReceipts = async () => {
     try {
       setBackfillLoading(true);
@@ -247,17 +285,54 @@ export function DonationRecoveryManager() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button
+              onClick={handleRecoverAll}
+              disabled={backfillLoading}
+              size="lg"
+              className="h-auto flex-col items-start text-left py-4 px-4"
+            >
+              <div className="font-semibold mb-1">
+                {backfillLoading ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin inline" />Processing...</>
+                ) : (
+                  "Recover All (Recommended)"
+                )}
+              </div>
+              <div className="text-xs font-normal opacity-80">
+                Finds all missing donations and fetches data from Stripe
+              </div>
+            </Button>
+            
             <Button
               onClick={handleBackfillOrphanedReceipts}
               disabled={backfillLoading}
+              variant="outline"
+              size="lg"
+              className="h-auto flex-col items-start text-left py-4 px-4"
             >
-              {backfillLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Backfill Missing Donations
+              <div className="font-semibold mb-1">
+                {backfillLoading ? "Processing..." : "Backfill from Receipts"}
+              </div>
+              <div className="text-xs font-normal opacity-80">
+                Creates donations for orphaned receipts
+              </div>
             </Button>
-            <span className="text-sm text-muted-foreground">
-              This will scan for orphaned receipts and create their missing donation records
-            </span>
+            
+            <Button
+              onClick={handleGenerateMissingReceipts}
+              disabled={receiptGenLoading}
+              variant="outline"
+              size="lg"
+              className="h-auto flex-col items-start text-left py-4 px-4"
+            >
+              <div className="font-semibold mb-1">
+                {receiptGenLoading ? "Generating..." : "Generate from Donations"}
+              </div>
+              <div className="text-xs font-normal opacity-80">
+                Creates receipts for donations without receipts
+              </div>
+            </Button>
           </div>
 
           {backfillResults && backfillResults.length > 0 && (
