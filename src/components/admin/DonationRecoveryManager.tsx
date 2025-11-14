@@ -33,6 +33,7 @@ export function DonationRecoveryManager() {
   const [results, setResults] = useState<RecoveryResult[] | null>(null);
   const [summary, setSummary] = useState<RecoverySummary | null>(null);
   const [fileName, setFileName] = useState<string>("");
+  const [stripeMode, setStripeMode] = useState<"live" | "test">("live");
   const { toast } = useToast();
 
   const parseCsvData = (csv: string) => {
@@ -127,7 +128,7 @@ export function DonationRecoveryManager() {
       const { data, error } = await supabase.functions.invoke(
         "recover-missing-donations",
         {
-          body: { transactions, mode: "live" },
+          body: { transactions, mode: stripeMode },
         }
       );
 
@@ -169,6 +170,42 @@ export function DonationRecoveryManager() {
               The tool automatically extracts charge IDs and retrieves all details from Stripe.
             </AlertDescription>
           </Alert>
+
+          <div className="flex items-center space-x-4 p-4 border rounded-lg bg-muted/50">
+            <div className="flex-1">
+              <label className="text-sm font-medium block mb-2">
+                Stripe Mode
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={stripeMode === "live" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStripeMode("live")}
+                  className="flex-1"
+                >
+                  Live Mode
+                </Button>
+                <Button
+                  type="button"
+                  variant={stripeMode === "test" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStripeMode("test")}
+                  className="flex-1"
+                >
+                  Test Mode
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 text-sm text-muted-foreground">
+              <p className="font-medium mb-1">Current: {stripeMode === "live" ? "Live" : "Test"}</p>
+              <p className="text-xs">
+                {stripeMode === "live" 
+                  ? "Using real customer data and charges" 
+                  : "Using test data from Stripe test mode"}
+              </p>
+            </div>
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium block">
