@@ -12,14 +12,15 @@ const logStep = (step: string, details?: any) => {
 };
 
 interface TransactionData {
-  customer_id: string;
-  amount: number;
-  created: string;
-  currency: string;
+  charge_id: string;
+  amount?: number; // Optional since we can get from charge
+  created?: string; // Optional since we can get from charge
+  currency?: string; // Optional since we can get from charge
   description?: string;
 }
 
 interface RecoveryResult {
+  chargeId: string;
   customerId: string;
   email: string | null;
   amount: number;
@@ -83,25 +84,46 @@ serve(async (req) => {
     // Process each transaction
     for (const txn of transactions as TransactionData[]) {
       const result: RecoveryResult = {
-        customerId: txn.customer_id,
+        chargeId: txn.charge_id,
+        customerId: '',
         email: null,
-        amount: txn.amount,
+        amount: 0,
         donationCreated: false,
         receiptGenerated: false,
         receiptSent: false,
       };
 
       try {
-        // Fix customer ID prefix if needed (cu_ -> cus_)
-        let customerId = txn.customer_id;
-        if (customerId.startsWith('cu_') && !customerId.startsWith('cus_')) {
-          customerId = 'cus_' + customerId.substring(3);
-          logStep("Fixed customer ID prefix", { original: txn.customer_id, fixed: customerId });
-        }
-        
-        logStep("Processing customer", { customerId });
+        logStep("Processing charge", { chargeId: txn.charge_id });
 
-        // Phase 1: Fetch customer from Stripe
+        // Phase 1: Retrieve charge from Stripe to get all transaction details
+        const charge = await stripe.charges.retrieve(txn.charge_id);
+        
+        if (!charge) {
+          result.error = "Charge not found in Stripe";
+          results.push(result);
+          continue;
+        }
+
+        // Extract customer ID from charge
+        const customerId = typeof charge.customer === 'string' ? charge.customer : charge.customer?.id;
+        if (!customerId) {
+          result.error = "No customer ID found on charge";
+          results.push(result);
+          continue;
+        }
+
+        result.customerId = customerId;
+        result.amount = charge.amount / 100; // Convert to dollars
+        
+        logStep("Charge retrieved", { 
+          chargeId: charge.id,
+          customerId,
+          amount: charge.amount,
+          created: charge.created 
+        });
+
+        // Get customer details for email
         const customer = await stripe.customers.retrieve(customerId);
         if (customer.deleted) {
           result.error = "Customer deleted in Stripe";
@@ -140,29 +162,30 @@ serve(async (req) => {
           .eq("email", customer.email)
           .maybeSingle();
 
-        // Determine if this is a subscription or one-time
+        // Determine if this is a subscription payment
+        // If charge has an invoice, it's likely a subscription payment
         const subscriptions = await stripe.subscriptions.list({
           customer: customerId,
           limit: 1,
         });
-
-        const isSubscription = subscriptions.data.length > 0;
-        const subscription = subscriptions.data[0];
+        const isSubscription = !!charge.invoice;
+        const subscription = isSubscription ? subscriptions.data[0] : null;
 
         // Phase 2: Create donation record
+        const chargeDate = new Date(charge.created * 1000); // Stripe timestamps are in seconds
         const donationData = {
           donor_id: profile?.id || null,
           donor_email: customer.email,
-          amount: txn.amount / 100, // Convert cents to dollars
-          amount_charged: txn.amount / 100,
+          amount: charge.amount / 100, // Convert cents to dollars
+          amount_charged: charge.amount / 100,
           frequency: isSubscription ? "monthly" : "one-time",
           status: isSubscription ? "active" : "completed",
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription?.id || null,
           stripe_mode: mode,
-          created_at: new Date(txn.created).toISOString(),
-          started_at: new Date(txn.created).toISOString(),
-          ended_at: isSubscription ? null : new Date(txn.created).toISOString(),
+          created_at: chargeDate.toISOString(),
+          started_at: chargeDate.toISOString(),
+          ended_at: isSubscription ? null : chargeDate.toISOString(),
         };
 
         const { data: donation, error: donationError } = await supabaseAdmin
@@ -181,7 +204,7 @@ serve(async (req) => {
         logStep("Donation created", { donationId: donation.id });
 
         // Phase 3: Generate and send receipt
-        const receiptYear = new Date(txn.created).getFullYear();
+        const receiptYear = chargeDate.getFullYear();
         
         // Get receipt settings
         const { data: receiptSettings } = await supabaseAdmin
@@ -203,13 +226,13 @@ serve(async (req) => {
 
         const receiptNumber = `${receiptYear}-${String((receiptCount || 0) + 1).padStart(6, "0")}`;
 
-        // Create receipt record
+        // Create receipt record using charge ID as transaction ID
         const receiptData = {
-          transaction_id: `donation_${donation.id}`,
+          transaction_id: charge.id, // Use actual Stripe charge ID
           sponsorship_id: null,
           user_id: profile?.id || null,
           sponsor_email: customer.email,
-          amount: txn.amount / 100,
+          amount: charge.amount / 100,
           organization_name: receiptSettings.organization_name,
           organization_ein: receiptSettings.organization_ein,
           receipt_number: receiptNumber,
