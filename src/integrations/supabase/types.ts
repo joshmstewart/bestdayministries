@@ -3388,6 +3388,13 @@ export type Database = {
             foreignKeyName: "receipt_generation_logs_donation_id_fkey"
             columns: ["donation_id"]
             isOneToOne: false
+            referencedRelation: "donations_missing_receipts"
+            referencedColumns: ["donation_id"]
+          },
+          {
+            foreignKeyName: "receipt_generation_logs_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
             referencedRelation: "orphaned_receipts_analysis"
             referencedColumns: ["potential_donation_id"]
           },
@@ -5087,6 +5094,45 @@ export type Database = {
         }
         Relationships: []
       }
+      donations_missing_receipts: {
+        Row: {
+          amount: number | null
+          amount_charged: number | null
+          donation_date: string | null
+          donation_id: string | null
+          donor_email: string | null
+          frequency: string | null
+          status: string | null
+          stripe_mode: string | null
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          amount_charged?: number | null
+          donation_date?: string | null
+          donation_id?: string | null
+          donor_email?: string | null
+          frequency?: string | null
+          status?: string | null
+          stripe_mode?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          amount_charged?: number | null
+          donation_date?: string | null
+          donation_id?: string | null
+          donor_email?: string | null
+          frequency?: string | null
+          status?: string | null
+          stripe_mode?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+        }
+        Relationships: []
+      }
       game_leaderboard: {
         Row: {
           best_moves: number | null
@@ -5242,6 +5288,16 @@ export type Database = {
       generate_daily_scratch_card: {
         Args: { _user_id: string }
         Returns: string
+      }
+      generate_missing_receipts: {
+        Args: never
+        Returns: {
+          amount: number
+          created_receipt_id: string
+          donation_id: string
+          donor_email: string
+          status: string
+        }[]
       }
       get_notification_preferences: {
         Args: { _user_id: string }

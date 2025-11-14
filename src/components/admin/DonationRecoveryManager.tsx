@@ -15,6 +15,14 @@ interface BackfillResult {
   status: string;
 }
 
+interface ReceiptGenerationResult {
+  donation_id: string;
+  created_receipt_id: string | null;
+  donor_email: string;
+  amount: number;
+  status: string;
+}
+
 interface RecoveryResult {
   chargeId: string;
   customerId: string;
@@ -44,6 +52,8 @@ export function DonationRecoveryManager() {
   const [stripeMode, setStripeMode] = useState<"live" | "test">("live");
   const [backfillLoading, setBackfillLoading] = useState(false);
   const [backfillResults, setBackfillResults] = useState<BackfillResult[] | null>(null);
+  const [receiptGenLoading, setReceiptGenLoading] = useState(false);
+  const [receiptGenResults, setReceiptGenResults] = useState<ReceiptGenerationResult[] | null>(null);
   const { toast } = useToast();
 
   const handleBackfillOrphanedReceipts = async () => {
@@ -73,6 +83,36 @@ export function DonationRecoveryManager() {
       });
     } finally {
       setBackfillLoading(false);
+    }
+  };
+
+  const handleGenerateMissingReceipts = async () => {
+    try {
+      setReceiptGenLoading(true);
+      setReceiptGenResults(null);
+
+      const { data, error } = await supabase.rpc('generate_missing_receipts');
+      
+      if (error) throw error;
+
+      setReceiptGenResults(data || []);
+      
+      const successCount = data?.filter((r: ReceiptGenerationResult) => r.status === 'created').length || 0;
+      const errorCount = data?.filter((r: ReceiptGenerationResult) => r.status.startsWith('error')).length || 0;
+
+      toast({
+        title: "Receipt Generation Complete",
+        description: `Created ${successCount} receipts. ${errorCount} errors.`,
+      });
+    } catch (error: any) {
+      console.error('Receipt generation error:', error);
+      toast({
+        title: "Receipt Generation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setReceiptGenLoading(false);
     }
   };
 
@@ -277,6 +317,94 @@ export function DonationRecoveryManager() {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 No orphaned receipts found. All receipts have corresponding donation records.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="w-5 h-5" />
+            Quick Generate: Missing Receipts
+          </CardTitle>
+          <CardDescription>
+            Automatically create receipt records for donations that exist in the database but have no corresponding receipt.
+            This fixes cases where donations were created but receipt generation failed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={handleGenerateMissingReceipts}
+              disabled={receiptGenLoading}
+            >
+              {receiptGenLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Generate Missing Receipts
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              This will scan for donations without receipts and create their receipt records
+            </span>
+          </div>
+
+          {receiptGenResults && receiptGenResults.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="font-medium">
+                    Created {receiptGenResults.filter(r => r.status === 'created').length} receipts
+                  </span>
+                </div>
+                {receiptGenResults.some(r => r.status.startsWith('error')) && (
+                  <div className="flex items-center gap-2 text-red-600">
+                    <XCircle className="w-5 h-5" />
+                    <span>{receiptGenResults.filter(r => r.status.startsWith('error')).length} errors</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {receiptGenResults.map((result, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-3 p-3 border rounded-lg"
+                  >
+                    <div className="flex-shrink-0 mt-1">
+                      {result.status === 'created' ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-600" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{result.donor_email}</div>
+                      <div className="text-sm text-muted-foreground">
+                        ${result.amount.toFixed(2)} • Donation: {result.donation_id.slice(0, 8)}...
+                      </div>
+                      {result.created_receipt_id && (
+                        <div className="text-xs text-green-600">
+                          Receipt: {result.created_receipt_id.slice(0, 8)}...
+                        </div>
+                      )}
+                      {result.status.startsWith('error') && (
+                        <div className="text-xs text-red-600 mt-1">
+                          {result.status}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {receiptGenResults && receiptGenResults.length === 0 && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                No donations missing receipts found. All donations have corresponding receipt records.
               </AlertDescription>
             </Alert>
           )}
