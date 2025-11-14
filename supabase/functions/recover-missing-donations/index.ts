@@ -153,12 +153,23 @@ serve(async (req) => {
           mode 
         });
         
-        const { data: existingDonation, error: existingError } = await supabaseAdmin
-          .from("donations")
-          .select("id")
-          .eq("stripe_payment_intent_id", paymentIntentId)
-          .eq("stripe_mode", mode)
-          .maybeSingle();
+        // Only check for duplicates if we have a valid payment intent ID
+        let existingDonation = null;
+        let existingError = null;
+        
+        if (paymentIntentId) {
+          const result = await supabaseAdmin
+            .from("donations")
+            .select("id")
+            .eq("stripe_payment_intent_id", paymentIntentId)
+            .eq("stripe_mode", mode)
+            .maybeSingle();
+          
+          existingDonation = result.data;
+          existingError = result.error;
+        } else {
+          logStep("No payment intent ID - skipping duplicate check");
+        }
 
         if (existingError) {
           logStep("ERROR checking existing donation", { error: existingError.message, code: existingError.code });
