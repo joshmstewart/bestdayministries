@@ -231,6 +231,35 @@ serve(async (req) => {
           subscriptionId: subscription?.id || null 
         });
 
+        // Check if this is a sponsorship by looking at payment intent metadata
+        if (paymentIntentId) {
+          logStep("Checking if charge is a sponsorship", { paymentIntentId });
+          
+          try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+            
+            if (paymentIntent.metadata?.bestie_id) {
+              logStep("SKIPPING: This is a sponsorship charge", { 
+                bestieId: paymentIntent.metadata.bestie_id,
+                chargeId: txn.charge_id 
+              });
+              result.error = "Skipped: This is a sponsorship, not a general fund donation";
+              results.push(result);
+              continue;
+            }
+            
+            logStep("Confirmed: This is a general fund donation (no bestie_id in metadata)");
+          } catch (piError) {
+            const errorMessage = piError instanceof Error ? piError.message : 'Unknown error';
+            logStep("ERROR retrieving payment intent", { error: errorMessage });
+            result.error = `Failed to retrieve payment intent: ${errorMessage}`;
+            results.push(result);
+            continue;
+          }
+        } else {
+          logStep("WARNING: No payment intent ID - cannot verify if sponsorship");
+        }
+
         // Phase 2: Create donation record
         const chargeDate = new Date(charge.created * 1000); // Stripe timestamps are in seconds
         
