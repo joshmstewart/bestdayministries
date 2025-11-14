@@ -142,16 +142,21 @@ serve(async (req) => {
         logStep("Customer fetched", { email: customer.email });
 
         // Check if donation already exists for this specific charge
+        // Extract payment intent ID (could be string or object)
+        const paymentIntentId = typeof charge.payment_intent === 'string' 
+          ? charge.payment_intent 
+          : charge.payment_intent?.id || null;
+        
         logStep("Checking for existing donation", { 
           chargeId: txn.charge_id, 
-          paymentIntent: charge.payment_intent,
+          paymentIntentId,
           mode 
         });
         
         const { data: existingDonation, error: existingError } = await supabaseAdmin
           .from("donations")
           .select("id")
-          .eq("stripe_payment_intent_id", charge.payment_intent)
+          .eq("stripe_payment_intent_id", paymentIntentId)
           .eq("stripe_mode", mode)
           .maybeSingle();
 
