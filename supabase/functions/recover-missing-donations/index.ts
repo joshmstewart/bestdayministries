@@ -142,34 +142,66 @@ serve(async (req) => {
         logStep("Customer fetched", { email: customer.email });
 
         // Check if donation already exists for this specific charge
-        const { data: existingDonation } = await supabaseAdmin
+        logStep("Checking for existing donation", { 
+          chargeId: txn.charge_id, 
+          paymentIntent: charge.payment_intent,
+          mode 
+        });
+        
+        const { data: existingDonation, error: existingError } = await supabaseAdmin
           .from("donations")
           .select("id")
           .eq("stripe_payment_intent_id", charge.payment_intent)
           .eq("stripe_mode", mode)
           .maybeSingle();
 
-        if (existingDonation) {
-          result.error = "Donation already exists for this charge";
+        if (existingError) {
+          logStep("ERROR checking existing donation", { error: existingError.message, code: existingError.code });
+          result.error = `Database error checking duplicates: ${existingError.message}`;
           results.push(result);
           continue;
         }
 
+        if (existingDonation) {
+          logStep("Duplicate donation found", { existingId: existingDonation.id });
+          result.error = "Donation already exists for this charge";
+          results.push(result);
+          continue;
+        }
+        
+        logStep("No duplicate found, proceeding with donation creation");
+
         // Check if user exists
-        const { data: profile } = await supabaseAdmin
+        logStep("Looking up user profile", { email: customer.email });
+        
+        const { data: profile, error: profileError } = await supabaseAdmin
           .from("profiles")
           .select("id, display_name")
           .eq("email", customer.email)
           .maybeSingle();
+        
+        if (profileError) {
+          logStep("ERROR fetching profile", { error: profileError.message, code: profileError.code });
+        } else if (profile) {
+          logStep("Profile found", { profileId: profile.id, displayName: profile.display_name });
+        } else {
+          logStep("No profile found - will create guest donation");
+        }
 
         // Determine if this is a subscription payment
-        // If charge has an invoice, it's likely a subscription payment
+        logStep("Checking for subscription", { customerId, hasInvoice: !!charge.invoice });
+        
         const subscriptions = await stripe.subscriptions.list({
           customer: customerId,
           limit: 1,
         });
         const isSubscription = !!charge.invoice;
         const subscription = isSubscription ? subscriptions.data[0] : null;
+        
+        logStep("Subscription check complete", { 
+          isSubscription, 
+          subscriptionId: subscription?.id || null 
+        });
 
         // Phase 2: Create donation record
         const chargeDate = new Date(charge.created * 1000); // Stripe timestamps are in seconds
@@ -189,6 +221,16 @@ serve(async (req) => {
           ended_at: isSubscription ? null : chargeDate.toISOString(),
         };
 
+        logStep("Inserting donation record", { 
+          donationData: {
+            ...donationData,
+            donor_id: donationData.donor_id || 'NULL',
+            amount: donationData.amount,
+            frequency: donationData.frequency,
+            status: donationData.status
+          }
+        });
+
         const { data: donation, error: donationError } = await supabaseAdmin
           .from("donations")
           .insert(donationData)
@@ -196,36 +238,68 @@ serve(async (req) => {
           .single();
 
         if (donationError) {
-          result.error = `Failed to create donation: ${donationError.message}`;
+          logStep("ERROR creating donation", { 
+            error: donationError.message, 
+            code: donationError.code,
+            details: donationError.details,
+            hint: donationError.hint,
+            chargeId: txn.charge_id
+          });
+          result.error = `Failed to create donation: ${donationError.message} (Code: ${donationError.code})`;
           results.push(result);
           continue;
         }
 
         result.donationCreated = true;
-        logStep("Donation created", { donationId: donation.id });
+        logStep("Donation created successfully", { donationId: donation.id, amount: donation.amount });
 
         // Phase 3: Generate and send receipt
         const receiptYear = chargeDate.getFullYear();
         
+        logStep("Starting receipt generation", { donationId: donation.id, year: receiptYear });
+        
         // Get receipt settings
-        const { data: receiptSettings } = await supabaseAdmin
+        const { data: receiptSettings, error: settingsError } = await supabaseAdmin
           .from("receipt_settings")
           .select("*")
           .single();
 
-        if (!receiptSettings) {
-          result.error = "Receipt settings not configured";
+        if (settingsError) {
+          logStep("ERROR fetching receipt settings", { 
+            error: settingsError.message, 
+            code: settingsError.code 
+          });
+          result.error = `Receipt settings error: ${settingsError.message}`;
           results.push(result);
           continue;
         }
 
+        if (!receiptSettings) {
+          logStep("ERROR: No receipt settings configured");
+          result.error = "Receipt settings not configured";
+          results.push(result);
+          continue;
+        }
+        
+        logStep("Receipt settings loaded", { 
+          orgName: receiptSettings.organization_name,
+          ein: receiptSettings.organization_ein 
+        });
+
         // Generate receipt number
-        const { count: receiptCount } = await supabaseAdmin
+        logStep("Counting existing receipts for year", { year: receiptYear });
+        
+        const { count: receiptCount, error: countError } = await supabaseAdmin
           .from("sponsorship_receipts")
           .select("*", { count: "exact", head: true })
           .eq("tax_year", receiptYear);
+        
+        if (countError) {
+          logStep("ERROR counting receipts", { error: countError.message });
+        }
 
         const receiptNumber = `${receiptYear}-${String((receiptCount || 0) + 1).padStart(6, "0")}`;
+        logStep("Generated receipt number", { receiptNumber, count: receiptCount });
 
         // Create receipt record using charge ID as transaction ID
         const receiptData = {
@@ -241,6 +315,12 @@ serve(async (req) => {
           status: "generated",
           generated_at: new Date().toISOString(),
         };
+        
+        logStep("Inserting receipt record", { 
+          transactionId: receiptData.transaction_id,
+          amount: receiptData.amount,
+          receiptNumber: receiptData.receipt_number
+        });
 
         const { data: receipt, error: receiptError } = await supabaseAdmin
           .from("sponsorship_receipts")
@@ -249,17 +329,30 @@ serve(async (req) => {
           .single();
 
         if (receiptError) {
-          result.error = `Failed to create receipt: ${receiptError.message}`;
+          logStep("ERROR creating receipt", { 
+            error: receiptError.message, 
+            code: receiptError.code,
+            details: receiptError.details,
+            hint: receiptError.hint,
+            transactionId: charge.id
+          });
+          result.error = `Failed to create receipt: ${receiptError.message} (Code: ${receiptError.code})`;
           results.push(result);
           continue;
         }
 
         result.receiptGenerated = true;
-        logStep("Receipt created", { receiptId: receipt.id });
+        logStep("Receipt created successfully", { receiptId: receipt.id, receiptNumber });
 
         // Send receipt email
+        logStep("Attempting to send receipt email", { 
+          receiptId: receipt.id,
+          email: customer.email,
+          recipientName: profile?.display_name || "Donor"
+        });
+        
         try {
-          const { error: sendError } = await supabaseAdmin.functions.invoke(
+          const { data: emailData, error: sendError } = await supabaseAdmin.functions.invoke(
             "send-sponsorship-receipt",
             {
               body: {
@@ -271,20 +364,40 @@ serve(async (req) => {
           );
 
           if (sendError) {
+            logStep("ERROR sending receipt email", { 
+              error: sendError.message,
+              receiptId: receipt.id,
+              email: customer.email
+            });
             result.error = `Receipt created but email failed: ${sendError.message}`;
           } else {
             result.receiptSent = true;
-            logStep("Receipt sent", { receiptId: receipt.id });
+            logStep("Receipt email sent successfully", { 
+              receiptId: receipt.id,
+              email: customer.email,
+              responseData: emailData
+            });
           }
         } catch (emailError: any) {
+          logStep("EXCEPTION sending receipt email", { 
+            error: emailError?.message || 'Unknown error',
+            stack: emailError?.stack,
+            receiptId: receipt.id
+          });
           result.error = `Receipt created but email failed: ${emailError?.message || 'Unknown error'}`;
         }
 
         results.push(result);
       } catch (error: any) {
+        logStep("EXCEPTION processing transaction", { 
+          chargeId: txn.charge_id,
+          error: error?.message || 'Unknown error',
+          code: error?.code,
+          stack: error?.stack,
+          name: error?.name
+        });
         result.error = error?.message || 'Unknown error';
         results.push(result);
-        logStep("Error processing transaction", { error: error?.message || 'Unknown error' });
       }
     }
 
@@ -299,6 +412,20 @@ serve(async (req) => {
     };
 
     logStep("Recovery complete", summary);
+    
+    // Log failures with details
+    const failures = results.filter(r => r.error);
+    if (failures.length > 0) {
+      logStep("Failed transactions summary", {
+        count: failures.length,
+        errors: failures.map(f => ({
+          chargeId: f.chargeId,
+          customerId: f.customerId,
+          email: f.email,
+          error: f.error
+        }))
+      });
+    }
 
     return new Response(
       JSON.stringify({ success: true, summary, results }),
@@ -306,10 +433,19 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    logStep("ERROR", { error: error?.message || 'Unknown error' });
+    logStep("FATAL ERROR in recovery function", { 
+      error: error?.message || 'Unknown error',
+      code: error?.code,
+      stack: error?.stack,
+      name: error?.name
+    });
     return new Response(
-      JSON.stringify({ error: error?.message || 'Unknown error' }),
-      { 
+      JSON.stringify({ 
+        error: error?.message || 'Unknown error',
+        code: error?.code,
+        name: error?.name
+      }),
+      {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
       }
