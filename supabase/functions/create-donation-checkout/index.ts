@@ -169,7 +169,7 @@ serve(async (req) => {
       .maybeSingle();
 
     // ALWAYS populate both donor_id (if user exists) AND donor_email
-    await supabaseAdmin.from("donations").insert({
+    const { error: insertError } = await supabaseAdmin.from("donations").insert({
       donor_id: profile?.id || null,      // Set if user exists
       donor_email: email,                  // ALWAYS set this
       amount: amount,                      // Base amount without fees
@@ -180,6 +180,11 @@ serve(async (req) => {
       stripe_mode: mode,
       stripe_customer_id: customer.id,
     });
+
+    if (insertError) {
+      console.error('Failed to create donation record:', insertError);
+      throw new Error(`Failed to create donation record: ${insertError.message}`);
+    }
 
     return new Response(
       JSON.stringify({ url: session.url }),
