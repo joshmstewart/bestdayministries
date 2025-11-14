@@ -92,10 +92,17 @@ serve(async (req) => {
       };
 
       try {
-        logStep("Processing customer", { customerId: txn.customer_id });
+        // Fix customer ID prefix if needed (cu_ -> cus_)
+        let customerId = txn.customer_id;
+        if (customerId.startsWith('cu_') && !customerId.startsWith('cus_')) {
+          customerId = 'cus_' + customerId.substring(3);
+          logStep("Fixed customer ID prefix", { original: txn.customer_id, fixed: customerId });
+        }
+        
+        logStep("Processing customer", { customerId });
 
         // Phase 1: Fetch customer from Stripe
-        const customer = await stripe.customers.retrieve(txn.customer_id);
+        const customer = await stripe.customers.retrieve(customerId);
         if (customer.deleted) {
           result.error = "Customer deleted in Stripe";
           results.push(result);
@@ -116,7 +123,7 @@ serve(async (req) => {
         const { data: existingDonation } = await supabaseAdmin
           .from("donations")
           .select("id")
-          .eq("stripe_customer_id", txn.customer_id)
+          .eq("stripe_customer_id", customerId)
           .eq("stripe_mode", mode)
           .maybeSingle();
 
@@ -135,7 +142,7 @@ serve(async (req) => {
 
         // Determine if this is a subscription or one-time
         const subscriptions = await stripe.subscriptions.list({
-          customer: txn.customer_id,
+          customer: customerId,
           limit: 1,
         });
 
@@ -150,7 +157,7 @@ serve(async (req) => {
           amount_charged: txn.amount / 100,
           frequency: isSubscription ? "monthly" : "one-time",
           status: isSubscription ? "active" : "completed",
-          stripe_customer_id: txn.customer_id,
+          stripe_customer_id: customerId,
           stripe_subscription_id: subscription?.id || null,
           stripe_mode: mode,
           created_at: new Date(txn.created).toISOString(),
