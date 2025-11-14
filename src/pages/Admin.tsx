@@ -16,6 +16,7 @@ import { SupportPageManager } from "@/components/admin/SupportPageManager";
 import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
 import { ReceiptSettingsManager } from "@/components/admin/ReceiptSettingsManager";
 import { SponsorshipTransactionsManager } from "@/components/admin/SponsorshipTransactionsManager";
+import { DonationRecoveryManager } from "@/components/admin/DonationRecoveryManager";
 import { WebhookLogsViewer } from "@/components/admin/WebhookLogsViewer";
 import { YearEndSummarySettings } from "@/components/admin/YearEndSummarySettings";
 import { YearEndSummarySentHistory } from "@/components/admin/YearEndSummarySentHistory";
@@ -410,6 +411,7 @@ const Admin = () => {
                   <TabsList className="flex flex-wrap h-auto w-full">
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     <TabsTrigger value="webhook-logs">Webhook Logs</TabsTrigger>
+                    <TabsTrigger value="recovery">Recovery Tool</TabsTrigger>
                     <TabsTrigger value="sponsorships">Sponsor Besties</TabsTrigger>
                     <TabsTrigger value="page-content">Sponsor Page</TabsTrigger>
                     <TabsTrigger value="page-order">Page Order</TabsTrigger>
@@ -426,6 +428,10 @@ const Admin = () => {
 
                   <TabsContent value="webhook-logs">
                     <WebhookLogsViewer />
+                  </TabsContent>
+
+                  <TabsContent value="recovery">
+                    <DonationRecoveryManager />
                   </TabsContent>
 
                   <TabsContent value="sponsorships">
