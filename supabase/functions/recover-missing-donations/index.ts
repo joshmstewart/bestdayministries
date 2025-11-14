@@ -205,9 +205,13 @@ serve(async (req) => {
 
         // Phase 2: Create donation record
         const chargeDate = new Date(charge.created * 1000); // Stripe timestamps are in seconds
+        
+        // CRITICAL: donor_identifier_check constraint requires EXACTLY ONE of donor_id OR donor_email
+        // If profile exists, use donor_id and set donor_email to null
+        // If no profile, use donor_email and set donor_id to null
         const donationData = {
           donor_id: profile?.id || null,
-          donor_email: customer.email,
+          donor_email: profile ? null : customer.email,
           amount: charge.amount / 100, // Convert cents to dollars
           amount_charged: charge.amount / 100,
           frequency: isSubscription ? "monthly" : "one-time",
@@ -313,7 +317,7 @@ serve(async (req) => {
           receipt_number: receiptNumber,
           tax_year: receiptYear,
           status: "generated",
-          generated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(), // Use created_at, not generated_at
         };
         
         logStep("Inserting receipt record", { 
