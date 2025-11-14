@@ -8,6 +8,7 @@ import { Loader2, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface RecoveryResult {
+  chargeId: string;
   customerId: string;
   email: string | null;
   amount: number;
@@ -44,10 +45,10 @@ export function DonationRecoveryManager() {
         obj[header] = values[index];
       });
       return {
-        customer_id: obj["Customer ID"] || obj["customer_id"],
-        amount: parseFloat(obj["Amount"] || obj["amount"]),
+        charge_id: obj["Charge ID"] || obj["charge_id"] || obj["id"],
+        amount: obj["Amount"] || obj["amount"] ? parseFloat(obj["Amount"] || obj["amount"]) : undefined,
         created: obj["Created"] || obj["created"],
-        currency: obj["Currency"] || obj["currency"] || "usd",
+        currency: obj["Currency"] || obj["currency"],
         description: obj["Description"] || obj["description"],
       };
     });
@@ -108,18 +109,27 @@ export function DonationRecoveryManager() {
         <CardHeader>
           <CardTitle>Donation Recovery Tool</CardTitle>
           <CardDescription>
-            Recover missing donations from Oct 7-22 and generate receipts. Paste the CSV data from Stripe below.
+            Recover missing donations by charge ID. This tool retrieves transaction details directly from Stripe.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>CSV Format:</strong> Your CSV must include a column named "Charge ID", "charge_id", or "id" 
+              with Stripe charge IDs (starting with "ch_"). The tool will automatically retrieve customer details, 
+              amounts, and dates from Stripe.
+            </AlertDescription>
+          </Alert>
+          
           <div>
             <label className="text-sm font-medium mb-2 block">
-              Stripe Transaction CSV Data
+              Stripe Charge CSV Data
             </label>
             <Textarea
               value={csvData}
               onChange={(e) => setCsvData(e.target.value)}
-              placeholder="Paste CSV data here (must include: Customer ID, Amount, Created, Currency)"
+              placeholder="Charge ID,Amount,Created,Currency&#10;ch_3SL5KqIZCv5wsm2Y2bajO5GD,51524,2025-10-22 16:56:29,usd&#10;ch_3SKqA8IZCv5wsm2Y1Tj7CCan,4000,2025-10-22 00:44:25,usd"
               rows={10}
               className="font-mono text-xs"
             />
@@ -206,7 +216,10 @@ export function DonationRecoveryManager() {
                       {result.email || result.customerId}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      ${result.amount.toFixed(2)} • Customer: {result.customerId}
+                      ${result.amount.toFixed(2)} • Charge: {result.chargeId}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Customer: {result.customerId}
                     </div>
                     <div className="flex gap-2 mt-1 text-xs">
                       {result.donationCreated && (
