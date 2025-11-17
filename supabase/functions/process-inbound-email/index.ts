@@ -95,6 +95,140 @@ Deno.serve(async (req) => {
 
     console.log('[process-inbound-email] Sender email:', senderEmail);
 
+    // ========== AMBASSADOR EMAIL THREAD HANDLING ==========
+    // Check if email is sent to reply-{threadKey}@bestdayministries.org
+    const toAddress = payload.to.toLowerCase();
+    const ambassadorThreadMatch = toAddress.match(/reply-([a-f0-9]+)@bestdayministries\.org/);
+    
+    if (ambassadorThreadMatch) {
+      const threadKey = ambassadorThreadMatch[1];
+      console.log('[Ambassador Thread] Matched thread key:', threadKey);
+      
+      // Look up the thread
+      const { data: thread, error: threadError } = await supabase
+        .from('ambassador_email_threads')
+        .select(`
+          id,
+          recipient_email,
+          subject,
+          ambassador_profiles!inner (
+            ambassador_email,
+            personal_email
+          )
+        `)
+        .eq('thread_key', threadKey)
+        .single();
+      
+      if (threadError || !thread) {
+        console.error('[Ambassador Thread] Thread not found:', threadError);
+        // Return 200 to prevent retries - invalid thread
+        return new Response(
+          JSON.stringify({ success: true, message: 'Thread not found' }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const ambassador = thread.ambassador_profiles as any;
+      const messageContent = extractMessageContent(emailText);
+      
+      // Determine direction and route accordingly
+      if (senderEmail.toLowerCase() === thread.recipient_email.toLowerCase()) {
+        // Reply from original recipient → route to ambassador's personal inbox
+        console.log('[Ambassador Thread] Routing recipient reply to ambassador personal email');
+        
+        // Log inbound message
+        await supabase.from('ambassador_email_messages').insert({
+          thread_id: thread.id,
+          direction: 'inbound',
+          sender_email: senderEmail,
+          recipient_email: ambassador.personal_email,
+          subject: subject,
+          message_content: messageContent,
+        });
+        
+        // Send to ambassador's personal email via Resend
+        const resendApiKey = Deno.env.get('RESEND_API_KEY');
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: `${senderEmail} <reply-${threadKey}@bestdayministries.org>`,
+            to: ambassador.personal_email,
+            subject: subject || `Re: ${thread.subject}`,
+            text: messageContent,
+            reply_to: `reply-${threadKey}@bestdayministries.org`,
+          }),
+        });
+        
+        if (!resendResponse.ok) {
+          throw new Error(`Failed to forward to ambassador: ${await resendResponse.text()}`);
+        }
+        
+        console.log('[Ambassador Thread] Successfully routed to ambassador');
+        
+      } else if (senderEmail.toLowerCase() === ambassador.personal_email.toLowerCase()) {
+        // Reply from ambassador's personal email → send to original recipient
+        console.log('[Ambassador Thread] Routing ambassador reply to recipient');
+        
+        // Log outbound message
+        await supabase.from('ambassador_email_messages').insert({
+          thread_id: thread.id,
+          direction: 'outbound',
+          sender_email: ambassador.ambassador_email,
+          recipient_email: thread.recipient_email,
+          subject: subject,
+          message_content: messageContent,
+        });
+        
+        // Send to recipient via Resend
+        const resendApiKey = Deno.env.get('RESEND_API_KEY');
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: ambassador.ambassador_email,
+            to: thread.recipient_email,
+            subject: subject || `Re: ${thread.subject}`,
+            text: messageContent,
+            reply_to: `reply-${threadKey}@bestdayministries.org`,
+          }),
+        });
+        
+        if (!resendResponse.ok) {
+          throw new Error(`Failed to send to recipient: ${await resendResponse.text()}`);
+        }
+        
+        console.log('[Ambassador Thread] Successfully sent to recipient');
+        
+      } else {
+        console.error('[Ambassador Thread] Unknown sender:', senderEmail);
+      }
+      
+      // Update thread last message timestamp
+      await supabase
+        .from('ambassador_email_threads')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', thread.id);
+      
+      return new Response(
+        JSON.stringify({ success: true, thread_key: threadKey }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    // ========== END AMBASSADOR EMAIL THREAD HANDLING ==========
+
     // Find matching submission by sender email
     const { data: submissions, error: submissionsError } = await supabase
       .from('contact_form_submissions')

@@ -162,6 +162,127 @@ export type Database = {
           },
         ]
       }
+      ambassador_email_messages: {
+        Row: {
+          created_at: string | null
+          direction: string
+          id: string
+          message_content: string
+          recipient_email: string
+          resend_email_id: string | null
+          sender_email: string
+          sender_name: string | null
+          subject: string | null
+          thread_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          direction: string
+          id?: string
+          message_content: string
+          recipient_email: string
+          resend_email_id?: string | null
+          sender_email: string
+          sender_name?: string | null
+          subject?: string | null
+          thread_id: string
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string
+          id?: string
+          message_content?: string
+          recipient_email?: string
+          resend_email_id?: string | null
+          sender_email?: string
+          sender_name?: string | null
+          subject?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_email_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "ambassador_email_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassador_email_threads: {
+        Row: {
+          ambassador_id: string
+          created_at: string | null
+          id: string
+          last_message_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          subject: string
+          thread_key: string
+        }
+        Insert: {
+          ambassador_id: string
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          subject: string
+          thread_key: string
+        }
+        Update: {
+          ambassador_id?: string
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          subject?: string
+          thread_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_email_threads_ambassador_id_fkey"
+            columns: ["ambassador_id"]
+            isOneToOne: false
+            referencedRelation: "ambassador_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassador_profiles: {
+        Row: {
+          ambassador_email: string
+          created_at: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          personal_email: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ambassador_email: string
+          created_at?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          personal_email: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ambassador_email?: string
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          personal_email?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string
