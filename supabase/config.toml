@@ -141,6 +141,9 @@ verify_jwt = false
 [functions.resend-webhook]
 verify_jwt = false
 
+[functions.handle-resend-webhook]
+verify_jwt = false
+
 [functions.generate-sticker-description]
 verify_jwt = true
 
