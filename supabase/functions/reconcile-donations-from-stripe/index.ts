@@ -334,10 +334,10 @@ serve(async (req) => {
           }
         }
 
-        // Strategy 4: If still pending and old enough (>24h), mark as cancelled
+        // Strategy 4: If still pending and old enough (>1h), mark as cancelled
         if (result.action === 'skipped') {
-          const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-          if (createdAt < dayAgo) {
+          const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+          if (createdAt < hourAgo) {
             const { error: updateError } = await supabaseClient
               .from('donations')
               .update({ status: 'cancelled' })
