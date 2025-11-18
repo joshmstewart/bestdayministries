@@ -115,10 +115,10 @@ serve(async (req) => {
           created: donation.created_at 
         });
 
-        // Skip very recent donations (< 1 hour) to allow webhooks to process
+        // Skip very recent donations (< 5 minutes) to allow webhooks to process
         const createdAt = new Date(donation.created_at);
-        const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        if (createdAt > hourAgo) {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        if (createdAt > fiveMinutesAgo) {
           result.action = 'skipped';
           result.newStatus = 'pending';
           logStep(`Skipping recent donation ${donation.id}`);

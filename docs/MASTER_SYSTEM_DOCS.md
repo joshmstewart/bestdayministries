@@ -656,11 +656,11 @@ RECONCILIATION-SYSTEM[CRITICAL-FIX-FOR-PENDING-HELL]:
     activated→pending→active[monthly-subscriptions-confirmed-in-Stripe]
     completed→pending→completed[one-time-payments-confirmed-in-Stripe]
     cancelled→pending→cancelled[expired|failed|non-existent-in-Stripe]
-    skipped→<1hr-old-OR-still-processing[leave-pending-for-webhooks]
+    skipped→<5min-old-OR-still-processing[leave-pending-for-webhooks]
   RECEIPT-GENERATION:auto-generates-receipts-and-sends-emails-for-newly-activated|completed-donations
   SCHEDULING:cron-job[hourly-at-:00]→calls-edge-function-with[mode:live|limit:500]
   ADMIN-UI:Admin→Donations→Recovery-tab→Reconcile-Now-button→displays-summary[activated|completed|cancelled|skipped|errors]→detailed-results-per-donation
-  SAFETY:skips-recent-donations[<1hr]→allows-webhooks-to-process-first→only-updates-single-donation-by-id→never-bulk-update-by-customer
+  SAFETY:skips-recent-donations[<5min]→allows-webhooks-to-process-first→only-updates-single-donation-by-id→never-bulk-update-by-customer
   CRITICAL-FIX:solves-"Cannot-coerce-result-to-single-JSON-object"-error→always-select-single-row-first→then-update-by-id
   LOGGING:comprehensive-per-donation-logs→tracks[old_status|new_status|stripe_object_id|stripe_status|action|error]
   SELF-HEALING:runs-automatically-hourly→catches-webhook-failures→ensures-no-donations-stuck-pending-forever
