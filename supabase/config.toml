@@ -156,3 +156,9 @@ verify_jwt = true
 [functions.scratch-card]
 verify_jwt = true
 
+[functions.debug-donation-reconciliation]
+verify_jwt = true
+
+[functions.reconcile-donations-from-stripe]
+verify_jwt = true
+
