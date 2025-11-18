@@ -110,14 +110,11 @@ export const DonationForm = () => {
       }
 
       if (data?.url) {
-        console.log('🔷 Redirecting to checkout URL:', data.url);
-        toast.success("Redirecting to secure checkout...");
+        console.log('🔷 Opening checkout URL in new tab:', data.url);
+        toast.success("Opening secure checkout in new tab...");
         
-        // Use setTimeout to ensure toast shows before redirect
-        setTimeout(() => {
-          console.log('🔷 Executing redirect now...');
-          window.location.href = data.url;
-        }, 500);
+        // Open in new tab to avoid iframe restrictions
+        window.open(data.url, '_blank');
       } else {
         console.error('🔴 No URL in response data:', data);
         throw new Error('No checkout URL received from server');
