@@ -168,10 +168,14 @@ serve(async (req) => {
       .eq("email", email)
       .maybeSingle();
 
-    // ALWAYS populate both donor_id (if user exists) AND donor_email
+    // Determine donor identifier to satisfy donor_identifier_check constraint:
+    // EITHER donor_id (for registered users) OR donor_email (for guests), but never both.
+    const donorId = profile?.id ?? null;
+    const donorEmail = donorId ? null : email;
+
     const { error: insertError } = await supabaseAdmin.from("donations").insert({
-      donor_id: profile?.id || null,      // Set if user exists
-      donor_email: email,                  // ALWAYS set this
+      donor_id: donorId,
+      donor_email: donorEmail,
       amount: amount,                      // Base amount without fees
       amount_charged: finalAmount,         // Full amount including fees if covered
       frequency: frequency,
