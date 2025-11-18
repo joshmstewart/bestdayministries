@@ -21,6 +21,7 @@ import { WebhookLogsViewer } from "@/components/admin/WebhookLogsViewer";
 import { YearEndSummarySettings } from "@/components/admin/YearEndSummarySettings";
 import { YearEndSummarySentHistory } from "@/components/admin/YearEndSummarySentHistory";
 import { RecalculateAmountsTest } from "@/components/admin/RecalculateAmountsTest";
+import { DonationDebugger } from "@/components/admin/DonationDebugger";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
@@ -420,10 +421,15 @@ const Admin = () => {
                     <TabsTrigger value="sent-history">Sent History</TabsTrigger>
                     <TabsTrigger value="support-page">Support Us Page</TabsTrigger>
                     <TabsTrigger value="test-recalc">Test Recalc</TabsTrigger>
+                    <TabsTrigger value="debug">Debug Reconciliation</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="transactions">
                     <SponsorshipTransactionsManager />
+                  </TabsContent>
+
+                  <TabsContent value="debug">
+                    <DonationDebugger />
                   </TabsContent>
 
                   <TabsContent value="webhook-logs">
