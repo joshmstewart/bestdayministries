@@ -86,6 +86,13 @@ export const DonationForm = () => {
         console.error("Error recording terms acceptance:", termsError);
       }
 
+      console.log('🔷 Invoking create-donation-checkout with:', {
+        amount: parseFloat(amount),
+        frequency,
+        email: email.trim(),
+        coverStripeFee,
+      });
+
       const { data, error } = await supabase.functions.invoke("create-donation-checkout", {
         body: {
           amount: parseFloat(amount),
@@ -95,11 +102,25 @@ export const DonationForm = () => {
         },
       });
 
-      if (error) throw error;
+      console.log('🔷 Edge function response:', { data, error });
 
-      if (data.url) {
+      if (error) {
+        console.error('🔴 Edge function error:', error);
+        throw error;
+      }
+
+      if (data?.url) {
+        console.log('🔷 Redirecting to checkout URL:', data.url);
         toast.success("Redirecting to secure checkout...");
-        window.location.href = data.url;
+        
+        // Use setTimeout to ensure toast shows before redirect
+        setTimeout(() => {
+          console.log('🔷 Executing redirect now...');
+          window.location.href = data.url;
+        }, 500);
+      } else {
+        console.error('🔴 No URL in response data:', data);
+        throw new Error('No checkout URL received from server');
       }
     } catch (error) {
       console.error("Error creating donation:", error);
