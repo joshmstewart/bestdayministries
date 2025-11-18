@@ -1282,6 +1282,7 @@ export type Database = {
           id: string
           started_at: string | null
           status: string
+          stripe_checkout_session_id: string | null
           stripe_customer_id: string | null
           stripe_mode: string
           stripe_payment_intent_id: string | null
@@ -1299,6 +1300,7 @@ export type Database = {
           id?: string
           started_at?: string | null
           status?: string
+          stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
           stripe_mode?: string
           stripe_payment_intent_id?: string | null
@@ -1316,6 +1318,7 @@ export type Database = {
           id?: string
           started_at?: string | null
           status?: string
+          stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
           stripe_mode?: string
           stripe_payment_intent_id?: string | null
