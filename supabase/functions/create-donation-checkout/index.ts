@@ -168,12 +168,24 @@ serve(async (req) => {
       .eq("email", email)
       .maybeSingle();
 
+    console.log('Profile lookup:', { 
+      email: sanitizedEmail, 
+      foundProfile: !!profile, 
+      profileId: profile?.id || 'none' 
+    });
+
     // Determine donor identifier to satisfy donor_identifier_check constraint:
     // EITHER donor_id (for registered users) OR donor_email (for guests), but never both.
     const donorId = profile?.id ?? null;
     const donorEmail = donorId ? null : email;
 
-    const { error: insertError } = await supabaseAdmin.from("donations").insert({
+    console.log('Donor identification:', { 
+      donorId: donorId || 'null', 
+      donorEmail: donorEmail ? sanitizedEmail : 'null',
+      constraint: `donor_id=${donorId ? 'SET' : 'NULL'}, donor_email=${donorEmail ? 'SET' : 'NULL'}`
+    });
+
+    const donationPayload = {
       donor_id: donorId,
       donor_email: donorEmail,
       amount: amount,                      // Base amount without fees
@@ -183,10 +195,29 @@ serve(async (req) => {
       started_at: new Date().toISOString(),
       stripe_mode: mode,
       stripe_customer_id: customer.id,
+    };
+
+    console.log('Donation insert payload:', {
+      donor_id: donationPayload.donor_id || 'NULL',
+      donor_email: donationPayload.donor_email || 'NULL',
+      amount: donationPayload.amount,
+      amount_charged: donationPayload.amount_charged,
+      frequency: donationPayload.frequency,
+      status: donationPayload.status,
+      stripe_mode: donationPayload.stripe_mode,
+      stripe_customer_id: donationPayload.stripe_customer_id
     });
+
+    const { error: insertError } = await supabaseAdmin.from("donations").insert(donationPayload);
 
     if (insertError) {
       console.error('Failed to create donation record:', insertError);
+      
+      // Flag donor_identifier_check violations explicitly
+      if (insertError.code === '23514' && insertError.message?.includes('donor_identifier_check')) {
+        console.error('🚨 CONSTRAINT VIOLATION: donor_identifier_check - both donor_id and donor_email were set or both were null');
+      }
+      
       throw new Error(`Failed to create donation record: ${insertError.message}`);
     }
 
