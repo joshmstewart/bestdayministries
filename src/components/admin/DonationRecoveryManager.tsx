@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, CheckCircle, XCircle, Database } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, XCircle, Database, Clock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface BackfillResult {
@@ -43,6 +43,25 @@ interface RecoverySummary {
   failed: number;
 }
 
+interface ReconcileResult {
+  donationId: string;
+  oldStatus: string;
+  newStatus: string;
+  stripeObjectId: string | null;
+  stripeStatus: string | null;
+  action: 'activated' | 'completed' | 'cancelled' | 'skipped' | 'error';
+  error?: string;
+}
+
+interface ReconcileSummary {
+  total: number;
+  activated: number;
+  completed: number;
+  cancelled: number;
+  skipped: number;
+  errors: number;
+}
+
 export function DonationRecoveryManager() {
   const [csvData, setCsvData] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,7 +73,45 @@ export function DonationRecoveryManager() {
   const [backfillResults, setBackfillResults] = useState<BackfillResult[] | null>(null);
   const [receiptGenLoading, setReceiptGenLoading] = useState(false);
   const [receiptGenResults, setReceiptGenResults] = useState<ReceiptGenerationResult[] | null>(null);
+  const [reconcileLoading, setReconcileLoading] = useState(false);
+  const [reconcileResults, setReconcileResults] = useState<ReconcileResult[] | null>(null);
+  const [reconcileSummary, setReconcileSummary] = useState<ReconcileSummary | null>(null);
   const { toast } = useToast();
+
+  const handleReconcileDonations = async () => {
+    try {
+      setReconcileLoading(true);
+      setReconcileResults(null);
+      setReconcileSummary(null);
+
+      const { data, error } = await supabase.functions.invoke('reconcile-donations-from-stripe', {
+        body: { 
+          mode: stripeMode,
+          limit: 500 
+        }
+      });
+      
+      if (error) throw error;
+
+      if (data?.success) {
+        setReconcileResults(data.results);
+        setReconcileSummary(data.summary);
+        toast({
+          title: "Reconciliation Complete",
+          description: `Activated: ${data.summary.activated}, Completed: ${data.summary.completed}, Cancelled: ${data.summary.cancelled}, Skipped: ${data.summary.skipped}, Errors: ${data.summary.errors}`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Reconciliation error:', error);
+      toast({
+        title: "Reconciliation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setReconcileLoading(false);
+    }
+  };
 
   const handleRecoverAll = async () => {
     try {
@@ -273,6 +330,111 @@ export function DonationRecoveryManager() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="w-5 h-5" />
+            Reconcile Pending Donations with Stripe
+          </CardTitle>
+          <CardDescription>
+            Automatically fix all pending donations by checking their actual status in Stripe. 
+            This will activate completed subscriptions, mark successful one-time payments as completed, 
+            and cancel expired or failed payments. Runs hourly via scheduled job.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Stripe Mode:</label>
+              <select 
+                value={stripeMode}
+                onChange={(e) => setStripeMode(e.target.value as "live" | "test")}
+                className="border rounded px-3 py-1.5 text-sm"
+                disabled={reconcileLoading}
+              >
+                <option value="live">Live</option>
+                <option value="test">Test</option>
+              </select>
+            </div>
+            <Button
+              onClick={handleReconcileDonations}
+              disabled={reconcileLoading}
+              size="lg"
+            >
+              {reconcileLoading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Reconciling...</>
+              ) : (
+                "Reconcile Now"
+              )}
+            </Button>
+          </div>
+
+          {reconcileSummary && (
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="text-2xl font-bold text-green-700 dark:text-green-400">{reconcileSummary.activated}</div>
+                  <div className="text-xs text-green-600 dark:text-green-500">Activated</div>
+                </div>
+                <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">{reconcileSummary.completed}</div>
+                  <div className="text-xs text-blue-600 dark:text-blue-500">Completed</div>
+                </div>
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800">
+                  <div className="text-2xl font-bold text-gray-700 dark:text-gray-400">{reconcileSummary.cancelled}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-500">Cancelled</div>
+                </div>
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{reconcileSummary.skipped}</div>
+                  <div className="text-xs text-yellow-600 dark:text-yellow-500">Skipped</div>
+                </div>
+                <div className="p-3 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+                  <div className="text-2xl font-bold text-red-700 dark:text-red-400">{reconcileSummary.errors}</div>
+                  <div className="text-xs text-red-600 dark:text-red-500">Errors</div>
+                </div>
+              </div>
+
+              {reconcileResults && reconcileResults.length > 0 && (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {reconcileResults.map((result, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 p-3 border rounded-lg"
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        {result.action === 'activated' && <CheckCircle className="w-4 h-4 text-green-600" />}
+                        {result.action === 'completed' && <CheckCircle className="w-4 h-4 text-blue-600" />}
+                        {result.action === 'cancelled' && <XCircle className="w-4 h-4 text-gray-600" />}
+                        {result.action === 'skipped' && <Clock className="w-4 h-4 text-yellow-600" />}
+                        {result.action === 'error' && <AlertCircle className="w-4 h-4 text-red-600" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm">
+                          Donation: {result.donationId.slice(0, 8)}...
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {result.oldStatus} → {result.newStatus}
+                        </div>
+                        {result.stripeObjectId && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Stripe: {result.stripeObjectId.slice(0, 20)}... ({result.stripeStatus})
+                          </div>
+                        )}
+                        {result.error && (
+                          <div className="text-xs text-red-600 mt-1">
+                            {result.error}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

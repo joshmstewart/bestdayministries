@@ -1,0 +1,409 @@
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[RECONCILE-DONATIONS] ${step}${detailsStr}`);
+};
+
+interface ReconcileResult {
+  donationId: string;
+  oldStatus: string;
+  newStatus: string;
+  stripeObjectId: string | null;
+  stripeStatus: string | null;
+  action: 'activated' | 'completed' | 'cancelled' | 'skipped' | 'error';
+  error?: string;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    logStep("Function started");
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
+
+    // Authenticate admin user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new Error('No authorization header');
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError || !user) throw new Error('Authentication failed');
+
+    // Verify admin access
+    const { data: roles } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .in('role', ['admin', 'owner']);
+
+    if (!roles || roles.length === 0) {
+      throw new Error('Unauthorized: Admin access required');
+    }
+
+    logStep("Admin authenticated", { userId: user.id });
+
+    // Parse request body for optional filters
+    const body = await req.json().catch(() => ({}));
+    const { mode, since, limit = 500 } = body;
+
+    logStep("Parameters", { mode, since, limit });
+
+    // Query pending donations
+    let query = supabaseClient
+      .from('donations')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .limit(limit);
+
+    if (mode) {
+      query = query.eq('stripe_mode', mode);
+    }
+
+    if (since) {
+      query = query.gte('created_at', since);
+    }
+
+    const { data: pendingDonations, error: donationsError } = await query;
+
+    if (donationsError) throw donationsError;
+
+    logStep("Found pending donations", { count: pendingDonations?.length || 0 });
+
+    const results: ReconcileResult[] = [];
+    const donationsToGenerateReceipts: string[] = [];
+
+    // Initialize Stripe clients
+    const stripeTest = new Stripe(Deno.env.get('STRIPE_SECRET_KEY_TEST') || '', { 
+      apiVersion: "2025-08-27.basil" 
+    });
+    const stripeLive = new Stripe(Deno.env.get('STRIPE_SECRET_KEY_LIVE') || '', { 
+      apiVersion: "2025-08-27.basil" 
+    });
+
+    // Process each pending donation
+    for (const donation of pendingDonations || []) {
+      const stripe = donation.stripe_mode === 'live' ? stripeLive : stripeTest;
+      const result: ReconcileResult = {
+        donationId: donation.id,
+        oldStatus: donation.status,
+        newStatus: donation.status,
+        stripeObjectId: null,
+        stripeStatus: null,
+        action: 'skipped'
+      };
+
+      try {
+        logStep(`Processing donation ${donation.id}`, { 
+          frequency: donation.frequency,
+          amount: donation.amount,
+          created: donation.created_at 
+        });
+
+        // Skip very recent donations (< 1 hour) to allow webhooks to process
+        const createdAt = new Date(donation.created_at);
+        const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        if (createdAt > hourAgo) {
+          result.action = 'skipped';
+          result.newStatus = 'pending';
+          logStep(`Skipping recent donation ${donation.id}`);
+          results.push(result);
+          continue;
+        }
+
+        // Strategy 1: Try checkout session ID (preferred)
+        if (donation.stripe_checkout_session_id) {
+          try {
+            const session = await stripe.checkout.sessions.retrieve(
+              donation.stripe_checkout_session_id,
+              { expand: ['subscription', 'payment_intent'] }
+            );
+
+            result.stripeObjectId = session.id;
+            result.stripeStatus = session.status;
+
+            if (session.mode === 'subscription' && session.subscription) {
+              const subscription = session.subscription as Stripe.Subscription;
+              
+              if (['active', 'trialing', 'past_due'].includes(subscription.status)) {
+                // Update to active
+                const { error: updateError } = await supabaseClient
+                  .from('donations')
+                  .update({
+                    status: 'active',
+                    stripe_subscription_id: subscription.id,
+                    stripe_customer_id: session.customer as string,
+                    amount_charged: donation.amount,
+                    started_at: new Date(subscription.created * 1000).toISOString()
+                  })
+                  .eq('id', donation.id);
+
+                if (updateError) throw updateError;
+
+                result.newStatus = 'active';
+                result.action = 'activated';
+                donationsToGenerateReceipts.push(donation.id);
+                logStep(`✅ Activated monthly donation ${donation.id}`);
+              } else if (['canceled', 'unpaid', 'incomplete_expired'].includes(subscription.status)) {
+                // Mark as cancelled
+                const { error: updateError } = await supabaseClient
+                  .from('donations')
+                  .update({ status: 'cancelled' })
+                  .eq('id', donation.id);
+
+                if (updateError) throw updateError;
+
+                result.newStatus = 'cancelled';
+                result.action = 'cancelled';
+                logStep(`❌ Cancelled donation ${donation.id} - subscription ${subscription.status}`);
+              }
+            } else if (session.mode === 'payment' && session.payment_intent) {
+              const paymentIntent = session.payment_intent as Stripe.PaymentIntent;
+              
+              if (paymentIntent.status === 'succeeded') {
+                // Update to completed
+                const { error: updateError } = await supabaseClient
+                  .from('donations')
+                  .update({
+                    status: 'completed',
+                    stripe_payment_intent_id: paymentIntent.id,
+                    stripe_customer_id: session.customer as string,
+                    amount_charged: paymentIntent.amount / 100,
+                    started_at: new Date(paymentIntent.created * 1000).toISOString()
+                  })
+                  .eq('id', donation.id);
+
+                if (updateError) throw updateError;
+
+                result.newStatus = 'completed';
+                result.action = 'completed';
+                donationsToGenerateReceipts.push(donation.id);
+                logStep(`✅ Completed one-time donation ${donation.id}`);
+              }
+            } else if (session.status === 'expired') {
+              // Session expired, cancel donation
+              const { error: updateError } = await supabaseClient
+                .from('donations')
+                .update({ status: 'cancelled' })
+                .eq('id', donation.id);
+
+              if (updateError) throw updateError;
+
+              result.newStatus = 'cancelled';
+              result.action = 'cancelled';
+              logStep(`❌ Cancelled donation ${donation.id} - session expired`);
+            }
+          } catch (sessionError: any) {
+            logStep(`Session lookup failed for ${donation.id}`, { error: sessionError.message });
+            // Continue to fallback strategies
+          }
+        }
+
+        // Strategy 2: Try subscription ID for monthly donations
+        if (result.action === 'skipped' && donation.frequency === 'monthly' && donation.stripe_subscription_id) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(donation.stripe_subscription_id);
+            
+            result.stripeObjectId = subscription.id;
+            result.stripeStatus = subscription.status;
+
+            if (['active', 'trialing', 'past_due'].includes(subscription.status)) {
+              const { error: updateError } = await supabaseClient
+                .from('donations')
+                .update({
+                  status: 'active',
+                  stripe_customer_id: subscription.customer as string,
+                  amount_charged: donation.amount,
+                  started_at: new Date(subscription.created * 1000).toISOString()
+                })
+                .eq('id', donation.id);
+
+              if (updateError) throw updateError;
+
+              result.newStatus = 'active';
+              result.action = 'activated';
+              donationsToGenerateReceipts.push(donation.id);
+              logStep(`✅ Activated monthly donation ${donation.id} via subscription`);
+            } else if (['canceled', 'unpaid', 'incomplete_expired'].includes(subscription.status)) {
+              const { error: updateError } = await supabaseClient
+                .from('donations')
+                .update({ status: 'cancelled' })
+                .eq('id', donation.id);
+
+              if (updateError) throw updateError;
+
+              result.newStatus = 'cancelled';
+              result.action = 'cancelled';
+              logStep(`❌ Cancelled donation ${donation.id} - subscription ${subscription.status}`);
+            }
+          } catch (subError: any) {
+            logStep(`Subscription lookup failed for ${donation.id}`, { error: subError.message });
+          }
+        }
+
+        // Strategy 3: Fallback - search by customer + amount + date window
+        if (result.action === 'skipped' && donation.stripe_customer_id && donation.amount) {
+          try {
+            const createdWindow = new Date(donation.created_at);
+            const startTime = Math.floor((createdWindow.getTime() - 60 * 60 * 1000) / 1000); // 1 hour before
+            const endTime = Math.floor((createdWindow.getTime() + 60 * 60 * 1000) / 1000); // 1 hour after
+
+            if (donation.frequency === 'monthly') {
+              // Search for subscriptions
+              const subscriptions = await stripe.subscriptions.list({
+                customer: donation.stripe_customer_id,
+                created: { gte: startTime, lte: endTime },
+                limit: 10
+              });
+
+              const matchingSub = subscriptions.data.find((sub: Stripe.Subscription) => {
+                const subAmount = sub.items.data[0]?.price?.unit_amount || 0;
+                return Math.abs((subAmount / 100) - donation.amount) < 0.01;
+              });
+
+              if (matchingSub && ['active', 'trialing', 'past_due'].includes(matchingSub.status)) {
+                const { error: updateError } = await supabaseClient
+                  .from('donations')
+                  .update({
+                    status: 'active',
+                    stripe_subscription_id: matchingSub.id,
+                    amount_charged: donation.amount,
+                    started_at: new Date(matchingSub.created * 1000).toISOString()
+                  })
+                  .eq('id', donation.id);
+
+                if (updateError) throw updateError;
+
+                result.newStatus = 'active';
+                result.action = 'activated';
+                result.stripeObjectId = matchingSub.id;
+                result.stripeStatus = matchingSub.status;
+                donationsToGenerateReceipts.push(donation.id);
+                logStep(`✅ Activated monthly donation ${donation.id} via customer search`);
+              }
+            } else {
+              // Search for payment intents
+              const paymentIntents = await stripe.paymentIntents.list({
+                customer: donation.stripe_customer_id,
+                created: { gte: startTime, lte: endTime },
+                limit: 10
+              });
+
+              const matchingPI = paymentIntents.data.find((pi: Stripe.PaymentIntent) => {
+                return Math.abs((pi.amount / 100) - donation.amount) < 0.01 && pi.status === 'succeeded';
+              });
+
+              if (matchingPI) {
+                const { error: updateError } = await supabaseClient
+                  .from('donations')
+                  .update({
+                    status: 'completed',
+                    stripe_payment_intent_id: matchingPI.id,
+                    amount_charged: matchingPI.amount / 100,
+                    started_at: new Date(matchingPI.created * 1000).toISOString()
+                  })
+                  .eq('id', donation.id);
+
+                if (updateError) throw updateError;
+
+                result.newStatus = 'completed';
+                result.action = 'completed';
+                result.stripeObjectId = matchingPI.id;
+                result.stripeStatus = matchingPI.status;
+                donationsToGenerateReceipts.push(donation.id);
+                logStep(`✅ Completed one-time donation ${donation.id} via customer search`);
+              }
+            }
+          } catch (searchError: any) {
+            logStep(`Customer search failed for ${donation.id}`, { error: searchError.message });
+          }
+        }
+
+        // Strategy 4: If still pending and old enough (>24h), mark as cancelled
+        if (result.action === 'skipped') {
+          const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          if (createdAt < dayAgo) {
+            const { error: updateError } = await supabaseClient
+              .from('donations')
+              .update({ status: 'cancelled' })
+              .eq('id', donation.id);
+
+            if (updateError) throw updateError;
+
+            result.newStatus = 'cancelled';
+            result.action = 'cancelled';
+            logStep(`❌ Cancelled old donation ${donation.id} - no Stripe record found`);
+          }
+        }
+
+      } catch (error: any) {
+        result.action = 'error';
+        result.error = error.message;
+        logStep(`Error processing donation ${donation.id}`, { error: error.message });
+      }
+
+      results.push(result);
+    }
+
+    // Generate receipts for newly activated/completed donations
+    logStep("Generating receipts", { count: donationsToGenerateReceipts.length });
+    
+    if (donationsToGenerateReceipts.length > 0) {
+      const { data: receiptsData, error: receiptsError } = await supabaseClient.rpc(
+        'generate_missing_receipts'
+      );
+
+      if (receiptsError) {
+        logStep("Error generating receipts", { error: receiptsError.message });
+      } else {
+        logStep("Receipts generated", { count: receiptsData?.length || 0 });
+      }
+    }
+
+    // Calculate summary
+    const summary = {
+      total: results.length,
+      activated: results.filter(r => r.action === 'activated').length,
+      completed: results.filter(r => r.action === 'completed').length,
+      cancelled: results.filter(r => r.action === 'cancelled').length,
+      skipped: results.filter(r => r.action === 'skipped').length,
+      errors: results.filter(r => r.action === 'error').length
+    };
+
+    logStep("Reconciliation complete", summary);
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      summary,
+      results 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+
+  } catch (error: any) {
+    logStep("ERROR", { message: error.message, stack: error.stack });
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: error.message 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
+});
