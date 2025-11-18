@@ -553,30 +553,67 @@ async function processDonationCheckout(
   const amountCharged = session.amount_total ? session.amount_total / 100 : 0;
   
   if (session.mode === "payment") {
-    await logStep('processing_one_time_donation', 'info', { amount_charged: amountCharged });
+    await logStep('processing_one_time_donation', 'info', { 
+      amount_charged: amountCharged,
+      session_id: session.id
+    });
     
     let donationData = null;
     let updateError = null;
 
-    // STRATEGY 1: Try matching by stripe_customer_id + exact amount
-    await logStep('trying_customer_id_exact_match', 'info');
-    const customerIdResult = await supabaseAdmin
+    // STRATEGY 1 (PRIMARY): Match by stripe_checkout_session_id for unique identification
+    await logStep('trying_session_id_match', 'info', { session_id: session.id });
+    const sessionIdResult = await supabaseAdmin
       .from("donations")
       .update({ 
         status: "completed",
-        amount_charged: amountCharged
+        amount_charged: amountCharged,
+        stripe_payment_intent_id: session.payment_intent as string || null
       })
-      .eq("stripe_customer_id", session.customer)
-      .eq("amount", amountCharged)
-      .eq("frequency", "one-time")
+      .eq("stripe_checkout_session_id", session.id)
       .eq("status", "pending")
       .select()
       .maybeSingle();
     
-    donationData = customerIdResult.data;
-    updateError = customerIdResult.error;
+    donationData = sessionIdResult.data;
+    updateError = sessionIdResult.error;
 
-    // STRATEGY 2: Try matching by stripe_customer_id + base amount (reverse fee coverage)
+    // FALLBACK STRATEGIES: For legacy donations without session_id (created before this fix)
+    if (!donationData && !updateError) {
+      await logStep('session_id_not_found_trying_fallbacks', 'info');
+      
+      // STRATEGY 2: Try matching by stripe_customer_id + exact amount + limit to most recent
+      await logStep('trying_customer_id_exact_match', 'info');
+      const customerIdResult = await supabaseAdmin
+        .from("donations")
+        .select('*')
+        .eq("stripe_customer_id", session.customer)
+        .eq("amount", amountCharged)
+        .eq("frequency", "one-time")
+        .eq("status", "pending")
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (customerIdResult.data && !customerIdResult.error) {
+        const updateResult = await supabaseAdmin
+          .from("donations")
+          .update({ 
+            status: "completed",
+            amount_charged: amountCharged,
+            stripe_payment_intent_id: session.payment_intent as string || null,
+            stripe_checkout_session_id: session.id  // Backfill session ID
+          })
+          .eq("id", customerIdResult.data.id)
+          .select()
+          .single();
+        
+        donationData = updateResult.data;
+        updateError = updateResult.error;
+      }
+    }
+
+    // STRATEGY 3: Try matching by stripe_customer_id + base amount (reverse fee coverage)
     if (!donationData && !updateError) {
       const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
       await logStep('trying_customer_id_base_match', 'info', { 
@@ -586,41 +623,65 @@ async function processDonationCheckout(
       
       const baseAmountResult = await supabaseAdmin
         .from("donations")
-        .update({ 
-          status: "completed",
-          amount_charged: amountCharged
-        })
+        .select('*')
         .eq("stripe_customer_id", session.customer)
         .eq("amount", baseAmount)
         .eq("frequency", "one-time")
         .eq("status", "pending")
-        .select()
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       
-      donationData = baseAmountResult.data;
-      updateError = baseAmountResult.error;
+      if (baseAmountResult.data && !baseAmountResult.error) {
+        const updateResult = await supabaseAdmin
+          .from("donations")
+          .update({ 
+            status: "completed",
+            amount_charged: amountCharged,
+            stripe_payment_intent_id: session.payment_intent as string || null,
+            stripe_checkout_session_id: session.id  // Backfill session ID
+          })
+          .eq("id", baseAmountResult.data.id)
+          .select()
+          .single();
+        
+        donationData = updateResult.data;
+        updateError = updateResult.error;
+      }
     }
 
-    // STRATEGY 3: Fallback to email matching (for edge cases)
+    // STRATEGY 4: Fallback to email matching (for edge cases with legacy records)
     if (!donationData && !updateError && customerEmail) {
       await logStep('trying_email_match', 'info');
       
       // Try exact amount first
       const emailExactResult = await supabaseAdmin
         .from("donations")
-        .update({ 
-          status: "completed",
-          amount_charged: amountCharged
-        })
+        .select('*')
         .eq("donor_email", customerEmail)
         .eq("amount", amountCharged)
         .eq("frequency", "one-time")
         .eq("status", "pending")
-        .select()
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       
-      donationData = emailExactResult.data;
-      updateError = emailExactResult.error;
+      if (emailExactResult.data && !emailExactResult.error) {
+        const updateResult = await supabaseAdmin
+          .from("donations")
+          .update({ 
+            status: "completed",
+            amount_charged: amountCharged,
+            stripe_payment_intent_id: session.payment_intent as string || null,
+            stripe_checkout_session_id: session.id  // Backfill session ID
+          })
+          .eq("id", emailExactResult.data.id)
+          .select()
+          .single();
+        
+        donationData = updateResult.data;
+        updateError = updateResult.error;
+      }
       
       // Try base amount if exact didn't work
       if (!donationData && !updateError) {
@@ -628,19 +689,31 @@ async function processDonationCheckout(
         
         const emailBaseResult = await supabaseAdmin
           .from("donations")
-          .update({ 
-            status: "completed",
-            amount_charged: amountCharged
-          })
+          .select('*')
           .eq("donor_email", customerEmail)
           .eq("amount", baseAmount)
           .eq("frequency", "one-time")
           .eq("status", "pending")
-          .select()
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
         
-        donationData = emailBaseResult.data;
-        updateError = emailBaseResult.error;
+        if (emailBaseResult.data && !emailBaseResult.error) {
+          const updateResult = await supabaseAdmin
+            .from("donations")
+            .update({ 
+              status: "completed",
+              amount_charged: amountCharged,
+              stripe_payment_intent_id: session.payment_intent as string || null,
+              stripe_checkout_session_id: session.id  // Backfill session ID
+            })
+            .eq("id", emailBaseResult.data.id)
+            .select()
+            .single();
+          
+          donationData = updateResult.data;
+          updateError = updateResult.error;
+        }
       }
     }
 
@@ -686,14 +759,18 @@ async function processDonationCheckout(
   } else if (session.mode === "subscription" && session.subscription) {
     const subscriptionId = session.subscription as string;
     
-    await logStep('processing_monthly_donation', 'info', { amount_charged: amountCharged, subscription_id: subscriptionId });
+    await logStep('processing_monthly_donation', 'info', { 
+      amount_charged: amountCharged, 
+      subscription_id: subscriptionId,
+      session_id: session.id
+    });
     
     let donationData = null;
     let updateError = null;
 
-    // STRATEGY 1: Try matching by stripe_customer_id + exact amount
-    await logStep('trying_customer_id_exact_match', 'info');
-    const customerIdResult = await supabaseAdmin
+    // STRATEGY 1 (PRIMARY): Match by stripe_checkout_session_id for unique identification
+    await logStep('trying_session_id_match', 'info', { session_id: session.id });
+    const sessionIdResult = await supabaseAdmin
       .from("donations")
       .update({
         status: "active",
@@ -701,17 +778,51 @@ async function processDonationCheckout(
         started_at: new Date().toISOString(),
         amount_charged: amountCharged
       })
-      .eq("stripe_customer_id", session.customer)
-      .eq("amount", amountCharged)
-      .eq("frequency", "monthly")
+      .eq("stripe_checkout_session_id", session.id)
       .eq("status", "pending")
       .select()
       .maybeSingle();
     
-    donationData = customerIdResult.data;
-    updateError = customerIdResult.error;
+    donationData = sessionIdResult.data;
+    updateError = sessionIdResult.error;
 
-    // STRATEGY 2: Try matching by stripe_customer_id + base amount (reverse fee coverage)
+    // FALLBACK STRATEGIES: For legacy donations without session_id (created before this fix)
+    if (!donationData && !updateError) {
+      await logStep('session_id_not_found_trying_fallbacks', 'info');
+      
+      // STRATEGY 2: Try matching by stripe_customer_id + exact amount + limit to most recent
+      await logStep('trying_customer_id_exact_match', 'info');
+      const customerIdResult = await supabaseAdmin
+        .from("donations")
+        .select('*')
+        .eq("stripe_customer_id", session.customer)
+        .eq("amount", amountCharged)
+        .eq("frequency", "monthly")
+        .eq("status", "pending")
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (customerIdResult.data && !customerIdResult.error) {
+        const updateResult = await supabaseAdmin
+          .from("donations")
+          .update({
+            status: "active",
+            stripe_subscription_id: subscriptionId,
+            started_at: new Date().toISOString(),
+            amount_charged: amountCharged,
+            stripe_checkout_session_id: session.id  // Backfill session ID
+          })
+          .eq("id", customerIdResult.data.id)
+          .select()
+          .single();
+        
+        donationData = updateResult.data;
+        updateError = updateResult.error;
+      }
+    }
+
+    // STRATEGY 3: Try matching by stripe_customer_id + base amount (reverse fee coverage)
     if (!donationData && !updateError) {
       const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
       await logStep('trying_customer_id_base_match', 'info', { 
@@ -721,45 +832,67 @@ async function processDonationCheckout(
       
       const baseAmountResult = await supabaseAdmin
         .from("donations")
-        .update({
-          status: "active",
-          stripe_subscription_id: subscriptionId,
-          started_at: new Date().toISOString(),
-          amount_charged: amountCharged
-        })
+        .select('*')
         .eq("stripe_customer_id", session.customer)
         .eq("amount", baseAmount)
         .eq("frequency", "monthly")
         .eq("status", "pending")
-        .select()
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       
-      donationData = baseAmountResult.data;
-      updateError = baseAmountResult.error;
+      if (baseAmountResult.data && !baseAmountResult.error) {
+        const updateResult = await supabaseAdmin
+          .from("donations")
+          .update({
+            status: "active",
+            stripe_subscription_id: subscriptionId,
+            started_at: new Date().toISOString(),
+            amount_charged: amountCharged,
+            stripe_checkout_session_id: session.id  // Backfill session ID
+          })
+          .eq("id", baseAmountResult.data.id)
+          .select()
+          .single();
+        
+        donationData = updateResult.data;
+        updateError = updateResult.error;
+      }
     }
 
-    // STRATEGY 3: Fallback to email matching (for edge cases)
+    // STRATEGY 4: Fallback to email matching (for edge cases with legacy records)
     if (!donationData && !updateError && customerEmail) {
       await logStep('trying_email_match', 'info');
       
       // Try exact amount first
       const emailExactResult = await supabaseAdmin
         .from("donations")
-        .update({
-          status: "active",
-          stripe_subscription_id: subscriptionId,
-          started_at: new Date().toISOString(),
-          amount_charged: amountCharged
-        })
+        .select('*')
         .eq("donor_email", customerEmail)
         .eq("amount", amountCharged)
         .eq("frequency", "monthly")
         .eq("status", "pending")
-        .select()
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       
-      donationData = emailExactResult.data;
-      updateError = emailExactResult.error;
+      if (emailExactResult.data && !emailExactResult.error) {
+        const updateResult = await supabaseAdmin
+          .from("donations")
+          .update({
+            status: "active",
+            stripe_subscription_id: subscriptionId,
+            started_at: new Date().toISOString(),
+            amount_charged: amountCharged,
+            stripe_checkout_session_id: session.id  // Backfill session ID
+          })
+          .eq("id", emailExactResult.data.id)
+          .select()
+          .single();
+        
+        donationData = updateResult.data;
+        updateError = updateResult.error;
+      }
       
       // Try base amount if exact didn't work
       if (!donationData && !updateError) {
@@ -767,21 +900,32 @@ async function processDonationCheckout(
         
         const emailBaseResult = await supabaseAdmin
           .from("donations")
-          .update({
-            status: "active",
-            stripe_subscription_id: subscriptionId,
-            started_at: new Date().toISOString(),
-            amount_charged: amountCharged
-          })
+          .select('*')
           .eq("donor_email", customerEmail)
           .eq("amount", baseAmount)
           .eq("frequency", "monthly")
           .eq("status", "pending")
-          .select()
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
         
-        donationData = emailBaseResult.data;
-        updateError = emailBaseResult.error;
+        if (emailBaseResult.data && !emailBaseResult.error) {
+          const updateResult = await supabaseAdmin
+            .from("donations")
+            .update({
+              status: "active",
+              stripe_subscription_id: subscriptionId,
+              started_at: new Date().toISOString(),
+              amount_charged: amountCharged,
+              stripe_checkout_session_id: session.id  // Backfill session ID
+            })
+            .eq("id", emailBaseResult.data.id)
+            .select()
+            .single();
+          
+          donationData = updateResult.data;
+          updateError = updateResult.error;
+        }
       }
     }
 

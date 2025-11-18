@@ -161,6 +161,24 @@ serve(async (req) => {
 
     console.log('Donation checkout session created:', session.id);
 
+    // Check for existing pending donation with this session ID to prevent duplicates
+    const { data: existingDonation } = await supabaseAdmin
+      .from("donations")
+      .select("id")
+      .eq("stripe_checkout_session_id", session.id)
+      .maybeSingle();
+
+    if (existingDonation) {
+      console.log('⚠️ Session already has a donation record, reusing:', session.id);
+      return new Response(
+        JSON.stringify({ url: session.url }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
     // Create the donation record immediately (status will be updated by webhook)
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -195,6 +213,7 @@ serve(async (req) => {
       started_at: new Date().toISOString(),
       stripe_mode: mode,
       stripe_customer_id: customer.id,
+      stripe_checkout_session_id: session.id,  // Store session ID for unique matching
     };
 
     console.log('Donation insert payload:', {
