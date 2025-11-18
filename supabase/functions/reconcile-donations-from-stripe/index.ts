@@ -272,8 +272,16 @@ serve(async (req) => {
               });
 
               const matchingSub = subscriptions.data.find((sub: Stripe.Subscription) => {
+                // First try matching on metadata.amount if available
+                if (sub.metadata?.amount) {
+                  const metadataAmount = parseFloat(sub.metadata.amount);
+                  if (Math.abs(metadataAmount - donation.amount) < 0.01) {
+                    return true;
+                  }
+                }
+                // Fall back to price comparison with lenient threshold for fee coverage
                 const subAmount = sub.items.data[0]?.price?.unit_amount || 0;
-                return Math.abs((subAmount / 100) - donation.amount) < 0.01;
+                return Math.abs((subAmount / 100) - donation.amount) < 1.00; // Allow up to $1 difference for fees
               });
 
               if (matchingSub && ['active', 'trialing', 'past_due'].includes(matchingSub.status)) {
@@ -305,7 +313,16 @@ serve(async (req) => {
               });
 
               const matchingPI = paymentIntents.data.find((pi: Stripe.PaymentIntent) => {
-                return Math.abs((pi.amount / 100) - donation.amount) < 0.01 && pi.status === 'succeeded';
+                if (pi.status !== 'succeeded') return false;
+                // First try matching on metadata.amount if available
+                if (pi.metadata?.amount) {
+                  const metadataAmount = parseFloat(pi.metadata.amount);
+                  if (Math.abs(metadataAmount - donation.amount) < 0.01) {
+                    return true;
+                  }
+                }
+                // Fall back to amount comparison with lenient threshold for fee coverage
+                return Math.abs((pi.amount / 100) - donation.amount) < 1.00; // Allow up to $1 difference for fees
               });
 
               if (matchingPI) {
