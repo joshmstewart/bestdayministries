@@ -334,23 +334,6 @@ serve(async (req) => {
           }
         }
 
-        // Strategy 4: If still pending and old enough (>1h), mark as cancelled
-        if (result.action === 'skipped') {
-          const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-          if (createdAt < hourAgo) {
-            const { error: updateError } = await supabaseClient
-              .from('donations')
-              .update({ status: 'cancelled' })
-              .eq('id', donation.id);
-
-            if (updateError) throw updateError;
-
-            result.newStatus = 'cancelled';
-            result.action = 'cancelled';
-            logStep(`❌ Cancelled old donation ${donation.id} - no Stripe record found`);
-          }
-        }
-
       } catch (error: any) {
         result.action = 'error';
         result.error = error.message;

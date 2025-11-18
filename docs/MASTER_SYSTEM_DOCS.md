@@ -645,13 +645,12 @@ RECOVERY-SYSTEM:recover-all-missing-donations[finds-orphaned-receipts→fetches-
 RECALCULATE-TOOL:Admin→Transactions→Recalculate-Full-Amounts-button→checks-Stripe-metadata[coverStripeFee+baseAmount]→recalculates-full-amount→updates-database-and-receipts
 
 RECONCILIATION-SYSTEM[CRITICAL-FIX-FOR-PENDING-HELL]:
-  PURPOSE:automatically-fix-ALL-pending-donations-by-checking-actual-Stripe-status→updates-to-active|completed|cancelled-based-on-source-of-truth
+  PURPOSE:automatically-fix-ALL-pending-donations-by-checking-actual-Stripe-status→updates-to-active|completed-based-on-source-of-truth
   EDGE-FUNCTION:reconcile-donations-from-stripe[admin-only]
   STRATEGIES:
     1-PREFERRED:stripe_checkout_session_id→retrieve-session→expand-subscription|payment_intent→determine-status
     2-FALLBACK-MONTHLY:stripe_subscription_id→retrieve-subscription→check-status[active|trialing|past_due→active|canceled|unpaid|incomplete_expired→cancelled]
     3-FALLBACK-SEARCH:stripe_customer_id+amount+created_at±1hr→search-subscriptions|payment_intents→match-by-amount
-    4-OLD-NO-MATCH:>1hr-old-AND-no-Stripe-record→mark-cancelled
   ACTIONS:
     activated→pending→active[monthly-subscriptions-confirmed-in-Stripe]
     completed→pending→completed[one-time-payments-confirmed-in-Stripe]
