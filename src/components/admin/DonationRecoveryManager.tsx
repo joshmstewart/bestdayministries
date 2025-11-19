@@ -113,6 +113,36 @@ export function DonationRecoveryManager() {
     }
   };
 
+  const handleCleanupDuplicates = async () => {
+    if (!confirm('This will scan all donations and mark duplicates based on Stripe IDs. Continue?')) {
+      return;
+    }
+
+    try {
+      setReconcileLoading(true);
+
+      const { data, error } = await supabase.functions.invoke('cleanup-duplicate-donations');
+      
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Cleanup Complete",
+          description: `Kept Active: ${data.summary.keptActive}, Marked Duplicate: ${data.summary.markedDuplicate}`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Cleanup error:', error);
+      toast({
+        title: "Cleanup Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setReconcileLoading(false);
+    }
+  };
+
   const handleRecoverAll = async () => {
     try {
       setBackfillLoading(true);
@@ -366,6 +396,18 @@ export function DonationRecoveryManager() {
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Reconciling...</>
               ) : (
                 "Reconcile Now"
+              )}
+            </Button>
+            <Button
+              onClick={handleCleanupDuplicates}
+              disabled={reconcileLoading}
+              variant="outline"
+              size="lg"
+            >
+              {reconcileLoading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Cleaning...</>
+              ) : (
+                "Clean Up Duplicates"
               )}
             </Button>
           </div>
