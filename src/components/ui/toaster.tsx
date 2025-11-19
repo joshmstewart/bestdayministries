@@ -18,10 +18,10 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, variant, ...props }) {
+      {toasts.map(function ({ id, title, description, action, variant, copyText, ...props }) {
         const titleText = typeof title === 'string' ? title : '';
         const descriptionText = typeof description === 'string' ? description : '';
-        const fullText = [titleText, descriptionText].filter(Boolean).join('\n');
+        const fullText = copyText || [titleText, descriptionText].filter(Boolean).join('\n');
         
         return (
           <Toast key={id} variant={variant} {...props}>

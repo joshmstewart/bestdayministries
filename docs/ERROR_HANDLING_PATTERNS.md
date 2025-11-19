@@ -200,6 +200,72 @@ if (retryCount < 2) {
 }
 ```
 
+## Copyable Error Toasts
+
+To ensure all errors are fully visible and copyable for debugging, use the standardized error serialization pattern:
+
+### Implementation
+
+1. **Error Serialization**: Use `getFullErrorText(error)` from `src/lib/errorUtils.ts` to produce a comprehensive plain-text string that includes:
+   - Error name, message, and stack trace
+   - All extra properties (including nested context objects)
+   - Safe handling of circular references
+
+2. **Error Toast Helper**: Use `showErrorToastWithCopy(context, error)` for displaying errors with:
+   - Full error details in a scrollable `<pre>` element
+   - Dedicated "Copy full error details" button
+   - Long-lived toast (100s duration) for complex errors
+
+3. **Toast Integration**: Pass `copyText` property to toast calls so the global copy button also has access to the full error text.
+
+### Example Usage
+
+```tsx
+import { getFullErrorText } from "@/lib/errorUtils";
+
+const showErrorToastWithCopy = (context: string, error: any) => {
+  const fullText = getFullErrorText(error);
+
+  toast({
+    title: `Error: ${context}`,
+    description: (
+      <div className="space-y-2">
+        <pre className="max-h-60 overflow-auto whitespace-pre-wrap text-xs font-mono">
+          {fullText}
+        </pre>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(fullText);
+            toast({ title: "Copied", description: "Full error details copied to clipboard." });
+          }}
+          className="text-xs underline hover:no-underline"
+        >
+          Copy full error details
+        </button>
+      </div>
+    ),
+    variant: "destructive",
+    duration: 100000,
+    copyText: fullText, // For global copy button
+  });
+};
+
+// In catch blocks:
+try {
+  await someOperation();
+} catch (error) {
+  console.error("Error context:", error);
+  showErrorToastWithCopy("Operation name", error);
+}
+```
+
+### Benefits
+
+- Users can always copy complete error details for support tickets
+- Includes all nested error properties (e.g., Supabase error context)
+- Consistent error handling across all admin operations
+- Prevents information loss from truncated or stringified errors
+
 ## Browser Compatibility Patterns
 
 ### iOS 18.x CSS Transform Issues

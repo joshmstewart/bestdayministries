@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { getFullErrorText } from "@/lib/errorUtils";
 import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2, Download } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -87,6 +88,36 @@ export const SponsorshipTransactionsManager = () => {
   const [sendingCorrected, setSendingCorrected] = useState(false);
   const [backfillingEmails, setBackfillingEmails] = useState(false);
   const { toast } = useToast();
+
+  const showErrorToastWithCopy = (context: string, error: any) => {
+    const fullText = getFullErrorText(error);
+
+    toast({
+      title: `Error: ${context}`,
+      description: (
+        <div className="space-y-2">
+          <pre className="max-h-60 overflow-auto whitespace-pre-wrap text-xs font-mono">
+            {fullText}
+          </pre>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(fullText);
+              toast({
+                title: "Copied",
+                description: "Full error details copied to clipboard.",
+              });
+            }}
+            className="text-xs underline hover:no-underline"
+          >
+            Copy full error details
+          </button>
+        </div>
+      ),
+      variant: "destructive",
+      duration: 100000,
+      copyText: fullText,
+    });
+  };
 
   useEffect(() => {
     loadTransactions();
@@ -607,27 +638,7 @@ export const SponsorshipTransactionsManager = () => {
       await loadTransactions();
     } catch (error: any) {
       console.error('Error generating donation receipts:', error);
-      const errorMessage = error.message || "Failed to generate donation receipts";
-      
-      toast({
-        title: "Error",
-        description: (
-          <div className="space-y-2">
-            <p>{errorMessage}</p>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(error, null, 2));
-                toast({ title: "Copied", description: "Error details copied to clipboard" });
-              }}
-              className="text-sm underline"
-            >
-              Copy Error Details
-            </button>
-          </div>
-        ),
-        variant: "destructive",
-        duration: 10000,
-      });
+      showErrorToastWithCopy("Generating donation receipts", error);
     } finally {
       setGeneratingDonationReceipts(false);
     }
@@ -653,11 +664,7 @@ export const SponsorshipTransactionsManager = () => {
       await loadTransactions();
     } catch (error: any) {
       console.error('Error fixing receipt emails:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to fix receipt emails",
-        variant: "destructive",
-      });
+      showErrorToastWithCopy("Fixing receipt emails", error);
     } finally {
       setFixingEmails(false);
     }
@@ -682,27 +689,7 @@ export const SponsorshipTransactionsManager = () => {
       await loadTransactions();
     } catch (error: any) {
       console.error('Error backfilling donation emails:', error);
-      const errorMessage = error.message || "Failed to backfill donation emails";
-      
-      toast({
-        title: "Error",
-        description: (
-          <div className="space-y-2">
-            <p>{errorMessage}</p>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(error, null, 2));
-                toast({ title: "Error details copied to clipboard" });
-              }}
-              className="text-xs underline hover:no-underline"
-            >
-              Copy Error Details
-            </button>
-          </div>
-        ),
-        variant: "destructive",
-        duration: 10000,
-      });
+      showErrorToastWithCopy("Backfilling donation emails", error);
     } finally {
       setBackfillingEmails(false);
     }
@@ -730,11 +717,7 @@ export const SponsorshipTransactionsManager = () => {
       await loadTransactions();
     } catch (error: any) {
       console.error('Error sending corrected receipts:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send receipts",
-        variant: "destructive",
-      });
+      showErrorToastWithCopy("Sending corrected receipts", error);
     } finally {
       setSendingCorrected(false);
     }
@@ -770,11 +753,7 @@ export const SponsorshipTransactionsManager = () => {
       await loadTransactions();
     } catch (error: any) {
       console.error('Error deleting test transactions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete test transactions",
-        variant: "destructive",
-      });
+      showErrorToastWithCopy("Deleting test transactions", error);
     }
   };
 
