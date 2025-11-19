@@ -63,6 +63,7 @@ import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
 import { PetTypesManager } from "@/components/admin/PetTypesManager";
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
+import { DeleteFakeDonations } from "@/components/admin/DeleteFakeDonations";
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
 import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
 import IssueReportsManager from "@/components/admin/IssueReportsManager";
@@ -423,6 +424,7 @@ const Admin = () => {
                     <TabsTrigger value="support-page">Support Us Page</TabsTrigger>
                     <TabsTrigger value="test-recalc">Test Recalc</TabsTrigger>
                     <TabsTrigger value="debug">Debug Reconciliation</TabsTrigger>
+                    <TabsTrigger value="cleanup">Delete Fake Donations</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="transactions">
@@ -434,6 +436,10 @@ const Admin = () => {
                       <StripeCustomerChecker />
                       <DonationDebugger />
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="cleanup">
+                    <DeleteFakeDonations />
                   </TabsContent>
 
                   <TabsContent value="webhook-logs">
