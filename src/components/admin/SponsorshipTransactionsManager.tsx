@@ -681,9 +681,35 @@ export const SponsorshipTransactionsManager = () => {
       
       if (error) throw error;
 
+      console.log('📊 Backfill results:', data);
+
+      // Show detailed results
+      const detailsText = data.details?.slice(0, 10).map((d: any) => 
+        `${d.donationId.slice(0, 8)}: ${d.status} - ${d.reason || d.email || 'OK'}`
+      ).join('\n') || 'No details available';
+
       toast({
-        title: "Success",
-        description: data.message,
+        title: data.message || "Backfill Complete",
+        description: (
+          <div className="space-y-2">
+            <p className="text-sm">
+              ✅ {data.updated} updated | ❌ {data.failed} failed
+            </p>
+            {data.details && data.details.length > 0 && (
+              <>
+                <pre className="text-xs font-mono max-h-40 overflow-auto whitespace-pre-wrap bg-muted/50 p-2 rounded">
+                  {detailsText}
+                </pre>
+                {data.details.length > 10 && (
+                  <p className="text-xs text-muted-foreground">
+                    Showing first 10 of {data.details.length} results
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        ),
+        duration: 20000,
       });
       
       await loadTransactions();
