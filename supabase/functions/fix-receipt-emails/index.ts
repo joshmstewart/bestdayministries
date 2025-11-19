@@ -20,11 +20,11 @@ serve(async (req) => {
 
     console.log('🔍 Starting receipt email correction...');
 
-    // STEP 1: Find all receipts with placeholder email
+    // STEP 1: Find all receipts with placeholder emails (both types)
     const { data: receiptsWithFakeEmails, error: receiptsError } = await supabaseClient
       .from("sponsorship_receipts")
       .select("*")
-      .eq("sponsor_email", "unknown@donor.com");
+      .in("sponsor_email", ["unknown@donor.com", "unknown@example.com"]);
 
     if (receiptsError) {
       console.error("Error fetching receipts:", receiptsError);
@@ -53,65 +53,107 @@ serve(async (req) => {
     // STEP 2: Process each receipt - ONLY FIX EMAILS, DON'T SEND
     for (const receipt of receiptsWithFakeEmails) {
       try {
-        // Extract donation ID from transaction_id (format: "donation_{uuid}")
         const transactionId = receipt.transaction_id;
-        const donationId = transactionId?.startsWith("donation_") 
-          ? transactionId.substring(9) 
-          : transactionId;
+        let realEmail: string | null = null;
+        let receiptType = 'unknown';
 
-        if (!donationId) {
-          console.log(`⚠️ Skipping receipt ${receipt.id} - no transaction_id`);
-          results.failed++;
-          results.details.push({
-            receiptId: receipt.id,
-            receiptNumber: receipt.receipt_number,
-            status: 'failed',
-            reason: 'No transaction_id found'
-          });
-          continue;
-        }
+        // Branch 1: Donation receipts (transaction_id starts with "donation_")
+        if (transactionId?.startsWith("donation_")) {
+          receiptType = 'donation';
+          const donationId = transactionId.substring(9);
 
-        // Look up the donation record
-        const { data: donation, error: donationError } = await supabaseClient
-          .from("donations")
-          .select("donor_id, donor_email")
-          .eq("id", donationId)
-          .maybeSingle();
-
-        if (donationError || !donation) {
-          console.log(`⚠️ Skipping receipt ${receipt.id} - donation not found for ID: ${donationId}`);
-          results.failed++;
-          results.details.push({
-            receiptId: receipt.id,
-            receiptNumber: receipt.receipt_number,
-            status: 'failed',
-            reason: `Donation not found: ${donationId}`
-          });
-          continue;
-        }
-
-        // Get the real email address
-        let realEmail = donation.donor_email;
-
-        // If donor_email is NULL, look up from profiles via donor_id
-        if (!realEmail && donation.donor_id) {
-          const { data: profile } = await supabaseClient
-            .from("profiles")
-            .select("email")
-            .eq("id", donation.donor_id)
+          const { data: donation, error: donationError } = await supabaseClient
+            .from("donations")
+            .select("donor_id, donor_email")
+            .eq("id", donationId)
             .maybeSingle();
 
-          if (profile?.email) {
-            realEmail = profile.email;
+          if (donationError || !donation) {
+            console.log(`⚠️ Donation receipt ${receipt.id} - donation not found for ID: ${donationId}`);
+            results.failed++;
+            results.details.push({
+              receiptId: receipt.id,
+              receiptNumber: receipt.receipt_number,
+              type: receiptType,
+              status: 'failed',
+              reason: `Donation not found: ${donationId}`
+            });
+            continue;
+          }
+
+          // Prefer donor_email, fallback to profile
+          realEmail = donation.donor_email;
+          if (!realEmail && donation.donor_id) {
+            const { data: profile } = await supabaseClient
+              .from("profiles")
+              .select("email")
+              .eq("id", donation.donor_id)
+              .maybeSingle();
+
+            if (profile?.email) {
+              realEmail = profile.email;
+            }
           }
         }
+        // Branch 2: Sponsorship receipts (transaction_id starts with "backfill_" and has sponsorship_id)
+        else if (transactionId?.startsWith("backfill_") && receipt.sponsorship_id) {
+          receiptType = 'sponsorship';
 
-        if (!realEmail) {
-          console.log(`⚠️ Skipping receipt ${receipt.id} - no email available for donor`);
+          const { data: sponsorship, error: sponsorshipError } = await supabaseClient
+            .from("sponsorships")
+            .select("sponsor_id, sponsor_email")
+            .eq("id", receipt.sponsorship_id)
+            .maybeSingle();
+
+          if (sponsorshipError || !sponsorship) {
+            console.log(`⚠️ Sponsorship receipt ${receipt.id} - sponsorship not found for ID: ${receipt.sponsorship_id}`);
+            results.failed++;
+            results.details.push({
+              receiptId: receipt.id,
+              receiptNumber: receipt.receipt_number,
+              type: receiptType,
+              status: 'failed',
+              reason: `Sponsorship not found: ${receipt.sponsorship_id}`
+            });
+            continue;
+          }
+
+          // Prefer sponsorship.sponsor_email, fallback to profile
+          realEmail = sponsorship.sponsor_email;
+          if (!realEmail && sponsorship.sponsor_id) {
+            const { data: profile } = await supabaseClient
+              .from("profiles")
+              .select("email")
+              .eq("id", sponsorship.sponsor_id)
+              .maybeSingle();
+
+            if (profile?.email) {
+              realEmail = profile.email;
+            }
+          }
+        }
+        // Branch 3: Unknown type
+        else {
+          console.log(`⚠️ Skipping receipt ${receipt.id} - unrecognized transaction_id pattern: ${transactionId}`);
           results.failed++;
           results.details.push({
             receiptId: receipt.id,
             receiptNumber: receipt.receipt_number,
+            type: 'unknown',
+            status: 'failed',
+            reason: `Unrecognized transaction_id pattern: ${transactionId}`
+          });
+          continue;
+        }
+
+        // Final check: did we find an email?
+        if (!realEmail) {
+          console.log(`⚠️ Skipping receipt ${receipt.id} (${receiptType}) - no email available`);
+          results.failed++;
+          results.details.push({
+            receiptId: receipt.id,
+            receiptNumber: receipt.receipt_number,
+            type: receiptType,
             status: 'failed',
             reason: 'No email address available'
           });
@@ -119,7 +161,7 @@ serve(async (req) => {
         }
 
         // STEP 3: Update the receipt with the real email - BUT DON'T SEND YET
-        console.log(`✏️ Updating receipt ${receipt.id} with real email: ${realEmail.substring(0, 3)}***`);
+        console.log(`✏️ Updating ${receiptType} receipt ${receipt.id} with real email: ${realEmail.substring(0, 3)}***`);
         
         const { error: updateError } = await supabaseClient
           .from("sponsorship_receipts")
@@ -132,6 +174,7 @@ serve(async (req) => {
           results.details.push({
             receiptId: receipt.id,
             receiptNumber: receipt.receipt_number,
+            type: receiptType,
             status: 'failed',
             reason: `Update failed: ${updateError.message}`
           });
@@ -142,10 +185,11 @@ serve(async (req) => {
         results.details.push({
           receiptId: receipt.id,
           receiptNumber: receipt.receipt_number,
+          type: receiptType,
           email: realEmail,
           status: 'corrected'
         });
-        console.log(`✅ Successfully updated receipt ${receipt.receipt_number} with email ${realEmail.substring(0, 3)}***`);
+        console.log(`✅ Successfully updated ${receiptType} receipt ${receipt.receipt_number} with email ${realEmail.substring(0, 3)}***`);
 
       } catch (error: any) {
         console.error(`❌ Error processing receipt ${receipt.id}:`, error);

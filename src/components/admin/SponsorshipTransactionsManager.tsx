@@ -134,14 +134,15 @@ export const SponsorshipTransactionsManager = () => {
       }
       console.log('✅ [TRANSACTIONS] Receipts loaded:', receiptsData?.length || 0);
       
-      // Create receipts map by sponsorship_id
-      const receiptsMap: Record<string, { receipt_number: string, created_at: string }> = {};
+      // Create receipts map by sponsorship_id (include email for display)
+      const receiptsMap: Record<string, { receipt_number: string; created_at: string; email: string | null }> = {};
       if (receiptsData) {
         receiptsData.forEach(r => {
           if (r.sponsorship_id) {
             receiptsMap[r.sponsorship_id] = {
               receipt_number: r.receipt_number,
-              created_at: r.created_at
+              created_at: r.created_at,
+              email: r.sponsor_email || null,
             };
           }
         });
@@ -172,15 +173,17 @@ export const SponsorshipTransactionsManager = () => {
       if (donationIds.length > 0 && receiptsData && receiptsData.length > 0) {
         const { data: donationLogs } = await supabase
           .from('receipt_generation_logs')
-          .select('donation_id, receipt_id')
+          .select('donation_id, receipt_id, stage')
           .in('donation_id', donationIds)
-          .eq('stage', 'webhook_receipt_created');
+          .in('stage', ['webhook_receipt_created', 'receipt_created', 'backfill_receipt_created']);
 
         const receiptsById = new Map(
           receiptsData.map(r => [r.id, r] as const)
         );
 
         (donationLogs || []).forEach(log => {
+          if (!log.receipt_id) return; // Skip logs with null receipt_id
+
           const r = receiptsById.get(log.receipt_id);
           if (r && log.donation_id) {
             donationReceiptsByDonationId[log.donation_id] = {
@@ -256,6 +259,7 @@ export const SponsorshipTransactionsManager = () => {
         const receipt = receiptsMap[s.id];
         return {
           ...s,
+          sponsor_email: s.sponsor_email || receipt?.email || null,
           transaction_type: 'sponsorship' as const,
           sponsor_profile: s.sponsor_id ? profilesMap[s.sponsor_id] : undefined,
           bestie_profile: s.bestie_id ? profilesMap[s.bestie_id] : undefined,
