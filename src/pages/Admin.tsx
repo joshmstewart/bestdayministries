@@ -22,6 +22,7 @@ import { YearEndSummarySettings } from "@/components/admin/YearEndSummarySetting
 import { YearEndSummarySentHistory } from "@/components/admin/YearEndSummarySentHistory";
 import { RecalculateAmountsTest } from "@/components/admin/RecalculateAmountsTest";
 import { DonationDebugger } from "@/components/admin/DonationDebugger";
+import { StripeCustomerChecker } from "@/components/admin/StripeCustomerChecker";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
@@ -429,7 +430,10 @@ const Admin = () => {
                   </TabsContent>
 
                   <TabsContent value="debug">
-                    <DonationDebugger />
+                    <div className="space-y-6">
+                      <StripeCustomerChecker />
+                      <DonationDebugger />
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="webhook-logs">
