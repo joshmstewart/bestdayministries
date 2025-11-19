@@ -684,13 +684,15 @@ export const SponsorshipTransactionsManager = () => {
       console.log('📊 Backfill results:', data);
 
       // Show detailed results
+      const clearedCount = data.cleared || data.updated || 0;
+      const failedCount = data.failed || 0;
       const detailsText = data.details?.slice(0, 10).map((d: any) => 
-        `${d.donationId.slice(0, 8)}: ${d.status} - ${d.reason || d.email || 'OK'}`
+        `${d.donationId.slice(0, 8)}: ${d.status} - ${d.reason || d.oldEmail || d.email || 'OK'}`
       ).join('\n') || 'No details available';
 
       const copyFull = [
         data.message || 'Backfill Complete',
-        `✅ ${data.updated} updated | ❌ ${data.failed} failed`,
+        `✅ ${clearedCount} cleared | ❌ ${failedCount} failed`,
         detailsText,
         data.details && data.details.length > 10
           ? `Showing first 10 of ${data.details.length} results`
@@ -704,7 +706,7 @@ export const SponsorshipTransactionsManager = () => {
         description: (
           <div className="space-y-2">
             <p className="text-sm">
-              ✅ {data.updated} updated | ❌ {data.failed} failed
+              ✅ {clearedCount} cleared | ❌ {failedCount} failed
             </p>
             {data.details && data.details.length > 0 && (
               <>
