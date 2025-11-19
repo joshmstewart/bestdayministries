@@ -602,20 +602,22 @@ export const SponsorshipTransactionsManager = () => {
     }
 
     try {
-      // Try to delete from sponsorships first
+      // Always attempt to delete from BOTH tables since we only have a single id
       const { error: sponsorshipsError } = await supabase
         .from('sponsorships')
         .delete()
         .eq('id', transactionId);
 
-      // If not found in sponsorships, try donations
-      if (sponsorshipsError) {
-        const { error: donationsError } = await supabase
-          .from('donations')
-          .delete()
-          .eq('id', transactionId);
-        
-        if (donationsError) throw donationsError;
+      const { error: donationsError } = await supabase
+        .from('donations')
+        .delete()
+        .eq('id', transactionId);
+      
+      // If both deletes errored, surface the problem
+      if (sponsorshipsError && donationsError) {
+        console.error('Error deleting from sponsorships:', sponsorshipsError);
+        console.error('Error deleting from donations:', donationsError);
+        throw donationsError ?? sponsorshipsError;
       }
 
       toast({
