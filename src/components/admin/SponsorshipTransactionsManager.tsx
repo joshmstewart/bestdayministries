@@ -688,6 +688,17 @@ export const SponsorshipTransactionsManager = () => {
         `${d.donationId.slice(0, 8)}: ${d.status} - ${d.reason || d.email || 'OK'}`
       ).join('\n') || 'No details available';
 
+      const copyFull = [
+        data.message || 'Backfill Complete',
+        `✅ ${data.updated} updated | ❌ ${data.failed} failed`,
+        detailsText,
+        data.details && data.details.length > 10
+          ? `Showing first 10 of ${data.details.length} results`
+          : ''
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
       toast({
         title: data.message || "Backfill Complete",
         description: (
@@ -710,6 +721,7 @@ export const SponsorshipTransactionsManager = () => {
           </div>
         ),
         duration: 20000,
+        copyText: copyFull,
       });
       
       await loadTransactions();
