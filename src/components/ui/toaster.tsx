@@ -11,7 +11,7 @@ export function Toaster() {
     navigator.clipboard.writeText(text).then(() => {
       showToast({
         title: "Copied!",
-        description: "Error message copied to clipboard",
+        description: "Message copied to clipboard",
       });
     });
   };
@@ -19,8 +19,9 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, variant, ...props }) {
-        const isError = variant === "destructive";
+        const titleText = typeof title === 'string' ? title : '';
         const descriptionText = typeof description === 'string' ? description : '';
+        const fullText = [titleText, descriptionText].filter(Boolean).join('\n');
         
         return (
           <Toast key={id} variant={variant} {...props}>
@@ -29,12 +30,13 @@ export function Toaster() {
               {description && (
                 <div className="flex items-start gap-2">
                   <ToastDescription className="flex-1">{description}</ToastDescription>
-                  {isError && descriptionText && (
+                  {fullText && (
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 shrink-0"
-                      onClick={() => copyToClipboard(descriptionText)}
+                      onClick={() => copyToClipboard(fullText)}
+                      title="Copy message"
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
