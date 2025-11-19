@@ -83,6 +83,7 @@ export const SponsorshipTransactionsManager = () => {
   const [recalculating, setRecalculating] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
   const [generatingDonationReceipts, setGeneratingDonationReceipts] = useState(false);
+  const [sendingMissingEmails, setSendingMissingEmails] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -587,24 +588,13 @@ export const SponsorshipTransactionsManager = () => {
 
     setGeneratingDonationReceipts(true);
     try {
-      console.log('Generating donation receipts...');
       const { data, error } = await supabase.functions.invoke('generate-missing-donation-receipts');
       
-      if (error) {
-        console.error('Error from edge function:', error);
-        throw error;
-      }
-
-      console.log('Edge function response:', data);
-
-      const baseMessage = data?.message || `Generated ${data?.receiptsGenerated ?? 0} receipt(s) and sent ${data?.emailsSent ?? 0} email(s).`;
-      const note = data?.emailsFailed && data.emailsFailed > 0
-        ? ` Note: ${data.emailsFailed} email(s) failed to send. Receipts were still created in the database.`
-        : "";
+      if (error) throw error;
 
       toast({
         title: "Success",
-        description: baseMessage + note,
+        description: data.message,
       });
       
       await loadTransactions();
@@ -633,6 +623,36 @@ export const SponsorshipTransactionsManager = () => {
       });
     } finally {
       setGeneratingDonationReceipts(false);
+    }
+  };
+
+  const sendMissingReceiptEmails = async () => {
+    if (!confirm("This will correct placeholder emails and resend receipts to affected donors. Continue?")) {
+      return;
+    }
+
+    setSendingMissingEmails(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-missing-receipt-emails');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: data.message,
+        duration: 10000,
+      });
+      
+      await loadTransactions();
+    } catch (error: any) {
+      console.error('Error sending missing receipt emails:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send missing receipt emails",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingMissingEmails(false);
     }
   };
 
@@ -783,6 +803,16 @@ export const SponsorshipTransactionsManager = () => {
             if (receiptByTxId) {
               receipt = receiptByTxId;
             } else if (donationData.donor_email) {
+            // CRITICAL FIX: Try transaction_id = 'donation_{uuid}' format
+            const { data: receiptByPrefixedId } = await supabase
+              .from('sponsorship_receipts')
+              .select('*')
+              .eq('transaction_id', 'donation_' + transactionId)
+              .maybeSingle();
+
+            if (receiptByPrefixedId) {
+              receipt = receiptByPrefixedId;
+            } else if (donationData.donor_email) {
               // Only run email-based fallback if donor_email is not null
               const { data: receiptByEmail } = await supabase
                 .from('sponsorship_receipts')
@@ -795,6 +825,7 @@ export const SponsorshipTransactionsManager = () => {
                 .maybeSingle();
 
               if (receiptByEmail) receipt = receiptByEmail;
+            }
             }
           }
         }

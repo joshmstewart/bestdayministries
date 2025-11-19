@@ -21,6 +21,7 @@ serve(async (req) => {
     console.log('Starting donation receipt generation...');
 
     // Get all active and completed donations from the donations table
+    // Join with profiles to get real email addresses for logged-in donors
     const { data: donations, error: donationsError } = await supabaseClient
       .from("donations")
       .select(`
@@ -34,7 +35,8 @@ serve(async (req) => {
         status,
         stripe_subscription_id,
         stripe_payment_intent_id,
-        stripe_mode
+        stripe_mode,
+        profiles!donations_donor_id_fkey(email)
       `)
       .in("status", ["active", "completed"]);
 
@@ -96,8 +98,11 @@ serve(async (req) => {
       profiles?.map(p => [p.id, p.display_name]) || []
     );
 
+    const receiptsToCreate: any[] = [];
+    const failedReceipts: any[] = [];
+
     // Generate receipts for each donation
-    const receiptsToCreate = donationsNeedingReceipts.map((donation: any) => {
+    for (const donation of donationsNeedingReceipts) {
       const transactionDate = new Date(donation.started_at);
       const taxYear = transactionDate.getFullYear();
       const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
@@ -110,30 +115,58 @@ serve(async (req) => {
         ? (profilesMap.get(donation.donor_id) || "Donor")
         : "Donor";
       
-      // Get donor email - either from donor_email field or from donor_id lookup
-      const donorEmail = donation.donor_email || "unknown@donor.com";
+      // CRITICAL FIX: Get real email address, NEVER use placeholder
+      // Priority 1: donor_email field
+      // Priority 2: email from joined profiles table (first element)
+      // If neither exists, skip this receipt (can't email without address)
+      let donorEmail = donation.donor_email;
       
-      return {
+      if (!donorEmail && donation.profiles && Array.isArray(donation.profiles) && donation.profiles[0]?.email) {
+        donorEmail = donation.profiles[0].email;
+      }
+      
+      if (!donorEmail) {
+        console.log(`⚠️ Skipping donation ${donation.id} - no email available`);
+        failedReceipts.push({
+          donationId: donation.id,
+          reason: 'No email address available',
+          donorId: donation.donor_id
+        });
+        continue;
+      }
+      
+      receiptsToCreate.push({
         transaction_id: `donation_${donation.id}`,
         user_id: donation.donor_id,
         sponsor_email: donorEmail,
         sponsor_name: donorName,
-        bestie_name: "General Donation", // Donations are not tied to specific besties
+        bestie_name: "General Support",
         amount: receiptAmount,
         frequency: donation.frequency,
         transaction_date: donation.started_at,
         receipt_number: receiptNumber,
         tax_year: taxYear,
         stripe_mode: donation.stripe_mode || 'test',
-      };
-    });
+        donationId: donation.id, // Keep for logging later
+      });
+    }
+
+    if (receiptsToCreate.length === 0) {
+      const message = failedReceipts.length > 0
+        ? `No receipts to generate. ${failedReceipts.length} donations skipped due to missing email.`
+        : "All donations already have receipts";
+      return new Response(
+        JSON.stringify({ message, receiptsGenerated: 0, emailsSent: 0, skippedDonations: failedReceipts.length }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
 
     console.log(`Creating ${receiptsToCreate.length} receipt records...`);
 
-    // Insert all receipts
+    // Insert all receipts (strip donationId field before insert)
     const { data: createdReceipts, error: insertError } = await supabaseClient
       .from("sponsorship_receipts")
-      .insert(receiptsToCreate)
+      .insert(receiptsToCreate.map(({ donationId, ...receipt }) => receipt))
       .select();
 
     if (insertError) {
@@ -143,49 +176,60 @@ serve(async (req) => {
 
     console.log(`Successfully created ${createdReceipts?.length || 0} receipts`);
 
-    // Now send emails for the newly created receipts
-    let emailsSent = 0;
-    let emailsFailed = 0;
+    // Create receipt_generation_logs for all created receipts
+    const logsToCreate = (createdReceipts || []).map((receipt, index) => ({
+      donation_id: receiptsToCreate[index].donationId,
+      receipt_id: receipt.id,
+      stage: 'backfill_receipt_created',
+      status: 'success'
+    }));
+    if (logsToCreate.length > 0) {
+      await supabaseClient.from('receipt_generation_logs').insert(logsToCreate);
+    }
 
-    for (const receipt of createdReceipts || []) {
+    // Send emails
+    let emailsSent = 0;
+    const emailFailures = [];
+
+    for (let i = 0; i < (createdReceipts || []).length; i++) {
+      const receipt = createdReceipts![i];
       try {
-        console.log(`Sending receipt email to ${receipt.sponsor_email}...`);
-        
-        const { error: emailError } = await supabaseClient.functions.invoke(
-          'send-sponsorship-receipt',
-          {
-            body: {
-              sponsorEmail: receipt.sponsor_email,
-              sponsorName: receipt.sponsor_name,
-              bestieName: receipt.bestie_name,
-              amount: receipt.amount,
-              frequency: receipt.frequency,
-              transactionId: receipt.transaction_id,
-              transactionDate: receipt.transaction_date,
-              stripeMode: receipt.stripe_mode,
-            }
-          }
-        );
+        const { error: emailError } = await supabaseClient.functions.invoke('send-sponsorship-receipt', {
+          body: { receiptId: receipt.id }
+        });
 
         if (emailError) {
-          console.error(`Failed to send email to ${receipt.sponsor_email}:`, emailError);
-          emailsFailed++;
+          emailFailures.push({ receiptNumber: receipt.receipt_number, error: emailError.message });
+          await supabaseClient.from('receipt_generation_logs').insert({
+            donation_id: receiptsToCreate[i].donationId,
+            receipt_id: receipt.id,
+            stage: 'backfill_email_failed',
+            status: 'error',
+            error_message: emailError.message
+          });
         } else {
-          console.log(`✓ Email sent to ${receipt.sponsor_email}`);
           emailsSent++;
+          await supabaseClient.from('receipt_generation_logs').insert({
+            donation_id: receiptsToCreate[i].donationId,
+            receipt_id: receipt.id,
+            stage: 'backfill_email_sent',
+            status: 'success'
+          });
         }
-      } catch (emailError) {
-        console.error(`Error sending email to ${receipt.sponsor_email}:`, emailError);
-        emailsFailed++;
+      } catch (error: any) {
+        emailFailures.push({ receiptNumber: receipt.receipt_number, error: error.message });
       }
     }
 
     return new Response(
       JSON.stringify({
-        message: `Successfully generated ${createdReceipts?.length || 0} receipt(s) and sent ${emailsSent} email(s)`,
+        message: `Generated ${createdReceipts?.length || 0} receipts, sent ${emailsSent} emails. ${failedReceipts.length} skipped (no email). ${emailFailures.length} email failures.`,
         receiptsGenerated: createdReceipts?.length || 0,
         emailsSent,
-        emailsFailed,
+        emailsFailed: emailFailures.length,
+        skippedDonations: failedReceipts.length,
+        failures: emailFailures.length > 0 ? emailFailures : undefined,
+        skippedDetails: failedReceipts.length > 0 ? failedReceipts : undefined
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
