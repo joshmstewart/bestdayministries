@@ -591,8 +591,13 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
-  const deleteIndividualTransaction = async (transactionId: string, donorName: string) => {
-    if (!confirm(`Are you sure you want to delete the test transaction for ${donorName}? This cannot be undone.`)) {
+  const deleteIndividualTransaction = async (
+    transactionId: string, 
+    donorName: string, 
+    isDuplicate: boolean = false
+  ) => {
+    const messageType = isDuplicate ? 'duplicate transaction' : 'test transaction';
+    if (!confirm(`Are you sure you want to delete the ${messageType} for ${donorName}? This cannot be undone.`)) {
       return;
     }
 
@@ -615,7 +620,7 @@ export const SponsorshipTransactionsManager = () => {
 
       toast({
         title: "Success",
-        description: "Test transaction has been deleted",
+        description: `${isDuplicate ? 'Duplicate transaction' : 'Test transaction'} has been deleted`,
       });
       
       await loadTransactions();
@@ -1325,15 +1330,16 @@ export const SponsorshipTransactionsManager = () => {
                               No Subscription ID
                             </Badge>
                           ) : null}
-                          {transaction.stripe_mode === 'test' && (
+                          {(transaction.stripe_mode === 'test' || transaction.status === 'duplicate') && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => deleteIndividualTransaction(
                                 transaction.id,
-                                transaction.sponsor_profile?.display_name || transaction.sponsor_email || 'this donor'
+                                transaction.sponsor_profile?.display_name || transaction.sponsor_email || 'this donor',
+                                transaction.status === 'duplicate'
                               )}
-                              title="Delete Test Transaction"
+                              title={transaction.status === 'duplicate' ? 'Delete Duplicate Transaction' : 'Delete Test Transaction'}
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
                               <Trash2 className="w-4 h-4" />
