@@ -82,6 +82,7 @@ export const SponsorshipTransactionsManager = () => {
   const [receiptHtml, setReceiptHtml] = useState<string>('');
   const [recalculating, setRecalculating] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
+  const [generatingDonationReceipts, setGeneratingDonationReceipts] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -550,6 +551,66 @@ export const SponsorshipTransactionsManager = () => {
       });
     } finally {
       setBackfilling(false);
+    }
+  };
+
+  const generateDonationReceipts = async () => {
+    if (!confirm("This will generate and email receipts for all donations that are missing receipts. Continue?")) {
+      return;
+    }
+
+    setGeneratingDonationReceipts(true);
+    try {
+      console.log('Generating donation receipts...');
+      const { data, error } = await supabase.functions.invoke('generate-missing-donation-receipts');
+      
+      if (error) {
+        console.error('Error from edge function:', error);
+        throw error;
+      }
+
+      console.log('Edge function response:', data);
+
+      toast({
+        title: "Success",
+        description: (
+          <div className="space-y-1">
+            <p>{data.message}</p>
+            {data.emailsFailed > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Note: {data.emailsFailed} email(s) failed to send. Receipts were still created in database.
+              </p>
+            )}
+          </div>
+        ),
+      });
+      
+      await loadTransactions();
+    } catch (error: any) {
+      console.error('Error generating donation receipts:', error);
+      const errorMessage = error.message || "Failed to generate donation receipts";
+      
+      toast({
+        title: "Error",
+        description: (
+          <div className="space-y-2">
+            <p>{errorMessage}</p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(JSON.stringify(error, null, 2));
+                toast({ title: "Copied", description: "Error details copied to clipboard" });
+              }}
+              className="text-sm underline"
+            >
+              Copy Error Details
+            </button>
+          </div>
+        ),
+        variant: "destructive",
+        duration: 10000,
+      });
+    } finally {
+      setGeneratingDonationReceipts(false);
     }
   };
 
@@ -1051,6 +1112,10 @@ export const SponsorshipTransactionsManager = () => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button onClick={generateDonationReceipts} variant="outline" size="sm" disabled={generatingDonationReceipts}>
+                <FileText className="w-4 h-4 mr-2" />
+                {generatingDonationReceipts ? "Generating..." : "Generate Donation Receipts"}
+              </Button>
               <Button onClick={backfillMissingReceipts} variant="outline" size="sm" disabled={backfilling}>
                 <FileText className="w-4 h-4 mr-2" />
                 {backfilling ? "Backfilling..." : "Backfill Missing Receipts"}
