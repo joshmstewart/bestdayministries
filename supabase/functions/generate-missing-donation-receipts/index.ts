@@ -125,7 +125,6 @@ serve(async (req) => {
         receipt_number: receiptNumber,
         tax_year: taxYear,
         stripe_mode: donation.stripe_mode || 'test',
-        status: 'generated',
       };
     });
 
