@@ -112,7 +112,7 @@ export const SponsorshipTransactionsManager = () => {
       console.log('🔵 [TRANSACTIONS] Fetching receipts...');
       const { data: receiptsData, error: receiptsError } = await supabase
         .from('sponsorship_receipts')
-        .select('sponsorship_id, receipt_number, created_at')
+        .select('id, sponsorship_id, receipt_number, created_at')
         .order('created_at', { ascending: false });
 
       if (sponsorshipsError) {
@@ -162,6 +162,32 @@ export const SponsorshipTransactionsManager = () => {
         throw donationsError;
       }
       console.log('✅ [TRANSACTIONS] Donations loaded:', donationsData?.length || 0);
+
+      // Map donation receipts via logs
+      const donationIds = (donationsData || []).map(d => d.id);
+      let donationReceiptsByDonationId: Record<string, { receipt_number: string; created_at: string }> = {};
+      
+      if (donationIds.length > 0 && receiptsData && receiptsData.length > 0) {
+        const { data: donationLogs } = await supabase
+          .from('receipt_generation_logs')
+          .select('donation_id, receipt_id')
+          .in('donation_id', donationIds)
+          .eq('stage', 'webhook_receipt_created');
+
+        const receiptsById = new Map(
+          receiptsData.map(r => [r.id, r] as const)
+        );
+
+        (donationLogs || []).forEach(log => {
+          const r = receiptsById.get(log.receipt_id);
+          if (r && log.donation_id) {
+            donationReceiptsByDonationId[log.donation_id] = {
+              receipt_number: r.receipt_number,
+              created_at: r.created_at,
+            };
+          }
+        });
+      }
 
       // Get unique profile IDs from both sponsorships and donations
       const sponsorIds = [...new Set(
@@ -238,7 +264,7 @@ export const SponsorshipTransactionsManager = () => {
       // Transform donations
       console.log('🔵 [TRANSACTIONS] Transforming donations...');
       const donations: Transaction[] = (donationsData || []).map(d => {
-        const receipt = receiptsMap[d.id];
+        const receipt = donationReceiptsByDonationId[d.id];
         return {
           id: d.id,
           sponsor_id: d.donor_id,
@@ -571,18 +597,14 @@ export const SponsorshipTransactionsManager = () => {
 
       console.log('Edge function response:', data);
 
+      const baseMessage = data?.message || `Generated ${data?.receiptsGenerated ?? 0} receipt(s) and sent ${data?.emailsSent ?? 0} email(s).`;
+      const note = data?.emailsFailed && data.emailsFailed > 0
+        ? ` Note: ${data.emailsFailed} email(s) failed to send. Receipts were still created in the database.`
+        : "";
+
       toast({
         title: "Success",
-        description: (
-          <div className="space-y-1">
-            <p>{data.message}</p>
-            {data.emailsFailed > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Note: {data.emailsFailed} email(s) failed to send. Receipts were still created in database.
-              </p>
-            )}
-          </div>
-        ),
+        description: baseMessage + note,
       });
       
       await loadTransactions();
@@ -728,36 +750,52 @@ export const SponsorshipTransactionsManager = () => {
         
         if (!error && data) receipt = data;
       } else {
-        // For donations, we need to get the donation first to find the receipt
-        const { data: donationData } = await supabase
-          .from('donations')
-          .select('id, donor_email, amount')
-          .eq('id', transactionId)
-          .maybeSingle();
-
-        if (donationData) {
-          // Find receipt by matching transaction_id or by donor_email + amount
-          const { data: receiptByTxId } = await supabase
+        // For donations: prioritize receipt_id from logs (authoritative link)
+        const receiptLog = (logs || []).find(l => l.receipt_id);
+        if (receiptLog) {
+          const { data: receiptDirect, error: receiptDirectError } = await supabase
             .from('sponsorship_receipts')
             .select('*')
-            .eq('transaction_id', transactionId)
+            .eq('id', receiptLog.receipt_id)
             .maybeSingle();
 
-          if (receiptByTxId) {
-            receipt = receiptByTxId;
-          } else {
-            // Fallback: search by email + amount (for manually created receipts)
-            const { data: receiptByEmail } = await supabase
+          if (!receiptDirectError && receiptDirect) {
+            receipt = receiptDirect;
+          }
+        }
+
+        // If still nothing (older donations with no logs), fall back to existing logic
+        if (!receipt) {
+          const { data: donationData } = await supabase
+            .from('donations')
+            .select('id, donor_email, amount')
+            .eq('id', transactionId)
+            .maybeSingle();
+
+          if (donationData) {
+            // Try transaction_id = donation UUID
+            const { data: receiptByTxId } = await supabase
               .from('sponsorship_receipts')
               .select('*')
-              .eq('sponsor_email', donationData.donor_email)
-              .eq('amount', donationData.amount)
-              .eq('bestie_name', 'General Support')
-              .order('created_at', { ascending: false })
-              .limit(1)
+              .eq('transaction_id', transactionId)
               .maybeSingle();
 
-            if (receiptByEmail) receipt = receiptByEmail;
+            if (receiptByTxId) {
+              receipt = receiptByTxId;
+            } else if (donationData.donor_email) {
+              // Only run email-based fallback if donor_email is not null
+              const { data: receiptByEmail } = await supabase
+                .from('sponsorship_receipts')
+                .select('*')
+                .eq('sponsor_email', donationData.donor_email)
+                .eq('amount', donationData.amount)
+                .eq('bestie_name', 'General Support')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (receiptByEmail) receipt = receiptByEmail;
+            }
           }
         }
       }
