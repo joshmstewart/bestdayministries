@@ -193,6 +193,78 @@ ALTER TABLE donations ADD CONSTRAINT donations_status_check
 
 ---
 
+## DONATION RECEIPT GENERATION
+
+Donations automatically generate tax-deductible receipts through the same system used for sponsorships:
+
+### Automatic Receipt Generation (Webhook)
+
+When a donation is completed via Stripe Checkout:
+
+1. The `stripe-webhook` edge function receives `checkout.session.completed` event
+2. For one-time donations: Updates status to `completed` and calls `createAndSendReceipt()`
+3. For monthly donations: Updates status to `active` and calls `createAndSendReceipt()`
+4. Receipt is created in `sponsorship_receipts` table with `transaction_id = donation_{id}`
+5. Receipt PDF is generated and emailed to donor via Resend
+
+**Code Location**: `supabase/functions/stripe-webhook/index.ts`
+- Lines 742-761: One-time donation receipt generation
+- Lines 954-970: Monthly donation receipt generation
+
+### Manual Backfill (Admin UI)
+
+If donations are missing receipts due to past webhook failures:
+
+1. Navigate to Admin → Besties → Transactions tab
+2. Click "Generate Donation Receipts" button
+3. System calls `generate-missing-donation-receipts` edge function
+4. Function finds all donations without receipts and creates them
+5. Receipts are automatically emailed to donors
+
+**Edge Function**: `supabase/functions/generate-missing-donation-receipts/index.ts`
+- Queries donations with status `active` or `completed`
+- Checks which ones are missing receipts (no matching `transaction_id`)
+- Creates receipt records with proper donor information
+- Sends receipt emails via `send-sponsorship-receipt` edge function
+
+### Receipt Data for Donations
+
+Donation receipts use these values:
+- **Transaction ID**: `donation_{donation.id}` (unique identifier)
+- **Sponsor Email**: From `donor_email` or user profile
+- **Sponsor Name**: From user profile or "Donor"
+- **Bestie Name**: "General Donation" (donations not tied to specific besties)
+- **Amount**: `amount_charged` if available (includes fees), otherwise `amount`
+- **Frequency**: `monthly` or `one-time`
+- **Stripe Mode**: `test` or `live`
+
+### Why Receipts May Be Missing
+
+1. **Webhook didn't fire**: Stripe webhook configuration issues
+2. **Webhook failed silently**: Database or email errors during processing
+3. **Race condition**: Multiple webhook events processed simultaneously
+4. **Legacy donations**: Created before receipt system was implemented
+
+### Troubleshooting
+
+**Problem**: Donation receipts not appearing in transactions list
+
+**Solution**: 
+1. Check if donation status is `active` or `completed` (only these generate receipts)
+2. Run "Generate Donation Receipts" from Admin UI
+3. Check edge function logs: `supabase functions logs generate-missing-donation-receipts`
+4. Verify Stripe webhook is configured correctly (see `WEBHOOK_CONFIGURATION_GUIDE.md`)
+
+**Problem**: Receipt generated but email not sent
+
+**Solution**:
+1. Check `sponsorship_receipts` table for receipt record
+2. Check `email_audit_log` for email send attempt
+3. Verify Resend API key is configured
+4. Manually resend via Admin UI if needed
+
+---
+
 ## KEY DIFFERENCES FROM SPONSORSHIPS
 
 | Feature | Donations | Sponsorships |
