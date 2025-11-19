@@ -339,7 +339,8 @@ export function DonationRecoveryManager() {
           <CardDescription>
             Automatically fix all pending donations by checking their actual status in Stripe. 
             This will activate completed subscriptions, mark successful one-time payments as completed, 
-            and cancel expired or failed payments. Runs hourly via scheduled job.
+            and identify duplicate database entries. Duplicate donations will be marked and can be archived 
+            or deleted from the transactions manager. Runs hourly via scheduled job.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
