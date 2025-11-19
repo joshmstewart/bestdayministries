@@ -182,7 +182,7 @@ serve(async (req) => {
     // Create the donation record immediately (status will be updated by webhook)
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("id")
+      .select("id, email")
       .eq("email", email)
       .maybeSingle();
 
@@ -192,10 +192,11 @@ serve(async (req) => {
       profileId: profile?.id || 'none' 
     });
 
-    // Determine donor identifier to satisfy donor_identifier_check constraint:
-    // EITHER donor_id (for registered users) OR donor_email (for guests), but never both.
+    // CRITICAL FIX: Always set donor_email for receipt generation
+    // For logged-in users: set BOTH donor_id AND donor_email from profile
+    // For guests: set donor_email only (donor_id will be null)
     const donorId = profile?.id ?? null;
-    const donorEmail = donorId ? null : email;
+    const donorEmail = profile?.email || email; // Always use the email
 
     console.log('Donor identification:', { 
       donorId: donorId || 'null', 
