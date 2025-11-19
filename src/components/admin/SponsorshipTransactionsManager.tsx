@@ -114,7 +114,7 @@ export const SponsorshipTransactionsManager = () => {
       console.log('🔵 [TRANSACTIONS] Fetching receipts...');
       const { data: receiptsData, error: receiptsError } = await supabase
         .from('sponsorship_receipts')
-        .select('id, sponsorship_id, receipt_number, created_at')
+        .select('id, sponsorship_id, receipt_number, created_at, sponsor_email')
         .order('created_at', { ascending: false });
 
       if (sponsorshipsError) {
@@ -167,7 +167,7 @@ export const SponsorshipTransactionsManager = () => {
 
       // Map donation receipts via logs
       const donationIds = (donationsData || []).map(d => d.id);
-      let donationReceiptsByDonationId: Record<string, { receipt_number: string; created_at: string }> = {};
+      let donationReceiptsByDonationId: Record<string, { receipt_number: string; created_at: string; email: string | null }> = {};
       
       if (donationIds.length > 0 && receiptsData && receiptsData.length > 0) {
         const { data: donationLogs } = await supabase
@@ -186,6 +186,7 @@ export const SponsorshipTransactionsManager = () => {
             donationReceiptsByDonationId[log.donation_id] = {
               receipt_number: r.receipt_number,
               created_at: r.created_at,
+              email: r.sponsor_email || null,
             };
           }
         });
@@ -270,7 +271,7 @@ export const SponsorshipTransactionsManager = () => {
         return {
           id: d.id,
           sponsor_id: d.donor_id,
-          sponsor_email: d.donor_email,
+          sponsor_email: d.donor_email || receipt?.email || null,
           bestie_id: null,
           sponsor_bestie_id: null,
           amount: d.amount_charged || d.amount,
