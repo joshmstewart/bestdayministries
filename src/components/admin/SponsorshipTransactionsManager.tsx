@@ -85,6 +85,7 @@ export const SponsorshipTransactionsManager = () => {
   const [generatingDonationReceipts, setGeneratingDonationReceipts] = useState(false);
   const [fixingEmails, setFixingEmails] = useState(false);
   const [sendingCorrected, setSendingCorrected] = useState(false);
+  const [backfillingEmails, setBackfillingEmails] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -230,7 +231,7 @@ export const SponsorshipTransactionsManager = () => {
         console.log('🔵 [TRANSACTIONS] Fetching profiles from profiles_public...');
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles_public')
-          .select('id, display_name, avatar_url')
+          .select('id, display_name, avatar_url, email')
           .in('id', allProfileIds);
         
         if (profilesError) {
@@ -275,7 +276,7 @@ export const SponsorshipTransactionsManager = () => {
         return {
           id: d.id,
           sponsor_id: d.donor_id,
-          sponsor_email: d.donor_email || receipt?.email || null,
+          sponsor_email: d.donor_email || receipt?.email || (d.donor_id ? profilesMap[d.donor_id]?.email : null),
           bestie_id: null,
           sponsor_bestie_id: null,
           amount: d.amount_charged || d.amount,
@@ -659,6 +660,51 @@ export const SponsorshipTransactionsManager = () => {
       });
     } finally {
       setFixingEmails(false);
+    }
+  };
+
+  const backfillDonationEmails = async () => {
+    if (!confirm("This will update donation records with missing emails by looking up donor profiles. Continue?")) {
+      return;
+    }
+
+    setBackfillingEmails(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('backfill-donation-emails');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+      
+      await loadTransactions();
+    } catch (error: any) {
+      console.error('Error backfilling donation emails:', error);
+      const errorMessage = error.message || "Failed to backfill donation emails";
+      
+      toast({
+        title: "Error",
+        description: (
+          <div className="space-y-2">
+            <p>{errorMessage}</p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(JSON.stringify(error, null, 2));
+                toast({ title: "Error details copied to clipboard" });
+              }}
+              className="text-xs underline hover:no-underline"
+            >
+              Copy Error Details
+            </button>
+          </div>
+        ),
+        variant: "destructive",
+        duration: 10000,
+      });
+    } finally {
+      setBackfillingEmails(false);
     }
   };
 
@@ -1230,6 +1276,10 @@ export const SponsorshipTransactionsManager = () => {
               <Button onClick={recalculateAmounts} variant="outline" size="sm" disabled={recalculating}>
                 <DollarSign className="w-4 h-4 mr-2" />
                 {recalculating ? "Recalculating..." : "Recalculate Amounts"}
+              </Button>
+              <Button onClick={backfillDonationEmails} variant="outline" size="sm" disabled={backfillingEmails}>
+                <Mail className="w-4 h-4 mr-2" />
+                {backfillingEmails ? "Backfilling..." : "3. Backfill Donation Emails"}
               </Button>
               <Button onClick={fixReceiptEmails} variant="outline" size="sm" disabled={fixingEmails}>
                 <Mail className="w-4 h-4 mr-2" />
