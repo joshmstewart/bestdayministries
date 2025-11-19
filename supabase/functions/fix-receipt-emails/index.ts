@@ -18,7 +18,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    console.log('🔍 Starting missing receipt email recovery...');
+    console.log('🔍 Starting receipt email correction...');
 
     // STEP 1: Find all receipts with placeholder email
     const { data: receiptsWithFakeEmails, error: receiptsError } = await supabaseClient
@@ -36,7 +36,6 @@ serve(async (req) => {
         JSON.stringify({ 
           message: "No receipts found with placeholder emails", 
           corrected: 0,
-          sent: 0,
           failed: 0
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
@@ -47,12 +46,11 @@ serve(async (req) => {
 
     const results = {
       corrected: 0,
-      sent: 0,
       failed: 0,
       details: [] as any[]
     };
 
-    // STEP 2: Process each receipt
+    // STEP 2: Process each receipt - ONLY FIX EMAILS, DON'T SEND
     for (const receipt of receiptsWithFakeEmails) {
       try {
         // Extract donation ID from transaction_id (format: "donation_{uuid}")
@@ -120,7 +118,7 @@ serve(async (req) => {
           continue;
         }
 
-        // STEP 3: Update the receipt with the real email
+        // STEP 3: Update the receipt with the real email - BUT DON'T SEND YET
         console.log(`✏️ Updating receipt ${receipt.id} with real email: ${realEmail.substring(0, 3)}***`);
         
         const { error: updateError } = await supabaseClient
@@ -141,34 +139,13 @@ serve(async (req) => {
         }
 
         results.corrected++;
-
-        // STEP 4: Send the receipt email
-        console.log(`📤 Sending receipt email to: ${realEmail.substring(0, 3)}***`);
-        
-        const { error: sendError } = await supabaseClient.functions.invoke('send-sponsorship-receipt', {
-          body: { receiptId: receipt.id }
+        results.details.push({
+          receiptId: receipt.id,
+          receiptNumber: receipt.receipt_number,
+          email: realEmail,
+          status: 'corrected'
         });
-
-        if (sendError) {
-          console.error(`❌ Failed to send email for receipt ${receipt.id}:`, sendError);
-          results.failed++;
-          results.details.push({
-            receiptId: receipt.id,
-            receiptNumber: receipt.receipt_number,
-            email: realEmail,
-            status: 'corrected_but_email_failed',
-            reason: sendError.message
-          });
-        } else {
-          results.sent++;
-          results.details.push({
-            receiptId: receipt.id,
-            receiptNumber: receipt.receipt_number,
-            email: realEmail,
-            status: 'sent'
-          });
-          console.log(`✅ Successfully sent receipt ${receipt.receipt_number} to ${realEmail.substring(0, 3)}***`);
-        }
+        console.log(`✅ Successfully updated receipt ${receipt.receipt_number} with email ${realEmail.substring(0, 3)}***`);
 
       } catch (error: any) {
         console.error(`❌ Error processing receipt ${receipt.id}:`, error);
@@ -182,13 +159,12 @@ serve(async (req) => {
       }
     }
 
-    console.log(`✅ Recovery complete: ${results.corrected} corrected, ${results.sent} sent, ${results.failed} failed`);
+    console.log(`✅ Email correction complete: ${results.corrected} corrected, ${results.failed} failed`);
 
     return new Response(
       JSON.stringify({
-        message: `Recovery complete: ${results.corrected} emails corrected, ${results.sent} emails sent, ${results.failed} failures`,
+        message: `Email correction complete: ${results.corrected} emails corrected, ${results.failed} failures`,
         corrected: results.corrected,
-        sent: results.sent,
         failed: results.failed,
         details: results.details
       }),
@@ -196,7 +172,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error("❌ Fatal error in send-missing-receipt-emails:", error);
+    console.error("❌ Fatal error in fix-receipt-emails:", error);
     return new Response(
       JSON.stringify({ 
         error: error.message,

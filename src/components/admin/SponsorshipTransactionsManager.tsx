@@ -83,7 +83,8 @@ export const SponsorshipTransactionsManager = () => {
   const [recalculating, setRecalculating] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
   const [generatingDonationReceipts, setGeneratingDonationReceipts] = useState(false);
-  const [sendingMissingEmails, setSendingMissingEmails] = useState(false);
+  const [fixingEmails, setFixingEmails] = useState(false);
+  const [sendingCorrected, setSendingCorrected] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -626,33 +627,65 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
-  const sendMissingReceiptEmails = async () => {
-    if (!confirm("This will correct placeholder emails and resend receipts to affected donors. Continue?")) {
+  const fixReceiptEmails = async () => {
+    if (!confirm("This will correct placeholder emails (unknown@donor.com) with real donor emails. Continue?")) {
       return;
     }
 
-    setSendingMissingEmails(true);
+    setFixingEmails(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-missing-receipt-emails');
+      const { data, error } = await supabase.functions.invoke('fix-receipt-emails');
       
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: data.message,
+        title: "Emails Fixed",
+        description: `Corrected ${data.corrected} emails, ${data.failed} failures. Review the receipts and then send.`,
         duration: 10000,
       });
       
       await loadTransactions();
     } catch (error: any) {
-      console.error('Error sending missing receipt emails:', error);
+      console.error('Error fixing receipt emails:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to send missing receipt emails",
+        description: error.message || "Failed to fix receipt emails",
         variant: "destructive",
       });
     } finally {
-      setSendingMissingEmails(false);
+      setFixingEmails(false);
+    }
+  };
+
+  const sendCorrectedReceipts = async () => {
+    if (!confirm("This will send receipt emails to all corrected addresses. Continue?")) {
+      return;
+    }
+
+    setSendingCorrected(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-corrected-receipts', {
+        body: { receiptIds: null } // Send all corrected receipts
+      });
+      
+      if (error) throw error;
+
+      toast({
+        title: "Receipts Sent",
+        description: `Sent ${data.sent} emails, ${data.failed} failures`,
+        duration: 10000,
+      });
+      
+      await loadTransactions();
+    } catch (error: any) {
+      console.error('Error sending corrected receipts:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send receipts",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingCorrected(false);
     }
   };
 
@@ -1192,6 +1225,14 @@ export const SponsorshipTransactionsManager = () => {
               <Button onClick={recalculateAmounts} variant="outline" size="sm" disabled={recalculating}>
                 <DollarSign className="w-4 h-4 mr-2" />
                 {recalculating ? "Recalculating..." : "Recalculate Amounts"}
+              </Button>
+              <Button onClick={fixReceiptEmails} variant="outline" size="sm" disabled={fixingEmails}>
+                <Mail className="w-4 h-4 mr-2" />
+                {fixingEmails ? "Fixing..." : "1. Fix Emails"}
+              </Button>
+              <Button onClick={sendCorrectedReceipts} size="sm" disabled={sendingCorrected}>
+                <Mail className="w-4 h-4 mr-2" />
+                {sendingCorrected ? "Sending..." : "2. Send Receipts"}
               </Button>
               <Button onClick={deleteTestTransactions} variant="destructive" size="sm">
                 Delete Test Transactions
