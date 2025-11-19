@@ -55,8 +55,7 @@ serve(async (req) => {
     const { data: donations, error: fetchError } = await supabase
       .from('donations')
       .select('*')
-      .not('stripe_subscription_id', 'is', null)
-      .or('stripe_payment_intent_id.not.is.null')
+      .or('stripe_subscription_id.not.is.null,stripe_payment_intent_id.not.is.null')
       .order('created_at', { ascending: true });
 
     if (fetchError) {
