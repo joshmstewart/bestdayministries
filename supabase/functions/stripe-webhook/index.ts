@@ -433,23 +433,21 @@ async function processWebhookEvent(
             .eq('id', logId);
         }
       } else {
-        const sponsorBestieId = subscription.metadata?.bestie_id;
-        
-        if (sponsorBestieId) {
-          await logStep('updating_sponsorship', 'info', { bestie_id: sponsorBestieId });
-          const { error: updateError, data: sponsorshipData } = await supabaseAdmin
-            .from("sponsorships")
-            .update({ status: newStatus, ended_at: endDate })
-            .eq("sponsor_id", user.id)
-            .eq("sponsor_bestie_id", sponsorBestieId)
-            .select('id')
-            .single();
+        // Match sponsorship by stripe_subscription_id for accuracy
+        await logStep('updating_sponsorship', 'info', { subscription_id: subscription.id });
+        const { error: updateError, data: sponsorshipData } = await supabaseAdmin
+          .from("sponsorships")
+          .update({ status: newStatus, ended_at: endDate })
+          .eq("stripe_subscription_id", subscription.id)
+          .select('id')
+          .maybeSingle();
 
-          if (updateError) {
-            await logStep('sponsorship_update_failed', 'error', { error: updateError.message });
-            throw new Error(`Error updating sponsorship: ${updateError.message}`);
-          }
-          
+        if (updateError) {
+          await logStep('sponsorship_update_failed', 'error', { error: updateError.message });
+          throw new Error(`Error updating sponsorship: ${updateError.message}`);
+        }
+        
+        if (sponsorshipData) {
           await logStep('sponsorship_updated', 'success', { sponsorship_id: sponsorshipData.id, status: newStatus });
           
           if (logId) {
@@ -462,18 +460,7 @@ async function processWebhookEvent(
               .eq('id', logId);
           }
         } else {
-          await logStep('updating_all_sponsorships', 'info', { user_id: user.id });
-          const { error: updateError } = await supabaseAdmin
-            .from("sponsorships")
-            .update({ status: newStatus, ended_at: endDate })
-            .eq("sponsor_id", user.id);
-
-          if (updateError) {
-            await logStep('sponsorships_update_failed', 'error', { error: updateError.message });
-            throw new Error(`Error updating sponsorships: ${updateError.message}`);
-          }
-          
-          await logStep('sponsorships_updated', 'success', { user_id: user.id, status: newStatus });
+          await logStep('sponsorship_not_found', 'info', { subscription_id: subscription.id });
         }
       }
       break;
