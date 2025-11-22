@@ -89,13 +89,43 @@ serve(async (req) => {
       stripe_subscription_id: string;
     }> = [];
 
+    // Track detailed logs
+    const detailedLogs: Array<{
+      timestamp: string;
+      sponsorship_id: string;
+      level: 'info' | 'success' | 'warning' | 'error';
+      message: string;
+      details?: any;
+    }> = [];
+
     for (const sponsorship of incompleteSponsorships || []) {
       try {
         results.checked++;
+        const logEntry = {
+          timestamp: new Date().toISOString(),
+          sponsorship_id: sponsorship.id,
+          level: 'info' as const,
+          message: `Processing sponsorship ${sponsorship.id}`,
+          details: {
+            stripe_subscription_id: sponsorship.stripe_subscription_id,
+            stripe_mode: sponsorship.stripe_mode,
+            sponsor_email: sponsorship.sponsor_email,
+            bestie_id: sponsorship.bestie_id,
+            stripe_customer_id: sponsorship.stripe_customer_id,
+          }
+        };
+        detailedLogs.push(logEntry);
         console.log(`\nProcessing sponsorship ${sponsorship.id}...`);
 
         // Skip if wrong Stripe mode
         if (sponsorship.stripe_mode !== stripeMode) {
+          detailedLogs.push({
+            timestamp: new Date().toISOString(),
+            sponsorship_id: sponsorship.id,
+            level: 'warning',
+            message: `Skipped: Wrong Stripe mode`,
+            details: { expected: stripeMode, actual: sponsorship.stripe_mode }
+          });
           console.log(`  Skipped: Wrong Stripe mode (${sponsorship.stripe_mode} vs ${stripeMode})`);
           results.skipped++;
           continue;
@@ -103,6 +133,12 @@ serve(async (req) => {
 
         // Check if this is a payment intent instead of subscription
         if (sponsorship.stripe_subscription_id.startsWith('pi_')) {
+          detailedLogs.push({
+            timestamp: new Date().toISOString(),
+            sponsorship_id: sponsorship.id,
+            level: 'info',
+            message: 'Detected payment intent ID (one-time payment)'
+          });
           console.log(`  Detected payment intent ID (one-time payment)`);
           
           try {
@@ -148,6 +184,13 @@ serve(async (req) => {
                 .eq("id", sponsorship.id);
               
               if (updateError) {
+                detailedLogs.push({
+                  timestamp: new Date().toISOString(),
+                  sponsorship_id: sponsorship.id,
+                  level: 'error',
+                  message: `Error updating: ${updateError.message}`,
+                  details: { attempted_values: updateData }
+                });
                 console.log(`  Error updating: ${updateError.message}`);
                 results.errors.push({
                   sponsorship_id: sponsorship.id,
@@ -158,6 +201,13 @@ serve(async (req) => {
                   suggested_fix: 'Check database constraints and field permissions',
                 });
               } else {
+                detailedLogs.push({
+                  timestamp: new Date().toISOString(),
+                  sponsorship_id: sponsorship.id,
+                  level: 'success',
+                  message: 'Updated one-time payment with customer info',
+                  details: updateData
+                });
                 console.log(`  ✅ Updated one-time payment with customer info`);
                 results.fixed++;
                 
@@ -377,6 +427,11 @@ serve(async (req) => {
           error_count: results.errors.length,
           errors: results.errors,
           status: results.errors.length > 0 ? 'partial_failure' : 'success',
+          metadata: {
+            detailed_logs: detailedLogs,
+            start_time: startTime,
+            end_time: endTime,
+          }
         })
         .select()
         .single();
