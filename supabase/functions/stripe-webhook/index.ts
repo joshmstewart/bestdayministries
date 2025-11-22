@@ -2,516 +2,301 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
-// Webhook handler with comprehensive logging - Updated 2025-11-06
-const stripeTestKey = Deno.env.get('STRIPE_SECRET_KEY_TEST') || "";
-const stripeLiveKey = Deno.env.get('STRIPE_SECRET_KEY_LIVE') || "";
-const testWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET_TEST");
-const liveWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET_LIVE");
-
-// Helper function to add processing steps to the log
-async function addProcessingStep(
-  supabase: any,
-  logId: string,
-  step: string,
-  status: 'success' | 'error' | 'info',
-  details?: any
-) {
-  const stepEntry = {
-    timestamp: new Date().toISOString(),
-    step,
-    status,
-    details: details || {}
-  };
-  
-  await supabase.rpc('jsonb_array_append', {
-    target_table: 'stripe_webhook_logs',
-    target_id: logId,
-    target_column: 'processing_steps',
-    new_element: stepEntry
-  }).catch((err: Error) => {
-    console.error('Failed to add processing step:', err);
-  });
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
-  const startTime = Date.now();
-  const signature = req.headers.get("stripe-signature");
-
-  if (!signature) {
-    return new Response("Missing signature", { status: 400 });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
-  let logId: string | null = null;
-  let event: Stripe.Event;
-  let stripe: Stripe;
-  let stripeMode = 'test';
-
   try {
+    const signature = req.headers.get("stripe-signature");
+    if (!signature) {
+      console.error("Missing stripe-signature header");
+      return new Response(
+        JSON.stringify({ error: "Missing stripe-signature header" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
     const body = await req.text();
     
-    // Try live webhook secret first if available
-    if (liveWebhookSecret) {
-      try {
-        stripe = new Stripe(stripeLiveKey, { apiVersion: "2025-08-27.basil" });
-        event = await stripe.webhooks.constructEventAsync(body, signature, liveWebhookSecret);
-        stripeMode = 'live';
-        console.log('✅ Live webhook signature verified');
-      } catch (liveError) {
-        console.log('Live webhook verification failed, trying test...');
-        if (testWebhookSecret) {
-          stripe = new Stripe(stripeTestKey, { apiVersion: "2025-08-27.basil" });
-          event = await stripe.webhooks.constructEventAsync(body, signature, testWebhookSecret);
-          stripeMode = 'test';
-          console.log('✅ Test webhook signature verified');
-        } else {
-          console.error('❌ Live webhook verification failed:', liveError);
-          throw liveError;
-        }
-      }
-    } else if (testWebhookSecret) {
-      stripe = new Stripe(stripeTestKey, { apiVersion: "2025-08-27.basil" });
-      event = await stripe.webhooks.constructEventAsync(body, signature, testWebhookSecret);
-      stripeMode = 'test';
-      console.log('✅ Test webhook signature verified');
-    } else {
-      throw new Error('No webhook secrets configured');
-    }
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
 
-    console.log(`📥 Received event: ${event.type} (${event.id})`);
-
-    // Extract customer info for logging
-    let customerId: string | null = null;
-    let customerEmail: string | null = null;
+    // Detect if this is a test or live webhook based on the signature
+    const isTestWebhook = signature.startsWith("whsec_test_");
+    const stripeMode = isTestWebhook ? "test" : "live";
     
-    if ('customer' in event.data.object && event.data.object.customer) {
-      customerId = event.data.object.customer as string;
-    }
-    if ('customer_email' in event.data.object && event.data.object.customer_email) {
-      customerEmail = event.data.object.customer_email as string;
-    }
-    if ('customer_details' in event.data.object && event.data.object.customer_details) {
-      customerEmail = (event.data.object.customer_details as any)?.email || customerEmail;
+    const webhookSecret = stripeMode === "live"
+      ? Deno.env.get("STRIPE_WEBHOOK_SECRET_LIVE")
+      : Deno.env.get("STRIPE_WEBHOOK_SECRET_TEST");
+    
+    const stripeKey = stripeMode === "live"
+      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
+      : Deno.env.get("STRIPE_SECRET_KEY_TEST");
+
+    if (!webhookSecret || !stripeKey) {
+      throw new Error(`Stripe ${stripeMode} webhook secret or API key not configured`);
     }
 
-    // Check if this event was already processed successfully
-    const { data: existingLog } = await supabaseAdmin
-      .from('stripe_webhook_logs')
-      .select('id, processing_status, created_at')
-      .eq('event_id', event.id)
-      .single();
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: "2025-08-27.basil",
+    });
 
-    if (existingLog) {
-      // If previous attempt succeeded, skip this one
-      if (existingLog.processing_status === 'success') {
-        console.log(`⚠️ Duplicate event detected - already processed successfully at ${existingLog.created_at}`);
-        
-        // Log the resend attempt
-        await supabaseAdmin
-          .from('stripe_webhook_logs')
-          .insert({
-            event_id: event.id + '_resend_' + Date.now(),
-            event_type: event.type,
-            stripe_mode: stripeMode,
-            raw_event: event,
-            processing_status: 'skipped',
-            customer_id: customerId,
-            customer_email: customerEmail,
-            http_status_code: 200,
-            processing_steps: [{
-              timestamp: new Date().toISOString(),
-              step: 'duplicate_event_skipped',
-              status: 'info',
-              details: { 
-                original_event_id: event.id,
-                original_log_id: existingLog.id,
-                original_processed_at: existingLog.created_at,
-                original_status: existingLog.processing_status
-              }
-            }]
-          });
-        
-        return new Response(JSON.stringify({ 
-          received: true, 
-          skipped: true,
-          reason: 'Event already processed successfully',
-          original_log_id: existingLog.id
-        }), {
-          headers: { "Content-Type": "application/json" },
-          status: 200,
-        });
-      } else {
-        // If previous attempt failed, reprocess and update the existing log
-        console.log(`🔄 Reprocessing failed event from ${existingLog.created_at} (status: ${existingLog.processing_status})`);
-        logId = existingLog.id;
-        
-        // Reset the log for reprocessing
-        await supabaseAdmin
-          .from('stripe_webhook_logs')
-          .update({
-            processing_status: 'processing',
-            error_message: null,
-            error_stack: null,
-            completed_at: null,
-            processing_duration_ms: null,
-            processing_steps: [{
-              timestamp: new Date().toISOString(),
-              step: 'reprocessing_failed_event',
-              status: 'info',
-              details: { 
-                previous_status: existingLog.processing_status,
-                previous_attempt_at: existingLog.created_at
-              }
-            }]
-          })
-          .eq('id', logId);
-      }
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err);
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
-    // Create initial log entry
-    const { data: logEntry, error: logError } = await supabaseAdmin
-      .from('stripe_webhook_logs')
+    console.log(`Processing ${stripeMode} webhook:`, event.type);
+
+    // Create webhook log entry
+    const { data: logEntry } = await supabaseAdmin
+      .from("stripe_webhook_logs")
       .insert({
         event_id: event.id,
         event_type: event.type,
         stripe_mode: stripeMode,
-        raw_event: event,
-        processing_status: 'processing',
-        customer_id: customerId,
-        customer_email: customerEmail,
-        http_status_code: 200,
-        processing_steps: [{
-          timestamp: new Date().toISOString(),
-          step: 'webhook_received',
-          status: 'success',
-          details: { mode: stripeMode }
-        }]
+        processing_status: "processing",
+        event_data: event.data,
       })
-      .select('id')
+      .select()
       .single();
 
-    if (logError) {
-      console.error('Failed to create webhook log:', logError);
-      // Continue processing even if logging fails
-    } else {
-      logId = logEntry.id;
-      console.log(`📝 Created webhook log: ${logId}`);
-    }
+    const logId = logEntry?.id || null;
 
-    // Process the event with comprehensive logging
+    const logStep = async (step: string, status: string, details?: any) => {
+      console.log(`[${event.type}] ${step}:`, status, details || "");
+    };
+
     try {
-      await processWebhookEvent(event, stripe, stripeMode, supabaseAdmin, logId);
+      await processWebhookEvent(event, stripe, supabaseAdmin, stripeMode, logStep, logId);
 
-      // Mark as successful
       if (logId) {
-        const processingDuration = Date.now() - startTime;
         await supabaseAdmin
-          .from('stripe_webhook_logs')
-          .update({
-            processing_status: 'success',
-            completed_at: new Date().toISOString(),
-            processing_duration_ms: processingDuration
-          })
-          .eq('id', logId);
+          .from("stripe_webhook_logs")
+          .update({ processing_status: "success" })
+          .eq("id", logId);
       }
 
-      console.log(`✅ Webhook processed successfully in ${Date.now() - startTime}ms`);
-      
-      return new Response(JSON.stringify({ received: true }), {
-        headers: { "Content-Type": "application/json" },
-        status: 200,
-      });
-    } catch (processingError) {
-      // Log processing error
-      const errorMessage = processingError instanceof Error ? processingError.message : String(processingError);
-      const errorStack = processingError instanceof Error ? processingError.stack : undefined;
-      
-      console.error("❌ Error processing webhook:", errorMessage);
-      
-      if (logId) {
-        const processingDuration = Date.now() - startTime;
-        await supabaseAdmin
-          .from('stripe_webhook_logs')
-          .update({
-            processing_status: 'failed',
-            error_message: errorMessage,
-            error_stack: errorStack,
-            completed_at: new Date().toISOString(),
-            processing_duration_ms: processingDuration
-          })
-          .eq('id', logId);
-      }
-
-      // Return 200 to prevent Stripe retries (most errors are non-retryable)
       return new Response(
-        JSON.stringify({ 
-          received: true, 
-          error: errorMessage,
-          note: "Error logged but returning 200 to prevent Stripe retries"
-        }),
-        { 
-          headers: { "Content-Type": "application/json" },
-          status: 200 
-        }
+        JSON.stringify({ received: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
-    }
-  } catch (err) {
-    console.error("❌ Webhook error:", err);
-    
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    const errorStack = err instanceof Error ? err.stack : undefined;
-    
-    // Log signature verification failure
-    if (logId) {
-      await supabaseAdmin
-        .from('stripe_webhook_logs')
-        .update({
-          processing_status: 'failed',
-          error_message: errorMessage,
-          error_stack: errorStack,
-          completed_at: new Date().toISOString(),
-          processing_duration_ms: Date.now() - startTime
-        })
-        .eq('id', logId);
-    }
-    
-    return new Response(
-      JSON.stringify({ 
-        received: true, 
-        error: errorMessage,
-        note: "Error logged but returning 200 to prevent Stripe retries"
-      }),
-      { 
-        headers: { "Content-Type": "application/json" },
-        status: 200 
+    } catch (error) {
+      console.error("Error processing webhook:", error);
+
+      if (logId) {
+        await supabaseAdmin
+          .from("stripe_webhook_logs")
+          .update({
+            processing_status: "failed",
+            error_message: error instanceof Error ? error.message : "Unknown error",
+          })
+          .eq("id", logId);
       }
+
+      throw error;
+    }
+  } catch (error) {
+    console.error("Fatal error in webhook handler:", error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 });
 
-// Helper function to extract subscription ID from invoice (handles nested structures)
-function getSubscriptionFromInvoice(invoice: Stripe.Invoice): string | null {
-  // Check top-level subscription field
-  if (invoice.subscription) {
-    return typeof invoice.subscription === 'string' 
-      ? invoice.subscription 
-      : invoice.subscription.id;
-  }
-  
-  // Check line items for subscription
-  if (invoice.lines?.data?.[0]?.subscription) {
-    const lineSub = invoice.lines.data[0].subscription;
-    return typeof lineSub === 'string' ? lineSub : lineSub;
-  }
-  
-  // Check parent.subscription_details (for newer Stripe API versions)
-  const parent = invoice as any;
-  if (parent.parent?.subscription_details?.subscription) {
-    return parent.parent.subscription_details.subscription;
-  }
-  
-  return null;
-}
-
 async function processWebhookEvent(
   event: Stripe.Event,
   stripe: Stripe,
-  stripeMode: string,
   supabaseAdmin: any,
+  stripeMode: string,
+  logStep: Function,
   logId: string | null
 ) {
-  const logStep = async (step: string, status: 'success' | 'error' | 'info', details?: any) => {
-    console.log(`  ${status === 'error' ? '❌' : status === 'success' ? '✅' : 'ℹ️'} ${step}`, details || '');
-    if (logId) {
-      const stepEntry = {
-        timestamp: new Date().toISOString(),
-        step,
-        status,
-        details: details || {}
-      };
-      
-      const { data: currentLog } = await supabaseAdmin
-        .from('stripe_webhook_logs')
-        .select('processing_steps')
-        .eq('id', logId)
-        .single();
-      
-      if (currentLog) {
-        const steps = currentLog.processing_steps || [];
-        steps.push(stepEntry);
-        
-        await supabaseAdmin
-          .from('stripe_webhook_logs')
-          .update({ processing_steps: steps })
-          .eq('id', logId);
-      }
-    }
-  };
-
   switch (event.type) {
-    case "customer.subscription.deleted":
-    case "customer.subscription.updated": {
-      await logStep('processing_subscription_event', 'info', { event_type: event.type });
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted": {
+      await logStep("processing_subscription_change", "info");
       
       const subscription = event.data.object as Stripe.Subscription;
-      const customerId = subscription.customer as string;
+      const newStatus = subscription.status === "canceled" ? "cancelled" : 
+                       subscription.status === "paused" ? "paused" : "active";
 
-      await logStep('fetching_customer', 'info', { customer_id: customerId });
-      const customer = await stripe.customers.retrieve(customerId);
-      if (!customer || customer.deleted) {
-        await logStep('customer_not_found', 'info', { customer_id: customerId });
-        return;
-      }
+      await logStep("subscription_status_change", "info", {
+        subscription_id: subscription.id,
+        new_status: newStatus,
+      });
 
-      const customerEmail = (customer as Stripe.Customer).email;
-      if (!customerEmail) {
-        await logStep('customer_email_missing', 'info');
-        return;
-      }
+      const { data: sponsorshipData } = await supabaseAdmin
+        .from("sponsorships")
+        .update({ status: newStatus })
+        .eq("stripe_subscription_id", subscription.id)
+        .eq("stripe_mode", stripeMode)
+        .select()
+        .single();
 
-      await logStep('fetching_user', 'info', { email: customerEmail });
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-      
-      if (authError) {
-        await logStep('user_fetch_failed', 'error', { error: authError.message });
-        throw new Error(`Error fetching users: ${authError.message}`);
-      }
-
-      const user = authData.users.find((u: any) => u.email === customerEmail);
-      if (!user) {
-        await logStep('user_not_found', 'info', { email: customerEmail });
-        return;
-      }
-
-      let newStatus: string;
-      let endDate: string | null = null;
-      
-      if (subscription.status === "active" && subscription.cancel_at_period_end) {
-        newStatus = "active";
-        endDate = subscription.cancel_at ? new Date(subscription.cancel_at * 1000).toISOString() : null;
-        await logStep('subscription_canceling', 'info', { end_date: endDate });
-      } else if (subscription.status === "active") {
-        newStatus = "active";
-        endDate = null;
-        await logStep('subscription_active', 'success');
-      } else {
-        newStatus = "cancelled";
-        endDate = new Date().toISOString();
-        await logStep('subscription_cancelled', 'info', { status: subscription.status });
-      }
-
-      const isDonation = subscription.metadata?.type === 'donation';
-      
-      if (isDonation) {
-        await logStep('updating_donation', 'info', { subscription_id: subscription.id });
-        const { error: updateError, data: donationData } = await supabaseAdmin
-          .from("donations")
-          .update({ status: newStatus, ended_at: endDate })
-          .eq("stripe_subscription_id", subscription.id)
-          .select('id')
-          .single();
-
-        if (updateError) {
-          await logStep('donation_update_failed', 'error', { error: updateError.message });
-          throw new Error(`Error updating donation: ${updateError.message}`);
-        }
-        
-        await logStep('donation_updated', 'success', { donation_id: donationData.id, status: newStatus });
+      if (sponsorshipData) {
+        await logStep("sponsorship_updated", "success", {
+          sponsorship_id: sponsorshipData.id,
+          status: newStatus,
+        });
         
         if (logId) {
           await supabaseAdmin
-            .from('stripe_webhook_logs')
-            .update({ 
-              related_record_type: 'donation',
-              related_record_id: donationData.id 
+            .from("stripe_webhook_logs")
+            .update({
+              related_record_type: "sponsorship",
+              related_record_id: sponsorshipData.id,
             })
-            .eq('id', logId);
+            .eq("id", logId);
         }
       } else {
-        // Match sponsorship by stripe_subscription_id for accuracy
-        await logStep('updating_sponsorship', 'info', { subscription_id: subscription.id });
-        const { error: updateError, data: sponsorshipData } = await supabaseAdmin
-          .from("sponsorships")
-          .update({ status: newStatus, ended_at: endDate })
-          .eq("stripe_subscription_id", subscription.id)
-          .select('id')
-          .maybeSingle();
-
-        if (updateError) {
-          await logStep('sponsorship_update_failed', 'error', { error: updateError.message });
-          throw new Error(`Error updating sponsorship: ${updateError.message}`);
-        }
-        
-        if (sponsorshipData) {
-          await logStep('sponsorship_updated', 'success', { sponsorship_id: sponsorshipData.id, status: newStatus });
-          
-          if (logId) {
-            await supabaseAdmin
-              .from('stripe_webhook_logs')
-              .update({ 
-                related_record_type: 'sponsorship',
-                related_record_id: sponsorshipData.id 
-              })
-              .eq('id', logId);
-          }
-        } else {
-          await logStep('sponsorship_not_found', 'info', { subscription_id: subscription.id });
-        }
+        await logStep("sponsorship_not_found", "info", {
+          subscription_id: subscription.id,
+        });
       }
       break;
     }
 
     case "checkout.session.completed": {
-      await logStep('processing_checkout_session', 'info');
+      await logStep("processing_checkout_session", "info");
       
       const session = event.data.object as Stripe.Checkout.Session;
+      
+      // PHASE 3: CRITICAL FIX - Prioritize bestie_id check for sponsorships
+      // Classification logic:
+      // 1. If bestie_id exists → SPONSORSHIP (highest priority)
+      // 2. If metadata.type === 'donation' → DONATION
+      // 3. Otherwise → SKIP (unknown type)
+      
+      const hasBestieId = !!session.metadata?.bestie_id;
       const isDonation = session.metadata?.type === 'donation';
       
-      if (isDonation) {
+      await logStep("classification_check", "info", {
+        has_bestie_id: hasBestieId,
+        is_donation: isDonation,
+        metadata: session.metadata
+      });
+      
+      if (hasBestieId) {
+        // SPONSORSHIP: bestie_id present means this is a sponsorship
+        await logStep("classified_as_sponsorship", "info");
+        
+        // PHASE 3: Cross-check - verify no donation exists with same Stripe ID
+        if (session.subscription) {
+          const { data: existingDonation } = await supabaseAdmin
+            .from("donations")
+            .select("id")
+            .eq("stripe_subscription_id", session.subscription)
+            .eq("stripe_mode", stripeMode)
+            .maybeSingle();
+          
+          if (existingDonation) {
+            await logStep("duplicate_prevention", "warning", {
+              message: "Donation already exists for this subscription - skipping sponsorship creation",
+              donation_id: existingDonation.id,
+              subscription_id: session.subscription
+            });
+            return;
+          }
+        }
+        
+        if (session.mode === "subscription" && session.subscription) {
+          await processSponsorshipCheckout(session, stripe, supabaseAdmin, stripeMode, logStep, logId);
+        }
+      } else if (isDonation) {
+        // DONATION: metadata.type === 'donation' and NO bestie_id
+        await logStep("classified_as_donation", "info");
+        
+        // PHASE 3: Cross-check - verify no sponsorship exists with same Stripe ID
+        if (session.subscription) {
+          const { data: existingSponsorship } = await supabaseAdmin
+            .from("sponsorships")
+            .select("id")
+            .eq("stripe_subscription_id", session.subscription)
+            .eq("stripe_mode", stripeMode)
+            .maybeSingle();
+          
+          if (existingSponsorship) {
+            await logStep("duplicate_prevention", "warning", {
+              message: "Sponsorship already exists for this subscription - skipping donation creation",
+              sponsorship_id: existingSponsorship.id,
+              subscription_id: session.subscription
+            });
+            return;
+          }
+        }
+        
         await processDonationCheckout(session, supabaseAdmin, stripeMode, logStep, logId);
-      } else if (session.mode === "subscription" && session.subscription) {
-        await processSponsorshipCheckout(session, stripe, supabaseAdmin, stripeMode, logStep, logId);
+      } else {
+        await logStep("classification_failed", "warning", {
+          message: "Could not classify checkout - missing both bestie_id and donation type",
+          metadata: session.metadata
+        });
       }
       break;
     }
 
     case "invoice.payment_succeeded":
     case "invoice.paid": {
-      await logStep('processing_invoice_payment', 'info');
+      await logStep("processing_invoice_payment", "info");
       
       const invoice = event.data.object as Stripe.Invoice;
       
-      if (invoice.billing_reason === 'subscription_create') {
-        await logStep('skipping_initial_invoice', 'info', { reason: 'Handled by checkout.session.completed' });
+      if (invoice.billing_reason === "subscription_create") {
+        await logStep("skipping_initial_invoice", "info", {
+          reason: "Handled by checkout.session.completed",
+        });
         return;
       }
       
       const subscriptionId = getSubscriptionFromInvoice(invoice);
       
       if (!subscriptionId) {
-        await logStep('invoice_not_subscription', 'info');
+        await logStep("invoice_not_subscription", "info");
         return;
       }
       
-      await logStep('found_subscription_id', 'info', { subscription_id: subscriptionId });
+      await logStep("found_subscription_id", "info", {
+        subscription_id: subscriptionId,
+      });
 
-      await processRecurringPayment(invoice, stripe, supabaseAdmin, stripeMode, logStep, logId, subscriptionId);
+      await processRecurringPayment(
+        invoice,
+        stripe,
+        supabaseAdmin,
+        stripeMode,
+        logStep,
+        logId,
+        subscriptionId
+      );
       break;
     }
 
     default:
-      await logStep('unhandled_event_type', 'info', { event_type: event.type });
+      await logStep("unhandled_event_type", "info", {
+        event_type: event.type,
+      });
       
       if (logId) {
         await supabaseAdmin
-          .from('stripe_webhook_logs')
-          .update({ processing_status: 'skipped' })
-          .eq('id', logId);
+          .from("stripe_webhook_logs")
+          .update({ processing_status: "skipped" })
+          .eq("id", logId);
       }
   }
 }
@@ -525,436 +310,108 @@ async function processDonationCheckout(
 ) {
   const customerEmail = session.customer_details?.email;
   if (!customerEmail) {
-    await logStep('customer_email_missing', 'error');
+    await logStep("customer_email_missing", "error");
     throw new Error("No customer email in donation checkout session");
   }
 
-  await logStep('fetching_user_for_donation', 'info', { email: customerEmail });
+  await logStep("fetching_user_for_donation", "info", {
+    email: customerEmail,
+  });
   const { data: profileData } = await supabaseAdmin
-    .from('profiles')
-    .select('id, email')
-    .eq('email', customerEmail)
+    .from("profiles")
+    .select("id, email")
+    .eq("email", customerEmail)
     .maybeSingle();
   
   const user = profileData ? { id: profileData.id, email: profileData.email } : null;
   const amountCharged = session.amount_total ? session.amount_total / 100 : 0;
   
   if (session.mode === "payment") {
-    await logStep('processing_one_time_donation', 'info', { 
+    await logStep("processing_one_time_donation", "info", {
       amount_charged: amountCharged,
-      session_id: session.id
+      session_id: session.id,
     });
     
-    let donationData = null;
-    let updateError = null;
-
-    // STRATEGY 1 (PRIMARY): Match by stripe_checkout_session_id for unique identification
-    await logStep('trying_session_id_match', 'info', { session_id: session.id });
-    const sessionIdResult = await supabaseAdmin
+    const { data: donation, error: donationError } = await supabaseAdmin
       .from("donations")
-      .update({ 
-        status: "completed",
-        amount_charged: amountCharged,
-        stripe_payment_intent_id: session.payment_intent as string || null
+      .insert({
+        donor_id: user?.id,
+        donor_email: customerEmail,
+        amount: amountCharged,
+        currency: session.currency,
+        status: "succeeded",
+        payment_method: "stripe",
+        stripe_checkout_session_id: session.id,
+        stripe_payment_intent_id: session.payment_intent as string,
+        stripe_mode: stripeMode,
       })
-      .eq("stripe_checkout_session_id", session.id)
-      .eq("status", "pending")
       .select()
-      .maybeSingle();
-    
-    donationData = sessionIdResult.data;
-    updateError = sessionIdResult.error;
+      .single();
 
-    // FALLBACK STRATEGIES: For legacy donations without session_id (created before this fix)
-    if (!donationData && !updateError) {
-      await logStep('session_id_not_found_trying_fallbacks', 'info');
-      
-      // STRATEGY 2: Try matching by stripe_customer_id + exact amount + limit to most recent
-      await logStep('trying_customer_id_exact_match', 'info');
-      const customerIdResult = await supabaseAdmin
-        .from("donations")
-        .select('*')
-        .eq("stripe_customer_id", session.customer)
-        .eq("amount", amountCharged)
-        .eq("frequency", "one-time")
-        .eq("status", "pending")
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (customerIdResult.data && !customerIdResult.error) {
-        const updateResult = await supabaseAdmin
-          .from("donations")
-          .update({ 
-            status: "completed",
-            amount_charged: amountCharged,
-            stripe_payment_intent_id: session.payment_intent as string || null,
-            stripe_checkout_session_id: session.id  // Backfill session ID
-          })
-          .eq("id", customerIdResult.data.id)
-          .select()
-          .single();
-        
-        donationData = updateResult.data;
-        updateError = updateResult.error;
-      }
-    }
-
-    // STRATEGY 3: Try matching by stripe_customer_id + base amount (reverse fee coverage)
-    if (!donationData && !updateError) {
-      const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
-      await logStep('trying_customer_id_base_match', 'info', { 
-        amount_charged: amountCharged, 
-        calculated_base: baseAmount 
+    if (donationError) {
+      await logStep("donation_creation_failed", "error", {
+        error: donationError.message,
       });
-      
-      const baseAmountResult = await supabaseAdmin
-        .from("donations")
-        .select('*')
-        .eq("stripe_customer_id", session.customer)
-        .eq("amount", baseAmount)
-        .eq("frequency", "one-time")
-        .eq("status", "pending")
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (baseAmountResult.data && !baseAmountResult.error) {
-        const updateResult = await supabaseAdmin
-          .from("donations")
-          .update({ 
-            status: "completed",
-            amount_charged: amountCharged,
-            stripe_payment_intent_id: session.payment_intent as string || null,
-            stripe_checkout_session_id: session.id  // Backfill session ID
-          })
-          .eq("id", baseAmountResult.data.id)
-          .select()
-          .single();
-        
-        donationData = updateResult.data;
-        updateError = updateResult.error;
-      }
+      throw donationError;
     }
 
-    // STRATEGY 4: Fallback to email matching (for edge cases with legacy records)
-    if (!donationData && !updateError && customerEmail) {
-      await logStep('trying_email_match', 'info');
-      
-      // Try exact amount first
-      const emailExactResult = await supabaseAdmin
-        .from("donations")
-        .select('*')
-        .eq("donor_email", customerEmail)
-        .eq("amount", amountCharged)
-        .eq("frequency", "one-time")
-        .eq("status", "pending")
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (emailExactResult.data && !emailExactResult.error) {
-        const updateResult = await supabaseAdmin
-          .from("donations")
-          .update({ 
-            status: "completed",
-            amount_charged: amountCharged,
-            stripe_payment_intent_id: session.payment_intent as string || null,
-            stripe_checkout_session_id: session.id  // Backfill session ID
-          })
-          .eq("id", emailExactResult.data.id)
-          .select()
-          .single();
-        
-        donationData = updateResult.data;
-        updateError = updateResult.error;
-      }
-      
-      // Try base amount if exact didn't work
-      if (!donationData && !updateError) {
-        const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
-        
-        const emailBaseResult = await supabaseAdmin
-          .from("donations")
-          .select('*')
-          .eq("donor_email", customerEmail)
-          .eq("amount", baseAmount)
-          .eq("frequency", "one-time")
-          .eq("status", "pending")
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (emailBaseResult.data && !emailBaseResult.error) {
-          const updateResult = await supabaseAdmin
-            .from("donations")
-            .update({ 
-              status: "completed",
-              amount_charged: amountCharged,
-              stripe_payment_intent_id: session.payment_intent as string || null,
-              stripe_checkout_session_id: session.id  // Backfill session ID
-            })
-            .eq("id", emailBaseResult.data.id)
-            .select()
-            .single();
-          
-          donationData = updateResult.data;
-          updateError = updateResult.error;
-        }
-      }
-    }
+    await logStep("one_time_donation_created", "success", {
+      donation_id: donation.id,
+    });
 
-    if (updateError || !donationData) {
-      await logStep('donation_update_failed', 'error', { 
-        error: updateError?.message || 'No matching donation found',
-        customer_id: session.customer,
-        customer_email: customerEmail,
-        amount_charged: amountCharged
-      });
-      throw new Error(`Error updating one-time donation: ${updateError?.message || 'No matching donation found'}`);
-    }
-    
-    await logStep('donation_completed', 'success', { donation_id: donationData.id });
-    
     if (logId) {
       await supabaseAdmin
-        .from('stripe_webhook_logs')
-        .update({ 
-          related_record_type: 'donation',
-          related_record_id: donationData.id 
+        .from("stripe_webhook_logs")
+        .update({
+          related_record_type: "donation",
+          related_record_id: donation.id,
         })
-        .eq('id', logId);
+        .eq("id", logId);
     }
-    
-    await createAndSendReceipt(
-      supabaseAdmin,
-      {
-        sponsor_email: customerEmail,
-        sponsor_name: customerEmail.split('@')[0],
-        bestie_name: 'General Support',
-        amount: donationData.amount, // Use base amount for receipt
-        frequency: 'one-time',
-        transaction_id: session.id,
-        transaction_date: new Date().toISOString(),
-        stripe_mode: donationData.stripe_mode || 'live',
-        user_id: user?.id,
-      },
-      logStep,
-      donationData.id,
-      'donation'
-    );
   } else if (session.mode === "subscription" && session.subscription) {
-    const subscriptionId = session.subscription as string;
-    
-    await logStep('processing_monthly_donation', 'info', { 
-      amount_charged: amountCharged, 
-      subscription_id: subscriptionId,
-      session_id: session.id
+    await logStep("processing_monthly_donation", "info", {
+      amount_charged: amountCharged,
+      subscription_id: session.subscription,
     });
-    
-    let donationData = null;
-    let updateError = null;
 
-    // STRATEGY 1 (PRIMARY): Match by stripe_checkout_session_id for unique identification
-    await logStep('trying_session_id_match', 'info', { session_id: session.id });
-    const sessionIdResult = await supabaseAdmin
+    const { data: donation, error: donationError } = await supabaseAdmin
       .from("donations")
-      .update({
+      .insert({
+        donor_id: user?.id,
+        donor_email: customerEmail,
+        amount: amountCharged,
+        currency: session.currency,
+        frequency: "monthly",
         status: "active",
-        stripe_subscription_id: subscriptionId,
-        started_at: new Date().toISOString(),
-        amount_charged: amountCharged
+        payment_method: "stripe",
+        stripe_subscription_id: session.subscription,
+        stripe_customer_id: session.customer as string,
+        stripe_checkout_session_id: session.id,
+        stripe_mode: stripeMode,
       })
-      .eq("stripe_checkout_session_id", session.id)
-      .eq("status", "pending")
       .select()
-      .maybeSingle();
-    
-    donationData = sessionIdResult.data;
-    updateError = sessionIdResult.error;
+      .single();
 
-    // FALLBACK STRATEGIES: For legacy donations without session_id (created before this fix)
-    if (!donationData && !updateError) {
-      await logStep('session_id_not_found_trying_fallbacks', 'info');
-      
-      // STRATEGY 2: Try matching by stripe_customer_id + exact amount + limit to most recent
-      await logStep('trying_customer_id_exact_match', 'info');
-      const customerIdResult = await supabaseAdmin
-        .from("donations")
-        .select('*')
-        .eq("stripe_customer_id", session.customer)
-        .eq("amount", amountCharged)
-        .eq("frequency", "monthly")
-        .eq("status", "pending")
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (customerIdResult.data && !customerIdResult.error) {
-        const updateResult = await supabaseAdmin
-          .from("donations")
-          .update({
-            status: "active",
-            stripe_subscription_id: subscriptionId,
-            started_at: new Date().toISOString(),
-            amount_charged: amountCharged,
-            stripe_checkout_session_id: session.id  // Backfill session ID
-          })
-          .eq("id", customerIdResult.data.id)
-          .select()
-          .single();
-        
-        donationData = updateResult.data;
-        updateError = updateResult.error;
-      }
-    }
-
-    // STRATEGY 3: Try matching by stripe_customer_id + base amount (reverse fee coverage)
-    if (!donationData && !updateError) {
-      const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
-      await logStep('trying_customer_id_base_match', 'info', { 
-        amount_charged: amountCharged, 
-        calculated_base: baseAmount 
+    if (donationError) {
+      await logStep("monthly_donation_creation_failed", "error", {
+        error: donationError.message,
       });
-      
-      const baseAmountResult = await supabaseAdmin
-        .from("donations")
-        .select('*')
-        .eq("stripe_customer_id", session.customer)
-        .eq("amount", baseAmount)
-        .eq("frequency", "monthly")
-        .eq("status", "pending")
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (baseAmountResult.data && !baseAmountResult.error) {
-        const updateResult = await supabaseAdmin
-          .from("donations")
-          .update({
-            status: "active",
-            stripe_subscription_id: subscriptionId,
-            started_at: new Date().toISOString(),
-            amount_charged: amountCharged,
-            stripe_checkout_session_id: session.id  // Backfill session ID
-          })
-          .eq("id", baseAmountResult.data.id)
-          .select()
-          .single();
-        
-        donationData = updateResult.data;
-        updateError = updateResult.error;
-      }
+      throw donationError;
     }
 
-    // STRATEGY 4: Fallback to email matching (for edge cases with legacy records)
-    if (!donationData && !updateError && customerEmail) {
-      await logStep('trying_email_match', 'info');
-      
-      // Try exact amount first
-      const emailExactResult = await supabaseAdmin
-        .from("donations")
-        .select('*')
-        .eq("donor_email", customerEmail)
-        .eq("amount", amountCharged)
-        .eq("frequency", "monthly")
-        .eq("status", "pending")
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (emailExactResult.data && !emailExactResult.error) {
-        const updateResult = await supabaseAdmin
-          .from("donations")
-          .update({
-            status: "active",
-            stripe_subscription_id: subscriptionId,
-            started_at: new Date().toISOString(),
-            amount_charged: amountCharged,
-            stripe_checkout_session_id: session.id  // Backfill session ID
-          })
-          .eq("id", emailExactResult.data.id)
-          .select()
-          .single();
-        
-        donationData = updateResult.data;
-        updateError = updateResult.error;
-      }
-      
-      // Try base amount if exact didn't work
-      if (!donationData && !updateError) {
-        const baseAmount = Math.round(((amountCharged * 0.971) - 0.30) * 100) / 100;
-        
-        const emailBaseResult = await supabaseAdmin
-          .from("donations")
-          .select('*')
-          .eq("donor_email", customerEmail)
-          .eq("amount", baseAmount)
-          .eq("frequency", "monthly")
-          .eq("status", "pending")
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        if (emailBaseResult.data && !emailBaseResult.error) {
-          const updateResult = await supabaseAdmin
-            .from("donations")
-            .update({
-              status: "active",
-              stripe_subscription_id: subscriptionId,
-              started_at: new Date().toISOString(),
-              amount_charged: amountCharged,
-              stripe_checkout_session_id: session.id  // Backfill session ID
-            })
-            .eq("id", emailBaseResult.data.id)
-            .select()
-            .single();
-          
-          donationData = updateResult.data;
-          updateError = updateResult.error;
-        }
-      }
-    }
+    await logStep("monthly_donation_created", "success", {
+      donation_id: donation.id,
+    });
 
-    if (updateError || !donationData) {
-      await logStep('donation_update_failed', 'error', { 
-        error: updateError?.message || 'No matching donation found',
-        customer_id: session.customer,
-        customer_email: customerEmail,
-        amount_charged: amountCharged
-      });
-      throw new Error(`Error updating monthly donation: ${updateError?.message || 'No matching donation found'}`);
-    }
-    
-    await logStep('donation_activated', 'success', { donation_id: donationData.id });
-    
     if (logId) {
       await supabaseAdmin
-        .from('stripe_webhook_logs')
-        .update({ 
-          related_record_type: 'donation',
-          related_record_id: donationData.id 
+        .from("stripe_webhook_logs")
+        .update({
+          related_record_type: "donation",
+          related_record_id: donation.id,
         })
-        .eq('id', logId);
+        .eq("id", logId);
     }
-    
-    await createAndSendReceipt(
-      supabaseAdmin,
-      {
-        sponsor_email: customerEmail,
-        sponsor_name: customerEmail.split('@')[0],
-        bestie_name: 'General Support',
-        amount: donationData.amount, // Use base amount for receipt
-        frequency: 'monthly',
-        transaction_id: session.id,
-        transaction_date: new Date().toISOString(),
-        stripe_mode: donationData.stripe_mode || 'live',
-        user_id: user?.id,
-      },
-      logStep,
-      donationData.id,
-      'donation'
-    );
   }
 }
 
@@ -968,113 +425,116 @@ async function processSponsorshipCheckout(
 ) {
   const subscriptionId = session.subscription as string;
   
-  await logStep('retrieving_subscription', 'info', { subscription_id: subscriptionId });
+  await logStep("fetching_subscription", "info", {
+    subscription_id: subscriptionId,
+  });
+  
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const customerEmail = session.customer_details?.email || session.customer_email;
   
-  const customerEmail = session.customer_details?.email;
   if (!customerEmail) {
-    await logStep('customer_email_missing', 'error');
-    throw new Error("No customer email in checkout session");
+    await logStep("customer_email_missing", "error");
+    throw new Error("No customer email in session");
   }
 
-  await logStep('fetching_user_for_sponsorship', 'info', { email: customerEmail });
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-  
-  if (authError) {
-    await logStep('user_fetch_failed', 'error', { error: authError.message });
-    throw new Error(`Error fetching users: ${authError.message}`);
-  }
-
-  const user = authData.users.find((u: any) => u.email === customerEmail);
-  if (!user) {
-    await logStep('user_not_found', 'error', { email: customerEmail });
-    throw new Error("User not found for email: " + customerEmail);
-  }
+  await logStep("fetching_user", "info", { email: customerEmail });
+  const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+  const user = usersData.users.find(
+    (u: any) => u.email?.toLowerCase() === customerEmail.toLowerCase()
+  );
+  const userId = user?.id || null;
 
   const sponsorBestieId = session.metadata?.bestie_id;
   if (!sponsorBestieId) {
-    await logStep('bestie_id_missing', 'error');
-    throw new Error("No bestie_id in session metadata");
+    await logStep("bestie_id_missing", "error");
+    throw new Error("No bestie_id in sponsorship session metadata");
   }
 
-  const amount = session.amount_total ? session.amount_total / 100 : 0;
-  const frequency = subscription.items.data[0]?.price.recurring?.interval === "month" ? "monthly" : "yearly";
+  // Check if sponsorship already exists
+  const { data: existingSponsorship } = await supabaseAdmin
+    .from("sponsorships")
+    .select("id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .eq("stripe_mode", stripeMode)
+    .maybeSingle();
 
-  // Fetch bestie_id from sponsor_besties table
-  let bestieId = null;
-  const { data: sponsorBestie } = await supabaseAdmin
+  if (existingSponsorship) {
+    await logStep("sponsorship_already_exists", "info", {
+      sponsorship_id: existingSponsorship.id,
+    });
+    return;
+  }
+
+  // Get bestie details
+  const { data: sponsorBestieData } = await supabaseAdmin
     .from("sponsor_besties")
-    .select("bestie_id")
+    .select("bestie_id, bestie_name")
     .eq("id", sponsorBestieId)
     .single();
-  
-  if (sponsorBestie?.bestie_id) {
-    bestieId = sponsorBestie.bestie_id;
-    await logStep('found_bestie_id', 'info', { bestie_id: bestieId });
+
+  if (!sponsorBestieData) {
+    await logStep("sponsor_bestie_not_found", "error");
+    throw new Error("Sponsor bestie not found");
   }
 
-  await logStep('creating_sponsorship', 'info', { 
-    sponsor_bestie_id: sponsorBestieId, 
-    bestie_id: bestieId,
-    amount, 
-    frequency 
+  const amount = subscription.items.data[0]?.price?.unit_amount
+    ? subscription.items.data[0].price.unit_amount / 100
+    : 0;
+
+  await logStep("creating_sponsorship", "info", {
+    amount,
+    bestie_id: sponsorBestieData.bestie_id,
   });
-  
-  const { data: sponsorshipData, error: upsertError } = await supabaseAdmin
+
+  const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
     .from("sponsorships")
-    .upsert({
-      sponsor_id: user.id,
-      sponsor_email: customerEmail,
+    .insert({
+      sponsor_id: userId,
+      sponsor_email: userId ? null : customerEmail,
       sponsor_bestie_id: sponsorBestieId,
-      bestie_id: bestieId,
+      bestie_id: sponsorBestieData.bestie_id,
       amount: amount,
-      frequency: frequency,
+      frequency: "monthly",
       status: "active",
       started_at: new Date().toISOString(),
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: session.customer as string,
       stripe_checkout_session_id: session.id,
       stripe_mode: stripeMode,
-    }, {
-      onConflict: "sponsor_id,sponsor_bestie_id",
     })
-    .select('id')
+    .select()
     .single();
 
-  if (upsertError) {
-    await logStep('sponsorship_creation_failed', 'error', { error: upsertError.message });
-    throw new Error(`Error creating sponsorship: ${upsertError.message}`);
+  if (sponsorshipError) {
+    await logStep("sponsorship_creation_failed", "error", {
+      error: sponsorshipError.message,
+    });
+    throw sponsorshipError;
   }
-  
-  await logStep('sponsorship_created', 'success', { sponsorship_id: sponsorshipData.id });
-  
+
+  await logStep("sponsorship_created", "success", {
+    sponsorship_id: sponsorship.id,
+  });
+
   if (logId) {
     await supabaseAdmin
-      .from('stripe_webhook_logs')
-      .update({ 
-        related_record_type: 'sponsorship',
-        related_record_id: sponsorshipData.id 
+      .from("stripe_webhook_logs")
+      .update({
+        related_record_type: "sponsorship",
+        related_record_id: sponsorship.id,
       })
-      .eq('id', logId);
+      .eq("id", logId);
   }
-  
-  await createAndSendReceipt(
+
+  // Generate receipt
+  await generateSponsorshipReceipt(
+    sponsorship,
+    customerEmail,
+    sponsorBestieData.bestie_name,
+    session.id,
+    stripeMode,
     supabaseAdmin,
-    {
-      sponsorship_id: sponsorshipData.id,
-      sponsor_email: customerEmail,
-      sponsor_name: customerEmail.split('@')[0],
-      bestie_name: 'Bestie',
-      amount,
-      frequency,
-      transaction_id: session.id,
-      transaction_date: new Date().toISOString(),
-      stripe_mode: stripeMode,
-      user_id: user.id,
-    },
-    logStep,
-    sponsorshipData.id,
-    'sponsorship'
+    logStep
   );
 }
 
@@ -1089,214 +549,100 @@ async function processRecurringPayment(
 ) {
   const customerEmail = invoice.customer_email;
   if (!customerEmail) {
-    await logStep('customer_email_missing', 'info');
+    await logStep("customer_email_missing", "error");
+    throw new Error("No customer email in invoice");
+  }
+
+  const { data: sponsorship } = await supabaseAdmin
+    .from("sponsorships")
+    .select("id, status, bestie_id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .eq("stripe_mode", stripeMode)
+    .single();
+
+  if (!sponsorship) {
+    await logStep("sponsorship_not_found", "error", { subscriptionId });
     return;
   }
 
-  await logStep('fetching_user_for_recurring', 'info', { email: customerEmail });
-  const { data: profileData } = await supabaseAdmin
-    .from('profiles')
-    .select('id, email')
-    .eq('email', customerEmail)
-    .maybeSingle();
-  
-  const user = profileData ? { id: profileData.id, email: profileData.email } : null;
-  if (!user) {
-    await logStep('user_not_found_continuing_as_guest', 'info', { email: customerEmail });
+  if (sponsorship.status !== "active") {
+    await logStep("sponsorship_not_active", "info", {
+      sponsorshipId: sponsorship.id,
+      status: sponsorship.status,
+    });
+    return;
   }
 
-  await logStep('retrieving_subscription', 'info', { subscription_id: subscriptionId });
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const sponsorBestieId = subscription.metadata?.bestie_id;
-  
-  const amount = invoice.amount_paid ? invoice.amount_paid / 100 : 0;
-  
-  if (sponsorBestieId) {
-    await logStep('processing_sponsorship_recurring', 'info', { bestie_id: sponsorBestieId });
-    
-    // Only process sponsorship if user exists (sponsorships require accounts)
-    if (user) {
-      const { data: sponsorshipData } = await supabaseAdmin
-        .from('sponsorships')
-        .select('id')
-        .eq('sponsor_id', user.id)
-        .eq('sponsor_bestie_id', sponsorBestieId)
-        .single();
+  const { data: bestieData } = await supabaseAdmin
+    .from("besties")
+    .select("bestie_name")
+    .eq("id", sponsorship.bestie_id)
+    .single();
 
-      if (sponsorshipData) {
-        await createAndSendReceipt(
-          supabaseAdmin,
-          {
-            sponsorship_id: sponsorshipData.id,
-            sponsor_email: customerEmail,
-            sponsor_name: customerEmail.split('@')[0],
-            bestie_name: 'Bestie',
-            amount,
-            frequency: 'monthly',
-            transaction_id: invoice.id,
-            transaction_date: new Date(invoice.created * 1000).toISOString(),
-            stripe_mode: stripeMode,
-            user_id: user.id,
-          },
-          logStep,
-          sponsorshipData.id,
-          'sponsorship'
-        );
-        
-        if (logId) {
-          await supabaseAdmin
-            .from('stripe_webhook_logs')
-            .update({ 
-              related_record_type: 'sponsorship',
-              related_record_id: sponsorshipData.id 
-            })
-            .eq('id', logId);
-        }
-      }
-    } else {
-      await logStep('sponsorship_skipped_no_user', 'info', { reason: 'Sponsorships require user accounts' });
-    }
-  } else {
-    await logStep('processing_donation_recurring', 'info');
-    
-    // For donations, look up by email and subscription ID (works for both guest and registered donors)
-    const { data: donationData } = await supabaseAdmin
-      .from('donations')
-      .select('*')
-      .eq('donor_email', customerEmail)
-      .eq('stripe_subscription_id', subscriptionId)
-      .eq('status', 'active')
-      .single();
-
-    if (donationData) {
-      await createAndSendReceipt(
-        supabaseAdmin,
-        {
-          sponsor_email: customerEmail,
-          sponsor_name: customerEmail.split('@')[0],
-          bestie_name: 'General Support',
-          amount,
-          frequency: 'monthly',
-          transaction_id: invoice.id,
-          transaction_date: new Date(invoice.created * 1000).toISOString(),
-          stripe_mode: donationData.stripe_mode || 'live',
-          user_id: user?.id || null,
-        },
-        logStep,
-        donationData.id,
-        'donation'
-      );
-      
-      if (logId) {
-        await supabaseAdmin
-          .from('stripe_webhook_logs')
-          .update({ 
-            related_record_type: 'donation',
-            related_record_id: donationData.id 
-          })
-          .eq('id', logId);
-      }
-    } else {
-      await logStep('donation_not_found', 'error', { 
-        email: customerEmail, 
-        subscription_id: subscriptionId,
-        reason: 'No active donation record found for this subscription'
-      });
-    }
+  if (!bestieData) {
+    await logStep("bestie_not_found", "error", {
+      bestieId: sponsorship.bestie_id,
+    });
+    return;
   }
+
+  const amountPaid = invoice.amount_paid ? invoice.amount_paid / 100 : 0;
+
+  await logStep("processing_payment", "info", {
+    amount_paid: amountPaid,
+    invoice_id: invoice.id,
+  });
+
+  await generateSponsorshipReceipt(
+    sponsorship,
+    customerEmail,
+    bestieData.bestie_name,
+    invoice.id,
+    stripeMode,
+    supabaseAdmin,
+    logStep
+  );
 }
 
-async function createAndSendReceipt(
+async function generateSponsorshipReceipt(
+  sponsorship: any,
+  customerEmail: string,
+  bestieName: string,
+  transactionId: string,
+  stripeMode: string,
   supabaseAdmin: any,
-  receiptData: any,
-  logStep: Function,
-  relatedId: string,
-  relatedType: 'donation' | 'sponsorship'
+  logStep: Function
 ) {
-  await logStep('creating_receipt', 'info', { transaction_id: receiptData.transaction_id });
-  
-  const receiptRecord = {
-    ...receiptData,
-    receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-    tax_year: new Date().getFullYear(),
-  };
-  
-  const { data: insertedReceipt, error: insertError } = await supabaseAdmin
-    .from('sponsorship_receipts')
-    .insert(receiptRecord)
+  await logStep("generating_receipt", "info", {
+    sponsorship_id: sponsorship.id,
+    email: customerEmail,
+  });
+
+  const { data: receipt, error: receiptError } = await supabaseAdmin
+    .from("sponsorship_receipts")
+    .insert({
+      sponsorship_id: sponsorship.id,
+      email: customerEmail,
+      bestie_name: bestieName,
+      transaction_id: transactionId,
+      stripe_mode: stripeMode,
+    })
     .select()
     .single();
 
-  if (insertError) {
-    if (insertError.code === '23505') {
-      await logStep('receipt_already_exists', 'info', { transaction_id: receiptData.transaction_id });
-      return;
-    }
-    await logStep('receipt_creation_failed', 'error', { error: insertError.message });
-    throw new Error(`Error inserting receipt record: ${insertError.message}`);
+  if (receiptError) {
+    await logStep("receipt_generation_failed", "error", {
+      error: receiptError.message,
+    });
+    throw receiptError;
   }
-  
-  await logStep('receipt_created', 'success', { receipt_id: insertedReceipt.id });
-  
-  // Log receipt creation
-  await supabaseAdmin.from('receipt_generation_logs').insert({
-    [relatedType + '_id']: relatedId,
-    receipt_id: insertedReceipt.id,
-    stage: 'webhook_receipt_created',
-    status: 'success',
-    metadata: { transaction_id: receiptData.transaction_id }
-  });
 
-  await logStep('sending_receipt_email', 'info');
-  
-  try {
-    const emailBody: any = {
-      sponsorEmail: receiptData.sponsor_email,
-      bestieName: receiptData.bestie_name,
-      amount: receiptData.amount,
-      frequency: receiptData.frequency,
-      transactionId: receiptData.transaction_id,
-      transactionDate: receiptData.transaction_date,
-      stripeMode: receiptData.stripe_mode,
-    };
-    
-    if (receiptData.sponsorship_id) {
-      emailBody.sponsorshipId = receiptData.sponsorship_id;
-    }
-    
-    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-      },
-      body: JSON.stringify(emailBody),
-    });
-    
-    await logStep('receipt_email_sent', 'success', { email: receiptData.sponsor_email });
-    
-    // Log email sent
-    await supabaseAdmin.from('receipt_generation_logs').insert({
-      [relatedType + '_id']: relatedId,
-      receipt_id: insertedReceipt.id,
-      stage: 'webhook_email_sent',
-      status: 'success',
-      metadata: { transaction_id: receiptData.transaction_id }
-    });
-  } catch (emailError) {
-    await logStep('receipt_email_failed', 'error', { 
-      error: emailError instanceof Error ? emailError.message : 'Unknown error'
-    });
-    
-    // Log email failure
-    await supabaseAdmin.from('receipt_generation_logs').insert({
-      [relatedType + '_id']: relatedId,
-      receipt_id: insertedReceipt.id,
-      stage: 'webhook_email_failed',
-      status: 'error',
-      error_message: emailError instanceof Error ? emailError.message : 'Unknown error'
-    });
-    
-    throw emailError;
+  await logStep("receipt_generated", "success", { receipt_id: receipt.id });
+}
+
+function getSubscriptionFromInvoice(invoice: Stripe.Invoice): string | null {
+  if (typeof invoice.subscription === "string") {
+    return invoice.subscription;
   }
+  return null;
 }
