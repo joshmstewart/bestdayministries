@@ -89,9 +89,29 @@ serve(async (req) => {
       stripe_subscription_id: string;
     }> = [];
 
+    // Track detailed logs
+    const detailedLogs: Array<{
+      timestamp: string;
+      sponsorship_id: string;
+      level: 'info' | 'success' | 'warning' | 'error';
+      message: string;
+      details?: any;
+    }> = [];
+
     for (const sponsorship of sponsorships || []) {
       try {
         results.checked++;
+        detailedLogs.push({
+          timestamp: new Date().toISOString(),
+          sponsorship_id: sponsorship.id,
+          level: 'info',
+          message: `Checking sponsorship ${sponsorship.id}`,
+          details: {
+            current_status: sponsorship.status,
+            stripe_subscription_id: sponsorship.stripe_subscription_id,
+            stripe_mode: sponsorship.stripe_mode,
+          }
+        });
         console.log(`\nChecking sponsorship ${sponsorship.id}...`);
         console.log(`  Current status: ${sponsorship.status}`);
         console.log(`  Stripe subscription: ${sponsorship.stripe_subscription_id}`);
@@ -170,6 +190,8 @@ serve(async (req) => {
       }
     }
 
+    const endTime = new Date().toISOString();
+
     // Log the job execution
     try {
       const { data: jobLog, error: logError } = await supabaseAdmin
@@ -177,7 +199,7 @@ serve(async (req) => {
         .insert({
           job_name: 'sync-sponsorships',
           ran_at: startTime,
-          completed_at: new Date().toISOString(),
+          completed_at: endTime,
           stripe_mode: stripeMode,
           triggered_by: user?.id || 'system',
           checked_count: results.checked,
@@ -186,6 +208,12 @@ serve(async (req) => {
           error_count: results.errors.length,
           errors: results.errors,
           status: results.errors.length > 0 ? 'partial_failure' : 'success',
+          metadata: {
+            detailed_logs: detailedLogs,
+            start_time: startTime,
+            end_time: endTime,
+            cancelled_count: results.cancelled,
+          }
         })
         .select()
         .single();
@@ -214,7 +242,6 @@ serve(async (req) => {
       // Don't fail the whole operation if logging fails
     }
 
-    const endTime = new Date().toISOString();
     console.log(`\n=== Sync Complete ===`);
     console.log(`Started: ${startTime}`);
     console.log(`Completed: ${endTime}`);

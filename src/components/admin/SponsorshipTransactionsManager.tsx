@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getFullErrorText } from "@/lib/errorUtils";
 import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2, Download } from "lucide-react";
 import { format } from "date-fns";
+import { ReconciliationJobLogsDialog } from "./ReconciliationJobLogsDialog";
 import {
   Dialog,
   DialogContent,
@@ -92,6 +93,7 @@ export const SponsorshipTransactionsManager = () => {
   const [lastRecoveryJob, setLastRecoveryJob] = useState<any>(null);
   const [lastSyncJob, setLastSyncJob] = useState<any>(null);
   const [jobLogsDialogOpen, setJobLogsDialogOpen] = useState(false);
+  const [selectedJobLog, setSelectedJobLog] = useState<any>(null);
   const [jobLogs, setJobLogs] = useState<any[]>([]);
   const [loadingJobLogs, setLoadingJobLogs] = useState(false);
   const [expandedJobIds, setExpandedJobIds] = useState<Set<string>>(new Set());
@@ -1376,12 +1378,26 @@ export const SponsorshipTransactionsManager = () => {
                   Last run: {lastRecoveryJob?.ran_at ? format(new Date(lastRecoveryJob.ran_at), 'PPp') : 'Never'}
                 </p>
                 {lastRecoveryJob && (
-                  <div className="flex gap-3 flex-wrap">
-                    <span>Checked: {lastRecoveryJob.checked_count || 0}</span>
-                    <span className="text-green-600">Fixed: {lastRecoveryJob.updated_count || 0}</span>
-                    <span className="text-yellow-600">Skipped: {lastRecoveryJob.skipped_count || 0}</span>
-                    <span className="text-red-600">Errors: {lastRecoveryJob.error_count || 0}</span>
-                  </div>
+                  <>
+                    <div className="flex gap-3 flex-wrap">
+                      <span>Checked: {lastRecoveryJob.checked_count || 0}</span>
+                      <span className="text-green-600">Fixed: {lastRecoveryJob.updated_count || 0}</span>
+                      <span className="text-yellow-600">Skipped: {lastRecoveryJob.skipped_count || 0}</span>
+                      <span className="text-red-600">Errors: {lastRecoveryJob.error_count || 0}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={() => {
+                        setSelectedJobLog(lastRecoveryJob);
+                        setJobLogsDialogOpen(true);
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Logs
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -1399,11 +1415,25 @@ export const SponsorshipTransactionsManager = () => {
                   Last run: {lastSyncJob?.ran_at ? format(new Date(lastSyncJob.ran_at), 'PPp') : 'Never'}
                 </p>
                 {lastSyncJob && (
-                  <div className="flex gap-3 flex-wrap">
-                    <span>Checked: {lastSyncJob.checked_count || 0}</span>
-                    <span className="text-green-600">Updated: {lastSyncJob.updated_count || 0}</span>
-                    <span className="text-red-600">Errors: {lastSyncJob.error_count || 0}</span>
-                  </div>
+                  <>
+                    <div className="flex gap-3 flex-wrap">
+                      <span>Checked: {lastSyncJob.checked_count || 0}</span>
+                      <span className="text-green-600">Updated: {lastSyncJob.updated_count || 0}</span>
+                      <span className="text-red-600">Errors: {lastSyncJob.error_count || 0}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={() => {
+                        setSelectedJobLog(lastSyncJob);
+                        setJobLogsDialogOpen(true);
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Logs
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -2230,6 +2260,12 @@ export const SponsorshipTransactionsManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <ReconciliationJobLogsDialog
+        open={jobLogsDialogOpen}
+        onOpenChange={setJobLogsDialogOpen}
+        jobLog={selectedJobLog}
+      />
     </div>
   );
 };
