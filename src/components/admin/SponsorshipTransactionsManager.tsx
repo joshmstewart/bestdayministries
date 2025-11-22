@@ -87,6 +87,13 @@ export const SponsorshipTransactionsManager = () => {
   const [fixingEmails, setFixingEmails] = useState(false);
   const [sendingCorrected, setSendingCorrected] = useState(false);
   const [backfillingEmails, setBackfillingEmails] = useState(false);
+  const [runningRecovery, setRunningRecovery] = useState(false);
+  const [runningSync, setRunningSync] = useState(false);
+  const [lastRecoveryJob, setLastRecoveryJob] = useState<any>(null);
+  const [lastSyncJob, setLastSyncJob] = useState<any>(null);
+  const [jobLogsDialogOpen, setJobLogsDialogOpen] = useState(false);
+  const [jobLogs, setJobLogs] = useState<any[]>([]);
+  const [loadingJobLogs, setLoadingJobLogs] = useState(false);
   const { toast } = useToast();
 
   const showErrorToastWithCopy = (context: string, error: any) => {
@@ -121,6 +128,7 @@ export const SponsorshipTransactionsManager = () => {
 
   useEffect(() => {
     loadTransactions();
+    loadReconciliationJobStatus();
   }, []);
 
   useEffect(() => {
@@ -354,6 +362,104 @@ export const SponsorshipTransactionsManager = () => {
     } finally {
       setLoading(false);
       console.log('🔵 [TRANSACTIONS] loadTransactions completed');
+    }
+  };
+
+  const loadReconciliationJobStatus = async () => {
+    try {
+      // Load last recovery job
+      const { data: recoveryJob } = await supabase
+        .from('reconciliation_job_logs')
+        .select('*')
+        .eq('job_name', 'recover-incomplete-sponsorships')
+        .order('ran_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recoveryJob) {
+        setLastRecoveryJob(recoveryJob);
+      }
+
+      // Load last sync job
+      const { data: syncJob } = await supabase
+        .from('reconciliation_job_logs')
+        .select('*')
+        .eq('job_name', 'sync-sponsorships')
+        .order('ran_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (syncJob) {
+        setLastSyncJob(syncJob);
+      }
+    } catch (error) {
+      console.error('Error loading reconciliation job status:', error);
+    }
+  };
+
+  const runRecoveryNow = async () => {
+    setRunningRecovery(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('recover-incomplete-sponsorships');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Recovery Complete",
+        description: `Checked: ${data.checked}, Fixed: ${data.fixed}, Skipped: ${data.skipped}, Errors: ${data.errors.length}`,
+      });
+
+      await loadReconciliationJobStatus();
+      await loadTransactions();
+    } catch (error: any) {
+      showErrorToastWithCopy("Running recovery", error);
+    } finally {
+      setRunningRecovery(false);
+    }
+  };
+
+  const runSyncNow = async () => {
+    setRunningSync(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-sponsorships');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Sync Complete",
+        description: `Checked: ${data.checked}, Updated: ${data.updated}, Cancelled: ${data.cancelled}, Errors: ${data.errors.length}`,
+      });
+
+      await loadReconciliationJobStatus();
+      await loadTransactions();
+    } catch (error: any) {
+      showErrorToastWithCopy("Running sync", error);
+    } finally {
+      setRunningSync(false);
+    }
+  };
+
+  const loadJobLogs = async () => {
+    setLoadingJobLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from('reconciliation_job_logs')
+        .select('*')
+        .order('ran_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      setJobLogs(data || []);
+    } catch (error) {
+      console.error('Error loading job logs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load job logs",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingJobLogs(false);
     }
   };
 
@@ -1245,6 +1351,95 @@ export const SponsorshipTransactionsManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Reconciliation Jobs Status Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Automated Reconciliation Status</CardTitle>
+          <CardDescription>
+            Recent automatic job runs that sync sponsorships with Stripe
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Last Incomplete Sponsorship Recovery */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-sm">Incomplete Sponsorship Recovery</h3>
+                <Badge variant={lastRecoveryJob?.status === 'success' ? 'default' : 'destructive'}>
+                  {lastRecoveryJob?.status || 'Never run'}
+                </Badge>
+              </div>
+              <div className="text-sm space-y-1">
+                <p className="text-muted-foreground">
+                  Last run: {lastRecoveryJob?.ran_at ? format(new Date(lastRecoveryJob.ran_at), 'PPp') : 'Never'}
+                </p>
+                {lastRecoveryJob && (
+                  <div className="flex gap-3 flex-wrap">
+                    <span>Checked: {lastRecoveryJob.checked_count || 0}</span>
+                    <span className="text-green-600">Fixed: {lastRecoveryJob.updated_count || 0}</span>
+                    <span className="text-yellow-600">Skipped: {lastRecoveryJob.skipped_count || 0}</span>
+                    <span className="text-red-600">Errors: {lastRecoveryJob.error_count || 0}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Last Status Sync */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-sm">Sponsorship Status Sync</h3>
+                <Badge variant={lastSyncJob?.status === 'success' ? 'default' : 'destructive'}>
+                  {lastSyncJob?.status || 'Never run'}
+                </Badge>
+              </div>
+              <div className="text-sm space-y-1">
+                <p className="text-muted-foreground">
+                  Last run: {lastSyncJob?.ran_at ? format(new Date(lastSyncJob.ran_at), 'PPp') : 'Never'}
+                </p>
+                {lastSyncJob && (
+                  <div className="flex gap-3 flex-wrap">
+                    <span>Checked: {lastSyncJob.checked_count || 0}</span>
+                    <span className="text-green-600">Updated: {lastSyncJob.updated_count || 0}</span>
+                    <span className="text-red-600">Errors: {lastSyncJob.error_count || 0}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              onClick={runRecoveryNow}
+              disabled={runningRecovery}
+              variant="outline"
+              size="sm"
+            >
+              {runningRecovery && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Run Recovery Now
+            </Button>
+            <Button 
+              onClick={runSyncNow}
+              disabled={runningSync}
+              variant="outline"
+              size="sm"
+            >
+              {runningSync && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Run Status Sync Now
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                loadJobLogs();
+                setJobLogsDialogOpen(true);
+              }}
+            >
+              View Full Job History
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -1785,6 +1980,70 @@ export const SponsorshipTransactionsManager = () => {
               Copy to Clipboard
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Job History Dialog */}
+      <Dialog open={jobLogsDialogOpen} onOpenChange={setJobLogsDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Reconciliation Job History</DialogTitle>
+            <DialogDescription>
+              View all automatic reconciliation job runs and their results
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[600px] pr-4">
+            {loadingJobLogs ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : jobLogs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No job logs yet
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Job</TableHead>
+                    <TableHead>Ran At</TableHead>
+                    <TableHead>Mode</TableHead>
+                    <TableHead>Checked</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead>Errors</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-medium">
+                        {log.job_name === 'recover-incomplete-sponsorships' 
+                          ? 'Recovery' 
+                          : 'Status Sync'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {format(new Date(log.ran_at), 'MMM d, yyyy h:mm a')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={log.stripe_mode === 'live' ? 'default' : 'secondary'}>
+                          {log.stripe_mode}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{log.checked_count}</TableCell>
+                      <TableCell className="text-green-600">{log.updated_count}</TableCell>
+                      <TableCell className="text-red-600">{log.error_count}</TableCell>
+                      <TableCell>
+                        <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
+                          {log.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
