@@ -9,6 +9,7 @@ import { getFullErrorText } from "@/lib/errorUtils";
 import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ReconciliationJobLogsDialog } from "./ReconciliationJobLogsDialog";
+import { PreviewChangesDialog } from "./PreviewChangesDialog";
 import {
   Dialog,
   DialogContent,

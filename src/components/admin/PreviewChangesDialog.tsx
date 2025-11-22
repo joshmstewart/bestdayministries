@@ -40,6 +40,7 @@ interface PreviewChangesDialogProps {
     would_cancel?: number;
     changes: PreviewChange[];
     warnings?: string[];
+    stripe_mode?: string;
   } | null;
   onApprove: () => void;
   executing: boolean;
