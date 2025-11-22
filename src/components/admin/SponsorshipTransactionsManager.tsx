@@ -1490,22 +1490,22 @@ export const SponsorshipTransactionsManager = () => {
 
           <div className="flex gap-2 flex-wrap">
             <Button 
-              onClick={runRecoveryNow}
+              onClick={previewRecovery}
               disabled={runningRecovery}
               variant="outline"
               size="sm"
             >
               {runningRecovery && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Run Recovery Now
+              Preview Recovery Changes
             </Button>
             <Button 
-              onClick={runSyncNow}
+              onClick={previewSync}
               disabled={runningSync}
               variant="outline"
               size="sm"
             >
               {runningSync && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Run Status Sync Now
+              Preview Status Sync
             </Button>
             <Button 
               variant="outline" 
