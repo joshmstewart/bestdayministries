@@ -98,6 +98,10 @@ export const SponsorshipTransactionsManager = () => {
   const [loadingJobLogs, setLoadingJobLogs] = useState(false);
   const [expandedJobIds, setExpandedJobIds] = useState<Set<string>>(new Set());
   const [errorSearchTerm, setErrorSearchTerm] = useState("");
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewJobType, setPreviewJobType] = useState<"recovery" | "sync">("recovery");
+  const [executing, setExecuting] = useState(false);
   const { toast } = useToast();
 
   const showErrorToastWithCopy = (context: string, error: any) => {
@@ -401,10 +405,31 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
-  const runRecoveryNow = async () => {
+  const previewRecovery = async () => {
     setRunningRecovery(true);
     try {
-      const { data, error } = await supabase.functions.invoke('recover-incomplete-sponsorships');
+      const { data, error } = await supabase.functions.invoke('recover-incomplete-sponsorships', {
+        body: { preview_mode: true }
+      });
+      
+      if (error) throw error;
+
+      setPreviewData(data);
+      setPreviewJobType("recovery");
+      setPreviewDialogOpen(true);
+    } catch (error: any) {
+      showErrorToastWithCopy("Previewing recovery changes", error);
+    } finally {
+      setRunningRecovery(false);
+    }
+  };
+
+  const executeRecovery = async () => {
+    setExecuting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('recover-incomplete-sponsorships', {
+        body: { preview_mode: false }
+      });
       
       if (error) throw error;
 
@@ -413,19 +438,41 @@ export const SponsorshipTransactionsManager = () => {
         description: `Checked: ${data.checked}, Fixed: ${data.fixed}, Skipped: ${data.skipped}, Errors: ${data.errors.length}`,
       });
 
+      setPreviewDialogOpen(false);
       await loadReconciliationJobStatus();
       await loadTransactions();
     } catch (error: any) {
-      showErrorToastWithCopy("Running recovery", error);
+      showErrorToastWithCopy("Executing recovery", error);
     } finally {
-      setRunningRecovery(false);
+      setExecuting(false);
     }
   };
 
-  const runSyncNow = async () => {
+  const previewSync = async () => {
     setRunningSync(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-sponsorships');
+      const { data, error } = await supabase.functions.invoke('sync-sponsorships', {
+        body: { preview_mode: true }
+      });
+      
+      if (error) throw error;
+
+      setPreviewData(data);
+      setPreviewJobType("sync");
+      setPreviewDialogOpen(true);
+    } catch (error: any) {
+      showErrorToastWithCopy("Previewing sync changes", error);
+    } finally {
+      setRunningSync(false);
+    }
+  };
+
+  const executeSync = async () => {
+    setExecuting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-sponsorships', {
+        body: { preview_mode: false }
+      });
       
       if (error) throw error;
 
@@ -434,12 +481,13 @@ export const SponsorshipTransactionsManager = () => {
         description: `Checked: ${data.checked}, Updated: ${data.updated}, Cancelled: ${data.cancelled}, Errors: ${data.errors.length}`,
       });
 
+      setPreviewDialogOpen(false);
       await loadReconciliationJobStatus();
       await loadTransactions();
     } catch (error: any) {
-      showErrorToastWithCopy("Running sync", error);
+      showErrorToastWithCopy("Executing sync", error);
     } finally {
-      setRunningSync(false);
+      setExecuting(false);
     }
   };
 
