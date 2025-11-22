@@ -1000,18 +1000,40 @@ async function processSponsorshipCheckout(
   const amount = session.amount_total ? session.amount_total / 100 : 0;
   const frequency = subscription.items.data[0]?.price.recurring?.interval === "month" ? "monthly" : "yearly";
 
-  await logStep('creating_sponsorship', 'info', { bestie_id: sponsorBestieId, amount, frequency });
+  // Fetch bestie_id from sponsor_besties table
+  let bestieId = null;
+  const { data: sponsorBestie } = await supabaseAdmin
+    .from("sponsor_besties")
+    .select("bestie_id")
+    .eq("id", sponsorBestieId)
+    .single();
+  
+  if (sponsorBestie?.bestie_id) {
+    bestieId = sponsorBestie.bestie_id;
+    await logStep('found_bestie_id', 'info', { bestie_id: bestieId });
+  }
+
+  await logStep('creating_sponsorship', 'info', { 
+    sponsor_bestie_id: sponsorBestieId, 
+    bestie_id: bestieId,
+    amount, 
+    frequency 
+  });
   
   const { data: sponsorshipData, error: upsertError } = await supabaseAdmin
     .from("sponsorships")
     .upsert({
       sponsor_id: user.id,
+      sponsor_email: customerEmail,
       sponsor_bestie_id: sponsorBestieId,
+      bestie_id: bestieId,
       amount: amount,
       frequency: frequency,
       status: "active",
       started_at: new Date().toISOString(),
       stripe_subscription_id: subscriptionId,
+      stripe_customer_id: session.customer as string,
+      stripe_checkout_session_id: session.id,
       stripe_mode: stripeMode,
     }, {
       onConflict: "sponsor_id,sponsor_bestie_id",
