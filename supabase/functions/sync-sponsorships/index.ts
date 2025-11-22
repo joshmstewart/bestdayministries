@@ -14,6 +14,9 @@ serve(async (req) => {
 
   try {
     const startTime = new Date().toISOString();
+    console.log(`\n=== Starting Sponsorship Sync ===`);
+    console.log(`Sync started at: ${startTime}`);
+    
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -47,6 +50,8 @@ serve(async (req) => {
       .single();
 
     const stripeMode = settings?.setting_value === "live" ? "live" : "test";
+    console.log(`Using Stripe mode: ${stripeMode}`);
+    
     const stripeKey = stripeMode === "live" 
       ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
       : Deno.env.get("STRIPE_SECRET_KEY_TEST");
@@ -87,14 +92,21 @@ serve(async (req) => {
     for (const sponsorship of sponsorships || []) {
       try {
         results.checked++;
+        console.log(`\nChecking sponsorship ${sponsorship.id}...`);
+        console.log(`  Current status: ${sponsorship.status}`);
+        console.log(`  Stripe subscription: ${sponsorship.stripe_subscription_id}`);
+        console.log(`  Stripe mode: ${sponsorship.stripe_mode}`);
         
         // Skip if wrong Stripe mode
         if (sponsorship.stripe_mode !== stripeMode) {
+          console.log(`  ⏭️  Skipped (wrong Stripe mode: expected ${stripeMode}, got ${sponsorship.stripe_mode})`);
           continue;
         }
 
         // Fetch subscription from Stripe
+        console.log(`  Fetching subscription from Stripe...`);
         const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
+        console.log(`  Stripe subscription status: ${subscription.status}`);
         
         let newStatus = sponsorship.status;
         let endDate = null;
@@ -115,6 +127,11 @@ serve(async (req) => {
 
         // Update if status changed
         if (newStatus !== sponsorship.status) {
+          console.log(`  Status change detected: ${sponsorship.status} → ${newStatus}`);
+          if (endDate) {
+            console.log(`  Setting ended_at: ${endDate}`);
+          }
+          
           const { error: updateError } = await supabaseAdmin
             .from("sponsorships")
             .update({ 
@@ -124,10 +141,11 @@ serve(async (req) => {
             .eq("id", sponsorship.id);
 
           if (updateError) {
+            console.log(`  ❌ Update failed: ${updateError.message}`);
             results.errors.push(`Failed to update ${sponsorship.id}: ${updateError.message}`);
           } else {
             results.updated++;
-            console.log(`Updated sponsorship ${sponsorship.id} to ${newStatus}`);
+            console.log(`  ✅ Successfully updated to ${newStatus}`);
             
             // Track the change
             const afterState = {
@@ -142,9 +160,12 @@ serve(async (req) => {
               stripe_subscription_id: sponsorship.stripe_subscription_id,
             });
           }
+        } else {
+          console.log(`  ℹ️  No status change needed (already ${sponsorship.status})`);
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        console.log(`  ❌ Error syncing sponsorship: ${message}`);
         results.errors.push(`Error syncing ${sponsorship.id}: ${message}`);
       }
     }
@@ -191,6 +212,28 @@ serve(async (req) => {
     } catch (logError) {
       console.error('Error logging job:', logError);
       // Don't fail the whole operation if logging fails
+    }
+
+    const endTime = new Date().toISOString();
+    console.log(`\n=== Sync Complete ===`);
+    console.log(`Started: ${startTime}`);
+    console.log(`Completed: ${endTime}`);
+    console.log(`Checked: ${results.checked} sponsorships`);
+    console.log(`Updated: ${results.updated} sponsorships`);
+    console.log(`Cancelled: ${results.cancelled} sponsorships`);
+    console.log(`Errors: ${results.errors.length}`);
+    
+    if (results.updated > 0) {
+      console.log(`\n✅ Successfully synced ${results.updated} sponsorships with Stripe`);
+    }
+    if (results.cancelled > 0) {
+      console.log(`🚫 Marked ${results.cancelled} sponsorships as cancelled`);
+    }
+    if (results.errors.length > 0) {
+      console.log(`\n⚠️  Errors occurred during sync:`);
+      results.errors.forEach((error, i) => {
+        console.log(`  ${i + 1}. ${error}`);
+      });
     }
 
     return new Response(

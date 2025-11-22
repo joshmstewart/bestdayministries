@@ -55,6 +55,9 @@ serve(async (req) => {
     });
 
     const startTime = new Date().toISOString();
+    console.log("\n=== Starting Sponsorship Recovery ===");
+    console.log(`Recovery started at: ${startTime}`);
+    console.log(`Using Stripe mode: ${stripeMode}`);
     console.log("Finding incomplete sponsorships...");
 
     // Find sponsorships with missing critical fields
@@ -335,11 +338,28 @@ serve(async (req) => {
       }
     }
 
+    const endTime = new Date().toISOString();
     console.log("\n=== Recovery Complete ===");
-    console.log(`Checked: ${results.checked}`);
-    console.log(`Fixed: ${results.fixed}`);
-    console.log(`Skipped: ${results.skipped}`);
+    console.log(`Started: ${startTime}`);
+    console.log(`Completed: ${endTime}`);
+    console.log(`Checked: ${results.checked} sponsorships`);
+    console.log(`Fixed: ${results.fixed} sponsorships`);
+    console.log(`Skipped: ${results.skipped} sponsorships`);
     console.log(`Errors: ${results.errors.length}`);
+    
+    if (results.fixed > 0) {
+      console.log(`\n✅ Successfully recovered ${results.fixed} incomplete sponsorships`);
+    }
+    if (results.skipped > 0) {
+      console.log(`⏭️  Skipped ${results.skipped} sponsorships (no missing data or already complete)`);
+    }
+    if (results.errors.length > 0) {
+      console.log(`\n⚠️  Errors occurred during recovery:`);
+      results.errors.forEach((error: any, i: number) => {
+        console.log(`  ${i + 1}. Sponsorship ${error.sponsorship_id}: ${error.error_message}`);
+      });
+    }
+
 
     // Log the job execution
     try {
