@@ -94,6 +94,8 @@ export const SponsorshipTransactionsManager = () => {
   const [jobLogsDialogOpen, setJobLogsDialogOpen] = useState(false);
   const [jobLogs, setJobLogs] = useState<any[]>([]);
   const [loadingJobLogs, setLoadingJobLogs] = useState(false);
+  const [expandedJobIds, setExpandedJobIds] = useState<Set<string>>(new Set());
+  const [errorSearchTerm, setErrorSearchTerm] = useState("");
   const { toast } = useToast();
 
   const showErrorToastWithCopy = (context: string, error: any) => {
@@ -1985,65 +1987,247 @@ export const SponsorshipTransactionsManager = () => {
 
       {/* Job History Dialog */}
       <Dialog open={jobLogsDialogOpen} onOpenChange={setJobLogsDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-6xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Reconciliation Job History</DialogTitle>
             <DialogDescription>
-              View all automatic reconciliation job runs and their results
+              View all automatic reconciliation job runs and their detailed error logs
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[600px] pr-4">
-            {loadingJobLogs ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin" />
-              </div>
-            ) : jobLogs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No job logs yet
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Job</TableHead>
-                    <TableHead>Ran At</TableHead>
-                    <TableHead>Mode</TableHead>
-                    <TableHead>Checked</TableHead>
-                    <TableHead>Updated</TableHead>
-                    <TableHead>Errors</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">
-                        {log.job_name === 'recover-incomplete-sponsorships' 
-                          ? 'Recovery' 
-                          : 'Status Sync'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {format(new Date(log.ran_at), 'MMM d, yyyy h:mm a')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={log.stripe_mode === 'live' ? 'default' : 'secondary'}>
-                          {log.stripe_mode}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{log.checked_count}</TableCell>
-                      <TableCell className="text-green-600">{log.updated_count}</TableCell>
-                      <TableCell className="text-red-600">{log.error_count}</TableCell>
-                      <TableCell>
-                        <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
-                          {log.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </ScrollArea>
+          
+          {loadingJobLogs ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          ) : jobLogs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No job logs yet
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Error Search */}
+              {jobLogs.some(log => log.errors && Array.isArray(log.errors) && log.errors.length > 0) && (
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search errors by sponsorship ID, Stripe ID, or error message..."
+                    value={errorSearchTerm}
+                    onChange={(e) => setErrorSearchTerm(e.target.value)}
+                    className="max-w-md"
+                  />
+                </div>
+              )}
+
+              <ScrollArea className="max-h-[calc(90vh-200px)] pr-4">
+                <div className="space-y-4">
+                  {jobLogs.map((log) => {
+                    const isExpanded = expandedJobIds.has(log.id);
+                    const hasErrors = log.errors && Array.isArray(log.errors) && log.errors.length > 0;
+                    
+                    // Filter errors based on search term
+                    const filteredErrors = hasErrors && errorSearchTerm.trim()
+                      ? log.errors.filter((err: any) => {
+                          const searchLower = errorSearchTerm.toLowerCase();
+                          return (
+                            err.sponsorship_id?.toLowerCase().includes(searchLower) ||
+                            err.stripe_subscription_id?.toLowerCase().includes(searchLower) ||
+                            err.subscription_id?.toLowerCase().includes(searchLower) ||
+                            err.error?.toLowerCase().includes(searchLower) ||
+                            err.error_message?.toLowerCase().includes(searchLower)
+                          );
+                        })
+                      : log.errors;
+
+                    const displayErrorCount = hasErrors && errorSearchTerm.trim() 
+                      ? filteredErrors.length 
+                      : log.error_count;
+
+                    return (
+                      <Card key={log.id} className="border-2">
+                        <CardContent className="p-4">
+                          {/* Job Summary Row */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className="font-semibold text-sm">
+                                {log.job_name === 'recover-incomplete-sponsorships' 
+                                  ? 'Incomplete Sponsorship Recovery' 
+                                  : 'Sponsorship Status Sync'}
+                              </div>
+                              <Badge variant={log.status === 'success' ? 'default' : log.status === 'partial_failure' ? 'secondary' : 'destructive'}>
+                                {log.status}
+                              </Badge>
+                              <Badge variant={log.stripe_mode === 'live' ? 'default' : 'outline'}>
+                                {log.stripe_mode}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(log.ran_at), 'MMM d, yyyy h:mm a')}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-6 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">Checked: </span>
+                                <span className="font-medium">{log.checked_count}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Fixed: </span>
+                                <span className="font-medium text-green-600">{log.updated_count || log.fixed_count || 0}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Skipped: </span>
+                                <span className="font-medium text-yellow-600">{log.skipped_count || 0}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Errors: </span>
+                                <span className="font-medium text-destructive">{displayErrorCount}</span>
+                              </div>
+                              
+                              {hasErrors && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedJobIds);
+                                    if (isExpanded) {
+                                      newExpanded.delete(log.id);
+                                    } else {
+                                      newExpanded.add(log.id);
+                                    }
+                                    setExpandedJobIds(newExpanded);
+                                  }}
+                                >
+                                  {isExpanded ? 'Hide Errors' : 'Show Errors'}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Last Error Preview (when collapsed) */}
+                          {!isExpanded && hasErrors && filteredErrors.length > 0 && (
+                            <div className="mt-3 p-2 bg-destructive/5 border-l-2 border-destructive rounded text-xs">
+                              <span className="text-muted-foreground">Last error: </span>
+                              <span className="font-mono">
+                                {filteredErrors[0].error_message || filteredErrors[0].error || 'Unknown error'}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Expandable Error Details */}
+                          {isExpanded && hasErrors && (
+                            <div className="mt-4 space-y-2">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-sm font-semibold">
+                                  Error Details ({filteredErrors.length} {filteredErrors.length === 1 ? 'error' : 'errors'})
+                                </h4>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const errorText = filteredErrors.map((err: any, idx: number) => 
+                                      `Error ${idx + 1}:\n` +
+                                      `  Sponsorship ID: ${err.sponsorship_id || 'N/A'}\n` +
+                                      `  Stripe ID: ${err.stripe_subscription_id || err.subscription_id || 'N/A'}\n` +
+                                      `  Error: ${err.error_message || err.error || 'Unknown'}\n`
+                                    ).join('\n');
+                                    
+                                    navigator.clipboard.writeText(
+                                      `Job: ${log.job_name}\n` +
+                                      `Run: ${format(new Date(log.ran_at), 'MMM d, yyyy h:mm a')}\n` +
+                                      `Status: ${log.status}\n` +
+                                      `Total Errors: ${filteredErrors.length}\n\n` +
+                                      errorText
+                                    );
+                                    toast({
+                                      title: "Copied",
+                                      description: `${filteredErrors.length} errors copied to clipboard`,
+                                    });
+                                  }}
+                                >
+                                  <Copy className="w-3 h-3 mr-2" />
+                                  Copy All Errors
+                                </Button>
+                              </div>
+
+                              <ScrollArea className="max-h-96 border rounded-lg">
+                                <div className="divide-y">
+                                  {filteredErrors.map((err: any, idx: number) => {
+                                    const errorText = 
+                                      `Sponsorship ID: ${err.sponsorship_id || 'N/A'}\n` +
+                                      `Stripe ID: ${err.stripe_subscription_id || err.subscription_id || 'N/A'}\n` +
+                                      `Error: ${err.error_message || err.error || 'Unknown'}`;
+
+                                    return (
+                                      <div key={idx} className="p-3 hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1 space-y-1 min-w-0">
+                                            <div className="flex items-center gap-2 text-xs">
+                                              <span className="text-muted-foreground font-medium">#{idx + 1}</span>
+                                              {err.sponsorship_id && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 px-2 font-mono text-xs hover:bg-primary/10"
+                                                  onClick={() => {
+                                                    setSearchTerm(err.sponsorship_id);
+                                                    setJobLogsDialogOpen(false);
+                                                  }}
+                                                  title="Filter transactions by this ID"
+                                                >
+                                                  {err.sponsorship_id.slice(0, 8)}...
+                                                </Button>
+                                              )}
+                                            </div>
+                                            
+                                            <div className="text-sm space-y-1">
+                                              {(err.stripe_subscription_id || err.subscription_id) && (
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-muted-foreground text-xs">Stripe ID:</span>
+                                                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                                    {err.stripe_subscription_id || err.subscription_id}
+                                                  </code>
+                                                </div>
+                                              )}
+                                              
+                                              <div className="flex items-start gap-2">
+                                                <span className="text-muted-foreground text-xs shrink-0">Error:</span>
+                                                <p className="text-xs text-destructive font-mono flex-1 break-words">
+                                                  {err.error_message || err.error || 'Unknown error'}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="shrink-0 h-8 w-8 p-0"
+                                            onClick={() => {
+                                              navigator.clipboard.writeText(errorText);
+                                              toast({
+                                                title: "Copied",
+                                                description: "Error details copied to clipboard",
+                                              });
+                                            }}
+                                            title="Copy this error"
+                                          >
+                                            <Copy className="w-3 h-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </ScrollArea>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
