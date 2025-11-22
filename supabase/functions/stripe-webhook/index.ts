@@ -252,7 +252,8 @@ async function processWebhookEvent(
     }
 
     case "invoice.payment_succeeded":
-    case "invoice.paid": {
+    case "invoice.paid":
+    case "invoice_payment.paid": {
       await logStep("processing_invoice_payment", "info");
       
       const invoice = event.data.object as Stripe.Invoice;
