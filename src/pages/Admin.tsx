@@ -22,6 +22,7 @@ import { YearEndSummarySettings } from "@/components/admin/YearEndSummarySetting
 import { YearEndSummarySentHistory } from "@/components/admin/YearEndSummarySentHistory";
 import { RecalculateAmountsTest } from "@/components/admin/RecalculateAmountsTest";
 import { DonationDebugger } from "@/components/admin/DonationDebugger";
+import { DuplicateTransactionsDetector } from "@/components/admin/DuplicateTransactionsDetector";
 import { StripeCustomerChecker } from "@/components/admin/StripeCustomerChecker";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
@@ -413,6 +414,7 @@ const Admin = () => {
                 <Tabs defaultValue="transactions" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto w-full">
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
+                    <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
                     <TabsTrigger value="webhook-logs">Webhook Logs</TabsTrigger>
                     <TabsTrigger value="recovery">Recovery Tool</TabsTrigger>
                     <TabsTrigger value="sponsorships">Sponsor Besties</TabsTrigger>
@@ -429,6 +431,10 @@ const Admin = () => {
 
                   <TabsContent value="transactions">
                     <SponsorshipTransactionsManager />
+                  </TabsContent>
+
+                  <TabsContent value="duplicates">
+                    <DuplicateTransactionsDetector />
                   </TabsContent>
 
                   <TabsContent value="debug">
