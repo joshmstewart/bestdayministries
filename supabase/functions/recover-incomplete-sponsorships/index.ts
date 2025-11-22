@@ -98,7 +98,94 @@ serve(async (req) => {
           continue;
         }
 
-        // Fetch subscription from Stripe
+        // Check if this is a payment intent instead of subscription
+        if (sponsorship.stripe_subscription_id.startsWith('pi_')) {
+          console.log(`  Detected payment intent ID (one-time payment)`);
+          
+          try {
+            // Retrieve as payment intent, not subscription
+            const paymentIntent = await stripe.paymentIntents.retrieve(
+              sponsorship.stripe_subscription_id
+            );
+            
+            const customer = await stripe.customers.retrieve(paymentIntent.customer as string);
+            if (!customer || customer.deleted) {
+              console.log(`  Skipped: Customer not found or deleted`);
+              results.skipped++;
+              continue;
+            }
+            
+            const customerEmail = (customer as Stripe.Customer).email;
+            const customerId = customer.id;
+            
+            // Only update email and customer_id for one-time payments
+            const updateData: any = {};
+            let needsUpdate = false;
+            const beforeState: any = {
+              sponsor_email: sponsorship.sponsor_email,
+              stripe_customer_id: sponsorship.stripe_customer_id,
+            };
+            
+            if (!sponsorship.sponsor_email && customerEmail) {
+              updateData.sponsor_email = customerEmail;
+              needsUpdate = true;
+              console.log(`  Will add sponsor_email: ${customerEmail}`);
+            }
+            if (!sponsorship.stripe_customer_id) {
+              updateData.stripe_customer_id = customerId;
+              needsUpdate = true;
+              console.log(`  Will add stripe_customer_id: ${customerId}`);
+            }
+            
+            // Update if needed
+            if (needsUpdate) {
+              const { error: updateError } = await supabaseAdmin
+                .from("sponsorships")
+                .update(updateData)
+                .eq("id", sponsorship.id);
+              
+              if (updateError) {
+                console.log(`  Error updating: ${updateError.message}`);
+                results.errors.push({
+                  sponsorship_id: sponsorship.id,
+                  stripe_subscription_id: sponsorship.stripe_subscription_id,
+                  error_type: 'update_failed',
+                  error_message: updateError.message,
+                  attempted_values: updateData,
+                  suggested_fix: 'Check database constraints and field permissions',
+                });
+              } else {
+                console.log(`  ✅ Updated one-time payment with customer info`);
+                results.fixed++;
+                
+                const afterState = { ...beforeState, ...updateData };
+                changes.push({
+                  sponsorship_id: sponsorship.id,
+                  change_type: 'payment_intent_backfill',
+                  before_state: beforeState,
+                  after_state: afterState,
+                  stripe_subscription_id: sponsorship.stripe_subscription_id,
+                });
+              }
+            } else {
+              results.skipped++;
+            }
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.log(`  Error processing payment intent: ${message}`);
+            results.errors.push({
+              sponsorship_id: sponsorship.id,
+              stripe_subscription_id: sponsorship.stripe_subscription_id,
+              error_type: 'payment_intent_error',
+              error_message: message,
+              suggested_fix: 'Verify payment intent exists in Stripe and customer is not deleted',
+            });
+          }
+          
+          continue; // Skip regular subscription processing
+        }
+
+        // Regular subscription processing
         const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
         console.log(`  Found subscription: ${subscription.id}`);
 
@@ -140,7 +227,23 @@ serve(async (req) => {
         if (!sponsorship.bestie_id) {
           let bestieId = subscription.metadata?.bestie_id;
 
-          // If not in metadata, try to get from sponsor_bestie_id lookup
+          // VALIDATE metadata bestie_id against profiles table
+          if (bestieId) {
+            const { data: profile } = await supabaseAdmin
+              .from("profiles")
+              .select("id")
+              .eq("id", bestieId)
+              .single();
+            
+            if (!profile) {
+              console.log(`  ⚠️  Invalid bestie_id in metadata: ${bestieId} - falling back to sponsor_besties lookup`);
+              bestieId = null; // Reset to trigger fallback
+            } else {
+              console.log(`  ✅ Validated bestie_id from metadata: ${bestieId}`);
+            }
+          }
+
+          // If not in metadata or invalid, try to get from sponsor_bestie_id lookup
           if (!bestieId && sponsorship.sponsor_bestie_id) {
             const { data: sponsorBestie } = await supabaseAdmin
               .from("sponsor_besties")
@@ -150,7 +253,7 @@ serve(async (req) => {
 
             if (sponsorBestie?.bestie_id) {
               bestieId = sponsorBestie.bestie_id;
-              console.log(`  Found bestie_id from sponsor_bestie: ${bestieId}`);
+              console.log(`  ✅ Found valid bestie_id from sponsor_bestie: ${bestieId}`);
             }
           }
 
@@ -187,8 +290,17 @@ serve(async (req) => {
             console.log(`  Error updating: ${updateError.message}`);
             results.errors.push({
               sponsorship_id: sponsorship.id,
-              error: updateError.message,
-              subscription_id: sponsorship.stripe_subscription_id
+              stripe_subscription_id: sponsorship.stripe_subscription_id,
+              error_type: updateError.code === '23503' ? 'foreign_key_violation' : 'update_failed',
+              error_message: updateError.message,
+              attempted_values: updateData,
+              context: {
+                stripe_metadata: subscription.metadata,
+                sponsor_bestie_id: sponsorship.sponsor_bestie_id,
+              },
+              suggested_fix: updateError.code === '23503' 
+                ? `Bestie ID ${updateData.bestie_id} does not exist in profiles table. Verify sponsor_besties mapping or Stripe metadata.`
+                : 'Check database constraints and field permissions',
             });
           } else {
             console.log(`  ✅ Updated successfully`);
@@ -213,8 +325,12 @@ serve(async (req) => {
         console.log(`  Error: ${message}`);
         results.errors.push({
           sponsorship_id: sponsorship.id,
-          error: message,
-          subscription_id: sponsorship.stripe_subscription_id
+          stripe_subscription_id: sponsorship.stripe_subscription_id,
+          error_type: message.includes('No such subscription') ? 'stripe_not_found' : 'unknown',
+          error_message: message,
+          suggested_fix: message.includes('No such subscription') 
+            ? 'Subscription may be deleted in Stripe or ID format is incorrect'
+            : 'Check logs for details',
         });
       }
     }
