@@ -177,18 +177,28 @@ serve(async (req) => {
     const fullAmount = parseFloat(session.metadata.amount);
     console.log('💰 Creating sponsorship with FULL amount received:', fullAmount);
     
+    // Get bestie_id before creating sponsorship
+    const { data: sponsorBestieData } = await supabaseAdmin
+      .from('sponsor_besties')
+      .select('bestie_id')
+      .eq('id', sponsorBestieId)
+      .single();
+    
     const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
       .from('sponsorships')
       .upsert({
         sponsor_id: userId,
         sponsor_email: userId ? null : customerEmail, // Store email for guest checkouts
         sponsor_bestie_id: sponsorBestieId,
+        bestie_id: sponsorBestieData?.bestie_id || null, // CRITICAL: Populate bestie_id
         amount: fullAmount, // Store FULL amount - this is what we actually receive
         frequency: session.metadata.frequency,
         status: 'active',
         started_at: startedAt.toISOString(),
         ended_at: endedAt?.toISOString() || null,
         stripe_subscription_id: stripeReferenceId || null,
+        stripe_customer_id: session.customer as string, // CRITICAL: Populate stripe_customer_id
+        stripe_checkout_session_id: session_id, // CRITICAL: Populate checkout session id
         stripe_mode: mode,
       }, {
         // Use stripe_subscription_id for upsert to prevent duplicates for both auth and guest users
@@ -204,10 +214,10 @@ serve(async (req) => {
 
     console.log('Sponsorship created:', sponsorship.id, userId ? '(authenticated)' : '(guest)');
 
-    // Get bestie details for the receipt
+    // Get bestie details for the receipt and bestie_id
     const { data: bestieData } = await supabaseAdmin
       .from('sponsor_besties')
-      .select('bestie_name')
+      .select('bestie_name, bestie_id')
       .eq('id', session.metadata.bestie_id)
       .single();
 
