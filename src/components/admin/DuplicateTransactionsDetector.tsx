@@ -30,17 +30,23 @@ interface DuplicateGroup {
   donations: Array<{
     id: string;
     donor_email: string;
+    donor_id: string | null;
     amount: number;
     frequency: string;
     status: string;
+    stripe_mode: string | null;
     created_at: string;
   }>;
   sponsorships: Array<{
     id: string;
     sponsor_email: string;
+    sponsor_id: string | null;
+    bestie_id: string | null;
+    sponsor_bestie_id: string | null;
     amount: number;
     frequency: string;
     status: string;
+    stripe_mode: string | null;
     created_at: string;
   }>;
 }
@@ -60,14 +66,14 @@ export function DuplicateTransactionsDetector() {
       // Fetch all donations and sponsorships with Stripe IDs
       const { data: donations, error: donationsError } = await supabase
         .from('donations')
-        .select('id, donor_email, amount, frequency, status, created_at, stripe_subscription_id, stripe_payment_intent_id, stripe_checkout_session_id')
+        .select('id, donor_email, donor_id, amount, frequency, status, stripe_mode, created_at, stripe_subscription_id, stripe_payment_intent_id, stripe_checkout_session_id')
         .order('created_at', { ascending: true });
 
       if (donationsError) throw donationsError;
 
       const { data: sponsorships, error: sponsorshipsError } = await supabase
         .from('sponsorships')
-        .select('id, sponsor_email, amount, frequency, status, started_at, stripe_subscription_id')
+        .select('id, sponsor_email, sponsor_id, bestie_id, sponsor_bestie_id, amount, frequency, status, stripe_mode, started_at, stripe_subscription_id')
         .order('started_at', { ascending: true });
 
       if (sponsorshipsError) throw sponsorshipsError;
@@ -96,9 +102,11 @@ export function DuplicateTransactionsDetector() {
             stripeIdMap.get(id)!.donations.push({
               id: donation.id,
               donor_email: donation.donor_email || 'Unknown',
+              donor_id: donation.donor_id,
               amount: donation.amount,
               frequency: donation.frequency,
               status: donation.status,
+              stripe_mode: donation.stripe_mode,
               created_at: donation.created_at,
             });
           }
@@ -124,9 +132,13 @@ export function DuplicateTransactionsDetector() {
             stripeIdMap.get(id)!.sponsorships.push({
               id: sponsorship.id,
               sponsor_email: sponsorship.sponsor_email || 'Unknown',
+              sponsor_id: sponsorship.sponsor_id,
+              bestie_id: sponsorship.bestie_id,
+              sponsor_bestie_id: sponsorship.sponsor_bestie_id,
               amount: sponsorship.amount,
               frequency: sponsorship.frequency,
               status: sponsorship.status,
+              stripe_mode: sponsorship.stripe_mode,
               created_at: sponsorship.started_at,
             });
           }
@@ -322,9 +334,11 @@ export function DuplicateTransactionsDetector() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Email</TableHead>
+                              <TableHead>User Type</TableHead>
                               <TableHead>Amount</TableHead>
                               <TableHead>Frequency</TableHead>
                               <TableHead>Status</TableHead>
+                              <TableHead>Mode</TableHead>
                               <TableHead>Created</TableHead>
                               <TableHead>Action</TableHead>
                             </TableRow>
@@ -335,11 +349,21 @@ export function DuplicateTransactionsDetector() {
                                 <TableCell className="font-mono text-xs">
                                   {donation.donor_email}
                                 </TableCell>
+                                <TableCell>
+                                  <Badge variant={donation.donor_id ? 'default' : 'secondary'}>
+                                    {donation.donor_id ? 'Logged In' : 'Guest'}
+                                  </Badge>
+                                </TableCell>
                                 <TableCell>${donation.amount.toFixed(2)}</TableCell>
                                 <TableCell>{donation.frequency}</TableCell>
                                 <TableCell>
                                   <Badge variant={donation.status === 'active' ? 'default' : 'secondary'}>
                                     {donation.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={donation.stripe_mode === 'live' ? 'default' : 'outline'}>
+                                    {donation.stripe_mode || 'N/A'}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs">
@@ -374,9 +398,12 @@ export function DuplicateTransactionsDetector() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Email</TableHead>
+                              <TableHead>User Type</TableHead>
+                              <TableHead>Bestie ID</TableHead>
                               <TableHead>Amount</TableHead>
                               <TableHead>Frequency</TableHead>
                               <TableHead>Status</TableHead>
+                              <TableHead>Mode</TableHead>
                               <TableHead>Created</TableHead>
                               <TableHead>Action</TableHead>
                             </TableRow>
@@ -387,11 +414,24 @@ export function DuplicateTransactionsDetector() {
                                 <TableCell className="font-mono text-xs">
                                   {sponsorship.sponsor_email}
                                 </TableCell>
+                                <TableCell>
+                                  <Badge variant={sponsorship.sponsor_id ? 'default' : 'secondary'}>
+                                    {sponsorship.sponsor_id ? 'Logged In' : 'Guest'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="font-mono text-xs">
+                                  {sponsorship.sponsor_bestie_id || sponsorship.bestie_id || 'N/A'}
+                                </TableCell>
                                 <TableCell>${sponsorship.amount.toFixed(2)}</TableCell>
                                 <TableCell>{sponsorship.frequency}</TableCell>
                                 <TableCell>
                                   <Badge variant={sponsorship.status === 'active' ? 'default' : 'secondary'}>
                                     {sponsorship.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={sponsorship.stripe_mode === 'live' ? 'default' : 'outline'}>
+                                    {sponsorship.stripe_mode || 'N/A'}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs">
