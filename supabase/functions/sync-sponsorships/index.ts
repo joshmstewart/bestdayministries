@@ -48,7 +48,7 @@ serve(async (req) => {
 
     const stripeMode = settings?.setting_value === "live" ? "live" : "test";
     const stripeKey = stripeMode === "live" 
-      ? Deno.env.get("STRIPE_SECRET_KEY")
+      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
       : Deno.env.get("STRIPE_SECRET_KEY_TEST");
 
     const stripe = new Stripe(stripeKey!, {
