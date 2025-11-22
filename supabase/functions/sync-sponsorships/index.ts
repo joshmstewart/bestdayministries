@@ -123,11 +123,6 @@ serve(async (req) => {
           continue;
         }
 
-        // Fetch subscription from Stripe
-        console.log(`  Fetching subscription from Stripe...`);
-        const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
-        console.log(`  Stripe subscription status: ${subscription.status}`);
-        
         let newStatus = sponsorship.status;
         let endDate = null;
         const beforeState = {
@@ -135,14 +130,40 @@ serve(async (req) => {
           ended_at: sponsorship.ended_at,
         };
 
-        if (subscription.status === "canceled" || subscription.status === "incomplete_expired") {
-          newStatus = "cancelled";
-          endDate = new Date(subscription.canceled_at! * 1000).toISOString();
-          results.cancelled++;
-        } else if (subscription.status === "paused") {
-          newStatus = "paused";
-        } else if (subscription.status === "active") {
-          newStatus = "active";
+        // Check if this is a payment intent (one-time) or subscription (recurring)
+        const isPaymentIntent = sponsorship.stripe_subscription_id.startsWith('pi_');
+        
+        if (isPaymentIntent) {
+          // Handle payment intent (one-time payment)
+          console.log(`  Fetching payment intent from Stripe...`);
+          const paymentIntent = await stripe.paymentIntents.retrieve(sponsorship.stripe_subscription_id);
+          console.log(`  Stripe payment intent status: ${paymentIntent.status}`);
+          
+          if (paymentIntent.status === "succeeded") {
+            newStatus = "completed";
+          } else if (paymentIntent.status === "canceled") {
+            newStatus = "cancelled";
+            endDate = new Date(paymentIntent.canceled_at || Date.now()).toISOString();
+            results.cancelled++;
+          } else {
+            // Other statuses (processing, requires_action, etc.) - leave as is
+            console.log(`  ℹ️  Payment intent in ${paymentIntent.status} state, no action needed`);
+          }
+        } else {
+          // Handle subscription (recurring payment)
+          console.log(`  Fetching subscription from Stripe...`);
+          const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
+          console.log(`  Stripe subscription status: ${subscription.status}`);
+          
+          if (subscription.status === "canceled" || subscription.status === "incomplete_expired") {
+            newStatus = "cancelled";
+            endDate = new Date(subscription.canceled_at! * 1000).toISOString();
+            results.cancelled++;
+          } else if (subscription.status === "paused") {
+            newStatus = "paused";
+          } else if (subscription.status === "active") {
+            newStatus = "active";
+          }
         }
 
         // Update if status changed
