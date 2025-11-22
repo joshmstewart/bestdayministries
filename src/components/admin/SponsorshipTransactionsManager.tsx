@@ -98,8 +98,6 @@ export const SponsorshipTransactionsManager = () => {
   const [loadingJobLogs, setLoadingJobLogs] = useState(false);
   const [expandedJobIds, setExpandedJobIds] = useState<Set<string>>(new Set());
   const [errorSearchTerm, setErrorSearchTerm] = useState("");
-  const [recoverDialogOpen, setRecoverDialogOpen] = useState(false);
-  const [paymentIntentId, setPaymentIntentId] = useState("");
   const { toast } = useToast();
 
   const showErrorToastWithCopy = (context: string, error: any) => {
@@ -731,60 +729,40 @@ export const SponsorshipTransactionsManager = () => {
     }
   };
 
-  const generateDonationReceipts = async () => {
-    if (!confirm("This will generate and email receipts for all donations that are missing receipts. Continue?")) {
-      return;
-    }
-
-    setGeneratingDonationReceipts(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-missing-donation-receipts');
-      
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: data.message,
-      });
-      
-      await loadTransactions();
-    } catch (error: any) {
-      console.error('Error generating donation receipts:', error);
-      showErrorToastWithCopy("Generating donation receipts", error);
-    } finally {
-      setGeneratingDonationReceipts(false);
-    }
-  };
-
-  const recoverSingleReceipt = async () => {
-    if (!paymentIntentId.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a payment intent ID",
-        variant: "destructive",
-      });
+  const recoverAllMissingReceipts = async () => {
+    if (!confirm("This will scan ALL donations and sponsorships and automatically create missing receipts. Continue?")) {
       return;
     }
 
     setGeneratingDonationReceipts(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-missing-donation-receipts', {
-        body: { paymentIntentId: paymentIntentId.trim() }
+        body: {}
       });
       
       if (error) throw error;
 
       toast({
-        title: "Success",
+        title: "Recovery Complete",
         description: data.message,
+        action: data.logs ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              navigator.clipboard.writeText(data.logs.join('\n'));
+              toast({ title: "Logs copied to clipboard" });
+            }}
+          >
+            Copy Logs
+          </Button>
+        ) : undefined,
       });
       
-      setRecoverDialogOpen(false);
-      setPaymentIntentId("");
       await loadTransactions();
     } catch (error: any) {
-      console.error('Error recovering receipt:', error);
-      showErrorToastWithCopy("Recovering receipt", error);
+      console.error('Error recovering receipts:', error);
+      showErrorToastWithCopy("Recovering receipts", error);
     } finally {
       setGeneratingDonationReceipts(false);
     }
@@ -1544,16 +1522,12 @@ export const SponsorshipTransactionsManager = () => {
               <CardTitle>All Transactions</CardTitle>
               <CardDescription>
                 View and manage all donations and sponsorships
-              </CardDescription>
+            </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => setRecoverDialogOpen(true)} variant="outline" size="sm">
+              <Button onClick={recoverAllMissingReceipts} variant="outline" size="sm" disabled={generatingDonationReceipts}>
                 <FileText className="w-4 h-4 mr-2" />
-                Recover Single Receipt
-              </Button>
-              <Button onClick={generateDonationReceipts} variant="outline" size="sm" disabled={generatingDonationReceipts}>
-                <FileText className="w-4 h-4 mr-2" />
-                {generatingDonationReceipts ? "Generating..." : "Generate Donation Receipts"}
+                {generatingDonationReceipts ? "Recovering..." : "Recover All Missing Receipts"}
               </Button>
               <Button onClick={backfillMissingReceipts} variant="outline" size="sm" disabled={backfilling}>
                 <FileText className="w-4 h-4 mr-2" />
@@ -2298,35 +2272,6 @@ export const SponsorshipTransactionsManager = () => {
               </ScrollArea>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Recover Single Receipt Dialog */}
-      <Dialog open={recoverDialogOpen} onOpenChange={setRecoverDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Recover Single Receipt</DialogTitle>
-            <DialogDescription>
-              Enter a Stripe payment intent ID (pi_...) to recover its receipt
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Input
-                placeholder="pi_3SW5svIZCv5wsm2Y1JyclMN8"
-                value={paymentIntentId}
-                onChange={(e) => setPaymentIntentId(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setRecoverDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={recoverSingleReceipt} disabled={generatingDonationReceipts}>
-                {generatingDonationReceipts ? "Recovering..." : "Recover Receipt"}
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 
