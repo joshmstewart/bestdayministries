@@ -235,123 +235,190 @@ export function DuplicateTransactionsDetector() {
             </div>
           ) : (
             <div className="space-y-6">
-              {duplicates.map((group, idx) => (
-                <div key={idx} className="border rounded-lg p-4">
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="destructive">Duplicate Group {idx + 1}</Badge>
-                      <Badge variant="outline">{group.stripe_id_type}</Badge>
+              {duplicates.map((group, idx) => {
+                const totalRecords = group.donations.length + group.sponsorships.length;
+                const allEmails = [
+                  ...group.donations.map(d => d.donor_email),
+                  ...group.sponsorships.map(s => s.sponsor_email)
+                ];
+                const uniqueEmails = [...new Set(allEmails)];
+                const allAmounts = [
+                  ...group.donations.map(d => d.amount),
+                  ...group.sponsorships.map(s => s.amount)
+                ];
+                const uniqueAmounts = [...new Set(allAmounts)];
+                
+                // Calculate time differences
+                const allTimestamps = [
+                  ...group.donations.map(d => new Date(d.created_at).getTime()),
+                  ...group.sponsorships.map(s => new Date(s.created_at).getTime())
+                ].sort();
+                const timeSpanMs = allTimestamps[allTimestamps.length - 1] - allTimestamps[0];
+                const timeSpanSeconds = (timeSpanMs / 1000).toFixed(2);
+                
+                return (
+                  <div key={idx} className="border rounded-lg p-4 bg-muted/30">
+                    <div className="mb-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive">Duplicate Group {idx + 1}</Badge>
+                        <Badge variant="outline">{group.stripe_id_type}</Badge>
+                        {totalRecords > 2 && (
+                          <Badge variant="secondary">{totalRecords} records sharing same ID</Badge>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-1 text-sm">
+                        <p className="font-mono text-muted-foreground">
+                          <span className="font-semibold">Stripe ID:</span> {group.stripe_id}
+                        </p>
+                        <p className="text-muted-foreground">
+                          <span className="font-semibold">Emails:</span> {uniqueEmails.length === 1 ? (
+                            <span className="text-green-600">✓ Same email ({uniqueEmails[0]})</span>
+                          ) : (
+                            <span className="text-orange-600">⚠ Different emails: {uniqueEmails.join(', ')}</span>
+                          )}
+                        </p>
+                        <p className="text-muted-foreground">
+                          <span className="font-semibold">Amounts:</span> {uniqueAmounts.length === 1 ? (
+                            <span className="text-green-600">✓ Same amount (${uniqueAmounts[0].toFixed(2)})</span>
+                          ) : (
+                            <span className="text-orange-600">⚠ Different amounts: {uniqueAmounts.map(a => `$${a.toFixed(2)}`).join(', ')}</span>
+                          )}
+                        </p>
+                        <p className="text-muted-foreground">
+                          <span className="font-semibold">Time span:</span> {timeSpanMs < 5000 ? (
+                            <span className="text-green-600">✓ Created within {timeSpanSeconds}s (highly suspicious)</span>
+                          ) : timeSpanMs < 60000 ? (
+                            <span className="text-yellow-600">⚠ Created within {timeSpanSeconds}s</span>
+                          ) : (
+                            <span className="text-muted-foreground">Created {timeSpanSeconds}s apart</span>
+                          )}
+                        </p>
+                        <p className="text-muted-foreground">
+                          <span className="font-semibold">Record types:</span> {group.donations.length > 0 && group.sponsorships.length > 0 ? (
+                            <span className="text-red-600">⚠ MIXED: {group.donations.length} donation(s) + {group.sponsorships.length} sponsorship(s)</span>
+                          ) : group.donations.length > 1 ? (
+                            <span className="text-orange-600">⚠ {group.donations.length} donations</span>
+                          ) : (
+                            <span className="text-orange-600">⚠ {group.sponsorships.length} sponsorships</span>
+                          )}
+                        </p>
+                        {uniqueEmails.length === 1 && uniqueAmounts.length === 1 && timeSpanMs < 5000 && (
+                          <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded">
+                            <p className="text-destructive font-semibold text-xs">
+                              🚨 HIGH CONFIDENCE DUPLICATE: Same email, same amount, created within {timeSpanSeconds}s
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm font-mono text-muted-foreground">
-                      Stripe ID: {group.stripe_id}
-                    </p>
+
+                    {group.donations.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="font-medium mb-2">
+                          Donations ({group.donations.length})
+                        </h4>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Frequency</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Created</TableHead>
+                              <TableHead>Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.donations.map((donation) => (
+                              <TableRow key={donation.id}>
+                                <TableCell className="font-mono text-xs">
+                                  {donation.donor_email}
+                                </TableCell>
+                                <TableCell>${donation.amount.toFixed(2)}</TableCell>
+                                <TableCell>{donation.frequency}</TableCell>
+                                <TableCell>
+                                  <Badge variant={donation.status === 'active' ? 'default' : 'secondary'}>
+                                    {donation.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {new Date(donation.created_at).toLocaleString()}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setSelectedForDeletion({
+                                      type: 'donation',
+                                      id: donation.id,
+                                      stripeId: group.stripe_id,
+                                    })}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    {group.sponsorships.length > 0 && (
+                      <div>
+                        <h4 className="font-medium mb-2">
+                          Sponsorships ({group.sponsorships.length})
+                        </h4>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Frequency</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Created</TableHead>
+                              <TableHead>Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.sponsorships.map((sponsorship) => (
+                              <TableRow key={sponsorship.id}>
+                                <TableCell className="font-mono text-xs">
+                                  {sponsorship.sponsor_email}
+                                </TableCell>
+                                <TableCell>${sponsorship.amount.toFixed(2)}</TableCell>
+                                <TableCell>{sponsorship.frequency}</TableCell>
+                                <TableCell>
+                                  <Badge variant={sponsorship.status === 'active' ? 'default' : 'secondary'}>
+                                    {sponsorship.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {new Date(sponsorship.created_at).toLocaleString()}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setSelectedForDeletion({
+                                      type: 'sponsorship',
+                                      id: sponsorship.id,
+                                      stripeId: group.stripe_id,
+                                    })}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </div>
-
-                  {group.donations.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-medium mb-2">
-                        Donations ({group.donations.length})
-                      </h4>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Frequency</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Created</TableHead>
-                            <TableHead>Action</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {group.donations.map((donation) => (
-                            <TableRow key={donation.id}>
-                              <TableCell className="font-mono text-xs">
-                                {donation.donor_email}
-                              </TableCell>
-                              <TableCell>${donation.amount.toFixed(2)}</TableCell>
-                              <TableCell>{donation.frequency}</TableCell>
-                              <TableCell>
-                                <Badge variant={donation.status === 'active' ? 'default' : 'secondary'}>
-                                  {donation.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {new Date(donation.created_at).toLocaleString()}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => setSelectedForDeletion({
-                                    type: 'donation',
-                                    id: donation.id,
-                                    stripeId: group.stripe_id,
-                                  })}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-
-                  {group.sponsorships.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-2">
-                        Sponsorships ({group.sponsorships.length})
-                      </h4>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Frequency</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Created</TableHead>
-                            <TableHead>Action</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {group.sponsorships.map((sponsorship) => (
-                            <TableRow key={sponsorship.id}>
-                              <TableCell className="font-mono text-xs">
-                                {sponsorship.sponsor_email}
-                              </TableCell>
-                              <TableCell>${sponsorship.amount.toFixed(2)}</TableCell>
-                              <TableCell>{sponsorship.frequency}</TableCell>
-                              <TableCell>
-                                <Badge variant={sponsorship.status === 'active' ? 'default' : 'secondary'}>
-                                  {sponsorship.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {new Date(sponsorship.created_at).toLocaleString()}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => setSelectedForDeletion({
-                                    type: 'sponsorship',
-                                    id: sponsorship.id,
-                                    stripeId: group.stripe_id,
-                                  })}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
