@@ -7,6 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const logStep = (step: string, details?: any) => {
+  const message = details ? `${step}: ${JSON.stringify(details)}` : step;
+  console.log(message);
+  return message;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,18 +25,28 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Check if this is a single payment intent recovery
-    const { paymentIntentId } = await req.json().catch(() => ({}));
-    
-    if (paymentIntentId) {
-      console.log(`Recovering receipt for payment intent: ${paymentIntentId}`);
-      return await recoverSingleReceipt(supabaseClient, paymentIntentId);
-    }
+    const logs: string[] = [];
+    const results = {
+      donationsProcessed: 0,
+      donationReceiptsCreated: 0,
+      sponsorshipsProcessed: 0,
+      sponsorshipReceiptsCreated: 0,
+      errors: [] as any[],
+    };
 
-    console.log('Starting bulk donation receipt generation...');
+    // Get organization settings
+    const { data: receiptSettings } = await supabaseClient
+      .from("receipt_settings")
+      .select("*")
+      .limit(1)
+      .single();
 
-    // Get all active and completed donations from the donations table
-    // Join with profiles to get real email addresses for logged-in donors
+    const orgName = receiptSettings?.organization_name || "Best Day Ministries";
+    const orgEin = receiptSettings?.organization_ein || "00-0000000";
+
+    logs.push(logStep("=== SCANNING FOR MISSING DONATION RECEIPTS ==="));
+
+    // Find donations without receipts
     const { data: donations, error: donationsError } = await supabaseClient
       .from("donations")
       .select(`
@@ -45,331 +61,247 @@ serve(async (req) => {
         stripe_subscription_id,
         stripe_payment_intent_id,
         stripe_mode,
-        profiles!donations_donor_id_fkey(email)
+        profiles!donations_donor_id_fkey(email, display_name)
       `)
       .in("status", ["active", "completed"]);
 
-    if (donationsError) {
-      console.error("Error fetching donations:", donationsError);
-      throw donationsError;
-    }
+    if (donationsError) throw donationsError;
 
-    if (!donations || donations.length === 0) {
-      return new Response(
-        JSON.stringify({ message: "No donations found", receiptsGenerated: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+    logs.push(logStep(`Found ${donations?.length || 0} total donations`));
+
+    if (donations && donations.length > 0) {
+      const { data: existingReceipts } = await supabaseClient
+        .from("sponsorship_receipts")
+        .select("transaction_id");
+
+      const existingTransactionIds = new Set(
+        existingReceipts?.map(r => r.transaction_id) || []
       );
-    }
 
-    console.log(`Found ${donations.length} donations to check`);
-
-    // Check which donations already have receipts
-    const donationIds = donations.map(d => `donation_${d.id}`);
-    const { data: existingReceipts, error: receiptsError } = await supabaseClient
-      .from("sponsorship_receipts")
-      .select("transaction_id")
-      .in("transaction_id", donationIds);
-
-    if (receiptsError) {
-      console.error("Error checking existing receipts:", receiptsError);
-      throw receiptsError;
-    }
-
-    const existingReceiptTransactionIds = new Set(
-      existingReceipts?.map(r => r.transaction_id) || []
-    );
-
-    // Filter to only donations without receipts
-    const donationsNeedingReceipts = donations.filter(
-      d => !existingReceiptTransactionIds.has(`donation_${d.id}`)
-    );
-
-    console.log(`${donationsNeedingReceipts.length} donations need receipts`);
-
-    if (donationsNeedingReceipts.length === 0) {
-      return new Response(
-        JSON.stringify({ message: "All donations already have receipts", receiptsGenerated: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
-
-    // Get donor profiles for names
-    const donorIds = donationsNeedingReceipts
-      .filter(d => d.donor_id)
-      .map(d => d.donor_id);
-
-    const { data: profiles } = await supabaseClient
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", donorIds);
-
-    const profilesMap = new Map(
-      profiles?.map(p => [p.id, p.display_name]) || []
-    );
-
-    const receiptsToCreate: any[] = [];
-    const failedReceipts: any[] = [];
-
-    // Generate receipts for each donation
-    for (const donation of donationsNeedingReceipts) {
-      const transactionDate = new Date(donation.started_at);
-      const taxYear = transactionDate.getFullYear();
-      const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-      
-      // Use amount_charged if available (includes fees), otherwise use amount
-      const receiptAmount = donation.amount_charged || donation.amount;
-      
-      // Get donor name from profile or use email
-      const donorName = donation.donor_id 
-        ? (profilesMap.get(donation.donor_id) || "Donor")
-        : "Donor";
-      
-      // CRITICAL FIX: Get real email address, NEVER use placeholder
-      // Priority 1: donor_email field
-      // Priority 2: email from joined profiles table (first element)
-      // If neither exists, skip this receipt (can't email without address)
-      let donorEmail = donation.donor_email;
-      
-      if (!donorEmail && donation.profiles && Array.isArray(donation.profiles) && donation.profiles[0]?.email) {
-        donorEmail = donation.profiles[0].email;
-      }
-      
-      if (!donorEmail) {
-        console.log(`⚠️ Skipping donation ${donation.id} - no email available`);
-        failedReceipts.push({
-          donationId: donation.id,
-          reason: 'No email address available',
-          donorId: donation.donor_id
-        });
-        continue;
-      }
-      
-      receiptsToCreate.push({
-        transaction_id: `donation_${donation.id}`,
-        user_id: donation.donor_id,
-        sponsor_email: donorEmail,
-        sponsor_name: donorName,
-        bestie_name: "General Support",
-        amount: receiptAmount,
-        frequency: donation.frequency,
-        transaction_date: donation.started_at,
-        receipt_number: receiptNumber,
-        tax_year: taxYear,
-        stripe_mode: donation.stripe_mode || 'test',
-        donationId: donation.id, // Keep for logging later
+      const donationsNeedingReceipts = donations.filter(d => {
+        const transactionId = `donation_${d.id}`;
+        return !existingTransactionIds.has(transactionId);
       });
-    }
 
-    if (receiptsToCreate.length === 0) {
-      const message = failedReceipts.length > 0
-        ? `No receipts to generate. ${failedReceipts.length} donations skipped due to missing email.`
-        : "All donations already have receipts";
-      return new Response(
-        JSON.stringify({ message, receiptsGenerated: 0, emailsSent: 0, skippedDonations: failedReceipts.length }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
+      logs.push(logStep(`${donationsNeedingReceipts.length} donations missing receipts`));
 
-    console.log(`Creating ${receiptsToCreate.length} receipt records...`);
+      for (const donation of donationsNeedingReceipts) {
+        try {
+          results.donationsProcessed++;
 
-    // Insert all receipts (strip donationId field before insert)
-    const { data: createdReceipts, error: insertError } = await supabaseClient
-      .from("sponsorship_receipts")
-      .insert(receiptsToCreate.map(({ donationId, ...receipt }) => receipt))
-      .select();
+          // Get donor info
+          let donorEmail = donation.donor_email;
+          let donorName = "Donor";
 
-    if (insertError) {
-      console.error("Error creating receipts:", insertError);
-      throw insertError;
-    }
+          if (donation.profiles && Array.isArray(donation.profiles) && donation.profiles[0]) {
+            donorEmail = donorEmail || donation.profiles[0].email;
+            donorName = donation.profiles[0].display_name || "Donor";
+          }
 
-    console.log(`Successfully created ${createdReceipts?.length || 0} receipts`);
+          if (!donorEmail) {
+            logs.push(logStep(`Skipping donation ${donation.id} - no email available`));
+            results.errors.push({ donation_id: donation.id, error: "No email available" });
+            continue;
+          }
 
-    // Create receipt_generation_logs for all created receipts
-    const logsToCreate = (createdReceipts || []).map((receipt, index) => ({
-      donation_id: receiptsToCreate[index].donationId,
-      receipt_id: receipt.id,
-      stage: 'backfill_receipt_created',
-      status: 'success'
-    }));
-    if (logsToCreate.length > 0) {
-      await supabaseClient.from('receipt_generation_logs').insert(logsToCreate);
-    }
+          const transactionId = `donation_${donation.id}`;
+          const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+          const taxYear = new Date(donation.started_at).getFullYear();
 
-    // Send emails
-    let emailsSent = 0;
-    const emailFailures = [];
+          const { data: receipt, error: insertError } = await supabaseClient
+            .from("sponsorship_receipts")
+            .insert({
+              sponsor_email: donorEmail,
+              sponsor_name: donorName,
+              user_id: donation.donor_id,
+              bestie_name: "General Support",
+              amount: donation.amount_charged || donation.amount,
+              frequency: donation.frequency,
+              transaction_id: transactionId,
+              transaction_date: donation.started_at,
+              stripe_mode: donation.stripe_mode,
+              organization_name: orgName,
+              organization_ein: orgEin,
+              receipt_number: receiptNumber,
+              tax_year: taxYear,
+            })
+            .select()
+            .single();
 
-    for (let i = 0; i < (createdReceipts || []).length; i++) {
-      const receipt = createdReceipts![i];
-      try {
-        const { error: emailError } = await supabaseClient.functions.invoke('send-sponsorship-receipt', {
-          body: { receiptId: receipt.id }
-        });
+          if (insertError) {
+            logs.push(logStep(`Failed to create receipt for donation ${donation.id}`, insertError));
+            results.errors.push({ donation_id: donation.id, error: insertError.message });
+            continue;
+          }
 
-        if (emailError) {
-          emailFailures.push({ receiptNumber: receipt.receipt_number, error: emailError.message });
-          await supabaseClient.from('receipt_generation_logs').insert({
-            donation_id: receiptsToCreate[i].donationId,
-            receipt_id: receipt.id,
-            stage: 'backfill_email_failed',
-            status: 'error',
-            error_message: emailError.message
-          });
-        } else {
-          emailsSent++;
-          await supabaseClient.from('receipt_generation_logs').insert({
-            donation_id: receiptsToCreate[i].donationId,
-            receipt_id: receipt.id,
-            stage: 'backfill_email_sent',
-            status: 'success'
-          });
+          results.donationReceiptsCreated++;
+          logs.push(logStep(`Created receipt for donation ${donation.id} → ${donorEmail}`));
+
+          // Send email
+          try {
+            await supabaseClient.functions.invoke("send-sponsorship-receipt", {
+              body: { receiptId: receipt.id },
+            });
+            logs.push(logStep(`Sent receipt email to ${donorEmail}`));
+          } catch (emailError: any) {
+            logs.push(logStep(`Failed to send email for ${donation.id}`, emailError));
+          }
+        } catch (error: any) {
+          logs.push(logStep(`Error processing donation ${donation.id}`, error));
+          results.errors.push({ donation_id: donation.id, error: error.message });
         }
-      } catch (error: any) {
-        emailFailures.push({ receiptNumber: receipt.receipt_number, error: error.message });
       }
     }
+
+    logs.push(logStep("=== SCANNING FOR MISSING SPONSORSHIP RECEIPTS ==="));
+
+    // Find sponsorships with active recurring payments that are missing recent receipts
+    const { data: sponsorships, error: sponsorshipsError } = await supabaseClient
+      .from("sponsorships")
+      .select("id, sponsor_email, sponsor_id, bestie_id, amount, frequency, stripe_mode, stripe_subscription_id, stripe_payment_intent_id, started_at, status, sponsor_besties(bestie_name)")
+      .eq("status", "active")
+      .eq("frequency", "monthly");
+
+    if (sponsorshipsError) throw sponsorshipsError;
+
+    logs.push(logStep(`Found ${sponsorships?.length || 0} active monthly sponsorships`));
+
+    if (sponsorships && sponsorships.length > 0) {
+      // Initialize Stripe clients
+      const stripeKeyLive = Deno.env.get('STRIPE_SECRET_KEY_LIVE');
+      const stripeKeyTest = Deno.env.get('STRIPE_SECRET_KEY_TEST');
+
+      for (const sponsorship of sponsorships) {
+        try {
+          results.sponsorshipsProcessed++;
+
+          if (!sponsorship.stripe_subscription_id) {
+            logs.push(logStep(`Skipping sponsorship ${sponsorship.id} - no subscription ID`));
+            continue;
+          }
+
+          // Initialize correct Stripe client
+          const stripeKey = sponsorship.stripe_mode === 'live' ? stripeKeyLive : stripeKeyTest;
+          if (!stripeKey) {
+            logs.push(logStep(`Skipping sponsorship ${sponsorship.id} - Stripe key not configured for ${sponsorship.stripe_mode} mode`));
+            continue;
+          }
+
+          const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
+
+          // Get all invoices for this subscription
+          const invoices = await stripe.invoices.list({
+            subscription: sponsorship.stripe_subscription_id,
+            limit: 100,
+          });
+
+          logs.push(logStep(`Found ${invoices.data.length} invoices for subscription ${sponsorship.stripe_subscription_id}`));
+
+          for (const invoice of invoices.data) {
+            if (invoice.status !== 'paid') continue;
+
+            // Check if receipt already exists
+            const { data: existingReceipt } = await supabaseClient
+              .from("sponsorship_receipts")
+              .select("id")
+              .eq("transaction_id", invoice.id)
+              .single();
+
+            if (existingReceipt) {
+              continue; // Receipt already exists
+            }
+
+            // Get sponsor info
+            let sponsorEmail = sponsorship.sponsor_email;
+            let sponsorName = "Sponsor";
+
+            if (sponsorship.sponsor_id) {
+              const { data: profile } = await supabaseClient
+                .from("profiles")
+                .select("email, display_name")
+                .eq("id", sponsorship.sponsor_id)
+                .single();
+
+              if (profile) {
+                sponsorEmail = sponsorEmail || profile.email;
+                sponsorName = profile.display_name || "Sponsor";
+              }
+            }
+
+            if (!sponsorEmail) {
+              logs.push(logStep(`Skipping invoice ${invoice.id} - no sponsor email`));
+              continue;
+            }
+
+            const bestieName = (sponsorship.sponsor_besties as any)?.bestie_name || "Bestie";
+            const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+            const taxYear = new Date(invoice.created * 1000).getFullYear();
+
+            const { data: receipt, error: insertError } = await supabaseClient
+              .from("sponsorship_receipts")
+              .insert({
+                sponsorship_id: sponsorship.id,
+                sponsor_email: sponsorEmail,
+                sponsor_name: sponsorName,
+                user_id: sponsorship.sponsor_id,
+                bestie_name: bestieName,
+                amount: (invoice.amount_paid || 0) / 100,
+                frequency: "monthly",
+                transaction_id: invoice.id,
+                transaction_date: new Date(invoice.created * 1000).toISOString(),
+                stripe_mode: sponsorship.stripe_mode,
+                organization_name: orgName,
+                organization_ein: orgEin,
+                receipt_number: receiptNumber,
+                tax_year: taxYear,
+              })
+              .select()
+              .single();
+
+            if (insertError) {
+              logs.push(logStep(`Failed to create receipt for invoice ${invoice.id}`, insertError));
+              results.errors.push({ invoice_id: invoice.id, error: insertError.message });
+              continue;
+            }
+
+            results.sponsorshipReceiptsCreated++;
+            logs.push(logStep(`Created receipt for invoice ${invoice.id} → ${sponsorEmail}`));
+
+            // Send email
+            try {
+              await supabaseClient.functions.invoke("send-sponsorship-receipt", {
+                body: { receiptId: receipt.id },
+              });
+              logs.push(logStep(`Sent receipt email to ${sponsorEmail}`));
+            } catch (emailError: any) {
+              logs.push(logStep(`Failed to send email for ${invoice.id}`, emailError));
+            }
+          }
+        } catch (error: any) {
+          logs.push(logStep(`Error processing sponsorship ${sponsorship.id}`, error));
+          results.errors.push({ sponsorship_id: sponsorship.id, error: error.message });
+        }
+      }
+    }
+
+    logs.push(logStep("=== RECOVERY COMPLETE ==="));
 
     return new Response(
       JSON.stringify({
-        message: `Generated ${createdReceipts?.length || 0} receipts, sent ${emailsSent} emails. ${failedReceipts.length} skipped (no email). ${emailFailures.length} email failures.`,
-        receiptsGenerated: createdReceipts?.length || 0,
-        emailsSent,
-        emailsFailed: emailFailures.length,
-        skippedDonations: failedReceipts.length,
-        failures: emailFailures.length > 0 ? emailFailures : undefined,
-        skippedDetails: failedReceipts.length > 0 ? failedReceipts : undefined
+        message: `Recovery complete: ${results.donationReceiptsCreated} donation receipts + ${results.sponsorshipReceiptsCreated} sponsorship receipts created`,
+        ...results,
+        logs,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error: any) {
-    console.error("Error in generate-missing-donation-receipts:", error);
+    console.error("Error in generate-missing-receipts:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 });
-
-// Recovery function for single payment intent
-async function recoverSingleReceipt(supabaseAdmin: any, paymentIntentId: string) {
-  try {
-    // Check if receipt already exists
-    const { data: existingReceipt } = await supabaseAdmin
-      .from("sponsorship_receipts")
-      .select("id")
-      .eq("transaction_id", paymentIntentId)
-      .maybeSingle();
-
-    if (existingReceipt) {
-      return new Response(
-        JSON.stringify({ 
-          message: "Receipt already exists", 
-          receipt_id: existingReceipt.id 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
-
-    // Get payment intent details from Stripe
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY_LIVE");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY_LIVE not configured");
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    if (!paymentIntent.invoice) throw new Error("Payment intent has no associated invoice");
-
-    const invoice = await stripe.invoices.retrieve(paymentIntent.invoice as string);
-    if (!invoice.subscription) throw new Error("Invoice has no associated subscription");
-
-    const subscriptionId = invoice.subscription as string;
-    const customerEmail = invoice.customer_email;
-    if (!customerEmail) throw new Error("No customer email found on invoice");
-
-    // Find the sponsorship
-    const { data: sponsorship, error: sponsorshipError } = await supabaseAdmin
-      .from("sponsorships")
-      .select("id, bestie_id, amount, stripe_mode")
-      .eq("stripe_subscription_id", subscriptionId)
-      .eq("stripe_mode", "live")
-      .maybeSingle();
-
-    if (sponsorshipError || !sponsorship) {
-      throw new Error(`Sponsorship not found for subscription ${subscriptionId}`);
-    }
-
-    // Get bestie name
-    const { data: sponsorBestieData } = await supabaseAdmin
-      .from("sponsor_besties")
-      .select("bestie_name")
-      .eq("bestie_id", sponsorship.bestie_id)
-      .maybeSingle();
-
-    const bestieName = sponsorBestieData?.bestie_name || "Bestie";
-
-    // Get organization info
-    const { data: receiptSettings } = await supabaseAdmin
-      .from("receipt_settings")
-      .select("organization_name, organization_ein")
-      .limit(1)
-      .maybeSingle();
-
-    const orgName = receiptSettings?.organization_name || "Best Day Ministries";
-    const orgEin = receiptSettings?.organization_ein || "00-0000000";
-
-    // Get user info
-    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
-    const user = usersData.users.find(
-      (u: any) => u.email?.toLowerCase() === customerEmail.toLowerCase()
-    );
-
-    const amountPaid = invoice.amount_paid ? invoice.amount_paid / 100 : sponsorship.amount;
-    const transactionDate = new Date(paymentIntent.created * 1000).toISOString();
-    const taxYear = new Date(paymentIntent.created * 1000).getFullYear();
-    const receiptNumber = `RCP-RECOVERY-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-
-    // Create the receipt
-    const { data: receipt, error: receiptError } = await supabaseAdmin
-      .from("sponsorship_receipts")
-      .insert({
-        sponsorship_id: sponsorship.id,
-        user_id: user?.id || null,
-        sponsor_email: customerEmail,
-        sponsor_name: user?.user_metadata?.display_name || customerEmail.split('@')[0],
-        bestie_name: bestieName,
-        amount: amountPaid,
-        frequency: "monthly",
-        transaction_id: paymentIntentId,
-        transaction_date: transactionDate,
-        receipt_number: receiptNumber,
-        tax_year: taxYear,
-        organization_name: orgName,
-        organization_ein: orgEin,
-        stripe_mode: "live",
-        status: "generated"
-      })
-      .select()
-      .single();
-
-    if (receiptError) throw receiptError;
-
-    return new Response(
-      JSON.stringify({
-        message: "Receipt recovered successfully",
-        receipt_id: receipt.id,
-        sponsorship_id: sponsorship.id,
-        amount: amountPaid,
-        customer_email: customerEmail
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-    );
-
-  } catch (error: any) {
-    console.error("Error recovering receipt:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
-  }
-}
