@@ -3602,6 +3602,105 @@ export type Database = {
         }
         Relationships: []
       }
+      reconciliation_changes: {
+        Row: {
+          after_state: Json
+          before_state: Json
+          change_type: string
+          created_at: string | null
+          id: string
+          job_log_id: string
+          sponsorship_id: string | null
+          stripe_subscription_id: string | null
+        }
+        Insert: {
+          after_state: Json
+          before_state: Json
+          change_type: string
+          created_at?: string | null
+          id?: string
+          job_log_id: string
+          sponsorship_id?: string | null
+          stripe_subscription_id?: string | null
+        }
+        Update: {
+          after_state?: Json
+          before_state?: Json
+          change_type?: string
+          created_at?: string | null
+          id?: string
+          job_log_id?: string
+          sponsorship_id?: string | null
+          stripe_subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_changes_job_log_id_fkey"
+            columns: ["job_log_id"]
+            isOneToOne: false
+            referencedRelation: "reconciliation_job_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_changes_sponsorship_id_fkey"
+            columns: ["sponsorship_id"]
+            isOneToOne: false
+            referencedRelation: "sponsorships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliation_job_logs: {
+        Row: {
+          checked_count: number | null
+          completed_at: string | null
+          created_at: string | null
+          error_count: number | null
+          errors: Json | null
+          id: string
+          job_name: string
+          metadata: Json | null
+          ran_at: string
+          skipped_count: number | null
+          status: string
+          stripe_mode: string
+          triggered_by: string | null
+          updated_count: number | null
+        }
+        Insert: {
+          checked_count?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_count?: number | null
+          errors?: Json | null
+          id?: string
+          job_name: string
+          metadata?: Json | null
+          ran_at?: string
+          skipped_count?: number | null
+          status?: string
+          stripe_mode: string
+          triggered_by?: string | null
+          updated_count?: number | null
+        }
+        Update: {
+          checked_count?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_count?: number | null
+          errors?: Json | null
+          id?: string
+          job_name?: string
+          metadata?: Json | null
+          ran_at?: string
+          skipped_count?: number | null
+          status?: string
+          stripe_mode?: string
+          triggered_by?: string | null
+          updated_count?: number | null
+        }
+        Relationships: []
+      }
       saved_locations: {
         Row: {
           address: string

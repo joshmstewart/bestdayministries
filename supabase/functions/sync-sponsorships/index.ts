@@ -13,6 +13,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = new Date().toISOString();
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -57,7 +58,7 @@ serve(async (req) => {
     // Fetch all sponsorships with subscription IDs
     const { data: sponsorships, error: fetchError } = await supabaseAdmin
       .from("sponsorships")
-      .select("id, stripe_subscription_id, status, stripe_mode")
+      .select("id, stripe_subscription_id, status, stripe_mode, ended_at")
       .not("stripe_subscription_id", "is", null)
       .in("status", ["active", "paused"]);
 
@@ -74,6 +75,15 @@ serve(async (req) => {
       errors: [] as string[],
     };
 
+    // Track changes for logging
+    const changes: Array<{
+      sponsorship_id: string;
+      change_type: string;
+      before_state: any;
+      after_state: any;
+      stripe_subscription_id: string;
+    }> = [];
+
     for (const sponsorship of sponsorships || []) {
       try {
         results.checked++;
@@ -88,6 +98,10 @@ serve(async (req) => {
         
         let newStatus = sponsorship.status;
         let endDate = null;
+        const beforeState = {
+          status: sponsorship.status,
+          ended_at: sponsorship.ended_at,
+        };
 
         if (subscription.status === "canceled" || subscription.status === "incomplete_expired") {
           newStatus = "cancelled";
@@ -114,12 +128,69 @@ serve(async (req) => {
           } else {
             results.updated++;
             console.log(`Updated sponsorship ${sponsorship.id} to ${newStatus}`);
+            
+            // Track the change
+            const afterState = {
+              status: newStatus,
+              ended_at: endDate,
+            };
+            changes.push({
+              sponsorship_id: sponsorship.id,
+              change_type: newStatus === 'cancelled' ? 'cancellation' : 'status_update',
+              before_state: beforeState,
+              after_state: afterState,
+              stripe_subscription_id: sponsorship.stripe_subscription_id,
+            });
           }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         results.errors.push(`Error syncing ${sponsorship.id}: ${message}`);
       }
+    }
+
+    // Log the job execution
+    try {
+      const { data: jobLog, error: logError } = await supabaseAdmin
+        .from('reconciliation_job_logs')
+        .insert({
+          job_name: 'sync-sponsorships',
+          ran_at: startTime,
+          completed_at: new Date().toISOString(),
+          stripe_mode: stripeMode,
+          triggered_by: user?.id || 'system',
+          checked_count: results.checked,
+          updated_count: results.updated,
+          skipped_count: 0,
+          error_count: results.errors.length,
+          errors: results.errors,
+          status: results.errors.length > 0 ? 'partial_failure' : 'success',
+        })
+        .select()
+        .single();
+
+      if (logError) {
+        console.error('Failed to create job log:', logError);
+      } else if (jobLog && changes.length > 0) {
+        // Insert individual changes
+        const { error: changesError } = await supabaseAdmin
+          .from('reconciliation_changes')
+          .insert(
+            changes.map(c => ({
+              ...c,
+              job_log_id: jobLog.id,
+            }))
+          );
+
+        if (changesError) {
+          console.error('Failed to log changes:', changesError);
+        } else {
+          console.log(`Logged ${changes.length} changes`);
+        }
+      }
+    } catch (logError) {
+      console.error('Error logging job:', logError);
+      // Don't fail the whole operation if logging fails
     }
 
     return new Response(

@@ -54,6 +54,7 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
+    const startTime = new Date().toISOString();
     console.log("Finding incomplete sponsorships...");
 
     // Find sponsorships with missing critical fields
@@ -75,6 +76,15 @@ serve(async (req) => {
       skipped: 0,
       errors: [] as any[],
     };
+
+    // Track changes for logging
+    const changes: Array<{
+      sponsorship_id: string;
+      change_type: string;
+      before_state: any;
+      after_state: any;
+      stripe_subscription_id: string;
+    }> = [];
 
     for (const sponsorship of incompleteSponsorships || []) {
       try {
@@ -108,6 +118,11 @@ serve(async (req) => {
         // Prepare update data
         const updateData: any = {};
         let needsUpdate = false;
+        const beforeState: any = {
+          sponsor_email: sponsorship.sponsor_email,
+          stripe_customer_id: sponsorship.stripe_customer_id,
+          bestie_id: sponsorship.bestie_id,
+        };
 
         if (!sponsorship.sponsor_email && customerEmail) {
           updateData.sponsor_email = customerEmail;
@@ -178,6 +193,16 @@ serve(async (req) => {
           } else {
             console.log(`  ✅ Updated successfully`);
             results.fixed++;
+            
+            // Track the change
+            const afterState = { ...beforeState, ...updateData };
+            changes.push({
+              sponsorship_id: sponsorship.id,
+              change_type: 'field_backfill',
+              before_state: beforeState,
+              after_state: afterState,
+              stripe_subscription_id: sponsorship.stripe_subscription_id,
+            });
           }
         } else {
           console.log(`  Skipped: No missing data found`);
@@ -199,6 +224,50 @@ serve(async (req) => {
     console.log(`Fixed: ${results.fixed}`);
     console.log(`Skipped: ${results.skipped}`);
     console.log(`Errors: ${results.errors.length}`);
+
+    // Log the job execution
+    try {
+      const { data: jobLog, error: logError } = await supabaseAdmin
+        .from('reconciliation_job_logs')
+        .insert({
+          job_name: 'recover-incomplete-sponsorships',
+          ran_at: startTime,
+          completed_at: new Date().toISOString(),
+          stripe_mode: stripeMode,
+          triggered_by: user?.id || 'system',
+          checked_count: results.checked,
+          updated_count: results.fixed,
+          skipped_count: results.skipped,
+          error_count: results.errors.length,
+          errors: results.errors,
+          status: results.errors.length > 0 ? 'partial_failure' : 'success',
+        })
+        .select()
+        .single();
+
+      if (logError) {
+        console.error('Failed to create job log:', logError);
+      } else if (jobLog && changes.length > 0) {
+        // Insert individual changes
+        const { error: changesError } = await supabaseAdmin
+          .from('reconciliation_changes')
+          .insert(
+            changes.map(c => ({
+              ...c,
+              job_log_id: jobLog.id,
+            }))
+          );
+
+        if (changesError) {
+          console.error('Failed to log changes:', changesError);
+        } else {
+          console.log(`Logged ${changes.length} changes`);
+        }
+      }
+    } catch (logError) {
+      console.error('Error logging job:', logError);
+      // Don't fail the whole operation if logging fails
+    }
 
     return new Response(
       JSON.stringify(results),
