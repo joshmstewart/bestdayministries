@@ -240,12 +240,28 @@ serve(async (req) => {
 
         // Regular subscription processing
         const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
-        console.log(`  Found subscription: ${subscription.id}`);
+        detailedLogs.push({
+          timestamp: new Date().toISOString(),
+          sponsorship_id: sponsorship.id,
+          level: 'info',
+          message: 'Found Stripe subscription',
+          details: {
+            subscription_id: subscription.id,
+            status: subscription.status,
+            customer: subscription.customer
+          }
+        });
 
         // Fetch customer from Stripe
         const customer = await stripe.customers.retrieve(subscription.customer as string);
         if (!customer || customer.deleted) {
-          console.log(`  Skipped: Customer not found or deleted`);
+          detailedLogs.push({
+            timestamp: new Date().toISOString(),
+            sponsorship_id: sponsorship.id,
+            level: 'warning',
+            message: 'Skipped: Customer not found or deleted',
+            details: { customer_id: subscription.customer }
+          });
           results.skipped++;
           continue;
         }
@@ -253,7 +269,16 @@ serve(async (req) => {
         const customerEmail = (customer as Stripe.Customer).email;
         const customerId = customer.id;
 
-        console.log(`  Customer: ${customerId} (${customerEmail})`);
+        detailedLogs.push({
+          timestamp: new Date().toISOString(),
+          sponsorship_id: sponsorship.id,
+          level: 'info',
+          message: 'Found Stripe customer',
+          details: {
+            customer_id: customerId,
+            customer_email: customerEmail
+          }
+        });
 
         // Prepare update data
         const updateData: any = {};
@@ -267,13 +292,25 @@ serve(async (req) => {
         if (!sponsorship.sponsor_email && customerEmail) {
           updateData.sponsor_email = customerEmail;
           needsUpdate = true;
-          console.log(`  Will add sponsor_email: ${customerEmail}`);
+          detailedLogs.push({
+            timestamp: new Date().toISOString(),
+            sponsorship_id: sponsorship.id,
+            level: 'info',
+            message: 'Will add sponsor_email',
+            details: { sponsor_email: customerEmail }
+          });
         }
 
         if (!sponsorship.stripe_customer_id) {
           updateData.stripe_customer_id = customerId;
           needsUpdate = true;
-          console.log(`  Will add stripe_customer_id: ${customerId}`);
+          detailedLogs.push({
+            timestamp: new Date().toISOString(),
+            sponsorship_id: sponsorship.id,
+            level: 'info',
+            message: 'Will add stripe_customer_id',
+            details: { stripe_customer_id: customerId }
+          });
         }
 
         // Try to get bestie_id - check sponsor_besties table FIRST (most reliable)
@@ -290,7 +327,24 @@ serve(async (req) => {
 
             if (sponsorBestie?.bestie_id) {
               bestieId = sponsorBestie.bestie_id;
-              console.log(`  ✅ Found bestie_id from sponsor_besties table: ${bestieId}`);
+              detailedLogs.push({
+                timestamp: new Date().toISOString(),
+                sponsorship_id: sponsorship.id,
+                level: 'success',
+                message: 'Found bestie_id from sponsor_besties table',
+                details: {
+                  sponsor_bestie_id: sponsorship.sponsor_bestie_id,
+                  bestie_id: bestieId
+                }
+              });
+            } else {
+              detailedLogs.push({
+                timestamp: new Date().toISOString(),
+                sponsorship_id: sponsorship.id,
+                level: 'warning',
+                message: 'sponsor_bestie_id exists but no bestie_id found',
+                details: { sponsor_bestie_id: sponsorship.sponsor_bestie_id }
+              });
             }
           }
 
@@ -307,10 +361,25 @@ serve(async (req) => {
                 .single();
               
               if (!profile) {
-                console.log(`  ⚠️  Invalid bestie_id in metadata: ${bestieId} - will skip`);
+                detailedLogs.push({
+                  timestamp: new Date().toISOString(),
+                  sponsorship_id: sponsorship.id,
+                  level: 'warning',
+                  message: 'Invalid bestie_id in Stripe metadata',
+                  details: {
+                    invalid_bestie_id: bestieId,
+                    metadata: subscription.metadata
+                  }
+                });
                 bestieId = null; // Reset to null
               } else {
-                console.log(`  ✅ Validated bestie_id from Stripe metadata: ${bestieId}`);
+                detailedLogs.push({
+                  timestamp: new Date().toISOString(),
+                  sponsorship_id: sponsorship.id,
+                  level: 'success',
+                  message: 'Validated bestie_id from Stripe metadata',
+                  details: { bestie_id: bestieId }
+                });
               }
             }
           }
@@ -325,7 +394,13 @@ serve(async (req) => {
               .single();
 
             if (receipt?.bestie_name && receipt.bestie_name !== 'Bestie') {
-              console.log(`  Found bestie_name from receipt: ${receipt.bestie_name}`);
+              detailedLogs.push({
+                timestamp: new Date().toISOString(),
+                sponsorship_id: sponsorship.id,
+                level: 'info',
+                message: 'Found bestie_name from receipt',
+                details: { bestie_name: receipt.bestie_name }
+              });
               // Could potentially match to profiles here if needed
             }
           }
@@ -333,7 +408,25 @@ serve(async (req) => {
           if (bestieId) {
             updateData.bestie_id = bestieId;
             needsUpdate = true;
-            console.log(`  Will add bestie_id: ${bestieId}`);
+            detailedLogs.push({
+              timestamp: new Date().toISOString(),
+              sponsorship_id: sponsorship.id,
+              level: 'info',
+              message: 'Will add bestie_id',
+              details: { bestie_id: bestieId }
+            });
+          } else {
+            detailedLogs.push({
+              timestamp: new Date().toISOString(),
+              sponsorship_id: sponsorship.id,
+              level: 'warning',
+              message: 'Could not determine bestie_id from any source',
+              details: {
+                checked_sponsor_bestie_id: !!sponsorship.sponsor_bestie_id,
+                sponsor_bestie_id_value: sponsorship.sponsor_bestie_id,
+                checked_stripe_metadata: !!subscription.metadata?.bestie_id
+              }
+            });
           }
         }
 
@@ -345,7 +438,13 @@ serve(async (req) => {
             .eq("id", sponsorship.id);
 
           if (updateError) {
-            console.log(`  Error updating: ${updateError.message}`);
+            detailedLogs.push({
+              timestamp: new Date().toISOString(),
+              sponsorship_id: sponsorship.id,
+              level: 'error',
+              message: `Error updating: ${updateError.message}`,
+              details: { attempted_values: updateData }
+            });
             results.errors.push({
               sponsorship_id: sponsorship.id,
               stripe_subscription_id: sponsorship.stripe_subscription_id,
@@ -361,7 +460,13 @@ serve(async (req) => {
                 : 'Check database constraints and field permissions',
             });
           } else {
-            console.log(`  ✅ Updated successfully`);
+            detailedLogs.push({
+              timestamp: new Date().toISOString(),
+              sponsorship_id: sponsorship.id,
+              level: 'success',
+              message: 'Updated successfully',
+              details: updateData
+            });
             results.fixed++;
             
             // Track the change
@@ -375,7 +480,12 @@ serve(async (req) => {
             });
           }
         } else {
-          console.log(`  Skipped: No missing data found`);
+          detailedLogs.push({
+            timestamp: new Date().toISOString(),
+            sponsorship_id: sponsorship.id,
+            level: 'info',
+            message: 'Skipped: No missing data found'
+          });
           results.skipped++;
         }
       } catch (error) {
