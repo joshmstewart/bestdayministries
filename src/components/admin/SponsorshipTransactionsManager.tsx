@@ -2029,8 +2029,11 @@ export const SponsorshipTransactionsManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Job History Dialog */}
-      <Dialog open={jobLogsDialogOpen} onOpenChange={setJobLogsDialogOpen}>
+      {/* Job History Dialog - Shows list of all jobs */}
+      <Dialog open={jobLogsDialogOpen && !selectedJobLog} onOpenChange={(open) => {
+        setJobLogsDialogOpen(open);
+        if (!open) setSelectedJobLog(null);
+      }}>
         <DialogContent className="max-w-6xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Reconciliation Job History</DialogTitle>
@@ -2143,6 +2146,15 @@ export const SponsorshipTransactionsManager = () => {
                                   {isExpanded ? 'Hide Errors' : 'Show Errors'}
                                 </Button>
                               )}
+
+                              {/* ALWAYS show detailed logs button */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedJobLog(log)}
+                              >
+                                View All Logs
+                              </Button>
                             </div>
                           </div>
 
@@ -2275,9 +2287,12 @@ export const SponsorshipTransactionsManager = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Detailed Logs Dialog for selected job */}
+
+      {/* Detailed Logs Dialog for selected job */}
       <ReconciliationJobLogsDialog
-        open={jobLogsDialogOpen}
-        onOpenChange={setJobLogsDialogOpen}
+        open={!!selectedJobLog}
+        onOpenChange={(open) => !open && setSelectedJobLog(null)}
         jobLog={selectedJobLog}
       />
     </div>
