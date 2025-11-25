@@ -276,28 +276,12 @@ serve(async (req) => {
           console.log(`  Will add stripe_customer_id: ${customerId}`);
         }
 
-        // Try to get bestie_id from metadata or receipts
+        // Try to get bestie_id - check sponsor_besties table FIRST (most reliable)
         if (!sponsorship.bestie_id) {
-          let bestieId = subscription.metadata?.bestie_id;
+          let bestieId = null;
 
-          // VALIDATE metadata bestie_id against profiles table
-          if (bestieId) {
-            const { data: profile } = await supabaseAdmin
-              .from("profiles")
-              .select("id")
-              .eq("id", bestieId)
-              .single();
-            
-            if (!profile) {
-              console.log(`  ⚠️  Invalid bestie_id in metadata: ${bestieId} - falling back to sponsor_besties lookup`);
-              bestieId = null; // Reset to trigger fallback
-            } else {
-              console.log(`  ✅ Validated bestie_id from metadata: ${bestieId}`);
-            }
-          }
-
-          // If not in metadata or invalid, try to get from sponsor_bestie_id lookup
-          if (!bestieId && sponsorship.sponsor_bestie_id) {
+          // STRATEGY 1: Look up from sponsor_besties table (database join - most reliable)
+          if (sponsorship.sponsor_bestie_id) {
             const { data: sponsorBestie } = await supabaseAdmin
               .from("sponsor_besties")
               .select("bestie_id")
@@ -306,7 +290,28 @@ serve(async (req) => {
 
             if (sponsorBestie?.bestie_id) {
               bestieId = sponsorBestie.bestie_id;
-              console.log(`  ✅ Found valid bestie_id from sponsor_bestie: ${bestieId}`);
+              console.log(`  ✅ Found bestie_id from sponsor_besties table: ${bestieId}`);
+            }
+          }
+
+          // STRATEGY 2: Check Stripe subscription metadata (fallback)
+          if (!bestieId) {
+            bestieId = subscription.metadata?.bestie_id;
+
+            // VALIDATE metadata bestie_id against profiles table
+            if (bestieId) {
+              const { data: profile } = await supabaseAdmin
+                .from("profiles")
+                .select("id")
+                .eq("id", bestieId)
+                .single();
+              
+              if (!profile) {
+                console.log(`  ⚠️  Invalid bestie_id in metadata: ${bestieId} - will skip`);
+                bestieId = null; // Reset to null
+              } else {
+                console.log(`  ✅ Validated bestie_id from Stripe metadata: ${bestieId}`);
+              }
             }
           }
 
