@@ -27,6 +27,7 @@ serve(async (req) => {
 
     const logs: string[] = [];
     const results = {
+      pendingDonationsFixed: 0,
       donationsProcessed: 0,
       donationReceiptsCreated: 0,
       sponsorshipsProcessed: 0,
@@ -44,7 +45,116 @@ serve(async (req) => {
     const orgName = receiptSettings?.organization_name || "Best Day Ministries";
     const orgEin = receiptSettings?.organization_ein || "00-0000000";
 
-    logs.push(logStep("=== SCANNING FOR MISSING DONATION RECEIPTS ==="));
+    // ============================================
+    // PHASE 1: FIX PENDING DONATIONS
+    // ============================================
+    logs.push(logStep("=== PHASE 1: FIXING PENDING DONATIONS ==="));
+
+    const { data: pendingDonations, error: pendingError } = await supabaseClient
+      .from("donations")
+      .select("id, donor_id, donor_email, amount, stripe_checkout_session_id, stripe_mode, status")
+      .eq("status", "pending")
+      .not("stripe_checkout_session_id", "is", null);
+
+    if (pendingError) throw pendingError;
+
+    logs.push(logStep(`Found ${pendingDonations?.length || 0} pending donations with checkout session IDs`));
+
+    if (pendingDonations && pendingDonations.length > 0) {
+      const stripeKeyLive = Deno.env.get('STRIPE_SECRET_KEY_LIVE');
+      const stripeKeyTest = Deno.env.get('STRIPE_SECRET_KEY_TEST');
+
+      for (const donation of pendingDonations) {
+        try {
+          const stripeKey = donation.stripe_mode === 'live' ? stripeKeyLive : stripeKeyTest;
+          if (!stripeKey) {
+            logs.push(logStep(`Skipping donation ${donation.id} - Stripe key not configured for ${donation.stripe_mode} mode`));
+            continue;
+          }
+
+          const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
+
+          // Retrieve the checkout session from Stripe
+          const session = await stripe.checkout.sessions.retrieve(donation.stripe_checkout_session_id);
+
+          logs.push(logStep(`Retrieved session for donation ${donation.id}`, {
+            session_id: session.id,
+            payment_status: session.payment_status,
+            mode: session.mode,
+          }));
+
+          let newStatus = "pending";
+          let stripePaymentIntentId = null;
+          let stripeSubscriptionId = null;
+
+          if (session.payment_status === "paid") {
+            if (session.mode === "payment") {
+              // One-time payment
+              newStatus = "completed";
+              stripePaymentIntentId = session.payment_intent as string;
+            } else if (session.mode === "subscription") {
+              // Recurring subscription
+              newStatus = "active";
+              stripeSubscriptionId = session.subscription as string;
+            }
+          } else if (session.payment_status === "unpaid") {
+            newStatus = "pending";
+          } else {
+            newStatus = "cancelled";
+          }
+
+          // Update donation with correct status and Stripe IDs
+          const { error: updateError } = await supabaseClient
+            .from("donations")
+            .update({
+              status: newStatus,
+              stripe_payment_intent_id: stripePaymentIntentId,
+              stripe_subscription_id: stripeSubscriptionId,
+              stripe_customer_id: session.customer as string,
+            })
+            .eq("id", donation.id);
+
+          if (updateError) {
+            logs.push(logStep(`Failed to update donation ${donation.id}`, updateError));
+            results.errors.push({ donation_id: donation.id, error: updateError.message });
+            continue;
+          }
+
+          results.pendingDonationsFixed++;
+          logs.push(logStep(`Fixed donation ${donation.id}: ${donation.status} → ${newStatus}`));
+
+          // Log to reconciliation_changes table
+          await supabaseClient
+            .from("reconciliation_changes")
+            .insert({
+              job_type: "fix_pending_donations",
+              record_type: "donation",
+              record_id: donation.id,
+              field_name: "status",
+              old_value: donation.status,
+              new_value: newStatus,
+              change_source: "automated_reconciliation",
+              metadata: {
+                checkout_session_id: donation.stripe_checkout_session_id,
+                payment_status: session.payment_status,
+                stripe_payment_intent_id: stripePaymentIntentId,
+                stripe_subscription_id: stripeSubscriptionId,
+              },
+            });
+
+        } catch (error: any) {
+          logs.push(logStep(`Error processing pending donation ${donation.id}`, error));
+          results.errors.push({ donation_id: donation.id, error: error.message });
+        }
+      }
+    }
+
+    logs.push(logStep(`Phase 1 complete: Fixed ${results.pendingDonationsFixed} pending donations`));
+
+    // ============================================
+    // PHASE 2: GENERATE MISSING RECEIPTS
+    // ============================================
+    logs.push(logStep("=== PHASE 2: SCANNING FOR MISSING DONATION RECEIPTS ==="));
 
     // Find donations without receipts
     const { data: donations, error: donationsError } = await supabaseClient
@@ -288,7 +398,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: `Recovery complete: ${results.donationReceiptsCreated} donation receipts + ${results.sponsorshipReceiptsCreated} sponsorship receipts created`,
+        message: `Recovery complete: Fixed ${results.pendingDonationsFixed} pending donations, created ${results.donationReceiptsCreated} donation receipts + ${results.sponsorshipReceiptsCreated} sponsorship receipts`,
         ...results,
         logs,
       }),
