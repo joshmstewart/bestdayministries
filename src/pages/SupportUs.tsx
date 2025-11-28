@@ -128,8 +128,12 @@ const SupportUs = () => {
         return (
           <div key="donation_form" className="space-y-6">
             <div className="text-center space-y-2">
-              <h2 className="text-3xl font-black">{section.content.title || "Support Our Mission"}</h2>
-              <p className="text-muted-foreground">{section.content.description || "Make a general donation to support our work"}</p>
+              {section.content.title && (
+                <h2 className="text-3xl font-black">{section.content.title}</h2>
+              )}
+              {section.content.description && (
+                <p className="text-muted-foreground">{section.content.description}</p>
+              )}
             </div>
             <DonationForm />
           </div>
