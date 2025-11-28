@@ -25,6 +25,7 @@ import AlbumManagement from "./pages/AlbumManagement";
 import HelpCenter from "./pages/HelpCenter";
 import EventsPage from "./pages/EventsPage";
 import AboutPage from "./pages/AboutPage";
+import AmbassadorPage from "./pages/AmbassadorPage";
 import JoyRocksPage from "./pages/JoyRocksPage";
 import Partners from "./pages/Partners";
 import GalleryPage from "./pages/GalleryPage";
@@ -164,6 +165,7 @@ const App = () => {
             <Route path="/admin/albums" element={<AlbumManagement />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/ambassador" element={<AmbassadorPage />} />
             <Route path="/joy-rocks" element={<JoyRocksPage />} />
             <Route path="/partners" element={<Partners />} />
             <Route path="/gallery" element={<GalleryPage />} />
