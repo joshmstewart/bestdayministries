@@ -105,10 +105,12 @@ const SupportUs = () => {
       case 'header':
         return (
           <div key="header" className="text-center space-y-4 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-4">
-              <Heart className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">{section.content.badge_text}</span>
-            </div>
+            {section.content.badge_text && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20 mb-4">
+                <Heart className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-primary">{section.content.badge_text}</span>
+              </div>
+            )}
             <h1 className="text-4xl md:text-6xl font-black text-foreground">
               {section.content.heading?.split(" ").map((word: string, i: number) => 
                 i === section.content.heading.split(" ").length - 2 ? (
