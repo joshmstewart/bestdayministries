@@ -160,7 +160,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.reconcile-donations-from-stripe]
-verify_jwt = true
+verify_jwt = false
 
 [functions.cleanup-duplicate-donations]
 verify_jwt = true
