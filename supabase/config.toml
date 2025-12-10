@@ -169,3 +169,6 @@ verify_jwt = true
 verify_jwt = false
 schedule = "0 2 * * *"
 
+[functions.send-missing-receipt-emails]
+verify_jwt = false
+

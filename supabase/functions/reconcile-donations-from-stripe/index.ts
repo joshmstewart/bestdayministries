@@ -370,10 +370,14 @@ serve(async (req) => {
       results.push(result);
     }
 
-    // Generate receipts for newly activated/completed donations
-    logStep("Generating receipts", { count: donationsToGenerateReceipts.length });
+    // Generate receipts and send emails for newly activated/completed donations
+    logStep("Generating receipts and sending emails", { count: donationsToGenerateReceipts.length });
+    
+    let receiptsSent = 0;
+    let receiptErrors = 0;
     
     if (donationsToGenerateReceipts.length > 0) {
+      // First, generate receipt records via RPC
       const { data: receiptsData, error: receiptsError } = await supabaseClient.rpc(
         'generate_missing_receipts'
       );
@@ -383,6 +387,70 @@ serve(async (req) => {
       } else {
         logStep("Receipts generated", { count: receiptsData?.length || 0 });
       }
+      
+      // Now send receipt emails for each donation that was just updated
+      for (const donationId of donationsToGenerateReceipts) {
+        try {
+          // Get the donation details to send the receipt
+          const { data: donation, error: donationError } = await supabaseClient
+            .from('donations')
+            .select('id, donor_email, donor_id, amount, amount_charged, frequency, created_at, stripe_mode')
+            .eq('id', donationId)
+            .single();
+          
+          if (donationError || !donation) {
+            logStep(`Could not fetch donation ${donationId} for receipt email`, { error: donationError?.message });
+            receiptErrors++;
+            continue;
+          }
+          
+          // Skip if no email available
+          if (!donation.donor_email) {
+            logStep(`Skipping receipt email for ${donationId} - no donor_email`);
+            continue;
+          }
+          
+          // Get donor name from profile if available
+          let sponsorName = 'Donor';
+          if (donation.donor_id) {
+            const { data: profile } = await supabaseClient
+              .from('profiles')
+              .select('display_name')
+              .eq('id', donation.donor_id)
+              .single();
+            if (profile?.display_name) {
+              sponsorName = profile.display_name;
+            }
+          }
+          
+          // Invoke send-sponsorship-receipt to send the email
+          const { error: sendError } = await supabaseClient.functions.invoke('send-sponsorship-receipt', {
+            body: {
+              sponsorEmail: donation.donor_email,
+              sponsorName: sponsorName,
+              bestieName: 'General Support',
+              amount: donation.amount_charged || donation.amount,
+              frequency: donation.frequency,
+              transactionId: `donation_${donation.id}`,
+              transactionDate: donation.created_at,
+              stripeMode: donation.stripe_mode
+            }
+          });
+          
+          if (sendError) {
+            logStep(`Error sending receipt email for donation ${donationId}`, { error: sendError.message });
+            receiptErrors++;
+          } else {
+            logStep(`✉️ Sent receipt email to ${donation.donor_email}`);
+            receiptsSent++;
+          }
+        } catch (emailError: any) {
+          logStep(`Exception sending receipt for ${donationId}`, { error: emailError.message });
+          receiptErrors++;
+        }
+      }
+      
+      logStep("Receipt emails complete", { sent: receiptsSent, errors: receiptErrors });
     }
 
     // Calculate summary
@@ -392,7 +460,9 @@ serve(async (req) => {
       completed: results.filter(r => r.action === 'completed').length,
       cancelled: results.filter(r => r.action === 'cancelled').length,
       skipped: results.filter(r => r.action === 'skipped').length,
-      errors: results.filter(r => r.action === 'error').length
+      errors: results.filter(r => r.action === 'error').length,
+      receiptsSent,
+      receiptErrors
     };
 
     logStep("Reconciliation complete", summary);
