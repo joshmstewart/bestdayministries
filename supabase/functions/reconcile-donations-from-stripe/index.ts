@@ -36,26 +36,36 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Authenticate admin user
+    // Allow EITHER cron secret header OR admin user auth
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('No authorization header');
+    const cronSecret = req.headers.get('X-Cron-Secret');
+    const expectedCronSecret = Deno.env.get('CRON_SECRET') || 'reconcile-donations-secret-2024';
+    
+    const isCronCall = cronSecret === expectedCronSecret;
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !user) throw new Error('Authentication failed');
+    if (isCronCall) {
+      logStep("Authenticated via cron secret header");
+    } else {
+      // Validate admin user if not a cron call
+      if (!authHeader) throw new Error('No authorization header');
+      
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError || !user) throw new Error('Authentication failed');
 
-    // Verify admin access
-    const { data: roles } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .in('role', ['admin', 'owner']);
+      // Verify admin access
+      const { data: roles } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .in('role', ['admin', 'owner']);
 
-    if (!roles || roles.length === 0) {
-      throw new Error('Unauthorized: Admin access required');
+      if (!roles || roles.length === 0) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+
+      logStep("Admin authenticated", { userId: user.id });
     }
-
-    logStep("Admin authenticated", { userId: user.id });
 
     // Parse request body for optional filters
     const body = await req.json().catch(() => ({}));
