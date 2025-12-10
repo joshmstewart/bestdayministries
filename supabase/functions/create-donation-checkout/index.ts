@@ -192,11 +192,12 @@ serve(async (req) => {
       profileId: profile?.id || 'none' 
     });
 
-    // CRITICAL FIX: Always set donor_email for receipt generation
-    // For logged-in users: set BOTH donor_id AND donor_email from profile
-    // For guests: set donor_email only (donor_id will be null)
+    // RESPECT donor_identifier_check CONSTRAINT:
+    // For users with existing profiles: set donor_id ONLY (email retrieved from profiles table for receipts)
+    // For guests (no profile): set donor_email ONLY
+    // NEVER both, NEVER neither
     const donorId = profile?.id ?? null;
-    const donorEmail = profile?.email || email; // Always use the email
+    const donorEmail = profile ? null : email;  // Only set email for guests
 
     console.log('Donor identification:', { 
       donorId: donorId || 'null', 
