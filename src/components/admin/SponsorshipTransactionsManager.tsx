@@ -924,9 +924,9 @@ export const SponsorshipTransactionsManager = () => {
   const deleteIndividualTransaction = async (
     transactionId: string, 
     donorName: string, 
-    isDuplicate: boolean = false
+    isPendingOrDuplicate: boolean = false
   ) => {
-    const messageType = isDuplicate ? 'duplicate transaction' : 'test transaction';
+    const messageType = isPendingOrDuplicate ? 'pending/duplicate transaction' : 'test transaction';
     if (!confirm(`Are you sure you want to delete the ${messageType} for ${donorName}? This cannot be undone.`)) {
       return;
     }
@@ -952,10 +952,11 @@ export const SponsorshipTransactionsManager = () => {
 
       toast({
         title: "Success",
-        description: `${isDuplicate ? 'Duplicate transaction' : 'Test transaction'} has been deleted`,
+        description: `Transaction has been deleted`,
       });
       
-      await loadTransactions();
+      // Update local state immediately
+      setTransactions(prev => prev.filter(t => t.id !== transactionId));
     } catch (error: any) {
       console.error('Error deleting transaction:', error);
       toast({
@@ -1822,16 +1823,20 @@ export const SponsorshipTransactionsManager = () => {
                               No Subscription ID
                             </Badge>
                           ) : null}
-                          {(transaction.stripe_mode === 'test' || transaction.status === 'duplicate') && (
+                          {(transaction.stripe_mode === 'test' || transaction.status === 'duplicate' || transaction.status === 'pending') && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => deleteIndividualTransaction(
                                 transaction.id,
                                 transaction.sponsor_profile?.display_name || transaction.sponsor_email || 'this donor',
-                                transaction.status === 'duplicate'
+                                transaction.status === 'duplicate' || transaction.status === 'pending'
                               )}
-                              title={transaction.status === 'duplicate' ? 'Delete Duplicate Transaction' : 'Delete Test Transaction'}
+                              title={
+                                transaction.status === 'duplicate' ? 'Delete Duplicate Transaction' : 
+                                transaction.status === 'pending' ? 'Delete Pending Transaction' : 
+                                'Delete Test Transaction'
+                              }
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
                               <Trash2 className="w-4 h-4" />
