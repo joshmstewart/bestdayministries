@@ -632,8 +632,14 @@ STATUS:One-Time[pending→completed]|Monthly[pending→active→cancelled]
 STRIPE-IDS:stripe_customer_id[ALWAYS-set-both-types]|stripe_subscription_id[ONLY-monthly]|stripe_checkout_session_id[REQUIRED-for-webhook-matching]
 FEE-COVERAGE:(amt+0.30)/0.971
 CRITICAL-AMOUNT-STORAGE:ALWAYS-store-FULL-amount-including-Stripe-fees→all-amounts-reflect-total-received→NOT-base-amount
-ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships+recalculate-button]|DonationRecoveryManager[auto-recovery-from-receipts+reconciliation-button]
-ACTIONS:copy-customer-id|open-stripe-customer|view-receipt-logs|delete-test|recalculate-full-amounts[updates-historical-records-from-Stripe-metadata]|recover-all[auto-recovery-button]|reconcile-now[fix-pending-donations]
+ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships+recalculate-button+multi-select-status-filter]|DonationRecoveryManager[auto-recovery-from-receipts+reconciliation-button]
+ADMIN-UI-FILTERS:
+  STATUS-FILTER:multi-select-dropdown[checkboxes]→default-excludes-cancelled→options[active|scheduled_cancel|pending|completed|cancelled|paused|duplicate|test]
+  TYPE-FILTER:single-select[all|sponsorship|donation]
+  BESTIE-FILTER:single-select[all-besties|specific-bestie]
+  FREQUENCY-FILTER:single-select[all|monthly|one-time]
+  SEARCH:donor-name|email|bestie-name|subscription-ID
+ACTIONS:copy-customer-id|open-stripe-customer|view-receipt-logs|delete[ONLY-cancelled|test|duplicate-NOT-pending]|recalculate-full-amounts[updates-historical-records-from-Stripe-metadata]|recover-all[auto-recovery-button]|reconcile-now[fix-pending-donations]
 RECEIPT-STATUS:green-FileText[generated]|yellow-Clock[pending]
 AUDIT-LOGS:accessible-for-both-donations+sponsorships[NOT-restricted]
 CRITICAL-BUG:constraint-must-include-pending+completed→silent-failure-if-missing
@@ -654,15 +660,16 @@ RECONCILIATION-SYSTEM[CRITICAL-FIX-FOR-PENDING-HELL]:
   ACTIONS:
     activated→pending→active[monthly-subscriptions-confirmed-in-Stripe]
     completed→pending→completed[one-time-payments-confirmed-in-Stripe]
-    cancelled→pending→cancelled[expired|failed|non-existent-in-Stripe]
-    skipped→<5min-old-OR-still-processing[leave-pending-for-webhooks]
+    auto_cancelled→pending→cancelled[>2-hours-old-with-no-Stripe-record→abandoned-checkout]
+    skipped→<2-hours-old-OR-still-processing[leave-pending-for-webhooks]
+  AUTO-CANCEL-THRESHOLD:2-hours→pending-donations-with-no-Stripe-record-after-2h-are-auto-cancelled→abandoned-checkouts
   RECEIPT-GENERATION:auto-generates-receipts-and-sends-emails-for-newly-activated|completed-donations
   SCHEDULING:cron-job[hourly-at-:00]→calls-edge-function-with[mode:live|limit:500]
-  ADMIN-UI:Admin→Donations→Recovery-tab→Reconcile-Now-button→displays-summary[activated|completed|cancelled|skipped|errors]→detailed-results-per-donation
-  SAFETY:skips-recent-donations[<5min]→allows-webhooks-to-process-first→only-updates-single-donation-by-id→never-bulk-update-by-customer
+  ADMIN-UI:Admin→Donations→Recovery-tab→Reconcile-Now-button→displays-summary[activated|completed|auto_cancelled|skipped|errors]→detailed-results-per-donation
+  SAFETY:skips-recent-donations[<2h]→allows-webhooks-to-process-first→only-updates-single-donation-by-id→never-bulk-update-by-customer
   CRITICAL-FIX:solves-"Cannot-coerce-result-to-single-JSON-object"-error→always-select-single-row-first→then-update-by-id
   LOGGING:comprehensive-per-donation-logs→tracks[old_status|new_status|stripe_object_id|stripe_status|action|error]
-  SELF-HEALING:runs-automatically-hourly→catches-webhook-failures→ensures-no-donations-stuck-pending-forever
+  SELF-HEALING:runs-automatically-hourly→catches-webhook-failures→ensures-no-donations-stuck-pending-forever→auto-cancels-abandoned-after-2h
 
 DOC:DONATION_SYSTEM.md|WEBHOOK_CONFIGURATION_GUIDE.md|DONATION_RECOVERY_SYSTEM.md
 

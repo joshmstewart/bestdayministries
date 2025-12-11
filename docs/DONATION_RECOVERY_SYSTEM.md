@@ -521,6 +521,30 @@ SELECT role FROM user_roles WHERE user_id = auth.uid();
 
 ---
 
-**Last Updated:** 2025-11-14  
+## AUTOMATIC RECONCILIATION (PREFERRED)
+
+### `reconcile-donations-from-stripe` Edge Function
+
+The preferred approach for fixing pending donations is the automatic reconciliation system, which runs hourly via cron and directly queries Stripe for actual transaction status.
+
+**Key Features:**
+- Polls Stripe directly (source of truth) rather than relying on webhooks
+- Runs hourly via cron job
+- Auto-fixes pending donations by checking checkout sessions, subscriptions, and payment intents
+- **Auto-cancels abandoned checkouts after 2 hours** if no Stripe record exists
+- Generates receipts for newly confirmed donations
+- Handles both live and test mode
+
+**Auto-Cancel Threshold:**
+Pending donations with no matching Stripe record after 2 hours are automatically marked as `cancelled` (abandoned checkout). This prevents incomplete checkouts from accumulating indefinitely while giving sufficient time for Stripe webhooks to fire.
+
+**Admin UI Access:**
+Admin → Besties → Transactions → Click "Reconcile Now" button for immediate reconciliation
+
+See `DONATION_SYSTEM.md` for full reconciliation documentation.
+
+---
+
+**Last Updated:** 2025-12-11  
 **Status:** Active  
 **Maintainer:** Admin Team
