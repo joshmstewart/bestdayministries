@@ -291,13 +291,19 @@ Donation receipts use these values:
 - Automatic status updates via webhooks
 - Email validation and sanitization
 - Terms & Conditions acceptance requirement
+- **Automatic reconciliation system:**
+  - Hourly cron job polls Stripe for actual transaction status
+  - Auto-fixes pending donations stuck due to webhook failures
+  - Auto-cancels abandoned checkouts after 2 hours (no Stripe record found)
+  - Generates receipts for newly confirmed donations
 - **Admin transaction management:**
   - View all donations in SponsorshipTransactionsManager
+  - **Multi-select status filter** (defaults to cancelled deselected)
   - Copy Stripe customer ID
   - Open Stripe customer page in dashboard
   - View receipt generation status (generated/pending)
   - Access receipt generation audit logs
-  - Delete test transactions
+  - Delete transactions (only cancelled/test/duplicate - NOT pending)
 
 ---
 
@@ -328,20 +334,23 @@ Donation receipts use these values:
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | **Donations not appearing** | Database constraint blocks 'pending' status | Check constraint allows: 'pending', 'completed', 'active', 'cancelled', 'paused' |
-| **Donations stuck at 'pending'** | Database constraint blocks 'completed' status | Same as above - verify constraint |
-| Webhook not updating status | Missing `type: 'donation'` metadata | Verify metadata in checkout session |
+| **Donations stuck at 'pending'** | Webhook failure or database constraint | Reconciliation cron auto-fixes hourly; run manual reconcile if urgent |
+| **Donations auto-cancelled incorrectly** | >2h old with no Stripe record | Check Stripe dashboard - if payment exists, investigate webhook issues |
+| Webhook not updating status | Missing `type: 'donation'` metadata | Verify metadata in checkout session; reconciliation will fix |
 | Can't find donation by email | Email mismatch | Check case sensitivity, trim whitespace |
-| Monthly donation stays pending | Webhook didn't fire | Check Stripe webhook logs |
+| Monthly donation stays pending | Webhook didn't fire | Wait for hourly reconciliation or run manual reconcile |
 | Wrong Stripe mode | Mode setting incorrect | Check `app_settings.stripe_mode` |
 | Guest donation not visible to user | No `donor_id` link | Query by email instead |
 | Receipt logs not showing | UI restricted to sponsorships | Check SponsorshipTransactionsManager - should show for both |
+| Cancelled donations appearing in list | Status filter includes cancelled | Status filter defaults to cancelled deselected; adjust filter if needed |
 
 **Critical Debugging Steps:**
 1. Check database constraint: `SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'donations'::regclass AND contype = 'c'`
 2. Check edge function logs for 'pending' creation
-3. Check webhook logs for 'completed'/'active' update
+3. Check reconciliation logs for status updates (Admin → Besties → Transactions → Reconcile Now)
 4. Verify `stripe_customer_id` is set (required for actions)
 5. Check `metadata.type = 'donation'` in Stripe dashboard
+6. For auto-cancelled donations: verify Stripe has no matching checkout session/payment
 
 ---
 
@@ -393,10 +402,18 @@ Displays donations alongside sponsorships with full management capabilities:
 - Recipient (General Fund vs Bestie name)
 - Amount
 - Frequency (One-Time vs Monthly)
-- Status (Completed, Active, Cancelled)
+- Status (Completed, Active, Cancelled, Pending, Paused, Duplicate, Test)
 - Stripe mode (Test vs Live)
 - Start date / End date
 - Receipt status (green checkmark if generated, yellow clock if pending)
+
+**Filters:**
+- **Status (Multi-Select):** Checkboxes for each status, defaults to cancelled deselected
+  - Options: Active, Scheduled to Cancel, Pending, Completed, Cancelled, Paused, Duplicate, Test
+- **Type:** All / Sponsorships / Donations
+- **Bestie:** All / Specific bestie (for sponsorships)
+- **Frequency:** All / Monthly / One-Time
+- **Search:** Donor name, email, bestie name, or subscription ID
 
 **Available Actions:**
 - 📄 **View Receipt** - If receipt generated (green FileText icon)
@@ -404,7 +421,7 @@ Displays donations alongside sponsorships with full management capabilities:
 - 📋 **View Audit Logs** - Receipt generation logs (FileText icon, works for both donations and sponsorships)
 - 📋 **Copy Customer ID** - Copy `stripe_customer_id` to clipboard
 - 🔗 **Open Stripe Customer** - Opens customer page in Stripe dashboard (test or live mode)
-- 🗑️ **Delete Test Transaction** - Only for test mode transactions
+- 🗑️ **Delete Transaction** - Only for cancelled, test, or duplicate transactions (NOT pending)
 
 **Key Implementation Details:**
 ```typescript
@@ -416,6 +433,11 @@ interface Transaction {
   receipt_generated_at: string | null;
 }
 
+// Multi-select status filter - defaults to cancelled excluded
+const [filterStatus, setFilterStatus] = useState<string[]>([
+  "active", "pending", "paused", "completed", "scheduled_cancel", "duplicate", "test"
+]);
+
 // Audit logs work for both types
 const loadAuditLogs = async (transactionId: string) => {
   // Loads from sponsorship_receipts table
@@ -425,4 +447,28 @@ const loadAuditLogs = async (transactionId: string) => {
 
 ---
 
-**Last Updated:** 2025-10-22 - After fixing database constraint and adding full admin UI support for donations
+## RECONCILIATION SYSTEM
+
+The `reconcile-donations-from-stripe` edge function runs hourly to fix pending donations:
+
+**Strategies (in order):**
+1. **Checkout Session ID** (preferred): Retrieve session, expand subscription/payment_intent
+2. **Subscription ID** (monthly fallback): Retrieve subscription status directly
+3. **Customer Search** (last resort): Search by customer_id + amount + timestamp
+
+**Actions:**
+- `activated`: Pending → Active (monthly subscription confirmed in Stripe)
+- `completed`: Pending → Completed (one-time payment confirmed in Stripe)
+- `auto_cancelled`: Pending → Cancelled (>2 hours old, no Stripe record = abandoned checkout)
+- `skipped`: <2 hours old or still processing (leave for webhooks)
+
+**Auto-Cancel Threshold:** 2 hours
+- Donations with no matching Stripe record after 2 hours are automatically cancelled
+- This prevents abandoned/incomplete checkouts from accumulating forever
+- Cancelled records remain in database for audit purposes
+
+**Scheduling:** Hourly cron job at :00
+
+---
+
+**Last Updated:** 2025-12-11 - Added auto-cancellation of stale pending donations (2h threshold), multi-select status filter defaulting to cancelled deselected, polling-first reconciliation architecture
