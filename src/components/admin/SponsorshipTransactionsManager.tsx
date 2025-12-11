@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getFullErrorText } from "@/lib/errorUtils";
-import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2, Download } from "lucide-react";
+import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2, Download, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { ReconciliationJobLogsDialog } from "./ReconciliationJobLogsDialog";
 import {
@@ -32,6 +32,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Transaction {
   id: string;
@@ -69,7 +75,7 @@ export const SponsorshipTransactionsManager = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBestie, setFilterBestie] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string[]>(["active", "pending", "paused", "completed", "scheduled_cancel", "duplicate", "test"]);
   const [filterFrequency, setFilterFrequency] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -499,13 +505,20 @@ export const SponsorshipTransactionsManager = () => {
       );
     }
 
-    // Apply status filter
-    if (filterStatus !== "all") {
-      if (filterStatus === "scheduled_cancel") {
-        filtered = filtered.filter(t => t.status === 'active' && t.ended_at);
-      } else {
-        filtered = filtered.filter(t => t.status === filterStatus);
-      }
+    // Apply status filter (multi-select)
+    if (filterStatus.length > 0) {
+      filtered = filtered.filter(t => {
+        // Handle scheduled_cancel as a pseudo-status
+        const isScheduledCancel = t.status === 'active' && t.ended_at;
+        if (isScheduledCancel && filterStatus.includes('scheduled_cancel')) {
+          return true;
+        }
+        // Don't show scheduled_cancel items under "active" unless explicitly selected
+        if (isScheduledCancel && !filterStatus.includes('scheduled_cancel')) {
+          return false;
+        }
+        return filterStatus.includes(t.status);
+      });
     }
 
     // Apply frequency filter
@@ -519,9 +532,28 @@ export const SponsorshipTransactionsManager = () => {
   const clearFilters = () => {
     setSearchTerm("");
     setFilterBestie("all");
-    setFilterStatus("all");
+    setFilterStatus(["active", "pending", "paused", "completed", "scheduled_cancel", "duplicate", "test"]);
     setFilterFrequency("all");
     setFilterType("all");
+  };
+
+  const allStatusOptions = [
+    { value: "active", label: "Active" },
+    { value: "scheduled_cancel", label: "Scheduled to Cancel" },
+    { value: "pending", label: "Pending" },
+    { value: "completed", label: "Completed" },
+    { value: "cancelled", label: "Cancelled" },
+    { value: "paused", label: "Paused" },
+    { value: "duplicate", label: "Duplicate" },
+    { value: "test", label: "Test" },
+  ];
+
+  const toggleStatusFilter = (status: string) => {
+    setFilterStatus(prev => 
+      prev.includes(status) 
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    );
   };
 
   // Get unique besties for filter dropdown
@@ -1603,19 +1635,32 @@ export const SponsorshipTransactionsManager = () => {
                 </Select>
               </div>
 
-              <div className="flex-1 min-w-[150px]">
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="scheduled_cancel">Scheduled to Cancel</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="paused">Paused</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex-1 min-w-[200px]">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="truncate">
+                        {filterStatus.length === allStatusOptions.length 
+                          ? "All Statuses" 
+                          : filterStatus.length === 0 
+                            ? "No Status Selected"
+                            : `${filterStatus.length} Status${filterStatus.length > 1 ? 'es' : ''}`}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-background" align="start">
+                    {allStatusOptions.map((option) => (
+                      <DropdownMenuCheckboxItem
+                        key={option.value}
+                        checked={filterStatus.includes(option.value)}
+                        onCheckedChange={() => toggleStatusFilter(option.value)}
+                      >
+                        {option.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="flex-1 min-w-[150px]">
@@ -1631,7 +1676,7 @@ export const SponsorshipTransactionsManager = () => {
                 </Select>
               </div>
 
-              {(filterType !== "all" || filterBestie !== "all" || filterStatus !== "all" || filterFrequency !== "all" || searchTerm) && (
+              {(filterType !== "all" || filterBestie !== "all" || filterStatus.length !== allStatusOptions.length || filterFrequency !== "all" || searchTerm) && (
                 <Button
                   variant="outline"
                   size="sm"
