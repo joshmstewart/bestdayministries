@@ -18,7 +18,7 @@ interface ReconcileResult {
   newStatus: string;
   stripeObjectId: string | null;
   stripeStatus: string | null;
-  action: 'activated' | 'completed' | 'cancelled' | 'skipped' | 'error';
+  action: 'activated' | 'completed' | 'cancelled' | 'auto_cancelled' | 'skipped' | 'error';
   error?: string;
 }
 
@@ -358,6 +358,31 @@ serve(async (req) => {
             }
           } catch (searchError: any) {
             logStep(`Customer search failed for ${donation.id}`, { error: searchError.message });
+          }
+        }
+
+        // Auto-cancel stale pending donations with no Stripe record after 2 hours
+        if (result.action === 'skipped') {
+          const donationAge = Date.now() - new Date(donation.created_at).getTime();
+          const twoHours = 2 * 60 * 60 * 1000;
+          
+          if (donationAge > twoHours) {
+            // No Stripe record found after 2 hours = abandoned checkout
+            const { error: cancelError } = await supabaseClient
+              .from('donations')
+              .update({ 
+                status: 'cancelled',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', donation.id);
+
+            if (!cancelError) {
+              result.newStatus = 'cancelled';
+              result.action = 'auto_cancelled';
+              logStep(`🗑️ Auto-cancelled donation ${donation.id} - no Stripe record after 2h (abandoned checkout)`);
+            } else {
+              logStep(`Failed to auto-cancel donation ${donation.id}`, { error: cancelError.message });
+            }
           }
         }
 
