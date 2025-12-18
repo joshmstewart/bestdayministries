@@ -148,29 +148,77 @@ export const DonationForm = () => {
 
         {/* Frequency Selection */}
         <div className="space-y-3">
-          <Label className="text-base font-semibold">Donation Type</Label>
+          <Label className="text-base font-semibold">Choose Your Donation Type</Label>
           <RadioGroup value={frequency} onValueChange={(value) => setFrequency(value as "one-time" | "monthly")} className="grid grid-cols-2 gap-4">
-            <Card className={`cursor-pointer transition-all ${frequency === "monthly" ? "border-primary ring-2 ring-primary/20" : "border-border"}`}>
-              <CardContent className="p-4 text-center" onClick={() => setFrequency("monthly")}>
+            <div
+              onClick={() => setFrequency("monthly")}
+              className={`cursor-pointer transition-all rounded-xl p-1 ${
+                frequency === "monthly" 
+                  ? "bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/30 scale-[1.02]" 
+                  : "bg-muted/30 hover:bg-muted/50"
+              }`}
+            >
+              <div className={`rounded-lg p-4 text-center h-full ${
+                frequency === "monthly" 
+                  ? "bg-primary/10" 
+                  : "bg-background"
+              }`}>
                 <RadioGroupItem value="monthly" id="monthly" className="sr-only" />
-                <Label htmlFor="monthly" className="cursor-pointer">
-                  <Heart className="w-8 h-8 text-primary mx-auto mb-2 fill-primary" />
-                  <div className="font-bold">Monthly</div>
-                  <div className="text-xs text-muted-foreground">Recurring support</div>
-                </Label>
-              </CardContent>
-            </Card>
+                <div className={`w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                  frequency === "monthly" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  <Heart className={`w-7 h-7 ${frequency === "monthly" ? "fill-current" : ""}`} />
+                </div>
+                <div className={`text-lg font-black ${frequency === "monthly" ? "text-primary" : "text-muted-foreground"}`}>
+                  MONTHLY
+                </div>
+                <div className={`text-sm mt-1 ${frequency === "monthly" ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  Recurring support
+                </div>
+                {frequency === "monthly" && (
+                  <div className="mt-2 text-xs font-bold text-primary bg-primary/20 rounded-full px-3 py-1 inline-block">
+                    ✓ SELECTED
+                  </div>
+                )}
+              </div>
+            </div>
 
-            <Card className={`cursor-pointer transition-all ${frequency === "one-time" ? "border-secondary ring-2 ring-secondary/20" : "border-border"}`}>
-              <CardContent className="p-4 text-center" onClick={() => setFrequency("one-time")}>
+            <div
+              onClick={() => setFrequency("one-time")}
+              className={`cursor-pointer transition-all rounded-xl p-1 ${
+                frequency === "one-time" 
+                  ? "bg-gradient-to-br from-secondary to-secondary/80 shadow-lg shadow-secondary/30 scale-[1.02]" 
+                  : "bg-muted/30 hover:bg-muted/50"
+              }`}
+            >
+              <div className={`rounded-lg p-4 text-center h-full ${
+                frequency === "one-time" 
+                  ? "bg-secondary/10" 
+                  : "bg-background"
+              }`}>
                 <RadioGroupItem value="one-time" id="one-time" className="sr-only" />
-                <Label htmlFor="one-time" className="cursor-pointer">
-                  <Sparkles className="w-8 h-8 text-secondary mx-auto mb-2" />
-                  <div className="font-bold">One-Time</div>
-                  <div className="text-xs text-muted-foreground">Single donation</div>
-                </Label>
-              </CardContent>
-            </Card>
+                <div className={`w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                  frequency === "one-time" 
+                    ? "bg-secondary text-secondary-foreground" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <div className={`text-lg font-black ${frequency === "one-time" ? "text-secondary" : "text-muted-foreground"}`}>
+                  ONE-TIME
+                </div>
+                <div className={`text-sm mt-1 ${frequency === "one-time" ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  Single donation
+                </div>
+                {frequency === "one-time" && (
+                  <div className="mt-2 text-xs font-bold text-secondary bg-secondary/20 rounded-full px-3 py-1 inline-block">
+                    ✓ SELECTED
+                  </div>
+                )}
+              </div>
+            </div>
           </RadioGroup>
         </div>
 
