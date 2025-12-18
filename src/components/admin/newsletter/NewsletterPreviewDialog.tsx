@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 
 interface NewsletterPreviewDialogProps {
@@ -129,7 +130,7 @@ export const NewsletterPreviewDialog = ({
             <div 
               className="email-preview max-w-none p-6"
               style={{ fontSize: '16px' }}
-              dangerouslySetInnerHTML={{ __html: finalHtml }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(finalHtml) }}
             />
           </div>
         </div>

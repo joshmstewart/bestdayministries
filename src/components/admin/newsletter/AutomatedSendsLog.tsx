@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -253,7 +254,7 @@ export const AutomatedSendsLog = () => {
                 <div className="text-sm font-medium">Email Content:</div>
                 <div 
                   className="border rounded-lg p-4 bg-white text-sm"
-                  dangerouslySetInnerHTML={{ __html: selectedSend.campaign_templates?.content || '<p class="text-muted-foreground">No content available</p>' }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedSend.campaign_templates?.content || '<p class="text-muted-foreground">No content available</p>') }}
                 />
               </div>
             </div>
