@@ -260,29 +260,6 @@ export const DonationForm = () => {
           </div>
         </div>
 
-        {/* Login Prompt for Non-Logged-In Users */}
-        {!isLoggedIn && (
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Heart className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-              <div className="flex-1 space-y-2">
-                <p className="text-sm font-semibold">Already have an account?</p>
-                <p className="text-xs text-muted-foreground">
-                  Log in to track your donations, view receipts, and manage your giving in one place.
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => navigate("/auth?redirect=/support")}
-                  className="mt-2"
-                >
-                  Log In
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Email */}
         <div className="space-y-2">
           <Label htmlFor="email" className="text-base font-semibold">Your Email</Label>
@@ -295,11 +272,22 @@ export const DonationForm = () => {
             disabled={isLoggedIn}
             required
           />
-          <p className="text-xs text-muted-foreground">
-            {isLoggedIn 
-              ? "This email is linked to your account and will be used to track your donation. Receipts will be sent here." 
-              : "Don't have an account? You can donate as a guest and create one later to view your donation receipts with the same email."}
-          </p>
+          {isLoggedIn ? (
+            <p className="text-xs text-muted-foreground">
+              Receipts will be sent to this email address.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              We'll send your receipt here.{" "}
+              <button 
+                type="button"
+                onClick={() => navigate("/auth?redirect=/support")}
+                className="text-primary hover:underline font-medium"
+              >
+                Have an account? Log in
+              </button>
+            </p>
+          )}
         </div>
 
         {/* Cover Stripe Fee */}
