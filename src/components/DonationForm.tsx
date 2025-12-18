@@ -148,77 +148,71 @@ export const DonationForm = () => {
 
         {/* Frequency Selection */}
         <div className="space-y-3">
-          <Label className="text-base font-semibold">Choose Your Donation Type</Label>
-          <RadioGroup value={frequency} onValueChange={(value) => setFrequency(value as "one-time" | "monthly")} className="grid grid-cols-2 gap-4">
-            <div
+          <Label className="text-base font-semibold">Donation Type</Label>
+          <RadioGroup value={frequency} onValueChange={(value) => setFrequency(value as "one-time" | "monthly")} className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
               onClick={() => setFrequency("monthly")}
-              className={`cursor-pointer transition-all rounded-xl p-1 ${
+              className={`relative p-4 rounded-lg border-2 transition-all text-left ${
                 frequency === "monthly" 
-                  ? "bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/30 scale-[1.02]" 
-                  : "bg-muted/30 hover:bg-muted/50"
+                  ? "border-primary bg-primary/10 shadow-md" 
+                  : "border-border bg-background hover:border-muted-foreground/30"
               }`}
             >
-              <div className={`rounded-lg p-4 text-center h-full ${
-                frequency === "monthly" 
-                  ? "bg-primary/10" 
-                  : "bg-background"
-              }`}>
-                <RadioGroupItem value="monthly" id="monthly" className="sr-only" />
-                <div className={`w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center ${
+              <RadioGroupItem value="monthly" id="monthly" className="sr-only" />
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                   frequency === "monthly" 
                     ? "bg-primary text-primary-foreground" 
                     : "bg-muted text-muted-foreground"
                 }`}>
-                  <Heart className={`w-7 h-7 ${frequency === "monthly" ? "fill-current" : ""}`} />
+                  <Heart className={`w-5 h-5 ${frequency === "monthly" ? "fill-current" : ""}`} />
                 </div>
-                <div className={`text-lg font-black ${frequency === "monthly" ? "text-primary" : "text-muted-foreground"}`}>
-                  MONTHLY
-                </div>
-                <div className={`text-sm mt-1 ${frequency === "monthly" ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Recurring support
-                </div>
-                {frequency === "monthly" && (
-                  <div className="mt-2 text-xs font-bold text-primary bg-primary/20 rounded-full px-3 py-1 inline-block">
-                    ✓ SELECTED
+                <div>
+                  <div className={`font-bold ${frequency === "monthly" ? "text-primary" : "text-muted-foreground"}`}>
+                    Monthly
                   </div>
-                )}
+                  <div className="text-xs text-muted-foreground">Recurring</div>
+                </div>
               </div>
-            </div>
+              {frequency === "monthly" && (
+                <div className="absolute top-2 right-2 w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold">
+                  ✓
+                </div>
+              )}
+            </button>
 
-            <div
+            <button
+              type="button"
               onClick={() => setFrequency("one-time")}
-              className={`cursor-pointer transition-all rounded-xl p-1 ${
+              className={`relative p-4 rounded-lg border-2 transition-all text-left ${
                 frequency === "one-time" 
-                  ? "bg-gradient-to-br from-secondary to-secondary/80 shadow-lg shadow-secondary/30 scale-[1.02]" 
-                  : "bg-muted/30 hover:bg-muted/50"
+                  ? "border-secondary bg-secondary/10 shadow-md" 
+                  : "border-border bg-background hover:border-muted-foreground/30"
               }`}
             >
-              <div className={`rounded-lg p-4 text-center h-full ${
-                frequency === "one-time" 
-                  ? "bg-secondary/10" 
-                  : "bg-background"
-              }`}>
-                <RadioGroupItem value="one-time" id="one-time" className="sr-only" />
-                <div className={`w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center ${
+              <RadioGroupItem value="one-time" id="one-time" className="sr-only" />
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                   frequency === "one-time" 
                     ? "bg-secondary text-secondary-foreground" 
                     : "bg-muted text-muted-foreground"
                 }`}>
-                  <Sparkles className="w-7 h-7" />
+                  <Sparkles className="w-5 h-5" />
                 </div>
-                <div className={`text-lg font-black ${frequency === "one-time" ? "text-secondary" : "text-muted-foreground"}`}>
-                  ONE-TIME
-                </div>
-                <div className={`text-sm mt-1 ${frequency === "one-time" ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Single donation
-                </div>
-                {frequency === "one-time" && (
-                  <div className="mt-2 text-xs font-bold text-secondary bg-secondary/20 rounded-full px-3 py-1 inline-block">
-                    ✓ SELECTED
+                <div>
+                  <div className={`font-bold ${frequency === "one-time" ? "text-secondary" : "text-muted-foreground"}`}>
+                    One-Time
                   </div>
-                )}
+                  <div className="text-xs text-muted-foreground">Single gift</div>
+                </div>
               </div>
-            </div>
+              {frequency === "one-time" && (
+                <div className="absolute top-2 right-2 w-5 h-5 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center text-xs font-bold">
+                  ✓
+                </div>
+              )}
+            </button>
           </RadioGroup>
         </div>
 
