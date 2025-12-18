@@ -278,7 +278,7 @@ export const DonationForm = () => {
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              We'll send your receipt here.{" "}
+              We'll send your receipt here. Create an account later with this email to view all your receipts.{" "}
               <button 
                 type="button"
                 onClick={() => navigate("/auth?redirect=/support")}
