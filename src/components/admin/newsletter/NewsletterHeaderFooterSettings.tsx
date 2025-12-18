@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import DOMPurify from "dompurify";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -269,7 +270,7 @@ export const NewsletterHeaderFooterSettings = () => {
                       `}</style>
                       <div
                         className="email-preview"
-                        dangerouslySetInnerHTML={{ __html: headerHtml }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(headerHtml) }}
                       />
                     </div>
                   </div>
@@ -340,7 +341,7 @@ export const NewsletterHeaderFooterSettings = () => {
                       `}</style>
                       <div
                         className="email-preview"
-                        dangerouslySetInnerHTML={{ __html: footerHtml }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(footerHtml) }}
                       />
                     </div>
                   </div>
