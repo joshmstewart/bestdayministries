@@ -7,6 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Shipping constants
+const FLAT_SHIPPING_RATE_CENTS = 699; // $6.99
+const FREE_SHIPPING_THRESHOLD_CENTS = 3500; // $35.00
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[MARKETPLACE-CHECKOUT] ${step}${detailsStr}`);
@@ -131,13 +135,14 @@ serve(async (req) => {
       subtotal: number;
       platformFee: number;
       vendorPayout: number;
+      shippingFee: number;
       items: CartItem[];
     }>();
 
     for (const item of typedCartItems) {
       const vendorId = item.products.vendor_id;
       const stripeAccountId = item.products.vendors.stripe_account_id!;
-      const itemTotal = item.products.price * item.quantity;
+      const itemTotal = Math.round(item.products.price * 100) * item.quantity; // Convert to cents
       
       if (!vendorTotals.has(vendorId)) {
         vendorTotals.set(vendorId, {
@@ -146,6 +151,7 @@ serve(async (req) => {
           subtotal: 0,
           platformFee: 0,
           vendorPayout: 0,
+          shippingFee: 0,
           items: []
         });
       }
@@ -155,15 +161,19 @@ serve(async (req) => {
       vendorData.items.push(item);
     }
 
-    // Calculate fees for each vendor
+    // Calculate fees and shipping for each vendor
     for (const vendorData of vendorTotals.values()) {
+      // Free shipping if vendor subtotal >= $35, otherwise $6.99
+      vendorData.shippingFee = vendorData.subtotal >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : FLAT_SHIPPING_RATE_CENTS;
       vendorData.platformFee = Math.round(vendorData.subtotal * (commissionPercentage / 100));
       vendorData.vendorPayout = vendorData.subtotal - vendorData.platformFee;
     }
 
-    const totalAmount = Array.from(vendorTotals.values()).reduce((sum, v) => sum + v.subtotal, 0);
+    const totalSubtotal = Array.from(vendorTotals.values()).reduce((sum, v) => sum + v.subtotal, 0);
+    const totalShipping = Array.from(vendorTotals.values()).reduce((sum, v) => sum + v.shippingFee, 0);
+    const totalAmount = totalSubtotal + totalShipping;
     const totalPlatformFee = Array.from(vendorTotals.values()).reduce((sum, v) => sum + v.platformFee, 0);
-    logStep("Totals calculated", { totalAmount, totalPlatformFee, vendorCount: vendorTotals.size });
+    logStep("Totals calculated", { totalSubtotal, totalShipping, totalAmount, totalPlatformFee, vendorCount: vendorTotals.size });
 
     // Check or create Stripe customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -173,8 +183,8 @@ serve(async (req) => {
       logStep("Existing customer found", { customerId });
     }
 
-    // Create line items for Stripe
-    const lineItems = typedCartItems.map(item => ({
+    // Create line items for Stripe (products)
+    const productLineItems = typedCartItems.map(item => ({
       price_data: {
         currency: "usd",
         product_data: {
@@ -186,13 +196,34 @@ serve(async (req) => {
       quantity: item.quantity,
     }));
 
-    // Create order record first
+    // Add shipping line items for each vendor that has shipping
+    const shippingLineItems: typeof productLineItems = [];
+    for (const vendorData of vendorTotals.values()) {
+      if (vendorData.shippingFee > 0) {
+        const vendorName = vendorData.items[0]?.products?.vendors?.business_name || 'Vendor';
+        shippingLineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `Shipping (${vendorName})`,
+              images: [],
+            },
+            unit_amount: vendorData.shippingFee,
+          },
+          quantity: 1,
+        });
+      }
+    }
+
+    const allLineItems = [...productLineItems, ...shippingLineItems];
+
+    // Create order record first (total_amount is in cents)
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .insert({
         user_id: user.id,
         status: "pending",
-        total_amount: totalAmount,
+        total_amount: totalAmount / 100, // Convert back to dollars for DB storage
         stripe_mode: stripeMode,
       })
       .select()
@@ -201,11 +232,11 @@ serve(async (req) => {
     if (orderError) throw new Error(`Failed to create order: ${orderError.message}`);
     logStep("Order created", { orderId: order.id });
 
-    // Create order items with fee breakdown
+    // Create order items with fee breakdown (convert cents back to dollars for DB)
     const orderItems = typedCartItems.map(item => {
       const vendorData = vendorTotals.get(item.products.vendor_id)!;
-      const itemTotal = item.products.price * item.quantity;
-      const itemFeeRatio = itemTotal / vendorData.subtotal;
+      const itemTotalCents = Math.round(item.products.price * 100) * item.quantity;
+      const itemFeeRatio = itemTotalCents / vendorData.subtotal;
       
       return {
         order_id: order.id,
@@ -213,8 +244,8 @@ serve(async (req) => {
         vendor_id: item.products.vendor_id,
         quantity: item.quantity,
         price_at_time: item.products.price,
-        platform_fee: Math.round(vendorData.platformFee * itemFeeRatio * 100) / 100,
-        vendor_payout: Math.round(vendorData.vendorPayout * itemFeeRatio * 100) / 100,
+        platform_fee: Math.round(vendorData.platformFee * itemFeeRatio) / 100, // Convert cents to dollars
+        vendor_payout: Math.round(vendorData.vendorPayout * itemFeeRatio) / 100, // Convert cents to dollars
       };
     });
 
@@ -233,7 +264,7 @@ serve(async (req) => {
     let sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: lineItems,
+      line_items: allLineItems,
       mode: "payment",
       success_url: `${origin}/checkout-success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
       cancel_url: `${origin}/marketplace?canceled=true`,
@@ -242,6 +273,7 @@ serve(async (req) => {
         user_id: user.id,
         stripe_mode: stripeMode,
         vendor_count: vendorTotals.size.toString(),
+        total_shipping_cents: totalShipping.toString(),
       },
     };
 
@@ -249,7 +281,7 @@ serve(async (req) => {
       // Single vendor - use destination charge with application fee
       const vendorData = Array.from(vendorTotals.values())[0];
       sessionConfig.payment_intent_data = {
-        application_fee_amount: Math.round(totalPlatformFee * 100), // Convert to cents
+        application_fee_amount: totalPlatformFee, // Already in cents
         transfer_data: {
           destination: vendorData.stripeAccountId,
         },
