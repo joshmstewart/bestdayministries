@@ -56,6 +56,7 @@ import VirtualPetPage from "./pages/VirtualPetPage";
 import StorePage from "./pages/Store";
 import StickerAlbumPage from "./pages/StickerAlbumPage";
 import InstallApp from "./pages/InstallApp";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -196,6 +197,7 @@ const App = () => {
           <Route path="/store" element={<StorePage />} />
           <Route path="/sticker-album" element={<StickerAlbumPage />} />
           <Route path="/install" element={<InstallApp />} />
+          <Route path="/checkout-success" element={<CheckoutSuccess />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

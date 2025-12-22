@@ -1,10 +1,10 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Minus } from "lucide-react";
+import { Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ShoppingCartSheetProps {
@@ -15,6 +15,7 @@ interface ShoppingCartSheetProps {
 export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const { data: cartItems, isLoading } = useQuery({
     queryKey: ['cart-items'],
@@ -80,6 +81,57 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
       title: "Item removed",
       description: "Item has been removed from your cart"
     });
+  };
+
+  const handleCheckout = async () => {
+    setIsCheckingOut(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Login required",
+          description: "Please log in to complete your purchase",
+          variant: "destructive"
+        });
+        setIsCheckingOut(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-marketplace-checkout", {});
+
+      if (error) {
+        console.error("Checkout error:", error);
+        toast({
+          title: "Checkout failed",
+          description: error.message || "Unable to start checkout. Please try again.",
+          variant: "destructive"
+        });
+        setIsCheckingOut(false);
+        return;
+      }
+
+      if (data?.url) {
+        // Open Stripe checkout in new tab
+        window.open(data.url, "_blank");
+        onOpenChange(false);
+      } else {
+        toast({
+          title: "Checkout failed",
+          description: data?.error || "Unable to create checkout session",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      toast({
+        title: "Checkout failed",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   const total = cartItems?.reduce((sum, item) => {
@@ -165,8 +217,20 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
                 <span>Total:</span>
                 <span className="text-primary">${total.toFixed(2)}</span>
               </div>
-              <Button className="w-full" size="lg">
-                Proceed to Checkout
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={handleCheckout}
+                disabled={isCheckingOut}
+              >
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Proceed to Checkout"
+                )}
               </Button>
             </div>
           </div>
