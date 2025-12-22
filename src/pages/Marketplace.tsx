@@ -8,15 +8,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ProductGrid } from "@/components/marketplace/ProductGrid";
-import { ShoppingCartSheet } from "@/components/marketplace/ShoppingCartSheet";
 import { ShopifyProductGrid } from "@/components/marketplace/ShopifyProductGrid";
-import { ShopifyCartSheet } from "@/components/marketplace/ShopifyCartSheet";
+import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 
 const Marketplace = () => {
   const navigate = useNavigate();
   const [cartOpen, setCartOpen] = useState(false);
-  const [shopifyCartOpen, setShopifyCartOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
@@ -46,6 +44,8 @@ const Marketplace = () => {
     }
   });
 
+  const totalCartCount = (cartCount || 0) + shopifyCartItems();
+
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
@@ -65,29 +65,14 @@ const Marketplace = () => {
               <div className="flex gap-4 justify-center flex-wrap">
                 <Button 
                   size="lg"
-                  onClick={() => setShopifyCartOpen(true)}
-                  className="relative"
-                >
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                  Merch Cart
-                  {shopifyCartItems() > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                      {shopifyCartItems()}
-                    </span>
-                  )}
-                </Button>
-
-                <Button 
-                  size="lg"
-                  variant="outline"
                   onClick={() => setCartOpen(true)}
                   className="relative"
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  Handmade Cart
-                  {cartCount > 0 && (
+                  View Cart
+                  {totalCartCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                      {cartCount}
+                      {totalCartCount}
                     </span>
                   )}
                 </Button>
@@ -155,8 +140,7 @@ const Marketplace = () => {
         </section>
       </main>
 
-      <ShoppingCartSheet open={cartOpen} onOpenChange={setCartOpen} />
-      <ShopifyCartSheet open={shopifyCartOpen} onOpenChange={setShopifyCartOpen} />
+      <UnifiedCartSheet open={cartOpen} onOpenChange={setCartOpen} />
       <Footer />
     </div>
   );
