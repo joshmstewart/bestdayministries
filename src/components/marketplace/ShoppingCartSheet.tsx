@@ -27,7 +27,7 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
         .from('shopping_cart')
         .select(`
           *,
-          product:products(*)
+          product:products(*, vendors(*))
         `)
         .eq('user_id', user.id);
 
@@ -36,6 +36,30 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
     },
     enabled: open
   });
+
+  // Shipping constants (must match edge function)
+  const FLAT_SHIPPING_RATE = 6.99;
+  const FREE_SHIPPING_THRESHOLD = 35;
+
+  // Calculate vendor subtotals and shipping
+  const vendorTotals = cartItems?.reduce((acc, item) => {
+    const vendorId = item.product.vendor_id;
+    const price = typeof item.product.price === 'string' 
+      ? parseFloat(item.product.price) 
+      : item.product.price;
+    const itemTotal = price * item.quantity;
+    
+    if (!acc[vendorId]) {
+      acc[vendorId] = { subtotal: 0, vendorName: item.product.vendors?.business_name || 'Vendor' };
+    }
+    acc[vendorId].subtotal += itemTotal;
+    return acc;
+  }, {} as Record<string, { subtotal: number; vendorName: string }>) || {};
+
+  const subtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
+  const shippingTotal = Object.values(vendorTotals).reduce((sum, v) => 
+    sum + (v.subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_RATE), 0);
+  const total = subtotal + shippingTotal;
 
   const updateQuantity = async (cartItemId: string, currentQuantity: number, delta: number) => {
     const newQuantity = currentQuantity + delta;
@@ -134,12 +158,6 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
     }
   };
 
-  const total = cartItems?.reduce((sum, item) => {
-    const price = typeof item.product.price === 'string' 
-      ? parseFloat(item.product.price) 
-      : item.product.price;
-    return sum + (price * item.quantity);
-  }, 0) || 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -213,6 +231,24 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
             </ScrollArea>
 
             <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Shipping
+                    {shippingTotal === 0 && <span className="ml-1 text-green-600">(Free)</span>}
+                  </span>
+                  <span>{shippingTotal > 0 ? `$${shippingTotal.toFixed(2)}` : 'FREE'}</span>
+                </div>
+                {shippingTotal > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Free shipping on orders $35+ per vendor
+                  </p>
+                )}
+              </div>
               <div className="flex justify-between text-lg font-bold">
                 <span>Total:</span>
                 <span className="text-primary">${total.toFixed(2)}</span>
