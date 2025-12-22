@@ -1,0 +1,418 @@
+import { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package } from "lucide-react";
+import { useShopifyCartStore } from "@/stores/shopifyCartStore";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface UnifiedCartSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isCheckingOutHandmade, setIsCheckingOutHandmade] = useState(false);
+  
+  // Shopify cart state
+  const { 
+    items: shopifyItems, 
+    isLoading: shopifyLoading, 
+    updateQuantity: updateShopifyQuantity, 
+    removeItem: removeShopifyItem, 
+    createCheckout: createShopifyCheckout,
+    getTotalItems: getShopifyTotalItems,
+    getTotalPrice: getShopifyTotalPrice 
+  } = useShopifyCartStore();
+
+  // Handmade cart state
+  const { data: handmadeItems, isLoading: handmadeLoading } = useQuery({
+    queryKey: ['cart-items'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('shopping_cart')
+        .select(`
+          *,
+          product:products(*, vendors(*))
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: open
+  });
+
+  // Shipping constants for handmade items
+  const FLAT_SHIPPING_RATE = 6.99;
+  const FREE_SHIPPING_THRESHOLD = 35;
+
+  // Calculate handmade totals
+  const vendorTotals = handmadeItems?.reduce((acc, item) => {
+    const vendorId = item.product.vendor_id;
+    const price = typeof item.product.price === 'string' 
+      ? parseFloat(item.product.price) 
+      : item.product.price;
+    const itemTotal = price * item.quantity;
+    
+    if (!acc[vendorId]) {
+      acc[vendorId] = { subtotal: 0, vendorName: item.product.vendors?.business_name || 'Vendor' };
+    }
+    acc[vendorId].subtotal += itemTotal;
+    return acc;
+  }, {} as Record<string, { subtotal: number; vendorName: string }>) || {};
+
+  const handmadeSubtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
+  const shippingTotal = Object.values(vendorTotals).reduce((sum, v) => 
+    sum + (v.subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_RATE), 0);
+  const handmadeTotal = handmadeSubtotal + shippingTotal;
+
+  const shopifyTotalItems = getShopifyTotalItems();
+  const shopifyTotalPrice = getShopifyTotalPrice();
+  const handmadeItemCount = handmadeItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const totalItems = shopifyTotalItems + handmadeItemCount;
+
+  const updateHandmadeQuantity = async (cartItemId: string, currentQuantity: number, delta: number) => {
+    const newQuantity = currentQuantity + delta;
+    if (newQuantity < 1) return;
+
+    const { error } = await supabase
+      .from('shopping_cart')
+      .update({ quantity: newQuantity })
+      .eq('id', cartItemId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['cart-items'] });
+    queryClient.invalidateQueries({ queryKey: ['cart-count'] });
+  };
+
+  const removeHandmadeItem = async (cartItemId: string) => {
+    const { error } = await supabase
+      .from('shopping_cart')
+      .delete()
+      .eq('id', cartItemId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove item",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['cart-items'] });
+    queryClient.invalidateQueries({ queryKey: ['cart-count'] });
+  };
+
+  const handleShopifyCheckout = async () => {
+    const checkoutUrl = await createShopifyCheckout();
+    if (checkoutUrl) {
+      window.open(checkoutUrl, '_blank');
+    }
+  };
+
+  const handleHandmadeCheckout = async () => {
+    setIsCheckingOutHandmade(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Login required",
+          description: "Please log in to complete your purchase",
+          variant: "destructive"
+        });
+        setIsCheckingOutHandmade(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-marketplace-checkout", {});
+
+      if (error) {
+        toast({
+          title: "Checkout failed",
+          description: error.message || "Unable to start checkout. Please try again.",
+          variant: "destructive"
+        });
+        setIsCheckingOutHandmade(false);
+        return;
+      }
+
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      } else {
+        toast({
+          title: "Checkout failed",
+          description: data?.error || "Unable to create checkout session",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Checkout failed",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingOutHandmade(false);
+    }
+  };
+
+  const isLoading = shopifyLoading || handmadeLoading;
+  const isEmpty = shopifyItems.length === 0 && (!handmadeItems || handmadeItems.length === 0);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-lg flex flex-col h-full">
+        <SheetHeader className="flex-shrink-0">
+          <SheetTitle>Shopping Cart</SheetTitle>
+          <SheetDescription>
+            {totalItems === 0 ? "Your cart is empty" : `${totalItems} item${totalItems !== 1 ? 's' : ''} in your cart`}
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div className="flex flex-col flex-1 pt-6 min-h-0">
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : isEmpty ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Your cart is empty</p>
+              </div>
+            </div>
+          ) : (
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-6">
+                {/* Official Merch Section */}
+                {shopifyItems.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Store className="h-5 w-5 text-primary" />
+                      <h3 className="font-semibold text-lg">Official Merch</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {shopifyItems.map((item) => (
+                        <div key={item.variantId} className="flex gap-3 p-3 border rounded-lg bg-card">
+                          <div className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                            {item.product.node.images?.edges?.[0]?.node && (
+                              <img
+                                src={item.product.node.images.edges[0].node.url}
+                                alt={item.product.node.title}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate text-sm">{item.product.node.title}</h4>
+                            {item.variantTitle !== "Default Title" && (
+                              <p className="text-xs text-muted-foreground">
+                                {item.variantTitle}
+                              </p>
+                            )}
+                            <p className="font-semibold text-sm text-primary">
+                              ${parseFloat(item.price.amount).toFixed(2)}
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={() => removeShopifyItem(item.variantId)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                            
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateShopifyQuantity(item.variantId, item.quantity - 1)}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-6 text-center text-sm">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateShopifyQuantity(item.variantId, item.quantity + 1)}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal ({shopifyTotalItems} items)</span>
+                        <span className="font-semibold">${shopifyTotalPrice.toFixed(2)}</span>
+                      </div>
+                      <Button 
+                        onClick={handleShopifyCheckout}
+                        className="w-full" 
+                        disabled={shopifyLoading}
+                      >
+                        {shopifyLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Checkout Merch
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Separator if both sections have items */}
+                {shopifyItems.length > 0 && handmadeItems && handmadeItems.length > 0 && (
+                  <Separator />
+                )}
+
+                {/* Handmade Items Section */}
+                {handmadeItems && handmadeItems.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-5 w-5 text-primary" />
+                      <h3 className="font-semibold text-lg">Handmade Items</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {handmadeItems.map((item) => (
+                        <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
+                          <img
+                            src={item.product.images?.[0] || '/placeholder.svg'}
+                            alt={item.product.name}
+                            className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                          />
+                          
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate text-sm">{item.product.name}</h4>
+                            <p className="text-xs text-muted-foreground">
+                              by {item.product.vendors?.business_name || 'Vendor'}
+                            </p>
+                            <p className="font-semibold text-sm text-primary">
+                              ${(typeof item.product.price === 'string' 
+                                ? parseFloat(item.product.price) 
+                                : item.product.price).toFixed(2)}
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={() => removeHandmadeItem(item.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                            
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateHandmadeQuantity(item.id, item.quantity, -1)}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-6 text-center text-sm">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateHandmadeQuantity(item.id, item.quantity, 1)}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal</span>
+                        <span>${handmadeSubtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>
+                          Shipping
+                          {shippingTotal === 0 && <span className="ml-1 text-green-600">(Free)</span>}
+                        </span>
+                        <span>{shippingTotal > 0 ? `$${shippingTotal.toFixed(2)}` : 'FREE'}</span>
+                      </div>
+                      {shippingTotal > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Free shipping on orders $35+ per vendor
+                        </p>
+                      )}
+                      <div className="flex justify-between font-semibold pt-1 border-t">
+                        <span>Total</span>
+                        <span>${handmadeTotal.toFixed(2)}</span>
+                      </div>
+                      <Button 
+                        onClick={handleHandmadeCheckout}
+                        className="w-full" 
+                        disabled={isCheckingOutHandmade}
+                      >
+                        {isCheckingOutHandmade ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          "Checkout Handmade Items"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
