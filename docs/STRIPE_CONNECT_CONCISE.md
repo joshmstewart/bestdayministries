@@ -53,26 +53,30 @@ Tabs: Products, Orders, **Earnings** (new), **Settings** (updated)
 
 ---
 
+## ✅ Implemented
+
+### Checkout Flow
+- **Single-vendor orders**: Direct charge with `application_fee_amount` → vendor gets paid instantly
+- **Multi-vendor orders**: Platform receives payment, transfers triggered on fulfillment
+
+### Vendor Payouts (Fulfillment-Triggered)
+- When vendor marks item as "shipped" → `submit-tracking` → `create-vendor-transfer`
+- Stripe Transfer created to vendor's connected account
+- Transfer ID stored in `order_items.stripe_transfer_id`
+
+### Shipping
+- Flat rate: $6.99 per vendor
+- Free shipping: Orders over $35 per vendor
+
+---
+
 ## ❌ NOT IMPLEMENTED
 
-### Critical (Blocks Production)
-- **Customer Checkout Flow:**
-  - Calculate commission splits per vendor
-  - Use `payment_intent_data.application_fee_amount` for platform fee
-  - Use `payment_intent_data.transfer_data.destination` for vendor payout
-- **Stripe Webhooks:**
-  - `payment_intent.succeeded` → Mark order paid
-  - `account.updated` → Sync vendor status
-  - `transfer.created/failed` → Track payouts
-- **Automatic Transfers:** Create transfers on order fulfillment
-- **Multi-Vendor Orders:** Split orders with products from multiple vendors
-
-### Important
-- Admin commission settings UI
-- Vendor payout dashboard with filters
-
 ### Nice to Have
-- Vendor profile editing, email notifications
+- Admin commission settings UI (currently 20% default in DB)
+- Vendor payout dashboard with filters
+- Vendor profile editing
+- Email notifications for orders
 
 ---
 
