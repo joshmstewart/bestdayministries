@@ -6,6 +6,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[submit-tracking] ${step}${detailsStr}`);
+};
+
+// Helper to trigger vendor payout transfer
+async function triggerVendorTransfer(orderItemId: string): Promise<{ success: boolean; transferId?: string; error?: string }> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    logStep('Triggering vendor transfer', { orderItemId });
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/create-vendor-transfer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ orderItemId }),
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      logStep('Vendor transfer failed', { error: result.error });
+      return { success: false, error: result.error };
+    }
+
+    logStep('Vendor transfer successful', { transferId: result.transferId });
+    return { success: true, transferId: result.transferId };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    logStep('Vendor transfer exception', { error: errorMsg });
+    return { success: false, error: errorMsg };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,7 +56,7 @@ serve(async (req) => {
       throw new Error('Missing required fields: orderItemId, trackingNumber, carrier');
     }
 
-    console.log('[submit-tracking] Processing:', { orderItemId, trackingNumber, carrier });
+    logStep('Processing', { orderItemId, trackingNumber, carrier });
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -42,7 +80,7 @@ serve(async (req) => {
       body: JSON.stringify({
         tracking: {
           tracking_number: trackingNumber,
-          slug: carrier, // AfterShip carrier slug (e.g., 'usps', 'ups', 'fedex')
+          slug: carrier,
         }
       })
     });
@@ -50,11 +88,11 @@ serve(async (req) => {
     const aftershipData = await aftershipResponse.json();
 
     if (!aftershipResponse.ok) {
-      console.error('[submit-tracking] AfterShip error:', aftershipData);
+      logStep('AfterShip error', aftershipData);
       throw new Error(`AfterShip API error: ${aftershipData.meta?.message || 'Unknown error'}`);
     }
 
-    console.log('[submit-tracking] AfterShip tracking created:', aftershipData.data?.tracking?.id);
+    logStep('AfterShip tracking created', { aftershipId: aftershipData.data?.tracking?.id });
 
     // Update order_item with tracking URL
     const trackingUrl = `https://track.aftership.com/${carrier}/${trackingNumber}`;
@@ -72,13 +110,17 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    console.log('[submit-tracking] Order item updated successfully');
+    logStep('Order item updated successfully');
+
+    // Trigger vendor payout transfer
+    const transferResult = await triggerVendorTransfer(orderItemId);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         trackingUrl,
-        aftershipId: aftershipData.data?.tracking?.id 
+        aftershipId: aftershipData.data?.tracking?.id,
+        transfer: transferResult
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
