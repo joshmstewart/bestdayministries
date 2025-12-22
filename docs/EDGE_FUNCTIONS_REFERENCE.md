@@ -49,7 +49,12 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`moderate-content`** - [Auth Required] AI text moderation via Lovable AI (Gemini)
 - **`moderate-image`** - [Auth Required] AI image moderation via Lovable AI (Gemini Vision)
 
-### Order & Vendor Management
+### Marketplace & Vendor Management
+- **`create-marketplace-checkout`** - [Auth Required] Creates Stripe checkout for handmade products with multi-vendor commission splitting
+- **`verify-marketplace-payment`** - [Auth Required] Polling-based payment verification, updates order status, clears cart
+- **`create-stripe-connect-account`** - [Auth Required] Creates/retrieves Stripe Connect accounts for vendors
+- **`check-stripe-connect-status`** - [Auth Required] Checks vendor's Stripe Connect onboarding status
+- **`create-vendor-transfer`** - [Internal] Transfers funds to vendor on order fulfillment
 - **`submit-tracking`** - [Vendor Auth] Submits order tracking via AfterShip API
 - **`aftership-webhook`** - [Webhook] Receives AfterShip tracking updates (⚠️ NOT FUNCTIONAL)
 - **`broadcast-product-update`** - [Admin Only] Sends notifications to all users about product updates
@@ -82,9 +87,13 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | cleanup-email-test-data | Test | Supabase | Removes email test data |
 | cleanup-test-data-unified | Test | Supabase | Unified test data cleanup (excludes persistent accounts) |
 | create-donation-checkout | Public | Stripe | Creates donation checkout session |
+| create-marketplace-checkout | Auth | Stripe | Creates marketplace checkout with multi-vendor fees |
 | create-persistent-test-accounts | Admin | Supabase | Creates/verifies persistent test accounts |
 | create-sponsorship-checkout | Public | Stripe | Creates sponsorship checkout session |
+| create-stripe-connect-account | Auth | Stripe | Creates Stripe Connect account for vendors |
 | create-user | Admin | Supabase | Creates test user accounts |
+| create-vendor-transfer | Internal | Stripe | Transfers funds to vendor on fulfillment |
+| check-stripe-connect-status | Auth | Stripe | Checks vendor Stripe Connect status |
 | generate-receipts | Cron | Resend, Stripe | Batch generates monthly receipts |
 | generate-year-end-summary | Cron | Supabase | Creates annual giving summaries |
 | get-google-places-key | Public | None | Returns Google Places API key |
@@ -113,6 +122,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | stripe-webhook | Webhook | Stripe | Handles all Stripe events |
 | submit-tracking | Vendor | AfterShip | Submits order tracking |
 | update-sponsorship | Auth | Stripe | Updates sponsorship tier |
+| verify-marketplace-payment | Auth | Stripe | Polling-based marketplace payment verification |
 | verify-sponsorship-payment | Webhook | Stripe | Verifies payment completion |
 
 ---
