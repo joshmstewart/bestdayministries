@@ -256,12 +256,11 @@ serve(async (req) => {
     if (itemsError) throw new Error(`Failed to create order items: ${itemsError.message}`);
     logStep("Order items created", { count: orderItems.length });
 
-    // For multi-vendor orders, we collect the full amount and transfer later
-    // For single vendor, we can use direct charges with application_fee
-    const isSingleVendor = vendorTotals.size === 1;
+    // All orders: platform collects full payment, transfers to vendors on fulfillment
+    // This ensures consistent behavior and protects against fraud/chargebacks
     const origin = req.headers.get("origin") || "https://lovable.dev";
 
-    let sessionConfig: Stripe.Checkout.SessionCreateParams = {
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: allLineItems,
@@ -277,20 +276,7 @@ serve(async (req) => {
       },
     };
 
-    if (isSingleVendor) {
-      // Single vendor - use destination charge with application fee
-      const vendorData = Array.from(vendorTotals.values())[0];
-      sessionConfig.payment_intent_data = {
-        application_fee_amount: totalPlatformFee, // Already in cents
-        transfer_data: {
-          destination: vendorData.stripeAccountId,
-        },
-      };
-      logStep("Single vendor checkout", { vendorId: vendorData.vendorId, stripeAccountId: vendorData.stripeAccountId });
-    } else {
-      // Multi-vendor - collect full amount, transfer on fulfillment
-      logStep("Multi-vendor checkout - transfers will be created on fulfillment");
-    }
+    logStep("Checkout configured - vendor transfers will occur on fulfillment", { vendorCount: vendorTotals.size });
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
     logStep("Checkout session created", { sessionId: session.id });
