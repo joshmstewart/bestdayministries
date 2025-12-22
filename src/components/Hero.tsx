@@ -55,7 +55,7 @@ const Hero = ({ content = {} }: HeroProps) => {
   const hasGradient = gradientIndex > -1 && gradient_text;
 
   return (
-    <section className="relative min-h-[70vh] flex items-start overflow-hidden bg-gradient-to-br from-background via-muted/30 to-secondary/10">
+    <section className="relative min-h-[70vh] flex items-start overflow-hidden bg-gradient-to-b from-transparent via-muted/20 to-secondary/10">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 right-20 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" />
