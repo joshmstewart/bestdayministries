@@ -1,8 +1,8 @@
-# JoyHouse Store / Marketplace Checkout System
+# Joy House Store / Marketplace Checkout System
 
 ## Overview
 
-The JoyHouse Store is a unified marketplace combining:
+The Joy House Store is a unified marketplace combining:
 1. **Handmade Products** - Community vendor items with Stripe Connect
 2. **Official Merch** - Shopify-integrated official merchandise
 

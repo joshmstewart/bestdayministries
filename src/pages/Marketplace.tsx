@@ -66,10 +66,10 @@ const Marketplace = () => {
             
             <div className="max-w-4xl mx-auto text-center space-y-6">
               <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground">
-                JoyHouse Store
+                Joy House Store
               </h1>
               <p className="text-xl text-muted-foreground">
-                Shop handmade items from our community, plus official JoyHouse and Best Day Ever merch
+                Shop handmade items from our community, plus official Joy House and Best Day Ever merch
               </p>
               
               <div className="flex gap-4 justify-center flex-wrap">

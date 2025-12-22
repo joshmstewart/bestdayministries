@@ -922,7 +922,7 @@ BEST:absolute-URLs|<150-desc|2-3-hashtags-no-#|toast-on-copy
 VISIBILITY:public-only[is_public=true]|role-based[visible_to_roles]
 
 ## MARKETPLACE_CHECKOUT_SYSTEM
-OVERVIEW:JoyHouse-Store→unified-marketplace[handmade+Shopify-merch]|Stripe-Connect-vendors|polling-payment-verification
+OVERVIEW:Joy-House-Store→unified-marketplace[handmade+Shopify-merch]|Stripe-Connect-vendors|polling-payment-verification
 ROUTE:/marketplace|/checkout-success|/orders|/vendor-dashboard|/vendor-auth
 DB:vendors[status+stripe_account_id+stripe_charges_enabled]|products[vendor_id+price+inventory]|orders[user_id+status+stripe_mode]|order_items[platform_fee+vendor_payout+fulfillment_status]|shopping_cart|commission_settings[20%-default]|vendor_earnings-VIEW
 EDGE:create-marketplace-checkout[cart→vendors-verify→fees-calc→stripe-session]|verify-marketplace-payment[polling-based→order-update→cart-clear]|create-vendor-transfer[fulfillment-payout]|submit-tracking[AfterShip-API]
