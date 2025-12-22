@@ -3198,11 +3198,15 @@ export type Database = {
           customer_id: string
           id: string
           notes: string | null
-          shipping_address: Json
+          paid_at: string | null
+          shipping_address: Json | null
           status: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id: string | null
+          stripe_mode: string | null
           stripe_payment_intent_id: string | null
           total_amount: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           billing_address?: Json | null
@@ -3210,11 +3214,15 @@ export type Database = {
           customer_id: string
           id?: string
           notes?: string | null
-          shipping_address: Json
+          paid_at?: string | null
+          shipping_address?: Json | null
           status?: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id?: string | null
+          stripe_mode?: string | null
           stripe_payment_intent_id?: string | null
           total_amount: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           billing_address?: Json | null
@@ -3222,11 +3230,15 @@ export type Database = {
           customer_id?: string
           id?: string
           notes?: string | null
-          shipping_address?: Json
+          paid_at?: string | null
+          shipping_address?: Json | null
           status?: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id?: string | null
+          stripe_mode?: string | null
           stripe_payment_intent_id?: string | null
           total_amount?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
