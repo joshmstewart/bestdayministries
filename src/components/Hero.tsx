@@ -55,11 +55,20 @@ const Hero = ({ content = {} }: HeroProps) => {
   const hasGradient = gradientIndex > -1 && gradient_text;
 
   return (
-    <section className="relative min-h-[70vh] flex items-start overflow-hidden bg-gradient-to-b from-transparent via-muted/20 to-secondary/10">
+    <section className="relative min-h-[70vh] flex items-start overflow-hidden bg-background">
+      {/* Soft background wash (prevents hard gradient edges at top/bottom) */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.20)_32%,hsl(var(--secondary)/0.10)_72%,hsl(var(--background))_100%)]"
+      />
+
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 right-20 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-20 left-20 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+        <div
+          className="absolute bottom-20 left-20 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float"
+          style={{ animationDelay: "1s" }}
+        />
       </div>
       
       <div className="container mx-auto px-4 pt-4 pb-12 relative z-10">
