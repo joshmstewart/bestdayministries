@@ -921,6 +921,22 @@ SEO:works-with-SEOHead[og:*|twitter:*]→rich-previews
 BEST:absolute-URLs|<150-desc|2-3-hashtags-no-#|toast-on-copy
 VISIBILITY:public-only[is_public=true]|role-based[visible_to_roles]
 
+## MARKETPLACE_CHECKOUT_SYSTEM
+OVERVIEW:JoyHouse-Store→unified-marketplace[handmade+Shopify-merch]|Stripe-Connect-vendors|polling-payment-verification
+ROUTE:/marketplace|/checkout-success|/orders|/vendor-dashboard|/vendor-auth
+DB:vendors[status+stripe_account_id+stripe_charges_enabled]|products[vendor_id+price+inventory]|orders[user_id+status+stripe_mode]|order_items[platform_fee+vendor_payout+fulfillment_status]|shopping_cart|commission_settings[20%-default]|vendor_earnings-VIEW
+EDGE:create-marketplace-checkout[cart→vendors-verify→fees-calc→stripe-session]|verify-marketplace-payment[polling-based→order-update→cart-clear]|create-vendor-transfer[fulfillment-payout]|submit-tracking[AfterShip-API]
+COMPS:ProductCard|ProductGrid|ShopifyProductCard|ShopifyProductGrid|UnifiedCartSheet[both-cart-types]|ShoppingCartSheet[handmade]|ShopifyCartSheet[Shopify]
+VENDOR-COMPS:ProductForm|ProductList|StripeConnectOnboarding|VendorEarnings|VendorOrderList|VendorOrderDetails|VendorProfileSettings|VendorBestieLinkRequest|VendorLinkedBesties|VendorBestieAssetManager
+SHIPPING:$6.99-flat-per-vendor|free-if≥$35-per-vendor
+COMMISSION:commission_settings.commission_percentage|platform_fee=subtotal×%|vendor_payout=subtotal-platform_fee
+VENDOR-STATUS:pending|approved|rejected|suspended→NOT-a-role→any-user-can-apply
+STRIPE-CONNECT:vendors.stripe_account_id|stripe_charges_enabled=true→can-receive-payments
+CHECKOUT-FLOW:cart→create-marketplace-checkout→Stripe→/checkout-success→verify-marketplace-payment[polls-3s×10]→order-confirmed
+VENDOR-FLOW:apply→admin-approve→Stripe-Connect-onboard→add-products→receive-orders→submit-tracking→receive-payout
+CURRENT-STATUS:edge-functions-ready|no-approved-vendors|no-products|needs-vendor+Stripe-Connect+products-to-test
+DOC:MARKETPLACE_CHECKOUT_SYSTEM.md|VENDOR_SYSTEM_CONCISE.md|VENDOR_AUTH_SYSTEM.md
+
 ## VENDOR_AUTH
 OVERVIEW:ANY-auth-user-apply-vendor
 FLOW:route:/vendor-auth|new[signup→supporter+vendors-pending]|existing[signin→check-vendor-rec]
