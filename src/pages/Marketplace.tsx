@@ -54,12 +54,22 @@ const Marketplace = () => {
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 py-16">
           <div className="container mx-auto px-4">
+            {/* Become a Vendor link - upper right */}
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+              >
+                Become a Vendor
+              </button>
+            </div>
+            
             <div className="max-w-4xl mx-auto text-center space-y-6">
               <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground">
-                Best Day Ever Marketplace
+                JoyHouse Store
               </h1>
               <p className="text-xl text-muted-foreground">
-                Shop handmade items from our community and official Best Day Ever merch
+                Shop official JoyHouse and Best Day Ever merch, plus handmade items from our community
               </p>
               
               <div className="flex gap-4 justify-center flex-wrap">
@@ -84,15 +94,6 @@ const Marketplace = () => {
                 >
                   <Package className="mr-2 h-5 w-5" />
                   Order History
-                </Button>
-                
-                <Button 
-                  size="lg"
-                  variant="outline"
-                  onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
-                >
-                  <Store className="mr-2 h-5 w-5" />
-                  Become a Vendor
                 </Button>
               </div>
             </div>
