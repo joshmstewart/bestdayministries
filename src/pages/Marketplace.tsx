@@ -69,7 +69,7 @@ const Marketplace = () => {
                 JoyHouse Store
               </h1>
               <p className="text-xl text-muted-foreground">
-                Shop official JoyHouse and Best Day Ever merch, plus handmade items from our community
+                Shop handmade items from our community, plus official JoyHouse and Best Day Ever merch
               </p>
               
               <div className="flex gap-4 justify-center flex-wrap">
@@ -108,23 +108,23 @@ const Marketplace = () => {
                 <TabsTrigger value="all" onClick={() => setSelectedCategory(null)} className="whitespace-nowrap">
                   All Products
                 </TabsTrigger>
-                <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap">
-                  Official Merch
-                </TabsTrigger>
                 <TabsTrigger value="handmade" onClick={() => setSelectedCategory('handmade')}>
                   Handmade
+                </TabsTrigger>
+                <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap">
+                  Official Merch
                 </TabsTrigger>
               </TabsList>
               
               <TabsContent value="all">
                 <div className="space-y-12">
                   <div>
-                    <h2 className="text-2xl font-semibold mb-6">Official Merch</h2>
-                    <ShopifyProductGrid />
-                  </div>
-                  <div>
                     <h2 className="text-2xl font-semibold mb-6">Handmade by Community</h2>
                     <ProductGrid category="handmade" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-6">Official Merch</h2>
+                    <ShopifyProductGrid />
                   </div>
                 </div>
               </TabsContent>
