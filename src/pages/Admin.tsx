@@ -263,7 +263,7 @@ const Admin = () => {
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="stickers">Stickers</TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
-              Vendors
+              Store
               {pendingVendorsCount > 0 && (
                 <Badge 
                   variant="destructive" 

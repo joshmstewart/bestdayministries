@@ -62,7 +62,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     : '/placeholder.svg';
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300">
+    <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate(`/store/product/${product.id}`)}>
       <CardContent className="p-4">
         <div className="aspect-square relative overflow-hidden rounded-lg mb-4">
           <img 
@@ -70,7 +70,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             alt={product.name}
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
           />
-          {product.is_printify && (
+          {(product.is_printify || product.is_printify_product) && (
             <Badge className="absolute top-2 right-2" variant="secondary">
               <Package className="w-3 h-3 mr-1" />
               Print on Demand
@@ -84,7 +84,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
         {product.vendor && (
           <button
-            onClick={() => navigate(`/vendors/${product.vendor_id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/vendors/${product.vendor_id}`);
+            }}
             className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 mb-2 group"
           >
             <Store className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
@@ -93,7 +96,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         )}
 
         <p className="text-2xl font-bold text-primary">
-          ${parseFloat(product.price).toFixed(2)}
+          ${Number(product.price).toFixed(2)}
         </p>
 
         {product.inventory_count <= 5 && product.inventory_count > 0 && (
@@ -112,11 +115,21 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       <CardFooter className="p-4 pt-0">
         <Button 
           className="w-full" 
-          onClick={addToCart}
+          onClick={(e) => {
+            e.stopPropagation();
+            // For Printify products with variants, navigate to detail page
+            if (product.is_printify_product && product.printify_variant_ids && Object.keys(product.printify_variant_ids).length > 0) {
+              navigate(`/store/product/${product.id}`);
+            } else {
+              addToCart();
+            }
+          }}
           disabled={product.inventory_count === 0}
         >
           <ShoppingCart className="mr-2 h-4 w-4" />
-          Add to Cart
+          {product.is_printify_product && product.printify_variant_ids && Object.keys(product.printify_variant_ids).length > 0 
+            ? 'Select Options' 
+            : 'Add to Cart'}
         </Button>
       </CardFooter>
     </Card>

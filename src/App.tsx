@@ -54,6 +54,7 @@ import UnsubscribeSuccess from "./pages/UnsubscribeSuccess";
 import UnsubscribeError from "./pages/UnsubscribeError";
 import VirtualPetPage from "./pages/VirtualPetPage";
 import StorePage from "./pages/Store";
+import ProductDetail from "./pages/ProductDetail";
 import StickerAlbumPage from "./pages/StickerAlbumPage";
 import InstallApp from "./pages/InstallApp";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
@@ -195,6 +196,7 @@ const App = () => {
           <Route path="/games/match3" element={<Match3Page />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
+          <Route path="/store/product/:productId" element={<ProductDetail />} />
           <Route path="/sticker-album" element={<StickerAlbumPage />} />
           <Route path="/install" element={<InstallApp />} />
           <Route path="/checkout-success" element={<CheckoutSuccess />} />
