@@ -981,6 +981,71 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_drink_likes: {
+        Row: {
+          created_at: string
+          drink_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drink_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drink_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_drink_likes_drink_id_fkey"
+            columns: ["drink_id"]
+            isOneToOne: false
+            referencedRelation: "custom_drinks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_drinks: {
+        Row: {
+          created_at: string
+          creator_id: string
+          generated_image_url: string | null
+          id: string
+          ingredients: string[]
+          is_public: boolean
+          likes_count: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          generated_image_url?: string | null
+          id?: string
+          ingredients: string[]
+          is_public?: boolean
+          likes_count?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          generated_image_url?: string | null
+          id?: string
+          ingredients?: string[]
+          is_public?: boolean
+          likes_count?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_scratch_cards: {
         Row: {
           collection_id: string
@@ -1323,6 +1388,45 @@ export type Database = {
           stripe_mode?: string
           stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      drink_ingredients: {
+        Row: {
+          category: Database["public"]["Enums"]["ingredient_category"]
+          color_hint: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["ingredient_category"]
+          color_hint?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["ingredient_category"]
+          color_hint?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -5701,6 +5805,7 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+      ingredient_category: "base" | "flavor" | "topping" | "extra"
       message_status:
         | "pending_approval"
         | "approved"
@@ -5873,6 +5978,7 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
+      ingredient_category: ["base", "flavor", "topping", "extra"],
       message_status: [
         "pending_approval",
         "approved",

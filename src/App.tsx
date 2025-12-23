@@ -58,6 +58,7 @@ import ProductDetail from "./pages/ProductDetail";
 import StickerAlbumPage from "./pages/StickerAlbumPage";
 import InstallApp from "./pages/InstallApp";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
+import DrinkCreator from "./pages/DrinkCreator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -194,6 +195,7 @@ const App = () => {
             <Route path="/notifications" element={<Notifications />} />
           <Route path="/games/memory-match" element={<MemoryMatchPage />} />
           <Route path="/games/match3" element={<Match3Page />} />
+          <Route path="/games/drink-creator" element={<DrinkCreator />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
           <Route path="/store/product/:productId" element={<ProductDetail />} />
