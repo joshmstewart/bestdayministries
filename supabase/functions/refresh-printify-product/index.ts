@@ -103,15 +103,37 @@ serve(async (req) => {
     }
 
     const printifyProduct = await productResponse.json();
-    console.log(`Fetched product: ${printifyProduct.title}, images: ${printifyProduct.images?.length || 0}`);
+    console.log(`Fetched product: ${printifyProduct.title}, images: ${printifyProduct.images?.length || 0}, variants: ${printifyProduct.variants?.length || 0}`);
+
+    // Log variant details to understand what colors are available
+    const uniqueColors = new Set<string>();
+    printifyProduct.variants?.forEach((v: any) => {
+      if (v.options?.color) {
+        uniqueColors.add(v.options.color);
+      }
+    });
+    console.log(`Available colors from variants: ${Array.from(uniqueColors).join(', ')}`);
+
+    // Log image details to see which variant IDs they're associated with
+    console.log(`Image details from Printify:`);
+    printifyProduct.images?.forEach((img: any, index: number) => {
+      console.log(`  Image ${index + 1}: variant_ids=${JSON.stringify(img.variant_ids)}, is_default=${img.is_default}`);
+    });
 
     // Get the first enabled variant's price as base
     const enabledVariants = printifyProduct.variants.filter((v: any) => v.is_enabled);
     const baseVariant = enabledVariants[0] || printifyProduct.variants[0];
     const basePrice = baseVariant ? baseVariant.price : 0;
 
-    // Get all image URLs
+    // Get all image URLs with their variant associations for better debugging
     const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
+    
+    // Also store image-to-variant mapping for frontend use
+    const imageVariantMap = printifyProduct.images?.map((img: any) => ({
+      src: img.src,
+      variant_ids: img.variant_ids || [],
+      is_default: img.is_default || false,
+    })) || [];
 
     // Build variant ID mapping
     const variantIds: Record<string, number> = {};
@@ -156,13 +178,17 @@ serve(async (req) => {
     }
 
     console.log(`Successfully refreshed product: ${updatedProduct.id}, now has ${imageUrls.length} images`);
+    console.log(`Colors found in variants: ${Array.from(uniqueColors).join(', ')}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         product: updatedProduct,
         imageCount: imageUrls.length,
-        message: `Successfully refreshed "${existingProduct.name}" with ${imageUrls.length} images`
+        variantCount: printifyProduct.variants?.length || 0,
+        colorCount: uniqueColors.size,
+        colors: Array.from(uniqueColors),
+        message: `Successfully refreshed "${existingProduct.name}" with ${imageUrls.length} images (${uniqueColors.size} colors available in Printify)`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
