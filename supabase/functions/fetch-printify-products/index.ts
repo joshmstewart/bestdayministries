@@ -92,16 +92,6 @@ serve(async (req) => {
     const productsData = await productsResponse.json();
     console.log('Fetched', productsData.data?.length || 0, 'products from Printify');
 
-    // Get existing imported products to mark which ones are already in our DB
-    const { data: existingProducts } = await supabaseClient
-      .from('products')
-      .select('printify_blueprint_id, printify_print_provider_id')
-      .eq('is_printify_product', true);
-
-    const importedBlueprints = new Set(
-      existingProducts?.map(p => `${p.printify_blueprint_id}-${p.printify_print_provider_id}`) || []
-    );
-
     // Helper to strip HTML from descriptions
     const stripHtml = (html: string): string => {
       if (!html) return '';
@@ -115,26 +105,64 @@ serve(async (req) => {
         .trim();
     };
 
+    // Helper to clean titles
+    const cleanTitle = (title: string): string => {
+      if (!title) return '';
+      return title.replace(/^\(Printify\)\s*/i, '').trim();
+    };
+
+    // Get existing imported products with their data for comparison
+    const { data: existingProducts } = await supabaseClient
+      .from('products')
+      .select('printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price')
+      .eq('is_printify_product', true);
+
+    const importedByProductId = new Map(
+      existingProducts?.map(p => [p.printify_product_id, p]) || []
+    );
+
+    const importedBlueprints = new Set(
+      existingProducts?.map(p => `${p.printify_blueprint_id}-${p.printify_print_provider_id}`) || []
+    );
+
     // Map Printify products to a simplified format
-    const products = (productsData.data || []).map((product: any) => ({
-      id: product.id,
-      title: product.title,
-      description: stripHtml(product.description),
-      blueprint_id: product.blueprint_id,
-      print_provider_id: product.print_provider_id,
-      images: product.images || [],
-      variants: (product.variants || []).map((v: any) => ({
-        id: v.id,
-        title: v.title,
-        price: v.price / 100, // Printify stores prices in cents
-        is_enabled: v.is_enabled,
-        options: v.options,
-      })),
-      is_imported: importedBlueprints.has(`${product.blueprint_id}-${product.print_provider_id}`),
-      created_at: product.created_at,
-      visible: product.visible,
-      is_locked: product.is_locked,
-    }));
+    const products = (productsData.data || []).map((product: any) => {
+      const cleanedTitle = cleanTitle(product.title);
+      const cleanedDescription = stripHtml(product.description);
+      const existingProduct = importedByProductId.get(product.id);
+      const isImported = importedBlueprints.has(`${product.blueprint_id}-${product.print_provider_id}`);
+      
+      // Check if data has changed since import
+      let hasChanges = false;
+      if (isImported && existingProduct) {
+        const currentBasePrice = (product.variants.find((v: any) => v.is_enabled) || product.variants[0])?.price / 100 || 0;
+        hasChanges = 
+          existingProduct.name !== cleanedTitle ||
+          existingProduct.description !== cleanedDescription ||
+          Math.abs(Number(existingProduct.price) - currentBasePrice) > 0.01;
+      }
+
+      return {
+        id: product.id,
+        title: cleanedTitle,
+        description: cleanedDescription,
+        blueprint_id: product.blueprint_id,
+        print_provider_id: product.print_provider_id,
+        images: product.images || [],
+        variants: (product.variants || []).map((v: any) => ({
+          id: v.id,
+          title: v.title,
+          price: v.price / 100,
+          is_enabled: v.is_enabled,
+          options: v.options,
+        })),
+        is_imported: isImported,
+        has_changes: hasChanges,
+        created_at: product.created_at,
+        visible: product.visible,
+        is_locked: product.is_locked,
+      };
+    });
 
     console.log('Returning', products.length, 'products');
 

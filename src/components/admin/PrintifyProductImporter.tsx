@@ -4,11 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { RefreshCw, Package, Check, Plus, DollarSign, ExternalLink } from "lucide-react";
+import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle } from "lucide-react";
+import { PrintifyPreviewDialog } from "./PrintifyPreviewDialog";
 
 interface PrintifyProduct {
   id: string;
@@ -24,6 +23,7 @@ interface PrintifyProduct {
     is_enabled: boolean;
   }[];
   is_imported: boolean;
+  has_changes?: boolean;
   visible: boolean;
 }
 
@@ -36,7 +36,8 @@ interface PrintifyResponse {
 }
 
 export const PrintifyProductImporter = () => {
-  const [priceMarkups, setPriceMarkups] = useState<Record<string, number>>({});
+  const [previewProduct, setPreviewProduct] = useState<PrintifyProduct | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
@@ -46,13 +47,29 @@ export const PrintifyProductImporter = () => {
       if (error) throw error;
       return data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   const importMutation = useMutation({
-    mutationFn: async ({ product, priceMarkup }: { product: PrintifyProduct; priceMarkup: number }) => {
+    mutationFn: async ({ 
+      product, 
+      priceMarkup,
+      editedTitle,
+      editedDescription 
+    }: { 
+      product: PrintifyProduct; 
+      priceMarkup: number;
+      editedTitle: string;
+      editedDescription: string;
+    }) => {
+      // Override title and description with edited values
+      const modifiedProduct = {
+        ...product,
+        title: editedTitle,
+        description: editedDescription,
+      };
       const { data, error } = await supabase.functions.invoke('import-printify-product', {
-        body: { printifyProduct: product, priceMarkup },
+        body: { printifyProduct: modifiedProduct, priceMarkup },
       });
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
@@ -60,6 +77,7 @@ export const PrintifyProductImporter = () => {
     },
     onSuccess: (data) => {
       toast.success(data.message);
+      setPreviewOpen(false);
       queryClient.invalidateQueries({ queryKey: ['printify-products'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
@@ -68,14 +86,57 @@ export const PrintifyProductImporter = () => {
     },
   });
 
-  const handleImport = (product: PrintifyProduct) => {
-    const priceMarkup = priceMarkups[product.id] || 0;
-    importMutation.mutate({ product, priceMarkup });
+  const syncMutation = useMutation({
+    mutationFn: async ({ product }: { product: PrintifyProduct }) => {
+      // Update the existing product in our database
+      const { data: existingProducts, error: fetchError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('printify_product_id', product.id)
+        .single();
+
+      if (fetchError || !existingProducts) {
+        throw new Error('Could not find existing product to update');
+      }
+
+      const enabledVariant = product.variants.find(v => v.is_enabled) || product.variants[0];
+      const basePrice = enabledVariant?.price || 0;
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          name: product.title,
+          description: product.description,
+          price: basePrice,
+          images: product.images.map(img => img.src),
+        })
+        .eq('id', existingProducts.id);
+
+      if (updateError) throw updateError;
+      return { message: `Successfully synced "${product.title}"` };
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setPreviewOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['printify-products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Sync failed: ${error.message}`);
+    },
+  });
+
+  const handlePreview = (product: PrintifyProduct) => {
+    setPreviewProduct(product);
+    setPreviewOpen(true);
   };
 
-  const getBasePrice = (product: PrintifyProduct): number => {
-    const enabledVariant = product.variants.find(v => v.is_enabled) || product.variants[0];
-    return enabledVariant?.price || 0;
+  const handleImport = (product: PrintifyProduct, priceMarkup: number, editedTitle: string, editedDescription: string) => {
+    importMutation.mutate({ product, priceMarkup, editedTitle, editedDescription });
+  };
+
+  const handleSync = (product: PrintifyProduct) => {
+    syncMutation.mutate({ product });
   };
 
   if (isLoading) {
@@ -114,6 +175,7 @@ export const PrintifyProductImporter = () => {
   const products = data?.products || [];
   const notImported = products.filter(p => !p.is_imported);
   const imported = products.filter(p => p.is_imported);
+  const needsUpdate = imported.filter(p => p.has_changes);
 
   return (
     <div className="space-y-6">
@@ -146,90 +208,93 @@ export const PrintifyProductImporter = () => {
         </Card>
       )}
 
+      {needsUpdate.length > 0 && (
+        <div className="space-y-4">
+          <h4 className="font-medium text-amber-600 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Needs Update ({needsUpdate.length})
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {needsUpdate.map((product) => (
+              <Card key={product.id} className="overflow-hidden border-amber-500/50">
+                {product.images[0] && (
+                  <div className="aspect-square bg-secondary/10 relative">
+                    <img
+                      src={product.images[0].src}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-2 right-2">
+                      <Badge variant="outline" className="bg-amber-500/90 text-white border-0">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Has Updates
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+                <CardContent className="p-4 space-y-3">
+                  <div>
+                    <h5 className="font-medium line-clamp-1">{product.title}</h5>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {product.description || 'No description'}
+                    </p>
+                  </div>
+                  <Button onClick={() => handlePreview(product)} className="w-full" size="sm">
+                    <Eye className="h-4 w-4 mr-2" />
+                    Review & Sync
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {notImported.length > 0 && (
         <div className="space-y-4">
           <h4 className="font-medium text-muted-foreground">
             Available to Import ({notImported.length})
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {notImported.map((product) => {
-              const basePrice = getBasePrice(product);
-              const markup = priceMarkups[product.id] || 0;
-              const finalPrice = basePrice + markup;
-
-              return (
-                <Card key={product.id} className="overflow-hidden">
-                  {product.images[0] && (
-                    <div className="aspect-square bg-secondary/10">
-                      <img
-                        src={product.images[0].src}
-                        alt={product.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <CardContent className="p-4 space-y-3">
-                    <div>
-                      <h5 className="font-medium line-clamp-1">{product.title}</h5>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {product.description || 'No description'}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm">
-                      <Badge variant="outline">{product.variants.filter(v => v.is_enabled).length} variants</Badge>
-                      <span className="text-muted-foreground">Base: ${basePrice.toFixed(2)}</span>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`markup-${product.id}`} className="text-xs">
-                        Price Markup
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id={`markup-${product.id}`}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={markup}
-                          onChange={(e) => setPriceMarkups(prev => ({
-                            ...prev,
-                            [product.id]: parseFloat(e.target.value) || 0
-                          }))}
-                          className="h-8"
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Final price: <span className="font-medium">${finalPrice.toFixed(2)}</span>
-                      </p>
-                    </div>
-
-                    <Button
-                      onClick={() => handleImport(product)}
-                      disabled={importMutation.isPending}
-                      className="w-full"
-                      size="sm"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Import to Store
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {notImported.map((product) => (
+              <Card key={product.id} className="overflow-hidden">
+                {product.images[0] && (
+                  <div className="aspect-square bg-secondary/10">
+                    <img
+                      src={product.images[0].src}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <CardContent className="p-4 space-y-3">
+                  <div>
+                    <h5 className="font-medium line-clamp-1">{product.title}</h5>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {product.description || 'No description'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Badge variant="outline">{product.variants.filter(v => v.is_enabled).length} variants</Badge>
+                  </div>
+                  <Button onClick={() => handlePreview(product)} variant="outline" className="w-full" size="sm">
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview & Import
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       )}
 
-      {imported.length > 0 && (
+      {imported.filter(p => !p.has_changes).length > 0 && (
         <div className="space-y-4">
           <h4 className="font-medium text-muted-foreground">
-            Already Imported ({imported.length})
+            Already Imported ({imported.filter(p => !p.has_changes).length})
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {imported.map((product) => (
+            {imported.filter(p => !p.has_changes).map((product) => (
               <Card key={product.id} className="overflow-hidden opacity-60">
                 {product.images[0] && (
                   <div className="aspect-square bg-secondary/10 relative">
@@ -272,6 +337,15 @@ export const PrintifyProductImporter = () => {
           </CardContent>
         </Card>
       )}
+
+      <PrintifyPreviewDialog
+        product={previewProduct}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        onImport={handleImport}
+        onSync={handleSync}
+        isImporting={importMutation.isPending || syncMutation.isPending}
+      />
     </div>
   );
 };
