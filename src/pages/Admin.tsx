@@ -71,6 +71,7 @@ import { NewsletterManager } from "@/components/admin/NewsletterManager";
 import { AudioClipsManager } from "@/components/admin/AudioClipsManager";
 import { SoundEffectsManager } from "@/components/admin/SoundEffectsManager";
 import { DrinkIngredientsManager } from "@/components/admin/DrinkIngredientsManager";
+import { DrinkVibesManager } from "@/components/admin/DrinkVibesManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -486,13 +487,18 @@ const Admin = () => {
                 <CardDescription>Manage game assets and settings</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="drink-creator" className="space-y-4">
+                <Tabs defaultValue="ingredients" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
-                    <TabsTrigger value="drink-creator">Drink Creator</TabsTrigger>
+                    <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
+                    <TabsTrigger value="vibes">Vibes</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="drink-creator">
+                  <TabsContent value="ingredients">
                     <DrinkIngredientsManager />
+                  </TabsContent>
+
+                  <TabsContent value="vibes">
+                    <DrinkVibesManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>

@@ -1431,6 +1431,45 @@ export type Database = {
         }
         Relationships: []
       }
+      drink_vibes: {
+        Row: {
+          atmosphere_hint: string
+          created_at: string
+          description: string
+          display_order: number
+          emoji: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          atmosphere_hint: string
+          created_at?: string
+          description: string
+          display_order?: number
+          emoji?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          atmosphere_hint?: string
+          created_at?: string
+          description?: string
+          display_order?: number
+          emoji?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_audit_log: {
         Row: {
           created_at: string

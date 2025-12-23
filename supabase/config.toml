@@ -189,3 +189,6 @@ verify_jwt = false
 
 [functions.check-printify-status]
 verify_jwt = false
+
+[functions.generate-vibe-icon]
+verify_jwt = true
