@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { getFullErrorText } from "@/lib/errorUtils";
-import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown, ImageIcon } from "lucide-react";
+import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown, ImageIcon, Palette } from "lucide-react";
 import { PrintifyPreviewDialog } from "./PrintifyPreviewDialog";
-
+import { ProductColorImagesManager } from "./ProductColorImagesManager";
 interface PrintifyProduct {
   id: string;
   title: string;
@@ -156,9 +156,21 @@ const ImportedProductCard = ({
       <CardContent className="p-4 space-y-3">
         <div>
           <h5 className="font-medium line-clamp-1">{product.title}</h5>
-          <p className="text-sm text-muted-foreground">
-            {product.variants.filter(v => v.is_enabled).length} variants
-          </p>
+          {(() => {
+            // Extract unique colors from variants
+            const colors = [...new Set(
+              product.variants
+                .filter(v => v.is_enabled)
+                .map(v => v.title?.split(' / ')[0]?.trim())
+                .filter(Boolean)
+            )];
+            return (
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Palette className="h-3 w-3" />
+                {colors.length} {colors.length === 1 ? 'color' : 'colors'}
+              </p>
+            );
+          })()}
         </div>
         <div className="flex flex-col gap-2">
           <Button 
@@ -181,6 +193,18 @@ const ImportedProductCard = ({
             <ImageIcon className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-pulse' : ''}`} />
             {isGenerating ? 'Checking...' : 'Check Image Status'}
           </Button>
+          {product.local_product_id && (
+            <ProductColorImagesManager
+              productId={product.local_product_id}
+              productName={product.title}
+              availableColors={[...new Set(
+                product.variants
+                  .filter(v => v.is_enabled)
+                  .map(v => v.title?.split(' / ')[0]?.trim())
+                  .filter(Boolean)
+              )] as string[]}
+            />
+          )}
         </div>
       </CardContent>
     </Card>
