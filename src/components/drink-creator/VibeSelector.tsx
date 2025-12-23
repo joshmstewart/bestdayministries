@@ -62,14 +62,14 @@ export const VibeSelector = ({ selected, onSelect }: VibeSelectorProps) => {
             key={vibe.id}
             onClick={() => onSelect(selected === vibe.id ? null : vibe.id)}
             className={cn(
-              "relative p-3 rounded-xl border-2 transition-all duration-200 text-left",
+              "relative rounded-xl border-2 transition-all duration-200 text-left overflow-hidden",
               "hover:scale-[1.02] hover:shadow-md",
               selected === vibe.id
-                ? "border-primary bg-primary/10 shadow-lg"
+                ? "border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30"
                 : "border-border/50 bg-card hover:border-primary/50"
             )}
           >
-            <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex items-center justify-center mb-2">
+            <div className="aspect-square w-full overflow-hidden bg-muted flex items-center justify-center">
               {vibe.image_url ? (
                 <img
                   src={vibe.image_url}
@@ -77,14 +77,20 @@ export const VibeSelector = ({ selected, onSelect }: VibeSelectorProps) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-2xl">{vibe.emoji || "✨"}</span>
+                <span className="text-4xl">{vibe.emoji || "✨"}</span>
               )}
             </div>
-            <div className="font-medium text-sm leading-tight">{vibe.name}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{vibe.description}</div>
+            <div className="p-2">
+              <div className="font-medium text-sm leading-tight">{vibe.name}</div>
+              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{vibe.description}</div>
+            </div>
             
             {selected === vibe.id && (
-              <div className="absolute top-2 right-2 w-3 h-3 bg-primary rounded-full" />
+              <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
             )}
           </button>
         ))}
