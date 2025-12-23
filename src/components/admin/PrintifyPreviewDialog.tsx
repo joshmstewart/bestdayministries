@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,16 +50,15 @@ export const PrintifyPreviewDialog = ({
   const [priceMarkup, setPriceMarkup] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Reset state when product changes
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen && product) {
-      setEditedTitle(product.title);
-      setEditedDescription(product.description);
+  // Initialize state when product changes or dialog opens
+  useEffect(() => {
+    if (open && product) {
+      setEditedTitle(product.title || "");
+      setEditedDescription(product.description || "");
       setPriceMarkup(0);
       setSelectedImageIndex(0);
     }
-    onOpenChange(isOpen);
-  };
+  }, [open, product]);
 
   if (!product) return null;
 
@@ -78,7 +77,7 @@ export const PrintifyPreviewDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
