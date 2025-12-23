@@ -3,8 +3,9 @@
 ## Overview
 
 The Joy House Store is a unified marketplace combining:
-1. **Handmade Products** - Community vendor items with Stripe Connect
-2. **Official Merch** - Shopify-integrated official merchandise
+1. **Printify Products** - Print-on-demand merchandise (t-shirts, mugs, etc.)
+2. **Handmade Products** - Community vendor items with Stripe Connect
+3. **Official Merch** - Shopify-integrated official merchandise
 
 ## Architecture
 
@@ -12,12 +13,28 @@ The Joy House Store is a unified marketplace combining:
 ┌─────────────────────────────────────────────────────────────────┐
 │                     /marketplace                                 │
 │  ┌─────────────────────────────────────────────────────────────┐│
-│  │ UnifiedCartSheet (combines both cart types)                 ││
-│  │  ├── Handmade items → create-marketplace-checkout           ││
+│  │ ProductCard (with color swatches for Printify)              ││
+│  │  ├── Printify → /store/product/:id → variant selection      ││
+│  │  └── Other → Add to cart directly                           ││
+│  └─────────────────────────────────────────────────────────────┘│
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ UnifiedCartSheet (combines all cart types)                  ││
+│  │  ├── Handmade/Printify → create-marketplace-checkout        ││
 │  │  └── Shopify items → Shopify Storefront API checkout        ││
 │  └─────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Payment Verification (No Webhooks)
+
+The checkout uses **polling-based verification** instead of webhooks:
+
+1. Customer completes Stripe Checkout
+2. Redirected to `/checkout-success?session_id=xxx&order_id=xxx`
+3. CheckoutSuccess page calls `verify-marketplace-payment`
+4. Edge function checks Stripe session status directly via API
+5. If paid → updates order status, clears cart
+6. If pending → frontend polls again (3s intervals, max 10 attempts)
 
 ## Database Schema
 
@@ -26,10 +43,10 @@ The Joy House Store is a unified marketplace combining:
 | Table | Purpose |
 |-------|---------|
 | `vendors` | Vendor accounts with Stripe Connect integration |
-| `products` | Handmade product listings |
-| `shopping_cart` | User cart items |
+| `products` | Product listings (including Printify) |
+| `shopping_cart` | User cart items with variant_info |
 | `orders` | Order records with status tracking |
-| `order_items` | Individual items per order with fee breakdown |
+| `order_items` | Individual items with fee breakdown + Printify tracking |
 | `commission_settings` | Platform commission percentage |
 | `vendor_earnings` | (VIEW) Aggregated vendor earnings |
 
@@ -47,7 +64,12 @@ The Joy House Store is a unified marketplace combining:
 **products:**
 - `id`, `vendor_id`, `name`, `description`, `price`
 - `images[]`, `inventory_count`, `category`, `tags[]`
-- `is_active`, `is_printify`, `printify_product_id`
+- `is_active`, `is_printify_product`
+- Printify columns: `printify_product_id`, `printify_blueprint_id`, `printify_print_provider_id`, `printify_variant_ids`, `printify_original_title`, `printify_original_description`, `printify_original_price`
+
+**shopping_cart:**
+- `user_id`, `product_id`, `quantity`
+- `variant_info`: JSONB `{ variant: "Natural / XS", variantId: 12345 }`
 
 **orders:**
 - `id`, `user_id`, `customer_id`, `total_amount`
@@ -63,6 +85,7 @@ The Joy House Store is a unified marketplace combining:
 - `fulfillment_status`: pending | shipped | delivered
 - `tracking_number`, `carrier`, `tracking_url`
 - `stripe_transfer_id` (for vendor payout)
+- Printify: `printify_order_id`, `printify_line_item_id`, `printify_status`
 
 **commission_settings:**
 - `id`, `commission_percentage` (default: 20%)
@@ -121,6 +144,7 @@ The Joy House Store is a unified marketplace combining:
 | Route | Component | Purpose |
 |-------|-----------|---------|
 | `/marketplace` | Marketplace.tsx | Main store with tabs |
+| `/store/product/:productId` | ProductDetail.tsx | Product detail with variant selection |
 | `/checkout-success` | CheckoutSuccess.tsx | Payment verification + polling |
 | `/orders` | OrderHistory.tsx | Customer order history |
 | `/vendor-dashboard` | VendorDashboard.tsx | Vendor management portal |
@@ -131,13 +155,23 @@ The Joy House Store is a unified marketplace combining:
 
 | Component | Purpose |
 |-----------|---------|
-| `ProductCard.tsx` | Handmade product display |
-| `ProductGrid.tsx` | Grid of handmade products |
+| `ProductCard.tsx` | Product display with color swatches for Printify |
+| `ProductGrid.tsx` | Grid of products |
 | `ShopifyProductCard.tsx` | Official merch display |
 | `ShopifyProductGrid.tsx` | Grid of Shopify products |
 | `UnifiedCartSheet.tsx` | Combined cart drawer |
 | `ShopifyCartSheet.tsx` | Shopify-only cart |
 | `ShoppingCartSheet.tsx` | Handmade-only cart |
+
+### Admin Components (`src/components/admin/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `PrintifyProductImporter.tsx` | Import/sync Printify products |
+| `PrintifyPreviewDialog.tsx` | Preview before import |
+| `ProductColorImagesManager.tsx` | Per-color image management |
+| `ProductEditDialog.tsx` | Edit product details |
+| `VendorManagement.tsx` | Manage vendors + Printify tab |
 
 ### Vendor Components (`src/components/vendor/`)
 
@@ -166,19 +200,33 @@ The Joy House Store is a unified marketplace combining:
 
 ## Workflows
 
-### Customer Purchase Flow
+### Customer Purchase Flow (Printify/Handmade)
 
 ```
 1. Browse /marketplace
-2. Add items to cart (handmade or Shopify)
-3. Open UnifiedCartSheet
-4. Click checkout for cart type
-   ├── Handmade → create-marketplace-checkout → Stripe
-   └── Shopify → Shopify Storefront API checkout
-5. Complete payment on Stripe
-6. Redirect to /checkout-success
-7. verify-marketplace-payment polls
-8. Order confirmed → View in /orders
+2. Click product → /store/product/:id (for variants)
+3. Select Color and Size dropdowns
+4. Add to cart (variant_info stored)
+5. Open UnifiedCartSheet
+6. Click "Checkout with Stripe"
+7. create-marketplace-checkout → Stripe Checkout
+8. Complete payment on Stripe
+9. Redirect to /checkout-success?session_id=xxx&order_id=xxx
+10. verify-marketplace-payment polls (3s × 10 attempts)
+11. Order confirmed → View in /orders
+```
+
+### Printify Admin Workflow
+
+```
+1. Design product in Printify dashboard
+2. Generate mockups for all colors
+3. Admin → Vendors → Printify tab
+4. Click "Refresh" to fetch catalog
+5. Products show in "Available to Import"
+6. Click "Preview" → edit title/description/markup
+7. Click "Import to Store"
+8. Product appears in /marketplace with color swatches
 ```
 
 ### Vendor Onboarding Flow
@@ -206,16 +254,32 @@ The Joy House Store is a unified marketplace combining:
 7. Customer sees tracking in /orders
 ```
 
+### Printify Order Fulfillment (Future)
+
+```
+1. Customer completes purchase of Printify product
+2. create-printify-order sends to Printify API
+3. Printify fulfills and ships
+4. Tracking updated via webhook or manual
+5. Customer receives product
+```
+
 ## Current Status
 
 ### ✅ Implemented
 
-- [x] Marketplace page with tabs (Handmade/Official Merch)
-- [x] Unified cart supporting both product types
+- [x] Marketplace page with product grid
+- [x] Unified cart supporting handmade + Printify
 - [x] Commission settings table (20% default)
 - [x] create-marketplace-checkout edge function
-- [x] verify-marketplace-payment edge function
-- [x] CheckoutSuccess page with polling
+- [x] verify-marketplace-payment (polling-based, no webhooks!)
+- [x] CheckoutSuccess page with polling verification
+- [x] Printify product import with variant mapping
+- [x] Color swatches on product cards (66+ colors)
+- [x] ProductDetail page with Color/Size dropdowns
+- [x] Image filtering by selected color
+- [x] Change detection (Printify vs local edits)
+- [x] "Keep My Version" dismissal for update flags
 - [x] Vendor dashboard with all tabs
 - [x] Stripe Connect onboarding component
 - [x] Product management (CRUD)
@@ -223,22 +287,26 @@ The Joy House Store is a unified marketplace combining:
 - [x] OrderHistory page for customers
 - [x] Shopify integration for official merch
 
+### ⚠️ Needs Testing
+
+- [ ] Full end-to-end purchase with Stripe
+- [ ] Printify order submission to API
+- [ ] Vendor payout on fulfillment
+
 ### ❌ Not Yet Working
 
-- [ ] **No approved vendors** - All vendors are rejected
-- [ ] **No active products** - No products in database
-- [ ] **Vendor Stripe Connect not set up** - No `stripe_account_id` populated
-- [ ] **Admin commission UI** - No way to adjust commission in admin
-- [ ] **Vendor payout on fulfillment** - create-vendor-transfer exists but untested
+- [ ] Shipping address collection for Printify orders
+- [ ] Admin commission UI (no way to adjust in admin)
+- [ ] Per-variant pricing (uses base variant price)
 
 ## To Make Store Operational
 
 ### Minimum Required Steps
 
-1. **Approve a vendor** in Admin → Vendors tab
-2. **Vendor completes Stripe Connect** via dashboard
-3. **Vendor adds products** with inventory
-4. **Test purchase** end-to-end
+1. **Test Stripe checkout** with imported Printify product
+2. **Complete purchase** and verify order appears
+3. **Implement shipping address** collection for Printify fulfillment
+4. **Test Printify order** submission
 
 ### Optional Enhancements
 
