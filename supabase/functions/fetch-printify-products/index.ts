@@ -102,11 +102,24 @@ serve(async (req) => {
       existingProducts?.map(p => `${p.printify_blueprint_id}-${p.printify_print_provider_id}`) || []
     );
 
+    // Helper to strip HTML from descriptions
+    const stripHtml = (html: string): string => {
+      if (!html) return '';
+      return html
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
     // Map Printify products to a simplified format
     const products = (productsData.data || []).map((product: any) => ({
       id: product.id,
       title: product.title,
-      description: product.description,
+      description: stripHtml(product.description),
       blueprint_id: product.blueprint_id,
       print_provider_id: product.print_provider_id,
       images: product.images || [],
