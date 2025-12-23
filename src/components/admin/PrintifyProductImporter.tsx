@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle } from "lucide-react";
+import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown } from "lucide-react";
 import { PrintifyPreviewDialog } from "./PrintifyPreviewDialog";
 
 interface PrintifyProduct {
@@ -35,10 +36,46 @@ interface PrintifyResponse {
   message?: string;
 }
 
+const ARCHIVED_PRODUCTS_KEY = 'printify-archived-products';
+
 export const PrintifyProductImporter = () => {
   const [previewProduct, setPreviewProduct] = useState<PrintifyProduct | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
+  const [archivedOpen, setArchivedOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  // Load archived IDs from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(ARCHIVED_PRODUCTS_KEY);
+    if (stored) {
+      try {
+        setArchivedIds(new Set(JSON.parse(stored)));
+      } catch (e) {
+        console.error('Failed to parse archived products:', e);
+      }
+    }
+  }, []);
+
+  // Save archived IDs to localStorage
+  const saveArchivedIds = (ids: Set<string>) => {
+    localStorage.setItem(ARCHIVED_PRODUCTS_KEY, JSON.stringify([...ids]));
+    setArchivedIds(ids);
+  };
+
+  const handleArchive = (productId: string) => {
+    const newIds = new Set(archivedIds);
+    newIds.add(productId);
+    saveArchivedIds(newIds);
+    toast.success("Product archived");
+  };
+
+  const handleUnarchive = (productId: string) => {
+    const newIds = new Set(archivedIds);
+    newIds.delete(productId);
+    saveArchivedIds(newIds);
+    toast.success("Product restored");
+  };
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['printify-products'],
@@ -173,9 +210,10 @@ export const PrintifyProductImporter = () => {
   }
 
   const products = data?.products || [];
-  const notImported = products.filter(p => !p.is_imported);
+  const notImported = products.filter(p => !p.is_imported && !archivedIds.has(p.id));
   const imported = products.filter(p => p.is_imported);
   const needsUpdate = imported.filter(p => p.has_changes);
+  const archived = products.filter(p => archivedIds.has(p.id) && !p.is_imported);
 
   return (
     <div className="space-y-6">
@@ -277,10 +315,20 @@ export const PrintifyProductImporter = () => {
                   <div className="flex items-center gap-2 text-sm">
                     <Badge variant="outline">{product.variants.filter(v => v.is_enabled).length} variants</Badge>
                   </div>
-                  <Button onClick={() => handlePreview(product)} variant="outline" className="w-full" size="sm">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview & Import
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => handlePreview(product)} variant="outline" className="flex-1" size="sm">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview & Import
+                    </Button>
+                    <Button 
+                      onClick={() => handleArchive(product.id)} 
+                      variant="ghost" 
+                      size="sm"
+                      title="Archive this product"
+                    >
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -321,6 +369,59 @@ export const PrintifyProductImporter = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {archived.length > 0 && (
+        <Collapsible open={archivedOpen} onOpenChange={setArchivedOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <Archive className="h-4 w-4" />
+                Archived ({archived.length})
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${archivedOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {archived.map((product) => (
+                <Card key={product.id} className="overflow-hidden opacity-60">
+                  {product.images[0] && (
+                    <div className="aspect-square bg-secondary/10">
+                      <img
+                        src={product.images[0].src}
+                        alt={product.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <CardContent className="p-4 space-y-3">
+                    <div>
+                      <h5 className="font-medium line-clamp-1">{product.title}</h5>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {product.description || 'No description'}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={() => handlePreview(product)} variant="outline" className="flex-1" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview & Import
+                      </Button>
+                      <Button 
+                        onClick={() => handleUnarchive(product.id)} 
+                        variant="ghost" 
+                        size="sm"
+                        title="Restore this product"
+                      >
+                        <ArchiveRestore className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       {products.length === 0 && !data?.message && (
