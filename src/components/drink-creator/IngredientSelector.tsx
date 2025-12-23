@@ -42,31 +42,31 @@ export const IngredientSelector = ({
             key={ingredient.id}
             onClick={() => onToggle(ingredient.id)}
             className={cn(
-              "relative p-4 rounded-xl border-2 transition-all duration-200",
+              "relative rounded-xl border-2 transition-all duration-200 overflow-hidden",
               "hover:scale-105 hover:shadow-lg",
-              "flex flex-col items-center gap-2 text-center",
+              "flex flex-col items-center text-center aspect-square",
               isSelected
-                ? "border-primary bg-primary/10 shadow-md"
+                ? "border-primary shadow-md"
                 : "border-border hover:border-primary/50"
             )}
           >
             {/* Selection indicator */}
             {isSelected && (
-              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
                 <Check className="w-4 h-4 text-primary-foreground" />
               </div>
             )}
 
-            {/* Ingredient image or placeholder */}
+            {/* Ingredient image or placeholder - full coverage */}
             {ingredient.image_url ? (
               <img
                 src={ingredient.image_url}
                 alt={ingredient.name}
-                className="w-16 h-16 object-cover rounded-lg"
+                className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (
               <div
-                className="w-16 h-16 rounded-lg flex items-center justify-center text-2xl"
+                className="absolute inset-0 w-full h-full flex items-center justify-center text-4xl"
                 style={{
                   background: `linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.3))`,
                 }}
@@ -75,15 +75,10 @@ export const IngredientSelector = ({
               </div>
             )}
 
-            {/* Ingredient name */}
-            <span className="font-medium text-sm">{ingredient.name}</span>
-
-            {/* Description */}
-            {ingredient.description && (
-              <span className="text-xs text-muted-foreground line-clamp-2">
-                {ingredient.description}
-              </span>
-            )}
+            {/* Ingredient name overlay at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-2 pt-6">
+              <span className="font-medium text-sm text-white drop-shadow-md">{ingredient.name}</span>
+            </div>
           </button>
         );
       })}
