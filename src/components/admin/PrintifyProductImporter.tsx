@@ -27,6 +27,7 @@ interface PrintifyProduct {
   is_imported: boolean;
   has_changes?: boolean;
   visible: boolean;
+  local_product_id?: string;
 }
 
 interface PrintifyResponse {
@@ -38,6 +39,79 @@ interface PrintifyResponse {
 }
 
 const ARCHIVED_PRODUCTS_KEY = 'printify-archived-products';
+
+// Component for imported products with refresh capability
+const ImportedProductCard = ({ 
+  product, 
+  onRefreshSuccess 
+}: { 
+  product: PrintifyProduct; 
+  onRefreshSuccess: () => void;
+}) => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!product.local_product_id) {
+      toast.error("Could not find local product ID");
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('refresh-printify-product', {
+        body: { productId: product.local_product_id },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      toast.success(data.message);
+      onRefreshSuccess();
+    } catch (error) {
+      toast.error(`Refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      {product.images[0] && (
+        <div className="aspect-square bg-secondary/10 relative">
+          <img
+            src={product.images[0].src}
+            alt={product.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-2 right-2">
+            <Badge variant="secondary" className="gap-1">
+              <Check className="h-3 w-3" />
+              Imported
+            </Badge>
+          </div>
+        </div>
+      )}
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h5 className="font-medium line-clamp-1">{product.title}</h5>
+          <p className="text-sm text-muted-foreground">
+            {product.variants.filter(v => v.is_enabled).length} variants
+          </p>
+        </div>
+        <Button 
+          onClick={handleRefresh} 
+          variant="outline" 
+          size="sm" 
+          className="w-full"
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh from Printify'}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const PrintifyProductImporter = () => {
   const [previewProduct, setPreviewProduct] = useState<PrintifyProduct | null>(null);
@@ -344,29 +418,14 @@ export const PrintifyProductImporter = () => {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {imported.filter(p => !p.has_changes).map((product) => (
-              <Card key={product.id} className="overflow-hidden opacity-60">
-                {product.images[0] && (
-                  <div className="aspect-square bg-secondary/10 relative">
-                    <img
-                      src={product.images[0].src}
-                      alt={product.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-                      <Badge variant="secondary" className="gap-1">
-                        <Check className="h-3 w-3" />
-                        Imported
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-                <CardContent className="p-4">
-                  <h5 className="font-medium line-clamp-1">{product.title}</h5>
-                  <p className="text-sm text-muted-foreground">
-                    {product.variants.filter(v => v.is_enabled).length} variants
-                  </p>
-                </CardContent>
-              </Card>
+              <ImportedProductCard 
+                key={product.id} 
+                product={product} 
+                onRefreshSuccess={() => {
+                  queryClient.invalidateQueries({ queryKey: ['printify-products'] });
+                  queryClient.invalidateQueries({ queryKey: ['products'] });
+                }}
+              />
             ))}
           </div>
         </div>
