@@ -57,6 +57,7 @@ import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
 import CoffeeShopManager from "@/components/admin/CoffeeShopManager";
 import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
+import { MarketplaceStripeModeSwitcher } from "@/components/admin/MarketplaceStripeModeSwitcher";
 import { TestEnvironmentManager } from "@/components/admin/TestEnvironmentManager";
 import { TTSVoiceManager } from "@/components/admin/TTSVoiceManager";
 import { CoinsManager } from "@/components/admin/CoinsManager";
@@ -738,8 +739,9 @@ const Admin = () => {
                     <AppSettingsManager />
                   </TabsContent>
 
-                  <TabsContent value="stripe">
+                  <TabsContent value="stripe" className="space-y-4">
                     <StripeModeSwitcher />
+                    <MarketplaceStripeModeSwitcher />
                   </TabsContent>
 
                   <TabsContent value="social-sharing">
