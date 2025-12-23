@@ -121,16 +121,13 @@ serve(async (req) => {
       existingProducts?.map(p => [p.printify_product_id, p]) || []
     );
 
-    const importedBlueprints = new Set(
-      existingProducts?.map(p => `${p.printify_blueprint_id}-${p.printify_print_provider_id}`) || []
-    );
-
     // Map Printify products to a simplified format
     const products = (productsData.data || []).map((product: any) => {
       const cleanedTitle = cleanTitle(product.title);
       const cleanedDescription = stripHtml(product.description);
       const existingProduct = importedByProductId.get(product.id);
-      const isImported = importedBlueprints.has(`${product.blueprint_id}-${product.print_provider_id}`);
+      // Check by actual Printify product ID, not blueprint combo
+      const isImported = importedByProductId.has(product.id);
       
       // Check if Printify data has changed since import
       // Compare current Printify data vs original Printify data at import time
