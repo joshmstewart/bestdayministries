@@ -21,8 +21,10 @@ export const ProductGrid = ({ category }: ProductGridProps) => {
         .order('created_at', { ascending: false });
 
       if (category === 'merch') {
-        query = query.is('vendor_id', null);
+        // Show Printify products (vendor_id is null AND is_printify_product is true)
+        query = query.is('vendor_id', null).eq('is_printify_product', true);
       } else if (category === 'handmade') {
+        // Show vendor products (has vendor_id)
         query = query.not('vendor_id', 'is', null);
       }
 

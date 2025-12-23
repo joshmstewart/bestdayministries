@@ -124,13 +124,13 @@ const Marketplace = () => {
                   </div>
                   <div>
                     <h2 className="text-2xl font-semibold mb-6">Official Merch</h2>
-                    <ShopifyProductGrid />
+                    <ProductGrid category="merch" />
                   </div>
                 </div>
               </TabsContent>
               
               <TabsContent value="merch">
-                <ShopifyProductGrid />
+                <ProductGrid category="merch" />
               </TabsContent>
               
               <TabsContent value="handmade">
