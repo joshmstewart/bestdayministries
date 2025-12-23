@@ -66,13 +66,17 @@ serve(async (req) => {
     // Strip HTML tags from description
     const rawDescription = printifyProduct.description || '';
     const cleanDescription = rawDescription
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
-      .replace(/&amp;/g, '&')  // Replace &amp; with &
-      .replace(/&lt;/g, '<')   // Replace &lt; with <
-      .replace(/&gt;/g, '>')   // Replace &gt; with >
-      .replace(/\s+/g, ' ')    // Collapse multiple spaces
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
       .trim();
+
+    // Clean title - remove "(Printify)" prefix
+    const rawTitle = printifyProduct.title || '';
+    const cleanTitle = rawTitle.replace(/^\(Printify\)\s*/i, '').trim();
 
     // Get all image URLs
     const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
@@ -81,12 +85,12 @@ serve(async (req) => {
     const { data: newProduct, error: insertError } = await supabaseClient
       .from('products')
       .insert({
-        name: printifyProduct.title,
+        name: cleanTitle,
         description: cleanDescription,
         price: basePrice,
         images: imageUrls,
         is_active: true,
-        inventory_count: 999, // POD has unlimited inventory
+        inventory_count: 999,
         is_printify_product: true,
         printify_product_id: printifyProduct.id,
         printify_blueprint_id: printifyProduct.blueprint_id,
