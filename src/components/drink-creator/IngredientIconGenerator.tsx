@@ -119,7 +119,7 @@ export const IngredientIconGenerator = ({
           ) : (
             <>
               <Wand2 className="w-4 h-4 mr-2" />
-              Generate All Icons
+              Generate Missing Icons
             </>
           )}
         </Button>
