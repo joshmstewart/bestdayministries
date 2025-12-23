@@ -81,6 +81,13 @@ serve(async (req) => {
     // Get all image URLs
     const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
 
+    // Get house vendor for official merch
+    const { data: houseVendor } = await supabaseClient
+      .from('vendors')
+      .select('id')
+      .eq('is_house_vendor', true)
+      .single();
+
     // Create the product in our database
     // Store original Printify data for change detection
     const { data: newProduct, error: insertError } = await supabaseClient
@@ -101,6 +108,8 @@ serve(async (req) => {
         printify_original_title: cleanTitle,
         printify_original_description: cleanDescription,
         printify_original_price: baseVariant ? baseVariant.price : 0, // Base price without markup
+        // Auto-assign to house vendor for official merch
+        vendor_id: houseVendor?.id || null,
       })
       .select()
       .single();
