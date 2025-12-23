@@ -209,7 +209,7 @@ const ProductDetail = () => {
         <div className="container max-w-6xl mx-auto px-4">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/store')}
+            onClick={() => navigate('/marketplace')}
             className="mb-6"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
