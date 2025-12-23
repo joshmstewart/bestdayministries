@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Sparkles, Loader2, Share2 } from "lucide-react";
 import { IngredientSelector } from "./IngredientSelector";
-import { VibeSelector, VIBES } from "./VibeSelector";
+import { VibeSelector, Vibe, getVibeById } from "./VibeSelector";
 
 interface Ingredient {
   id: string;
@@ -99,16 +99,16 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
       .map((ing) => ({ name: ing.name, color: ing.color_hint }));
   };
 
-  const getSelectedVibe = () => {
+  const fetchSelectedVibe = async (): Promise<Vibe | null> => {
     if (!selectedVibe) return null;
-    return VIBES.find(v => v.id === selectedVibe) || null;
+    return await getVibeById(selectedVibe);
   };
 
   const generateDrinkName = async () => {
     const selected = getSelectedIngredientNames();
     if (selected.length === 0) return;
 
-    const vibe = getSelectedVibe();
+    const vibe = await fetchSelectedVibe();
 
     setIsGeneratingName(true);
     try {
@@ -141,7 +141,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
       return;
     }
 
-    const vibe = getSelectedVibe();
+    const vibe = await fetchSelectedVibe();
 
     setIsGenerating(true);
     try {
@@ -149,7 +149,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
         body: { 
           ingredients: selected, 
           drinkName,
-          vibe: vibe ? { name: vibe.name, atmosphereHint: vibe.atmosphereHint } : null
+          vibe: vibe ? { name: vibe.name, atmosphereHint: vibe.atmosphere_hint } : null
         },
       });
 
