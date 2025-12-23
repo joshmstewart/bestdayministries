@@ -105,14 +105,18 @@ serve(async (req) => {
     const printifyProduct = await productResponse.json();
     console.log(`Fetched product: ${printifyProduct.title}, images: ${printifyProduct.images?.length || 0}, variants: ${printifyProduct.variants?.length || 0}`);
 
-    // Log variant details to understand what colors are available
+    // Extract colors from variant titles (format: "Color / Size" or just "Color")
     const uniqueColors = new Set<string>();
     printifyProduct.variants?.forEach((v: any) => {
-      if (v.options?.color) {
-        uniqueColors.add(v.options.color);
+      if (v.title) {
+        // Parse color from title - it's usually before the " / " separator
+        const colorPart = v.title.split(' / ')[0]?.trim();
+        if (colorPart) {
+          uniqueColors.add(colorPart);
+        }
       }
     });
-    console.log(`Available colors from variants: ${Array.from(uniqueColors).join(', ')}`);
+    console.log(`Available colors from variant titles: ${Array.from(uniqueColors).join(', ')}`);
 
     // Log image details to see which variant IDs they're associated with
     console.log(`Image details from Printify:`);
