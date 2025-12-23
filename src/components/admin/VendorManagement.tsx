@@ -13,7 +13,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Eye
+  Eye,
+  Printer
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -25,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
+import { PrintifyProductImporter } from "./PrintifyProductImporter";
 
 interface VendorStats {
   totalVendors: number;
@@ -322,6 +324,10 @@ export const VendorManagement = () => {
               <TabsTrigger value="vendors">Vendors</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="orders">Orders</TabsTrigger>
+              <TabsTrigger value="printify" className="gap-1">
+                <Printer className="w-3 h-3" />
+                Printify
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="vendors" className="space-y-4">
@@ -451,6 +457,10 @@ export const VendorManagement = () => {
                   ))}
                 </TableBody>
               </Table>
+            </TabsContent>
+
+            <TabsContent value="printify" className="space-y-4">
+              <PrintifyProductImporter />
             </TabsContent>
           </Tabs>
         </CardContent>
