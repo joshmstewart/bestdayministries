@@ -200,7 +200,7 @@ const ProductDetail = () => {
                 </p>
               </div>
 
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
                 {product.description || 'No description available.'}
               </p>
 
