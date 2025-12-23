@@ -5136,6 +5136,7 @@ export type Database = {
           description: string | null
           featured_bestie_id: string | null
           id: string
+          is_house_vendor: boolean
           logo_url: string | null
           rejection_reason: string | null
           social_links: Json | null
@@ -5158,6 +5159,7 @@ export type Database = {
           description?: string | null
           featured_bestie_id?: string | null
           id?: string
+          is_house_vendor?: boolean
           logo_url?: string | null
           rejection_reason?: string | null
           social_links?: Json | null
@@ -5180,6 +5182,7 @@ export type Database = {
           description?: string | null
           featured_bestie_id?: string | null
           id?: string
+          is_house_vendor?: boolean
           logo_url?: string | null
           rejection_reason?: string | null
           social_links?: Json | null
