@@ -6,13 +6,18 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { DrinkCreatorWizard } from "@/components/drink-creator/DrinkCreatorWizard";
 import { DrinkGallery } from "@/components/drink-creator/DrinkGallery";
+import { IngredientIconGenerator } from "@/components/drink-creator/IngredientIconGenerator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Database } from "@/integrations/supabase/types";
 
+type Ingredient = Database["public"]["Tables"]["drink_ingredients"]["Row"];
 const DrinkCreator = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -27,10 +32,32 @@ const DrinkCreator = () => {
         return;
       }
       setUser(user);
+      
+      // Check if admin
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      
+      setIsAdmin(roleData?.role === "admin" || roleData?.role === "owner");
+      
+      // Load ingredients
+      await loadIngredients();
       setLoading(false);
     };
     checkAuth();
   }, [navigate, toast]);
+
+  const loadIngredients = async () => {
+    const { data } = await supabase
+      .from("drink_ingredients")
+      .select("*")
+      .eq("is_active", true)
+      .order("display_order");
+    
+    setIngredients(data || []);
+  };
 
   if (loading) {
     return (
@@ -71,6 +98,12 @@ const DrinkCreator = () => {
           </TabsList>
 
           <TabsContent value="create">
+            {isAdmin && (
+              <IngredientIconGenerator 
+                ingredients={ingredients} 
+                onComplete={loadIngredients} 
+              />
+            )}
             <DrinkCreatorWizard userId={user.id} />
           </TabsContent>
 
