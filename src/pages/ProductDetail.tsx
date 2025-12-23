@@ -25,7 +25,8 @@ const ProductDetail = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [selectedVariant, setSelectedVariant] = useState<string>("");
+  const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
 
   const { data: product, isLoading } = useQuery({
@@ -52,8 +53,34 @@ const ProductDetail = () => {
       }))
     : [];
 
-  // Auto-select if only one variant
-  const effectiveVariant = variants.length === 1 ? variants[0].title : selectedVariant;
+  // Parse variants into colors and sizes (format: "Color / Size")
+  const { colors, sizes, hasMultipleOptions } = (() => {
+    const colorSet = new Set<string>();
+    const sizeSet = new Set<string>();
+    
+    variants.forEach(v => {
+      const parts = v.title.split(' / ');
+      if (parts.length === 2) {
+        colorSet.add(parts[0]);
+        sizeSet.add(parts[1]);
+      }
+    });
+    
+    return {
+      colors: Array.from(colorSet),
+      sizes: Array.from(sizeSet),
+      hasMultipleOptions: colorSet.size > 0 && sizeSet.size > 0
+    };
+  })();
+
+  // Build the effective variant from selections
+  const effectiveVariant = (() => {
+    if (variants.length === 1) return variants[0].title;
+    if (hasMultipleOptions && selectedColor && selectedSize) {
+      return `${selectedColor} / ${selectedSize}`;
+    }
+    return "";
+  })();
 
   const addToCart = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -68,10 +95,10 @@ const ProductDetail = () => {
     }
 
     // For Printify products with multiple variants, we need a variant selection
-    if (product?.is_printify_product && variants.length > 1 && !selectedVariant) {
+    if (product?.is_printify_product && variants.length > 1 && !effectiveVariant) {
       toast({
-        title: "Select an option",
-        description: "Please select a size/style before adding to cart",
+        title: "Select options",
+        description: "Please select color and size before adding to cart",
         variant: "destructive"
       });
       return;
@@ -201,22 +228,46 @@ const ProductDetail = () => {
                 {product.description || 'No description available.'}
               </p>
 
-              {/* Variant Selection - only show if multiple variants */}
-              {product.is_printify_product && variants.length > 1 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Select Option</label>
-                  <Select value={selectedVariant} onValueChange={setSelectedVariant}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Choose size/style..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {variants.map((variant) => (
-                        <SelectItem key={String(variant.id)} value={variant.title}>
-                          {variant.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {/* Variant Selection - separate Color and Size dropdowns */}
+              {product.is_printify_product && variants.length > 1 && hasMultipleOptions && (
+                <div className="space-y-4">
+                  {/* Color Selection */}
+                  {colors.length > 1 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Color</label>
+                      <Select value={selectedColor} onValueChange={setSelectedColor}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Choose color..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {colors.map((color) => (
+                            <SelectItem key={color} value={color}>
+                              {color}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Size Selection */}
+                  {sizes.length > 1 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Size</label>
+                      <Select value={selectedSize} onValueChange={setSelectedSize}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Choose size..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sizes.map((size) => (
+                            <SelectItem key={size} value={size}>
+                              {size}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               )}
 
