@@ -106,9 +106,9 @@ const ImportedProductCard = ({
     }
   };
 
-  const handleGenerateImages = async () => {
+  const handleCheckImages = async () => {
     if (!product.local_product_id) {
-      showErrorToast("Generate Images", {
+      showErrorToast("Check Images", {
         message: "Could not find local product ID",
         details: `Printify product ID: ${product.id}. Please try clicking "Refresh" at the top to reload the product list, then try again.`
       });
@@ -124,15 +124,13 @@ const ImportedProductCard = ({
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
-      if (data.generatedCount > 0) {
-        toast.success(`Generated ${data.generatedCount} new images! Click "Refresh from Printify" to update.`);
-      } else if (data.variantsRequested > 0) {
-        toast.info(`Requested images for ${data.variantsRequested} variants. Generation may take a moment - click "Refresh from Printify" in a few seconds.`);
+      if (data.variantsWithoutImages === 0) {
+        toast.success(`All ${data.totalEnabledVariants} variants have images!`);
       } else {
-        toast.info(data.message);
+        toast.info(data.message, { duration: 8000 });
       }
     } catch (error) {
-      showErrorToast("Generate Images", error);
+      showErrorToast("Check Images", error);
     } finally {
       setIsGenerating(false);
     }
@@ -174,14 +172,14 @@ const ImportedProductCard = ({
             {isRefreshing ? 'Refreshing...' : 'Refresh from Printify'}
           </Button>
           <Button 
-            onClick={handleGenerateImages} 
+            onClick={handleCheckImages} 
             variant="secondary" 
             size="sm" 
             className="w-full"
             disabled={isRefreshing || isGenerating}
           >
             <ImageIcon className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-pulse' : ''}`} />
-            {isGenerating ? 'Generating...' : 'Generate Missing Images'}
+            {isGenerating ? 'Checking...' : 'Check Image Status'}
           </Button>
         </div>
       </CardContent>
