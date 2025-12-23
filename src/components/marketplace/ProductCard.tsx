@@ -57,8 +57,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     });
   };
 
+  const defaultIndex = product.default_image_index || 0;
   const imageUrl = product.images && product.images.length > 0 
-    ? product.images[0] 
+    ? product.images[Math.min(defaultIndex, product.images.length - 1)] 
     : '/placeholder.svg';
 
   return (
@@ -70,31 +71,23 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             alt={product.name}
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
           />
-          {(product.is_printify || product.is_printify_product) && (
-            <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
-              <Badge variant="secondary">
-                <Package className="w-3 h-3 mr-1" />
-                Print on Demand
+          {product.printify_variant_ids && (() => {
+            // Extract unique colors from variant titles
+            const variants = product.printify_variant_ids as Record<string, any>;
+            const colors = new Set<string>();
+            Object.values(variants).forEach((v: any) => {
+              if (v?.title) {
+                const colorPart = v.title.split(' / ')[0]?.trim();
+                if (colorPart) colors.add(colorPart);
+              }
+            });
+            const colorCount = colors.size;
+            return colorCount > 1 ? (
+              <Badge variant="secondary" className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm">
+                {colorCount} colors
               </Badge>
-              {product.printify_variant_ids && (() => {
-                // Extract unique colors from variant titles
-                const variants = product.printify_variant_ids as Record<string, any>;
-                const colors = new Set<string>();
-                Object.values(variants).forEach((v: any) => {
-                  if (v?.title) {
-                    const colorPart = v.title.split(' / ')[0]?.trim();
-                    if (colorPart) colors.add(colorPart);
-                  }
-                });
-                const colorCount = colors.size;
-                return colorCount > 0 ? (
-                  <Badge variant="outline" className="bg-background/80">
-                    {colorCount} {colorCount === 1 ? 'color' : 'colors'}
-                  </Badge>
-                ) : null;
-              })()}
-            </div>
-          )}
+            ) : null;
+          })()}
         </div>
 
         <h3 className="font-semibold text-lg mb-2 line-clamp-2">
