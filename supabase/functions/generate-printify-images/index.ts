@@ -85,7 +85,7 @@ serve(async (req) => {
 
     const shopId = shops[0].id;
 
-    // Fetch the product from Printify to get current images and variants
+    // Fetch the product from Printify
     console.log(`Fetching product ${existingProduct.printify_product_id} from Printify`);
     
     const productResponse = await fetch(
@@ -105,11 +105,8 @@ serve(async (req) => {
     const printifyProduct = await productResponse.json();
     
     // Get all enabled variant IDs
-    const enabledVariantIds = printifyProduct.variants
-      ?.filter((v: any) => v.is_enabled)
-      .map((v: any) => v.id) || [];
-    
-    console.log(`Total enabled variants: ${enabledVariantIds.length}`);
+    const enabledVariants = printifyProduct.variants?.filter((v: any) => v.is_enabled) || [];
+    console.log(`Total enabled variants: ${enabledVariants.length}`);
 
     // Get variant IDs that already have images
     const variantsWithImages = new Set<number>();
@@ -118,78 +115,105 @@ serve(async (req) => {
     });
     
     console.log(`Variants with images: ${variantsWithImages.size}`);
+    console.log(`Total images: ${printifyProduct.images?.length || 0}`);
 
     // Find variants without images
-    const variantsNeedingImages = enabledVariantIds.filter(
-      (vid: number) => !variantsWithImages.has(vid)
+    const variantsNeedingImages = enabledVariants.filter(
+      (v: any) => !variantsWithImages.has(v.id)
     );
     
+    // Extract color info from variants needing images
+    const colorsNeedingImages = [...new Set(variantsNeedingImages.map((v: any) => {
+      const colorPart = v.title?.split(' / ')[0]?.trim();
+      return colorPart || 'Unknown';
+    }))];
+    
     console.log(`Variants needing images: ${variantsNeedingImages.length}`);
-    console.log(`Variant IDs needing images: ${variantsNeedingImages.join(', ')}`);
+    console.log(`Colors needing images: ${colorsNeedingImages.join(', ')}`);
 
     if (variantsNeedingImages.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'All variants already have images',
-          generatedCount: 0
+          totalImages: printifyProduct.images?.length || 0,
+          totalVariants: enabledVariants.length,
+          variantsWithImages: variantsWithImages.size,
+          variantsNeedingImages: 0,
+          colorsNeedingImages: []
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Call Printify's image generation endpoint
-    console.log(`Requesting image generation for ${variantsNeedingImages.length} variants...`);
+    // Printify doesn't have a dedicated "generate images" API endpoint.
+    // Mockup images are generated when you create/update a product with print areas.
+    // We can try to trigger regeneration by doing a PUT request to update the product.
     
-    const generateResponse = await fetch(
-      `https://api.printify.com/v1/shops/${shopId}/products/${existingProduct.printify_product_id}/images.json`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${printifyApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          variant_ids: variantsNeedingImages
-        }),
-      }
-    );
+    console.log(`Attempting to trigger image regeneration by re-saving product...`);
+    
+    // Get current print areas (we'll just re-save them to trigger mockup generation)
+    const updatePayload = {
+      title: printifyProduct.title,
+      description: printifyProduct.description,
+      variants: printifyProduct.variants.map((v: any) => ({
+        id: v.id,
+        price: v.price,
+        is_enabled: v.is_enabled
+      })),
+      print_areas: printifyProduct.print_areas
+    };
 
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      console.error('Image generation failed:', errorText);
-      throw new Error(`Failed to generate images: ${generateResponse.statusText} - ${errorText}`);
-    }
-
-    const generateResult = await generateResponse.json();
-    console.log('Image generation result:', JSON.stringify(generateResult));
-
-    // Fetch the updated product to get new image count
-    const updatedProductResponse = await fetch(
+    const updateResponse = await fetch(
       `https://api.printify.com/v1/shops/${shopId}/products/${existingProduct.printify_product_id}.json`,
       {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${printifyApiKey}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify(updatePayload),
       }
     );
 
-    let newImageCount = 0;
-    if (updatedProductResponse.ok) {
-      const updatedProduct = await updatedProductResponse.json();
-      newImageCount = updatedProduct.images?.length || 0;
-      console.log(`Product now has ${newImageCount} images`);
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error('Product update failed:', errorText);
+      
+      // Even if update fails, return helpful info about what's missing
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Could not trigger image regeneration. ${variantsNeedingImages.length} variants (colors: ${colorsNeedingImages.join(', ')}) are missing images. You may need to generate these mockups directly in Printify's dashboard.`,
+          totalImages: printifyProduct.images?.length || 0,
+          totalVariants: enabledVariants.length,
+          variantsWithImages: variantsWithImages.size,
+          variantsNeedingImages: variantsNeedingImages.length,
+          colorsNeedingImages
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
+
+    const updatedProduct = await updateResponse.json();
+    const newImageCount = updatedProduct.images?.length || 0;
+    
+    console.log(`Product re-saved. Now has ${newImageCount} images (was ${printifyProduct.images?.length || 0})`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Requested image generation for ${variantsNeedingImages.length} variants`,
-        variantsRequested: variantsNeedingImages.length,
+        message: newImageCount > (printifyProduct.images?.length || 0) 
+          ? `Generated ${newImageCount - (printifyProduct.images?.length || 0)} new images!`
+          : `Product re-saved. ${variantsNeedingImages.length} variants still need images (colors: ${colorsNeedingImages.join(', ')}). These may need to be generated in Printify's dashboard.`,
         previousImageCount: printifyProduct.images?.length || 0,
-        newImageCount: newImageCount,
-        generatedCount: newImageCount - (printifyProduct.images?.length || 0)
+        newImageCount,
+        totalVariants: enabledVariants.length,
+        variantsNeedingImages: variantsNeedingImages.length,
+        colorsNeedingImages
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
