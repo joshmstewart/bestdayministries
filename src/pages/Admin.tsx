@@ -16,14 +16,10 @@ import { SupportPageManager } from "@/components/admin/SupportPageManager";
 import { SponsorBestiePageManager } from "@/components/admin/SponsorBestiePageManager";
 import { ReceiptSettingsManager } from "@/components/admin/ReceiptSettingsManager";
 import { SponsorshipTransactionsManager } from "@/components/admin/SponsorshipTransactionsManager";
-import { DonationRecoveryManager } from "@/components/admin/DonationRecoveryManager";
 import { WebhookLogsViewer } from "@/components/admin/WebhookLogsViewer";
 import { YearEndSummarySettings } from "@/components/admin/YearEndSummarySettings";
 import { YearEndSummarySentHistory } from "@/components/admin/YearEndSummarySentHistory";
-import { RecalculateAmountsTest } from "@/components/admin/RecalculateAmountsTest";
-import { DonationDebugger } from "@/components/admin/DonationDebugger";
-import { DuplicateTransactionsDetector } from "@/components/admin/DuplicateTransactionsDetector";
-import { StripeCustomerChecker } from "@/components/admin/StripeCustomerChecker";
+import { DataMaintenanceTools } from "@/components/admin/DataMaintenanceTools";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
@@ -65,7 +61,7 @@ import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
 import { PetTypesManager } from "@/components/admin/PetTypesManager";
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
-import { DeleteFakeDonations } from "@/components/admin/DeleteFakeDonations";
+
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
 import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
 import IssueReportsManager from "@/components/admin/IssueReportsManager";
@@ -417,9 +413,7 @@ const Admin = () => {
                 <Tabs defaultValue="transactions" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto w-full">
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                    <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
                     <TabsTrigger value="webhook-logs">Webhook Logs</TabsTrigger>
-                    <TabsTrigger value="recovery">Recovery Tool</TabsTrigger>
                     <TabsTrigger value="sponsorships">Sponsor Besties</TabsTrigger>
                     <TabsTrigger value="page-content">Sponsor Page</TabsTrigger>
                     <TabsTrigger value="page-order">Page Order</TabsTrigger>
@@ -427,36 +421,15 @@ const Admin = () => {
                     <TabsTrigger value="year-end-settings">Year-End Settings</TabsTrigger>
                     <TabsTrigger value="sent-history">Sent History</TabsTrigger>
                     <TabsTrigger value="support-page">Support Us Page</TabsTrigger>
-                    <TabsTrigger value="test-recalc">Test Recalc</TabsTrigger>
-                    <TabsTrigger value="debug">Debug Reconciliation</TabsTrigger>
-                    <TabsTrigger value="cleanup">Delete Fake Donations</TabsTrigger>
+                    <TabsTrigger value="data-maintenance">Data Maintenance</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="transactions">
                     <SponsorshipTransactionsManager />
                   </TabsContent>
 
-                  <TabsContent value="duplicates">
-                    <DuplicateTransactionsDetector />
-                  </TabsContent>
-
-                  <TabsContent value="debug">
-                    <div className="space-y-6">
-                      <StripeCustomerChecker />
-                      <DonationDebugger />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="cleanup">
-                    <DeleteFakeDonations />
-                  </TabsContent>
-
                   <TabsContent value="webhook-logs">
                     <WebhookLogsViewer />
-                  </TabsContent>
-
-                  <TabsContent value="recovery">
-                    <DonationRecoveryManager />
                   </TabsContent>
 
                   <TabsContent value="sponsorships">
@@ -487,8 +460,8 @@ const Admin = () => {
                     <SupportPageManager />
                   </TabsContent>
 
-                  <TabsContent value="test-recalc">
-                    <RecalculateAmountsTest />
+                  <TabsContent value="data-maintenance">
+                    <DataMaintenanceTools />
                   </TabsContent>
                 </Tabs>
               </CardContent>
