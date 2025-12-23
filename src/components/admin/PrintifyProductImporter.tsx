@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
+import { getFullErrorText } from "@/lib/errorUtils";
 import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown } from "lucide-react";
 import { PrintifyPreviewDialog } from "./PrintifyPreviewDialog";
 
@@ -49,10 +51,39 @@ const ImportedProductCard = ({
   onRefreshSuccess: () => void;
 }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast: toastWithCopy } = useToast();
+
+  const showErrorToast = (context: string, error: any) => {
+    const fullText = getFullErrorText(error);
+    toastWithCopy({
+      title: `Error: ${context}`,
+      description: (
+        <div className="space-y-2">
+          <pre className="max-h-60 overflow-auto whitespace-pre-wrap text-xs font-mono">
+            {fullText}
+          </pre>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(fullText);
+              toast.success("Copied to clipboard");
+            }}
+            className="text-xs underline hover:no-underline"
+          >
+            Copy full error details
+          </button>
+        </div>
+      ),
+      variant: "destructive",
+      duration: 100000,
+    });
+  };
 
   const handleRefresh = async () => {
     if (!product.local_product_id) {
-      toast.error("Could not find local product ID");
+      showErrorToast("Refresh from Printify", {
+        message: "Could not find local product ID",
+        details: `Printify product ID: ${product.id}. Please try clicking "Refresh" at the top to reload the product list, then try again.`
+      });
       return;
     }
 
@@ -68,7 +99,7 @@ const ImportedProductCard = ({
       toast.success(data.message);
       onRefreshSuccess();
     } catch (error) {
-      toast.error(`Refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showErrorToast("Refresh from Printify", error);
     } finally {
       setIsRefreshing(false);
     }
