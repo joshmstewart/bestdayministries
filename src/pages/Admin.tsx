@@ -70,6 +70,7 @@ import { StickerCollectionManager } from "@/components/admin/StickerCollectionMa
 import { NewsletterManager } from "@/components/admin/NewsletterManager";
 import { AudioClipsManager } from "@/components/admin/AudioClipsManager";
 import { SoundEffectsManager } from "@/components/admin/SoundEffectsManager";
+import { DrinkIngredientsManager } from "@/components/admin/DrinkIngredientsManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -259,6 +260,7 @@ const Admin = () => {
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="stickers">Stickers</TabsTrigger>
+            <TabsTrigger value="games">Games</TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
               Store
               {pendingVendorsCount > 0 && (
@@ -475,6 +477,26 @@ const Admin = () => {
 
           <TabsContent value="stickers">
             <StickerCollectionManager />
+          </TabsContent>
+
+          <TabsContent value="games">
+            <Card>
+              <CardHeader>
+                <CardTitle>Games Management</CardTitle>
+                <CardDescription>Manage game assets and settings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="drink-creator" className="space-y-4">
+                  <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="drink-creator">Drink Creator</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="drink-creator">
+                    <DrinkIngredientsManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="vendors">
