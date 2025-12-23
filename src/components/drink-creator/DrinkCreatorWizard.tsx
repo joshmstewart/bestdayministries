@@ -43,6 +43,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   });
   const [drinkName, setDrinkName] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGeneratingName, setIsGeneratingName] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedDrinkId, setSavedDrinkId] = useState<string | null>(null);
@@ -95,6 +96,30 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
       .map((ing) => ({ name: ing.name, color: ing.color_hint }));
   };
 
+  const generateDrinkName = async () => {
+    const selected = getSelectedIngredientNames();
+    if (selected.length === 0) return;
+
+    setIsGeneratingName(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-drink-name", {
+        body: { ingredients: selected },
+      });
+
+      if (error) throw error;
+      if (data?.name) {
+        setDrinkName(data.name);
+      }
+    } catch (error: any) {
+      console.error("Error generating name:", error);
+      // Fallback name if generation fails
+      const mainIngredient = selected[0]?.name || "Custom";
+      setDrinkName(`${mainIngredient} Delight`);
+    } finally {
+      setIsGeneratingName(false);
+    }
+  };
+
   const generateDrinkImage = async () => {
     const selected = getSelectedIngredientNames();
     if (selected.length === 0) {
@@ -109,16 +134,12 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-drink-image", {
-        body: { ingredients: selected },
+        body: { ingredients: selected, drinkName },
       });
 
       if (error) throw error;
       if (data?.imageUrl) {
         setGeneratedImage(data.imageUrl);
-        // Auto-generate name if empty
-        if (!drinkName && data.suggestedName) {
-          setDrinkName(data.suggestedName);
-        }
       }
     } catch (error: any) {
       toast({
@@ -128,6 +149,16 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleNextStep = async () => {
+    if (currentStep === 3) {
+      // Moving to final step - generate name first
+      setCurrentStep(4);
+      await generateDrinkName();
+    } else {
+      setCurrentStep((s) => s + 1);
     }
   };
 
@@ -242,23 +273,34 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
               </div>
             </div>
 
-            {/* Name input */}
+            {/* Name display/edit */}
             <div className="space-y-2">
-              <Label htmlFor="drinkName">Name Your Creation</Label>
-              <Input
-                id="drinkName"
-                placeholder="e.g., Sunset Latte"
-                value={drinkName}
-                onChange={(e) => setDrinkName(e.target.value)}
-                disabled={!!savedDrinkId}
-              />
+              <Label htmlFor="drinkName">Your Drink Name</Label>
+              {isGeneratingName ? (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-muted-foreground">Creating a perfect name...</span>
+                </div>
+              ) : (
+                <Input
+                  id="drinkName"
+                  placeholder="e.g., Sunset Latte"
+                  value={drinkName}
+                  onChange={(e) => setDrinkName(e.target.value)}
+                  disabled={!!savedDrinkId}
+                  className="text-lg font-medium"
+                />
+              )}
+              <p className="text-xs text-muted-foreground">
+                This name will inspire the atmosphere of your drink image!
+              </p>
             </div>
 
             {/* Generate button */}
             {!generatedImage && (
               <Button
                 onClick={generateDrinkImage}
-                disabled={isGenerating}
+                disabled={isGenerating || isGeneratingName || !drinkName}
                 className="w-full"
                 size="lg"
               >
@@ -343,7 +385,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
               Back
             </Button>
             <Button
-              onClick={() => setCurrentStep((s) => s + 1)}
+              onClick={handleNextStep}
               disabled={!canProceed()}
             >
               {currentStep === 3 ? "Create!" : "Next"}

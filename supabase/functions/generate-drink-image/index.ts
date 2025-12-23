@@ -29,25 +29,59 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { ingredients } = await req.json();
+    const { ingredients, drinkName } = await req.json();
 
     if (!ingredients || ingredients.length === 0) {
       throw new Error("No ingredients provided");
     }
 
-    // Build the prompt
+    // Build the prompt - now incorporating the drink name for atmosphere
     const ingredientList = ingredients.map((ing: { name: string; color: string }) => ing.name).join(", ");
     const colorHints = ingredients
       .filter((ing: { color: string }) => ing.color)
       .map((ing: { name: string; color: string }) => `${ing.name} (${ing.color})`)
       .join(", ");
 
-    const prompt = `A beautiful, photorealistic image of a specialty coffee drink in a stylish cup. The drink contains: ${ingredientList}. 
+    // Extract atmosphere hints from the drink name
+    const nameWords = (drinkName || "").toLowerCase();
+    let atmosphereHint = "warm, cozy coffee shop";
+    
+    if (nameWords.includes("midnight") || nameWords.includes("night") || nameWords.includes("dark")) {
+      atmosphereHint = "moody midnight setting with deep blues and purples, starry night atmosphere, soft moonlight";
+    } else if (nameWords.includes("sunset") || nameWords.includes("dusk") || nameWords.includes("twilight")) {
+      atmosphereHint = "golden hour sunset atmosphere with warm oranges and pinks, romantic evening vibes";
+    } else if (nameWords.includes("sunrise") || nameWords.includes("dawn") || nameWords.includes("morning")) {
+      atmosphereHint = "fresh morning sunrise with soft golden light, peaceful dawn atmosphere";
+    } else if (nameWords.includes("autumn") || nameWords.includes("fall")) {
+      atmosphereHint = "cozy autumn setting with fallen leaves, warm amber tones, rustic wooden textures";
+    } else if (nameWords.includes("winter") || nameWords.includes("frost") || nameWords.includes("snow")) {
+      atmosphereHint = "magical winter wonderland with snowflakes, frost, cold blue tones, cozy warmth";
+    } else if (nameWords.includes("spring") || nameWords.includes("blossom") || nameWords.includes("garden")) {
+      atmosphereHint = "fresh spring garden setting with cherry blossoms, soft pink petals, natural greenery";
+    } else if (nameWords.includes("summer") || nameWords.includes("tropical") || nameWords.includes("beach")) {
+      atmosphereHint = "bright summer tropical vibes, palm leaves, sunny atmosphere, fresh and vibrant";
+    } else if (nameWords.includes("cloud") || nameWords.includes("dream") || nameWords.includes("velvet")) {
+      atmosphereHint = "dreamy ethereal atmosphere with soft clouds, pastel colors, magical floating feeling";
+    } else if (nameWords.includes("fire") || nameWords.includes("spice") || nameWords.includes("blaze")) {
+      atmosphereHint = "warm fiery atmosphere with crackling fireplace, rich amber glow, cozy cabin vibes";
+    } else if (nameWords.includes("forest") || nameWords.includes("woodland") || nameWords.includes("moss")) {
+      atmosphereHint = "enchanted forest setting with moss, ferns, dappled sunlight through trees";
+    } else if (nameWords.includes("ocean") || nameWords.includes("sea") || nameWords.includes("wave")) {
+      atmosphereHint = "coastal ocean vibes with soft blue waves, sandy beach textures, sea breeze feeling";
+    } else if (nameWords.includes("mystic") || nameWords.includes("magic") || nameWords.includes("enchant")) {
+      atmosphereHint = "mystical magical atmosphere with sparkles, soft glow, ethereal purple and gold tones";
+    }
+
+    const prompt = `A beautiful, photorealistic image of a specialty coffee drink called "${drinkName || 'Custom Creation'}" in a stylish cup. 
+The drink contains: ${ingredientList}. 
 The colors should reflect the ingredients: ${colorHints || ingredientList}. 
-The drink should look appetizing and professionally crafted, like a high-end coffee shop creation.
-The cup should be modern and aesthetic. The background should complement the drink with warm, cozy coffee shop vibes.
-The lighting should be soft and inviting, making the drink look delicious.
-Professional food photography style, high resolution, detailed textures.`;
+The drink should look appetizing and professionally crafted.
+
+IMPORTANT ATMOSPHERE: The setting and background should reflect ${atmosphereHint}. 
+The entire image mood, lighting, and surrounding elements should match this atmosphere.
+Make it feel immersive and themed to the drink's name.
+
+Professional food photography style, high resolution, detailed textures, dramatic lighting that matches the atmosphere.`;
 
     console.log("Generating drink image with prompt:", prompt);
 
@@ -96,42 +130,15 @@ Professional food photography style, high resolution, detailed textures.`;
       throw new Error("No image generated");
     }
 
-    // Generate a suggested name
-    const suggestedName = generateDrinkName(ingredients);
-
     return new Response(
-      JSON.stringify({
-        imageUrl,
-        suggestedName,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ imageUrl }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
     console.error("Error generating drink image:", error);
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
-
-// Generate a fun drink name based on ingredients
-function generateDrinkName(ingredients: { name: string }[]): string {
-  const adjectives = ["Dreamy", "Sunset", "Midnight", "Golden", "Velvet", "Cozy", "Mystic", "Cloud"];
-  const nouns = ["Delight", "Bliss", "Dream", "Magic", "Wonder", "Twist", "Fusion"];
-  
-  const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-  
-  // Include one ingredient in the name
-  const mainIngredient = ingredients[0]?.name || "Coffee";
-  
-  return `${randomAdj} ${mainIngredient} ${randomNoun}`;
-}
