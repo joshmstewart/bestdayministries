@@ -922,11 +922,12 @@ BEST:absolute-URLs|<150-desc|2-3-hashtags-no-#|toast-on-copy
 VISIBILITY:public-only[is_public=true]|role-based[visible_to_roles]
 
 ## MARKETPLACE_CHECKOUT_SYSTEM
-OVERVIEW:Joy-House-Store→unified-marketplace[handmade+Shopify-merch]|Stripe-Connect-vendors|polling-payment-verification
-ROUTE:/marketplace|/checkout-success|/orders|/vendor-dashboard|/vendor-auth
-DB:vendors[status+stripe_account_id+stripe_charges_enabled]|products[vendor_id+price+inventory]|orders[user_id+status+stripe_mode]|order_items[platform_fee+vendor_payout+fulfillment_status]|shopping_cart|commission_settings[20%-default]|vendor_earnings-VIEW
-EDGE:create-marketplace-checkout[cart→vendors-verify→fees-calc→stripe-session]|verify-marketplace-payment[polling-based→order-update→cart-clear]|create-vendor-transfer[fulfillment-payout]|submit-tracking[AfterShip-API]
-COMPS:ProductCard|ProductGrid|ShopifyProductCard|ShopifyProductGrid|UnifiedCartSheet[both-cart-types]|ShoppingCartSheet[handmade]|ShopifyCartSheet[Shopify]
+OVERVIEW:Joy-House-Store→unified-marketplace[handmade+Printify-POD+Shopify-merch]|Stripe-Connect-vendors|polling-payment-verification
+ROUTE:/marketplace|/store/product/:id|/checkout-success|/orders|/vendor-dashboard|/vendor-auth
+DB:vendors[status+stripe_account_id+stripe_charges_enabled]|products[vendor_id+price+inventory+printify_*]|orders[user_id+status+stripe_mode]|order_items[platform_fee+vendor_payout+fulfillment_status+printify_order_id]|shopping_cart[variant_info]|commission_settings[20%-default]|vendor_earnings-VIEW
+EDGE:create-marketplace-checkout[cart→vendors-verify→fees-calc→stripe-session]|verify-marketplace-payment[polling-based→order-update→cart-clear]|create-vendor-transfer[fulfillment-payout]|submit-tracking[AfterShip-API]|create-printify-order[fulfill-POD]
+COMPS:ProductCard[color-swatches+variant-detection]|ProductGrid|ShopifyProductCard|ShopifyProductGrid|UnifiedCartSheet[both-cart-types]|ShoppingCartSheet[handmade]|ShopifyCartSheet[Shopify]
+ADMIN-COMPS:PrintifyProductImporter|PrintifyPreviewDialog|ProductColorImagesManager|ProductEditDialog|VendorManagement
 VENDOR-COMPS:ProductForm|ProductList|StripeConnectOnboarding|VendorEarnings|VendorOrderList|VendorOrderDetails|VendorProfileSettings|VendorBestieLinkRequest|VendorLinkedBesties|VendorBestieAssetManager
 SHIPPING:$6.99-flat-per-vendor|free-if≥$35-per-vendor
 COMMISSION:commission_settings.commission_percentage|platform_fee=subtotal×%|vendor_payout=subtotal-platform_fee
@@ -934,8 +935,49 @@ VENDOR-STATUS:pending|approved|rejected|suspended→NOT-a-role→any-user-can-ap
 STRIPE-CONNECT:vendors.stripe_account_id|stripe_charges_enabled=true→can-receive-payments
 CHECKOUT-FLOW:cart→create-marketplace-checkout→Stripe→/checkout-success→verify-marketplace-payment[polls-3s×10]→order-confirmed
 VENDOR-FLOW:apply→admin-approve→Stripe-Connect-onboard→add-products→receive-orders→submit-tracking→receive-payout
-CURRENT-STATUS:edge-functions-ready|no-approved-vendors|no-products|needs-vendor+Stripe-Connect+products-to-test
-DOC:MARKETPLACE_CHECKOUT_SYSTEM.md|VENDOR_SYSTEM_CONCISE.md|VENDOR_AUTH_SYSTEM.md
+CURRENT-STATUS:Printify-products-imported|checkout-working|polling-verification-NO-webhooks|needs-testing
+DOC:MARKETPLACE_CHECKOUT_SYSTEM.md|PRINTIFY_INTEGRATION.md|VENDOR_SYSTEM_CONCISE.md|VENDOR_AUTH_SYSTEM.md|STRIPE_CONNECT_CONCISE.md
+
+## PRINTIFY_INTEGRATION
+OVERVIEW:print-on-demand-merchandise|design-in-Printify→import-to-products→customer-purchase→Printify-fulfills
+ROUTE:Admin→Vendors→Printify-tab[PrintifyProductImporter]|/marketplace[ProductCard]|/store/product/:id[ProductDetail]
+DB:products[is_printify_product|printify_product_id|printify_blueprint_id|printify_print_provider_id|printify_variant_ids|printify_original_title|printify_original_description|printify_original_price]|order_items[printify_order_id|printify_line_item_id|printify_status]
+EDGE:
+  fetch-printify-products[admin→list-catalog→compare-vs-imported→flag-has_changes]
+  import-printify-product[admin→create-product-with-variant-mapping+original-baseline]
+  refresh-printify-product[admin→sync-images-variants-from-API→update-baseline]
+  generate-printify-images[admin→check-missing-images→diagnostic-only-cant-generate-via-API]
+  create-printify-order[service→submit-order-to-Printify-for-fulfillment]
+ADMIN-UI:
+  PrintifyProductImporter[catalog-view→sections:Needs-Update|Available|Imported|Archived]
+  PrintifyPreviewDialog[edit-title-desc-markup→import-or-sync→color-chip-image-preview]
+  ProductColorImagesManager[per-color-image-management]
+STORE-UI:
+  ProductCard[color-swatches-overlay→66+-color-mappings→"Select-Options"-btn-for-variants]
+  ProductDetail[separate-Color-Size-dropdowns→image-filtering-by-variant→quantity→add-to-cart-with-variant_info]
+CHANGE-DETECTION:
+  BASELINE:printify_original_title+description+price→stored-at-import
+  COMPARE:fetch-printify-products→current-Printify-vs-baseline→if-differs→has_changes=true
+  ACTIONS:Sync-Updates[overwrite-local-with-Printify]|Keep-My-Version[update-baseline-to-match-local]
+VARIANT-PARSING:
+  FORMAT:"Color / Size"-or-"Size / Color"
+  DETECTION:sizePatterns=/^(xs|s|m|l|xl|2xl|3xl|etc)$/i→matches-sizes→other-is-color
+  MAPPING:printify_variant_ids={"Natural / XS":12345,"Natural / S":12346,...}
+COLOR-SWATCHES:
+  LOCATION:ProductCard→top-right-overlay
+  COUNT:up-to-6-swatches+"+N"-overflow
+  MAPPING:colorNameToCSS[66+-colors→#FFFFFF-etc]|fuzzy-match-for-variations
+IMAGE-FILTERING:
+  TRIGGER:ProductDetail→select-color
+  LOGIC:find-variant-ID-for-color→filter-images-containing-variant-ID-in-URL-path
+CART-INTEGRATION:
+  shopping_cart.variant_info={variant:"Natural / XS",variantId:12345}
+  UnifiedCartSheet→displays-variant-selection
+FULFILLMENT:
+  create-printify-order[exists-needs-shipping-address-collection]
+  order_items.printify_order_id→tracks-Printify-fulfillment
+SECRETS:PRINTIFY_API_KEY
+DOC:PRINTIFY_INTEGRATION.md
 
 ## VENDOR_AUTH
 OVERVIEW:ANY-auth-user-apply-vendor
