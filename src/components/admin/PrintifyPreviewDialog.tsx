@@ -114,16 +114,24 @@ export const PrintifyPreviewDialog = ({
   const basePrice = enabledVariants[0]?.price || product.variants[0]?.price || 0;
   const finalPrice = basePrice + priceMarkup;
 
+  // Debug: log product options and variants
+  console.log('Product options from API:', product.options);
+  console.log('Enabled variants:', enabledVariants.map(v => v.title));
+
   // Use product options if available, otherwise extract from variant titles
   const options = product.options && product.options.length > 0
     ? product.options.map(opt => ({
         name: opt.name,
         values: opt.values.filter(v => {
-          // Only include values that appear in enabled variants
-          return enabledVariants.some(variant => variant.title.includes(v));
+          // Only include values that appear in enabled variants (case-insensitive)
+          return enabledVariants.some(variant => 
+            variant.title.toLowerCase().includes(v.toLowerCase())
+          );
         })
       })).filter(opt => opt.values.length > 0)
     : extractOptionsFromVariants(product.variants);
+
+  console.log('Computed options:', options);
 
   // Find the "Color" option index (usually first, but check by name)
   const colorOptionIndex = options.findIndex(opt => 
