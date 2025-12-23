@@ -252,6 +252,10 @@ export const PrintifyProductImporter = () => {
           description: product.description,
           price: basePrice,
           images: product.images.map(img => img.src),
+          // Also update the baseline Printify values so it moves out of "Needs Update"
+          printify_original_title: product.title,
+          printify_original_description: product.description,
+          printify_original_price: basePrice,
         })
         .eq('id', existingProducts.id);
 
