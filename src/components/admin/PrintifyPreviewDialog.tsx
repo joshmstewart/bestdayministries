@@ -141,6 +141,42 @@ export const PrintifyPreviewDialog = ({
     opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
   );
 
+  // Build a map of colors to their first matching image index
+  const colorToImageIndex: Record<string, number> = {};
+  if (colorOptionIndex !== -1) {
+    const colorOption = options[colorOptionIndex];
+    colorOption.values.forEach(colorName => {
+      // Find variants that match this color
+      const matchingVariants = enabledVariants.filter(v => 
+        v.title.toLowerCase().includes(colorName.toLowerCase())
+      );
+      
+      if (matchingVariants.length > 0) {
+        // Strategy 1: Find image by variant_ids
+        let foundIndex = product.images.findIndex(img => 
+          img.variant_ids && img.variant_ids.some(vid => 
+            matchingVariants.some(v => v.id === vid)
+          )
+        );
+        
+        // Strategy 2: Check if image URL contains color name
+        if (foundIndex === -1) {
+          const colorSlug = colorName.toLowerCase().replace(/\s+/g, '-');
+          foundIndex = product.images.findIndex(img => 
+            img.src.toLowerCase().includes(colorSlug) ||
+            img.src.toLowerCase().includes(colorName.toLowerCase().replace(/\s+/g, '_'))
+          );
+        }
+        
+        if (foundIndex !== -1) {
+          colorToImageIndex[colorName] = foundIndex;
+        }
+      }
+    });
+  }
+
+  console.log('Color to image mapping:', colorToImageIndex);
+
   // Handle option selection and auto-select matching image
   const handleOptionSelect = (optionName: string, value: string) => {
     const newSelected = { ...selectedOptions, [optionName]: value };
@@ -148,17 +184,20 @@ export const PrintifyPreviewDialog = ({
     
     // If selecting a color, try to find a matching image
     if (optionName.toLowerCase() === 'color' || optionName.toLowerCase() === 'colour') {
-      // Find variants that match this color
-      const matchingVariants = enabledVariants.filter(v => v.title.includes(value));
-      if (matchingVariants.length > 0) {
-        // Find an image that's linked to one of these variants
-        const matchingImageIdx = product.images.findIndex(img => 
-          img.variant_ids && img.variant_ids.some(vid => 
-            matchingVariants.some(v => v.id === vid)
-          )
+      const mappedIndex = colorToImageIndex[value];
+      if (mappedIndex !== undefined) {
+        setSelectedImageIndex(mappedIndex);
+      } else {
+        // Fallback: try to find by index position in color list
+        const colorOption = options.find(opt => 
+          opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
         );
-        if (matchingImageIdx !== -1) {
-          setSelectedImageIndex(matchingImageIdx);
+        if (colorOption) {
+          const colorIdx = colorOption.values.indexOf(value);
+          // Some Printify products have images in same order as colors
+          if (colorIdx !== -1 && colorIdx < product.images.length) {
+            setSelectedImageIndex(colorIdx);
+          }
         }
       }
     }
