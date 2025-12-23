@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ImagePlus, Trash2, Upload, X, Link2, Unlink, Wand2 } from 'lucide-react';
+import { ImagePlus, Trash2, Upload, X, Link2, Unlink, Wand2, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -92,13 +92,32 @@ export const ProductColorImagesManager = ({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('images, printify_variant_ids')
+        .select('images, printify_variant_ids, default_image_index')
         .eq('id', productId)
         .single();
       if (error) throw error;
       return data;
     },
     enabled: open,
+  });
+
+  // Set default image mutation
+  const setDefaultMutation = useMutation({
+    mutationFn: async (imageIndex: number) => {
+      const { error } = await supabase
+        .from('products')
+        .update({ default_image_index: imageIndex })
+        .eq('id', productId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-for-images', productId] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success('Default image updated');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to set default: ' + error.message);
+    },
   });
 
   // Fetch existing color images (user-added or auto-connected)
@@ -356,16 +375,29 @@ export const ProductColorImagesManager = ({
                 <div 
                   key={img.url} 
                   className={cn(
-                    "border rounded-lg p-2 space-y-2",
-                    img.assignedColor ? "border-primary/50 bg-primary/5" : "border-dashed"
+                    "border rounded-lg p-2 space-y-2 relative",
+                    img.assignedColor ? "border-primary/50 bg-primary/5" : "border-dashed",
+                    (product?.default_image_index || 0) === img.index && "ring-2 ring-yellow-500"
                   )}
                 >
-                  <div className="aspect-square rounded overflow-hidden bg-secondary/10">
+                  <div className="aspect-square rounded overflow-hidden bg-secondary/10 relative">
                     <img 
                       src={img.url} 
                       alt="" 
                       className="w-full h-full object-cover"
                     />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "absolute top-1 left-1 h-7 w-7 bg-background/80 hover:bg-background",
+                        (product?.default_image_index || 0) === img.index && "text-yellow-500"
+                      )}
+                      onClick={() => setDefaultMutation.mutate(img.index)}
+                      title="Set as default image"
+                    >
+                      <Star className={cn("h-4 w-4", (product?.default_image_index || 0) === img.index && "fill-yellow-500")} />
+                    </Button>
                   </div>
                   <div className="space-y-1">
                     {img.assignedColor ? (

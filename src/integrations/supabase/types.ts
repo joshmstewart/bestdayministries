@@ -3377,6 +3377,7 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          default_image_index: number | null
           description: string | null
           id: string
           images: string[] | null
@@ -3400,6 +3401,7 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
+          default_image_index?: number | null
           description?: string | null
           id?: string
           images?: string[] | null
@@ -3423,6 +3425,7 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
+          default_image_index?: number | null
           description?: string | null
           id?: string
           images?: string[] | null
