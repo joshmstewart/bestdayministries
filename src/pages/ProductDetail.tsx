@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ShoppingCart, Package, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Minus, Plus } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 
@@ -52,6 +52,9 @@ const ProductDetail = () => {
       }))
     : [];
 
+  // Auto-select if only one variant
+  const effectiveVariant = variants.length === 1 ? variants[0].title : selectedVariant;
+
   const addToCart = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -64,8 +67,8 @@ const ProductDetail = () => {
       return;
     }
 
-    // For Printify products, we need a variant selection
-    if (product?.is_printify_product && variants.length > 0 && !selectedVariant) {
+    // For Printify products with multiple variants, we need a variant selection
+    if (product?.is_printify_product && variants.length > 1 && !selectedVariant) {
       toast({
         title: "Select an option",
         description: "Please select a size/style before adding to cart",
@@ -80,7 +83,7 @@ const ProductDetail = () => {
         user_id: user.id,
         product_id: product?.id,
         quantity: quantity,
-        variant_info: selectedVariant ? { variant: selectedVariant, variantId: variants.find(v => v.title === selectedVariant)?.id } : null
+        variant_info: effectiveVariant ? { variant: effectiveVariant, variantId: variants.find(v => v.title === effectiveVariant)?.id } : null
       }, {
         onConflict: 'user_id,product_id',
         ignoreDuplicates: false
@@ -100,7 +103,7 @@ const ProductDetail = () => {
 
     toast({
       title: "Added to cart",
-      description: `${product?.name}${selectedVariant ? ` (${selectedVariant})` : ''} has been added to your cart`
+      description: `${product?.name}${effectiveVariant ? ` (${effectiveVariant})` : ''} has been added to your cart`
     });
   };
 
@@ -171,12 +174,6 @@ const ProductDetail = () => {
                   alt={product.name}
                   className="object-cover w-full h-full"
                 />
-                {product.is_printify_product && (
-                  <Badge className="absolute top-4 right-4" variant="secondary">
-                    <Package className="w-3 h-3 mr-1" />
-                    Print on Demand
-                  </Badge>
-                )}
               </div>
               
               {/* Thumbnail gallery */}
@@ -204,8 +201,8 @@ const ProductDetail = () => {
                 {product.description || 'No description available.'}
               </p>
 
-              {/* Variant Selection */}
-              {product.is_printify_product && variants.length > 0 && (
+              {/* Variant Selection - only show if multiple variants */}
+              {product.is_printify_product && variants.length > 1 && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Select Option</label>
                   <Select value={selectedVariant} onValueChange={setSelectedVariant}>
