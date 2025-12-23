@@ -120,10 +120,10 @@ serve(async (req) => {
       console.log(`  Image ${index + 1}: variant_ids=${JSON.stringify(img.variant_ids)}, is_default=${img.is_default}`);
     });
 
-    // Get the first enabled variant's price as base
+    // Get the first enabled variant's price as base (convert from cents to dollars)
     const enabledVariants = printifyProduct.variants.filter((v: any) => v.is_enabled);
     const baseVariant = enabledVariants[0] || printifyProduct.variants[0];
-    const basePrice = baseVariant ? baseVariant.price : 0;
+    const basePrice = baseVariant ? baseVariant.price / 100 : 0;
 
     // Get all image URLs with their variant associations for better debugging
     const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
