@@ -54,23 +54,47 @@ const ProductDetail = () => {
     : [];
 
   // Parse variants into colors and sizes (format: "Color / Size")
-  const { colors, sizes, hasMultipleOptions } = (() => {
+  const { colors, sizes, hasMultipleOptions, colorToVariantId } = (() => {
     const colorSet = new Set<string>();
     const sizeSet = new Set<string>();
+    const colorVariantMap = new Map<string, number>();
     
     variants.forEach(v => {
       const parts = v.title.split(' / ');
       if (parts.length === 2) {
         colorSet.add(parts[0]);
         sizeSet.add(parts[1]);
+        // Store one variant ID per color (for image matching)
+        if (!colorVariantMap.has(parts[0])) {
+          colorVariantMap.set(parts[0], v.id);
+        }
       }
     });
     
     return {
       colors: Array.from(colorSet),
       sizes: Array.from(sizeSet),
-      hasMultipleOptions: colorSet.size > 0 && sizeSet.size > 0
+      hasMultipleOptions: colorSet.size > 0 && sizeSet.size > 0,
+      colorToVariantId: colorVariantMap
     };
+  })();
+
+  // Filter images based on selected color's variant ID
+  const filteredImages = (() => {
+    if (!product?.images || !selectedColor || !hasMultipleOptions) {
+      return product?.images || [];
+    }
+    
+    const variantId = colorToVariantId.get(selectedColor);
+    if (!variantId) return product.images;
+    
+    // Filter images that contain this variant ID in the URL path
+    const matchingImages = product.images.filter((img: string) => 
+      img.includes(`/${variantId}/`)
+    );
+    
+    // Return filtered images, or all images if no matches found
+    return matchingImages.length > 0 ? matchingImages : product.images;
   })();
 
   // Build the effective variant from selections
@@ -134,8 +158,8 @@ const ProductDetail = () => {
     });
   };
 
-  const imageUrl = product?.images && product.images.length > 0 
-    ? product.images[0] 
+  const imageUrl = filteredImages.length > 0 
+    ? filteredImages[0] 
     : '/placeholder.svg';
 
   if (isLoading) {
@@ -204,9 +228,9 @@ const ProductDetail = () => {
               </div>
               
               {/* Thumbnail gallery */}
-              {product.images && product.images.length > 1 && (
+              {filteredImages.length > 1 && (
                 <div className="grid grid-cols-4 gap-2">
-                  {product.images.slice(0, 4).map((img: string, idx: number) => (
+                  {filteredImages.slice(0, 4).map((img: string, idx: number) => (
                     <div key={idx} className="aspect-square rounded-md overflow-hidden bg-secondary/10">
                       <img src={img} alt="" className="w-full h-full object-cover" />
                     </div>
