@@ -406,12 +406,14 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="sponsorships">
-            <Card>
-              <CardHeader>
-                <CardTitle>Donations</CardTitle>
-                <CardDescription>Manage sponsor page content and active sponsorships</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <div className="space-y-6">
+              <StripeModeSwitcher />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Donations</CardTitle>
+                  <CardDescription>Manage sponsor page content and active sponsorships</CardDescription>
+                </CardHeader>
+                <CardContent>
                 <Tabs defaultValue="transactions" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto w-full">
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
@@ -491,6 +493,7 @@ const Admin = () => {
                 </Tabs>
               </CardContent>
             </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="featured-item">
@@ -502,7 +505,10 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="vendors">
-            <VendorManagement />
+            <div className="space-y-6">
+              <MarketplaceStripeModeSwitcher />
+              <VendorManagement />
+            </div>
           </TabsContent>
 
           <TabsContent value="newsletter">
@@ -723,7 +729,6 @@ const Admin = () => {
                 <Tabs defaultValue="app" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="app">App Settings</TabsTrigger>
-                    <TabsTrigger value="stripe">Stripe Mode</TabsTrigger>
                     <TabsTrigger value="social-sharing">Social Sharing</TabsTrigger>
                     <TabsTrigger value="static-meta">Static Meta Tags</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
@@ -739,10 +744,6 @@ const Admin = () => {
                     <AppSettingsManager />
                   </TabsContent>
 
-                  <TabsContent value="stripe" className="space-y-4">
-                    <StripeModeSwitcher />
-                    <MarketplaceStripeModeSwitcher />
-                  </TabsContent>
 
                   <TabsContent value="social-sharing">
                     <SocialSharingGuide />
