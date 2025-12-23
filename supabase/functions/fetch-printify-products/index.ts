@@ -111,10 +111,10 @@ serve(async (req) => {
       return title.replace(/^\(Printify\)\s*/i, '').trim();
     };
 
-    // Get existing imported products with their data for comparison
+    // Get existing imported products with their original Printify data for comparison
     const { data: existingProducts } = await supabaseClient
       .from('products')
-      .select('printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price')
+      .select('printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price, printify_original_title, printify_original_description, printify_original_price')
       .eq('is_printify_product', true);
 
     const importedByProductId = new Map(
@@ -132,14 +132,22 @@ serve(async (req) => {
       const existingProduct = importedByProductId.get(product.id);
       const isImported = importedBlueprints.has(`${product.blueprint_id}-${product.print_provider_id}`);
       
-      // Check if data has changed since import
+      // Check if Printify data has changed since import
+      // Compare current Printify data vs original Printify data at import time
+      // This way, manual local edits won't trigger false "has changes" flags
       let hasChanges = false;
       if (isImported && existingProduct) {
         const currentBasePrice = (product.variants.find((v: any) => v.is_enabled) || product.variants[0])?.price / 100 || 0;
+        
+        // Compare against ORIGINAL Printify values, not current store values
+        const originalTitle = existingProduct.printify_original_title || existingProduct.name;
+        const originalDescription = existingProduct.printify_original_description || existingProduct.description;
+        const originalPrice = existingProduct.printify_original_price ?? Number(existingProduct.price);
+        
         hasChanges = 
-          existingProduct.name !== cleanedTitle ||
-          existingProduct.description !== cleanedDescription ||
-          Math.abs(Number(existingProduct.price) - currentBasePrice) > 0.01;
+          originalTitle !== cleanedTitle ||
+          originalDescription !== cleanedDescription ||
+          Math.abs(originalPrice - currentBasePrice) > 0.01;
       }
 
       return {

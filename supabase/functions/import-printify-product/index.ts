@@ -82,6 +82,7 @@ serve(async (req) => {
     const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
 
     // Create the product in our database
+    // Store original Printify data for change detection
     const { data: newProduct, error: insertError } = await supabaseClient
       .from('products')
       .insert({
@@ -96,6 +97,10 @@ serve(async (req) => {
         printify_blueprint_id: printifyProduct.blueprint_id,
         printify_print_provider_id: printifyProduct.print_provider_id,
         printify_variant_ids: variantIds,
+        // Store original Printify values for detecting Printify-side changes
+        printify_original_title: cleanTitle,
+        printify_original_description: cleanDescription,
+        printify_original_price: baseVariant ? baseVariant.price : 0, // Base price without markup
       })
       .select()
       .single();
