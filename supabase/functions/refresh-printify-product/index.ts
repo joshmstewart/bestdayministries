@@ -1,0 +1,183 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify admin access
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    const { data: userRole } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!userRole || !['admin', 'owner'].includes(userRole.role)) {
+      throw new Error('Admin access required');
+    }
+
+    const { productId } = await req.json();
+
+    if (!productId) {
+      throw new Error('No product ID provided');
+    }
+
+    // Get the existing product from our database to get the Printify product ID
+    const { data: existingProduct, error: fetchError } = await supabaseClient
+      .from('products')
+      .select('id, name, printify_product_id')
+      .eq('id', productId)
+      .single();
+
+    if (fetchError || !existingProduct) {
+      throw new Error('Product not found in database');
+    }
+
+    if (!existingProduct.printify_product_id) {
+      throw new Error('This product is not linked to Printify');
+    }
+
+    // Get Printify API key
+    const printifyApiKey = Deno.env.get('PRINTIFY_API_KEY');
+    if (!printifyApiKey) {
+      throw new Error('PRINTIFY_API_KEY is not configured');
+    }
+
+    // Get shop ID first
+    const shopsResponse = await fetch('https://api.printify.com/v1/shops.json', {
+      headers: {
+        'Authorization': `Bearer ${printifyApiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!shopsResponse.ok) {
+      throw new Error(`Failed to fetch Printify shops: ${shopsResponse.statusText}`);
+    }
+
+    const shops = await shopsResponse.json();
+    if (!shops || shops.length === 0) {
+      throw new Error('No Printify shops found');
+    }
+
+    const shopId = shops[0].id;
+
+    // Fetch the specific product from Printify
+    console.log(`Fetching product ${existingProduct.printify_product_id} from Printify shop ${shopId}`);
+    
+    const productResponse = await fetch(
+      `https://api.printify.com/v1/shops/${shopId}/products/${existingProduct.printify_product_id}.json`,
+      {
+        headers: {
+          'Authorization': `Bearer ${printifyApiKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!productResponse.ok) {
+      throw new Error(`Failed to fetch product from Printify: ${productResponse.statusText}`);
+    }
+
+    const printifyProduct = await productResponse.json();
+    console.log(`Fetched product: ${printifyProduct.title}, images: ${printifyProduct.images?.length || 0}`);
+
+    // Get the first enabled variant's price as base
+    const enabledVariants = printifyProduct.variants.filter((v: any) => v.is_enabled);
+    const baseVariant = enabledVariants[0] || printifyProduct.variants[0];
+    const basePrice = baseVariant ? baseVariant.price : 0;
+
+    // Get all image URLs
+    const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
+
+    // Build variant ID mapping
+    const variantIds: Record<string, number> = {};
+    printifyProduct.variants.forEach((v: any) => {
+      if (v.is_enabled) {
+        variantIds[v.title] = v.id;
+      }
+    });
+
+    // Strip HTML tags from description
+    const rawDescription = printifyProduct.description || '';
+    const cleanDescription = rawDescription
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Clean title - remove "(Printify)" prefix
+    const rawTitle = printifyProduct.title || '';
+    const cleanTitle = rawTitle.replace(/^\(Printify\)\s*/i, '').trim();
+
+    // Update the product in our database
+    const { data: updatedProduct, error: updateError } = await supabaseClient
+      .from('products')
+      .update({
+        images: imageUrls,
+        printify_variant_ids: variantIds,
+        printify_original_title: cleanTitle,
+        printify_original_description: cleanDescription,
+        printify_original_price: basePrice,
+      })
+      .eq('id', productId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Error updating product:', updateError);
+      throw new Error(`Failed to update product: ${updateError.message}`);
+    }
+
+    console.log(`Successfully refreshed product: ${updatedProduct.id}, now has ${imageUrls.length} images`);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        product: updatedProduct,
+        imageCount: imageUrls.length,
+        message: `Successfully refreshed "${existingProduct.name}" with ${imageUrls.length} images`
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: unknown) {
+    console.error('Error refreshing Printify product:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});

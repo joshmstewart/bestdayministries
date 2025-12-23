@@ -114,7 +114,7 @@ serve(async (req) => {
     // Get existing imported products with their original Printify data for comparison
     const { data: existingProducts } = await supabaseClient
       .from('products')
-      .select('printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price, printify_original_title, printify_original_description, printify_original_price')
+      .select('id, printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price, printify_original_title, printify_original_description, printify_original_price')
       .eq('is_printify_product', true);
 
     const importedByProductId = new Map(
@@ -172,6 +172,7 @@ serve(async (req) => {
         created_at: product.created_at,
         visible: product.visible,
         is_locked: product.is_locked,
+        local_product_id: existingProduct?.id || null,
       };
     });
 
