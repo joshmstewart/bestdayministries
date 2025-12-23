@@ -340,6 +340,43 @@ export const PrintifyProductImporter = () => {
     },
   });
 
+  // Dismiss updates - keep user's version and update the baseline to match current values
+  const dismissMutation = useMutation({
+    mutationFn: async ({ product, currentTitle, currentDescription }: { product: PrintifyProduct; currentTitle: string; currentDescription: string }) => {
+      const { data: existingProducts, error: fetchError } = await supabase
+        .from('products')
+        .select('id, price')
+        .eq('printify_product_id', product.id)
+        .single();
+
+      if (fetchError || !existingProducts) {
+        throw new Error('Could not find existing product');
+      }
+
+      // Update baseline to current values (user's version becomes the new baseline)
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          printify_original_title: currentTitle,
+          printify_original_description: currentDescription,
+          printify_original_price: existingProducts.price,
+        })
+        .eq('id', existingProducts.id);
+
+      if (updateError) throw updateError;
+      return { message: `Kept your version of "${currentTitle}"` };
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setPreviewOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['printify-products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed: ${error.message}`);
+    },
+  });
+
   const handlePreview = (product: PrintifyProduct) => {
     setPreviewProduct(product);
     setPreviewOpen(true);
@@ -351,6 +388,10 @@ export const PrintifyProductImporter = () => {
 
   const handleSync = (product: PrintifyProduct) => {
     syncMutation.mutate({ product });
+  };
+
+  const handleDismissUpdates = (product: PrintifyProduct, currentTitle: string, currentDescription: string) => {
+    dismissMutation.mutate({ product, currentTitle, currentDescription });
   };
 
   if (isLoading) {
@@ -607,7 +648,8 @@ export const PrintifyProductImporter = () => {
         onOpenChange={setPreviewOpen}
         onImport={handleImport}
         onSync={handleSync}
-        isImporting={importMutation.isPending || syncMutation.isPending}
+        onDismissUpdates={handleDismissUpdates}
+        isImporting={importMutation.isPending || syncMutation.isPending || dismissMutation.isPending}
       />
     </div>
   );
