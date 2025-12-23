@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type PropsWithChildren } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { DollarSign, Plus, RefreshCw, AlertTriangle } from "lucide-react";
 
 interface PrintifyVariant {
@@ -82,6 +83,30 @@ const extractOptionsFromVariants = (variants: PrintifyVariant[]): { name: string
     return { name, values };
   });
 };
+
+type OptionChipProps = PropsWithChildren<{
+  selected: boolean;
+  isColor?: boolean;
+  onSelect: () => void;
+}>;
+
+const OptionChip = ({ selected, isColor, onSelect, children }: OptionChipProps) => (
+  <button
+    type="button"
+    aria-pressed={selected}
+    onClick={(e) => {
+      e.preventDefault();
+      onSelect();
+    }}
+    className={cn(
+      badgeVariants({ variant: selected ? "default" : "secondary" }),
+      "text-xs cursor-pointer transition-all hover:ring-2 hover:ring-ring/50",
+      isColor ? "hover:scale-[1.02]" : ""
+    )}
+  >
+    {children}
+  </button>
+);
 
 export const PrintifyPreviewDialog = ({
   product,
@@ -185,10 +210,11 @@ export const PrintifyPreviewDialog = ({
     colorOption.values.forEach((colorName, colorIdx) => {
       const keywords = getColorKeywords(colorName);
       
-      // Find variants that match this color
-      const matchingVariants = enabledVariants.filter(v => 
-        v.title.toLowerCase().includes(colorName.toLowerCase())
-      );
+      // Find variants that match this color (fuzzy)
+      const matchingVariants = enabledVariants.filter(v => {
+        const titleLower = v.title.toLowerCase();
+        return keywords.some(kw => titleLower.includes(kw));
+      });
       
       // Strategy 1: Find image by variant_ids
       let foundIndex = -1;
@@ -336,18 +362,16 @@ export const PrintifyPreviewDialog = ({
                     <div className="flex flex-wrap gap-1.5">
                       {option.values.map((value, valIdx) => {
                         const isSelected = selectedOptions[option.name] === value;
-                        const isColor = option.name.toLowerCase() === 'color' || option.name.toLowerCase() === 'colour';
+                        const isColor = option.name.toLowerCase() === "color" || option.name.toLowerCase() === "colour";
                         return (
-                          <Badge 
-                            key={valIdx} 
-                            variant={isSelected ? "default" : "secondary"} 
-                            className={`text-xs cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${
-                              isColor ? 'hover:scale-105' : ''
-                            }`}
-                            onClick={() => handleOptionSelect(option.name, value)}
+                          <OptionChip
+                            key={valIdx}
+                            selected={isSelected}
+                            isColor={isColor}
+                            onSelect={() => handleOptionSelect(option.name, value)}
                           >
                             {value}
-                          </Badge>
+                          </OptionChip>
                         );
                       })}
                     </div>
