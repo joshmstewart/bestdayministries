@@ -11,6 +11,9 @@ const corsHeaders = {
 const FLAT_SHIPPING_RATE_CENTS = 699; // $6.99
 const FREE_SHIPPING_THRESHOLD_CENTS = 3500; // $35.00
 
+// Special identifier for official merch (no vendor)
+const OFFICIAL_MERCH_KEY = "official-merch";
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[MARKETPLACE-CHECKOUT] ${step}${detailsStr}`);
@@ -24,14 +27,14 @@ interface CartItem {
     id: string;
     name: string;
     price: number;
-    vendor_id: string;
+    vendor_id: string | null;
     image_url?: string;
     vendors: {
       id: string;
       business_name: string;
       stripe_account_id: string | null;
       stripe_charges_enabled: boolean;
-    };
+    } | null;
   };
 }
 
@@ -90,17 +93,32 @@ serve(async (req) => {
     // Type assertion for nested data
     const typedCartItems = cartItems as unknown as CartItem[];
 
-    // Verify all vendors can receive payments
+    // Separate official merch from vendor products
+    const officialMerchItems: CartItem[] = [];
+    const vendorItems: CartItem[] = [];
+
     for (const item of typedCartItems) {
-      if (!item.products?.vendors?.stripe_account_id) {
-        throw new Error(`Vendor "${item.products?.vendors?.business_name || 'Unknown'}" has not completed Stripe setup`);
-      }
-      if (!item.products?.vendors?.stripe_charges_enabled) {
-        throw new Error(`Vendor "${item.products?.vendors?.business_name || 'Unknown'}" cannot receive payments yet`);
+      if (!item.products?.vendor_id || !item.products?.vendors) {
+        // Official merch - no vendor, 100% goes to platform
+        officialMerchItems.push(item);
+      } else {
+        // Vendor product - verify Stripe setup
+        if (!item.products.vendors.stripe_account_id) {
+          throw new Error(`Vendor "${item.products.vendors.business_name || 'Unknown'}" has not completed Stripe setup`);
+        }
+        if (!item.products.vendors.stripe_charges_enabled) {
+          throw new Error(`Vendor "${item.products.vendors.business_name || 'Unknown'}" cannot receive payments yet`);
+        }
+        vendorItems.push(item);
       }
     }
 
-    // Get commission percentage
+    logStep("Items categorized", { 
+      officialMerchCount: officialMerchItems.length, 
+      vendorItemsCount: vendorItems.length 
+    });
+
+    // Get commission percentage (only applies to vendor items)
     const { data: commissionData } = await supabaseClient
       .from("commission_settings")
       .select("commission_percentage")
@@ -111,7 +129,7 @@ serve(async (req) => {
     const commissionPercentage = commissionData?.commission_percentage ?? 10;
     logStep("Commission percentage", { commissionPercentage });
 
-    // Determine Stripe mode - marketplace has its own setting, separate from donations/sponsorships
+    // Determine Stripe mode
     const { data: appSettings } = await supabaseClient
       .from("app_settings")
       .select("setting_value")
@@ -128,10 +146,12 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Calculate totals and group by vendor
-    const vendorTotals = new Map<string, { 
-      vendorId: string;
-      stripeAccountId: string;
+    // Calculate totals - group by vendor (and official merch separately)
+    const groupTotals = new Map<string, { 
+      groupKey: string;
+      vendorId: string | null;
+      stripeAccountId: string | null;
+      isOfficialMerch: boolean;
       subtotal: number;
       platformFee: number;
       vendorPayout: number;
@@ -139,15 +159,38 @@ serve(async (req) => {
       items: CartItem[];
     }>();
 
-    for (const item of typedCartItems) {
-      const vendorId = item.products.vendor_id;
-      const stripeAccountId = item.products.vendors.stripe_account_id!;
-      const itemTotal = Math.round(item.products.price * 100) * item.quantity; // Convert to cents
+    // Process official merch items (grouped together)
+    if (officialMerchItems.length > 0) {
+      let officialSubtotal = 0;
+      for (const item of officialMerchItems) {
+        officialSubtotal += Math.round(item.products.price * 100) * item.quantity;
+      }
       
-      if (!vendorTotals.has(vendorId)) {
-        vendorTotals.set(vendorId, {
+      groupTotals.set(OFFICIAL_MERCH_KEY, {
+        groupKey: OFFICIAL_MERCH_KEY,
+        vendorId: null,
+        stripeAccountId: null,
+        isOfficialMerch: true,
+        subtotal: officialSubtotal,
+        platformFee: officialSubtotal, // 100% goes to platform
+        vendorPayout: 0,
+        shippingFee: officialSubtotal >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : FLAT_SHIPPING_RATE_CENTS,
+        items: officialMerchItems,
+      });
+    }
+
+    // Process vendor items (grouped by vendor)
+    for (const item of vendorItems) {
+      const vendorId = item.products.vendor_id!;
+      const stripeAccountId = item.products.vendors!.stripe_account_id!;
+      const itemTotal = Math.round(item.products.price * 100) * item.quantity;
+      
+      if (!groupTotals.has(vendorId)) {
+        groupTotals.set(vendorId, {
+          groupKey: vendorId,
           vendorId,
           stripeAccountId,
+          isOfficialMerch: false,
           subtotal: 0,
           platformFee: 0,
           vendorPayout: 0,
@@ -156,24 +199,35 @@ serve(async (req) => {
         });
       }
       
-      const vendorData = vendorTotals.get(vendorId)!;
-      vendorData.subtotal += itemTotal;
-      vendorData.items.push(item);
+      const groupData = groupTotals.get(vendorId)!;
+      groupData.subtotal += itemTotal;
+      groupData.items.push(item);
     }
 
-    // Calculate fees and shipping for each vendor
-    for (const vendorData of vendorTotals.values()) {
-      // Free shipping if vendor subtotal >= $35, otherwise $6.99
-      vendorData.shippingFee = vendorData.subtotal >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : FLAT_SHIPPING_RATE_CENTS;
-      vendorData.platformFee = Math.round(vendorData.subtotal * (commissionPercentage / 100));
-      vendorData.vendorPayout = vendorData.subtotal - vendorData.platformFee;
+    // Calculate fees and shipping for each vendor group
+    for (const groupData of groupTotals.values()) {
+      if (!groupData.isOfficialMerch) {
+        // Vendor items: calculate commission split
+        groupData.shippingFee = groupData.subtotal >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : FLAT_SHIPPING_RATE_CENTS;
+        groupData.platformFee = Math.round(groupData.subtotal * (commissionPercentage / 100));
+        groupData.vendorPayout = groupData.subtotal - groupData.platformFee;
+      }
+      // Official merch already has fees calculated above
     }
 
-    const totalSubtotal = Array.from(vendorTotals.values()).reduce((sum, v) => sum + v.subtotal, 0);
-    const totalShipping = Array.from(vendorTotals.values()).reduce((sum, v) => sum + v.shippingFee, 0);
+    const totalSubtotal = Array.from(groupTotals.values()).reduce((sum, v) => sum + v.subtotal, 0);
+    const totalShipping = Array.from(groupTotals.values()).reduce((sum, v) => sum + v.shippingFee, 0);
     const totalAmount = totalSubtotal + totalShipping;
-    const totalPlatformFee = Array.from(vendorTotals.values()).reduce((sum, v) => sum + v.platformFee, 0);
-    logStep("Totals calculated", { totalSubtotal, totalShipping, totalAmount, totalPlatformFee, vendorCount: vendorTotals.size });
+    const totalPlatformFee = Array.from(groupTotals.values()).reduce((sum, v) => sum + v.platformFee, 0);
+    
+    logStep("Totals calculated", { 
+      totalSubtotal, 
+      totalShipping, 
+      totalAmount, 
+      totalPlatformFee, 
+      groupCount: groupTotals.size,
+      hasOfficialMerch: groupTotals.has(OFFICIAL_MERCH_KEY)
+    });
 
     // Check or create Stripe customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -191,24 +245,26 @@ serve(async (req) => {
           name: item.products.name,
           images: item.products.image_url ? [item.products.image_url] : [],
         },
-        unit_amount: Math.round(item.products.price * 100), // Convert to cents
+        unit_amount: Math.round(item.products.price * 100),
       },
       quantity: item.quantity,
     }));
 
-    // Add shipping line items for each vendor that has shipping
+    // Add shipping line items for each group that has shipping
     const shippingLineItems: typeof productLineItems = [];
-    for (const vendorData of vendorTotals.values()) {
-      if (vendorData.shippingFee > 0) {
-        const vendorName = vendorData.items[0]?.products?.vendors?.business_name || 'Vendor';
+    for (const groupData of groupTotals.values()) {
+      if (groupData.shippingFee > 0) {
+        const groupName = groupData.isOfficialMerch 
+          ? 'Official Merch' 
+          : groupData.items[0]?.products?.vendors?.business_name || 'Vendor';
         shippingLineItems.push({
           price_data: {
             currency: "usd",
             product_data: {
-              name: `Shipping (${vendorName})`,
+              name: `Shipping (${groupName})`,
               images: [],
             },
-            unit_amount: vendorData.shippingFee,
+            unit_amount: groupData.shippingFee,
           },
           quantity: 1,
         });
@@ -217,13 +273,13 @@ serve(async (req) => {
 
     const allLineItems = [...productLineItems, ...shippingLineItems];
 
-    // Create order record first (total_amount is in cents)
+    // Create order record
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .insert({
         user_id: user.id,
         status: "pending",
-        total_amount: totalAmount / 100, // Convert back to dollars for DB storage
+        total_amount: totalAmount / 100,
         stripe_mode: stripeMode,
       })
       .select()
@@ -232,20 +288,21 @@ serve(async (req) => {
     if (orderError) throw new Error(`Failed to create order: ${orderError.message}`);
     logStep("Order created", { orderId: order.id });
 
-    // Create order items with fee breakdown (convert cents back to dollars for DB)
+    // Create order items with fee breakdown
     const orderItems = typedCartItems.map(item => {
-      const vendorData = vendorTotals.get(item.products.vendor_id)!;
+      const groupKey = item.products.vendor_id || OFFICIAL_MERCH_KEY;
+      const groupData = groupTotals.get(groupKey)!;
       const itemTotalCents = Math.round(item.products.price * 100) * item.quantity;
-      const itemFeeRatio = itemTotalCents / vendorData.subtotal;
+      const itemFeeRatio = itemTotalCents / groupData.subtotal;
       
       return {
         order_id: order.id,
         product_id: item.product_id,
-        vendor_id: item.products.vendor_id,
+        vendor_id: item.products.vendor_id, // null for official merch
         quantity: item.quantity,
         price_at_time: item.products.price,
-        platform_fee: Math.round(vendorData.platformFee * itemFeeRatio) / 100, // Convert cents to dollars
-        vendor_payout: Math.round(vendorData.vendorPayout * itemFeeRatio) / 100, // Convert cents to dollars
+        platform_fee: Math.round(groupData.platformFee * itemFeeRatio) / 100,
+        vendor_payout: Math.round(groupData.vendorPayout * itemFeeRatio) / 100,
       };
     });
 
@@ -256,8 +313,6 @@ serve(async (req) => {
     if (itemsError) throw new Error(`Failed to create order items: ${itemsError.message}`);
     logStep("Order items created", { count: orderItems.length });
 
-    // All orders: platform collects full payment, transfers to vendors on fulfillment
-    // This ensures consistent behavior and protects against fraud/chargebacks
     const origin = req.headers.get("origin") || "https://lovable.dev";
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
@@ -267,7 +322,6 @@ serve(async (req) => {
       mode: "payment",
       success_url: `${origin}/checkout-success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
       cancel_url: `${origin}/marketplace?canceled=true`,
-      // Collect shipping address for physical products
       shipping_address_collection: {
         allowed_countries: ['US', 'CA'],
       },
@@ -275,12 +329,16 @@ serve(async (req) => {
         order_id: order.id,
         user_id: user.id,
         stripe_mode: stripeMode,
-        vendor_count: vendorTotals.size.toString(),
+        vendor_count: (groupTotals.size - (groupTotals.has(OFFICIAL_MERCH_KEY) ? 1 : 0)).toString(),
+        has_official_merch: groupTotals.has(OFFICIAL_MERCH_KEY).toString(),
         total_shipping_cents: totalShipping.toString(),
       },
     };
 
-    logStep("Checkout configured - vendor transfers will occur on fulfillment", { vendorCount: vendorTotals.size });
+    logStep("Checkout configured", { 
+      vendorCount: groupTotals.size - (groupTotals.has(OFFICIAL_MERCH_KEY) ? 1 : 0),
+      hasOfficialMerch: groupTotals.has(OFFICIAL_MERCH_KEY)
+    });
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
     logStep("Checkout session created", { sessionId: session.id });
