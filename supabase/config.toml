@@ -177,3 +177,15 @@ verify_jwt = true
 
 [functions.verify-marketplace-payment]
 verify_jwt = true
+
+[functions.fetch-printify-products]
+verify_jwt = true
+
+[functions.import-printify-product]
+verify_jwt = true
+
+[functions.create-printify-order]
+verify_jwt = false
+
+[functions.check-printify-status]
+verify_jwt = false
