@@ -111,11 +111,11 @@ serve(async (req) => {
     const commissionPercentage = commissionData?.commission_percentage ?? 10;
     logStep("Commission percentage", { commissionPercentage });
 
-    // Determine Stripe mode
+    // Determine Stripe mode - marketplace has its own setting, separate from donations/sponsorships
     const { data: appSettings } = await supabaseClient
       .from("app_settings")
       .select("setting_value")
-      .eq("setting_key", "stripe_mode")
+      .eq("setting_key", "marketplace_stripe_mode")
       .single();
 
     const stripeMode = appSettings?.setting_value === "live" ? "live" : "test";
