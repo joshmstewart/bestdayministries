@@ -28,7 +28,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { ingredients } = await req.json();
+    const { ingredients, vibe } = await req.json();
 
     if (!ingredients || ingredients.length === 0) {
       throw new Error("No ingredients provided");
@@ -41,7 +41,12 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Generating creative drink name for ingredients:", ingredientNames);
+    console.log("Generating creative drink name for ingredients:", ingredientNames, "with vibe:", vibe);
+
+    // Build vibe context for the prompt
+    const vibeContext = vibe 
+      ? `\n\nIMPORTANT: The drink should have a "${vibe.name}" theme (${vibe.description}). Incorporate this vibe into the name!`
+      : "";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -67,7 +72,7 @@ Only respond with the drink name, nothing else.`,
           },
           {
             role: "user",
-            content: `Create a creative drink name for a drink with these ingredients: ${ingredientNames}`,
+            content: `Create a creative drink name for a drink with these ingredients: ${ingredientNames}${vibeContext}`,
           },
         ],
       }),

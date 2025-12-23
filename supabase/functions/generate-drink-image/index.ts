@@ -29,47 +29,55 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { ingredients, drinkName } = await req.json();
+    const { ingredients, drinkName, vibe } = await req.json();
 
     if (!ingredients || ingredients.length === 0) {
       throw new Error("No ingredients provided");
     }
 
-    // Build the prompt - now incorporating the drink name for atmosphere
+    // Build the prompt - now incorporating the drink name and optional vibe
     const ingredientList = ingredients.map((ing: { name: string; color: string }) => ing.name).join(", ");
     const colorHints = ingredients
       .filter((ing: { color: string }) => ing.color)
       .map((ing: { name: string; color: string }) => `${ing.name} (${ing.color})`)
       .join(", ");
 
-    // Extract atmosphere hints from the drink name
-    const nameWords = (drinkName || "").toLowerCase();
+    // Use vibe atmosphere if provided, otherwise extract from drink name
     let atmosphereHint = "warm, cozy coffee shop";
     
-    if (nameWords.includes("midnight") || nameWords.includes("night") || nameWords.includes("dark")) {
-      atmosphereHint = "moody midnight setting with deep blues and purples, starry night atmosphere, soft moonlight";
-    } else if (nameWords.includes("sunset") || nameWords.includes("dusk") || nameWords.includes("twilight")) {
-      atmosphereHint = "golden hour sunset atmosphere with warm oranges and pinks, romantic evening vibes";
-    } else if (nameWords.includes("sunrise") || nameWords.includes("dawn") || nameWords.includes("morning")) {
-      atmosphereHint = "fresh morning sunrise with soft golden light, peaceful dawn atmosphere";
-    } else if (nameWords.includes("autumn") || nameWords.includes("fall")) {
-      atmosphereHint = "cozy autumn setting with fallen leaves, warm amber tones, rustic wooden textures";
-    } else if (nameWords.includes("winter") || nameWords.includes("frost") || nameWords.includes("snow")) {
-      atmosphereHint = "magical winter wonderland with snowflakes, frost, cold blue tones, cozy warmth";
-    } else if (nameWords.includes("spring") || nameWords.includes("blossom") || nameWords.includes("garden")) {
-      atmosphereHint = "fresh spring garden setting with cherry blossoms, soft pink petals, natural greenery";
-    } else if (nameWords.includes("summer") || nameWords.includes("tropical") || nameWords.includes("beach")) {
-      atmosphereHint = "bright summer tropical vibes, palm leaves, sunny atmosphere, fresh and vibrant";
-    } else if (nameWords.includes("cloud") || nameWords.includes("dream") || nameWords.includes("velvet")) {
-      atmosphereHint = "dreamy ethereal atmosphere with soft clouds, pastel colors, magical floating feeling";
-    } else if (nameWords.includes("fire") || nameWords.includes("spice") || nameWords.includes("blaze")) {
-      atmosphereHint = "warm fiery atmosphere with crackling fireplace, rich amber glow, cozy cabin vibes";
-    } else if (nameWords.includes("forest") || nameWords.includes("woodland") || nameWords.includes("moss")) {
-      atmosphereHint = "enchanted forest setting with moss, ferns, dappled sunlight through trees";
-    } else if (nameWords.includes("ocean") || nameWords.includes("sea") || nameWords.includes("wave")) {
-      atmosphereHint = "coastal ocean vibes with soft blue waves, sandy beach textures, sea breeze feeling";
-    } else if (nameWords.includes("mystic") || nameWords.includes("magic") || nameWords.includes("enchant")) {
-      atmosphereHint = "mystical magical atmosphere with sparkles, soft glow, ethereal purple and gold tones";
+    if (vibe?.atmosphereHint) {
+      // Use the provided vibe atmosphere
+      atmosphereHint = vibe.atmosphereHint;
+      console.log("Using vibe atmosphere:", vibe.name);
+    } else {
+      // Extract atmosphere hints from the drink name (fallback)
+      const nameWords = (drinkName || "").toLowerCase();
+      
+      if (nameWords.includes("midnight") || nameWords.includes("night") || nameWords.includes("dark")) {
+        atmosphereHint = "moody midnight setting with deep blues and purples, starry night atmosphere, soft moonlight";
+      } else if (nameWords.includes("sunset") || nameWords.includes("dusk") || nameWords.includes("twilight")) {
+        atmosphereHint = "golden hour sunset atmosphere with warm oranges and pinks, romantic evening vibes";
+      } else if (nameWords.includes("sunrise") || nameWords.includes("dawn") || nameWords.includes("morning")) {
+        atmosphereHint = "fresh morning sunrise with soft golden light, peaceful dawn atmosphere";
+      } else if (nameWords.includes("autumn") || nameWords.includes("fall")) {
+        atmosphereHint = "cozy autumn setting with fallen leaves, warm amber tones, rustic wooden textures";
+      } else if (nameWords.includes("winter") || nameWords.includes("frost") || nameWords.includes("snow")) {
+        atmosphereHint = "magical winter wonderland with snowflakes, frost, cold blue tones, cozy warmth";
+      } else if (nameWords.includes("spring") || nameWords.includes("blossom") || nameWords.includes("garden")) {
+        atmosphereHint = "fresh spring garden setting with cherry blossoms, soft pink petals, natural greenery";
+      } else if (nameWords.includes("summer") || nameWords.includes("tropical") || nameWords.includes("beach")) {
+        atmosphereHint = "bright summer tropical vibes, palm leaves, sunny atmosphere, fresh and vibrant";
+      } else if (nameWords.includes("cloud") || nameWords.includes("dream") || nameWords.includes("velvet")) {
+        atmosphereHint = "dreamy ethereal atmosphere with soft clouds, pastel colors, magical floating feeling";
+      } else if (nameWords.includes("fire") || nameWords.includes("spice") || nameWords.includes("blaze")) {
+        atmosphereHint = "warm fiery atmosphere with crackling fireplace, rich amber glow, cozy cabin vibes";
+      } else if (nameWords.includes("forest") || nameWords.includes("woodland") || nameWords.includes("moss")) {
+        atmosphereHint = "enchanted forest setting with moss, ferns, dappled sunlight through trees";
+      } else if (nameWords.includes("ocean") || nameWords.includes("sea") || nameWords.includes("wave")) {
+        atmosphereHint = "coastal ocean vibes with soft blue waves, sandy beach textures, sea breeze feeling";
+      } else if (nameWords.includes("mystic") || nameWords.includes("magic") || nameWords.includes("enchant")) {
+        atmosphereHint = "mystical magical atmosphere with sparkles, soft glow, ethereal purple and gold tones";
+      }
     }
 
     const prompt = `A beautiful, photorealistic image of a specialty coffee drink called "${drinkName || 'Custom Creation'}" in a stylish cup. 
