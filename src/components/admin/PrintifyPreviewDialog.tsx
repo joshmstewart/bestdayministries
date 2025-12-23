@@ -43,6 +43,7 @@ interface PrintifyPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   onImport: (product: PrintifyProduct, priceMarkup: number, editedTitle: string, editedDescription: string) => void;
   onSync?: (product: PrintifyProduct) => void;
+  onDismissUpdates?: (product: PrintifyProduct, currentTitle: string, currentDescription: string) => void;
   isImporting: boolean;
 }
 
@@ -114,6 +115,7 @@ export const PrintifyPreviewDialog = ({
   onOpenChange,
   onImport,
   onSync,
+  onDismissUpdates,
   isImporting,
 }: PrintifyPreviewDialogProps) => {
   const [editedTitle, setEditedTitle] = useState("");
@@ -282,6 +284,12 @@ export const PrintifyPreviewDialog = ({
     }
   };
 
+  const handleDismiss = () => {
+    if (onDismissUpdates) {
+      onDismissUpdates(product, editedTitle, editedDescription);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh]">
@@ -411,10 +419,17 @@ export const PrintifyPreviewDialog = ({
             Cancel
           </Button>
           {product.is_imported ? (
-            <Button onClick={handleSync} disabled={isImporting}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isImporting ? 'animate-spin' : ''}`} />
-              Sync Updates
-            </Button>
+            <>
+              {product.has_changes && onDismissUpdates && (
+                <Button variant="ghost" onClick={handleDismiss} disabled={isImporting}>
+                  Keep My Version
+                </Button>
+              )}
+              <Button onClick={handleSync} disabled={isImporting}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isImporting ? 'animate-spin' : ''}`} />
+                Sync Updates
+              </Button>
+            </>
           ) : (
             <Button onClick={handleSubmit} disabled={isImporting}>
               <Plus className="h-4 w-4 mr-2" />
