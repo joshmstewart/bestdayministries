@@ -267,6 +267,10 @@ serve(async (req) => {
       mode: "payment",
       success_url: `${origin}/checkout-success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
       cancel_url: `${origin}/marketplace?canceled=true`,
+      // Collect shipping address for physical products
+      shipping_address_collection: {
+        allowed_countries: ['US', 'CA'],
+      },
       metadata: {
         order_id: order.id,
         user_id: user.id,

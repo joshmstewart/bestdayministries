@@ -77,23 +77,43 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Retrieve the checkout session
-    const session = await stripe.checkout.sessions.retrieve(session_id);
+    // Retrieve the checkout session with shipping details
+    const session = await stripe.checkout.sessions.retrieve(session_id, {
+      expand: ['shipping_details'],
+    });
     logStep("Stripe session retrieved", { paymentStatus: session.payment_status });
 
     if (session.payment_status === "paid") {
-      // Update order status
+      // Extract shipping address from Stripe session
+      const shippingDetails = session.shipping_details;
+      let shippingAddress = null;
+      
+      if (shippingDetails?.address) {
+        shippingAddress = {
+          name: shippingDetails.name || '',
+          line1: shippingDetails.address.line1 || '',
+          line2: shippingDetails.address.line2 || '',
+          city: shippingDetails.address.city || '',
+          state: shippingDetails.address.state || '',
+          postal_code: shippingDetails.address.postal_code || '',
+          country: shippingDetails.address.country || 'US',
+        };
+        logStep("Shipping address extracted", { city: shippingAddress.city, country: shippingAddress.country });
+      }
+
+      // Update order status and shipping address
       const { error: updateError } = await supabaseClient
         .from("orders")
         .update({ 
           status: "paid",
           stripe_payment_intent_id: session.payment_intent as string,
           paid_at: new Date().toISOString(),
+          shipping_address: shippingAddress,
         })
         .eq("id", order_id);
 
       if (updateError) throw new Error(`Failed to update order: ${updateError.message}`);
-      logStep("Order updated to paid");
+      logStep("Order updated to paid with shipping address");
 
       // Clear user's cart
       const { error: cartError } = await supabaseClient
@@ -105,6 +125,29 @@ serve(async (req) => {
         logStep("Warning: Failed to clear cart", { error: cartError.message });
       } else {
         logStep("Cart cleared");
+      }
+
+      // Trigger Printify order creation for any Printify products
+      try {
+        const printifyResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-printify-order`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({ orderId: order_id }),
+          }
+        );
+        
+        const printifyResult = await printifyResponse.json();
+        logStep("Printify order creation result", printifyResult);
+      } catch (printifyError) {
+        // Log but don't fail the payment verification if Printify fails
+        logStep("Warning: Printify order creation failed", { 
+          error: printifyError instanceof Error ? printifyError.message : String(printifyError) 
+        });
       }
 
       return new Response(

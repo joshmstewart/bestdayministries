@@ -142,18 +142,39 @@ serve(async (req) => {
       throw new Error('Could not match any products to Printify catalog');
     }
 
-    // Parse shipping address from order (assuming it's stored in metadata or a shipping_address column)
-    // For now, use placeholder - you'll need to add shipping address collection
-    const shippingAddress = order.shipping_address || {
-      first_name: order.customer?.full_name?.split(' ')[0] || 'Customer',
-      last_name: order.customer?.full_name?.split(' ').slice(1).join(' ') || '',
+    // Get shipping address from order (now populated from Stripe checkout)
+    const dbShippingAddress = order.shipping_address as {
+      name?: string;
+      line1?: string;
+      line2?: string;
+      city?: string;
+      state?: string;
+      postal_code?: string;
+      country?: string;
+    } | null;
+
+    if (!dbShippingAddress || !dbShippingAddress.line1 || !dbShippingAddress.city) {
+      throw new Error('Shipping address is required but not found on order');
+    }
+
+    // Parse name into first/last for Printify
+    const nameParts = (dbShippingAddress.name || '').split(' ');
+    const firstName = nameParts[0] || 'Customer';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const shippingAddress = {
+      first_name: firstName,
+      last_name: lastName,
       email: order.customer?.email || '',
-      address1: 'Address required',
-      city: 'City required',
-      country: 'US',
-      region: 'State',
-      zip: '00000',
+      address1: dbShippingAddress.line1,
+      address2: dbShippingAddress.line2 || '',
+      city: dbShippingAddress.city,
+      country: dbShippingAddress.country || 'US',
+      region: dbShippingAddress.state || '',
+      zip: dbShippingAddress.postal_code || '',
     };
+    
+    console.log('Using shipping address:', shippingAddress);
 
     // Create the order in Printify
     console.log('Creating Printify order with', printifyLineItems.length, 'line items');
