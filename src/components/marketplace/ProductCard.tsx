@@ -71,10 +71,29 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
           />
           {(product.is_printify || product.is_printify_product) && (
-            <Badge className="absolute top-2 right-2" variant="secondary">
-              <Package className="w-3 h-3 mr-1" />
-              Print on Demand
-            </Badge>
+            <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+              <Badge variant="secondary">
+                <Package className="w-3 h-3 mr-1" />
+                Print on Demand
+              </Badge>
+              {product.printify_variant_ids && (() => {
+                // Extract unique colors from variant titles
+                const variants = product.printify_variant_ids as Record<string, any>;
+                const colors = new Set<string>();
+                Object.values(variants).forEach((v: any) => {
+                  if (v?.title) {
+                    const colorPart = v.title.split(' / ')[0]?.trim();
+                    if (colorPart) colors.add(colorPart);
+                  }
+                });
+                const colorCount = colors.size;
+                return colorCount > 0 ? (
+                  <Badge variant="outline" className="bg-background/80">
+                    {colorCount} {colorCount === 1 ? 'color' : 'colors'}
+                  </Badge>
+                ) : null;
+              })()}
+            </div>
           )}
         </div>
 
