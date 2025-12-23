@@ -122,14 +122,15 @@ export const PrintifyPreviewDialog = ({
   const options = product.options && product.options.length > 0
     ? product.options.map(opt => ({
         name: opt.name,
-        values: opt.values.filter(v => {
-          // Handle both string values and object values from Printify API
-          const valueStr = typeof v === 'string' ? v : (v as any)?.title || String(v);
+        values: opt.values
+          // Normalize to strings first (Printify API can return objects like {id, title})
+          .map(v => typeof v === 'string' ? v : (v as any)?.title || String(v))
           // Only include values that appear in enabled variants (case-insensitive)
-          return enabledVariants.some(variant => 
-            variant.title.toLowerCase().includes(valueStr.toLowerCase())
-          );
-        })
+          .filter(valueStr => 
+            enabledVariants.some(variant => 
+              variant.title.toLowerCase().includes(valueStr.toLowerCase())
+            )
+          )
       })).filter(opt => opt.values.length > 0)
     : extractOptionsFromVariants(product.variants);
 
