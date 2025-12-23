@@ -3115,6 +3115,9 @@ export type Database = {
           order_id: string
           platform_fee: number | null
           price_at_purchase: number
+          printify_line_item_id: string | null
+          printify_order_id: string | null
+          printify_status: string | null
           product_id: string
           quantity: number
           shipped_at: string | null
@@ -3133,6 +3136,9 @@ export type Database = {
           order_id: string
           platform_fee?: number | null
           price_at_purchase: number
+          printify_line_item_id?: string | null
+          printify_order_id?: string | null
+          printify_status?: string | null
           product_id: string
           quantity: number
           shipped_at?: string | null
@@ -3151,6 +3157,9 @@ export type Database = {
           order_id?: string
           platform_fee?: number | null
           price_at_purchase?: number
+          printify_line_item_id?: string | null
+          printify_order_id?: string | null
+          printify_status?: string | null
           product_id?: string
           quantity?: number
           shipped_at?: string | null
@@ -3336,9 +3345,13 @@ export type Database = {
           inventory_count: number
           is_active: boolean
           is_printify: boolean
+          is_printify_product: boolean | null
           name: string
           price: number
+          printify_blueprint_id: number | null
+          printify_print_provider_id: number | null
           printify_product_id: string | null
+          printify_variant_ids: Json | null
           tags: string[] | null
           updated_at: string
           vendor_id: string | null
@@ -3352,9 +3365,13 @@ export type Database = {
           inventory_count?: number
           is_active?: boolean
           is_printify?: boolean
+          is_printify_product?: boolean | null
           name: string
           price: number
+          printify_blueprint_id?: number | null
+          printify_print_provider_id?: number | null
           printify_product_id?: string | null
+          printify_variant_ids?: Json | null
           tags?: string[] | null
           updated_at?: string
           vendor_id?: string | null
@@ -3368,9 +3385,13 @@ export type Database = {
           inventory_count?: number
           is_active?: boolean
           is_printify?: boolean
+          is_printify_product?: boolean | null
           name?: string
           price?: number
+          printify_blueprint_id?: number | null
+          printify_print_provider_id?: number | null
           printify_product_id?: string | null
+          printify_variant_ids?: Json | null
           tags?: string[] | null
           updated_at?: string
           vendor_id?: string | null
