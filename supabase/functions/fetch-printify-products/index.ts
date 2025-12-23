@@ -156,6 +156,7 @@ serve(async (req) => {
           is_enabled: v.is_enabled,
           options: v.options,
         })),
+        options: product.options || [],
         is_imported: isImported,
         has_changes: hasChanges,
         created_at: product.created_at,

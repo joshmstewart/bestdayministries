@@ -23,6 +23,7 @@ interface PrintifyProduct {
     price: number;
     is_enabled: boolean;
   }[];
+  options?: { name: string; values: string[] }[];
   is_imported: boolean;
   has_changes?: boolean;
   visible: boolean;
