@@ -24,7 +24,7 @@ serve(async (req) => {
     }
 
     // Generate a prompt for the ingredient icon
-    const iconPrompt = `A simple, cute, appetizing icon of ${ingredientName} for a coffee drink menu. Clean minimalist style, centered composition, soft pastel background, no text, suitable for a drink customization app. The icon should be recognizable and friendly, like a professional app icon. Category: ${category}. Square 1:1 aspect ratio.`;
+    const iconPrompt = `Create a square icon of ${ingredientName} for a coffee drink app. The ${ingredientName} should be centered with a solid colored background that fills the ENTIRE image edge-to-edge with NO vignettes, NO circular highlights, NO gradients fading to edges. The background color should complement the ${ingredientName}. Cute illustrated style, appetizing, no text. Category: ${category}. The background MUST extend fully to all four edges of the square.`;
 
     console.log("Generating icon for:", ingredientName);
     console.log("Prompt:", iconPrompt);
