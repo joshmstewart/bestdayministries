@@ -209,11 +209,11 @@ const ProductDetail = () => {
         <div className="container max-w-6xl mx-auto px-4">
           <Button 
             variant="ghost" 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/store')}
             className="mb-6"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            Back to Store
           </Button>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
