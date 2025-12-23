@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Sparkles, Loader2, Share2 } from "lucide-react";
 import { IngredientSelector } from "./IngredientSelector";
+import { VibeSelector, VIBES } from "./VibeSelector";
 
 interface Ingredient {
   id: string;
@@ -28,6 +29,7 @@ const STEPS = [
   { key: "flavor", title: "Add Flavors", description: "Make it uniquely yours" },
   { key: "topping", title: "Pick Toppings", description: "The finishing touches" },
   { key: "extra", title: "Any Extras?", description: "Customize even more" },
+  { key: "vibe", title: "Set the Vibe", description: "Optional: choose an atmosphere" },
   { key: "generate", title: "Create Your Drink!", description: "Watch the magic happen" },
 ];
 
@@ -41,6 +43,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
     topping: [],
     extra: [],
   });
+  const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
   const [drinkName, setDrinkName] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGeneratingName, setIsGeneratingName] = useState(false);
@@ -96,14 +99,21 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
       .map((ing) => ({ name: ing.name, color: ing.color_hint }));
   };
 
+  const getSelectedVibe = () => {
+    if (!selectedVibe) return null;
+    return VIBES.find(v => v.id === selectedVibe) || null;
+  };
+
   const generateDrinkName = async () => {
     const selected = getSelectedIngredientNames();
     if (selected.length === 0) return;
 
+    const vibe = getSelectedVibe();
+
     setIsGeneratingName(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-drink-name", {
-        body: { ingredients: selected },
+        body: { ingredients: selected, vibe: vibe ? { name: vibe.name, description: vibe.description } : null },
       });
 
       if (error) throw error;
@@ -131,10 +141,16 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
       return;
     }
 
+    const vibe = getSelectedVibe();
+
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-drink-image", {
-        body: { ingredients: selected, drinkName },
+        body: { 
+          ingredients: selected, 
+          drinkName,
+          vibe: vibe ? { name: vibe.name, atmosphereHint: vibe.atmosphereHint } : null
+        },
       });
 
       if (error) throw error;
@@ -153,9 +169,9 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   };
 
   const handleNextStep = async () => {
-    if (currentStep === 3) {
-      // Moving to final step - generate name first
-      setCurrentStep(4);
+    if (currentStep === 4) {
+      // Moving from vibe to generate step - generate name first
+      setCurrentStep(5);
       await generateDrinkName();
     } else {
       setCurrentStep((s) => s + 1);
@@ -218,6 +234,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   const resetWizard = () => {
     setCurrentStep(0);
     setSelectedIngredients({ base: [], flavor: [], topping: [], extra: [] });
+    setSelectedVibe(null);
     setDrinkName("");
     setGeneratedImage(null);
     setSavedDrinkId(null);
@@ -256,6 +273,8 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
             onToggle={(id) => handleIngredientToggle(stepCategory, id)}
             multiSelect={stepCategory !== "base"}
           />
+        ) : currentStep === 4 ? (
+          <VibeSelector selected={selectedVibe} onSelect={setSelectedVibe} />
         ) : (
           <div className="space-y-6">
             {/* Summary of selections */}
@@ -374,7 +393,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
         )}
 
         {/* Navigation buttons */}
-        {currentStep < 4 && (
+        {currentStep < 5 && (
           <div className="flex justify-between pt-4">
             <Button
               variant="outline"
@@ -388,7 +407,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
               onClick={handleNextStep}
               disabled={!canProceed()}
             >
-              {currentStep === 3 ? "Create!" : "Next"}
+              {currentStep === 4 ? (selectedVibe ? "Create with Vibe!" : "Skip & Create!") : "Next"}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
