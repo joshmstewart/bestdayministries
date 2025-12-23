@@ -9,7 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { getFullErrorText } from "@/lib/errorUtils";
-import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown } from "lucide-react";
+import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown, ImageIcon } from "lucide-react";
 import { PrintifyPreviewDialog } from "./PrintifyPreviewDialog";
 
 interface PrintifyProduct {
@@ -51,6 +51,7 @@ const ImportedProductCard = ({
   onRefreshSuccess: () => void;
 }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast: toastWithCopy } = useToast();
 
   const showErrorToast = (context: string, error: any) => {
@@ -105,6 +106,38 @@ const ImportedProductCard = ({
     }
   };
 
+  const handleGenerateImages = async () => {
+    if (!product.local_product_id) {
+      showErrorToast("Generate Images", {
+        message: "Could not find local product ID",
+        details: `Printify product ID: ${product.id}. Please try clicking "Refresh" at the top to reload the product list, then try again.`
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-printify-images', {
+        body: { productId: product.local_product_id },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      if (data.generatedCount > 0) {
+        toast.success(`Generated ${data.generatedCount} new images! Click "Refresh from Printify" to update.`);
+      } else if (data.variantsRequested > 0) {
+        toast.info(`Requested images for ${data.variantsRequested} variants. Generation may take a moment - click "Refresh from Printify" in a few seconds.`);
+      } else {
+        toast.info(data.message);
+      }
+    } catch (error) {
+      showErrorToast("Generate Images", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
       {product.images[0] && (
@@ -129,16 +162,28 @@ const ImportedProductCard = ({
             {product.variants.filter(v => v.is_enabled).length} variants
           </p>
         </div>
-        <Button 
-          onClick={handleRefresh} 
-          variant="outline" 
-          size="sm" 
-          className="w-full"
-          disabled={isRefreshing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh from Printify'}
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button 
+            onClick={handleRefresh} 
+            variant="outline" 
+            size="sm" 
+            className="w-full"
+            disabled={isRefreshing || isGenerating}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh from Printify'}
+          </Button>
+          <Button 
+            onClick={handleGenerateImages} 
+            variant="secondary" 
+            size="sm" 
+            className="w-full"
+            disabled={isRefreshing || isGenerating}
+          >
+            <ImageIcon className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-pulse' : ''}`} />
+            {isGenerating ? 'Generating...' : 'Generate Missing Images'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
