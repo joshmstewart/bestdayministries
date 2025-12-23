@@ -63,17 +63,32 @@ serve(async (req) => {
       }
     });
 
+    // Strip HTML tags from description
+    const rawDescription = printifyProduct.description || '';
+    const cleanDescription = rawDescription
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+      .replace(/&amp;/g, '&')  // Replace &amp; with &
+      .replace(/&lt;/g, '<')   // Replace &lt; with <
+      .replace(/&gt;/g, '>')   // Replace &gt; with >
+      .replace(/\s+/g, ' ')    // Collapse multiple spaces
+      .trim();
+
+    // Get all image URLs
+    const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
+
     // Create the product in our database
     const { data: newProduct, error: insertError } = await supabaseClient
       .from('products')
       .insert({
         name: printifyProduct.title,
-        description: printifyProduct.description || '',
+        description: cleanDescription,
         price: basePrice,
-        image_url: imageUrl,
+        images: imageUrls,
         is_active: true,
         inventory_count: 999, // POD has unlimited inventory
         is_printify_product: true,
+        printify_product_id: printifyProduct.id,
         printify_blueprint_id: printifyProduct.blueprint_id,
         printify_print_provider_id: printifyProduct.print_provider_id,
         printify_variant_ids: variantIds,

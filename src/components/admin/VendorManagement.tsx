@@ -13,7 +13,7 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Eye,
+  Edit,
   Printer
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
 import { PrintifyProductImporter } from "./PrintifyProductImporter";
+import { ProductEditDialog } from "./ProductEditDialog";
 
 interface VendorStats {
   totalVendors: number;
@@ -49,6 +50,7 @@ interface Vendor {
 interface Product {
   id: string;
   name: string;
+  description: string | null;
   price: number;
   inventory_count: number;
   is_active: boolean;
@@ -85,6 +87,8 @@ export const VendorManagement = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -163,6 +167,7 @@ export const VendorManagement = () => {
       .select(`
         id,
         name,
+        description,
         price,
         inventory_count,
         is_active,
@@ -170,7 +175,6 @@ export const VendorManagement = () => {
           business_name
         )
       `)
-      .not("vendor_id", "is", null)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -419,9 +423,16 @@ export const VendorManagement = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="outline">
-                          <Eye className="w-3 h-3 mr-1" />
-                          View
+                        <Button 
+                          size="icon" 
+                          variant="outline"
+                          onClick={() => {
+                            setEditProduct(product as any);
+                            setEditDialogOpen(true);
+                          }}
+                          title="Edit product"
+                        >
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -465,6 +476,13 @@ export const VendorManagement = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <ProductEditDialog
+        product={editProduct}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={loadData}
+      />
     </div>
   );
 };
