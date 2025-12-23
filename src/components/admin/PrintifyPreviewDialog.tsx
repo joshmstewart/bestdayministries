@@ -141,36 +141,80 @@ export const PrintifyPreviewDialog = ({
     opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
   );
 
+  // Helper: extract color keywords for fuzzy matching
+  const getColorKeywords = (colorName: string): string[] => {
+    const lower = colorName.toLowerCase();
+    const words = lower.split(/[\s\-_]+/).filter(w => w.length > 2);
+    // Common color mappings for fuzzy matching
+    const colorMap: Record<string, string[]> = {
+      'grey': ['gray', 'grey'],
+      'gray': ['gray', 'grey'],
+      'light pink': ['pink', 'lightpink', 'light-pink'],
+      'light blue': ['blue', 'lightblue', 'light-blue'],
+      'sport grey': ['grey', 'gray', 'sportgrey', 'sport-grey'],
+      'sport gray': ['grey', 'gray', 'sportgray', 'sport-gray'],
+      'ash': ['ash', 'grey', 'gray'],
+      'sand': ['sand', 'beige', 'tan'],
+      'natural': ['natural', 'cream', 'beige'],
+      'heather': ['heather'],
+    };
+    
+    // Add the full name, slug versions, and individual words
+    const keywords = [
+      lower,
+      lower.replace(/\s+/g, ''),
+      lower.replace(/\s+/g, '-'),
+      lower.replace(/\s+/g, '_'),
+      ...words
+    ];
+    
+    // Add mapped variations
+    Object.entries(colorMap).forEach(([key, values]) => {
+      if (lower.includes(key)) {
+        keywords.push(...values);
+      }
+    });
+    
+    return [...new Set(keywords)];
+  };
+
   // Build a map of colors to their first matching image index
   const colorToImageIndex: Record<string, number> = {};
   if (colorOptionIndex !== -1) {
     const colorOption = options[colorOptionIndex];
-    colorOption.values.forEach(colorName => {
+    colorOption.values.forEach((colorName, colorIdx) => {
+      const keywords = getColorKeywords(colorName);
+      
       // Find variants that match this color
       const matchingVariants = enabledVariants.filter(v => 
         v.title.toLowerCase().includes(colorName.toLowerCase())
       );
       
+      // Strategy 1: Find image by variant_ids
+      let foundIndex = -1;
       if (matchingVariants.length > 0) {
-        // Strategy 1: Find image by variant_ids
-        let foundIndex = product.images.findIndex(img => 
+        foundIndex = product.images.findIndex(img => 
           img.variant_ids && img.variant_ids.some(vid => 
             matchingVariants.some(v => v.id === vid)
           )
         );
-        
-        // Strategy 2: Check if image URL contains color name
-        if (foundIndex === -1) {
-          const colorSlug = colorName.toLowerCase().replace(/\s+/g, '-');
-          foundIndex = product.images.findIndex(img => 
-            img.src.toLowerCase().includes(colorSlug) ||
-            img.src.toLowerCase().includes(colorName.toLowerCase().replace(/\s+/g, '_'))
-          );
-        }
-        
-        if (foundIndex !== -1) {
-          colorToImageIndex[colorName] = foundIndex;
-        }
+      }
+      
+      // Strategy 2: Fuzzy match image URL with color keywords
+      if (foundIndex === -1) {
+        foundIndex = product.images.findIndex(img => {
+          const urlLower = img.src.toLowerCase();
+          return keywords.some(kw => urlLower.includes(kw));
+        });
+      }
+      
+      // Strategy 3: Match by position (first color = first image, etc.)
+      if (foundIndex === -1 && colorIdx < product.images.length) {
+        foundIndex = colorIdx;
+      }
+      
+      if (foundIndex !== -1) {
+        colorToImageIndex[colorName] = foundIndex;
       }
     });
   }
@@ -188,13 +232,12 @@ export const PrintifyPreviewDialog = ({
       if (mappedIndex !== undefined) {
         setSelectedImageIndex(mappedIndex);
       } else {
-        // Fallback: try to find by index position in color list
+        // Last resort: use color position
         const colorOption = options.find(opt => 
           opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
         );
         if (colorOption) {
           const colorIdx = colorOption.values.indexOf(value);
-          // Some Printify products have images in same order as colors
           if (colorIdx !== -1 && colorIdx < product.images.length) {
             setSelectedImageIndex(colorIdx);
           }
