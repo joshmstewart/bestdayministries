@@ -72,13 +72,17 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
           />
           {product.printify_variant_ids && (() => {
-            // Extract unique colors from variant titles
-            const variants = product.printify_variant_ids as Record<string, any>;
+            // Extract unique colors from variant titles (keys are "Size / Color" or "Color / Size")
+            const variantTitles = Object.keys(product.printify_variant_ids as Record<string, any>);
             const colors = new Set<string>();
-            Object.values(variants).forEach((v: any) => {
-              if (v?.title) {
-                const colorPart = v.title.split(' / ')[0]?.trim();
-                if (colorPart) colors.add(colorPart);
+            const sizePatterns = /^(xs|s|m|l|xl|xxl|2xl|3xl|4xl|5xl|6xl|one size|\d+oz|\d+″|\d+x\d+|\d+)$/i;
+            
+            variantTitles.forEach((title: string) => {
+              const parts = title.split(' / ');
+              if (parts.length >= 2) {
+                // Find the part that's NOT a size - that's the color
+                const colorPart = sizePatterns.test(parts[0].trim()) ? parts[1] : parts[0];
+                if (colorPart) colors.add(colorPart.trim());
               }
             });
             const colorCount = colors.size;
