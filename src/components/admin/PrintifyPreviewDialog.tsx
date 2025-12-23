@@ -15,13 +15,20 @@ interface PrintifyVariant {
   is_enabled: boolean;
 }
 
+interface PrintifyImage {
+  src: string;
+  variant_ids?: number[];
+  position?: string;
+  is_default?: boolean;
+}
+
 interface PrintifyProduct {
   id: string;
   title: string;
   description: string;
   blueprint_id: number;
   print_provider_id: number;
-  images: { src: string }[];
+  images: PrintifyImage[];
   variants: PrintifyVariant[];
   options?: { name: string; values: string[] }[];
   is_imported: boolean;
@@ -88,6 +95,7 @@ export const PrintifyPreviewDialog = ({
   const [editedDescription, setEditedDescription] = useState("");
   const [priceMarkup, setPriceMarkup] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
   // Initialize state when product changes or dialog opens
   useEffect(() => {
@@ -96,6 +104,7 @@ export const PrintifyPreviewDialog = ({
       setEditedDescription(product.description || "");
       setPriceMarkup(0);
       setSelectedImageIndex(0);
+      setSelectedOptions({});
     }
   }, [open, product]);
 
@@ -115,6 +124,34 @@ export const PrintifyPreviewDialog = ({
         })
       })).filter(opt => opt.values.length > 0)
     : extractOptionsFromVariants(product.variants);
+
+  // Find the "Color" option index (usually first, but check by name)
+  const colorOptionIndex = options.findIndex(opt => 
+    opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
+  );
+
+  // Handle option selection and auto-select matching image
+  const handleOptionSelect = (optionName: string, value: string) => {
+    const newSelected = { ...selectedOptions, [optionName]: value };
+    setSelectedOptions(newSelected);
+    
+    // If selecting a color, try to find a matching image
+    if (optionName.toLowerCase() === 'color' || optionName.toLowerCase() === 'colour') {
+      // Find variants that match this color
+      const matchingVariants = enabledVariants.filter(v => v.title.includes(value));
+      if (matchingVariants.length > 0) {
+        // Find an image that's linked to one of these variants
+        const matchingImageIdx = product.images.findIndex(img => 
+          img.variant_ids && img.variant_ids.some(vid => 
+            matchingVariants.some(v => v.id === vid)
+          )
+        );
+        if (matchingImageIdx !== -1) {
+          setSelectedImageIndex(matchingImageIdx);
+        }
+      }
+    }
+  };
 
   const handleSubmit = () => {
     onImport(product, priceMarkup, editedTitle, editedDescription);
@@ -197,21 +234,37 @@ export const PrintifyPreviewDialog = ({
                 />
               </div>
 
-              {/* Options organized by type */}
+              {/* Options organized by type - clickable */}
               <div className="space-y-3">
                 <Label>Available Options ({enabledVariants.length} variants)</Label>
                 {options.map((option, optIdx) => (
                   <div key={optIdx} className="space-y-1.5">
                     <p className="text-sm font-medium text-muted-foreground">{option.name}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {option.values.map((value, valIdx) => (
-                        <Badge key={valIdx} variant="secondary" className="text-xs">
-                          {value}
-                        </Badge>
-                      ))}
+                      {option.values.map((value, valIdx) => {
+                        const isSelected = selectedOptions[option.name] === value;
+                        const isColor = option.name.toLowerCase() === 'color' || option.name.toLowerCase() === 'colour';
+                        return (
+                          <Badge 
+                            key={valIdx} 
+                            variant={isSelected ? "default" : "secondary"} 
+                            className={`text-xs cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${
+                              isColor ? 'hover:scale-105' : ''
+                            }`}
+                            onClick={() => handleOptionSelect(option.name, value)}
+                          >
+                            {value}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
+                {colorOptionIndex !== -1 && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Click a color to see matching product images
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

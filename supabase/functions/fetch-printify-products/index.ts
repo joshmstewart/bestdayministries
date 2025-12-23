@@ -148,7 +148,12 @@ serve(async (req) => {
         description: cleanedDescription,
         blueprint_id: product.blueprint_id,
         print_provider_id: product.print_provider_id,
-        images: product.images || [],
+        images: (product.images || []).map((img: any) => ({
+          src: img.src,
+          variant_ids: img.variant_ids || [],
+          position: img.position,
+          is_default: img.is_default,
+        })),
         variants: (product.variants || []).map((v: any) => ({
           id: v.id,
           title: v.title,
