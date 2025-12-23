@@ -53,29 +53,51 @@ const ProductDetail = () => {
       }))
     : [];
 
-  // Parse variants into colors and sizes (format: "Color / Size")
+  // Intelligently parse variants into colors and sizes (format: "OptionA / OptionB")
+  // Detects which option is which by checking for known size patterns
   const { colors, sizes, hasMultipleOptions, colorToVariantId } = (() => {
-    const colorSet = new Set<string>();
-    const sizeSet = new Set<string>();
-    const colorVariantMap = new Map<string, number>();
+    const option1Set = new Set<string>();
+    const option2Set = new Set<string>();
+    const option1VariantMap = new Map<string, number>();
     
     variants.forEach(v => {
       const parts = v.title.split(' / ');
       if (parts.length === 2) {
-        colorSet.add(parts[0]);
-        sizeSet.add(parts[1]);
-        // Store one variant ID per color (for image matching)
-        if (!colorVariantMap.has(parts[0])) {
-          colorVariantMap.set(parts[0], v.id);
+        option1Set.add(parts[0]);
+        option2Set.add(parts[1]);
+        // Store one variant ID per option1 (for image matching)
+        if (!option1VariantMap.has(parts[0])) {
+          option1VariantMap.set(parts[0], v.id);
         }
       }
     });
     
+    const option1Values = Array.from(option1Set);
+    const option2Values = Array.from(option2Set);
+    
+    // Detect which set contains sizes based on common size patterns
+    const sizePatterns = /^(xs|s|m|l|xl|xxl|2xl|3xl|4xl|5xl|6xl|one size|\d+)$/i;
+    const option1IsSize = option1Values.some(v => sizePatterns.test(v.trim()));
+    const option2IsSize = option2Values.some(v => sizePatterns.test(v.trim()));
+    
+    // Determine which is color and which is size
+    // If option1 looks like sizes, swap them. Otherwise keep original order.
+    const colorsAreFirst = !option1IsSize || (option1IsSize && option2IsSize);
+    
     return {
-      colors: Array.from(colorSet),
-      sizes: Array.from(sizeSet),
-      hasMultipleOptions: colorSet.size > 0 && sizeSet.size > 0,
-      colorToVariantId: colorVariantMap
+      colors: colorsAreFirst ? option1Values : option2Values,
+      sizes: colorsAreFirst ? option2Values : option1Values,
+      hasMultipleOptions: option1Set.size > 0 && option2Set.size > 0,
+      colorToVariantId: colorsAreFirst ? option1VariantMap : new Map(
+        // Rebuild map with option2 (color) values
+        variants
+          .filter(v => v.title.includes(' / '))
+          .reduce((map, v) => {
+            const color = v.title.split(' / ')[1];
+            if (!map.has(color)) map.set(color, v.id);
+            return map;
+          }, new Map<string, number>())
+      )
     };
   })();
 
