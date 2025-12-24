@@ -24,7 +24,7 @@ serve(async (req) => {
     }
 
     // Generate a prompt for the ingredient icon
-    const iconPrompt = `Create a square icon of ${ingredientName} for a coffee drink app. The ${ingredientName} should be centered with a solid colored background that fills the ENTIRE image edge-to-edge with NO vignettes, NO circular highlights, NO gradients fading to edges. The background color should complement the ${ingredientName}. Cute illustrated style, appetizing, no text. Category: ${category}. The background MUST extend fully to all four edges of the square.`;
+    const iconPrompt = `Create a square, full-bleed icon of ${ingredientName} for a coffee drink app. The final image must be a PERFECT SQUARE with SHARP 90-degree corners (no rounded frames) and be FULLY OPAQUE (no transparency). The background must be a single solid color filling the ENTIRE canvas edge-to-edge with NO borders, NO vignettes, NO circular highlights, and NO gradients fading to edges. Do NOT place the ${ingredientName} on a circular plate, badge, or rounded container—use the full square canvas. Cute illustrated style, appetizing, no text. Category: ${category}.`;
 
     console.log("Generating icon for:", ingredientName);
     console.log("Prompt:", iconPrompt);
