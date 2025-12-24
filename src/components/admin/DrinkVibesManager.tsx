@@ -39,7 +39,12 @@ export const DrinkVibesManager = () => {
       console.error("Error loading vibes:", error);
       toast.error("Failed to load vibes");
     } else {
-      setVibes(data || []);
+      // Add cache-busting to image URLs to ensure fresh images are displayed
+      const vibesWithCacheBust = (data || []).map(vibe => ({
+        ...vibe,
+        image_url: vibe.image_url ? `${vibe.image_url.split('?')[0]}?t=${Date.now()}` : null
+      }));
+      setVibes(vibesWithCacheBust);
     }
     setLoading(false);
   };
