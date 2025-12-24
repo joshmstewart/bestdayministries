@@ -222,6 +222,7 @@ export const DrinkIngredientsManager = () => {
                       src={ingredient.image_url}
                       alt={ingredient.name}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-muted">
