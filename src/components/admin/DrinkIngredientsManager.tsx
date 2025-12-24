@@ -32,7 +32,14 @@ export const DrinkIngredientsManager = () => {
       toast.error("Failed to load ingredients");
       console.error(error);
     } else {
-      setIngredients(data || []);
+      // Add cache-busting timestamp to image URLs to force browser to fetch fresh images
+      const ingredientsWithCacheBust = (data || []).map(ingredient => ({
+        ...ingredient,
+        image_url: ingredient.image_url 
+          ? `${ingredient.image_url}?t=${Date.now()}`
+          : null
+      }));
+      setIngredients(ingredientsWithCacheBust);
     }
     setLoading(false);
   };
