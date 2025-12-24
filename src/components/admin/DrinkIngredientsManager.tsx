@@ -44,7 +44,9 @@ export const DrinkIngredientsManager = () => {
     setLoading(false);
   };
 
-  const generateIcon = async (ingredient: Ingredient) => {
+  const generateIcon = async (
+    ingredient: Ingredient
+  ): Promise<{ ok: boolean; imageUrl?: string }> => {
     try {
       const { data, error } = await supabase.functions.invoke(
         "generate-ingredient-icon",
@@ -58,10 +60,12 @@ export const DrinkIngredientsManager = () => {
       );
 
       if (error) throw error;
-      return true;
+
+      const imageUrl = (data as any)?.imageUrl as string | undefined;
+      return { ok: true, imageUrl };
     } catch (error) {
       console.error(`Failed to generate icon for ${ingredient.name}:`, error);
-      return false;
+      return { ok: false };
     }
   };
 
@@ -109,22 +113,21 @@ export const DrinkIngredientsManager = () => {
   const handleRegenerate = async (ingredient: Ingredient) => {
     setRegeneratingId(ingredient.id);
 
-    // Clear existing image first
-    await supabase
-      .from("drink_ingredients")
-      .update({ image_url: null })
-      .eq("id", ingredient.id);
+    const result = await generateIcon(ingredient);
 
-    const success = await generateIcon(ingredient);
-    
-    if (success) {
+    if (result.ok) {
+      if (result.imageUrl) {
+        const cacheBustedUrl = `${result.imageUrl}?t=${Date.now()}`;
+        setIngredients((prev) =>
+          prev.map((i) => (i.id === ingredient.id ? { ...i, image_url: cacheBustedUrl } : i))
+        );
+      }
       toast.success(`Regenerated icon for ${ingredient.name}`);
     } else {
       toast.error(`Failed to regenerate icon for ${ingredient.name}`);
     }
 
     setRegeneratingId(null);
-    await loadIngredients();
   };
 
   const missingCount = ingredients.filter((i) => !i.image_url).length;
@@ -212,7 +215,7 @@ export const DrinkIngredientsManager = () => {
               {categoryIngredients.map((ingredient) => (
                 <div
                   key={ingredient.id}
-                  className="relative group rounded-xl border-2 border-border overflow-hidden aspect-square"
+                  className="relative group rounded-none border-2 border-border overflow-hidden aspect-square"
                 >
                   {ingredient.image_url ? (
                     <img
