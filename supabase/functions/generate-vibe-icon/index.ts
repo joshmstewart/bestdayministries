@@ -29,12 +29,8 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Create a prompt for the vibe icon
-    const prompt = `Create a beautiful, artistic square icon (1:1 aspect ratio) representing the "${vibeName}" vibe/theme for a drink creation app. 
-The icon should capture: ${atmosphereHint || vibeName}.
-Style: Highly stylized, vibrant, magical illustration style. Should work as a small icon but have rich detail.
-The image should be evocative and atmospheric, capturing the essence of this theme.
-No text, just pure visual representation. Ultra high resolution.`;
+    // Create a prompt for the vibe icon - matches ingredient icon style
+    const prompt = `Create a square icon representing "${vibeName}" for a coffee drink app. The icon should visually capture: ${atmosphereHint || vibeName}. The image should have a solid colored background that fills the ENTIRE image edge-to-edge with NO vignettes, NO circular highlights, NO gradients fading to edges. The background color should complement the theme. Cute illustrated style, evocative and atmospheric, no text. The background MUST extend fully to all four edges of the square.`;
 
     // Generate image using Lovable AI
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
