@@ -10,31 +10,33 @@ interface StickerData {
   name: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   description: string;
+  drop_rate: number;
+  sticker_number: number;
 }
 
 // Valentine's Day stickers following the master design specification
 const stickers: StickerData[] = [
-  // COMMON (5) - White outline, flat matte, no glitter/holo, cute and simple
-  { name: "Love Heart", rarity: "common", description: "A sweet red heart" },
-  { name: "Chocolate Box", rarity: "common", description: "Delicious chocolates" },
-  { name: "Teddy Bear", rarity: "common", description: "A cuddly teddy bear" },
-  { name: "Love Letter", rarity: "common", description: "A sealed love letter" },
-  { name: "Red Rose", rarity: "common", description: "A beautiful red rose" },
+  // COMMON (5) - 50% total drop rate split among 5
+  { name: "Love Heart", rarity: "common", description: "A sweet red heart", drop_rate: 10, sticker_number: 1 },
+  { name: "Chocolate Box", rarity: "common", description: "Delicious chocolates", drop_rate: 10, sticker_number: 2 },
+  { name: "Teddy Bear", rarity: "common", description: "A cuddly teddy bear", drop_rate: 10, sticker_number: 3 },
+  { name: "Love Letter", rarity: "common", description: "A sealed love letter", drop_rate: 10, sticker_number: 4 },
+  { name: "Red Rose", rarity: "common", description: "A beautiful red rose", drop_rate: 10, sticker_number: 5 },
   
-  // UNCOMMON (3) - Light green outline, flat, ONE holo accent only
-  { name: "Cupid's Arrow", rarity: "uncommon", description: "A magical arrow" },
-  { name: "Heart Lock & Key", rarity: "uncommon", description: "Lock your love" },
-  { name: "Love Potion", rarity: "uncommon", description: "A magical elixir" },
+  // UNCOMMON (3) - 30% total
+  { name: "Cupid's Arrow", rarity: "uncommon", description: "A magical arrow", drop_rate: 10, sticker_number: 6 },
+  { name: "Heart Lock & Key", rarity: "uncommon", description: "Lock your love", drop_rate: 10, sticker_number: 7 },
+  { name: "Love Potion", rarity: "uncommon", description: "A magical elixir", drop_rate: 10, sticker_number: 8 },
   
-  // RARE (2) - Light blue glitter outline, sparkle points, vibrant
-  { name: "Valentine Bear", rarity: "rare", description: "A sparkling bear" },
-  { name: "Candy Bouquet", rarity: "rare", description: "Sweet treats bouquet" },
+  // RARE (2) - 15% total
+  { name: "Valentine Bear", rarity: "rare", description: "A sparkling bear", drop_rate: 7.5, sticker_number: 9 },
+  { name: "Candy Bouquet", rarity: "rare", description: "Sweet treats bouquet", drop_rate: 7.5, sticker_number: 10 },
   
-  // EPIC (1) - Light purple foil outline, holographic, story-driven
-  { name: "Love Fairy", rarity: "epic", description: "A magical love fairy" },
+  // EPIC (1) - 4%
+  { name: "Love Fairy", rarity: "epic", description: "A magical love fairy", drop_rate: 4, sticker_number: 11 },
   
-  // LEGENDARY (1) - Gold iridescent outline, layered holo, celebration finale
-  { name: "Valentine's Day 2026", rarity: "legendary", description: "Best Day Ever celebration" },
+  // LEGENDARY (1) - 1%
+  { name: "Valentine's Day 2026", rarity: "legendary", description: "Best Day Ever celebration", drop_rate: 1, sticker_number: 12 },
 ];
 
 // Build prompts following the strict rarity specifications
@@ -101,10 +103,11 @@ serve(async (req) => {
       .insert({
         name: "Valentine's Day 2026",
         description: "Celebrate love with this romantic sticker collection!",
+        theme: "valentines",
         is_active: true,
         start_date: new Date().toISOString().split('T')[0],
         visible_to_roles: ['admin', 'owner'],
-        rarity_config: {
+        rarity_percentages: {
           common: 50,
           uncommon: 30,
           rare: 15,
@@ -199,6 +202,9 @@ serve(async (req) => {
             name: sticker.name,
             description: sticker.description,
             rarity: sticker.rarity,
+            visual_style: 'illustrated',
+            drop_rate: sticker.drop_rate,
+            sticker_number: sticker.sticker_number,
             image_url: publicUrl.publicUrl,
             is_active: true
           });
