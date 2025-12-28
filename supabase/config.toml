@@ -192,3 +192,12 @@ verify_jwt = false
 
 [functions.generate-vibe-icon]
 verify_jwt = true
+
+[functions.seed-valentine-stickers]
+verify_jwt = false
+
+[functions.seed-halloween-stickers]
+verify_jwt = false
+
+[functions.generate-ingredient-icon]
+verify_jwt = true
