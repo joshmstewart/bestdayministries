@@ -507,7 +507,7 @@ export const DailyScratchCard = () => {
         <PackOpeningDialog
           open={!!selectedCollectionId}
           onOpenChange={(open) => !open && setSelectedCollectionId(null)}
-          cardId={!card.is_scratched ? card.id : null}
+          cardId={!activeCard.is_scratched ? activeCard.id : null}
           collectionId={selectedCollectionId}
           onOpened={() => {
             setSelectedCollectionId(null);
