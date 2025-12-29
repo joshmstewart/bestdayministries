@@ -484,6 +484,10 @@ export const DailyScratchCard = () => {
           onOpenChange={setShowBonusDialog}
           cardId={bonusCard.id}
           onOpened={checkDailyCard}
+          onChangeCollection={() => {
+            setShowBonusDialog(false);
+            setShowCollectionSelector(true);
+          }}
         />
       )}
 
