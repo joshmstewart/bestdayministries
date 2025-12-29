@@ -266,8 +266,13 @@ export const StickerAlbum = () => {
 
     if (!error && data && data.length > 0) {
       setCollections(data);
-      setSelectedCollection(data[0].id);
-      console.log('🎴 FETCH: Selected first collection:', data[0].id, data[0].name);
+      
+      // Prioritize featured collection, then fall back to first by display_order
+      const featuredCollection = data.find(c => c.is_featured === true);
+      const defaultCollection = featuredCollection || data[0];
+      
+      setSelectedCollection(defaultCollection.id);
+      console.log('🎴 FETCH: Selected collection:', defaultCollection.id, defaultCollection.name, featuredCollection ? '(featured)' : '(first by order)');
       // Rarity percentages will be loaded in the useEffect
     } else {
       console.log('🎴 FETCH: No active collections found');
