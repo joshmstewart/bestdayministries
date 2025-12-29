@@ -9,6 +9,7 @@ import { Loader2, Lock, Clock, Sparkles, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joycoinImage from "@/assets/joycoin.png";
 import { PackOpeningDialog } from "./PackOpeningDialog";
+import { TextToSpeech } from "./TextToSpeech";
 import {
   Dialog,
   DialogContent,
@@ -827,6 +828,11 @@ export const StickerAlbum = () => {
               <span>#{selectedSticker?.sticker_number}</span>
               <span>{selectedSticker?.name}</span>
             </DialogTitle>
+            {selectedSticker && (
+              <TextToSpeech 
+                text={`${selectedSticker.name}. ${rarityNames[selectedSticker.rarity as keyof typeof rarityNames]} rarity. ${selectedSticker.obtained ? `Collected${selectedSticker.userSticker?.quantity > 1 ? `, you have ${selectedSticker.userSticker.quantity}` : ''}` : 'Not yet collected'}. ${selectedSticker.description || ''}. Drop rate: ${selectedSticker.actualDropRate} percent.${selectedSticker.visual_style ? ` Style: ${selectedSticker.visual_style.replace(/_/g, ' ')}.` : ''}${selectedSticker.obtained && selectedSticker.userSticker?.first_obtained_at ? ` First obtained on ${new Date(selectedSticker.userSticker.first_obtained_at).toLocaleDateString()}.` : ''}`} 
+              />
+            )}
             <Button
               variant="ghost"
               size="icon"
