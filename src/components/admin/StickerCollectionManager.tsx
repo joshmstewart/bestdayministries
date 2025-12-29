@@ -2133,15 +2133,16 @@ export const StickerCollectionManager = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Visual Style</Label>
+                      <Label>Visual Style (Optional)</Label>
                       <Select
-                        value={stickerForm.visual_style}
-                        onValueChange={(value) => setStickerForm({ ...stickerForm, visual_style: value })}
+                        value={stickerForm.visual_style || "none"}
+                        onValueChange={(value) => setStickerForm({ ...stickerForm, visual_style: value === "none" ? "" : value })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Choose style" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
                           <SelectItem value="cute_kawaii">Cute/Kawaii</SelectItem>
                           <SelectItem value="spooky_classic">Spooky/Classic</SelectItem>
                           <SelectItem value="glitter">Glitter/Sparkle</SelectItem>
@@ -2389,15 +2390,16 @@ export const StickerCollectionManager = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Visual Style</Label>
+                  <Label>Visual Style (Optional)</Label>
                   <Select
-                    value={editingSticker.visual_style}
-                    onValueChange={(value) => setEditingSticker({ ...editingSticker, visual_style: value })}
+                    value={editingSticker.visual_style || "none"}
+                    onValueChange={(value) => setEditingSticker({ ...editingSticker, visual_style: value === "none" ? "" : value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="cute_kawaii">Cute Kawaii</SelectItem>
                       <SelectItem value="spooky_classic">Spooky Classic</SelectItem>
                       <SelectItem value="glitter">Glitter Effect</SelectItem>

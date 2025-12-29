@@ -831,7 +831,7 @@ export const StickerAlbum = () => {
             <div className="flex items-center gap-2 flex-shrink-0">
               {selectedSticker && (
                 <TextToSpeech 
-                  text={`${selectedSticker.name}. ${rarityNames[selectedSticker.rarity as keyof typeof rarityNames]} rarity. ${selectedSticker.obtained ? `Collected${selectedSticker.userSticker?.quantity > 1 ? `, you have ${selectedSticker.userSticker.quantity}` : ''}` : 'Not yet collected'}. ${selectedSticker.description || ''}. Drop rate: ${selectedSticker.actualDropRate} percent.${selectedSticker.visual_style ? ` Style: ${selectedSticker.visual_style.replace(/_/g, ' ')}.` : ''}${selectedSticker.obtained && selectedSticker.userSticker?.first_obtained_at ? ` First obtained on ${new Date(selectedSticker.userSticker.first_obtained_at).toLocaleDateString()}.` : ''}`} 
+                  text={`${selectedSticker.name}. ${rarityNames[selectedSticker.rarity as keyof typeof rarityNames]} rarity. ${selectedSticker.obtained ? `Collected${selectedSticker.userSticker?.quantity > 1 ? `, you have ${selectedSticker.userSticker.quantity}` : ''}` : 'Not yet collected'}. ${selectedSticker.description || ''}. Drop rate: ${selectedSticker.actualDropRate} percent.${selectedSticker.obtained && selectedSticker.userSticker?.first_obtained_at ? ` First obtained on ${new Date(selectedSticker.userSticker.first_obtained_at).toLocaleDateString()}.` : ''}`} 
                 />
               )}
               <Button
@@ -899,12 +899,6 @@ export const StickerAlbum = () => {
                     <p className="text-xs font-medium text-muted-foreground">Drop Rate</p>
                     <p className="text-sm font-medium">{selectedSticker.actualDropRate}%</p>
                   </div>
-                  {selectedSticker.visual_style && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground">Style</p>
-                      <p className="text-sm font-medium capitalize">{selectedSticker.visual_style.replace(/_/g, ' ')}</p>
-                    </div>
-                  )}
                   {selectedSticker.obtained && selectedSticker.userSticker?.first_obtained_at && (
                     <div className="col-span-2">
                       <p className="text-xs font-medium text-muted-foreground">First Obtained</p>
