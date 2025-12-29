@@ -5,10 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Lock, Clock, Sparkles } from "lucide-react";
+import { Loader2, Lock, Clock, Sparkles, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joycoinImage from "@/assets/joycoin.png";
 import { PackOpeningDialog } from "./PackOpeningDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const rarityColors = {
   common: "bg-gray-500",
@@ -52,6 +58,7 @@ export const StickerAlbum = () => {
   const [timeUntilNext, setTimeUntilNext] = useState<string>("");
   const [showScratchDialog, setShowScratchDialog] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedSticker, setSelectedSticker] = useState<any | null>(null);
 
   // Helper function to get current time in MST (UTC-7)
   const getMSTDate = () => {
@@ -721,6 +728,7 @@ export const StickerAlbum = () => {
               className={`relative overflow-hidden transition-all hover:scale-105 cursor-pointer group ${
                 obtained ? 'border-primary' : 'border-dashed opacity-70'
               }`}
+              onClick={() => setSelectedSticker({ ...sticker, obtained, userSticker, actualDropRate })}
             >
               <CardContent className="p-4">
                 <div className="relative aspect-square mb-2">
@@ -810,6 +818,91 @@ export const StickerAlbum = () => {
           onOpened={handleCardScratched}
         />
       )}
+
+      {/* Sticker Detail Dialog */}
+      <Dialog open={!!selectedSticker} onOpenChange={(open) => !open && setSelectedSticker(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>#{selectedSticker?.sticker_number}</span>
+              <span>{selectedSticker?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {selectedSticker && (
+            <div className="space-y-4">
+              {/* Large sticker image */}
+              <div className="relative aspect-square bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
+                {selectedSticker.obtained ? (
+                  <img
+                    src={selectedSticker.image_url}
+                    alt={selectedSticker.name}
+                    className="w-full h-full object-contain p-4"
+                  />
+                ) : (
+                  <div className="relative w-full h-full">
+                    <img
+                      src={selectedSticker.image_url}
+                      alt="???"
+                      className="w-full h-full object-contain p-4 opacity-20 grayscale"
+                      style={{ filter: "brightness(0.5) contrast(1.5)" }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Lock className="w-16 h-16 text-muted-foreground" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Metadata */}
+              <div className="space-y-3">
+                {/* Rarity & Status */}
+                <div className="flex items-center justify-between">
+                  <Badge className={`${rarityColors[selectedSticker.rarity as keyof typeof rarityColors]}`}>
+                    {rarityNames[selectedSticker.rarity as keyof typeof rarityNames]}
+                  </Badge>
+                  {selectedSticker.obtained ? (
+                    <Badge variant="default" className="bg-green-600">
+                      Collected {selectedSticker.userSticker?.quantity > 1 ? `(x${selectedSticker.userSticker.quantity})` : ''}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Not Collected</Badge>
+                  )}
+                </div>
+
+                {/* Description */}
+                {selectedSticker.description && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Description</p>
+                    <p className="text-sm">{selectedSticker.description}</p>
+                  </div>
+                )}
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Drop Rate</p>
+                    <p className="text-sm font-medium">{selectedSticker.actualDropRate}%</p>
+                  </div>
+                  {selectedSticker.visual_style && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Style</p>
+                      <p className="text-sm font-medium capitalize">{selectedSticker.visual_style.replace(/_/g, ' ')}</p>
+                    </div>
+                  )}
+                  {selectedSticker.obtained && selectedSticker.userSticker?.first_obtained_at && (
+                    <div className="col-span-2">
+                      <p className="text-xs font-medium text-muted-foreground">First Obtained</p>
+                      <p className="text-sm font-medium">
+                        {new Date(selectedSticker.userSticker.first_obtained_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
