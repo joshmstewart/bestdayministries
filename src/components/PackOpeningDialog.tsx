@@ -318,7 +318,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/10 to-primary/5">
+      <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/10 to-primary/5 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center">
             {opened ? "You Got:" : "Open Your Pack"}
