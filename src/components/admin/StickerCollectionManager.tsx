@@ -442,8 +442,23 @@ export const StickerCollectionManager = () => {
     const { data, error } = await supabase
       .from('stickers')
       .select('*')
-      .eq('collection_id', collectionId)
-      .order('sticker_number');
+      .eq('collection_id', collectionId);
+    
+    // Sort by rarity order: common, uncommon, rare, epic, legendary
+    const rarityOrder: Record<string, number> = {
+      common: 1,
+      uncommon: 2,
+      rare: 3,
+      epic: 4,
+      legendary: 5
+    };
+    
+    const sortedData = (data || []).sort((a, b) => {
+      const rarityA = rarityOrder[a.rarity] || 0;
+      const rarityB = rarityOrder[b.rarity] || 0;
+      if (rarityA !== rarityB) return rarityA - rarityB;
+      return (a.sticker_number || 0) - (b.sticker_number || 0);
+    });
 
     if (error) {
       console.error('Error fetching stickers:', error);
@@ -451,8 +466,8 @@ export const StickerCollectionManager = () => {
       return;
     }
 
-    console.log('Fetched stickers:', data?.length, 'stickers');
-    setStickers(data || []);
+    console.log('Fetched stickers:', sortedData.length, 'stickers');
+    setStickers(sortedData);
   };
 
   const seedHalloweenCollection = async () => {
