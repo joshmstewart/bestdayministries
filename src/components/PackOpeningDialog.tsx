@@ -223,9 +223,18 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
           body: { collectionId }
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Purchase bonus card error:', error);
+          toast({
+            title: "Cannot Purchase",
+            description: "Not enough coins to purchase this pack.",
+            variant: "destructive"
+          });
+          onOpenChange(false);
+          return;
+        }
         
-        if (data.error) {
+        if (data?.error) {
           toast({
             title: "Cannot Purchase",
             description: data.error,
@@ -235,11 +244,22 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
           return;
         }
 
-        if (data.success && data.stickers) {
+        if (data?.success && data.stickers) {
           setRevealedStickers(data.stickers);
           setOpened(true);
           setShowConfetti(true);
           triggerCelebration(data.stickers[0].rarity);
+          return;
+        }
+        
+        // If we get here without stickers, something went wrong
+        if (!data?.success) {
+          toast({
+            title: "Error",
+            description: data?.message || "Failed to purchase pack. Please try again.",
+            variant: "destructive"
+          });
+          onOpenChange(false);
           return;
         }
       }
