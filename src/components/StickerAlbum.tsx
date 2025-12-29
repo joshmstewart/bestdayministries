@@ -821,12 +821,20 @@ export const StickerAlbum = () => {
 
       {/* Sticker Detail Dialog */}
       <Dialog open={!!selectedSticker} onOpenChange={(open) => !open && setSelectedSticker(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
+          <DialogHeader className="flex flex-row items-start gap-3">
+            <DialogTitle className="flex items-center gap-2 flex-1 min-w-0">
               <span>#{selectedSticker?.sticker_number}</span>
               <span>{selectedSticker?.name}</span>
             </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedSticker(null)}
+              className="flex-shrink-0 hover:bg-accent"
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </DialogHeader>
           {selectedSticker && (
             <div className="space-y-4">
