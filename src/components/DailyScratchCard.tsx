@@ -256,12 +256,28 @@ export const DailyScratchCard = () => {
       setCard(cardToUse);
       setBonusCard(existingBonusCards?.[0] || null);
 
-      // Set preview sticker immediately from the fetched card data
-      if (cardToUse?.collection?.preview_sticker?.image_url) {
-        console.log('📋 CHECK: Preview sticker loaded from card data');
+      // Always show the FEATURED collection's preview sticker (not the user's card collection)
+      // This ensures the Community page shows the current featured set
+      const { data: featuredCollection } = await supabase
+        .from('sticker_collections')
+        .select(`
+          id,
+          preview_sticker_id,
+          preview_sticker:stickers!preview_sticker_id(image_url)
+        `)
+        .eq('is_active', true)
+        .eq('is_featured', true)
+        .single();
+      
+      if (featuredCollection?.preview_sticker?.image_url) {
+        console.log('📋 CHECK: Using featured collection preview sticker');
+        setSampleSticker(featuredCollection.preview_sticker.image_url);
+      } else if (cardToUse?.collection?.preview_sticker?.image_url) {
+        // Fallback to card's collection preview
+        console.log('📋 CHECK: Fallback to card collection preview sticker');
         setSampleSticker(cardToUse.collection.preview_sticker.image_url);
       } else if (cardToUse?.collection_id) {
-        // Fallback: fetch first sticker if preview not set
+        // Last resort: fetch first sticker if no preview set
         console.log('📋 CHECK: No preview sticker, fetching fallback...');
         const { data: firstSticker } = await supabase
           .from('stickers')
@@ -275,12 +291,6 @@ export const DailyScratchCard = () => {
         if (firstSticker?.image_url) {
           console.log('📋 CHECK: Using fallback sticker');
           setSampleSticker(firstSticker.image_url);
-          // Auto-update preview_sticker_id
-          await supabase
-            .from('sticker_collections')
-            .update({ preview_sticker_id: firstSticker.id })
-            .eq('id', cardToUse.collection_id);
-          console.log('✅ CHECK: Auto-set preview_sticker_id to:', firstSticker.id);
         }
       }
     } catch (error) {
