@@ -217,56 +217,19 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
 
   const handleReveal = async () => {
     try {
-      // If opening by collection ID, we need to purchase a bonus card first
-      if (collectionId && !cardId) {
-        const { data, error } = await supabase.functions.invoke('purchase-bonus-card', {
-          body: { collectionId }
+      // This dialog should only open packs that already exist (cardId).
+      // Purchasing bonus packs is handled elsewhere.
+      if (!cardId) {
+        toast({
+          title: "No Pack Available",
+          description: "Please purchase or select an available pack first.",
+          variant: "destructive",
         });
-        
-        if (error) {
-          console.error('Purchase bonus card error:', error);
-          toast({
-            title: "Cannot Purchase",
-            description: "Not enough coins to purchase this pack.",
-            variant: "destructive"
-          });
-          onOpenChange(false);
-          return;
-        }
-        
-        if (data?.error) {
-          toast({
-            title: "Cannot Purchase",
-            description: data.error,
-            variant: "destructive"
-          });
-          onOpenChange(false);
-          return;
-        }
-
-        if (data?.success && data.stickers) {
-          setRevealedStickers(data.stickers);
-          setOpened(true);
-          setShowConfetti(true);
-          triggerCelebration(data.stickers[0].rarity);
-          return;
-        }
-        
-        // If we get here without stickers, something went wrong
-        if (!data?.success) {
-          toast({
-            title: "Error",
-            description: data?.message || "Failed to purchase pack. Please try again.",
-            variant: "destructive"
-          });
-          onOpenChange(false);
-          return;
-        }
+        onOpenChange(false);
+        return;
       }
 
       // Card-based opening
-      if (!cardId) return;
-
       // Check if card is already scratched
       const { data: cardCheck } = await supabase
         .from('daily_scratch_cards')
@@ -285,7 +248,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       }
 
       const { data, error } = await supabase.functions.invoke('scratch-card', {
-        body: { cardId, collectionId }
+        body: { cardId, collectionId },
       });
 
       if (error) {
@@ -296,14 +259,14 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       if (data.success) {
         // Support both single and multiple stickers
         const stickers = data.stickers || (data.sticker ? [data.sticker] : []);
-        
+
         if (stickers.length > 0) {
           console.log(`${stickers.length} sticker(s) revealed successfully:`, stickers);
           setRevealedStickers(stickers);
-          
+
           setOpened(true);
           setShowConfetti(true);
-          
+
           // Trigger celebration for first sticker
           triggerCelebration(stickers[0].rarity);
         } else {
