@@ -83,6 +83,9 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       setShowConfetti(false);
       setOpening(false);
       setTearProgress(0);
+      setCustomPackImage(null);
+      setCustomPackAnimation(null);
+      setPackStickers([]);
       
       // Play sound IMMEDIATELY when dialog opens (don't wait for loading)
       if (!hasPlayedRevealSound.current && !soundsLoading) {
@@ -98,7 +101,7 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     if (!open) {
       hasPlayedRevealSound.current = false;
     }
-  }, [open, soundsLoading]);
+  }, [open, soundsLoading, collectionId]);
 
 
   const loadCollectionInfo = async () => {
