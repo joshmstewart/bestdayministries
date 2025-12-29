@@ -509,6 +509,10 @@ export const DailyScratchCard = () => {
             setSelectedCollectionId(null);
             checkDailyCard();
           }}
+          onChangeCollection={() => {
+            setSelectedCollectionId(null);
+            setShowCollectionSelector(true);
+          }}
         />
       )}
     </div>
