@@ -51,9 +51,9 @@ serve(async (req) => {
       );
     }
 
-    // If collectionId provided, update the card's collection (for daily pack selection)
+    // If collectionId provided, update the card's collection (for both daily and bonus packs)
     let targetCollectionId = card.collection_id;
-    if (collectionId && !card.is_bonus_card) {
+    if (collectionId) {
       const { error: updateError } = await supabase
         .from('daily_scratch_cards')
         .update({ collection_id: collectionId })
