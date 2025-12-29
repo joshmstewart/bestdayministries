@@ -322,13 +322,28 @@ export const StickerAlbum = () => {
     // Calculate next cost using base cost from settings
     setNextCost(baseCost * Math.pow(2, count));
 
+    // Rarity order for sorting: Common → Uncommon → Rare → Epic → Legendary
+    const rarityOrder: Record<string, number> = {
+      common: 1,
+      uncommon: 2,
+      rare: 3,
+      epic: 4,
+      legendary: 5
+    };
+
     // Fetch all stickers in collection
     const { data: stickers, error: stickersError } = await supabase
       .from('stickers')
       .select('*')
       .eq('collection_id', selectedCollection)
-      .eq('is_active', true)
-      .order('sticker_number');
+      .eq('is_active', true);
+    
+    // Sort by rarity order, then by sticker_number within same rarity
+    const sortedStickers = (stickers || []).sort((a, b) => {
+      const rarityDiff = (rarityOrder[a.rarity] || 99) - (rarityOrder[b.rarity] || 99);
+      if (rarityDiff !== 0) return rarityDiff;
+      return (a.sticker_number || 0) - (b.sticker_number || 0);
+    });
 
     if (stickersError) {
       console.error('Error fetching stickers:', stickersError);
@@ -347,7 +362,7 @@ export const StickerAlbum = () => {
       console.error('Error fetching user stickers:', obtainedError);
     }
 
-    setAllStickers(stickers || []);
+    setAllStickers(sortedStickers);
     
     const userStickerMap = new Map();
     obtained?.forEach((item) => {
