@@ -823,24 +823,26 @@ export const StickerAlbum = () => {
       {/* Sticker Detail Dialog */}
       <Dialog open={!!selectedSticker} onOpenChange={(open) => !open && setSelectedSticker(null)}>
         <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
-          <DialogHeader className="flex flex-row items-start gap-3">
+          <DialogHeader className="flex flex-row items-center gap-3">
             <DialogTitle className="flex items-center gap-2 flex-1 min-w-0">
               <span>#{selectedSticker?.sticker_number}</span>
               <span>{selectedSticker?.name}</span>
             </DialogTitle>
-            {selectedSticker && (
-              <TextToSpeech 
-                text={`${selectedSticker.name}. ${rarityNames[selectedSticker.rarity as keyof typeof rarityNames]} rarity. ${selectedSticker.obtained ? `Collected${selectedSticker.userSticker?.quantity > 1 ? `, you have ${selectedSticker.userSticker.quantity}` : ''}` : 'Not yet collected'}. ${selectedSticker.description || ''}. Drop rate: ${selectedSticker.actualDropRate} percent.${selectedSticker.visual_style ? ` Style: ${selectedSticker.visual_style.replace(/_/g, ' ')}.` : ''}${selectedSticker.obtained && selectedSticker.userSticker?.first_obtained_at ? ` First obtained on ${new Date(selectedSticker.userSticker.first_obtained_at).toLocaleDateString()}.` : ''}`} 
-              />
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSelectedSticker(null)}
-              className="flex-shrink-0 hover:bg-accent"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {selectedSticker && (
+                <TextToSpeech 
+                  text={`${selectedSticker.name}. ${rarityNames[selectedSticker.rarity as keyof typeof rarityNames]} rarity. ${selectedSticker.obtained ? `Collected${selectedSticker.userSticker?.quantity > 1 ? `, you have ${selectedSticker.userSticker.quantity}` : ''}` : 'Not yet collected'}. ${selectedSticker.description || ''}. Drop rate: ${selectedSticker.actualDropRate} percent.${selectedSticker.visual_style ? ` Style: ${selectedSticker.visual_style.replace(/_/g, ' ')}.` : ''}${selectedSticker.obtained && selectedSticker.userSticker?.first_obtained_at ? ` First obtained on ${new Date(selectedSticker.userSticker.first_obtained_at).toLocaleDateString()}.` : ''}`} 
+                />
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedSticker(null)}
+                className="hover:bg-accent"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </DialogHeader>
           {selectedSticker && (
             <div className="space-y-4">
