@@ -459,9 +459,9 @@ export const VendorManagement = () => {
                       <TableCell className="font-mono text-xs">
                         {order.id.slice(0, 8)}...
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{order.customer_id.slice(0, 8)}...</TableCell>
+                      <TableCell className="font-mono text-xs">{order.customer_id?.slice(0, 8) || 'Guest'}...</TableCell>
                       <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-medium">${order.total_amount.toFixed(2)}</TableCell>
+                      <TableCell className="font-medium">${(order.total_amount ?? 0).toFixed(2)}</TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>{order.order_items.length} items</TableCell>
                     </TableRow>
