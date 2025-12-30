@@ -27,32 +27,52 @@ serve(async (req) => {
     logStep("Function started");
 
     // Parse request body
-    const { session_id, order_id } = await req.json();
+    const { session_id, order_id, guest_session_id } = await req.json();
     if (!session_id) throw new Error("session_id is required");
     if (!order_id) throw new Error("order_id is required");
-    logStep("Request parsed", { session_id, order_id });
+    logStep("Request parsed", { session_id, order_id, guest_session_id });
 
-    // Authenticate user
+    // Try to authenticate user (optional for guest checkout)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    let user = null;
     
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user) throw new Error("User not authenticated");
-    logStep("User authenticated", { userId: user.id });
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      user = userData.user;
+      if (user) {
+        logStep("User authenticated", { userId: user.id });
+      }
+    }
 
-    // Get order and verify ownership
-    const { data: order, error: orderError } = await supabaseClient
-      .from("orders")
-      .select("*")
-      .eq("id", order_id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (orderError || !order) throw new Error("Order not found or unauthorized");
-    logStep("Order found", { orderId: order.id, status: order.status });
+    // Get order - for authenticated users, verify ownership; for guests, use session_id from order metadata
+    let order;
+    
+    if (user) {
+      // Authenticated user - verify order belongs to them
+      const { data, error } = await supabaseClient
+        .from("orders")
+        .select("*")
+        .eq("id", order_id)
+        .eq("user_id", user.id)
+        .single();
+      
+      if (error || !data) throw new Error("Order not found or unauthorized");
+      order = data;
+    } else {
+      // Guest checkout - get order by ID and verify it's a guest order (no user_id)
+      const { data, error } = await supabaseClient
+        .from("orders")
+        .select("*")
+        .eq("id", order_id)
+        .is("user_id", null)
+        .single();
+      
+      if (error || !data) throw new Error("Order not found or unauthorized");
+      order = data;
+    }
+    
+    logStep("Order found", { orderId: order.id, status: order.status, isGuest: !user });
 
     // If already paid, return success
     if (order.status === "paid" || order.status === "processing") {
@@ -115,16 +135,29 @@ serve(async (req) => {
       if (updateError) throw new Error(`Failed to update order: ${updateError.message}`);
       logStep("Order updated to paid with shipping address");
 
-      // Clear user's cart
-      const { error: cartError } = await supabaseClient
-        .from("shopping_cart")
-        .delete()
-        .eq("user_id", user.id);
+      // Clear cart based on user type
+      if (user) {
+        const { error: cartError } = await supabaseClient
+          .from("shopping_cart")
+          .delete()
+          .eq("user_id", user.id);
 
-      if (cartError) {
-        logStep("Warning: Failed to clear cart", { error: cartError.message });
-      } else {
-        logStep("Cart cleared");
+        if (cartError) {
+          logStep("Warning: Failed to clear user cart", { error: cartError.message });
+        } else {
+          logStep("User cart cleared");
+        }
+      } else if (guest_session_id) {
+        const { error: cartError } = await supabaseClient
+          .from("shopping_cart")
+          .delete()
+          .eq("session_id", guest_session_id);
+
+        if (cartError) {
+          logStep("Warning: Failed to clear guest cart", { error: cartError.message });
+        } else {
+          logStep("Guest cart cleared");
+        }
       }
 
       // Trigger Printify order creation for any Printify products
