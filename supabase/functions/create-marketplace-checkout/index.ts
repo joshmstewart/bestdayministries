@@ -265,8 +265,8 @@ serve(async (req) => {
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .insert({
-        customer_id: user.id,
         user_id: user.id,
+        customer_email: user.email,
         status: "pending",
         total_amount: totalAmount / 100,
         stripe_mode: stripeMode,
