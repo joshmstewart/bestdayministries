@@ -297,8 +297,63 @@ Supports fuzzy matching for variations like "light pink", "heather gray", etc.
 
 ### ⚠️ Needs Work
 - [ ] create-printify-order - Exists but needs shipping address collection
-- [ ] Printify webhooks for status updates
 - [ ] Per-variant pricing (currently uses base variant price)
+
+## Automatic Status Updates (Cron Job)
+
+### Overview
+A cron job automatically polls Printify every 15 minutes for order status updates.
+
+### How It Works
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Every 15 minutes (pg_cron)                                     │
+│  ↓                                                              │
+│  net.http_post → check-printify-status edge function            │
+│  ↓                                                              │
+│  Query order_items with pending Printify orders                 │
+│  ↓                                                              │
+│  Fetch status from Printify API for each order                  │
+│  ↓                                                              │
+│  Update order_items:                                            │
+│    - printify_status                                            │
+│    - fulfillment_status                                         │
+│    - tracking_number, carrier, tracking_url (when shipped)      │
+│    - shipped_at, delivered_at timestamps                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Status Mapping
+| Printify Status | printify_status | fulfillment_status |
+|-----------------|-----------------|-------------------|
+| pending, on-hold | pending | pending |
+| in-production, printing | in_production | pending |
+| fulfilled, shipped | shipped | shipped |
+| delivered | delivered | delivered |
+| canceled, cancelled | cancelled | cancelled |
+
+### Cron Job Details
+- **Job Name:** `check-printify-status-job`
+- **Schedule:** Every 15 minutes (`*/15 * * * *`)
+- **Extensions Required:** `pg_cron`, `pg_net`
+
+### Verification
+```sql
+-- Check cron job status
+SELECT * FROM cron.job WHERE jobname = 'check-printify-status-job';
+
+-- Check recent job runs
+SELECT * FROM cron.job_run_details 
+WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'check-printify-status-job')
+ORDER BY start_time DESC LIMIT 10;
+```
+
+### Manual Trigger
+The status check can also be triggered manually via the Admin UI or by calling:
+```bash
+curl -X POST https://nbvijawmjkycyweioglk.supabase.co/functions/v1/check-printify-status \
+  -H "Authorization: Bearer YOUR_ANON_KEY"
+```
 
 ## Files Reference
 
