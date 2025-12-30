@@ -384,7 +384,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                               Processing...
                             </>
                           ) : (
-                            "Checkout Printify Merch"
+                            "Checkout Official Merch"
                           )}
                         </Button>
                       )}
