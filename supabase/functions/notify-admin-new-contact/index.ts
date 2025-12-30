@@ -193,7 +193,7 @@ ${submission.message}
 
     // Send email (no reply_to to prevent accidental replies to noreply address)
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Best Day Ever Notifications <noreply@bestdayministries.com>",
+      from: "Best Day Ever Notifications <noreply@bestdayministries.org>",
       to: [adminEmail],
       subject: `[Action Required] New ${messageType} submission from ${submission.name}`,
       html,
@@ -215,7 +215,7 @@ ${submission.message}
         resend_email_id: emailData?.id,
         email_type: 'admin_notification',
         recipient_email: adminEmail,
-        from_email: "noreply@bestdayministries.com",
+        from_email: "noreply@bestdayministries.org",
         from_name: "Best Day Ever Notifications",
         subject: `[Action Required] New ${messageType} submission from ${submission.name}`,
         html_content: html,
