@@ -14,8 +14,27 @@ import {
   Clock,
   XCircle,
   Edit,
-  Printer
+  Printer,
+  Mail,
+  Loader2,
+  Eye
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -65,9 +84,14 @@ interface Order {
   status: string;
   total_amount: number;
   customer_id: string;
+  customer_email?: string;
   order_items: {
+    id: string;
     fulfillment_status: string;
     vendor_id: string;
+    tracking_number?: string;
+    carrier?: string;
+    printify_order_id?: string;
   }[];
 }
 
@@ -89,6 +113,13 @@ export const VendorManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  
+  // Test shipping email state
+  const [testEmailDialogOpen, setTestEmailDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [testEmailLoading, setTestEmailLoading] = useState(false);
+  const [testTrackingNumber, setTestTrackingNumber] = useState("TEST123456789");
+  const [testCarrier, setTestCarrier] = useState("usps");
 
   useEffect(() => {
     loadData();
@@ -185,7 +216,7 @@ export const VendorManagement = () => {
     // Fetch orders first
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
-      .select("id, created_at, status, total_amount, customer_id")
+      .select("id, created_at, status, total_amount, customer_id, customer_email")
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -196,7 +227,7 @@ export const VendorManagement = () => {
       const orderIds = ordersData.map(o => o.id);
       const { data: itemsData } = await supabase
         .from("order_items")
-        .select("order_id, fulfillment_status, vendor_id")
+        .select("id, order_id, fulfillment_status, vendor_id, tracking_number, carrier, printify_order_id")
         .in("order_id", orderIds);
 
       // Merge the data
@@ -208,6 +239,66 @@ export const VendorManagement = () => {
       setOrders(ordersWithItems as any);
     } else {
       setOrders([]);
+    }
+  };
+
+  const sendTestShippingEmail = async () => {
+    if (!selectedOrder) return;
+    
+    try {
+      setTestEmailLoading(true);
+      
+      const carrierName = testCarrier.toUpperCase();
+      const trackingUrl = getTrackingUrl(testCarrier, testTrackingNumber);
+      
+      const { data, error } = await supabase.functions.invoke('send-order-shipped', {
+        body: {
+          orderId: selectedOrder.id,
+          trackingNumber: testTrackingNumber,
+          trackingUrl,
+          carrier: carrierName
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.skipped) {
+        toast({
+          title: "No Email Sent",
+          description: "This order has no customer email address.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Test Email Sent",
+          description: `Shipping notification sent to ${selectedOrder.customer_email}`,
+        });
+      }
+      
+      setTestEmailDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send test email",
+        variant: "destructive"
+      });
+    } finally {
+      setTestEmailLoading(false);
+    }
+  };
+
+  const getTrackingUrl = (carrier: string, trackingNumber: string) => {
+    switch (carrier.toLowerCase()) {
+      case 'usps':
+        return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`;
+      case 'ups':
+        return `https://www.ups.com/track?tracknum=${trackingNumber}`;
+      case 'fedex':
+        return `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`;
+      case 'dhl':
+        return `https://www.dhl.com/en/express/tracking.html?AWB=${trackingNumber}`;
+      default:
+        return `https://track.aftership.com/${trackingNumber}`;
     }
   };
 
@@ -451,6 +542,7 @@ export const VendorManagement = () => {
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Items</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -459,11 +551,32 @@ export const VendorManagement = () => {
                       <TableCell className="font-mono text-xs">
                         {order.id.slice(0, 8)}...
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{order.customer_id?.slice(0, 8) || 'Guest'}...</TableCell>
+                      <TableCell>
+                        <div className="text-xs">
+                          <div className="font-mono">{order.customer_id?.slice(0, 8) || 'Guest'}...</div>
+                          {order.customer_email && (
+                            <div className="text-muted-foreground">{order.customer_email}</div>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="font-medium">${(order.total_amount ?? 0).toFixed(2)}</TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>{order.order_items.length} items</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setTestEmailDialogOpen(true);
+                          }}
+                          title="Send test shipping email"
+                        >
+                          <Mail className="h-4 w-4 mr-1" />
+                          Test Email
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -483,6 +596,79 @@ export const VendorManagement = () => {
         onOpenChange={setEditDialogOpen}
         onSave={loadData}
       />
+
+      {/* Test Shipping Email Dialog */}
+      <Dialog open={testEmailDialogOpen} onOpenChange={setTestEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Test Shipping Email</DialogTitle>
+            <DialogDescription>
+              Send a test shipping notification email for this order.
+              {selectedOrder && !selectedOrder.customer_email && (
+                <span className="block mt-2 text-destructive font-medium">
+                  ⚠️ This order has no customer email. The email will be skipped.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="bg-muted p-3 rounded-lg">
+                <p className="text-sm font-medium">Order #{selectedOrder.id.slice(0, 8)}</p>
+                <p className="text-sm text-muted-foreground">
+                  Email: {selectedOrder.customer_email || "No email"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Total: ${selectedOrder.total_amount?.toFixed(2) || "0.00"}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="test-carrier">Carrier</Label>
+                <Select value={testCarrier} onValueChange={setTestCarrier}>
+                  <SelectTrigger id="test-carrier">
+                    <SelectValue placeholder="Select carrier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="usps">USPS</SelectItem>
+                    <SelectItem value="ups">UPS</SelectItem>
+                    <SelectItem value="fedex">FedEx</SelectItem>
+                    <SelectItem value="dhl">DHL</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="test-tracking">Tracking Number</Label>
+                <Input
+                  id="test-tracking"
+                  value={testTrackingNumber}
+                  onChange={(e) => setTestTrackingNumber(e.target.value)}
+                  placeholder="Enter tracking number"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setTestEmailDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={sendTestShippingEmail}
+                  disabled={testEmailLoading || !selectedOrder.customer_email}
+                >
+                  {testEmailLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Test Email
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
