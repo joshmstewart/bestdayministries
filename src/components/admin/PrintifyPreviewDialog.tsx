@@ -23,6 +23,21 @@ interface PrintifyImage {
   is_default?: boolean;
 }
 
+interface LocalValues {
+  title: string;
+  description: string;
+  price: number;
+  original_title?: string;
+  original_description?: string;
+  original_price?: number;
+}
+
+interface PrintifyValues {
+  title: string;
+  description: string;
+  price: number;
+}
+
 interface PrintifyProduct {
   id: string;
   title: string;
@@ -35,6 +50,8 @@ interface PrintifyProduct {
   is_imported: boolean;
   has_changes?: boolean;
   visible: boolean;
+  local_values?: LocalValues | null;
+  printify_values?: PrintifyValues;
 }
 
 interface PrintifyPreviewDialogProps {
@@ -290,6 +307,40 @@ export const PrintifyPreviewDialog = ({
     }
   };
 
+  // Calculate what changed for the comparison display
+  const getChanges = () => {
+    if (!product.has_changes || !product.local_values || !product.printify_values) {
+      return [];
+    }
+    
+    const changes: { field: string; before: string; after: string }[] = [];
+    const local = product.local_values;
+    const printify = product.printify_values;
+    
+    // Compare original Printify values (what we imported) vs current Printify values (what's new)
+    const originalTitle = local.original_title || local.title;
+    const originalDescription = local.original_description || local.description;
+    const originalPrice = local.original_price ?? local.price;
+    
+    if (originalTitle !== printify.title) {
+      changes.push({ field: 'Title', before: originalTitle, after: printify.title });
+    }
+    if (originalDescription !== printify.description) {
+      changes.push({ 
+        field: 'Description', 
+        before: originalDescription.length > 100 ? originalDescription.substring(0, 100) + '...' : originalDescription,
+        after: printify.description.length > 100 ? printify.description.substring(0, 100) + '...' : printify.description
+      });
+    }
+    if (Math.abs(originalPrice - printify.price) > 0.01) {
+      changes.push({ field: 'Base Price', before: `$${originalPrice.toFixed(2)}`, after: `$${printify.price.toFixed(2)}` });
+    }
+    
+    return changes;
+  };
+
+  const changes = getChanges();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh]">
@@ -309,6 +360,32 @@ export const PrintifyPreviewDialog = ({
               : "Review and edit product details before importing to your store."}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Show changes comparison if there are updates */}
+        {product.has_changes && changes.length > 0 && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 space-y-3">
+            <h4 className="font-medium text-amber-800 dark:text-amber-200 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Changes Detected in Printify
+            </h4>
+            <div className="space-y-2">
+              {changes.map((change, idx) => (
+                <div key={idx} className="text-sm">
+                  <span className="font-medium text-muted-foreground">{change.field}:</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1 ml-2">
+                    <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded text-xs line-through">
+                      {change.before || '(empty)'}
+                    </span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded text-xs">
+                      {change.after || '(empty)'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <ScrollArea className="max-h-[calc(90vh-200px)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
