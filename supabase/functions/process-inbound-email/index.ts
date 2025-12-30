@@ -305,8 +305,28 @@ Deno.serve(async (req) => {
       
       console.log('[process-inbound-email] New submission created:', newSubmission.id);
       
-      // Note: No notification created here - the contact form submission itself
-      // serves as the notification in the contact form UI (badge counter shows new submissions)
+      // Notify admins of new inbound email
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/notify-admins-new-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+          },
+          body: JSON.stringify({
+            type: 'inbound_email',
+            senderName: senderName,
+            senderEmail: senderEmail,
+            subject: subject || 'Email to Contact',
+            messagePreview: messageContent.substring(0, 200),
+            submissionId: newSubmission.id,
+          }),
+        });
+        console.log('[process-inbound-email] Admin notification sent');
+      } catch (notifyError) {
+        console.error('[process-inbound-email] Failed to notify admins:', notifyError);
+        // Don't fail the whole request if notification fails
+      }
       
       return new Response(
         JSON.stringify({ 
@@ -349,8 +369,27 @@ Deno.serve(async (req) => {
 
     console.log('[process-inbound-email] Reply saved successfully');
 
-    // Note: No notification created here - the contact form reply
-    // shows up in the contact form UI with red dot + badge (unread_user_replies counter)
+    // Notify admins of new reply
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/notify-admins-new-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        },
+        body: JSON.stringify({
+          type: 'inbound_email',
+          senderName: matchedSubmission.name,
+          senderEmail: senderEmail,
+          subject: subject || `Re: ${matchedSubmission.subject}`,
+          messagePreview: messageContent.substring(0, 200),
+          submissionId: matchedSubmission.id,
+        }),
+      });
+      console.log('[process-inbound-email] Admin notification sent for reply');
+    } catch (notifyError) {
+      console.error('[process-inbound-email] Failed to notify admins:', notifyError);
+    }
     
     return new Response(
       JSON.stringify({ 
