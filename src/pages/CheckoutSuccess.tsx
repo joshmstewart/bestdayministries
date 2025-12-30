@@ -10,7 +10,7 @@ import { useCartSession } from "@/hooks/useCartSession";
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { sessionId: guestSessionId, isAuthenticated } = useCartSession();
+  const { sessionId: guestSessionId, isAuthenticated, isLoading: authLoading, userId } = useCartSession();
   
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "failed">("loading");
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -21,6 +21,9 @@ export default function CheckoutSuccess() {
   const orderIdParam = searchParams.get("order_id");
 
   useEffect(() => {
+    // Wait for auth state to be determined before verifying payment
+    if (authLoading) return;
+    
     if (!sessionId || !orderIdParam) {
       setStatus("failed");
       return;
@@ -28,7 +31,7 @@ export default function CheckoutSuccess() {
 
     setOrderId(orderIdParam);
     verifyPayment();
-  }, [sessionId, orderIdParam]);
+  }, [sessionId, orderIdParam, authLoading]);
 
   useEffect(() => {
     // Polling logic for pending payments
