@@ -148,6 +148,27 @@ Print-on-demand integration with Printify for selling custom merchandise. Produc
 
 **Shipping Address:** Currently uses placeholder - needs shipping address collection
 
+### send-order-shipped
+**Purpose:** Send a "your order shipped" email (tracking + carrier) to the customer
+
+**Auth:** Internal (service role)
+
+**Called by:** `check-printify-status` and `printify-webhook` when Printify orders transition to shipped
+
+**Input:**
+```ts
+{
+  orderId: string;        // local orders.id (uuid)
+  trackingNumber: string;
+  trackingUrl: string;
+  carrier: string;
+}
+```
+
+**Notes:**
+- Uses `order_items.price_at_purchase` (not `unit_price`)
+- `shipping_address` keys typically come from checkout as `line1`, `line2`, `city`, `state`, `postal_code`
+
 ## Frontend Components
 
 ### Admin: PrintifyProductImporter
