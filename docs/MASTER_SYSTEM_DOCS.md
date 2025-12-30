@@ -580,7 +580,7 @@ VERIFICATION:DB-state[NOT-email-capture]|check-logs-tables|verify-notifications-
 DB:contact_form_settings|contact_form_submissions|contact_form_replies
 FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactSubmissions[unified-modal-2025-11-04]|MessagesManager[admin-messages]
 VALIDATION:client-Zod|server-edge
-EDGE:notify-admin|send-reply|process-inbound-email
+EDGE:notify-admin-new-contact[multi-recipient-2025-01-15]|send-reply|process-inbound-email[original-sender-extraction-2025-01-15]
 NOTIFICATIONS:contact_form_submission[new-submissions]|contact_form_reply[user-replies]
 BADGE:useContactFormCount→new-submissions+unread-replies→realtime+single-query-optimization|useMessagesCount[admin-messages]
 PERFORMANCE:single-query-pattern[fetch-all-replies-once]|client-side-filtering[JS-Map]|prevents-timeout-errors
@@ -593,6 +593,8 @@ CLOUDFLARE:email-routing→worker→process-inbound-email→auto-thread+notify+s
 REPLY:auto[CloudFlare-routing]|manual[admin-interface]
 SETUP:Resend[verify-domain-SPF-DKIM]+CloudFlare[email-routing+worker+webhook-secret]
 REALTIME-UPDATES[NOV-2025]:latest-activity-sorting|instant-badge-updates|red-dot-fix|1-second-timestamp-buffer|replied_at-update-on-view
+MULTI-RECIPIENT-ADMIN[JAN-2025]:notify-admin-new-contact→fetches-all-admin-owner-emails→combines-with-settings-recipient→sends-single-email-to-all
+ORIGINAL-SENDER-EXTRACTION[JAN-2025]:process-inbound-email→extractOriginalSender(raw)→parses-From-Reply-To-X-Original-From-headers→prioritizes-Reply-To→handles-Cloudflare-rewritten-addresses
 DOC:CONTACT_FORM_SYSTEM.md|CONTACT_FORM_NOTIFICATIONS.md|CONTACT_SUBMISSIONS_UI_GUIDE.md[exhaustive]|CLOUDFLARE_EMAIL_ROUTING_SETUP.md|CONTACT_MESSAGES_REALTIME_UPDATES.md[NOV-2025-CHANGES]
 
 ## DISCUSSION
@@ -875,6 +877,7 @@ DB:vendors[status-pending-approved-rejected-suspended]|products
 EDGE:submit-tracking[vendor-auth|AfterShip-API]|aftership-webhook[webhook|NOT-FUNCTIONAL]
 FLOWS:apply[/vendor-auth→signup→pending→admin-approve→approved]|check[supabase.from-vendors.select-status]|dash[tabs:Products+Orders+Earnings+Payments+Settings]
 EXAMPLES:caregiver+vendor|bestie+vendor|supporter+vendor
+DOC:VENDOR_SYSTEM_CONCISE.md|VENDOR_AUTH_SYSTEM.md|VENDOR_BESTIE_SYSTEM_CONCISE.md
 
 ## FEATURED_ITEM
 OVERVIEW:carousel-homepage-community-role-visibility
@@ -986,6 +989,7 @@ ALT-ENTRY:Marketplace-Become-Vendor-btn
 CHECK:supabase.from-vendors.select-status.eq-user_id|if-approved-access-features
 DIFF:OLD[vendor-role-separate-login]|NEW[vendor-status-keep-primary-role]
 BENEFIT:guardians-manage-bestie-vendor+one-login
+DOC:VENDOR_AUTH_SYSTEM.md
 
 ## NOTIF_CENTER_PAGE
 ROUTE:/notifications|ACCESS:auth-all-roles
