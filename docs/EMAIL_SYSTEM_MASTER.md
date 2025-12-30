@@ -255,10 +255,37 @@ const sanitized = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 **File**: `supabase/functions/process-inbound-email/index.ts`
 
 ```typescript
-// 1. Verify webhook secret
-// 2. Match submission by In-Reply-To or email
-// 3. Save reply to contact_form_replies
-// 4. Notify admin
+// 1. Verify webhook secret (CLOUDFLARE_EMAIL_WEBHOOK_SECRET)
+// 2. Extract original sender from raw email headers (From:, Reply-To:, X-Original-From:)
+// 3. Filter out system emails (noreply@, @send.bestdayministries.org, notification subjects)
+// 4. Match submission by In-Reply-To, References header, or email + subject
+// 5. If no match, create new submission (ensures no emails are lost)
+// 6. Save reply to contact_form_replies
+// 7. Notify admins via notify-admins-new-message
+```
+
+**Original Sender Extraction (Added 2025-01-15):**
+Cloudflare Email Routing can rewrite the `from` field. The function now extracts the true sender:
+```typescript
+function extractOriginalSender(raw: string): { email: string; name: string } | null {
+  // Priority order: Reply-To > From > X-Original-From
+  // Parses "Name <email@domain.com>" format
+  // Returns null if no valid email found
+}
+```
+
+### notify-admin-new-contact
+**File**: `supabase/functions/notify-admin-new-contact/index.ts`
+
+**Multi-Recipient Support (Added 2025-01-15):**
+```typescript
+// 1. Fetch submission details
+// 2. Get recipient_email from contact_form_settings
+// 3. Get all admin/owner user_ids from user_roles
+// 4. Get email addresses from profiles table
+// 5. Combine and deduplicate all recipients
+// 6. Send single email to all recipients via Resend
+// 7. Log to email_audit_log with all recipients
 ```
 
 ---

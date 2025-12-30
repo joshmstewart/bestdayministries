@@ -103,8 +103,8 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | manage-sponsorship | Auth | Stripe | Customer portal access |
 | moderate-content | Auth | Lovable AI | AI text moderation |
 | moderate-image | Auth | Lovable AI | AI image moderation |
-| notify-admin-new-contact | Internal | Resend | Notifies admins of contact submissions |
-| process-inbound-email | Webhook | Supabase | Processes CloudFlare email routing |
+| notify-admin-new-contact | Internal | Resend | **Multi-recipient** admin notifications for contact submissions |
+| process-inbound-email | Webhook | Supabase | Processes CloudFlare email routing with **original sender extraction** |
 | resend-webhook | Webhook | Supabase | Logs Resend email events |
 | reset-daily-cards | Admin | Supabase | Resets daily scratch cards with scope |
 | seed-email-test-data | Test | Supabase | Seeds email test data |

@@ -77,9 +77,26 @@ The contact form system provides a comprehensive solution for managing user inqu
 - Input validation (Zod)
 
 ### notify-admin-new-contact
-**Purpose:** Send notification email to admin when new submission arrives
+**Purpose:** Send notification email to ALL admins/owners when new submission arrives
 
 **Trigger:** Automatic on contact form submission
+
+**Multi-Recipient Support (Added 2025-01-15):**
+- Fetches `recipient_email` from `contact_form_settings` table
+- Fetches ALL users with 'admin' or 'owner' role from `user_roles` table
+- Gets email addresses from `profiles` table for those users
+- Deduplicates and sends to all recipients in a single email
+- Falls back to `ADMIN_EMAIL` env var if no recipients configured
+
+**Process:**
+1. Fetch submission by ID or latest by email
+2. Get settings email from `contact_form_settings.recipient_email`
+3. Get all admin/owner user IDs from `user_roles`
+4. Get emails from `profiles` table for those users
+5. Combine and deduplicate all recipient emails
+6. Build HTML email with no-reply warning banners
+7. Send to all recipients via Resend
+8. Log to `email_audit_log` with all recipients listed
 
 ## Frontend Components
 

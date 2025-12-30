@@ -271,15 +271,52 @@ await supabase.from('notifications').insert({
 - Reply button badge shows correct count
 - Multiple submissions with replies counted correctly
 
+## Admin Email Notifications (Updated 2025-01-15)
+
+### Multi-Recipient Support
+The `notify-admin-new-contact` edge function now sends notifications to ALL admin/owner users:
+
+**Recipients Include:**
+1. Email from `contact_form_settings.recipient_email`
+2. Email addresses of ALL users with 'admin' or 'owner' role
+
+**Implementation:**
+```typescript
+// Get all admin/owner user IDs
+const { data: adminRoles } = await supabase
+  .from("user_roles")
+  .select("user_id")
+  .in("role", ["admin", "owner"]);
+
+// Get emails for those users from profiles
+const adminUserIds = (adminRoles || []).map(r => r.user_id);
+const { data: profiles } = await supabase
+  .from("profiles")
+  .select("email")
+  .in("id", adminUserIds);
+
+// Combine and deduplicate
+const allRecipients = new Set<string>();
+if (settingsEmail) allRecipients.add(settingsEmail);
+adminEmails.forEach(email => allRecipients.add(email));
+```
+
+### Email Content
+- **Subject:** `[Action Required] New {message_type} submission from {name}`
+- **No-Reply Banners:** Prominent warnings that replies won't be delivered
+- **View Button:** Links directly to `/admin?tab=contact`
+- **Full Message:** Preserves whitespace and includes any attachments
+
 ## Related Files
 - `src/hooks/useContactFormCount.ts` - Badge counter logic
 - `src/hooks/useMessagesCount.ts` - Admin messages badge counter logic
 - `src/components/admin/ContactFormManager.tsx` - UI indicators
 - `src/components/admin/ContactSubmissions.tsx` - Contact form submissions UI
 - `src/components/admin/MessagesManager.tsx` - Messages manager UI
-- `supabase/functions/process-inbound-email/index.ts` - Notification creation
+- `supabase/functions/process-inbound-email/index.ts` - Inbound email processing with original sender extraction
+- `supabase/functions/notify-admin-new-contact/index.ts` - Multi-recipient admin notifications
 - `supabase/functions/send-contact-reply/index.ts` - Updates replied_at timestamp
 - `docs/NOTIFICATION_SYSTEM_COMPLETE.md` - Main notification system
 - `docs/CONTACT_FORM_SYSTEM.md` - Contact form features
 - `docs/CLOUDFLARE_EMAIL_ROUTING_SETUP.md` - Email routing setup
-- `docs/CONTACT_MESSAGES_REALTIME_UPDATES.md` - **NEW: Latest activity sorting, real-time badge updates, red dot fix**
+- `docs/CONTACT_MESSAGES_REALTIME_UPDATES.md` - Latest activity sorting, real-time badge updates, red dot fix
