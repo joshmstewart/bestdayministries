@@ -216,13 +216,35 @@ serve(async (req) => {
     const printifyOrder = await printifyOrderResponse.json();
     console.log('Printify order created:', printifyOrder.id);
 
+    // IMPORTANT: Submit the order to send it to production
+    // Without this step, orders stay "on hold"
+    console.log('Submitting Printify order to production...');
+    const submitResponse = await fetch(
+      `https://api.printify.com/v1/shops/${shopId}/orders/${printifyOrder.id}/send_to_production.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${printifyApiKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!submitResponse.ok) {
+      const submitError = await submitResponse.text();
+      console.error('Failed to submit order to production:', submitError);
+      // Order was created but not submitted - still update our records
+    } else {
+      console.log('Order submitted to production successfully');
+    }
+
     // Update our order items with Printify order ID
     for (const item of printifyItems) {
       await supabaseClient
         .from('order_items')
         .update({
           printify_order_id: printifyOrder.id,
-          printify_status: 'pending',
+          printify_status: submitResponse.ok ? 'in_production' : 'pending',
         })
         .eq('id', item.id);
     }
@@ -231,7 +253,10 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         printify_order_id: printifyOrder.id,
-        message: 'Printify order created successfully'
+        submitted_to_production: submitResponse.ok,
+        message: submitResponse.ok 
+          ? 'Printify order created and submitted to production' 
+          : 'Printify order created but not submitted (on hold)'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
