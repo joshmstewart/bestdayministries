@@ -1,9 +1,14 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[check-printify-status] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -37,40 +42,44 @@ serve(async (req) => {
     }
 
     const shopId = shops[0].id;
+    logStep('Using Printify shop', { shopId });
 
     // Get all order items with pending Printify orders
     const { data: pendingItems, error: itemsError } = await supabaseClient
       .from('order_items')
-      .select('id, printify_order_id, printify_status, order_id')
+      .select('id, printify_order_id, printify_status, fulfillment_status, order_id')
       .not('printify_order_id', 'is', null)
-      .not('printify_status', 'eq', 'shipped')
-      .not('printify_status', 'eq', 'delivered');
+      .not('fulfillment_status', 'eq', 'shipped')
+      .not('fulfillment_status', 'eq', 'delivered')
+      .not('fulfillment_status', 'eq', 'cancelled');
 
     if (itemsError) {
       throw new Error('Failed to fetch pending order items');
     }
 
     if (!pendingItems || pendingItems.length === 0) {
-      console.log('No pending Printify orders to check');
+      logStep('No pending Printify orders to check');
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'No pending orders',
-          updated: 0
+          updated: 0,
+          emailsSent: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Checking', pendingItems.length, 'pending Printify order items');
+    logStep('Checking pending items', { count: pendingItems.length });
 
     // Get unique Printify order IDs
     const uniqueOrderIds = [...new Set(pendingItems.map(item => item.printify_order_id))];
     let updatedCount = 0;
+    let emailsSent = 0;
 
     for (const printifyOrderId of uniqueOrderIds) {
       try {
-        console.log('Checking Printify order:', printifyOrderId);
+        logStep('Checking Printify order', { printifyOrderId });
 
         const orderResponse = await fetch(
           `https://api.printify.com/v1/shops/${shopId}/orders/${printifyOrderId}.json`,
@@ -78,13 +87,15 @@ serve(async (req) => {
         );
 
         if (!orderResponse.ok) {
-          console.error('Failed to fetch Printify order:', printifyOrderId);
+          logStep('Failed to fetch Printify order', { printifyOrderId, status: orderResponse.status });
           continue;
         }
 
         const printifyOrder = await orderResponse.json();
         const status = printifyOrder.status;
         const shipments = printifyOrder.shipments || [];
+
+        logStep('Printify order status', { printifyOrderId, status, shipmentsCount: shipments.length });
 
         // Get tracking info from first shipment if available
         let trackingNumber = null;
@@ -131,9 +142,11 @@ serve(async (req) => {
 
         // Update all order items with this Printify order ID
         const itemsToUpdate = pendingItems.filter(item => item.printify_order_id === printifyOrderId);
+        const previousStatuses = itemsToUpdate.map(item => item.fulfillment_status);
+        const wasNotShipped = previousStatuses.every(s => s !== 'shipped' && s !== 'delivered');
 
         for (const item of itemsToUpdate) {
-          const updateData: any = {
+          const updateData: Record<string, any> = {
             printify_status: mappedStatus,
             fulfillment_status: fulfillmentStatus,
           };
@@ -158,31 +171,63 @@ serve(async (req) => {
             .eq('id', item.id);
 
           if (updateError) {
-            console.error('Failed to update order item:', item.id, updateError);
+            logStep('Failed to update order item', { itemId: item.id, error: updateError });
           } else {
             updatedCount++;
-            console.log('Updated order item:', item.id, 'to status:', mappedStatus);
+            logStep('Updated order item', { itemId: item.id, status: mappedStatus });
+          }
+        }
+
+        // Send shipped email if status changed to shipped and we have tracking
+        if (fulfillmentStatus === 'shipped' && wasNotShipped && trackingNumber) {
+          const orderId = itemsToUpdate[0]?.order_id;
+          if (orderId) {
+            try {
+              const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+              const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+              
+              const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-order-shipped`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  orderId,
+                  trackingNumber,
+                  trackingUrl: trackingUrl || `https://track.aftership.com/${carrier}/${trackingNumber}`,
+                  carrier
+                }),
+              });
+
+              const emailResult = await emailResponse.json();
+              logStep('Shipped email triggered', { orderId, result: emailResult });
+              emailsSent++;
+            } catch (emailError) {
+              logStep('Error sending shipped email', { orderId, error: emailError });
+            }
           }
         }
 
       } catch (orderError) {
-        console.error('Error processing Printify order:', printifyOrderId, orderError);
+        logStep('Error processing Printify order', { printifyOrderId, error: orderError });
       }
     }
 
-    console.log('Status check complete. Updated', updatedCount, 'items');
+    logStep('Status check complete', { updated: updatedCount, emailsSent });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: `Checked ${uniqueOrderIds.length} orders`,
-        updated: updatedCount
+        updated: updatedCount,
+        emailsSent
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {
-    console.error('Error checking Printify status:', error);
+    console.error('[check-printify-status] Error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
