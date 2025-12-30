@@ -12,6 +12,36 @@ const logStep = (step: string, details?: any) => {
   console.log(`[VERIFY-MARKETPLACE-PAYMENT] ${step}${detailsStr}`);
 };
 
+// Helper to log failures to error_logs table for admin visibility
+async function logVerificationFailure(
+  supabaseClient: any,
+  reason: string,
+  details: Record<string, any>
+): Promise<string | null> {
+  try {
+    const { data, error } = await supabaseClient
+      .from("error_logs")
+      .insert({
+        error_message: reason,
+        error_type: "marketplace_payment_verification",
+        severity: "warning",
+        metadata: details,
+        environment: Deno.env.get("DENO_ENV") || "production",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Failed to log verification failure:", error);
+      return null;
+    }
+    return data?.id || null;
+  } catch (err) {
+    console.error("Error logging verification failure:", err);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -32,7 +62,7 @@ serve(async (req) => {
     if (!order_id) throw new Error("order_id is required");
     logStep("Request parsed", { session_id, order_id, guest_session_id });
 
-    // Try to authenticate user (optional for guest checkout)
+    // Try to authenticate user (optional - may be missing on redirect back from Stripe)
     const authHeader = req.headers.get("Authorization");
     let user = null;
     
@@ -45,34 +75,74 @@ serve(async (req) => {
       }
     }
 
-    // Get order - try authenticated user first, then fall back to guest
-    let order;
-    
-    if (user) {
-      // Authenticated user - verify order belongs to them
-      const { data, error } = await supabaseClient
-        .from("orders")
-        .select("*")
-        .eq("id", order_id)
-        .eq("user_id", user.id)
-        .single();
-      
-      if (error || !data) throw new Error("Order not found or unauthorized");
-      order = data;
-    } else {
-      // Guest checkout - get order by ID and verify it's a guest order (no user_id)
-      const { data, error } = await supabaseClient
-        .from("orders")
-        .select("*")
-        .eq("id", order_id)
-        .is("user_id", null)
-        .single();
-      
-      if (error || !data) throw new Error("Order not found or unauthorized");
-      order = data;
+    // ROBUST VERIFICATION: Fetch order by ID first (no user filter)
+    // Then validate using stripe_checkout_session_id match
+    const { data: order, error: orderError } = await supabaseClient
+      .from("orders")
+      .select("*")
+      .eq("id", order_id)
+      .single();
+
+    if (orderError || !order) {
+      const debugLogId = await logVerificationFailure(supabaseClient, "Order not found", {
+        order_id,
+        session_id,
+        has_auth_header: !!authHeader,
+        user_id: user?.id || null,
+        guest_session_id,
+        db_error: orderError?.message || null,
+      });
+      logStep("ERROR - Order not found", { order_id, debugLogId });
+      return new Response(
+        JSON.stringify({ 
+          error: "Order not found", 
+          status: "failed",
+          debug_log_id: debugLogId 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
-    
-    logStep("Order found", { orderId: order.id, status: order.status, isGuest: !user });
+
+    logStep("Order found", { 
+      orderId: order.id, 
+      status: order.status, 
+      customerId: order.customer_id,
+      userId: order.user_id,
+      storedSessionId: order.stripe_checkout_session_id 
+    });
+
+    // CRITICAL: Validate that the incoming session_id matches the order's stored session_id
+    // This is our primary security check - Stripe session IDs are not guessable
+    if (order.stripe_checkout_session_id && order.stripe_checkout_session_id !== session_id) {
+      const debugLogId = await logVerificationFailure(supabaseClient, "Session ID mismatch", {
+        order_id,
+        incoming_session_id: session_id,
+        stored_session_id: order.stripe_checkout_session_id,
+        has_auth_header: !!authHeader,
+        user_id: user?.id || null,
+        order_customer_id: order.customer_id,
+        order_user_id: order.user_id,
+      });
+      logStep("ERROR - Session ID mismatch", { debugLogId });
+      return new Response(
+        JSON.stringify({ 
+          error: "Session verification failed", 
+          status: "failed",
+          debug_log_id: debugLogId 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Optional additional check: if user is authenticated, verify they match
+    // But don't fail if user session is missing (common after Stripe redirect)
+    if (user && order.customer_id && order.customer_id !== user.id) {
+      logStep("Warning: Authenticated user doesn't match order customer_id", {
+        userId: user.id,
+        orderCustomerId: order.customer_id
+      });
+      // Don't fail - session_id match is sufficient proof
+    }
 
     // If already paid, return success
     if (order.status === "paid" || order.status === "processing") {
@@ -93,14 +163,40 @@ serve(async (req) => {
       ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") 
       : Deno.env.get("STRIPE_SECRET_KEY_TEST");
     
-    if (!stripeKey) throw new Error(`Stripe ${stripeMode} key not configured`);
+    if (!stripeKey) {
+      const debugLogId = await logVerificationFailure(supabaseClient, `Stripe ${stripeMode} key not configured`, {
+        order_id,
+        stripe_mode: stripeMode,
+      });
+      throw new Error(`Stripe ${stripeMode} key not configured`);
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Retrieve the checkout session with shipping details
-    const session = await stripe.checkout.sessions.retrieve(session_id, {
-      expand: ['shipping_details'],
-    });
+    let session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(session_id, {
+        expand: ['shipping_details'],
+      });
+    } catch (stripeError) {
+      const debugLogId = await logVerificationFailure(supabaseClient, "Failed to retrieve Stripe session", {
+        order_id,
+        session_id,
+        stripe_mode: stripeMode,
+        stripe_error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+      });
+      logStep("ERROR - Stripe session retrieval failed", { debugLogId });
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to verify with payment provider", 
+          status: "failed",
+          debug_log_id: debugLogId 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
     logStep("Stripe session retrieved", { paymentStatus: session.payment_status });
 
     if (session.payment_status === "paid") {
@@ -135,17 +231,18 @@ serve(async (req) => {
       if (updateError) throw new Error(`Failed to update order: ${updateError.message}`);
       logStep("Order updated to paid with shipping address");
 
-      // Clear cart based on user type
-      if (user) {
+      // Clear cart - use customer_id/user_id from order since user session may be missing
+      const orderOwnerId = order.customer_id || order.user_id;
+      if (orderOwnerId) {
         const { error: cartError } = await supabaseClient
           .from("shopping_cart")
           .delete()
-          .eq("user_id", user.id);
+          .eq("user_id", orderOwnerId);
 
         if (cartError) {
           logStep("Warning: Failed to clear user cart", { error: cartError.message });
         } else {
-          logStep("User cart cleared");
+          logStep("User cart cleared", { userId: orderOwnerId });
         }
       } else if (guest_session_id) {
         const { error: cartError } = await supabaseClient
@@ -203,6 +300,13 @@ serve(async (req) => {
       );
     } else {
       // Payment failed or was canceled
+      const debugLogId = await logVerificationFailure(supabaseClient, "Payment not successful", {
+        order_id,
+        session_id,
+        payment_status: session.payment_status,
+        stripe_mode: stripeMode,
+      });
+
       await supabaseClient
         .from("orders")
         .update({ status: "cancelled" })
@@ -212,7 +316,8 @@ serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           status: "failed",
-          message: "Payment was not successful" 
+          message: "Payment was not successful",
+          debug_log_id: debugLogId
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
