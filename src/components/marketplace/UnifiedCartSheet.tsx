@@ -14,6 +14,7 @@ import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCartSession } from "@/hooks/useCartSession";
 
 interface UnifiedCartSheetProps {
   open: boolean;
@@ -24,6 +25,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCheckingOutHandmade, setIsCheckingOutHandmade] = useState(false);
+  const { getCartFilter, isAuthenticated, sessionId, isLoading: cartSessionLoading } = useCartSession();
   
   // Shopify cart state
   const { 
@@ -38,23 +40,29 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
   // Database cart items (both handmade and house vendor merch)
   const { data: cartItems, isLoading: cartLoading } = useQuery({
-    queryKey: ['cart-items'],
+    queryKey: ['cart-items', getCartFilter()],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      const filter = getCartFilter();
+      if (!filter) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('shopping_cart')
         .select(`
           *,
           product:products(*, vendors(*))
-        `)
-        .eq('user_id', user.id);
+        `);
+      
+      if ('user_id' in filter) {
+        query = query.eq('user_id', filter.user_id);
+      } else if ('session_id' in filter) {
+        query = query.eq('session_id', filter.session_id);
+      }
 
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    enabled: open
+    enabled: open && !cartSessionLoading
   });
 
   // Split cart items into house vendor (official merch) and handmade
@@ -151,18 +159,11 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     setIsCheckingOutHandmade(true);
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Login required",
-          description: "Please log in to complete your purchase",
-          variant: "destructive"
-        });
-        setIsCheckingOutHandmade(false);
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke("create-marketplace-checkout", {});
+      // For authenticated users, use the edge function with auth
+      // For guests, pass session_id in the body
+      const body = isAuthenticated ? {} : { session_id: sessionId };
+      
+      const { data, error } = await supabase.functions.invoke("create-marketplace-checkout", { body });
 
       if (error) {
         toast({

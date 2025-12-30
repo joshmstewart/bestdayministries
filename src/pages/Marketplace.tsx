@@ -1,48 +1,45 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Store, Package } from "lucide-react";
+import { ShoppingCart, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ProductGrid } from "@/components/marketplace/ProductGrid";
-import { ShopifyProductGrid } from "@/components/marketplace/ShopifyProductGrid";
 import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
+import { useCartSession } from "@/hooks/useCartSession";
 
 const Marketplace = () => {
   const navigate = useNavigate();
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
+  const { getCartFilter, isAuthenticated, isLoading: cartSessionLoading } = useCartSession();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsAuthenticated(!!user);
-    };
-    checkAuth();
-  }, []);
-
-  // Fetch cart count
+  // Fetch cart count using session-aware filter
   const { data: cartCount } = useQuery({
-    queryKey: ['cart-count'],
+    queryKey: ['cart-count', getCartFilter()],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 0;
+      const filter = getCartFilter();
+      if (!filter) return 0;
       
-      const { data, error } = await supabase
-        .from('shopping_cart')
-        .select('quantity')
-        .eq('user_id', user.id);
+      let query = supabase.from('shopping_cart').select('quantity');
       
+      if ('user_id' in filter) {
+        query = query.eq('user_id', filter.user_id);
+      } else if ('session_id' in filter) {
+        query = query.eq('session_id', filter.session_id);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-    }
+    },
+    enabled: !cartSessionLoading
   });
 
   const totalCartCount = (cartCount || 0) + shopifyCartItems();

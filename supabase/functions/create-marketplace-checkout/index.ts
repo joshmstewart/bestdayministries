@@ -50,19 +50,25 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Authenticate user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    // Parse request body for guest checkout
+    const body = await req.json().catch(() => ({}));
+    const guestSessionId = body.session_id;
 
-    // Get user's cart items with product and vendor details
-    const { data: cartItems, error: cartError } = await supabaseClient
+    // Try to authenticate user (optional for guest checkout)
+    const authHeader = req.headers.get("Authorization");
+    let user = null;
+    let customerEmail = null;
+
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      user = userData.user;
+      customerEmail = user?.email;
+      logStep("User authenticated", { userId: user?.id, email: customerEmail });
+    }
+
+    // Determine cart filter
+    let cartQuery = supabaseClient
       .from("shopping_cart")
       .select(`
         id,
@@ -82,12 +88,21 @@ serve(async (req) => {
             is_house_vendor
           )
         )
-      `)
-      .eq("user_id", user.id);
+      `);
+
+    if (user) {
+      cartQuery = cartQuery.eq("user_id", user.id);
+    } else if (guestSessionId) {
+      cartQuery = cartQuery.eq("session_id", guestSessionId);
+    } else {
+      throw new Error("Authentication or session ID required");
+    }
+
+    const { data: cartItems, error: cartError } = await cartQuery;
 
     if (cartError) throw new Error(`Failed to fetch cart: ${cartError.message}`);
     if (!cartItems || cartItems.length === 0) throw new Error("Cart is empty");
-    logStep("Cart items fetched", { count: cartItems.length });
+    logStep("Cart items fetched", { count: cartItems.length, isGuest: !user });
 
     // Type assertion for nested data
     const typedCartItems = cartItems as unknown as CartItem[];
@@ -219,12 +234,16 @@ serve(async (req) => {
       hasOfficialMerch
     });
 
-    // Check or create Stripe customer
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Check or create Stripe customer (only if we have an email)
+    const effectiveEmail = customerEmail || (user?.email);
     let customerId: string | undefined;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Existing customer found", { customerId });
+    
+    if (effectiveEmail) {
+      const customers = await stripe.customers.list({ email: effectiveEmail, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+        logStep("Existing customer found", { customerId });
+      }
     }
 
     // Create line items for Stripe (products)
@@ -265,8 +284,8 @@ serve(async (req) => {
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .insert({
-        user_id: user.id,
-        customer_email: user.email,
+        user_id: user?.id || null,
+        customer_email: effectiveEmail,
         status: "pending",
         total_amount: totalAmount / 100,
         stripe_mode: stripeMode,
@@ -307,7 +326,7 @@ serve(async (req) => {
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : effectiveEmail,
       line_items: allLineItems,
       mode: "payment",
       success_url: `${origin}/checkout-success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
@@ -317,7 +336,7 @@ serve(async (req) => {
       },
       metadata: {
         order_id: order.id,
-        user_id: user.id,
+        user_id: user?.id || 'guest',
         stripe_mode: stripeMode,
         vendor_count: regularVendorCount.toString(),
         has_official_merch: hasOfficialMerch.toString(),
