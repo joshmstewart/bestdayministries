@@ -11,6 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ShoppingCart, Minus, Plus } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
+import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
+import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
+import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 
 interface ProductVariant {
   id: number;
@@ -28,6 +31,27 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
+  const [cartOpen, setCartOpen] = useState(false);
+  const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
+
+  // Fetch cart count
+  const { data: cartCount } = useQuery({
+    queryKey: ['cart-count'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+      
+      const { data, error } = await supabase
+        .from('shopping_cart')
+        .select('quantity')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      return data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+    }
+  });
+
+  const totalCartCount = (cartCount || 0) + shopifyCartItems();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', productId],
@@ -360,6 +384,8 @@ const ProductDetail = () => {
           </div>
         </div>
       </main>
+      <FloatingCartButton cartCount={totalCartCount} onClick={() => setCartOpen(true)} />
+      <UnifiedCartSheet open={cartOpen} onOpenChange={setCartOpen} />
       <Footer />
     </div>
   );
