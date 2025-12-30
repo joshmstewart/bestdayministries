@@ -173,14 +173,16 @@ export default function OrderHistory() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Shipping Address */}
-            <div>
-              <h3 className="font-semibold mb-2">Shipping To:</h3>
-              <p className="text-sm text-muted-foreground">
-                {order.shipping_address.name}<br />
-                {order.shipping_address.street}<br />
-                {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}
-              </p>
-            </div>
+            {order.shipping_address && (
+              <div>
+                <h3 className="font-semibold mb-2">Shipping To:</h3>
+                <p className="text-sm text-muted-foreground">
+                  {order.shipping_address.name}<br />
+                  {order.shipping_address.street}<br />
+                  {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}
+                </p>
+              </div>
+            )}
 
             <Separator />
 
