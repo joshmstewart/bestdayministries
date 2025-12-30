@@ -307,7 +307,7 @@ serve(async (req) => {
         product_id: item.product_id,
         vendor_id: item.products.vendor_id,
         quantity: item.quantity,
-        price_at_time: item.products.price,
+        price_at_purchase: item.products.price,
         platform_fee: Math.round(groupData.platformFee * itemFeeRatio) / 100,
         vendor_payout: Math.round(groupData.vendorPayout * itemFeeRatio) / 100,
       };
