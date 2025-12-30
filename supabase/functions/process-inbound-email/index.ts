@@ -94,6 +94,50 @@ Deno.serve(async (req) => {
     }
 
     console.log('[process-inbound-email] Sender email:', senderEmail);
+    
+    // ========== FILTER OUT SYSTEM EMAILS ==========
+    // Ignore emails from our own system to prevent duplicate submissions
+    const systemEmailPatterns = [
+      'noreply@bestdayministries.org',
+      'noreply@bestdayministries.com',
+      '@send.bestdayministries.org', // Cloudflare bounce addresses
+      'notifications@bestdayministries',
+    ];
+    
+    const isSystemEmail = systemEmailPatterns.some(pattern => 
+      senderEmail.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    // Also check if it's a Cloudflare forwarding address (long hex ID)
+    const isCloudflareForward = /^[0-9a-f-]{30,}@send\.bestdayministries\.org$/i.test(senderEmail);
+    
+    // Also check if subject indicates it's a system notification
+    const emailSubject = payload.subject || payload.headers?.subject || '';
+    const isSystemNotification = emailSubject.includes('[Action Required]') && 
+      (emailSubject.includes('New general submission') || 
+       emailSubject.includes('New Inbound Email') ||
+       emailSubject.includes('Contact Form Submission'));
+    
+    if (isSystemEmail || isCloudflareForward || isSystemNotification) {
+      console.log('[process-inbound-email] Ignoring system email:', { 
+        senderEmail, 
+        isSystemEmail, 
+        isCloudflareForward, 
+        isSystemNotification,
+        subject: emailSubject 
+      });
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'System email ignored',
+          ignored: true 
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     // ========== AMBASSADOR EMAIL THREAD HANDLING ==========
     // Check if email is sent to reply-{threadKey}@bestdayministries.org
