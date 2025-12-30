@@ -33,12 +33,24 @@ serve(async (req) => {
     // Get the order details
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
-      .select('*, customer:profiles(full_name, email)')
+      .select('*')
       .eq('id', orderId)
       .single();
 
     if (orderError || !order) {
-      throw new Error('Order not found');
+      console.error('Order query error:', orderError);
+      throw new Error(`Order not found: ${orderError?.message || 'Unknown error'}`);
+    }
+
+    // Get customer profile separately
+    let customerEmail = '';
+    if (order.customer_id) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('email')
+        .eq('id', order.customer_id)
+        .single();
+      customerEmail = profile?.email || '';
     }
 
     // Get order items that are Printify products
@@ -165,7 +177,7 @@ serve(async (req) => {
     const shippingAddress = {
       first_name: firstName,
       last_name: lastName,
-      email: order.customer?.email || '',
+      email: customerEmail || '',
       address1: dbShippingAddress.line1,
       address2: dbShippingAddress.line2 || '',
       city: dbShippingAddress.city,
