@@ -11,25 +11,33 @@ export const ProductGrid = ({ category }: ProductGridProps) => {
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', category],
     queryFn: async () => {
-      let query = supabase
+      const query = supabase
         .from('products')
         .select(`
           *,
-          vendor:vendors(business_name, user_id)
+          vendor:vendors(business_name, user_id, is_house_vendor)
         `)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (category === 'merch') {
-        // Show Printify products (vendor_id is null AND is_printify_product is true)
-        query = query.is('vendor_id', null).eq('is_printify_product', true);
-      } else if (category === 'handmade') {
-        // Show vendor products (has vendor_id)
-        query = query.not('vendor_id', 'is', null);
-      }
-
       const { data, error } = await query;
       if (error) throw error;
+      
+      // Filter based on category
+      if (category === 'merch') {
+        // Show Printify products OR products from house vendor
+        return data?.filter(p => 
+          p.is_printify_product === true || 
+          (p.vendor as any)?.is_house_vendor === true
+        ) || [];
+      } else if (category === 'handmade') {
+        // Show vendor products that are NOT from house vendor
+        return data?.filter(p => 
+          p.vendor_id !== null && 
+          (p.vendor as any)?.is_house_vendor !== true
+        ) || [];
+      }
+      
       return data;
     }
   });
