@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Store, 
   Package, 
@@ -17,7 +18,8 @@ import {
   Printer,
   Mail,
   Loader2,
-  Eye
+  Eye,
+  Trash2
 } from "lucide-react";
 import {
   Dialog,
@@ -26,6 +28,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -120,6 +132,11 @@ export const VendorManagement = () => {
   const [testEmailLoading, setTestEmailLoading] = useState(false);
   const [testTrackingNumber, setTestTrackingNumber] = useState("TEST123456789");
   const [testCarrier, setTestCarrier] = useState("usps");
+  
+  // Delete orders state
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -300,6 +317,111 @@ export const VendorManagement = () => {
       default:
         return `https://track.aftership.com/${trackingNumber}`;
     }
+  };
+
+  // Helper to check if an order can be deleted
+  const canDeleteOrder = (status: string) => {
+    return status === 'pending' || status === 'processing';
+  };
+
+  // Get deletable orders from selection
+  const getDeletableSelectedOrders = () => {
+    return orders.filter(o => selectedOrderIds.has(o.id) && canDeleteOrder(o.status));
+  };
+
+  // Toggle order selection
+  const toggleOrderSelection = (orderId: string) => {
+    setSelectedOrderIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select/deselect all deletable orders
+  const toggleSelectAllDeletable = () => {
+    const deletableOrders = orders.filter(o => canDeleteOrder(o.status));
+    const allSelected = deletableOrders.every(o => selectedOrderIds.has(o.id));
+    
+    if (allSelected) {
+      setSelectedOrderIds(new Set());
+    } else {
+      setSelectedOrderIds(new Set(deletableOrders.map(o => o.id)));
+    }
+  };
+
+  // Delete a single order
+  const deleteOrder = async (orderId: string) => {
+    try {
+      // First delete order items
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .delete()
+        .eq("order_id", orderId);
+
+      if (itemsError) throw itemsError;
+
+      // Then delete the order
+      const { error: orderError } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderId);
+
+      if (orderError) throw orderError;
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      return false;
+    }
+  };
+
+  // Bulk delete selected orders
+  const handleBulkDelete = async () => {
+    const deletableOrders = getDeletableSelectedOrders();
+    if (deletableOrders.length === 0) return;
+
+    setDeleteLoading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const order of deletableOrders) {
+      const success = await deleteOrder(order.id);
+      if (success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+
+    setDeleteLoading(false);
+    setDeleteDialogOpen(false);
+    setSelectedOrderIds(new Set());
+
+    if (failCount === 0) {
+      toast({
+        title: "Success",
+        description: `Deleted ${successCount} order${successCount > 1 ? 's' : ''}`,
+      });
+    } else {
+      toast({
+        title: "Partial Success",
+        description: `Deleted ${successCount} orders, ${failCount} failed`,
+        variant: "destructive",
+      });
+    }
+
+    loadData();
+  };
+
+  // Delete single order with confirmation
+  const handleSingleDelete = async (order: Order) => {
+    setSelectedOrderIds(new Set([order.id]));
+    setDeleteDialogOpen(true);
   };
 
   const updateVendorStatus = async (vendorId: string, newStatus: "approved" | "pending" | "rejected" | "suspended") => {
@@ -533,9 +655,42 @@ export const VendorManagement = () => {
             </TabsContent>
 
             <TabsContent value="orders" className="space-y-4">
+              {/* Bulk actions bar */}
+              {selectedOrderIds.size > 0 && (
+                <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+                  <span className="text-sm font-medium">
+                    {getDeletableSelectedOrders().length} deletable order{getDeletableSelectedOrders().length !== 1 ? 's' : ''} selected
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    disabled={getDeletableSelectedOrders().length === 0}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete Selected
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedOrderIds(new Set())}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              )}
+              
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={orders.filter(o => canDeleteOrder(o.status)).length > 0 && 
+                                 orders.filter(o => canDeleteOrder(o.status)).every(o => selectedOrderIds.has(o.id))}
+                        onCheckedChange={toggleSelectAllDeletable}
+                        title="Select all deletable orders"
+                      />
+                    </TableHead>
                     <TableHead>Order ID</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Date</TableHead>
@@ -547,7 +702,17 @@ export const VendorManagement = () => {
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow key={order.id} className={selectedOrderIds.has(order.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        {canDeleteOrder(order.status) ? (
+                          <Checkbox
+                            checked={selectedOrderIds.has(order.id)}
+                            onCheckedChange={() => toggleOrderSelection(order.id)}
+                          />
+                        ) : (
+                          <div className="w-4 h-4" title="Cannot delete shipped/completed orders" />
+                        )}
+                      </TableCell>
                       <TableCell className="font-mono text-xs">
                         {order.id.slice(0, 8)}...
                       </TableCell>
@@ -564,18 +729,31 @@ export const VendorManagement = () => {
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>{order.order_items.length} items</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setTestEmailDialogOpen(true);
-                          }}
-                          title="Send test shipping email"
-                        >
-                          <Mail className="h-4 w-4 mr-1" />
-                          Test Email
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setTestEmailDialogOpen(true);
+                            }}
+                            title="Send test shipping email"
+                          >
+                            <Mail className="h-4 w-4 mr-1" />
+                            Test Email
+                          </Button>
+                          {canDeleteOrder(order.status) && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleSingleDelete(order)}
+                              title="Delete order"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -669,6 +847,31 @@ export const VendorManagement = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Order{getDeletableSelectedOrders().length > 1 ? 's' : ''}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {getDeletableSelectedOrders().length} order{getDeletableSelectedOrders().length > 1 ? 's' : ''}? 
+              This will permanently remove the order{getDeletableSelectedOrders().length > 1 ? 's' : ''} and all associated items.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
