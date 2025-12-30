@@ -164,40 +164,67 @@ serve(async (req) => {
       : Deno.env.get("STRIPE_SECRET_KEY_TEST");
     
     if (!stripeKey) {
-      const debugLogId = await logVerificationFailure(supabaseClient, `Stripe ${stripeMode} key not configured`, {
-        order_id,
-        stripe_mode: stripeMode,
-      });
-      throw new Error(`Stripe ${stripeMode} key not configured`);
+      const debugLogId = await logVerificationFailure(
+        supabaseClient,
+        `Stripe ${stripeMode} key not configured`,
+        {
+          order_id,
+          session_id,
+          stripe_mode: stripeMode,
+        }
+      );
+      logStep("ERROR - Stripe key not configured", { stripeMode, debugLogId });
+      return new Response(
+        JSON.stringify({
+          error: `Payment provider is not configured (${stripeMode})`,
+          status: "failed",
+          debug_log_id: debugLogId,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        }
+      );
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Retrieve the checkout session with shipping details
+    // Retrieve the checkout session (shipping_details is returned in the payload when available)
     let session;
     try {
-      session = await stripe.checkout.sessions.retrieve(session_id, {
-        expand: ['shipping_details'],
-      });
+      session = await stripe.checkout.sessions.retrieve(session_id);
     } catch (stripeError) {
-      const debugLogId = await logVerificationFailure(supabaseClient, "Failed to retrieve Stripe session", {
-        order_id,
-        session_id,
-        stripe_mode: stripeMode,
-        stripe_error: stripeError instanceof Error ? stripeError.message : String(stripeError),
-      });
+      const errAny = stripeError as any;
+      const debugLogId = await logVerificationFailure(
+        supabaseClient,
+        "Failed to retrieve Stripe session",
+        {
+          order_id,
+          session_id,
+          stripe_mode: stripeMode,
+          stripe_error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+          stripe_error_type: errAny?.type ?? null,
+          stripe_error_code: errAny?.code ?? null,
+          stripe_status_code: errAny?.statusCode ?? null,
+          stripe_request_id: errAny?.requestId ?? null,
+          stripe_raw: errAny ? JSON.parse(JSON.stringify(errAny)) : null,
+        }
+      );
       logStep("ERROR - Stripe session retrieval failed", { debugLogId });
       return new Response(
-        JSON.stringify({ 
-          error: "Failed to verify with payment provider", 
+        JSON.stringify({
+          error: "Failed to verify with payment provider",
           status: "failed",
-          debug_log_id: debugLogId 
+          debug_log_id: debugLogId,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
-    
-    logStep("Stripe session retrieved", { paymentStatus: session.payment_status });
+
+    logStep("Stripe session retrieved", {
+      paymentStatus: session.payment_status,
+      hasShipping: !!session.shipping_details,
+    });
 
     if (session.payment_status === "paid") {
       // Extract shipping address from Stripe session

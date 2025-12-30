@@ -50,8 +50,8 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`moderate-image`** - [Auth Required] AI image moderation via Lovable AI (Gemini Vision)
 
 ### Marketplace & Vendor Management
-- **`create-marketplace-checkout`** - [Auth Required] Creates Stripe checkout for handmade products with multi-vendor commission splitting
-- **`verify-marketplace-payment`** - [Auth Required] Polling-based payment verification, updates order status, clears cart
+- **`create-marketplace-checkout`** - [Auth Required] Creates checkout for marketplace products
+- **`verify-marketplace-payment`** - [Auth Optional on return] Verifies checkout by order_id + session_id, logs failures to `error_logs` and returns `debug_log_id`
 - **`create-stripe-connect-account`** - [Auth Required] Creates/retrieves Stripe Connect accounts for vendors
 - **`check-stripe-connect-status`** - [Auth Required] Checks vendor's Stripe Connect onboarding status
 - **`create-vendor-transfer`** - [Internal] Transfers funds to vendor on order fulfillment
