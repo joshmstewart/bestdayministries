@@ -147,7 +147,7 @@ serve(async (req) => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "Best Day Ministries <orders@bestdayministries.com>",
+      from: "Best Day Ministries <orders@bestdayministries.org>",
       to: [customerEmail],
       subject: `Order Confirmed - #${orderId.substring(0, 8).toUpperCase()}`,
       html: emailHtml,
