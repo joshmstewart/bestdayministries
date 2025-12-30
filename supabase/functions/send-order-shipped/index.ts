@@ -45,9 +45,11 @@ serve(async (req) => {
         shipping_address,
         order_items (
           id,
-          product_name,
           quantity,
-          unit_price
+          unit_price,
+          products (
+            name
+          )
         )
       `)
       .eq('id', orderId)
@@ -72,7 +74,7 @@ serve(async (req) => {
     // Build items HTML
     const itemsHtml = order.order_items.map((item: any) => `
       <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #eee;">${item.product_name}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #eee;">${item.products?.name || 'Product'}</td>
         <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
       </tr>
     `).join('');
