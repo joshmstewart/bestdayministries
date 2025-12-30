@@ -379,6 +379,38 @@ serve(async (req) => {
         });
       }
 
+      // Send order confirmation email
+      try {
+        const customerEmail = session.customer_details?.email || session.customer_email || order.customer_email;
+        if (customerEmail) {
+          const emailResponse = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-order-confirmation`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({ orderId: order_id, customerEmail }),
+            }
+          );
+
+          const emailResult = await emailResponse.json();
+          logStep("Order confirmation email result", {
+            ok: emailResponse.ok,
+            status: emailResponse.status,
+            body: emailResult,
+          });
+        } else {
+          logStep("Warning: No customer email found for order confirmation");
+        }
+      } catch (emailError) {
+        // Log but don't fail the payment verification if email fails
+        logStep("Warning: Order confirmation email failed", {
+          error: emailError instanceof Error ? emailError.message : String(emailError),
+        });
+      }
+
       return new Response(
         JSON.stringify({
           success: true,
