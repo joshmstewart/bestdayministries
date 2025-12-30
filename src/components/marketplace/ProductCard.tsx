@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useCartSession } from "@/hooks/useCartSession";
 
 // Map color names to CSS colors
 const colorNameToCSS: Record<string, string> = {
@@ -86,14 +87,16 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { getCartInsertData, isLoading: cartSessionLoading } = useCartSession();
 
   const addToCart = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    if (cartSessionLoading) return;
     
-    if (!user) {
+    const insertData = getCartInsertData(product.id, 1);
+    if (!insertData) {
       toast({
-        title: "Please sign in",
-        description: "You need to be logged in to add items to cart",
+        title: "Error",
+        description: "Unable to add to cart. Please try again.",
         variant: "destructive"
       });
       return;
@@ -101,12 +104,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
     const { error } = await supabase
       .from('shopping_cart')
-      .upsert({
-        user_id: user.id,
-        product_id: product.id,
-        quantity: 1
-      }, {
-        onConflict: 'user_id,product_id',
+      .upsert(insertData, {
+        onConflict: 'user_id' in insertData ? 'user_id,product_id' : 'session_id,product_id',
         ignoreDuplicates: false
       });
 

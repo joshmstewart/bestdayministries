@@ -14,6 +14,7 @@ import Footer from "@/components/Footer";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
 import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
+import { useCartSession } from "@/hooks/useCartSession";
 
 interface ProductVariant {
   id: number;
@@ -33,22 +34,28 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [cartOpen, setCartOpen] = useState(false);
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
+  const { getCartFilter, getCartInsertData, isLoading: cartSessionLoading } = useCartSession();
 
-  // Fetch cart count
+  // Fetch cart count using session-aware filter
   const { data: cartCount } = useQuery({
-    queryKey: ['cart-count'],
+    queryKey: ['cart-count', getCartFilter()],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 0;
+      const filter = getCartFilter();
+      if (!filter) return 0;
       
-      const { data, error } = await supabase
-        .from('shopping_cart')
-        .select('quantity')
-        .eq('user_id', user.id);
+      let query = supabase.from('shopping_cart').select('quantity');
       
+      if ('user_id' in filter) {
+        query = query.eq('user_id', filter.user_id);
+      } else if ('session_id' in filter) {
+        query = query.eq('session_id', filter.session_id);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-    }
+    },
+    enabled: !cartSessionLoading
   });
 
   const totalCartCount = (cartCount || 0) + shopifyCartItems();
@@ -153,16 +160,7 @@ const ProductDetail = () => {
   })();
 
   const addToCart = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      toast({
-        title: "Please sign in",
-        description: "You need to be logged in to add items to cart",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (cartSessionLoading) return;
 
     // For Printify products with multiple variants, we need a variant selection
     if (product?.is_printify_product && variants.length > 1 && !effectiveVariant) {
@@ -174,15 +172,24 @@ const ProductDetail = () => {
       return;
     }
 
+    const variantInfo = effectiveVariant 
+      ? { variant: effectiveVariant, variantId: variants.find(v => v.title === effectiveVariant)?.id } 
+      : null;
+
+    const insertData = getCartInsertData(product?.id || '', quantity, variantInfo);
+    if (!insertData) {
+      toast({
+        title: "Error",
+        description: "Unable to add to cart. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const { error } = await supabase
       .from('shopping_cart')
-      .upsert({
-        user_id: user.id,
-        product_id: product?.id,
-        quantity: quantity,
-        variant_info: effectiveVariant ? { variant: effectiveVariant, variantId: variants.find(v => v.title === effectiveVariant)?.id } : null
-      }, {
-        onConflict: 'user_id,product_id',
+      .upsert(insertData, {
+        onConflict: 'user_id' in insertData ? 'user_id,product_id' : 'session_id,product_id',
         ignoreDuplicates: false
       });
 

@@ -3966,8 +3966,9 @@ export type Database = {
           id: string
           product_id: string
           quantity: number
+          session_id: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           variant_info: Json | null
         }
         Insert: {
@@ -3975,8 +3976,9 @@ export type Database = {
           id?: string
           product_id: string
           quantity: number
+          session_id?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           variant_info?: Json | null
         }
         Update: {
@@ -3984,8 +3986,9 @@ export type Database = {
           id?: string
           product_id?: string
           quantity?: number
+          session_id?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           variant_info?: Json | null
         }
         Relationships: [
