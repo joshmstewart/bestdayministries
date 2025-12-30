@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ProductGrid } from "@/components/marketplace/ProductGrid";
 import { ShopifyProductGrid } from "@/components/marketplace/ShopifyProductGrid";
 import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
+import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 
 const Marketplace = () => {
@@ -141,6 +142,7 @@ const Marketplace = () => {
         </section>
       </main>
 
+      <FloatingCartButton cartCount={totalCartCount} onClick={() => setCartOpen(true)} />
       <UnifiedCartSheet open={cartOpen} onOpenChange={setCartOpen} />
       <Footer />
     </div>
