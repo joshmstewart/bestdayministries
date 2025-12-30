@@ -45,7 +45,7 @@ serve(async (req) => {
       }
     }
 
-    // Get order - for authenticated users, verify ownership; for guests, use session_id from order metadata
+    // Get order - try authenticated user first, then fall back to guest
     let order;
     
     if (user) {
