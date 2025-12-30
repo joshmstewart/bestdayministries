@@ -48,9 +48,11 @@ serve(async (req) => {
     console.log('Importing Printify product:', printifyProduct.title);
 
     // Get the first enabled variant's price as base, or first variant
+    // Printify prices come in cents, convert to dollars
     const enabledVariants = printifyProduct.variants.filter((v: any) => v.is_enabled);
     const baseVariant = enabledVariants[0] || printifyProduct.variants[0];
-    const basePrice = baseVariant ? (baseVariant.price + priceMarkup) : 0;
+    const basePriceInDollars = baseVariant ? baseVariant.price / 100 : 0;
+    const basePrice = basePriceInDollars + priceMarkup;
 
     // Get first image URL
     const imageUrl = printifyProduct.images?.[0]?.src || null;
@@ -105,9 +107,10 @@ serve(async (req) => {
         printify_print_provider_id: printifyProduct.print_provider_id,
         printify_variant_ids: variantIds,
         // Store original Printify values for detecting Printify-side changes
+        // Store the raw Printify price in dollars (without markup) for change detection
         printify_original_title: cleanTitle,
         printify_original_description: cleanDescription,
-        printify_original_price: baseVariant ? baseVariant.price : 0, // Base price without markup
+        printify_original_price: basePriceInDollars, // Raw Printify price in dollars, no markup
         // Auto-assign to house vendor for official merch
         vendor_id: houseVendor?.id || null,
       })
