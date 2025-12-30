@@ -165,6 +165,21 @@ serve(async (req) => {
     const emailId = (emailResponse as any)?.id || (emailResponse as any)?.data?.id;
     logStep('Shipped email sent', { emailId });
 
+    // Log to email audit log for tracking and preview
+    await supabaseClient.from("email_audit_log").insert({
+      email_type: "order_shipped",
+      recipient_email: order.customer_email,
+      subject: `📦 Your order has shipped! Tracking: ${trackingNumber}`,
+      from_email: "orders@bestdayministries.com",
+      from_name: "Best Day Ever Store",
+      status: "sent",
+      related_type: "order",
+      related_id: orderId,
+      resend_email_id: emailId,
+      sent_at: new Date().toISOString(),
+      html_content: emailHtml,
+    });
+
     return new Response(JSON.stringify({ success: true, emailId }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
