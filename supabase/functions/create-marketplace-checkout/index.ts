@@ -25,7 +25,7 @@ interface CartItem {
     name: string;
     price: number;
     vendor_id: string;
-    image_url?: string;
+    images?: string[];
     vendors: {
       id: string;
       business_name: string;
@@ -73,7 +73,7 @@ serve(async (req) => {
           name,
           price,
           vendor_id,
-          image_url,
+          images,
           vendors (
             id,
             business_name,
@@ -233,7 +233,7 @@ serve(async (req) => {
         currency: "usd",
         product_data: {
           name: item.products.name,
-          images: item.products.image_url ? [item.products.image_url] : [],
+          images: item.products.images?.length ? [item.products.images[0]] : [],
         },
         unit_amount: Math.round(item.products.price * 100),
       },
