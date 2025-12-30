@@ -14,7 +14,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, Image as ImageIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Product {
   id: string;
@@ -38,15 +39,41 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
   const [price, setPrice] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
+  const [defaultImageIndex, setDefaultImageIndex] = useState<number>(0);
+  const [loadingImages, setLoadingImages] = useState(false);
 
   useEffect(() => {
-    if (product) {
+    if (product && open) {
       setName(product.name);
       setDescription(product.description || "");
       setPrice(product.price.toString());
       setIsActive(product.is_active);
+      loadProductImages(product.id);
     }
-  }, [product]);
+  }, [product, open]);
+
+  const loadProductImages = async (productId: string) => {
+    setLoadingImages(true);
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("images, default_image_index")
+        .eq("id", productId)
+        .single();
+
+      if (error) throw error;
+
+      setImages(data.images || []);
+      setDefaultImageIndex(data.default_image_index ?? 0);
+    } catch (error: any) {
+      console.error("Failed to load product images:", error);
+      setImages([]);
+      setDefaultImageIndex(0);
+    } finally {
+      setLoadingImages(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!product) return;
@@ -66,6 +93,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
           description,
           price: priceNum,
           is_active: isActive,
+          default_image_index: defaultImageIndex,
           updated_at: new Date().toISOString(),
         })
         .eq("id", product.id);
@@ -84,11 +112,11 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Product</DialogTitle>
           <DialogDescription>
-            Update product details including price markup.
+            Update product details including price markup and default image.
           </DialogDescription>
         </DialogHeader>
 
@@ -134,6 +162,57 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
               checked={isActive}
               onCheckedChange={setIsActive}
             />
+          </div>
+
+          {/* Default Image Selection */}
+          <div className="grid gap-2">
+            <Label className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Default Image
+            </Label>
+            {loadingImages ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : images.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {images.map((imageUrl, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setDefaultImageIndex(index)}
+                    className={cn(
+                      "relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:opacity-90",
+                      defaultImageIndex === index
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "border-border hover:border-muted-foreground"
+                    )}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`Product image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {defaultImageIndex === index && (
+                      <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                        <div className="bg-primary text-primary-foreground rounded-full p-1">
+                          <Check className="h-4 w-4" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-2">
+                No images available for this product.
+              </p>
+            )}
+            {images.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Click an image to set it as the default display image.
+              </p>
+            )}
           </div>
         </div>
 
