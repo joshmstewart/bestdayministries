@@ -414,11 +414,11 @@ export const VendorManagement = () => {
           <CardDescription>Manage vendors, products, and orders</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="vendors">
+          <Tabs defaultValue="orders">
             <TabsList>
+              <TabsTrigger value="orders">Orders</TabsTrigger>
               <TabsTrigger value="vendors">Vendors</TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
-              <TabsTrigger value="orders">Orders</TabsTrigger>
               <TabsTrigger value="printify" className="gap-1">
                 <Printer className="w-3 h-3" />
                 Printify
