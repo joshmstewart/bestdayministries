@@ -259,26 +259,8 @@ serve(async (req) => {
       quantity: item.quantity,
     }));
 
-    // Add shipping line items for each group that has shipping
-    const shippingLineItems: typeof productLineItems = [];
-    for (const groupData of groupTotals.values()) {
-      if (groupData.shippingFee > 0) {
-        const groupName = groupData.items[0]?.products?.vendors?.business_name || 'Vendor';
-        shippingLineItems.push({
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Shipping (${groupName})`,
-              images: [],
-            },
-            unit_amount: groupData.shippingFee,
-          },
-          quantity: 1,
-        });
-      }
-    }
-
-    const allLineItems = [...productLineItems, ...shippingLineItems];
+    // Note: Shipping is handled via shipping_options, not line items
+    const allLineItems = productLineItems;
 
     // Create order record - use customer_id for authenticated users (matches OrderHistory.tsx)
     const { data: order, error: orderError } = await supabaseClient
