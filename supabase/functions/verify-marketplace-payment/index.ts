@@ -7,9 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[VERIFY-MARKETPLACE-PAYMENT] ${step}${detailsStr}`);
+type TraceEntry = {
+  ts: string;
+  step: string;
+  details?: unknown;
+};
+
+const createLogger = () => {
+  const trace: TraceEntry[] = [];
+
+  const logStep = (step: string, details?: unknown) => {
+    trace.push({ ts: new Date().toISOString(), step, details });
+    const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
+    console.log(`[VERIFY-MARKETPLACE-PAYMENT] ${step}${detailsStr}`);
+  };
+
+  return { trace, logStep };
 };
 
 // Helper to log failures to error_logs table for admin visibility
@@ -27,6 +40,9 @@ async function logVerificationFailure(
         severity: "warning",
         metadata: details,
         environment: Deno.env.get("DENO_ENV") || "production",
+        url: details?.request_url ?? null,
+        user_id: details?.user_id ?? null,
+        user_email: details?.user_email ?? null,
       })
       .select("id")
       .single();
@@ -53,30 +69,78 @@ serve(async (req) => {
     { auth: { persistSession: false } }
   );
 
+  const { trace, logStep } = createLogger();
+
+  const respondFailure = async (
+    statusCode: number,
+    reason: string,
+    details: Record<string, any> = {}
+  ) => {
+    const debugLogId = await logVerificationFailure(supabaseClient, reason, {
+      ...details,
+      trace,
+    });
+
+    logStep("FAILURE_RESPONSE", { reason, debugLogId });
+
+    return new Response(
+      JSON.stringify({
+        status: "failed",
+        error: reason,
+        message: reason,
+        debug_log_id: debugLogId,
+        details,
+        trace,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: statusCode,
+      }
+    );
+  };
+
   try {
     logStep("Function started");
 
     // Parse request body
-    const { session_id, order_id, guest_session_id } = await req.json();
-    if (!session_id) throw new Error("session_id is required");
-    if (!order_id) throw new Error("order_id is required");
+    const body = await req.json().catch(() => ({}));
+    const { session_id, order_id, guest_session_id } = body || {};
+
+    if (!session_id) {
+      return await respondFailure(400, "session_id is required", {
+        request_url: req.headers.get("referer") ?? null,
+        request_body: body,
+      });
+    }
+
+    if (!order_id) {
+      return await respondFailure(400, "order_id is required", {
+        request_url: req.headers.get("referer") ?? null,
+        request_body: body,
+      });
+    }
+
     logStep("Request parsed", { session_id, order_id, guest_session_id });
 
     // Try to authenticate user (optional - may be missing on redirect back from Stripe)
     const authHeader = req.headers.get("Authorization");
-    let user = null;
-    
+    let user: any = null;
+
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data: userData } = await supabaseClient.auth.getUser(token);
-      user = userData.user;
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError) {
+        logStep("Auth token present but getUser failed", { error: userError.message });
+      }
+      user = userData?.user || null;
       if (user) {
         logStep("User authenticated", { userId: user.id });
       }
+    } else {
+      logStep("No Authorization header (auth optional)");
     }
 
     // ROBUST VERIFICATION: Fetch order by ID first (no user filter)
-    // Then validate using stripe_checkout_session_id match
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .select("*")
@@ -84,74 +148,60 @@ serve(async (req) => {
       .single();
 
     if (orderError || !order) {
-      const debugLogId = await logVerificationFailure(supabaseClient, "Order not found", {
+      return await respondFailure(400, "Order not found", {
         order_id,
         session_id,
-        has_auth_header: !!authHeader,
-        user_id: user?.id || null,
         guest_session_id,
-        db_error: orderError?.message || null,
+        has_auth_header: !!authHeader,
+        user_id: user?.id ?? null,
+        user_email: user?.email ?? null,
+        db_error: orderError?.message ?? null,
+        request_url: req.headers.get("referer") ?? null,
       });
-      logStep("ERROR - Order not found", { order_id, debugLogId });
-      return new Response(
-        JSON.stringify({ 
-          error: "Order not found", 
-          status: "failed",
-          debug_log_id: debugLogId 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
     }
 
-    logStep("Order found", { 
-      orderId: order.id, 
-      status: order.status, 
+    logStep("Order found", {
+      orderId: order.id,
+      status: order.status,
       customerId: order.customer_id,
       userId: order.user_id,
-      storedSessionId: order.stripe_checkout_session_id 
+      storedSessionId: order.stripe_checkout_session_id,
+      stripeMode: order.stripe_mode,
     });
 
-    // CRITICAL: Validate that the incoming session_id matches the order's stored session_id
-    // This is our primary security check - Stripe session IDs are not guessable
+    // Primary security check: validate incoming session_id matches stored session_id
     if (order.stripe_checkout_session_id && order.stripe_checkout_session_id !== session_id) {
-      const debugLogId = await logVerificationFailure(supabaseClient, "Session ID mismatch", {
+      return await respondFailure(400, "Session ID mismatch", {
         order_id,
         incoming_session_id: session_id,
         stored_session_id: order.stripe_checkout_session_id,
         has_auth_header: !!authHeader,
-        user_id: user?.id || null,
+        user_id: user?.id ?? null,
+        user_email: user?.email ?? null,
         order_customer_id: order.customer_id,
         order_user_id: order.user_id,
+        request_url: req.headers.get("referer") ?? null,
       });
-      logStep("ERROR - Session ID mismatch", { debugLogId });
-      return new Response(
-        JSON.stringify({ 
-          error: "Session verification failed", 
-          status: "failed",
-          debug_log_id: debugLogId 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
     }
 
     // Optional additional check: if user is authenticated, verify they match
-    // But don't fail if user session is missing (common after Stripe redirect)
     if (user && order.customer_id && order.customer_id !== user.id) {
       logStep("Warning: Authenticated user doesn't match order customer_id", {
         userId: user.id,
-        orderCustomerId: order.customer_id
+        orderCustomerId: order.customer_id,
       });
       // Don't fail - session_id match is sufficient proof
     }
 
-    // If already paid, return success
-    if (order.status === "paid" || order.status === "processing") {
-      logStep("Order already processed");
+    // If already processed, return success
+    const alreadyProcessedStatuses = ["processing", "shipped", "completed", "refunded"]; // enum-backed
+    if (alreadyProcessedStatuses.includes(String(order.status))) {
+      logStep("Order already processed", { status: order.status });
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           status: order.status,
-          message: "Payment already verified" 
+          message: "Payment already verified",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
@@ -159,104 +209,96 @@ serve(async (req) => {
 
     // Determine Stripe mode from order
     const stripeMode = order.stripe_mode || "test";
-    const stripeKey = stripeMode === "live" 
-      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") 
-      : Deno.env.get("STRIPE_SECRET_KEY_TEST");
-    
+    const stripeKey =
+      stripeMode === "live"
+        ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
+        : Deno.env.get("STRIPE_SECRET_KEY_TEST");
+
     if (!stripeKey) {
-      const debugLogId = await logVerificationFailure(
-        supabaseClient,
-        `Stripe ${stripeMode} key not configured`,
-        {
-          order_id,
-          session_id,
-          stripe_mode: stripeMode,
-        }
-      );
-      logStep("ERROR - Stripe key not configured", { stripeMode, debugLogId });
-      return new Response(
-        JSON.stringify({
-          error: `Payment provider is not configured (${stripeMode})`,
-          status: "failed",
-          debug_log_id: debugLogId,
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500,
-        }
-      );
+      return await respondFailure(500, `Stripe ${stripeMode} key not configured`, {
+        order_id,
+        session_id,
+        stripe_mode: stripeMode,
+      });
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Retrieve the checkout session (shipping_details is returned in the payload when available)
-    let session;
+    // Retrieve the checkout session
+    let session: any;
     try {
       session = await stripe.checkout.sessions.retrieve(session_id);
     } catch (stripeError) {
       const errAny = stripeError as any;
-      const debugLogId = await logVerificationFailure(
-        supabaseClient,
-        "Failed to retrieve Stripe session",
-        {
-          order_id,
-          session_id,
-          stripe_mode: stripeMode,
-          stripe_error: stripeError instanceof Error ? stripeError.message : String(stripeError),
-          stripe_error_type: errAny?.type ?? null,
-          stripe_error_code: errAny?.code ?? null,
-          stripe_status_code: errAny?.statusCode ?? null,
-          stripe_request_id: errAny?.requestId ?? null,
-          stripe_raw: errAny ? JSON.parse(JSON.stringify(errAny)) : null,
-        }
-      );
-      logStep("ERROR - Stripe session retrieval failed", { debugLogId });
-      return new Response(
-        JSON.stringify({
-          error: "Failed to verify with payment provider",
-          status: "failed",
-          debug_log_id: debugLogId,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
+      return await respondFailure(400, "Failed to retrieve Stripe session", {
+        order_id,
+        session_id,
+        stripe_mode: stripeMode,
+        stripe_error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+        stripe_error_type: errAny?.type ?? null,
+        stripe_error_code: errAny?.code ?? null,
+        stripe_status_code: errAny?.statusCode ?? null,
+        stripe_request_id: errAny?.requestId ?? null,
+        stripe_raw: errAny ? JSON.parse(JSON.stringify(errAny)) : null,
+      });
     }
 
     logStep("Stripe session retrieved", {
       paymentStatus: session.payment_status,
+      status: session.status,
       hasShipping: !!session.shipping_details,
+      hasPaymentIntent: !!session.payment_intent,
     });
 
     if (session.payment_status === "paid") {
       // Extract shipping address from Stripe session
       const shippingDetails = session.shipping_details;
-      let shippingAddress = null;
-      
+      let shippingAddress: any = null;
+
       if (shippingDetails?.address) {
         shippingAddress = {
-          name: shippingDetails.name || '',
-          line1: shippingDetails.address.line1 || '',
-          line2: shippingDetails.address.line2 || '',
-          city: shippingDetails.address.city || '',
-          state: shippingDetails.address.state || '',
-          postal_code: shippingDetails.address.postal_code || '',
-          country: shippingDetails.address.country || 'US',
+          name: shippingDetails.name || "",
+          line1: shippingDetails.address.line1 || "",
+          line2: shippingDetails.address.line2 || "",
+          city: shippingDetails.address.city || "",
+          state: shippingDetails.address.state || "",
+          postal_code: shippingDetails.address.postal_code || "",
+          country: shippingDetails.address.country || "US",
         };
-        logStep("Shipping address extracted", { city: shippingAddress.city, country: shippingAddress.country });
+        logStep("Shipping address extracted", {
+          city: shippingAddress.city,
+          country: shippingAddress.country,
+        });
+      } else {
+        logStep("No shipping_details on Stripe session");
       }
 
-      // Update order status and shipping address
+      // IMPORTANT: orders.status is an enum. It does NOT include "paid".
+      // Valid values: pending | processing | shipped | completed | cancelled | refunded
+      const updatePayload = {
+        status: "completed",
+        stripe_payment_intent_id: session.payment_intent as string,
+        paid_at: new Date().toISOString(),
+        shipping_address: shippingAddress,
+      };
+
+      logStep("Updating order", { order_id, updatePayload });
+
       const { error: updateError } = await supabaseClient
         .from("orders")
-        .update({ 
-          status: "paid",
-          stripe_payment_intent_id: session.payment_intent as string,
-          paid_at: new Date().toISOString(),
-          shipping_address: shippingAddress,
-        })
+        .update(updatePayload)
         .eq("id", order_id);
 
-      if (updateError) throw new Error(`Failed to update order: ${updateError.message}`);
-      logStep("Order updated to paid with shipping address");
+      if (updateError) {
+        return await respondFailure(400, `Failed to update order: ${updateError.message}`, {
+          order_id,
+          session_id,
+          stripe_mode: stripeMode,
+          update_payload: updatePayload,
+        });
+      }
+
+      logStep("Order updated", { status: "completed" });
 
       // Clear cart - use customer_id/user_id from order since user session may be missing
       const orderOwnerId = order.customer_id || order.user_id;
@@ -282,6 +324,8 @@ serve(async (req) => {
         } else {
           logStep("Guest cart cleared");
         }
+      } else {
+        logStep("Cart not cleared (no owner id or guest session id)");
       }
 
       // Trigger Printify order creation for any Printify products
@@ -289,73 +333,77 @@ serve(async (req) => {
         const printifyResponse = await fetch(
           `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-printify-order`,
           {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
             },
             body: JSON.stringify({ orderId: order_id }),
           }
         );
-        
+
         const printifyResult = await printifyResponse.json();
-        logStep("Printify order creation result", printifyResult);
+        logStep("Printify order creation result", {
+          ok: printifyResponse.ok,
+          status: printifyResponse.status,
+          body: printifyResult,
+        });
       } catch (printifyError) {
         // Log but don't fail the payment verification if Printify fails
-        logStep("Warning: Printify order creation failed", { 
-          error: printifyError instanceof Error ? printifyError.message : String(printifyError) 
+        logStep("Warning: Printify order creation failed", {
+          error: printifyError instanceof Error ? printifyError.message : String(printifyError),
         });
       }
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          status: "paid",
+        JSON.stringify({
+          success: true,
+          status: "completed",
           order_id: order.id,
-          message: "Payment verified successfully" 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    } else if (session.payment_status === "unpaid") {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          status: "pending",
-          message: "Payment not yet completed" 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    } else {
-      // Payment failed or was canceled
-      const debugLogId = await logVerificationFailure(supabaseClient, "Payment not successful", {
-        order_id,
-        session_id,
-        payment_status: session.payment_status,
-        stripe_mode: stripeMode,
-      });
-
-      await supabaseClient
-        .from("orders")
-        .update({ status: "cancelled" })
-        .eq("id", order_id);
-
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          status: "failed",
-          message: "Payment was not successful",
-          debug_log_id: debugLogId
+          message: "Payment verified successfully",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
 
+    if (session.payment_status === "unpaid") {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: "pending",
+          message: "Payment not yet completed",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Payment failed or was canceled
+    // Update order to cancelled (enum-backed)
+    const { error: cancelError } = await supabaseClient
+      .from("orders")
+      .update({ status: "cancelled" })
+      .eq("id", order_id);
+
+    if (cancelError) {
+      return await respondFailure(400, `Payment not successful, and failed to mark cancelled: ${cancelError.message}`, {
+        order_id,
+        session_id,
+        stripe_mode: stripeMode,
+        payment_status: session.payment_status,
+      });
+    }
+
+    return await respondFailure(200, "Payment was not successful", {
+      order_id,
+      session_id,
+      stripe_mode: stripeMode,
+      payment_status: session.payment_status,
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-    );
+    logStep("UNHANDLED_ERROR", { message: errorMessage });
+    return await respondFailure(400, errorMessage, {
+      request_url: req.headers.get("referer") ?? null,
+    });
   }
 });

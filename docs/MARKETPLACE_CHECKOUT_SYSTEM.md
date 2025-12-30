@@ -73,7 +73,7 @@ The checkout uses **polling-based verification** instead of webhooks:
 
 **orders:**
 - `id`, `user_id`, `customer_id`, `total_amount`
-- `status`: pending | paid | processing | completed | cancelled
+- `status`: pending | processing | shipped | completed | cancelled | refunded
 - `stripe_checkout_session_id`, `stripe_payment_intent_id`
 - `stripe_mode`: test | live
 - `paid_at`, `shipping_address`, `billing_address`
@@ -120,10 +120,10 @@ The checkout uses **polling-based verification** instead of webhooks:
 
 **Flow:**
 1. Receive `session_id` and `order_id`
-2. Authenticate user, verify order ownership
-3. Check if already paid → return success
+2. Authenticate user (optional on return), validate `session_id` matches stored order session
+3. If already completed/processing → return success
 4. Query Stripe for session status
-5. If paid: Update order to "paid", clear cart
+5. If paid: Update order to "completed", clear cart
 6. If pending: Return pending (frontend polls again)
 7. If failed: Update order to "cancelled"
 
