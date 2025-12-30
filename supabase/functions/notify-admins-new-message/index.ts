@@ -152,7 +152,7 @@ serve(async (req) => {
 
     // Send to all admins
     const emailResponse = await resend.emails.send({
-      from: "Best Day Ever Notifications <noreply@bestdayministries.com>",
+      from: "Best Day Ever Notifications <noreply@bestdayministries.org>",
       to: adminEmails,
       subject: `[Action Required] New ${typeLabel} from ${senderName}`,
       html: emailHtml,
@@ -166,7 +166,7 @@ serve(async (req) => {
       email_type: "admin_notification",
       recipient_email: adminEmails.join(", "),
       subject: `[Action Required] New ${typeLabel} from ${senderName}`,
-      from_email: "noreply@bestdayministries.com",
+      from_email: "noreply@bestdayministries.org",
       from_name: "Best Day Ever Notifications",
       status: "sent",
       related_type: type,
