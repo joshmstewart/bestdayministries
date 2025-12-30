@@ -440,7 +440,9 @@ export const StickerAlbum = () => {
     ? allStickers
     : allStickers.filter(s => s.rarity === filterRarity);
 
-  const obtainedCount = Array.from(userStickers.keys()).length;
+  // Only count stickers that actually exist in this collection (prevents mismatched collection_id data)
+  const allStickerIds = new Set(allStickers.map(s => s.id));
+  const obtainedCount = Array.from(userStickers.keys()).filter(id => allStickerIds.has(id)).length;
   const totalCount = allStickers.length;
   const progress = totalCount > 0 ? (obtainedCount / totalCount) * 100 : 0;
 
