@@ -89,7 +89,11 @@ export default function CheckoutSuccess() {
         return;
       }
 
-      if (data.success && data.status === "paid") {
+      const isVerifiedSuccess =
+        !!data?.success &&
+        ["completed", "processing", "shipped", "refunded"].includes(String(data.status));
+
+      if (isVerifiedSuccess) {
         setStatus("success");
         toast({
           title: "Order confirmed!",
@@ -168,33 +172,35 @@ export default function CheckoutSuccess() {
                 <CardDescription>
                   {failureMessage || "We couldn't verify your payment. Please check your order history or contact support."}
 
-                  {debugLogId && (
-                    <div className="mt-3 flex flex-col items-center justify-center gap-2">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-xs text-muted-foreground">Reference: {debugLogId.slice(0, 8)}...</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={copyDebugId}
-                          title="Copy full reference ID"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
+                   {debugLogId && (
+                     <div className="mt-3 flex flex-col items-center justify-center gap-2">
+                       <div className="flex items-center justify-center gap-2">
+                         <span className="text-xs text-muted-foreground">Reference: {debugLogId.slice(0, 8)}...</span>
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           className="h-6 w-6"
+                           onClick={copyDebugId}
+                           title="Copy full reference ID"
+                         >
+                           <Copy className="h-3 w-3" />
+                         </Button>
+                       </div>
+                     </div>
+                   )}
 
-                      {failureDetails && (
-                        <details className="w-full text-left">
-                          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-                            View technical details
-                          </summary>
-                          <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-3 text-[11px] leading-relaxed whitespace-pre-wrap break-words">
+                   {failureDetails && (
+                     <div className="mt-3 w-full">
+                       <details className="w-full text-left">
+                         <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                           View technical details
+                         </summary>
+                         <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-3 text-[11px] leading-relaxed whitespace-pre-wrap break-words">
 {JSON.stringify(failureDetails, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  )}
+                         </pre>
+                       </details>
+                     </div>
+                   )}
                 </CardDescription>
               </>
             )}
