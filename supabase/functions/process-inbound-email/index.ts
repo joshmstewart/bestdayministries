@@ -87,8 +87,24 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Extract sender email
-    const senderEmail = extractEmail(payload.from);
+    // Extract sender email - try to get original sender from raw headers first
+    let senderEmail: string | null = null;
+    let senderNameFromHeaders = '';
+    
+    if (payload.raw) {
+      const originalSender = extractOriginalSender(payload.raw);
+      if (originalSender) {
+        senderEmail = originalSender.email;
+        senderNameFromHeaders = originalSender.name;
+        console.log('[process-inbound-email] Original sender from raw headers:', { senderEmail, senderNameFromHeaders });
+      }
+    }
+    
+    // Fallback to payload.from if no original sender found
+    if (!senderEmail) {
+      senderEmail = extractEmail(payload.from);
+    }
+    
     if (!senderEmail) {
       throw new Error('Could not extract sender email');
     }
@@ -323,11 +339,11 @@ Deno.serve(async (req) => {
         throw new Error('No message content found in email');
       }
       
-      // Extract sender name from email - try multiple approaches
-      let senderName = '';
+      // Use sender name from raw headers if available
+      let senderName = senderNameFromHeaders || '';
       
-      // Try to get name from "Name <email>" format
-      if (payload.from.includes('<')) {
+      // If no name from headers, try to get name from payload.from
+      if (!senderName && payload.from.includes('<')) {
         const namePart = payload.from.split('<')[0].trim().replace(/['"]/g, '');
         // Only use if it's not a Cloudflare ID (long hex string)
         if (namePart && !/^[0-9a-f-]{30,}$/i.test(namePart)) {
@@ -335,7 +351,7 @@ Deno.serve(async (req) => {
         }
       }
       
-      // If no good name found, try to make a friendly name from email
+      // If still no good name, make a friendly name from email
       if (!senderName) {
         const localPart = senderEmail.split('@')[0];
         // Check if it's a Cloudflare bounce ID
@@ -350,6 +366,8 @@ Deno.serve(async (req) => {
             .join(' ');
         }
       }
+      
+      console.log('[process-inbound-email] Final sender name:', senderName);
       
       // Create new contact form submission
       const { data: newSubmission, error: insertError } = await supabase
@@ -499,6 +517,93 @@ function parseRawEmail(raw: string): string {
     console.error('[parseRawEmail] Error:', error);
     return raw;
   }
+}
+
+/**
+ * Extract original sender from raw email headers
+ * Cloudflare rewrites the 'from' field, but preserves original in raw headers
+ */
+function extractOriginalSender(raw: string): { email: string; name: string } | null {
+  try {
+    // Extract headers section (before the double newline)
+    const headersMatch = raw.match(/^([\s\S]*?)\r?\n\r?\n/);
+    if (!headersMatch) return null;
+    
+    const headers = headersMatch[1];
+    
+    // Try to find Reply-To first (most reliable for the actual sender)
+    const replyToMatch = headers.match(/^Reply-To:\s*(.+)$/mi);
+    if (replyToMatch) {
+      const replyTo = replyToMatch[1].trim();
+      const email = extractEmail(replyTo);
+      const name = extractNameFromHeader(replyTo);
+      if (email && !email.includes('@send.bestdayministries.org')) {
+        console.log('[extractOriginalSender] Found Reply-To:', { email, name });
+        return { email, name };
+      }
+    }
+    
+    // Try to find From header
+    const fromMatch = headers.match(/^From:\s*(.+)$/mi);
+    if (fromMatch) {
+      const fromHeader = fromMatch[1].trim();
+      const email = extractEmail(fromHeader);
+      const name = extractNameFromHeader(fromHeader);
+      if (email && !email.includes('@send.bestdayministries.org')) {
+        console.log('[extractOriginalSender] Found From:', { email, name });
+        return { email, name };
+      }
+    }
+    
+    // Try X-Original-From header (some email systems use this)
+    const originalFromMatch = headers.match(/^X-Original-From:\s*(.+)$/mi);
+    if (originalFromMatch) {
+      const originalFrom = originalFromMatch[1].trim();
+      const email = extractEmail(originalFrom);
+      const name = extractNameFromHeader(originalFrom);
+      if (email) {
+        console.log('[extractOriginalSender] Found X-Original-From:', { email, name });
+        return { email, name };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[extractOriginalSender] Error:', error);
+    return null;
+  }
+}
+
+/**
+ * Extract name from email header like "John Doe <john@example.com>" or "john@example.com"
+ */
+function extractNameFromHeader(header: string): string {
+  // Check for "Name <email>" format
+  if (header.includes('<')) {
+    const namePart = header.split('<')[0].trim().replace(/['"]/g, '');
+    // Skip if it's a Cloudflare ID (long hex string)
+    if (namePart && !/^[0-9a-f-]{30,}$/i.test(namePart)) {
+      return namePart;
+    }
+  }
+  
+  // Extract from email address local part
+  const email = extractEmail(header);
+  if (email) {
+    const localPart = email.split('@')[0];
+    // Skip if it's a Cloudflare ID
+    if (/^[0-9a-f-]{30,}$/i.test(localPart)) {
+      return '';
+    }
+    // Format local part as name
+    return localPart
+      .replace(/[._-]/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+  
+  return '';
 }
 
 /**
