@@ -150,6 +150,9 @@ serve(async (req) => {
           Math.abs(originalPrice - currentBasePrice) > 0.01;
       }
 
+      // Get the current Printify base price
+      const currentBasePrice = (product.variants.find((v: any) => v.is_enabled) || product.variants[0])?.price / 100 || 0;
+      
       return {
         id: product.id,
         title: cleanedTitle,
@@ -176,6 +179,21 @@ serve(async (req) => {
         visible: product.visible,
         is_locked: product.is_locked,
         local_product_id: existingProduct?.id || null,
+        // Include current local values AND original Printify values for comparison
+        local_values: existingProduct ? {
+          title: existingProduct.name,
+          description: existingProduct.description || '',
+          price: Number(existingProduct.price),
+          original_title: existingProduct.printify_original_title,
+          original_description: existingProduct.printify_original_description,
+          original_price: existingProduct.printify_original_price,
+        } : null,
+        // Current Printify values (what's new)
+        printify_values: {
+          title: cleanedTitle,
+          description: cleanedDescription,
+          price: currentBasePrice,
+        },
       };
     });
 
