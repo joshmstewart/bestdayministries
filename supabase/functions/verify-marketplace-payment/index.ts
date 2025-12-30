@@ -276,7 +276,7 @@ serve(async (req) => {
       // IMPORTANT: orders.status is an enum. It does NOT include "paid".
       // Valid values: pending | processing | shipped | completed | cancelled | refunded
       const updatePayload = {
-        status: "completed",
+          status: "processing",
         stripe_payment_intent_id: session.payment_intent as string,
         paid_at: new Date().toISOString(),
         shipping_address: shippingAddress,
