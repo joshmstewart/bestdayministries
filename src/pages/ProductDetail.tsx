@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,7 +86,7 @@ const ProductDetail = () => {
 
   // Intelligently parse variants into colors and sizes (format: "OptionA / OptionB")
   // Detects which option is which by checking for known size patterns
-  const { colors, sizes, hasMultipleOptions, colorToVariantId } = (() => {
+  const { colors, sizes, hasMultipleOptions, colorToVariantId, defaultColor, defaultSize } = (() => {
     const option1Set = new Set<string>();
     const option2Set = new Set<string>();
     const option1VariantMap = new Map<string, number>();
@@ -115,9 +115,12 @@ const ProductDetail = () => {
     // If option1 looks like sizes, swap them. Otherwise keep original order.
     const colorsAreFirst = !option1IsSize || (option1IsSize && option2IsSize);
     
+    const finalColors = colorsAreFirst ? option1Values : option2Values;
+    const finalSizes = colorsAreFirst ? option2Values : option1Values;
+    
     return {
-      colors: colorsAreFirst ? option1Values : option2Values,
-      sizes: colorsAreFirst ? option2Values : option1Values,
+      colors: finalColors,
+      sizes: finalSizes,
       hasMultipleOptions: option1Set.size > 0 && option2Set.size > 0,
       colorToVariantId: colorsAreFirst ? option1VariantMap : new Map(
         // Rebuild map with option2 (color) values
@@ -128,9 +131,18 @@ const ProductDetail = () => {
             if (!map.has(color)) map.set(color, v.id);
             return map;
           }, new Map<string, number>())
-      )
+      ),
+      // Auto-select if only one option exists
+      defaultColor: finalColors.length === 1 ? finalColors[0] : "",
+      defaultSize: finalSizes.length === 1 ? finalSizes[0] : ""
     };
   })();
+
+  // Auto-select single options when product loads
+  useEffect(() => {
+    if (defaultColor && !selectedColor) setSelectedColor(defaultColor);
+    if (defaultSize && !selectedSize) setSelectedSize(defaultSize);
+  }, [defaultColor, defaultSize]);
 
   // Filter images based on selected color's variant ID
   const filteredImages = (() => {
