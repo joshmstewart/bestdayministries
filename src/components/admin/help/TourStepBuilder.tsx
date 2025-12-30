@@ -161,7 +161,7 @@ export function TourStepBuilder({ steps, onChange }: TourStepBuilderProps) {
                   <SelectItem value="/discussions">Discussions</SelectItem>
                   <SelectItem value="/events">Events</SelectItem>
                   <SelectItem value="/gallery">Gallery</SelectItem>
-                  <SelectItem value="/marketplace">Marketplace</SelectItem>
+                  <SelectItem value="/joyhousestore">Joy House Store</SelectItem>
                   <SelectItem value="/sponsor-bestie">Sponsor</SelectItem>
                   <SelectItem value="/support-us">Support Us</SelectItem>
                   <SelectItem value="/about">About</SelectItem>

@@ -225,7 +225,7 @@ export default function CheckoutSuccess() {
               )}
               
               <Button asChild variant="outline" className="w-full">
-                <Link to="/marketplace">
+                <Link to="/joyhousestore">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Continue Shopping
                 </Link>

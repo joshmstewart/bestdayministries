@@ -182,7 +182,7 @@ const App = () => {
             <Route path="/guardian-links" element={<GuardianLinks />} />
             <Route path="/guardian-approvals" element={<GuardianApprovals />} />
             <Route path="/bestie-messages" element={<BestieMessages />} />
-            <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/joyhousestore" element={<Marketplace />} />
             <Route path="/vendors/:id" element={<VendorProfile />} />
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />
             <Route path="/orders" element={<OrderHistory />} />

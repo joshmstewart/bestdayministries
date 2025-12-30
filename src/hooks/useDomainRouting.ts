@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
  */
 export const useDomainRouting = () => {
   const [isCoffeeShopDomain, setIsCoffeeShopDomain] = useState(false);
+  const [isJoyHouseStoreDomain, setIsJoyHouseStoreDomain] = useState(false);
   
   useEffect(() => {
     const hostname = window.location.hostname;
@@ -15,8 +16,15 @@ export const useDomainRouting = () => {
       'www.bestdayevercoffeeandcrepes.com'
     ];
     
+    // Check if we're on the Joy House Store domain (add the actual domain when known)
+    const joyHouseStoreDomains = [
+      'joyhousestore.com',
+      'www.joyhousestore.com'
+    ];
+    
     setIsCoffeeShopDomain(coffeeShopDomains.includes(hostname));
+    setIsJoyHouseStoreDomain(joyHouseStoreDomains.includes(hostname));
   }, []);
   
-  return { isCoffeeShopDomain };
+  return { isCoffeeShopDomain, isJoyHouseStoreDomain };
 };

@@ -136,8 +136,8 @@ export default function OrderHistory() {
             <CardDescription>You haven't placed any orders yet</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/marketplace")}>
-              Browse Marketplace
+            <Button onClick={() => navigate("/joyhousestore")}>
+              Browse Store
             </Button>
           </CardContent>
         </Card>
@@ -149,7 +149,7 @@ export default function OrderHistory() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">My Orders</h1>
-        <Button variant="outline" onClick={() => navigate("/marketplace")}>
+        <Button variant="outline" onClick={() => navigate("/joyhousestore")}>
           Continue Shopping
         </Button>
       </div>
