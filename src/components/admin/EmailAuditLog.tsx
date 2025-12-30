@@ -88,6 +88,8 @@ export default function EmailAuditLog() {
       newsletter: "Newsletter",
       notification: "Notification",
       digest: "Digest",
+      order_confirmation: "Order Confirmation",
+      order_shipped: "Order Shipped",
     };
     return labels[type] || type;
   };
@@ -123,6 +125,8 @@ export default function EmailAuditLog() {
             <SelectItem value="newsletter">Newsletter</SelectItem>
             <SelectItem value="notification">Notification</SelectItem>
             <SelectItem value="digest">Digest</SelectItem>
+            <SelectItem value="order_confirmation">Order Confirmation</SelectItem>
+            <SelectItem value="order_shipped">Order Shipped</SelectItem>
           </SelectContent>
         </Select>
 

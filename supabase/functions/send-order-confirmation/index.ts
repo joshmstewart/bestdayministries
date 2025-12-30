@@ -156,7 +156,7 @@ serve(async (req) => {
     const emailId = emailResponse?.data?.id || 'unknown';
     logStep("Email sent", { emailId });
 
-    // Log the email
+    // Log the email with HTML content for preview
     await supabaseClient.from("email_audit_log").insert({
       email_type: "order_confirmation",
       recipient_email: customerEmail,
@@ -168,6 +168,7 @@ serve(async (req) => {
       related_id: orderId,
       resend_email_id: emailId,
       sent_at: new Date().toISOString(),
+      html_content: emailHtml,
     });
 
     return new Response(
