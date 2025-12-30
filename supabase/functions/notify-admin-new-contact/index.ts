@@ -84,7 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
                       submission.message_type === "feature_request" ? "#3b82f6" :
                       "#6b7280";
 
-    // Build email HTML
+    // Build email HTML with no-reply warning
     const html = `
       <!DOCTYPE html>
       <html>
@@ -98,6 +98,17 @@ const handler = async (req: Request): Promise<Response> => {
             <tr>
               <td align="center">
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  <!-- No-reply warning banner -->
+                  <tr>
+                    <td style="padding: 15px 20px; background: #fff3e0; border-left: 4px solid #ff9800;">
+                      <p style="margin: 0; font-weight: bold; color: #e65100;">
+                        ⚠️ This is an automated notification. Do not reply to this email.
+                      </p>
+                      <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
+                        To respond, please log in to the Best Day Ever platform.
+                      </p>
+                    </td>
+                  </tr>
                   ${logoUrl ? `
                   <tr>
                     <td align="center" style="padding: 30px 20px 20px;">
@@ -149,11 +160,20 @@ ${submission.message}
                         <tr>
                           <td align="center">
                             <a href="${viewUrl}" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #f97316, #ea580c); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                              View in Admin Panel
+                              View & Respond in Platform
                             </a>
                           </td>
                         </tr>
                       </table>
+                    </td>
+                  </tr>
+                  <!-- Important no-reply reminder -->
+                  <tr>
+                    <td style="padding: 15px 40px; background-color: #ffebee;">
+                      <p style="margin: 0; color: #c62828; font-size: 13px; text-align: center;">
+                        <strong>Important:</strong> Replies to this email will not be delivered. 
+                        Please use the button above to respond through the platform.
+                      </p>
                     </td>
                   </tr>
                   <tr>
@@ -171,12 +191,11 @@ ${submission.message}
       </html>
     `;
 
-    // Send email
+    // Send email (no reply_to to prevent accidental replies to noreply address)
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Contact Form <notifications@bestdayministries.org>",
+      from: "Best Day Ever Notifications <noreply@bestdayministries.com>",
       to: [adminEmail],
-      reply_to: submission.email,
-      subject: `New ${messageType} submission from ${submission.name}`,
+      subject: `[Action Required] New ${messageType} submission from ${submission.name}`,
       html,
     });
 
@@ -196,9 +215,9 @@ ${submission.message}
         resend_email_id: emailData?.id,
         email_type: 'admin_notification',
         recipient_email: adminEmail,
-        from_email: "notifications@bestdayministries.org",
-        from_name: "Contact Form",
-        subject: `New ${messageType} submission from ${submission.name}`,
+        from_email: "noreply@bestdayministries.com",
+        from_name: "Best Day Ever Notifications",
+        subject: `[Action Required] New ${messageType} submission from ${submission.name}`,
         html_content: html,
         status: 'sent',
         related_id: submission.id,
