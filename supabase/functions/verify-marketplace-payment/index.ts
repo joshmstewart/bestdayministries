@@ -259,7 +259,9 @@ serve(async (req) => {
 
     if (session.payment_status === "paid") {
       // Extract shipping address from Stripe session
+      // Try shipping_details first, then fall back to customer_details.address
       const shippingDetails = session.shipping_details;
+      const customerDetails = session.customer_details;
       let shippingAddress: any = null;
 
       if (shippingDetails?.address) {
@@ -272,12 +274,27 @@ serve(async (req) => {
           postal_code: shippingDetails.address.postal_code || "",
           country: shippingDetails.address.country || "US",
         };
-        logStep("Shipping address extracted", {
+        logStep("Shipping address extracted from shipping_details", {
+          city: shippingAddress.city,
+          country: shippingAddress.country,
+        });
+      } else if (customerDetails?.address) {
+        // Fallback: use customer_details.address (Stripe sometimes puts shipping here)
+        shippingAddress = {
+          name: customerDetails.name || "",
+          line1: customerDetails.address.line1 || "",
+          line2: customerDetails.address.line2 || "",
+          city: customerDetails.address.city || "",
+          state: customerDetails.address.state || "",
+          postal_code: customerDetails.address.postal_code || "",
+          country: customerDetails.address.country || "US",
+        };
+        logStep("Shipping address extracted from customer_details.address", {
           city: shippingAddress.city,
           country: shippingAddress.country,
         });
       } else {
-        logStep("No shipping_details on Stripe session");
+        logStep("No shipping address found in session");
       }
 
       // IMPORTANT: orders.status is an enum. It does NOT include "paid".
