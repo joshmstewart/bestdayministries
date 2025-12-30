@@ -19,7 +19,8 @@ import {
   Mail,
   Loader2,
   Eye,
-  Trash2
+  Trash2,
+  RefreshCw
 } from "lucide-react";
 import {
   Dialog,
@@ -59,6 +60,46 @@ import {
 import { useNavigate } from "react-router-dom";
 import { PrintifyProductImporter } from "./PrintifyProductImporter";
 import { ProductEditDialog } from "./ProductEditDialog";
+
+// Component to check Printify order status
+const CheckPrintifyStatusButton = ({ onStatusChecked }: { onStatusChecked: () => void }) => {
+  const [isChecking, setIsChecking] = useState(false);
+  const { toast } = useToast();
+
+  const handleCheck = async () => {
+    setIsChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-printify-status');
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        toast({
+          title: "Status Check Complete",
+          description: `Updated ${data.updatedCount || 0} order items. ${data.emailsSent || 0} shipping emails sent.`,
+        });
+        onStatusChecked();
+      } else {
+        throw new Error(data?.error || 'Unknown error');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to check Printify status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  return (
+    <Button onClick={handleCheck} variant="outline" size="sm" disabled={isChecking}>
+      <RefreshCw className={`h-4 w-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} />
+      {isChecking ? 'Checking...' : 'Check Printify Status'}
+    </Button>
+  );
+};
 
 interface VendorStats {
   totalVendors: number;
@@ -655,6 +696,14 @@ export const VendorManagement = () => {
             </TabsContent>
 
             <TabsContent value="orders" className="space-y-4">
+              {/* Order status check button */}
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {orders.filter(o => o.order_items.some(item => item.printify_order_id)).length} orders with Printify items
+                </div>
+                <CheckPrintifyStatusButton onStatusChecked={loadData} />
+              </div>
+
               {/* Bulk actions bar */}
               {selectedOrderIds.size > 0 && (
                 <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
