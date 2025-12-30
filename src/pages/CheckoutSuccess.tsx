@@ -30,21 +30,22 @@ export default function CheckoutSuccess() {
     }
 
     setOrderId(orderIdParam);
-    verifyPayment();
-  }, [sessionId, orderIdParam, authLoading]);
+    // Pass current auth state to avoid stale closures
+    verifyPayment(isAuthenticated, guestSessionId);
+  }, [sessionId, orderIdParam, authLoading, isAuthenticated, guestSessionId]);
 
   useEffect(() => {
     // Polling logic for pending payments
     if (status === "pending" && pollCount < maxPolls) {
       const timer = setTimeout(() => {
-        verifyPayment();
+        verifyPayment(isAuthenticated, guestSessionId);
         setPollCount(prev => prev + 1);
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [status, pollCount]);
+  }, [status, pollCount, isAuthenticated, guestSessionId]);
 
-  const verifyPayment = async () => {
+  const verifyPayment = async (isAuth: boolean, guestSessId: string | null) => {
     try {
       // Build request body - include guest_session_id for guest checkout cart clearing
       const body: { session_id: string; order_id: string; guest_session_id?: string } = { 
@@ -53,8 +54,8 @@ export default function CheckoutSuccess() {
       };
       
       // If not authenticated, include the guest session ID
-      if (!isAuthenticated && guestSessionId) {
-        body.guest_session_id = guestSessionId;
+      if (!isAuth && guestSessId) {
+        body.guest_session_id = guestSessId;
       }
 
       const { data, error } = await supabase.functions.invoke("verify-marketplace-payment", {
