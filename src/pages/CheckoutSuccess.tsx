@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle, Loader2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCartSession } from "@/hooks/useCartSession";
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const { sessionId: guestSessionId, isAuthenticated } = useCartSession();
   
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "failed">("loading");
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -42,19 +43,19 @@ export default function CheckoutSuccess() {
 
   const verifyPayment = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to verify your order",
-          variant: "destructive",
-        });
-        navigate("/auth");
-        return;
+      // Build request body - include guest_session_id for guest checkout cart clearing
+      const body: { session_id: string; order_id: string; guest_session_id?: string } = { 
+        session_id: sessionId!, 
+        order_id: orderIdParam! 
+      };
+      
+      // If not authenticated, include the guest session ID
+      if (!isAuthenticated && guestSessionId) {
+        body.guest_session_id = guestSessionId;
       }
 
       const { data, error } = await supabase.functions.invoke("verify-marketplace-payment", {
-        body: { session_id: sessionId, order_id: orderIdParam },
+        body,
       });
 
       if (error) {
@@ -137,7 +138,7 @@ export default function CheckoutSuccess() {
             )}
             
             <div className="flex flex-col gap-3">
-              {status === "success" && (
+              {status === "success" && isAuthenticated && (
                 <Button asChild className="w-full">
                   <Link to="/orders">
                     <ShoppingBag className="h-4 w-4 mr-2" />
