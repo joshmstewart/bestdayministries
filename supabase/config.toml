@@ -201,3 +201,9 @@ verify_jwt = false
 
 [functions.generate-ingredient-icon]
 verify_jwt = true
+
+[functions.send-order-shipped]
+verify_jwt = false
+
+[functions.printify-webhook]
+verify_jwt = false
