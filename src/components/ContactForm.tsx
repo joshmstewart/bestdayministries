@@ -63,16 +63,27 @@ export const ContactForm = () => {
     loadSettings();
   }, []);
 
-  // Autofill email for logged-in users
+  // Autofill name and email for logged-in users
   useEffect(() => {
-    const loadUserEmail = async () => {
+    const loadUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user?.email) {
         form.setValue("email", user.email, { shouldValidate: false });
+        
+        // Also try to get display name from profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        
+        if (profile?.display_name) {
+          form.setValue("name", profile.display_name, { shouldValidate: false });
+        }
       }
     };
-    loadUserEmail();
+    loadUserData();
   }, [form]);
 
   const onSubmit = async (data: ContactFormData) => {
