@@ -948,7 +948,7 @@ EDGE:
   refresh-printify-product[admin→sync-images-variants-from-API→update-baseline]
   generate-printify-images[admin→check-missing-images→diagnostic-only-cant-generate-via-API]
   create-printify-order[service→submit-order-to-Printify-for-fulfillment]
-ADMIN-UI:
+  send-order-shipped[internal→Resend-shipped-email-with-tracking]
   PrintifyProductImporter[catalog-view→sections:Needs-Update|Available|Imported|Archived]
   PrintifyPreviewDialog[edit-title-desc-markup→import-or-sync→color-chip-image-preview]
   ProductColorImagesManager[per-color-image-management]

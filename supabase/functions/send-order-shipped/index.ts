@@ -38,7 +38,7 @@ serve(async (req) => {
 
     // Get order details
     const { data: order, error: orderError } = await supabaseClient
-      .from('orders')
+      .from("orders")
       .select(`
         id,
         customer_email,
@@ -46,16 +46,26 @@ serve(async (req) => {
         order_items (
           id,
           quantity,
-          unit_price,
+          price_at_purchase,
           products (
             name
           )
         )
       `)
-      .eq('id', orderId)
-      .single();
+      .eq("id", orderId)
+      .maybeSingle();
 
-    if (orderError || !order) {
+    if (orderError) {
+      logStep("Order query failed", {
+        message: orderError.message,
+        details: (orderError as any).details,
+        hint: (orderError as any).hint,
+        code: (orderError as any).code,
+      });
+      throw new Error(`Failed to load order ${orderId}: ${orderError.message}`);
+    }
+
+    if (!order) {
       throw new Error(`Order not found: ${orderId}`);
     }
 
@@ -66,10 +76,17 @@ serve(async (req) => {
       });
     }
 
-    const shippingAddress = order.shipping_address as any;
-    const addressLine = shippingAddress ? 
-      `${shippingAddress.address1 || ''}${shippingAddress.address2 ? ', ' + shippingAddress.address2 : ''}, ${shippingAddress.city || ''}, ${shippingAddress.state || ''} ${shippingAddress.zip || ''}` : 
-      'Address on file';
+    const shippingAddress = (order.shipping_address || {}) as any;
+
+    const line1 = shippingAddress.line1 || shippingAddress.address1 || '';
+    const line2 = shippingAddress.line2 || shippingAddress.address2 || '';
+    const city = shippingAddress.city || '';
+    const state = shippingAddress.state || shippingAddress.region || '';
+    const postalCode = shippingAddress.postal_code || shippingAddress.zip || '';
+
+    const addressLine = line1
+      ? `${line1}${line2 ? `, ${line2}` : ''}, ${city}${state ? `, ${state}` : ''} ${postalCode}`.replace(/\s+/g, ' ').trim()
+      : 'Address on file';
 
     // Build items HTML
     const itemsHtml = order.order_items.map((item: any) => `

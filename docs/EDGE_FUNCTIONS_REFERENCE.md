@@ -55,6 +55,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`create-stripe-connect-account`** - [Auth Required] Creates/retrieves Stripe Connect accounts for vendors
 - **`check-stripe-connect-status`** - [Auth Required] Checks vendor's Stripe Connect onboarding status
 - **`create-vendor-transfer`** - [Internal] Transfers funds to vendor on order fulfillment
+- **`send-order-shipped`** - [Internal] Sends customer shipped/tracking email (used by Printify status updates)
 - **`submit-tracking`** - [Vendor Auth] Submits order tracking via AfterShip API
 - **`aftership-webhook`** - [Webhook] Receives AfterShip tracking updates (⚠️ NOT FUNCTIONAL)
 - **`broadcast-product-update`** - [Admin Only] Sends notifications to all users about product updates
@@ -115,6 +116,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | send-message-notification | Internal | Resend | Sends message notifications |
 | send-newsletter | Admin | Resend | Sends newsletter campaigns with logging |
 | send-notification-email | Internal | Resend | Sends individual notifications |
+| send-order-shipped | Internal | Resend | Sends customer shipped/tracking email |
 | send-sponsorship-receipt | Internal | Resend | Sends tax-deductible receipts |
 | send-test-automated-template | Admin | Resend | Sends test automated template emails |
 | send-test-newsletter | Admin | Resend | Sends test newsletters to logged-in admin |
