@@ -15,6 +15,8 @@ export default function CheckoutSuccess() {
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "failed">("loading");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [debugLogId, setDebugLogId] = useState<string | null>(null);
+  const [failureMessage, setFailureMessage] = useState<string | null>(null);
+  const [failureDetails, setFailureDetails] = useState<any>(null);
   const [pollCount, setPollCount] = useState(0);
   const maxPolls = 10; // Poll for up to 30 seconds (10 x 3s)
 
@@ -24,8 +26,9 @@ export default function CheckoutSuccess() {
   useEffect(() => {
     // Wait for auth state to be determined before verifying payment
     if (authLoading) return;
-    
+
     if (!sessionId || !orderIdParam) {
+      setFailureMessage("Missing payment session information.");
       setStatus("failed");
       return;
     }
@@ -40,7 +43,7 @@ export default function CheckoutSuccess() {
     if (status === "pending" && pollCount < maxPolls) {
       const timer = setTimeout(() => {
         verifyPayment(isAuthenticated, guestSessionId);
-        setPollCount(prev => prev + 1);
+        setPollCount((prev) => prev + 1);
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -49,11 +52,11 @@ export default function CheckoutSuccess() {
   const verifyPayment = async (isAuth: boolean, guestSessId: string | null) => {
     try {
       // Build request body - include guest_session_id for guest checkout cart clearing
-      const body: { session_id: string; order_id: string; guest_session_id?: string } = { 
-        session_id: sessionId!, 
-        order_id: orderIdParam! 
+      const body: { session_id: string; order_id: string; guest_session_id?: string } = {
+        session_id: sessionId!,
+        order_id: orderIdParam!,
       };
-      
+
       // If not authenticated, include the guest session ID
       if (!isAuth && guestSessId) {
         body.guest_session_id = guestSessId;
@@ -64,7 +67,24 @@ export default function CheckoutSuccess() {
       });
 
       if (error) {
-        console.error("Verification error:", error);
+        // If the function returned JSON with debug_log_id but a non-2xx status,
+        // supabase-js exposes it on error.context (Response).
+        let parsed: any = null;
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") {
+            parsed = await ctx.json();
+          }
+        } catch {
+          // ignore
+        }
+
+        const message = parsed?.error || parsed?.message || error.message || "Payment verification failed";
+        setFailureMessage(message);
+        setFailureDetails(parsed);
+        if (parsed?.debug_log_id) setDebugLogId(parsed.debug_log_id);
+
+        console.error("Verification error:", { error, parsed });
         setStatus("failed");
         return;
       }
@@ -79,6 +99,8 @@ export default function CheckoutSuccess() {
         setStatus("pending");
       } else {
         setStatus("failed");
+        setFailureMessage(data.error || data.message || "We couldn't verify your payment.");
+        setFailureDetails(data);
         // Capture debug log ID if provided
         if (data.debug_log_id) {
           setDebugLogId(data.debug_log_id);
@@ -86,6 +108,8 @@ export default function CheckoutSuccess() {
       }
     } catch (err) {
       console.error("Verification error:", err);
+      setFailureMessage(err instanceof Error ? err.message : "Payment verification failed");
+      setFailureDetails(null);
       setStatus("failed");
     }
   };
@@ -142,21 +166,33 @@ export default function CheckoutSuccess() {
                 <XCircle className="h-16 w-16 text-destructive mx-auto" />
                 <CardTitle className="mt-4">Payment Issue</CardTitle>
                 <CardDescription>
-                  We couldn't verify your payment. Please check your order history or contact support.
+                  {failureMessage || "We couldn't verify your payment. Please check your order history or contact support."}
+
                   {debugLogId && (
-                    <div className="mt-3 flex items-center justify-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        Reference: {debugLogId.slice(0, 8)}...
-                      </span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6"
-                        onClick={copyDebugId}
-                        title="Copy full reference ID"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
+                    <div className="mt-3 flex flex-col items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-xs text-muted-foreground">Reference: {debugLogId.slice(0, 8)}...</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={copyDebugId}
+                          title="Copy full reference ID"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {failureDetails && (
+                        <details className="w-full text-left">
+                          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                            View technical details
+                          </summary>
+                          <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-3 text-[11px] leading-relaxed whitespace-pre-wrap break-words">
+{JSON.stringify(failureDetails, null, 2)}
+                          </pre>
+                        </details>
+                      )}
                     </div>
                   )}
                 </CardDescription>

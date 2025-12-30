@@ -204,6 +204,17 @@ export const ErrorLogsManager = () => {
                         </pre>
                       </details>
                     )}
+
+                    {log.metadata && (
+                      <details className="text-xs">
+                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                          View metadata
+                        </summary>
+                        <pre className="mt-2 p-2 bg-muted rounded overflow-x-auto whitespace-pre-wrap break-words">
+                          {JSON.stringify(log.metadata, null, 2)}
+                        </pre>
+                      </details>
+                    )}
                     
                     {log.sentry_event_id && (
                       <p className="text-xs text-muted-foreground">
