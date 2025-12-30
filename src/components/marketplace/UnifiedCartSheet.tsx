@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package } from "lucide-react";
+import { FreeShippingProgress } from "./FreeShippingProgress";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -318,6 +319,12 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                       <Package className="h-5 w-5 text-primary" />
                       <h3 className="font-semibold text-lg">Store Items</h3>
                     </div>
+
+                    {/* Free Shipping Progress */}
+                    <FreeShippingProgress 
+                      currentSubtotal={cartSubtotal} 
+                      threshold={FREE_SHIPPING_THRESHOLD} 
+                    />
                     
                     <div className="space-y-3">
                       {allCartItems.map((item) => (
