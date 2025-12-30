@@ -60,7 +60,7 @@ const VendorProfile = () => {
       
       if (!vendorData) {
         toast.error("Vendor not found");
-        navigate('/marketplace');
+        navigate('/joyhousestore');
         return;
       }
 
@@ -178,8 +178,8 @@ const VendorProfile = () => {
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <p className="text-xl text-muted-foreground mb-4">Vendor not found</p>
-            <Button onClick={() => navigate('/marketplace')}>
-              Back to Marketplace
+            <Button onClick={() => navigate('/joyhousestore')}>
+              Back to Store
             </Button>
           </div>
         </main>
@@ -206,11 +206,11 @@ const VendorProfile = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/marketplace')}
+              onClick={() => navigate('/joyhousestore')}
               className="bg-background/80 backdrop-blur-sm"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Marketplace
+              Back to Store
             </Button>
           </div>
         </div>

@@ -31,7 +31,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/joy-rocks", label: "Joy Rocks Coffee" },
   { value: "/coffee-shop", label: "Coffee Shop" },
   { value: "/partners", label: "Partners" },
-  { value: "/marketplace", label: "Marketplace" },
+  { value: "/joyhousestore", label: "Joy House Store" },
   { value: "/orders", label: "Order History" },
   { value: "/auth", label: "Login/Signup" },
   { value: "/vendor-auth", label: "Vendor Application" },

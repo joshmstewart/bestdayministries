@@ -208,10 +208,10 @@ const VendorDashboard = () => {
               variant="outline" 
               size="sm" 
               className="mb-6"
-              onClick={() => navigate('/marketplace')}
+              onClick={() => navigate('/joyhousestore')}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Marketplace
+              Back to Store
             </Button>
             <Card className="border-yellow-500/50 bg-yellow-500/5">
               <CardHeader>
@@ -299,8 +299,8 @@ const VendorDashboard = () => {
                     <Store className="mr-2 h-4 w-4" />
                     View Your Store
                   </Button>
-                  <Button onClick={() => navigate('/marketplace')}>
-                    View Marketplace
+                  <Button onClick={() => navigate('/joyhousestore')}>
+                    View Store
                   </Button>
                 </div>
               </div>
