@@ -244,11 +244,17 @@ serve(async (req) => {
       });
     }
 
+    // Log full shipping-related fields from Stripe session for debugging
     logStep("Stripe session retrieved", {
       paymentStatus: session.payment_status,
       status: session.status,
       hasShipping: !!session.shipping_details,
       hasPaymentIntent: !!session.payment_intent,
+      shipping_details: session.shipping_details,
+      shipping_cost: session.shipping_cost,
+      shipping_options: session.shipping_options,
+      shipping_address_collection: session.shipping_address_collection,
+      customer_details: session.customer_details,
     });
 
     if (session.payment_status === "paid") {
