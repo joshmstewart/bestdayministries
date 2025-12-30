@@ -144,10 +144,19 @@ serve(async (req) => {
         const originalDescription = existingProduct.printify_original_description || existingProduct.description;
         const originalPrice = existingProduct.printify_original_price ?? Number(existingProduct.price);
         
-        hasChanges = 
-          originalTitle !== cleanedTitle ||
-          originalDescription !== cleanedDescription ||
-          Math.abs(originalPrice - currentBasePrice) > 0.01;
+        const titleChanged = originalTitle !== cleanedTitle;
+        const descriptionChanged = originalDescription !== cleanedDescription;
+        const priceChanged = Math.abs(originalPrice - currentBasePrice) > 0.01;
+        
+        hasChanges = titleChanged || descriptionChanged || priceChanged;
+        
+        // Debug logging for change detection
+        if (hasChanges) {
+          console.log(`Change detected for "${product.title}":`);
+          if (titleChanged) console.log(`  Title: "${originalTitle}" -> "${cleanedTitle}"`);
+          if (descriptionChanged) console.log(`  Description changed (length: ${originalDescription?.length || 0} -> ${cleanedDescription?.length || 0})`);
+          if (priceChanged) console.log(`  Price: ${originalPrice} -> ${currentBasePrice}`);
+        }
       }
 
       // Get the current Printify base price
