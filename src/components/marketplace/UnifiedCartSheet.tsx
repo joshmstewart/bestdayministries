@@ -36,8 +36,8 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     getTotalPrice: getShopifyTotalPrice 
   } = useShopifyCartStore();
 
-  // Handmade cart state
-  const { data: handmadeItems, isLoading: handmadeLoading } = useQuery({
+  // Database cart items (both handmade and house vendor merch)
+  const { data: cartItems, isLoading: cartLoading } = useQuery({
     queryKey: ['cart-items'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -56,6 +56,10 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     },
     enabled: open
   });
+
+  // Split cart items into house vendor (official merch) and handmade
+  const officialMerchItems = cartItems?.filter(item => item.product.vendors?.is_house_vendor) || [];
+  const handmadeItems = cartItems?.filter(item => !item.product.vendors?.is_house_vendor) || [];
 
   // Shipping constants for handmade items
   const FLAT_SHIPPING_RATE = 6.99;
@@ -81,10 +85,19 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     sum + (v.subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_RATE), 0);
   const handmadeTotal = handmadeSubtotal + shippingTotal;
 
+  // Calculate official merch totals from database items
+  const officialMerchSubtotal = officialMerchItems.reduce((sum, item) => {
+    const price = typeof item.product.price === 'string' 
+      ? parseFloat(item.product.price) 
+      : item.product.price;
+    return sum + (price * item.quantity);
+  }, 0);
+  const officialMerchItemCount = officialMerchItems.reduce((sum, item) => sum + item.quantity, 0);
+
   const shopifyTotalItems = getShopifyTotalItems();
   const shopifyTotalPrice = getShopifyTotalPrice();
-  const handmadeItemCount = handmadeItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-  const totalItems = shopifyTotalItems + handmadeItemCount;
+  const handmadeItemCount = handmadeItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = shopifyTotalItems + officialMerchItemCount + handmadeItemCount;
 
   const updateHandmadeQuantity = async (cartItemId: string, currentQuantity: number, delta: number) => {
     const newQuantity = currentQuantity + delta;
@@ -181,8 +194,8 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     }
   };
 
-  const isLoading = shopifyLoading || handmadeLoading;
-  const isEmpty = shopifyItems.length === 0 && (!handmadeItems || handmadeItems.length === 0);
+  const isLoading = shopifyLoading || cartLoading;
+  const isEmpty = shopifyItems.length === 0 && officialMerchItems.length === 0 && handmadeItems.length === 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -210,7 +223,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
             <ScrollArea className="flex-1 pr-4">
               <div className="space-y-6">
                 {/* Official Merch Section */}
-                {shopifyItems.length > 0 && (
+                {(shopifyItems.length > 0 || officialMerchItems.length > 0) && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Store className="h-5 w-5 text-primary" />
@@ -218,6 +231,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                     </div>
                     
                     <div className="space-y-3">
+                      {/* Shopify items */}
                       {shopifyItems.map((item) => (
                         <div key={item.variantId} className="flex gap-3 p-3 border rounded-lg bg-card">
                           <div className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0">
@@ -274,36 +288,111 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                           </div>
                         </div>
                       ))}
+
+                      {/* Database official merch items (house vendor) */}
+                      {officialMerchItems.map((item) => (
+                        <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
+                          <img
+                            src={item.product.images?.[0] || '/placeholder.svg'}
+                            alt={item.product.name}
+                            className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                          />
+                          
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate text-sm">{item.product.name}</h4>
+                            {(item.variant_info as { variant?: string } | null)?.variant && (
+                              <p className="text-xs text-muted-foreground">
+                                {(item.variant_info as { variant?: string }).variant}
+                              </p>
+                            )}
+                            <p className="font-semibold text-sm text-primary">
+                              ${(typeof item.product.price === 'string' 
+                                ? parseFloat(item.product.price) 
+                                : item.product.price).toFixed(2)}
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={() => removeHandmadeItem(item.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                            
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateHandmadeQuantity(item.id, item.quantity, -1)}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-6 text-center text-sm">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateHandmadeQuantity(item.id, item.quantity, 1)}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                     
                     <div className="p-3 bg-muted/50 rounded-lg space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Subtotal ({shopifyTotalItems} items)</span>
-                        <span className="font-semibold">${shopifyTotalPrice.toFixed(2)}</span>
+                        <span>Subtotal ({shopifyTotalItems + officialMerchItemCount} items)</span>
+                        <span className="font-semibold">${(shopifyTotalPrice + officialMerchSubtotal).toFixed(2)}</span>
                       </div>
-                      <Button 
-                        onClick={handleShopifyCheckout}
-                        className="w-full" 
-                        disabled={shopifyLoading}
-                      >
-                        {shopifyLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Checkout Merch
-                          </>
-                        )}
-                      </Button>
+                      {shopifyItems.length > 0 && (
+                        <Button 
+                          onClick={handleShopifyCheckout}
+                          className="w-full" 
+                          disabled={shopifyLoading}
+                        >
+                          {shopifyLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Checkout Shopify Merch
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {officialMerchItems.length > 0 && (
+                        <Button 
+                          onClick={handleHandmadeCheckout}
+                          className="w-full" 
+                          variant={shopifyItems.length > 0 ? "outline" : "default"}
+                          disabled={isCheckingOutHandmade}
+                        >
+                          {isCheckingOutHandmade ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            "Checkout Printify Merch"
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
 
                 {/* Separator if both sections have items */}
-                {shopifyItems.length > 0 && handmadeItems && handmadeItems.length > 0 && (
+                {(shopifyItems.length > 0 || officialMerchItems.length > 0) && handmadeItems.length > 0 && (
                   <Separator />
                 )}
 
