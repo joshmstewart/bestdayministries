@@ -227,7 +227,10 @@ serve(async (req) => {
     // Retrieve the checkout session
     let session: any;
     try {
-      session = await stripe.checkout.sessions.retrieve(session_id);
+      // Expand shipping_details to get shipping address from Stripe
+      session = await stripe.checkout.sessions.retrieve(session_id, {
+        expand: ['shipping_details', 'customer_details'],
+      });
     } catch (stripeError) {
       const errAny = stripeError as any;
       return await respondFailure(400, "Failed to retrieve Stripe session", {
