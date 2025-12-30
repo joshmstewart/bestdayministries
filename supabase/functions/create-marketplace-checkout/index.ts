@@ -338,6 +338,22 @@ serve(async (req) => {
       shipping_address_collection: {
         allowed_countries: ['US', 'CA'],
       },
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            fixed_amount: {
+              amount: totalShipping,
+              currency: 'usd',
+            },
+            display_name: totalShipping === 0 ? 'Free shipping' : 'Standard shipping',
+            delivery_estimate: {
+              minimum: { unit: 'business_day', value: 5 },
+              maximum: { unit: 'business_day', value: 10 },
+            },
+          },
+        },
+      ],
       metadata: {
         order_id: order.id,
         user_id: user?.id || 'guest',
