@@ -3,7 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, XCircle, Loader2, ShoppingBag, ArrowLeft } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, ShoppingBag, ArrowLeft, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCartSession } from "@/hooks/useCartSession";
 
@@ -14,6 +14,7 @@ export default function CheckoutSuccess() {
   
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "failed">("loading");
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [debugLogId, setDebugLogId] = useState<string | null>(null);
   const [pollCount, setPollCount] = useState(0);
   const maxPolls = 10; // Poll for up to 30 seconds (10 x 3s)
 
@@ -78,10 +79,24 @@ export default function CheckoutSuccess() {
         setStatus("pending");
       } else {
         setStatus("failed");
+        // Capture debug log ID if provided
+        if (data.debug_log_id) {
+          setDebugLogId(data.debug_log_id);
+        }
       }
     } catch (err) {
       console.error("Verification error:", err);
       setStatus("failed");
+    }
+  };
+
+  const copyDebugId = () => {
+    if (debugLogId) {
+      navigator.clipboard.writeText(debugLogId);
+      toast({
+        title: "Copied",
+        description: "Debug reference ID copied to clipboard.",
+      });
     }
   };
 
@@ -128,6 +143,22 @@ export default function CheckoutSuccess() {
                 <CardTitle className="mt-4">Payment Issue</CardTitle>
                 <CardDescription>
                   We couldn't verify your payment. Please check your order history or contact support.
+                  {debugLogId && (
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Reference: {debugLogId.slice(0, 8)}...
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6"
+                        onClick={copyDebugId}
+                        title="Copy full reference ID"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </CardDescription>
               </>
             )}

@@ -280,10 +280,13 @@ serve(async (req) => {
 
     const allLineItems = [...productLineItems, ...shippingLineItems];
 
-    // Create order record
+    // Create order record - use customer_id for authenticated users (matches OrderHistory.tsx)
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .insert({
+        // CRITICAL: Set customer_id for authenticated users - this is what OrderHistory uses
+        customer_id: user?.id || null,
+        // Also set user_id for backward compatibility
         user_id: user?.id || null,
         customer_email: effectiveEmail,
         status: "pending",
@@ -294,7 +297,7 @@ serve(async (req) => {
       .single();
 
     if (orderError) throw new Error(`Failed to create order: ${orderError.message}`);
-    logStep("Order created", { orderId: order.id });
+    logStep("Order created", { orderId: order.id, customerId: order.customer_id, userId: order.user_id });
 
     // Create order items with fee breakdown
     const orderItems = typedCartItems.map(item => {
@@ -321,6 +324,7 @@ serve(async (req) => {
     logStep("Order items created", { count: orderItems.length });
 
     const origin = req.headers.get("origin") || "https://lovable.dev";
+    logStep("Using origin for redirect", { origin });
 
     const regularVendorCount = Array.from(groupTotals.values()).filter(g => !g.isHouseVendor).length;
 
@@ -346,7 +350,8 @@ serve(async (req) => {
 
     logStep("Checkout configured", { 
       regularVendorCount,
-      hasOfficialMerch
+      hasOfficialMerch,
+      successUrl: sessionConfig.success_url,
     });
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
