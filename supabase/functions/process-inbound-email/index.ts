@@ -279,10 +279,33 @@ Deno.serve(async (req) => {
         throw new Error('No message content found in email');
       }
       
-      // Extract sender name from email or use email as fallback
-      const senderName = payload.from.includes('<') 
-        ? payload.from.split('<')[0].trim().replace(/['"]/g, '')
-        : senderEmail.split('@')[0];
+      // Extract sender name from email - try multiple approaches
+      let senderName = '';
+      
+      // Try to get name from "Name <email>" format
+      if (payload.from.includes('<')) {
+        const namePart = payload.from.split('<')[0].trim().replace(/['"]/g, '');
+        // Only use if it's not a Cloudflare ID (long hex string)
+        if (namePart && !/^[0-9a-f-]{30,}$/i.test(namePart)) {
+          senderName = namePart;
+        }
+      }
+      
+      // If no good name found, try to make a friendly name from email
+      if (!senderName) {
+        const localPart = senderEmail.split('@')[0];
+        // Check if it's a Cloudflare bounce ID
+        if (/^[0-9a-f-]{30,}$/i.test(localPart)) {
+          senderName = 'Email Sender';
+        } else {
+          // Capitalize and clean up the email local part
+          senderName = localPart
+            .replace(/[._-]/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        }
+      }
       
       // Create new contact form submission
       const { data: newSubmission, error: insertError } = await supabase

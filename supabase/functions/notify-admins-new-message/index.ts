@@ -29,7 +29,25 @@ serve(async (req) => {
   }
 
   try {
-    const { type, senderName, senderEmail, subject, messagePreview, submissionId }: NotifyRequest = await req.json();
+    const { type, senderName: rawSenderName, senderEmail, subject, messagePreview, submissionId }: NotifyRequest = await req.json();
+    
+    // Clean up sender name - handle Cloudflare IDs and long hex strings
+    let senderName = rawSenderName;
+    if (!senderName || /^[0-9a-f-]{30,}$/i.test(senderName)) {
+      // If name is empty or is a Cloudflare ID, extract from email
+      const localPart = senderEmail.split('@')[0];
+      if (/^[0-9a-f-]{30,}$/i.test(localPart)) {
+        senderName = 'Email Sender';
+      } else {
+        // Capitalize and clean up the email local part
+        senderName = localPart
+          .replace(/[._-]/g, ' ')
+          .split(' ')
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      }
+    }
+    
     logStep("Function started", { type, senderName, senderEmail });
 
     const supabaseClient = createClient(
