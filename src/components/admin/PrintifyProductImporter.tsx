@@ -9,8 +9,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { getFullErrorText } from "@/lib/errorUtils";
-import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown, ImageIcon, Palette } from "lucide-react";
+import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown, ImageIcon, Palette, Trash2 } from "lucide-react";
 import { PrintifyPreviewDialog } from "./PrintifyPreviewDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ProductColorImagesManager } from "./ProductColorImagesManager";
 interface PrintifyProduct {
   id: string;
@@ -32,9 +33,19 @@ interface PrintifyProduct {
   local_product_id?: string;
 }
 
+interface DeletedPrintifyProduct {
+  id: string;
+  local_product_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  is_active: boolean;
+}
+
 interface PrintifyResponse {
   success: boolean;
   products: PrintifyProduct[];
+  deletedFromPrintify?: DeletedPrintifyProduct[];
   shop?: { id: number; title: string };
   error?: string;
   message?: string;
@@ -216,6 +227,10 @@ export const PrintifyProductImporter = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
   const [archivedOpen, setArchivedOpen] = useState(false);
+  const [deletedOpen, setDeletedOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<DeletedPrintifyProduct | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
 
   // Load archived IDs from localStorage
@@ -394,6 +409,47 @@ export const PrintifyProductImporter = () => {
     dismissMutation.mutate({ product, currentTitle, currentDescription });
   };
 
+  const handleDeleteLocalProduct = async () => {
+    if (!productToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productToDelete.local_product_id);
+
+      if (error) throw error;
+
+      toast.success(`Deleted "${productToDelete.name}" from local store`);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['printify-products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (error: any) {
+      toast.error(`Failed to delete: ${error.message}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeactivateLocalProduct = async (product: DeletedPrintifyProduct) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: false })
+        .eq('id', product.local_product_id);
+
+      if (error) throw error;
+
+      toast.success(`Deactivated "${product.name}"`);
+      queryClient.invalidateQueries({ queryKey: ['printify-products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (error: any) {
+      toast.error(`Failed to deactivate: ${error.message}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -428,6 +484,7 @@ export const PrintifyProductImporter = () => {
   }
 
   const products = data?.products || [];
+  const deletedFromPrintify = data?.deletedFromPrintify || [];
   const notImported = products.filter(p => !p.is_imported && !archivedIds.has(p.id));
   const imported = products.filter(p => p.is_imported);
   const needsUpdate = imported.filter(p => p.has_changes);
@@ -642,6 +699,65 @@ export const PrintifyProductImporter = () => {
         </Card>
       )}
 
+      {deletedFromPrintify.length > 0 && (
+        <Collapsible open={deletedOpen} onOpenChange={setDeletedOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between text-destructive">
+              <span className="flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
+                Deleted from Printify ({deletedFromPrintify.length})
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${deletedOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-4">
+            <Card className="border-destructive/50 bg-destructive/5">
+              <CardContent className="pt-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  These products exist in your store but have been deleted from Printify. 
+                  You can deactivate them (hide from store) or delete them entirely.
+                </p>
+                <div className="space-y-2">
+                  {deletedFromPrintify.map((product) => (
+                    <div key={product.id} className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          ${product.price.toFixed(2)} • {product.is_active ? 'Active' : 'Inactive'}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        {product.is_active && (
+                          <Button 
+                            onClick={() => handleDeactivateLocalProduct(product)} 
+                            variant="outline" 
+                            size="sm"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Deactivate
+                          </Button>
+                        )}
+                        <Button 
+                          onClick={() => {
+                            setProductToDelete(product);
+                            setDeleteDialogOpen(true);
+                          }} 
+                          variant="destructive" 
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       <PrintifyPreviewDialog
         product={previewProduct}
         open={previewOpen}
@@ -651,6 +767,28 @@ export const PrintifyProductImporter = () => {
         onDismissUpdates={handleDismissUpdates}
         isImporting={importMutation.isPending || syncMutation.isPending || dismissMutation.isPending}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{productToDelete?.name}"? 
+              This will permanently remove the product from your store. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteLocalProduct}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -114,12 +114,15 @@ serve(async (req) => {
     // Get existing imported products with their original Printify data for comparison
     const { data: existingProducts } = await supabaseClient
       .from('products')
-      .select('id, printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price, printify_original_title, printify_original_description, printify_original_price')
+      .select('id, printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price, printify_original_title, printify_original_description, printify_original_price, is_active')
       .eq('is_printify_product', true);
 
     const importedByProductId = new Map(
       existingProducts?.map(p => [p.printify_product_id, p]) || []
     );
+
+    // Track Printify product IDs from API response to detect deletions
+    const printifyProductIds = new Set((productsData.data || []).map((p: any) => p.id));
 
     // Map Printify products to a simplified format
     const products = (productsData.data || []).map((product: any) => {
@@ -176,12 +179,25 @@ serve(async (req) => {
       };
     });
 
-    console.log('Returning', products.length, 'products');
+    // Find products that are in our database but no longer in Printify (deleted from Printify)
+    const deletedFromPrintify = (existingProducts || [])
+      .filter(p => p.printify_product_id && !printifyProductIds.has(p.printify_product_id))
+      .map(p => ({
+        id: p.printify_product_id,
+        local_product_id: p.id,
+        name: p.name,
+        description: p.description,
+        price: Number(p.price),
+        is_active: p.is_active,
+      }));
+
+    console.log('Returning', products.length, 'products,', deletedFromPrintify.length, 'deleted from Printify');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         products,
+        deletedFromPrintify,
         shop: { id: shopId, title: shops[0].title }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
