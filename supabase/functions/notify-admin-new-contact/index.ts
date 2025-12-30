@@ -65,7 +65,42 @@ const handler = async (req: Request): Promise<Response> => {
       .select("recipient_email")
       .single();
 
-    const adminEmail = settings?.recipient_email || Deno.env.get("ADMIN_EMAIL") || "admin@example.com";
+    const settingsEmail = settings?.recipient_email;
+
+    // Get all admin/owner user IDs
+    const { data: adminRoles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["admin", "owner"]);
+
+    // Get emails for those users from profiles
+    const adminUserIds = (adminRoles || []).map(r => r.user_id);
+    let adminEmails: string[] = [];
+    
+    if (adminUserIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("email")
+        .in("id", adminUserIds);
+      
+      adminEmails = (profiles || [])
+        .map(p => p.email)
+        .filter((email): email is string => !!email);
+    }
+
+    // Combine settings email with admin emails, deduplicate
+    const allRecipients = new Set<string>();
+    if (settingsEmail) allRecipients.add(settingsEmail);
+    adminEmails.forEach(email => allRecipients.add(email));
+    
+    // Fallback if no recipients found
+    if (allRecipients.size === 0) {
+      const fallback = Deno.env.get("ADMIN_EMAIL") || "admin@example.com";
+      allRecipients.add(fallback);
+    }
+
+    const recipientList = Array.from(allRecipients);
+    console.log("[notify-admin-new-contact] Sending to recipients:", recipientList);
 
     // Get app logo
     const { data: appSettings } = await supabase
@@ -194,7 +229,7 @@ ${submission.message}
     // Send email (no reply_to to prevent accidental replies to noreply address)
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: "Best Day Ever Notifications <noreply@bestdayministries.org>",
-      to: [adminEmail],
+      to: recipientList,
       subject: `[Action Required] New ${messageType} submission from ${submission.name}`,
       html,
     });
@@ -214,7 +249,7 @@ ${submission.message}
       await supabase.from('email_audit_log').insert({
         resend_email_id: emailData?.id,
         email_type: 'admin_notification',
-        recipient_email: adminEmail,
+        recipient_email: recipientList.join(', '),
         from_email: "noreply@bestdayministries.org",
         from_name: "Best Day Ever Notifications",
         subject: `[Action Required] New ${messageType} submission from ${submission.name}`,
