@@ -107,7 +107,7 @@ const Marketplace = () => {
                   All Products
                 </TabsTrigger>
                 <TabsTrigger value="handmade" onClick={() => setSelectedCategory('handmade')}>
-                  Handmade
+                  Artisan-Made
                 </TabsTrigger>
                 <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap">
                   Official Merch
