@@ -65,9 +65,15 @@ serve(async (req) => {
       }
     });
 
-    // Strip HTML tags from description
-    const rawDescription = printifyProduct.description || '';
-    const cleanDescription = rawDescription
+    // Get the user-edited values (title/description may have been modified in the dialog)
+    const userEditedTitle = printifyProduct.title || '';
+    const userEditedDescription = printifyProduct.description || '';
+    
+    // Clean the user-edited title (remove any "(Printify)" prefix that might have been left)
+    const cleanUserTitle = userEditedTitle.replace(/^\(Printify\)\s*/i, '').trim();
+    
+    // Clean the user-edited description (strip HTML tags)
+    const cleanUserDescription = userEditedDescription
       .replace(/<[^>]*>/g, '')
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
@@ -75,10 +81,22 @@ serve(async (req) => {
       .replace(/&gt;/g, '>')
       .replace(/\s+/g, ' ')
       .trim();
-
-    // Clean title - remove "(Printify)" prefix
-    const rawTitle = printifyProduct.title || '';
-    const cleanTitle = rawTitle.replace(/^\(Printify\)\s*/i, '').trim();
+    
+    // For the original Printify baseline, we need the raw Printify values BEFORE user edits
+    // These come from printifyProduct.original_title/description if provided, otherwise use the edited values
+    const originalPrintifyTitle = (printifyProduct.original_title || userEditedTitle).replace(/^\(Printify\)\s*/i, '').trim();
+    const rawOriginalDescription = printifyProduct.original_description || userEditedDescription;
+    const originalPrintifyDescription = rawOriginalDescription
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    console.log('Import: User title:', cleanUserTitle);
+    console.log('Import: Original Printify title for baseline:', originalPrintifyTitle);
 
     // Get all image URLs
     const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
@@ -91,12 +109,13 @@ serve(async (req) => {
       .single();
 
     // Create the product in our database
-    // Store original Printify data for change detection
+    // User-edited values go in name/description
+    // Original Printify values go in printify_original_* for change detection
     const { data: newProduct, error: insertError } = await supabaseClient
       .from('products')
       .insert({
-        name: cleanTitle,
-        description: cleanDescription,
+        name: cleanUserTitle,
+        description: cleanUserDescription,
         price: basePrice,
         images: imageUrls,
         is_active: true,
@@ -106,10 +125,9 @@ serve(async (req) => {
         printify_blueprint_id: printifyProduct.blueprint_id,
         printify_print_provider_id: printifyProduct.print_provider_id,
         printify_variant_ids: variantIds,
-        // Store original Printify values for detecting Printify-side changes
-        // Store the raw Printify price in dollars (without markup) for change detection
-        printify_original_title: cleanTitle,
-        printify_original_description: cleanDescription,
+        // Store ORIGINAL Printify values (before user edits) for detecting Printify-side changes
+        printify_original_title: originalPrintifyTitle,
+        printify_original_description: originalPrintifyDescription,
         printify_original_price: basePriceInDollars, // Raw Printify price in dollars, no markup
         // Auto-assign to house vendor for official merch
         vendor_id: houseVendor?.id || null,
