@@ -133,17 +133,43 @@ async function processWebhookEvent(
       await logStep("processing_subscription_change", "info");
       
       const subscription = event.data.object as Stripe.Subscription;
-      const newStatus = subscription.status === "canceled" ? "cancelled" : 
-                       subscription.status === "paused" ? "paused" : "active";
+      
+      // Determine the new status based on Stripe subscription state
+      // Priority: canceled > paused > cancel_at_period_end > active
+      let newStatus: string;
+      if (subscription.status === "canceled") {
+        newStatus = "cancelled";
+      } else if (subscription.status === "paused") {
+        newStatus = "paused";
+      } else if (subscription.cancel_at_period_end) {
+        // Subscription is still active but scheduled to cancel at period end
+        newStatus = "scheduled_cancel";
+      } else {
+        newStatus = "active";
+      }
 
       await logStep("subscription_status_change", "info", {
         subscription_id: subscription.id,
+        stripe_status: subscription.status,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        cancel_at: subscription.cancel_at,
         new_status: newStatus,
       });
 
+      // Build the update object - include ended_at for scheduled cancellations
+      const updateData: Record<string, any> = { status: newStatus };
+      
+      // If scheduled to cancel, store the cancellation date
+      if (subscription.cancel_at_period_end && subscription.cancel_at) {
+        updateData.ended_at = new Date(subscription.cancel_at * 1000).toISOString();
+      } else if (newStatus === "active") {
+        // If reactivated (cancel_at_period_end was reversed), clear ended_at
+        updateData.ended_at = null;
+      }
+
       const { data: sponsorshipData } = await supabaseAdmin
         .from("sponsorships")
-        .update({ status: newStatus })
+        .update(updateData)
         .eq("stripe_subscription_id", subscription.id)
         .eq("stripe_mode", stripeMode)
         .select()
@@ -153,6 +179,7 @@ async function processWebhookEvent(
         await logStep("sponsorship_updated", "success", {
           sponsorship_id: sponsorshipData.id,
           status: newStatus,
+          ended_at: updateData.ended_at,
         });
         
         if (logId) {

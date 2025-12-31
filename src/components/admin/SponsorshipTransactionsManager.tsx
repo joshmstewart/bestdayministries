@@ -394,8 +394,8 @@ export const SponsorshipTransactionsManager = () => {
     // Apply status filter (multi-select)
     if (filterStatus.length > 0) {
       filtered = filtered.filter(t => {
-        // Handle scheduled_cancel as a pseudo-status
-        const isScheduledCancel = t.status === 'active' && t.ended_at;
+        // Handle scheduled_cancel as both a real status and pseudo-status (for legacy data)
+        const isScheduledCancel = t.status === 'scheduled_cancel' || (t.status === 'active' && t.ended_at);
         if (isScheduledCancel && filterStatus.includes('scheduled_cancel')) {
           return true;
         }
@@ -452,10 +452,11 @@ export const SponsorshipTransactionsManager = () => {
   ).map(([id, name]) => ({ id, name }));
 
   const getStatusBadge = (status: string, endedAt: string | null) => {
-    // If status is active but has ended_at, it's scheduled to cancel
-    if (status === 'active' && endedAt) {
+    // Handle scheduled_cancel status (both new direct status and legacy active+ended_at)
+    if (status === 'scheduled_cancel' || (status === 'active' && endedAt)) {
+      const cancelDate = endedAt ? new Date(endedAt).toLocaleDateString() : null;
       return (
-        <Badge variant="outline" className="border-yellow-500 text-yellow-700">
+        <Badge variant="outline" className="border-yellow-500 text-yellow-700" title={cancelDate ? `Cancels on ${cancelDate}` : undefined}>
           Scheduled to Cancel
         </Badge>
       );
@@ -465,9 +466,11 @@ export const SponsorshipTransactionsManager = () => {
       active: "default",
       cancelled: "destructive",
       paused: "secondary",
+      pending: "outline",
+      completed: "default",
     };
     return (
-      <Badge variant={variants[status] || "outline"}>
+      <Badge variant={variants[status] || "outline"} className={status === 'completed' ? 'bg-green-600' : ''}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
