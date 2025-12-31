@@ -332,6 +332,9 @@ export const PrintifyProductImporter = () => {
 
   const syncMutation = useMutation({
     mutationFn: async ({ product }: { product: PrintifyProduct }) => {
+      console.log('Syncing product:', product.id, product.title);
+      console.log('Product images:', product.images);
+      
       // Update the existing product in our database
       const { data: existingProducts, error: fetchError } = await supabase
         .from('products')
@@ -340,11 +343,19 @@ export const PrintifyProductImporter = () => {
         .single();
 
       if (fetchError || !existingProducts) {
+        console.error('Failed to find product:', fetchError);
         throw new Error('Could not find existing product to update');
       }
 
-      const enabledVariant = product.variants.find(v => v.is_enabled) || product.variants[0];
+      const enabledVariant = product.variants?.find(v => v.is_enabled) || product.variants?.[0];
       const basePrice = enabledVariant?.price || 0;
+
+      // Safely extract image URLs - handle both { src: string } and string formats
+      const imageUrls = (product.images || []).map(img => 
+        typeof img === 'string' ? img : img?.src
+      ).filter(Boolean);
+
+      console.log('Updating with:', { name: product.title, price: basePrice, imageCount: imageUrls.length });
 
       const { error: updateError } = await supabase
         .from('products')
@@ -352,7 +363,7 @@ export const PrintifyProductImporter = () => {
           name: product.title,
           description: product.description,
           price: basePrice,
-          images: product.images.map(img => img.src),
+          images: imageUrls,
           // Also update the baseline Printify values so it moves out of "Needs Update"
           printify_original_title: product.title,
           printify_original_description: product.description,
@@ -360,7 +371,10 @@ export const PrintifyProductImporter = () => {
         })
         .eq('id', existingProducts.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
+      }
       return { message: `Successfully synced "${product.title}"` };
     },
     onSuccess: (data) => {
