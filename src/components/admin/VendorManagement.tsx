@@ -706,9 +706,15 @@ export const VendorManagement = () => {
                               alt={product.name}
                               className="w-14 h-14 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => {
-                                const allImages = product.images?.map(img => ({ image_url: img, caption: product.name })) || [{ image_url: imageUrl, caption: product.name }];
-                                setLightboxImages(allImages);
-                                setLightboxIndex(0);
+                                const baseUrls = (product.images || []).filter(Boolean) as string[];
+                                const urls = imageUrl && !baseUrls.includes(imageUrl)
+                                  ? [imageUrl, ...baseUrls]
+                                  : baseUrls;
+
+                                const startIndex = imageUrl ? Math.max(0, urls.indexOf(imageUrl)) : 0;
+
+                                setLightboxImages(urls.map((img) => ({ image_url: img, caption: product.name })));
+                                setLightboxIndex(startIndex);
                                 setLightboxOpen(true);
                               }}
                             />
