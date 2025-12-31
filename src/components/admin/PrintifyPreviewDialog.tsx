@@ -142,11 +142,6 @@ export const PrintifyPreviewDialog = ({
   const [defaultImageIndex, setDefaultImageIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
-  if (!product) return null;
-
-  const enabledVariants = product.variants.filter(v => v.is_enabled);
-  const basePrice = enabledVariants[0]?.price || product.variants[0]?.price || 0;
-
   // Initialize state when product changes or dialog opens
   useEffect(() => {
     if (open && product) {
@@ -161,6 +156,11 @@ export const PrintifyPreviewDialog = ({
       setSelectedOptions({});
     }
   }, [open, product]);
+
+  if (!product) return null;
+
+  const enabledVariants = product.variants.filter(v => v.is_enabled);
+  const basePrice = enabledVariants[0]?.price || product.variants[0]?.price || 0;
 
   // Calculate markup from final price for the import callback
   const priceMarkup = Math.max(0, finalPrice - basePrice);
