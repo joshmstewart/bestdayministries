@@ -164,11 +164,25 @@ export const PrintifyPreviewDialog = ({
   console.log('Product options from API:', product.options);
   console.log('Enabled variants:', enabledVariants.map(v => v.title));
 
+  // Helper: extract base color name from variants like "Heather Prism Lilac" -> "Lilac"
+  const getBaseColorName = (colorName: string): string => {
+    const lower = colorName.toLowerCase().trim();
+    // List of prefixes/modifiers to strip
+    const prefixes = ['heather', 'prism', 'sport', 'athletic', 'vintage', 'dark', 'light', 'neon', 'pastel'];
+    let words = lower.split(/\s+/);
+    // Remove prefix words
+    while (words.length > 1 && prefixes.includes(words[0])) {
+      words.shift();
+    }
+    // Return the remaining word(s) with proper casing
+    return words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
   // Use product options if available, otherwise extract from variant titles
   const options = product.options && product.options.length > 0
-    ? product.options.map(opt => ({
-        name: opt.name,
-        values: opt.values
+    ? product.options.map(opt => {
+        const isColorOption = opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour';
+        let values = opt.values
           // Normalize to strings first (Printify API can return objects like {id, title})
           .map(v => typeof v === 'string' ? v : (v as any)?.title || String(v))
           // Only include values that appear in enabled variants
@@ -178,8 +192,23 @@ export const PrintifyPreviewDialog = ({
               const variantParts = variant.title.split(' / ').map(p => p.toLowerCase().trim());
               return variantParts.includes(valueStr.toLowerCase().trim());
             })
-          )
-      })).filter(opt => opt.values.length > 0)
+          );
+        
+        // For color options, normalize to base color names and deduplicate
+        if (isColorOption) {
+          const baseColorMap = new Map<string, string>();
+          values.forEach(v => {
+            const baseColor = getBaseColorName(v);
+            // Keep the first (usually simplest) name for each base color
+            if (!baseColorMap.has(baseColor.toLowerCase())) {
+              baseColorMap.set(baseColor.toLowerCase(), baseColor);
+            }
+          });
+          values = Array.from(baseColorMap.values());
+        }
+        
+        return { name: opt.name, values };
+      }).filter(opt => opt.values.length > 0)
     : extractOptionsFromVariants(product.variants);
 
   console.log('Computed options:', options);
