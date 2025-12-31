@@ -338,6 +338,7 @@ Admin interface for viewing and replying to submissions.
 - **Table Columns**: [checkbox][red-dot][date][name][subject][type][source][status][actions]
 - **Red Dot Indicator**: Shows for new submissions OR unread user replies
 - **Reply Button Badge**: Shows count of unread user replies
+- **CC Recipients**: Optional CC list on replies (stored on the submission for future replies)
 - **Filters**: Search by name/email/subject, filter by status/type/source
 - **Bulk Actions**: Mark as read, change status, delete
 - **Status Management**: new → read → replied → resolved

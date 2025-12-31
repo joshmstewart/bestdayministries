@@ -352,14 +352,18 @@ graph TD
   value={replyMessage} 
   onChange={(e) => setReplyMessage(e.target.value)} 
   placeholder="Type your reply..." 
-  rows={6}  // Comfortable height for most replies
+  rows={6} 
 />
+
+{/* Optional CC recipients (stored per thread) */}
+<label className="text-sm font-medium">CC recipients (optional)</label>
+<Input type="email" placeholder="Add CC email..." />
 
 <Textarea 
   value={adminNotes} 
   onChange={(e) => setAdminNotes(e.target.value)} 
   placeholder="Admin notes (internal only)..." 
-  rows={3}  // Smaller, less prominent
+  rows={3} 
 />
 ```
 
