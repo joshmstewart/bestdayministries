@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { DollarSign, Plus, RefreshCw, AlertTriangle } from "lucide-react";
+import { DollarSign, Plus, RefreshCw, AlertTriangle, Check } from "lucide-react";
 
 interface PrintifyVariant {
   id: number;
@@ -58,7 +58,7 @@ interface PrintifyPreviewDialogProps {
   product: PrintifyProduct | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImport: (product: PrintifyProduct, priceMarkup: number, editedTitle: string, editedDescription: string) => void;
+  onImport: (product: PrintifyProduct, priceMarkup: number, editedTitle: string, editedDescription: string, defaultImageIndex?: number) => void;
   onSync?: (product: PrintifyProduct) => void;
   onDismissUpdates?: (product: PrintifyProduct, currentTitle: string, currentDescription: string) => void;
   isImporting: boolean;
@@ -139,6 +139,7 @@ export const PrintifyPreviewDialog = ({
   const [editedDescription, setEditedDescription] = useState("");
   const [priceMarkup, setPriceMarkup] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [defaultImageIndex, setDefaultImageIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
   // Initialize state when product changes or dialog opens
@@ -148,6 +149,7 @@ export const PrintifyPreviewDialog = ({
       setEditedDescription(product.description || "");
       setPriceMarkup(0);
       setSelectedImageIndex(0);
+      setDefaultImageIndex(0);
       setSelectedOptions({});
     }
   }, [open, product]);
@@ -292,7 +294,7 @@ export const PrintifyPreviewDialog = ({
   };
 
   const handleSubmit = () => {
-    onImport(product, priceMarkup, editedTitle, editedDescription);
+    onImport(product, priceMarkup, editedTitle, editedDescription, defaultImageIndex);
   };
 
   const handleSync = () => {
@@ -401,18 +403,39 @@ export const PrintifyPreviewDialog = ({
                 </div>
               )}
               {product.images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {product.images.map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedImageIndex(idx)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
-                        idx === selectedImageIndex ? 'border-primary' : 'border-transparent'
-                      }`}
-                    >
-                      <img src={img.src} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Click to preview, double-click to set as default
+                    </p>
+                    {defaultImageIndex > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        Image {defaultImageIndex + 1} is default
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {product.images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedImageIndex(idx)}
+                        onDoubleClick={() => setDefaultImageIndex(idx)}
+                        className={`relative flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
+                          idx === selectedImageIndex ? 'border-primary' : 'border-transparent'
+                        }`}
+                        title={idx === defaultImageIndex ? "Default image" : "Double-click to set as default"}
+                      >
+                        <img src={img.src} alt="" className="w-full h-full object-cover" />
+                        {idx === defaultImageIndex && (
+                          <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                            <div className="bg-primary rounded-full p-0.5">
+                              <Check className="h-3 w-3 text-primary-foreground" />
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
