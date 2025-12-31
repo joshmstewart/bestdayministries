@@ -169,20 +169,6 @@ export const PrintifyPreviewDialog = ({
   console.log('Product options from API:', product.options);
   console.log('Enabled variants:', enabledVariants.map(v => v.title));
 
-  // Helper: extract base color name from variants like "Heather Prism Lilac" -> "Lilac"
-  const getBaseColorName = (colorName: string): string => {
-    const lower = colorName.toLowerCase().trim();
-    // List of prefixes/modifiers to strip
-    const prefixes = ['heather', 'prism', 'sport', 'athletic', 'vintage', 'dark', 'light', 'neon', 'pastel'];
-    let words = lower.split(/\s+/);
-    // Remove prefix words
-    while (words.length > 1 && prefixes.includes(words[0])) {
-      words.shift();
-    }
-    // Return the remaining word(s) with proper casing
-    return words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  };
-
   const isColorOptionName = (name: string): boolean => {
     const n = name.toLowerCase().trim();
     // Printify sometimes uses "Color" vs "Colors" (and "Colour/Colours")
@@ -237,20 +223,11 @@ export const PrintifyPreviewDialog = ({
           const colorLikeCount = values.filter(v => looksLikeColor(v)).length;
           const isActuallyColors = colorLikeCount > values.length / 2;
           
-          if (isActuallyColors) {
-            // Normalize to base color names and deduplicate
-            const baseColorMap = new Map<string, string>();
-            values.forEach(v => {
-              const baseColor = getBaseColorName(v);
-              if (!baseColorMap.has(baseColor.toLowerCase())) {
-                baseColorMap.set(baseColor.toLowerCase(), baseColor);
-              }
-            });
-            values = Array.from(baseColorMap.values());
-          } else {
+          if (!isActuallyColors) {
             // Not actually colors - rename to "Style" or "Configuration"
             displayName = 'Style';
           }
+          // Keep all color variants as-is (don't normalize/combine similar names)
         }
         
         return { name: displayName, values };
