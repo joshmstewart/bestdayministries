@@ -146,10 +146,19 @@ The checkout uses **polling-based verification** instead of webhooks:
 | `/marketplace` | Marketplace.tsx | Main store with tabs |
 | `/store/product/:productId` | ProductDetail.tsx | Product detail with variant selection |
 | `/checkout-success` | CheckoutSuccess.tsx | Payment verification + polling |
-| `/orders` | OrderHistory.tsx | Customer order history |
+| `/orders` | OrderHistory.tsx | Customer order history with vendor info display |
 | `/vendor-dashboard` | VendorDashboard.tsx | Vendor management portal |
 | `/vendor-auth` | VendorAuth.tsx | Vendor application |
 | `/vendors/:id` | VendorStorefront.tsx | Public vendor store page |
+
+### Recent Updates (2025-01)
+
+| Feature | Description |
+|---------|-------------|
+| **Vendor Info in Orders** | Order history and details now display vendor business name for each item |
+| **Product Image Lightbox** | Admin product list images are clickable to open lightbox with all product images |
+| **ProductDetail Lightbox** | Main image click opens lightbox starting with currently viewed image |
+| **Image List Improvements** | Reduced margins, larger thumbnails in admin product list for better visibility |
 
 ### Marketplace Components (`src/components/marketplace/`)
 
@@ -286,8 +295,11 @@ The checkout uses **polling-based verification** instead of webhooks:
 - [x] Stripe Connect onboarding component
 - [x] Product management (CRUD)
 - [x] Order tracking submission
-- [x] OrderHistory page for customers
+- [x] OrderHistory page for customers with vendor info display
 - [x] Shopify integration for official merch
+- [x] Product image lightbox in admin (VendorManagement) - click to view full size
+- [x] ProductDetail image lightbox - starts with currently viewed image
+- [x] Vendor business name display in order history and order details
 
 ### ⚠️ Needs Testing
 

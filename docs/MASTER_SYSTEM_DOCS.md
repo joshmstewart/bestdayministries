@@ -924,6 +924,16 @@ SEO:works-with-SEOHead[og:*|twitter:*]→rich-previews
 BEST:absolute-URLs|<150-desc|2-3-hashtags-no-#|toast-on-copy
 VISIBILITY:public-only[is_public=true]|role-based[visible_to_roles]
 
+## WELCOME_REDIRECT_MODAL
+OVERVIEW:welcome-popup-for-users-redirected-from-old-domain→shows-every-time-?welcome=true-in-URL
+TRIGGER:URL-param[?welcome=true]→useSearchParams→setOpen(true)
+COMPONENTS:WelcomeRedirectModal[App.tsx-global]|WelcomePopup[Index.tsx-homepage-only]
+PURPOSE:inform-users-redirected-from-old-URL→encourage-bookmark-update→displays-every-visit-since-using-old-URL
+LOCATIONS:App.tsx[global-modal]|Index.tsx[homepage-popup]
+USAGE:old-domain-redirect-adds-?welcome=true→modal-opens-automatically→user-dismisses→continues-browsing
+CONTENT:welcome-message+new-domain-reminder+explore-button
+DOC:WELCOME_REDIRECT_MODAL.md[optional]
+
 ## MARKETPLACE_CHECKOUT_SYSTEM
 OVERVIEW:Joy-House-Store→unified-marketplace[handmade+Printify-POD+Shopify-merch]|Stripe-Connect-vendors|polling-payment-verification
 ROUTE:/marketplace|/store/product/:id|/checkout-success|/orders|/vendor-dashboard|/vendor-auth
