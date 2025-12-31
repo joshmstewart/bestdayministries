@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ShoppingCart, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
@@ -33,6 +32,7 @@ const ProductDetail = () => {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [cartOpen, setCartOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, getCartInsertData, isLoading: cartSessionLoading } = useCartSession();
 
@@ -189,41 +189,71 @@ const ProductDetail = () => {
     if (defaultSize && !selectedSize) setSelectedSize(defaultSize);
   }, [defaultColor, defaultSize]);
 
-  // Filter images based on selected color's variant ID and include custom color images
-  const filteredImages = (() => {
-    // Get custom images for the selected color
-    const customImagesForColor = selectedColor 
-      ? (customColorImages || [])
-          .filter(img => img.color_name === selectedColor)
-          .map(img => img.image_url)
-      : [];
+  // Build all images: default first, then all API images, then all custom images grouped by color
+  const allImages = useMemo(() => {
+    const apiImages = (product?.images as string[]) || [];
+    const customImages = (customColorImages || []).map(img => img.image_url);
     
-    // If there's a default_image_url set, show it first
-    const defaultImageFirst = product?.default_image_url ? [product.default_image_url] : [];
+    // Put default image first if set
+    const defaultImg = product?.default_image_url;
+    const allImageUrls = [...apiImages, ...customImages];
     
-    if (!product?.images || !selectedColor || !hasMultipleOptions) {
-      // Include default image first, then product images, then custom images
-      const baseImages = product?.images || [];
-      const uniqueImages = Array.from(new Set([...defaultImageFirst, ...baseImages, ...customImagesForColor]));
-      return uniqueImages;
+    if (defaultImg) {
+      // Remove default from its current position and put it first
+      const filtered = allImageUrls.filter(url => url !== defaultImg);
+      return [defaultImg, ...filtered];
     }
     
-    const variantId = colorToVariantId.get(selectedColor);
-    if (!variantId) {
-      const uniqueImages = Array.from(new Set([...defaultImageFirst, ...product.images, ...customImagesForColor]));
-      return uniqueImages;
+    return allImageUrls;
+  }, [product?.images, product?.default_image_url, customColorImages]);
+
+  // Map colors to their first image index for navigation
+  const colorToFirstImageIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    
+    // For each color, find the first image that belongs to it
+    colors.forEach(color => {
+      const variantId = colorToVariantId.get(color);
+      
+      // First, check custom images for this color
+      const customImg = customColorImages?.find(img => img.color_name === color);
+      if (customImg) {
+        const idx = allImages.indexOf(customImg.image_url);
+        if (idx !== -1 && !map.has(color)) {
+          map.set(color, idx);
+        }
+      }
+      
+      // Then check API images by variant ID
+      if (variantId && !map.has(color)) {
+        const idx = allImages.findIndex(url => url.includes(`/${variantId}/`));
+        if (idx !== -1) {
+          map.set(color, idx);
+        }
+      }
+    });
+    
+    return map;
+  }, [colors, colorToVariantId, customColorImages, allImages]);
+
+  // When color changes, jump to that color's first image
+  useEffect(() => {
+    if (selectedColor) {
+      const targetIndex = colorToFirstImageIndex.get(selectedColor);
+      if (targetIndex !== undefined) {
+        setCurrentImageIndex(targetIndex);
+      }
     }
-    
-    // Filter Printify images that contain this variant ID in the URL path
-    const matchingPrintifyImages = product.images.filter((img: string) => 
-      img.includes(`/${variantId}/`)
-    );
-    
-    // Combine: default first, then Printify images for this color, then custom uploaded images
-    const baseImages = matchingPrintifyImages.length > 0 ? matchingPrintifyImages : product.images;
-    const uniqueImages = Array.from(new Set([...defaultImageFirst, ...baseImages, ...customImagesForColor]));
-    return uniqueImages;
-  })();
+  }, [selectedColor, colorToFirstImageIndex]);
+
+  // Navigation handlers
+  const goToPrevImage = () => {
+    setCurrentImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1);
+  };
+
+  const goToNextImage = () => {
+    setCurrentImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0);
+  };
 
   // Build the effective variant from selections
   const effectiveVariant = (() => {
@@ -292,8 +322,8 @@ const ProductDetail = () => {
     });
   };
 
-  const imageUrl = filteredImages.length > 0 
-    ? filteredImages[0] 
+  const currentImage = allImages.length > 0 
+    ? allImages[currentImageIndex] 
     : '/placeholder.svg';
 
   if (isLoading) {
@@ -351,23 +381,56 @@ const ProductDetail = () => {
           </Button>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Product Images */}
+            {/* Product Images with Navigation */}
             <div className="space-y-4">
-              <div className="aspect-square relative overflow-hidden rounded-lg bg-secondary/10">
+              <div className="aspect-square relative overflow-hidden rounded-lg bg-secondary/10 group">
                 <img 
-                  src={imageUrl}
+                  src={currentImage}
                   alt={product.name}
                   className="object-cover w-full h-full"
                 />
+                
+                {/* Left/Right Navigation Arrows */}
+                {allImages.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={goToPrevImage}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={goToNextImage}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                    
+                    {/* Image counter */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-background/80 px-2 py-1 rounded text-xs font-medium">
+                      {currentImageIndex + 1} / {allImages.length}
+                    </div>
+                  </>
+                )}
               </div>
               
-              {/* Thumbnail gallery */}
-              {filteredImages.length > 1 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {filteredImages.slice(0, 4).map((img: string, idx: number) => (
-                    <div key={idx} className="aspect-square rounded-md overflow-hidden bg-secondary/10">
+              {/* Thumbnail gallery - show all images, highlight current */}
+              {allImages.length > 1 && (
+                <div className="grid grid-cols-5 gap-2 max-h-[200px] overflow-y-auto">
+                  {allImages.map((img: string, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`aspect-square rounded-md overflow-hidden bg-secondary/10 border-2 transition-all ${
+                        idx === currentImageIndex ? 'border-primary ring-2 ring-primary/30' : 'border-transparent hover:border-muted-foreground/30'
+                      }`}
+                    >
                       <img src={img} alt="" className="w-full h-full object-cover" />
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
