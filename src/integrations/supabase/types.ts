@@ -54,13 +54,17 @@ export type Database = {
           created_at: string
           display_order: number
           id: string
-          image_url: string
+          image_url: string | null
           moderated_at: string | null
           moderated_by: string | null
           moderation_reason: string | null
           moderation_severity: string | null
           moderation_status: string | null
           original_image_url: string | null
+          video_id: string | null
+          video_type: string | null
+          video_url: string | null
+          youtube_url: string | null
         }
         Insert: {
           album_id: string
@@ -68,13 +72,17 @@ export type Database = {
           created_at?: string
           display_order?: number
           id?: string
-          image_url: string
+          image_url?: string | null
           moderated_at?: string | null
           moderated_by?: string | null
           moderation_reason?: string | null
           moderation_severity?: string | null
           moderation_status?: string | null
           original_image_url?: string | null
+          video_id?: string | null
+          video_type?: string | null
+          video_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
           album_id?: string
@@ -82,13 +90,17 @@ export type Database = {
           created_at?: string
           display_order?: number
           id?: string
-          image_url?: string
+          image_url?: string | null
           moderated_at?: string | null
           moderated_by?: string | null
           moderation_reason?: string | null
           moderation_severity?: string | null
           moderation_status?: string | null
           original_image_url?: string | null
+          video_id?: string | null
+          video_type?: string | null
+          video_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: [
           {
@@ -96,6 +108,13 @@ export type Database = {
             columns: ["album_id"]
             isOneToOne: false
             referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_images_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
             referencedColumns: ["id"]
           },
         ]
