@@ -43,6 +43,35 @@
 - Stacked with overlapping offset (-2 spacing)
 - Hidden on mobile, visible on sm+ screens
 
+---
+
+## Album Video Support (Database Ready)
+
+### Database Migration
+**Table:** `album_images` (now supports mixed media)
+
+**New Columns Added:**
+| Column | Type | Purpose |
+|--------|------|---------|
+| `video_url` | text | URL for uploaded videos |
+| `video_type` | text | 'image', 'upload', 'youtube', or 'linked' |
+| `youtube_url` | text | YouTube video URL |
+| `video_id` | uuid | FK to videos table for linking existing videos |
+
+**Constraints:**
+- `album_media_has_content` - Ensures at least one media type is present (image_url, video_url, youtube_url, or video_id)
+- `image_url` is now nullable to allow video-only items
+
+**Index:**
+- Added index on `video_id` for efficient lookups
+
+### Status: Database Ready, Frontend Pending
+The database schema now supports videos in albums. Frontend implementation needed:
+- [ ] Update AlbumManagement.tsx to add video upload/YouTube input
+- [ ] Add video library linking (select from existing videos)
+- [ ] Update album display components to render videos
+- [ ] Update AlbumImage interface in TypeScript
+
 ## Files Modified
 
 ### Components
