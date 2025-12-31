@@ -16,12 +16,14 @@ const replySchema = z.object({
   submissionId: z.string().uuid(),
   replyMessage: z.string().trim().min(1).max(5000),
   adminNotes: z.string().trim().max(1000).optional(),
+  ccEmails: z.array(z.string().email()).optional(),
 });
 
 interface ContactReplyRequest {
   submissionId: string;
   replyMessage: string;
   adminNotes?: string;
+  ccEmails?: string[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -68,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { submissionId, replyMessage, adminNotes }: ContactReplyRequest = validationResult.data;
+    const { submissionId, replyMessage, adminNotes, ccEmails }: ContactReplyRequest = validationResult.data;
 
     console.log("[send-contact-reply] Processing reply for submission:", submissionId);
 
@@ -194,9 +196,16 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
     const replyFromEmail = replyToEmail;
     const replyFromName = fromName;
     
+    // Build recipient list - primary recipient plus any CC emails
+    const toRecipients = [submission.email];
+    const ccRecipients = ccEmails && ccEmails.length > 0 ? ccEmails : [];
+    
+    console.log("[send-contact-reply] Sending to:", { to: toRecipients, cc: ccRecipients });
+    
     const emailResponse = await resend.emails.send({
       from: `${replyFromName} <${fromEmail}>`,
-      to: [submission.email],
+      to: toRecipients,
+      cc: ccRecipients.length > 0 ? ccRecipients : undefined,
       reply_to: replyFromEmail,
       subject: `Re: ${submission.subject || 'Your message'}`,
       html: emailHtml,
@@ -229,7 +238,11 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
         related_id: submissionId,
         related_type: 'contact_submission',
         sent_at: new Date().toISOString(),
-        metadata: { admin_name: adminName, admin_id: user.id }
+        metadata: { 
+          admin_name: adminName, 
+          admin_id: user.id,
+          cc_emails: ccRecipients.length > 0 ? ccRecipients : undefined
+        }
       });
     } catch (logError) {
       console.error('[email-audit] Failed to log email send:', logError);

@@ -44,6 +44,7 @@ interface Submission {
   replied_by: string | null;
   reply_message: string | null;
   admin_notes: string | null;
+  cc_emails: string[] | null;
   reply_count?: number;
   unread_user_replies?: number; // Count of user replies since last admin reply
   source?: string; // 'form' or 'email'
@@ -71,6 +72,8 @@ export const MessagesManager = () => {
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [ccEmails, setCcEmails] = useState<string[]>([]);
+  const [newCcEmail, setNewCcEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
@@ -321,11 +324,25 @@ export const MessagesManager = () => {
     setSelectedSubmission(submission);
     setReplyMessage("");
     setAdminNotes(submission.admin_notes || "");
+    setCcEmails(submission.cc_emails || []);
+    setNewCcEmail("");
     setReplyDialogOpen(true);
     loadReplies(submission.id);
     
     // Mark related contact form notifications as read
     markContactNotificationsAsRead(submission.id);
+  };
+  
+  const addCcEmail = () => {
+    const email = newCcEmail.trim().toLowerCase();
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !ccEmails.includes(email)) {
+      setCcEmails([...ccEmails, email]);
+      setNewCcEmail("");
+    }
+  };
+  
+  const removeCcEmail = (emailToRemove: string) => {
+    setCcEmails(ccEmails.filter(e => e !== emailToRemove));
   };
 
   const markContactNotificationsAsRead = async (submissionId: string) => {
@@ -391,18 +408,27 @@ export const MessagesManager = () => {
           submissionId: selectedSubmission.id,
           replyMessage: replyMessage.trim(),
           adminNotes: adminNotes.trim() || undefined,
+          ccEmails: ccEmails.length > 0 ? ccEmails : undefined,
         },
       });
 
       if (error) throw error;
 
+      // Update cc_emails in the database for future replies
+      await supabase
+        .from('contact_form_submissions')
+        .update({ cc_emails: ccEmails })
+        .eq('id', selectedSubmission.id);
+
+      const ccText = ccEmails.length > 0 ? ` (CC: ${ccEmails.length})` : '';
       toast({
         title: "Reply Sent! ✅",
-        description: `Your reply has been sent to ${selectedSubmission.email}`,
+        description: `Your reply has been sent to ${selectedSubmission.email}${ccText}`,
       });
 
       setReplyDialogOpen(false);
       setReplyMessage("");
+      setCcEmails([]);
       loadReplies(selectedSubmission.id);
       loadSubmissions();
     } catch (error: any) {
@@ -1108,6 +1134,49 @@ export const MessagesManager = () => {
                   className="min-h-[150px]"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">CC Recipients</label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    value={newCcEmail}
+                    onChange={(e) => setNewCcEmail(e.target.value)}
+                    placeholder="Add CC email..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCcEmail();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addCcEmail}
+                    disabled={!newCcEmail.trim()}
+                  >
+                    Add
+                  </Button>
+                </div>
+                {ccEmails.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {ccEmails.map((email) => (
+                      <Badge key={email} variant="secondary" className="gap-1 py-1">
+                        {email}
+                        <button
+                          type="button"
+                          onClick={() => removeCcEmail(email)}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
