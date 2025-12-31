@@ -323,8 +323,8 @@ The checkout uses **polling-based verification** instead of webhooks:
 
 - `vendors`: Users can view own, admins can manage all
 - `products`: Public read, vendor-owner write
-- `orders`: Users see own orders only
-- `order_items`: Through order access
+- `orders`: Users see own orders only; admins can delete orders in `pending | processing | completed | cancelled` (keeps shipped/delivered protected)
+- `order_items`: Through order access; admins can delete items when parent order is `pending | processing | completed | cancelled`
 - `shopping_cart`: User sees own cart only
 
 ### Stripe Security
