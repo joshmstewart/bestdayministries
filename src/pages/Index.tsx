@@ -17,8 +17,7 @@ import VideoSection from "@/components/VideoSection";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { WelcomePopup } from "@/components/WelcomePopup";
+import { useNavigate } from "react-router-dom";
 
 // Default sections order
 const DEFAULT_SECTIONS = [
@@ -38,18 +37,9 @@ const DEFAULT_SECTIONS = [
 
 const Index = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [sections, setSections] = useState<Array<{ section_key: string; is_visible: boolean; content?: any }>>(DEFAULT_SECTIONS);
   const [loading, setLoading] = useState(true);
   const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
-
-  // Check for welcome parameter
-  useEffect(() => {
-    if (searchParams.get('welcome') === 'true') {
-      setShowWelcomePopup(true);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     // Redirect authenticated users to community page
@@ -207,7 +197,6 @@ const Index = () => {
         )}
       </main>
       <Footer />
-      <WelcomePopup open={showWelcomePopup} onOpenChange={setShowWelcomePopup} />
     </div>
   );
 };
