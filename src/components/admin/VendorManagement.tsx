@@ -502,6 +502,23 @@ export const VendorManagement = () => {
     }
   };
 
+  const getFulfillmentBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Badge className="bg-yellow-500 text-xs">{status}</Badge>;
+      case "in_production":
+        return <Badge className="bg-blue-500 text-xs">in production</Badge>;
+      case "shipped":
+        return <Badge className="bg-purple-500 text-xs">{status}</Badge>;
+      case "delivered":
+        return <Badge className="bg-green-500 text-xs">{status}</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive" className="text-xs">{status}</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-xs">{status}</Badge>;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -776,7 +793,13 @@ export const VendorManagement = () => {
                       <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="font-medium">${(order.total_amount ?? 0).toFixed(2)}</TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>{order.order_items.length} items</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {order.order_items.map((item) => (
+                            <span key={item.id}>{getFulfillmentBadge(item.fulfillment_status)}</span>
+                          ))}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
