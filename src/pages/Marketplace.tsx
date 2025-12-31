@@ -21,14 +21,16 @@ const Marketplace = () => {
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, isAuthenticated, isLoading: cartSessionLoading } = useCartSession();
 
-  // Check which categories have products
+  // Check which categories have products and get sample images
   const { data: categoryStatus } = useQuery({
-    queryKey: ['category-status'],
+    queryKey: ['category-status-with-images'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
         .select(`
           id,
+          images,
+          default_image_index,
           is_printify_product,
           vendor_id,
           vendor:vendors(is_house_vendor)
@@ -37,17 +39,32 @@ const Marketplace = () => {
 
       if (error) throw error;
       
-      const hasMerch = data?.some(p => 
+      const merchProducts = data?.filter(p => 
         p.is_printify_product === true || 
         (p.vendor as any)?.is_house_vendor === true
-      ) || false;
+      ) || [];
       
-      const hasHandmade = data?.some(p => 
+      const handmadeProducts = data?.filter(p => 
         p.vendor_id !== null && 
         (p.vendor as any)?.is_house_vendor !== true
-      ) || false;
+      ) || [];
       
-      return { hasMerch, hasHandmade };
+      // Get first image from up to 3 products per category
+      const getProductImages = (products: typeof data) => {
+        return products?.slice(0, 3).map(p => {
+          const images = p.images as string[] | null;
+          const defaultIndex = p.default_image_index || 0;
+          return images?.[defaultIndex] || images?.[0] || null;
+        }).filter(Boolean) || [];
+      };
+      
+      return { 
+        hasMerch: merchProducts.length > 0, 
+        hasHandmade: handmadeProducts.length > 0,
+        merchImages: getProductImages(merchProducts),
+        handmadeImages: getProductImages(handmadeProducts),
+        allImages: getProductImages(data?.slice(0, 3) || [])
+      };
     }
   });
 
@@ -136,14 +153,35 @@ const Marketplace = () => {
           <div className="container mx-auto px-4">
             <Tabs defaultValue="all" className="w-full">
               {activeCategoryCount > 1 && (
-                <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8">
-                  <TabsTrigger value="all" onClick={() => setSelectedCategory(null)} className="whitespace-nowrap">
+                <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8 gap-2">
+                  <TabsTrigger value="all" onClick={() => setSelectedCategory(null)} className="whitespace-nowrap flex items-center gap-2 px-4">
+                    {categoryStatus?.allImages && categoryStatus.allImages.length > 0 && (
+                      <div className="flex -space-x-2">
+                        {categoryStatus.allImages.slice(0, 3).map((img, i) => (
+                          <img key={i} src={img} alt="" className="w-6 h-6 rounded-full object-cover border-2 border-background" />
+                        ))}
+                      </div>
+                    )}
                     All Products
                   </TabsTrigger>
-                  <TabsTrigger value="handmade" onClick={() => setSelectedCategory('handmade')}>
+                  <TabsTrigger value="handmade" onClick={() => setSelectedCategory('handmade')} className="flex items-center gap-2 px-4">
+                    {categoryStatus?.handmadeImages && categoryStatus.handmadeImages.length > 0 && (
+                      <div className="flex -space-x-2">
+                        {categoryStatus.handmadeImages.slice(0, 3).map((img, i) => (
+                          <img key={i} src={img} alt="" className="w-6 h-6 rounded-full object-cover border-2 border-background" />
+                        ))}
+                      </div>
+                    )}
                     Artisan-Made
                   </TabsTrigger>
-                  <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap">
+                  <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap flex items-center gap-2 px-4">
+                    {categoryStatus?.merchImages && categoryStatus.merchImages.length > 0 && (
+                      <div className="flex -space-x-2">
+                        {categoryStatus.merchImages.slice(0, 3).map((img, i) => (
+                          <img key={i} src={img} alt="" className="w-6 h-6 rounded-full object-cover border-2 border-background" />
+                        ))}
+                      </div>
+                    )}
                     Official Merch
                   </TabsTrigger>
                 </TabsList>
