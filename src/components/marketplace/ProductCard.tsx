@@ -156,8 +156,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     : '/placeholder.svg';
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => navigate(`/store/product/${product.id}`)}>
-      <CardContent className="p-4">
+    <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer h-full flex flex-col" onClick={() => navigate(`/store/product/${product.id}`)}>
+      <CardContent className="p-4 flex-1 flex flex-col">
         <div className="aspect-square relative overflow-hidden rounded-lg mb-4">
           <img 
             src={imageUrl}
