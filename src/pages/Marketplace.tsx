@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ProductGrid } from "@/components/marketplace/ProductGrid";
+import { ProductSection } from "@/components/marketplace/ProductSection";
 import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
@@ -116,14 +117,8 @@ const Marketplace = () => {
               
               <TabsContent value="all">
                 <div className="space-y-12">
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-6">By Our Artisans</h2>
-                    <ProductGrid category="handmade" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-6">Official Merch</h2>
-                    <ProductGrid category="merch" />
-                  </div>
+                  <ProductSection category="handmade" title="By Our Artisans" />
+                  <ProductSection category="merch" title="Official Merch" />
                 </div>
               </TabsContent>
               
