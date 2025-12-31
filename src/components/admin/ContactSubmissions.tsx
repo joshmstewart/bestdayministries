@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox, MoreVertical, Filter, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -21,11 +22,12 @@ interface Submission {
   message: string;
   status: string;
   created_at: string;
-  message_type: string;
+  message_type: string | null;
   image_url: string | null;
   replied_at: string | null;
   reply_message: string | null;
   admin_notes: string | null;
+  cc_emails: string[] | null;
   reply_count?: number;
   unread_user_replies?: number;
   source?: string;
@@ -59,6 +61,8 @@ export default function ContactSubmissions() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [ccEmails, setCcEmails] = useState<string[]>([]);
+  const [newCcEmail, setNewCcEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
@@ -183,6 +187,28 @@ export default function ContactSubmissions() {
     );
   };
 
+  const openDialogForSubmission = (sub: Submission) => {
+    setSelectedSubmission(sub);
+    setReplyMessage("");
+    setAdminNotes(sub.admin_notes || "");
+    setCcEmails(sub.cc_emails || []);
+    setNewCcEmail("");
+    setDialogOpen(true);
+    loadReplies(sub.id);
+  };
+
+  const addCcEmail = () => {
+    const email = newCcEmail.trim().toLowerCase();
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !ccEmails.includes(email)) {
+      setCcEmails([...ccEmails, email]);
+      setNewCcEmail("");
+    }
+  };
+
+  const removeCcEmail = (emailToRemove: string) => {
+    setCcEmails(ccEmails.filter((e) => e !== emailToRemove));
+  };
+
   const updateStatus = async (id: string, status: string) => {
     const now = new Date();
     now.setSeconds(now.getSeconds() + 1);
@@ -237,10 +263,18 @@ export default function ContactSubmissions() {
           submissionId: selectedSubmission.id,
           replyMessage: replyMessage.trim(),
           adminNotes: adminNotes.trim() || undefined,
+          ccEmails: ccEmails.length > 0 ? ccEmails : undefined,
         },
       });
 
-      toast({ title: "Reply sent!" });
+      // Persist for future replies in the same thread
+      await supabase
+        .from("contact_form_submissions")
+        .update({ cc_emails: ccEmails, admin_notes: adminNotes.trim() || null })
+        .eq("id", selectedSubmission.id);
+
+      const ccText = ccEmails.length > 0 ? ` (CC: ${ccEmails.length})` : "";
+      toast({ title: `Reply sent!${ccText}` });
       setReplyMessage("");
       loadReplies(selectedSubmission.id);
       loadSubmissions();
@@ -413,13 +447,11 @@ export default function ContactSubmissions() {
               </TableHeader>
               <TableBody>
                 {filteredSubmissions.map((sub) => (
-                  <TableRow key={sub.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { 
-                    setSelectedSubmission(sub); 
-                    setReplyMessage(""); 
-                    setAdminNotes(sub.admin_notes || ""); 
-                    setDialogOpen(true); 
-                    loadReplies(sub.id); 
-                  }}>
+                  <TableRow
+                    key={sub.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => openDialogForSubmission(sub)}
+                  >
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selectedIds.has(sub.id)} onChange={() => toggleSelection(sub.id)} />
                     </TableCell>
@@ -460,13 +492,7 @@ export default function ContactSubmissions() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => { 
-                                setSelectedSubmission(sub); 
-                                setReplyMessage(""); 
-                                setAdminNotes(sub.admin_notes || ""); 
-                                setDialogOpen(true); 
-                                loadReplies(sub.id); 
-                              }}>
+                              <Button size="sm" variant="ghost" onClick={() => openDialogForSubmission(sub)}>
                                 <Reply className="w-4 h-4" />
                                 {sub.unread_user_replies! > 0 && <Badge variant="destructive" className="ml-1">{sub.unread_user_replies}</Badge>}
                               </Button>
@@ -482,13 +508,7 @@ export default function ContactSubmissions() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => { 
-                              setSelectedSubmission(sub); 
-                              setReplyMessage(""); 
-                              setAdminNotes(sub.admin_notes || ""); 
-                              setDialogOpen(true); 
-                              loadReplies(sub.id); 
-                            }}>
+                            <DropdownMenuItem onClick={() => openDialogForSubmission(sub)}>
                               <Eye className="w-4 h-4 mr-2" />
                               View Message
                             </DropdownMenuItem>
@@ -591,17 +611,57 @@ export default function ContactSubmissions() {
               {/* Reply Form */}
               <div className="space-y-3 pt-4 border-t">
                 <h3 className="font-semibold text-sm">Send Reply</h3>
-                <Textarea 
-                  value={replyMessage} 
-                  onChange={(e) => setReplyMessage(e.target.value)} 
-                  placeholder="Type your reply..." 
-                  rows={6} 
+                <Textarea
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  placeholder="Type your reply..."
+                  rows={6}
                 />
-                <Textarea 
-                  value={adminNotes} 
-                  onChange={(e) => setAdminNotes(e.target.value)} 
-                  placeholder="Admin notes (internal only)..." 
-                  rows={3} 
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">CC recipients (optional)</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      value={newCcEmail}
+                      onChange={(e) => setNewCcEmail(e.target.value)}
+                      placeholder="Add CC email..."
+                      className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCcEmail();
+                        }
+                      }}
+                    />
+                    <Button type="button" variant="outline" onClick={addCcEmail} disabled={!newCcEmail.trim()}>
+                      Add
+                    </Button>
+                  </div>
+                  {ccEmails.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {ccEmails.map((email) => (
+                        <Badge key={email} variant="secondary" className="gap-1 py-1">
+                          {email}
+                          <button
+                            type="button"
+                            onClick={() => removeCcEmail(email)}
+                            className="ml-1 hover:text-destructive"
+                            aria-label={`Remove ${email}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Admin notes (internal only)..."
+                  rows={3}
                 />
                 <Button onClick={sendReply} disabled={sending || !replyMessage.trim()}>
                   {sending ? (
