@@ -260,6 +260,8 @@ export const VendorManagement = () => {
         price,
         inventory_count,
         is_active,
+        is_printify_product,
+        printify_variant_ids,
         vendor:vendors (
           business_name
         )
