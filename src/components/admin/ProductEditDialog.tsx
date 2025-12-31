@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,20 +57,35 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
     }
   }, [product, open]);
 
-  const loadProductImages = async (productId: string) => {
+  const loadProductImages = useCallback(async (productId: string) => {
     setLoadingImages(true);
     try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("images, default_image_index, default_image_url, is_printify_product, printify_variant_ids")
-        .eq("id", productId)
-        .single();
+      // Fetch product data AND custom color images in parallel
+      const [productResult, colorImagesResult] = await Promise.all([
+        supabase
+          .from("products")
+          .select("images, default_image_index, default_image_url, is_printify_product, printify_variant_ids")
+          .eq("id", productId)
+          .single(),
+        supabase
+          .from("product_color_images")
+          .select("image_url")
+          .eq("product_id", productId)
+          .order("display_order", { ascending: true })
+      ]);
 
-      if (error) throw error;
+      if (productResult.error) throw productResult.error;
 
-      setImages(data.images || []);
-      setDefaultImageIndex(data.default_image_index ?? 0);
-      setDefaultImageUrl(data.default_image_url);
+      const apiImages = productResult.data.images || [];
+      const customImages = (colorImagesResult.data || []).map(r => r.image_url);
+      
+      // Combine and dedupe: API images first, then custom uploads not already in API images
+      const apiSet = new Set(apiImages);
+      const allImages = [...apiImages, ...customImages.filter(url => !apiSet.has(url))];
+
+      setImages(allImages);
+      setDefaultImageIndex(productResult.data.default_image_index ?? 0);
+      setDefaultImageUrl(productResult.data.default_image_url);
     } catch (error: any) {
       console.error("Failed to load product images:", error);
       setImages([]);
@@ -79,7 +94,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
     } finally {
       setLoadingImages(false);
     }
-  };
+  }, []);
 
   // Extract available colors from variant IDs
   const availableColors = useMemo(() => {
