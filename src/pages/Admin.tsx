@@ -72,6 +72,7 @@ import { AudioClipsManager } from "@/components/admin/AudioClipsManager";
 import { SoundEffectsManager } from "@/components/admin/SoundEffectsManager";
 import { DrinkIngredientsManager } from "@/components/admin/DrinkIngredientsManager";
 import { DrinkVibesManager } from "@/components/admin/DrinkVibesManager";
+import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -529,6 +530,7 @@ const Admin = () => {
                     <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
                     <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
+                    <TabsTrigger value="welcome-modal">Welcome Modal</TabsTrigger>
                     <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
                     <TabsTrigger value="partners">Partners</TabsTrigger>
@@ -550,6 +552,10 @@ const Admin = () => {
 
                   <TabsContent value="coffee-shop">
                     <CoffeeShopManager />
+                  </TabsContent>
+
+                  <TabsContent value="welcome-modal">
+                    <WelcomeModalManager />
                   </TabsContent>
 
                   <TabsContent value="navigation">
