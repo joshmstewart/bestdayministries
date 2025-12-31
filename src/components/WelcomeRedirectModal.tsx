@@ -29,12 +29,13 @@ export function WelcomeRedirectModal() {
             <Heart className="h-8 w-8 text-primary" />
           </div>
           <DialogTitle className="text-2xl font-bold text-center">
-            Welcome to Our New Home!
+            Joy House Has a New Home!
           </DialogTitle>
           <DialogDescription className="text-center space-y-3 pt-2">
             <p>
-              We're excited to share that Best Day Ministries has a brand new website! 
-              You've been redirected from our old URL.
+              Welcome! Joy House is now part of <strong>Best Day Ministries</strong> — 
+              a family that includes Joy House Store, Best Day Ever! coffee + crepes, 
+              and all our community events and programs.
             </p>
             <p>
               Please update your bookmarks to <strong>bestdayministries.org</strong> 
