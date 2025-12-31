@@ -446,7 +446,7 @@ export const ProductColorImagesManager = ({
           {/* Upload section */}
           <div className="border rounded-lg p-4 space-y-4">
             <h4 className="font-medium">Upload Custom Image</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
               <div className="space-y-2">
                 <Label>Select Color</Label>
                 <Select value={selectedColor} onValueChange={setSelectedColor}>
@@ -463,19 +463,38 @@ export const ProductColorImagesManager = ({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Upload Image</Label>
+                <Label>Select Image</Label>
                 <Input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={handleFileUpload}
                   disabled={!selectedColor || isUploading}
+                  className="cursor-pointer"
                 />
               </div>
+              <Button
+                onClick={() => {
+                  if (fileInputRef.current?.files?.[0]) {
+                    handleFileUpload({ target: fileInputRef.current } as React.ChangeEvent<HTMLInputElement>);
+                  } else {
+                    toast.error('Please select an image file first');
+                  }
+                }}
+                disabled={!selectedColor || isUploading || !fileInputRef.current?.files?.[0]}
+              >
+                {isUploading ? (
+                  <>Uploading...</>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload & Save
+                  </>
+                )}
+              </Button>
             </div>
-            {isUploading && (
-              <p className="text-sm text-muted-foreground">Uploading...</p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Select a color, choose an image file, then click "Upload & Save" to add the image.
+            </p>
             
             {/* Show all images for selected color immediately after upload */}
             {selectedColor && (
