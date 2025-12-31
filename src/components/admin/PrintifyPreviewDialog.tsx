@@ -203,8 +203,14 @@ export const PrintifyPreviewDialog = ({
     return words.some(word => knownColors.has(word));
   };
 
+  // Helper to check if option name is a size option
+  const isSizeOptionName = (name: string): boolean => {
+    const n = name.toLowerCase().trim();
+    return n === 'size' || n === 'sizes' || n.startsWith('size');
+  };
+
   // Use product options if available, otherwise extract from variant titles
-  const options = product.options && product.options.length > 0
+  const rawOptions = product.options && product.options.length > 0
     ? product.options.map(opt => {
         const isColorOption = isColorOptionName(opt.name);
         let values = opt.values
@@ -245,6 +251,25 @@ export const PrintifyPreviewDialog = ({
         return { name: displayName, values };
       }).filter(opt => opt.values.length > 0)
     : extractOptionsFromVariants(product.variants);
+
+  // Sort options: Colors first, then Sizes, then everything else
+  const options = [...rawOptions].sort((a, b) => {
+    const aIsColor = isColorOptionName(a.name);
+    const bIsColor = isColorOptionName(b.name);
+    const aIsSize = isSizeOptionName(a.name);
+    const bIsSize = isSizeOptionName(b.name);
+    
+    // Colors come first
+    if (aIsColor && !bIsColor) return -1;
+    if (!aIsColor && bIsColor) return 1;
+    
+    // Sizes come second
+    if (aIsSize && !bIsSize) return -1;
+    if (!aIsSize && bIsSize) return 1;
+    
+    // Keep original order for others
+    return 0;
+  });
 
   console.log('Computed options:', options);
 
