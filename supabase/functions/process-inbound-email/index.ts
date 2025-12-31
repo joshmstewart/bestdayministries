@@ -8,6 +8,7 @@ const corsHeaders = {
 interface InboundEmailPayload {
   from: string;
   to: string;
+  cc?: string; // CC recipients
   subject: string;
   html?: string;
   text?: string;
@@ -369,6 +370,20 @@ Deno.serve(async (req) => {
       
       console.log('[process-inbound-email] Final sender name:', senderName);
       
+      // Extract CC emails from the inbound email
+      let ccEmails: string[] = [];
+      if (payload.cc) {
+        ccEmails = extractCcEmails(payload.cc);
+        console.log('[process-inbound-email] CC emails found:', ccEmails);
+      }
+      if (payload.raw) {
+        const rawCcEmails = extractCcFromRaw(payload.raw);
+        if (rawCcEmails.length > 0) {
+          ccEmails = [...new Set([...ccEmails, ...rawCcEmails])]; // Dedupe
+          console.log('[process-inbound-email] CC emails from raw:', ccEmails);
+        }
+      }
+      
       // Create new contact form submission
       const { data: newSubmission, error: insertError } = await supabase
         .from('contact_form_submissions')
@@ -379,7 +394,8 @@ Deno.serve(async (req) => {
           message: messageContent,
           status: 'new',
           message_type: 'general',
-          source: 'email'
+          source: 'email',
+          cc_emails: ccEmails.length > 0 ? ccEmails : []
         })
         .select()
         .single();
@@ -616,6 +632,46 @@ function extractEmail(from: string): string | null {
   }
   // If no angle brackets, assume it's just the email
   return from.toLowerCase();
+}
+
+/**
+ * Extract CC email addresses from a CC header string
+ */
+function extractCcEmails(ccString: string): string[] {
+  if (!ccString || ccString.trim() === '') return [];
+  
+  const emails: string[] = [];
+  // Split by comma, handling cases like "Name <email>, Other <email2>"
+  const parts = ccString.split(',');
+  
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    
+    const email = extractEmail(trimmed);
+    if (email && !email.includes('@send.bestdayministries.org')) {
+      emails.push(email);
+    }
+  }
+  
+  return emails;
+}
+
+/**
+ * Extract CC emails from raw email headers
+ */
+function extractCcFromRaw(raw: string): string[] {
+  try {
+    // Find CC header in raw email
+    const ccMatch = raw.match(/^Cc:\s*(.+)$/mi);
+    if (ccMatch) {
+      return extractCcEmails(ccMatch[1]);
+    }
+    return [];
+  } catch (error) {
+    console.error('[extractCcFromRaw] Error:', error);
+    return [];
+  }
 }
 
 /**
