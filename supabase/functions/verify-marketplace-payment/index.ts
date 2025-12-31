@@ -264,9 +264,29 @@ serve(async (req) => {
       const customerDetails = session.customer_details;
       let shippingAddress: any = null;
 
+      // Helper to determine the best name to use
+      // Stripe Link sometimes only provides first name in shipping_details.name
+      // customer_details.name often has the full name the user entered
+      const getBestName = (): string => {
+        const shippingName = shippingDetails?.name || "";
+        const customerName = customerDetails?.name || "";
+        
+        // If shipping name has no space (single word/first name only), prefer customer_details.name
+        if (shippingName && !shippingName.includes(" ") && customerName.includes(" ")) {
+          logStep("Using customer_details.name (shipping name appears incomplete)", {
+            shippingName,
+            customerName,
+          });
+          return customerName;
+        }
+        
+        // Otherwise use shipping name if available, then customer name
+        return shippingName || customerName || "";
+      };
+
       if (shippingDetails?.address) {
         shippingAddress = {
-          name: shippingDetails.name || "",
+          name: getBestName(),
           line1: shippingDetails.address.line1 || "",
           line2: shippingDetails.address.line2 || "",
           city: shippingDetails.address.city || "",
@@ -275,13 +295,14 @@ serve(async (req) => {
           country: shippingDetails.address.country || "US",
         };
         logStep("Shipping address extracted from shipping_details", {
+          name: shippingAddress.name,
           city: shippingAddress.city,
           country: shippingAddress.country,
         });
       } else if (customerDetails?.address) {
         // Fallback: use customer_details.address (Stripe sometimes puts shipping here)
         shippingAddress = {
-          name: customerDetails.name || "",
+          name: getBestName(),
           line1: customerDetails.address.line1 || "",
           line2: customerDetails.address.line2 || "",
           city: customerDetails.address.city || "",
@@ -290,6 +311,7 @@ serve(async (req) => {
           country: customerDetails.address.country || "US",
         };
         logStep("Shipping address extracted from customer_details.address", {
+          name: shippingAddress.name,
           city: shippingAddress.city,
           country: shippingAddress.country,
         });
