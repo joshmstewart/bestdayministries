@@ -154,20 +154,35 @@ serve(async (req) => {
           console.log(`  Fetching subscription from Stripe...`);
           const subscription = await stripe.subscriptions.retrieve(sponsorship.stripe_subscription_id);
           console.log(`  Stripe subscription status: ${subscription.status}`);
+          console.log(`  cancel_at_period_end: ${subscription.cancel_at_period_end}`);
+          console.log(`  cancel_at: ${subscription.cancel_at}`);
           
           if (subscription.status === "canceled" || subscription.status === "incomplete_expired") {
             newStatus = "cancelled";
-            endDate = new Date(subscription.canceled_at! * 1000).toISOString();
+            endDate = new Date((subscription.canceled_at || Date.now() / 1000) * 1000).toISOString();
             results.cancelled++;
           } else if (subscription.status === "paused") {
             newStatus = "paused";
+          } else if (subscription.cancel_at_period_end) {
+            // Subscription is active but scheduled to cancel at period end
+            newStatus = "scheduled_cancel";
+            endDate = subscription.cancel_at ? new Date(subscription.cancel_at * 1000).toISOString() : null;
+            console.log(`  ⏳ Scheduled to cancel at: ${endDate}`);
           } else if (subscription.status === "active") {
             newStatus = "active";
+            // Clear ended_at if subscription was reactivated
+            if (sponsorship.ended_at) {
+              endDate = null; // Explicitly set to null to clear
+            }
           }
         }
 
-        // Update if status changed
-        if (newStatus !== sponsorship.status) {
+        // Update if status changed or ended_at changed (for scheduled_cancel tracking)
+        const needsUpdate = newStatus !== sponsorship.status || 
+          (endDate !== null && endDate !== sponsorship.ended_at) ||
+          (endDate === null && sponsorship.ended_at !== null);
+          
+        if (needsUpdate) {
           console.log(`  Status change detected: ${sponsorship.status} → ${newStatus}`);
           if (endDate) {
             console.log(`  Setting ended_at: ${endDate}`);
