@@ -3535,6 +3535,7 @@ export type Database = {
           price: number
           printify_blueprint_id: number | null
           printify_original_description: string | null
+          printify_original_images: string[] | null
           printify_original_price: number | null
           printify_original_title: string | null
           printify_print_provider_id: number | null
@@ -3559,6 +3560,7 @@ export type Database = {
           price: number
           printify_blueprint_id?: number | null
           printify_original_description?: string | null
+          printify_original_images?: string[] | null
           printify_original_price?: number | null
           printify_original_title?: string | null
           printify_print_provider_id?: number | null
@@ -3583,6 +3585,7 @@ export type Database = {
           price?: number
           printify_blueprint_id?: number | null
           printify_original_description?: string | null
+          printify_original_images?: string[] | null
           printify_original_price?: number | null
           printify_original_title?: string | null
           printify_print_provider_id?: number | null
