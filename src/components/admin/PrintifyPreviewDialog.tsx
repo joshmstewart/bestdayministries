@@ -178,10 +178,17 @@ export const PrintifyPreviewDialog = ({
     return words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
+  const isColorOptionName = (name: string): boolean => {
+    const n = name.toLowerCase().trim();
+    // Printify sometimes uses "Color" vs "Colors" (and "Colour/Colours")
+    return n === 'color' || n === 'colors' || n === 'colour' || n === 'colours' ||
+      n.startsWith('color') || n.startsWith('colour');
+  };
+
   // Use product options if available, otherwise extract from variant titles
   const options = product.options && product.options.length > 0
     ? product.options.map(opt => {
-        const isColorOption = opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour';
+        const isColorOption = isColorOptionName(opt.name);
         let values = opt.values
           // Normalize to strings first (Printify API can return objects like {id, title})
           .map(v => typeof v === 'string' ? v : (v as any)?.title || String(v))
@@ -214,9 +221,7 @@ export const PrintifyPreviewDialog = ({
   console.log('Computed options:', options);
 
   // Find the "Color" option index (usually first, but check by name)
-  const colorOptionIndex = options.findIndex(opt => 
-    opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
-  );
+  const colorOptionIndex = options.findIndex(opt => isColorOptionName(opt.name));
 
   // Helper: extract color keywords for fuzzy matching
   const getColorKeywords = (colorName: string): string[] => {
@@ -305,15 +310,13 @@ export const PrintifyPreviewDialog = ({
     setSelectedOptions(newSelected);
     
     // If selecting a color, try to find a matching image
-    if (optionName.toLowerCase() === 'color' || optionName.toLowerCase() === 'colour') {
+    if (isColorOptionName(optionName)) {
       const mappedIndex = colorToImageIndex[value];
       if (mappedIndex !== undefined) {
         setSelectedImageIndex(mappedIndex);
       } else {
         // Last resort: use color position
-        const colorOption = options.find(opt => 
-          opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
-        );
+        const colorOption = options.find(opt => isColorOptionName(opt.name));
         if (colorOption) {
           const colorIdx = colorOption.values.indexOf(value);
           if (colorIdx !== -1 && colorIdx < product.images.length) {
