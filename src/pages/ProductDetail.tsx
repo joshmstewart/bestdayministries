@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ShoppingCart, Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import ImageLightbox from "@/components/ImageLightbox";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
@@ -33,6 +34,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [cartOpen, setCartOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, getCartInsertData, isLoading: cartSessionLoading } = useCartSession();
 
@@ -431,7 +433,8 @@ const ProductDetail = () => {
                 <img 
                   src={currentImage}
                   alt={product.name}
-                  className="object-cover w-full h-full"
+                  className="object-cover w-full h-full cursor-pointer"
+                  onClick={() => setLightboxOpen(true)}
                 />
                 
                 {/* Left/Right Navigation Arrows */}
@@ -581,6 +584,14 @@ const ProductDetail = () => {
       </main>
       <FloatingCartButton cartCount={totalCartCount} onClick={() => setCartOpen(true)} />
       <UnifiedCartSheet open={cartOpen} onOpenChange={setCartOpen} />
+      <ImageLightbox
+        images={allImages.map(url => ({ image_url: url, caption: product.name }))}
+        currentIndex={currentImageIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onPrevious={() => setCurrentImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)}
+        onNext={() => setCurrentImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0)}
+      />
       <Footer />
     </div>
   );
