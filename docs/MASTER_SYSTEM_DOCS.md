@@ -952,9 +952,14 @@ EDGE:
   generate-printify-images[admin→check-missing-images→diagnostic-only-cant-generate-via-API]
   create-printify-order[service→submit-order-to-Printify-for-fulfillment]
   send-order-shipped[internal→Resend-shipped-email-with-tracking]
+ADMIN-UI:
   PrintifyProductImporter[catalog-view→sections:Needs-Update|Available|Imported|Archived]
-  PrintifyPreviewDialog[edit-title-desc-markup→import-or-sync→color-chip-image-preview]
+  PrintifyPreviewDialog[edit-title-desc-SELLING-PRICE→import-or-sync→color-chip-image-preview]
   ProductColorImagesManager[per-color-image-management]
+PRICING-UX[2025-01-16]:
+  IMPORT:shows-Selling-Price-NOT-markup→default=basePrice→min=basePrice
+  DISPLAY:shows-base-cost-and-calculated-markup-for-context
+  CONSISTENCY:matches-ProductEditDialog-experience→full-price-not-markup
 STORE-UI:
   ProductCard[color-swatches-overlay→66+-color-mappings→"Select-Options"-btn-for-variants]
   ProductDetail[separate-Color-Size-dropdowns→image-filtering-by-variant→quantity→add-to-cart-with-variant_info]
