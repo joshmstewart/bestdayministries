@@ -935,7 +935,11 @@ export const VendorManagement = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleBulkDelete}
+              onClick={(e) => {
+                // Keep dialog open while async delete runs
+                e.preventDefault();
+                void handleBulkDelete();
+              }}
               disabled={deleteLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
