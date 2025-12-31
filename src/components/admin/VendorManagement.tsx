@@ -126,6 +126,9 @@ interface Product {
   price: number;
   inventory_count: number;
   is_active: boolean;
+  images: string[] | null;
+  default_image_index: number | null;
+  default_image_url: string | null;
   vendor: {
     business_name: string;
   } | null;
@@ -262,6 +265,9 @@ export const VendorManagement = () => {
         is_active,
         is_printify_product,
         printify_variant_ids,
+        images,
+        default_image_index,
+        default_image_url,
         vendor:vendors (
           business_name
         )
@@ -672,30 +678,42 @@ export const VendorManagement = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-16">Image</TableHead>
                     <TableHead>Product Name</TableHead>
                     <TableHead>Vendor</TableHead>
                     <TableHead>Price</TableHead>
-                    <TableHead>Inventory</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.vendor?.business_name || "N/A"}</TableCell>
-                      <TableCell>${product.price.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge variant={product.inventory_count > 10 ? "default" : "destructive"}>
-                          {product.inventory_count}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={product.is_active ? "default" : "secondary"}>
-                          {product.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
+                  {products.map((product) => {
+                    const defaultIndex = product.default_image_index || 0;
+                    const imageUrl = product.default_image_url || product.images?.[defaultIndex] || product.images?.[0];
+                    
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          {imageUrl ? (
+                            <img 
+                              src={imageUrl} 
+                              alt={product.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                              <Package className="w-6 h-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{product.vendor?.business_name || "N/A"}</TableCell>
+                        <TableCell>${product.price.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={product.is_active ? "default" : "secondary"}>
+                            {product.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
                       <TableCell className="text-right">
                         <Button 
                           size="icon" 
