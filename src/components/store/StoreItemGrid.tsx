@@ -44,7 +44,7 @@ export const StoreItemGrid = ({ items, onPurchase, userCoins, loading, purchases
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
       {items.map((item) => {
         const isPurchased = purchases.some(p => p.store_item_id === item.id);
         return (
