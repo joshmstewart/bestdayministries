@@ -137,28 +137,33 @@ export const PrintifyPreviewDialog = ({
 }: PrintifyPreviewDialogProps) => {
   const [editedTitle, setEditedTitle] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
-  const [priceMarkup, setPriceMarkup] = useState(0);
+  const [finalPrice, setFinalPrice] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [defaultImageIndex, setDefaultImageIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+
+  if (!product) return null;
+
+  const enabledVariants = product.variants.filter(v => v.is_enabled);
+  const basePrice = enabledVariants[0]?.price || product.variants[0]?.price || 0;
 
   // Initialize state when product changes or dialog opens
   useEffect(() => {
     if (open && product) {
       setEditedTitle(product.title || "");
       setEditedDescription(product.description || "");
-      setPriceMarkup(0);
+      // Default final price to base price (no markup)
+      const variants = product.variants.filter(v => v.is_enabled);
+      const base = variants[0]?.price || product.variants[0]?.price || 0;
+      setFinalPrice(base);
       setSelectedImageIndex(0);
       setDefaultImageIndex(0);
       setSelectedOptions({});
     }
   }, [open, product]);
 
-  if (!product) return null;
-
-  const enabledVariants = product.variants.filter(v => v.is_enabled);
-  const basePrice = enabledVariants[0]?.price || product.variants[0]?.price || 0;
-  const finalPrice = basePrice + priceMarkup;
+  // Calculate markup from final price for the import callback
+  const priceMarkup = Math.max(0, finalPrice - basePrice);
 
   // Debug: log product options and variants
   console.log('Product options from API:', product.options);
@@ -580,21 +585,21 @@ export const PrintifyPreviewDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="markup">Price Markup</Label>
+                <Label htmlFor="price">Selling Price ($)</Label>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="markup"
+                    id="price"
                     type="number"
-                    min="0"
+                    min={basePrice}
                     step="0.01"
-                    value={priceMarkup}
-                    onChange={(e) => setPriceMarkup(parseFloat(e.target.value) || 0)}
+                    value={finalPrice}
+                    onChange={(e) => setFinalPrice(parseFloat(e.target.value) || basePrice)}
                     className="w-24"
                   />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Base: ${basePrice.toFixed(2)} → Final: <span className="font-medium">${finalPrice.toFixed(2)}</span>
+                  Base cost: ${basePrice.toFixed(2)} {priceMarkup > 0 && <span className="text-primary">(+${priceMarkup.toFixed(2)} markup)</span>}
                 </p>
               </div>
             </div>
