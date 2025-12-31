@@ -48,11 +48,14 @@ serve(async (req) => {
     console.log('Importing Printify product:', printifyProduct.title);
 
     // Get the first enabled variant's price as base, or first variant
-    // Printify prices come in cents, convert to dollars
+    // NOTE: Prices from the frontend are already in dollars (converted in fetch-printify-products)
     const enabledVariants = printifyProduct.variants.filter((v: any) => v.is_enabled);
     const baseVariant = enabledVariants[0] || printifyProduct.variants[0];
-    const basePriceInDollars = baseVariant ? baseVariant.price / 100 : 0;
+    // Price is already in dollars from frontend, no need to divide by 100
+    const basePriceInDollars = baseVariant ? baseVariant.price : 0;
     const basePrice = basePriceInDollars + priceMarkup;
+    
+    console.log('Base variant price (dollars):', basePriceInDollars, 'Markup:', priceMarkup, 'Final:', basePrice);
 
     // Get first image URL
     const imageUrl = printifyProduct.images?.[0]?.src || null;
