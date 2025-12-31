@@ -17,6 +17,9 @@ const colorNameToCSS: Record<string, string> = {
   'navy': '#1E3A5A',
   'navy blue': '#1E3A5A',
   'green': '#22C55E',
+  'lime': '#84CC16',
+  'lime green': '#84CC16',
+  'kiwi': '#84CC16',
   'yellow': '#EAB308',
   'orange': '#F97316',
   'purple': '#A855F7',
@@ -64,6 +67,15 @@ const colorNameToCSS: Record<string, string> = {
   'slate': '#64748B',
   'stone': '#78716C',
   'zinc': '#71717A',
+  'kelly green': '#4ADE80',
+  'sage': '#9CAF88',
+  'seafoam': '#71EEB8',
+  'emerald': '#10B981',
+  'hunter green': '#355E3B',
+  'dark green': '#14532D',
+  'light green': '#86EFAC',
+  'neon green': '#39FF14',
+  'kelly': '#4ADE80',
 };
 
 const getColorCSS = (colorName: string): string => {
