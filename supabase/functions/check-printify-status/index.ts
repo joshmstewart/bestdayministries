@@ -122,7 +122,7 @@ serve(async (req) => {
           case 'in-production':
           case 'printing':
             mappedStatus = 'in_production';
-            fulfillmentStatus = 'pending';
+            fulfillmentStatus = 'in_production';
             break;
           case 'fulfilled':
           case 'shipped':
