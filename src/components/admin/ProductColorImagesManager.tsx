@@ -476,15 +476,70 @@ export const ProductColorImagesManager = ({
             {isUploading && (
               <p className="text-sm text-muted-foreground">Uploading...</p>
             )}
+            
+            {/* Show all images for selected color immediately after upload */}
+            {selectedColor && (
+              <div className="mt-4 pt-4 border-t">
+                <h5 className="font-medium mb-2 flex items-center gap-2">
+                  All "{selectedColor}" Images
+                  <Badge variant="secondary">
+                    {(colorImages?.filter(img => img.color_name === selectedColor).length || 0) +
+                     (apiImages.filter(img => img.assignedColor === selectedColor).length || 0)}
+                  </Badge>
+                </h5>
+                <div className="flex flex-wrap gap-2">
+                  {/* API images assigned to this color */}
+                  {apiImages
+                    .filter(img => img.assignedColor === selectedColor)
+                    .map((img) => (
+                      <div key={img.url} className="relative group">
+                        <img
+                          src={img.url}
+                          alt={`${selectedColor} API variant`}
+                          className="w-20 h-20 object-cover rounded border border-primary/30"
+                        />
+                        <Badge variant="outline" className="absolute bottom-1 left-1 text-[10px] px-1 py-0 bg-background/80">
+                          API
+                        </Badge>
+                      </div>
+                    ))}
+                  {/* User-uploaded images for this color */}
+                  {colorImages
+                    ?.filter(img => img.color_name === selectedColor && !apiImages.some(api => api.url === img.image_url))
+                    .map((img) => (
+                      <div key={img.id} className="relative group">
+                        <img
+                          src={img.image_url}
+                          alt={`${selectedColor} custom variant`}
+                          className="w-20 h-20 object-cover rounded border border-secondary"
+                        />
+                        <button
+                          onClick={() => deleteMutation.mutate(img.id)}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  {(colorImages?.filter(img => img.color_name === selectedColor).length === 0 &&
+                    apiImages.filter(img => img.assignedColor === selectedColor).length === 0) && (
+                    <p className="text-sm text-muted-foreground">No images for this color yet</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* User-uploaded images */}
+          {/* User-uploaded images by color */}
           {Object.keys(uploadedByColor).length > 0 && (
             <div className="space-y-3">
               <h4 className="font-medium">Custom Uploaded Images</h4>
               {Object.entries(uploadedByColor).map(([color, images]) => (
                 <div key={color} className="border rounded-lg p-3">
-                  <h5 className="font-medium mb-2">{color}</h5>
+                  <h5 className="font-medium mb-2 flex items-center gap-2">
+                    {color}
+                    <Badge variant="secondary">{images.length}</Badge>
+                  </h5>
                   <div className="flex flex-wrap gap-2">
                     {images.map((img) => (
                       <div key={img.id} className="relative group">
