@@ -364,13 +364,14 @@ export const ProductColorImagesManager = ({
             </div>
           )}
 
-          {/* API Images Section */}
+          {/* All Images Section (API + Custom) */}
           <div className="space-y-3">
             <h4 className="font-medium flex items-center gap-2">
-              API Images 
-              <Badge variant="secondary">{apiImages.length}</Badge>
+              All Images 
+              <Badge variant="secondary">{apiImages.length + userUploadedImages.length}</Badge>
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {/* API Images */}
               {apiImages.map((img) => (
                 <div 
                   key={img.url} 
@@ -386,6 +387,9 @@ export const ProductColorImagesManager = ({
                       alt="" 
                       className="w-full h-full object-cover"
                     />
+                    <Badge variant="outline" className="absolute top-1 right-1 text-[10px] px-1 py-0 bg-background/80">
+                      API
+                    </Badge>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -437,6 +441,38 @@ export const ProductColorImagesManager = ({
                         </SelectContent>
                       </Select>
                     )}
+                  </div>
+                </div>
+              ))}
+              
+              {/* Custom Uploaded Images (in same grid) */}
+              {userUploadedImages.map((img) => (
+                <div 
+                  key={img.id} 
+                  className="border rounded-lg p-2 space-y-2 relative border-secondary bg-secondary/5"
+                >
+                  <div className="aspect-square rounded overflow-hidden bg-secondary/10 relative group">
+                    <img 
+                      src={img.image_url} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                    <Badge variant="secondary" className="absolute top-1 right-1 text-[10px] px-1 py-0 bg-background/80">
+                      Custom
+                    </Badge>
+                    <button
+                      onClick={() => deleteMutation.mutate(img.id)}
+                      className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete image"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    <Badge variant="default" className="text-xs truncate max-w-full">
+                      <Link2 className="h-3 w-3 mr-1" />
+                      {img.color_name}
+                    </Badge>
                   </div>
                 </div>
               ))}
@@ -549,37 +585,6 @@ export const ProductColorImagesManager = ({
             )}
           </div>
 
-          {/* User-uploaded images by color */}
-          {Object.keys(uploadedByColor).length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium">Custom Uploaded Images</h4>
-              {Object.entries(uploadedByColor).map(([color, images]) => (
-                <div key={color} className="border rounded-lg p-3">
-                  <h5 className="font-medium mb-2 flex items-center gap-2">
-                    {color}
-                    <Badge variant="secondary">{images.length}</Badge>
-                  </h5>
-                  <div className="flex flex-wrap gap-2">
-                    {images.map((img) => (
-                      <div key={img.id} className="relative group">
-                        <img
-                          src={img.image_url}
-                          alt={`${color} variant`}
-                          className="w-20 h-20 object-cover rounded border"
-                        />
-                        <button
-                          onClick={() => deleteMutation.mutate(img.id)}
-                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
