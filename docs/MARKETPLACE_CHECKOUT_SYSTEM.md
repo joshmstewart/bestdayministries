@@ -224,10 +224,12 @@ The checkout uses **polling-based verification** instead of webhooks:
 3. Admin → Vendors → Printify tab
 4. Click "Refresh" to fetch catalog
 5. Products show in "Available to Import"
-6. Click "Preview" → edit title/description/markup
+6. Click "Preview" → edit title/description/selling price
 7. Click "Import to Store"
 8. Product appears in /marketplace with color swatches
 ```
+
+**Note:** The preview dialog shows "Selling Price" (final price customers pay) rather than markup. Base cost and calculated markup are shown for reference.
 
 ### Vendor Onboarding Flow
 

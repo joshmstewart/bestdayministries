@@ -93,7 +93,7 @@ Print-on-demand integration with Printify for selling custom merchandise. Produc
 ```typescript
 {
   printifyProduct: PrintifyProduct;
-  priceMarkup: number;  // Added to base price
+  priceMarkup: number;  // Calculated from (sellingPrice - basePrice)
 }
 ```
 
@@ -102,8 +102,9 @@ Print-on-demand integration with Printify for selling custom merchandise. Produc
 2. Clean HTML from description
 3. Remove "(Printify)" prefix from title
 4. Build variant ID mapping: `{ "Natural / XS": 12345, ... }`
-5. Insert product with all Printify metadata
-6. Store original values for change detection
+5. Calculate final price: `basePrice + priceMarkup`
+6. Insert product with all Printify metadata
+7. Store original values for change detection
 
 ### refresh-printify-product
 **Purpose:** Sync latest images and variants from Printify API
@@ -194,9 +195,15 @@ Print-on-demand integration with Printify for selling custom merchandise. Produc
 **Features:**
 - Image gallery with color selection
 - Editable title and description
-- Price markup input (base + markup = final)
+- **Selling Price input** (shows base cost + calculated markup)
 - Option chips for colors/sizes
 - Clicking color shows matching images
+
+**Pricing UX (Updated 2025-01-16):**
+- Input shows "Selling Price ($)" - the price customers will pay
+- Minimum is base cost (can't sell below cost)
+- Helper text shows: "Base cost: $X.XX (+$Y.YY markup)"
+- Consistent with product edit dialog experience
 
 ### Admin: ProductColorImagesManager
 **Purpose:** Manage per-color product images
@@ -249,7 +256,7 @@ const sizePatterns = /^(xs|s|m|l|xl|xxl|2xl|3xl|4xl|5xl|6xl|one size|\d+oz|\d+â€
 4. Click "Refresh" to fetch catalog
 5. Click "Preview" on product
 6. Edit title/description if needed
-7. Set price markup (base + markup)
+7. Set selling price (shows base cost + calculated markup)
 8. Click "Import to Store"
 9. Product appears in /marketplace
 ```
