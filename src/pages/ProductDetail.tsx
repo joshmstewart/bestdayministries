@@ -65,7 +65,7 @@ const ProductDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, default_image_url')
         .eq('id', productId)
         .single();
       
@@ -198,14 +198,20 @@ const ProductDetail = () => {
           .map(img => img.image_url)
       : [];
     
+    // If there's a default_image_url set, show it first
+    const defaultImageFirst = product?.default_image_url ? [product.default_image_url] : [];
+    
     if (!product?.images || !selectedColor || !hasMultipleOptions) {
-      // Include custom images at the end of default images
-      return [...(product?.images || []), ...customImagesForColor];
+      // Include default image first, then product images, then custom images
+      const baseImages = product?.images || [];
+      const uniqueImages = Array.from(new Set([...defaultImageFirst, ...baseImages, ...customImagesForColor]));
+      return uniqueImages;
     }
     
     const variantId = colorToVariantId.get(selectedColor);
     if (!variantId) {
-      return [...product.images, ...customImagesForColor];
+      const uniqueImages = Array.from(new Set([...defaultImageFirst, ...product.images, ...customImagesForColor]));
+      return uniqueImages;
     }
     
     // Filter Printify images that contain this variant ID in the URL path
@@ -213,9 +219,10 @@ const ProductDetail = () => {
       img.includes(`/${variantId}/`)
     );
     
-    // Combine Printify images for this color with custom uploaded images
+    // Combine: default first, then Printify images for this color, then custom uploaded images
     const baseImages = matchingPrintifyImages.length > 0 ? matchingPrintifyImages : product.images;
-    return [...baseImages, ...customImagesForColor];
+    const uniqueImages = Array.from(new Set([...defaultImageFirst, ...baseImages, ...customImagesForColor]));
+    return uniqueImages;
   })();
 
   // Build the effective variant from selections
