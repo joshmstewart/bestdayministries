@@ -131,8 +131,10 @@ export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDet
     switch (status) {
       case 'pending':
         return 'bg-yellow-500';
-      case 'shipped':
+      case 'in_production':
         return 'bg-blue-500';
+      case 'shipped':
+        return 'bg-purple-500';
       case 'delivered':
         return 'bg-green-500';
       default:

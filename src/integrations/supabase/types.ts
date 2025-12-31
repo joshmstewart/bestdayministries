@@ -5871,6 +5871,7 @@ export type Database = {
       avatar_category: "humans" | "animals" | "monsters" | "shapes"
       fulfillment_status:
         | "pending"
+        | "in_production"
         | "processing"
         | "shipped"
         | "delivered"
@@ -6043,6 +6044,7 @@ export const Constants = {
       avatar_category: ["humans", "animals", "monsters", "shapes"],
       fulfillment_status: [
         "pending",
+        "in_production",
         "processing",
         "shipped",
         "delivered",

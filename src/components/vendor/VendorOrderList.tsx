@@ -75,8 +75,10 @@ export const VendorOrderList = ({ vendorId }: VendorOrderListProps) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-500';
-      case 'shipped':
+      case 'in_production':
         return 'bg-blue-500';
+      case 'shipped':
+        return 'bg-purple-500';
       case 'delivered':
         return 'bg-green-500';
       default:
@@ -89,10 +91,13 @@ export const VendorOrderList = ({ vendorId }: VendorOrderListProps) => {
     const allDelivered = statuses.every(s => s === 'delivered');
     const allShipped = statuses.every(s => s === 'shipped' || s === 'delivered');
     const anyShipped = statuses.some(s => s === 'shipped' || s === 'delivered');
+    const anyInProduction = statuses.some(s => s === 'in_production');
+    const allInProduction = statuses.every(s => s === 'in_production' || s === 'shipped' || s === 'delivered');
 
     if (allDelivered) return 'delivered';
     if (allShipped) return 'shipped';
     if (anyShipped) return 'partially_shipped';
+    if (allInProduction || anyInProduction) return 'in_production';
     return 'pending';
   };
 
