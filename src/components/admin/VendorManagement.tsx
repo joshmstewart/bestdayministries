@@ -362,7 +362,8 @@ export const VendorManagement = () => {
 
   // Helper to check if an order can be deleted
   const canDeleteOrder = (status: string) => {
-    return status === 'pending' || status === 'processing';
+    // Allow deleting pending, processing, completed, and cancelled orders
+    return ['pending', 'processing', 'completed', 'cancelled'].includes(status);
   };
 
   // Get deletable orders from selection
