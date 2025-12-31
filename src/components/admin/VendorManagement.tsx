@@ -714,21 +714,22 @@ export const VendorManagement = () => {
                             {product.is_active ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          size="icon" 
-                          variant="outline"
-                          onClick={() => {
-                            setEditProduct(product as any);
-                            setEditDialogOpen(true);
-                          }}
-                          title="Edit product"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell className="text-right">
+                          <Button 
+                            size="icon" 
+                            variant="outline"
+                            onClick={() => {
+                              setEditProduct(product as any);
+                              setEditDialogOpen(true);
+                            }}
+                            title="Edit product"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TabsContent>
