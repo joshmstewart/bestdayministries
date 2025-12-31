@@ -101,7 +101,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   const navigate = useNavigate();
   const { getCartInsertData, isLoading: cartSessionLoading } = useCartSession();
 
-  const addToCart = async () => {
+  // Check if product has multiple variants (more than 1 option)
+  const variantCount = product.printify_variant_ids 
+    ? Object.keys(product.printify_variant_ids).length 
+    : 0;
+  const hasMultipleVariants = variantCount > 1;
+
+  const addToCart = async (variantInfo?: { variant: string; variantId: number }) => {
     if (cartSessionLoading) return;
     
     const insertData = getCartInsertData(product.id, 1);
@@ -112,6 +118,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         variant: "destructive"
       });
       return;
+    }
+
+    // If it's a single-variant Printify product, include the variant info
+    if (variantInfo) {
+      (insertData as any).variant_info = variantInfo;
     }
 
     const { error } = await supabase
@@ -229,9 +240,14 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           className="w-full" 
           onClick={(e) => {
             e.stopPropagation();
-            // For Printify products with variants, navigate to detail page
-            if (product.is_printify_product && product.printify_variant_ids && Object.keys(product.printify_variant_ids).length > 0) {
+            // For Printify products with multiple variants, navigate to detail page
+            if (product.is_printify_product && hasMultipleVariants) {
               navigate(`/store/product/${product.id}`);
+            } else if (product.is_printify_product && variantCount === 1) {
+              // Single variant - add directly with variant info
+              const variantEntries = Object.entries(product.printify_variant_ids as Record<string, number>);
+              const [variantName, variantId] = variantEntries[0];
+              addToCart({ variant: variantName, variantId: variantId });
             } else {
               addToCart();
             }
@@ -239,7 +255,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           disabled={product.inventory_count === 0}
         >
           <ShoppingCart className="mr-2 h-4 w-4" />
-          {product.is_printify_product && product.printify_variant_ids && Object.keys(product.printify_variant_ids).length > 0 
+          {product.is_printify_product && hasMultipleVariants 
             ? 'Select Options' 
             : 'Add to Cart'}
         </Button>
