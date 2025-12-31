@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ImageLightbox from "@/components/ImageLightbox";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -181,6 +182,11 @@ export const VendorManagement = () => {
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<{ image_url: string; caption?: string }[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -698,7 +704,13 @@ export const VendorManagement = () => {
                             <img 
                               src={imageUrl} 
                               alt={product.name}
-                              className="w-12 h-12 object-cover rounded"
+                              className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => {
+                                const allImages = product.images?.map(img => ({ image_url: img, caption: product.name })) || [{ image_url: imageUrl, caption: product.name }];
+                                setLightboxImages(allImages);
+                                setLightboxIndex(0);
+                                setLightboxOpen(true);
+                              }}
                             />
                           ) : (
                             <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
@@ -970,6 +982,16 @@ export const VendorManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Product Image Lightbox */}
+      <ImageLightbox
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onPrevious={() => setLightboxIndex(prev => (prev > 0 ? prev - 1 : lightboxImages.length - 1))}
+        onNext={() => setLightboxIndex(prev => (prev < lightboxImages.length - 1 ? prev + 1 : 0))}
+      />
     </div>
   );
 };
