@@ -699,12 +699,12 @@ export const VendorManagement = () => {
                     
                     return (
                       <TableRow key={product.id}>
-                        <TableCell>
+                        <TableCell className="py-1">
                           {imageUrl ? (
                             <img 
                               src={imageUrl} 
                               alt={product.name}
-                              className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                              className="w-14 h-14 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => {
                                 const allImages = product.images?.map(img => ({ image_url: img, caption: product.name })) || [{ image_url: imageUrl, caption: product.name }];
                                 setLightboxImages(allImages);
@@ -713,7 +713,7 @@ export const VendorManagement = () => {
                               }}
                             />
                           ) : (
-                            <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                            <div className="w-14 h-14 bg-muted rounded flex items-center justify-center">
                               <Package className="w-6 h-6 text-muted-foreground" />
                             </div>
                           )}
