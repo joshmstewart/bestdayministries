@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare } from "lucide-react";
+import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare, Video, Play, Youtube } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import AudioRecorder from "@/components/AudioRecorder";
 import { Switch } from "@/components/ui/switch";
@@ -48,6 +48,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SortableMediaItem, AlbumMedia } from "@/components/album/SortableMediaItem";
+import { AddVideoDialog } from "@/components/album/AddVideoDialog";
 
 interface Album {
   id: string;
@@ -59,118 +61,20 @@ interface Album {
   audio_url: string | null;
   is_post: boolean;
   is_public: boolean;
-  images?: AlbumImage[];
+  images?: AlbumMedia[];
   event?: { title: string } | null;
 }
 
-interface AlbumImage {
+interface LibraryVideo {
   id: string;
-  image_url: string;
-  caption: string | null;
-  display_order: number;
-  original_image_url?: string | null;
+  title: string;
+  video_url: string;
 }
 
-interface SortableImageItemProps {
-  image: AlbumImage;
-  isCover: boolean;
-  onSetCover: (url: string) => void;
-  onEditCaption: (image: AlbumImage) => void;
-  onCrop: (image: AlbumImage) => void;
-  onDelete: (id: string) => void;
-}
-
-function SortableImageItem({ image, isCover, onSetCover, onEditCaption, onCrop, onDelete }: SortableImageItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: image.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="relative space-y-2">
-      <div className="relative">
-        <img 
-          src={image.image_url} 
-          alt={image.caption || "Album image"} 
-          className="w-full h-32 object-cover rounded-lg" 
-        />
-        {isCover && (
-          <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold">
-            Cover
-          </div>
-        )}
-        <div className="absolute top-2 left-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 cursor-move bg-black/50 hover:bg-black/70"
-            {...attributes}
-            {...listeners}
-            title="Drag to reorder"
-          >
-            <GripVertical className="w-4 h-4 text-white" />
-          </Button>
-        </div>
-        <div className="absolute top-2 right-2 flex gap-1">
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onSetCover(image.image_url)}
-            title="Set as cover"
-          >
-            <Images className="w-3 h-3" />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onEditCaption(image)}
-            title="Edit caption"
-          >
-            <MessageSquare className="w-3 h-3" />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onCrop(image)}
-            title="Recrop image"
-          >
-            <Edit className="w-3 h-3" />
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onDelete(image.id)}
-          >
-            <X className="w-3 h-3" />
-          </Button>
-        </div>
-      </div>
-      {image.caption && (
-        <p className="text-xs text-muted-foreground truncate">
-          {image.caption}
-        </p>
-      )}
-    </div>
-  );
+interface Event {
+  id: string;
+  title: string;
+  event_date: string;
 }
 
 interface Event {
@@ -212,12 +116,14 @@ export default function AlbumManagement() {
   const [uploading, setUploading] = useState(false);
   const [cropImageIndex, setCropImageIndex] = useState<number | null>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
-  const [cropExistingImage, setCropExistingImage] = useState<AlbumImage | null>(null);
-  const [editingCaption, setEditingCaption] = useState<AlbumImage | null>(null);
+  const [cropExistingImage, setCropExistingImage] = useState<AlbumMedia | null>(null);
+  const [editingCaption, setEditingCaption] = useState<AlbumMedia | null>(null);
   const [showCaptionDialog, setShowCaptionDialog] = useState(false);
   const [newCaption, setNewCaption] = useState("");
-  const [existingImages, setExistingImages] = useState<AlbumImage[]>([]);
+  const [existingImages, setExistingImages] = useState<AlbumMedia[]>([]);
   const [visibleToRoles, setVisibleToRoles] = useState<Array<'caregiver' | 'bestie' | 'supporter' | 'admin' | 'owner'>>(['caregiver', 'bestie', 'supporter']);
+  const [showAddVideoDialog, setShowAddVideoDialog] = useState(false);
+  const [libraryVideos, setLibraryVideos] = useState<LibraryVideo[]>([]);
 
   useEffect(() => {
     checkAdminAccess();
@@ -246,7 +152,7 @@ export default function AlbumManagement() {
     }
 
     setIsAdmin(true);
-    await Promise.all([loadAlbums(), loadEvents()]);
+    await Promise.all([loadAlbums(), loadEvents(), loadLibraryVideos()]);
   };
 
   const loadAlbums = async () => {
@@ -271,10 +177,22 @@ export default function AlbumManagement() {
             .select("*")
             .eq("album_id", album.id)
             .order("display_order", { ascending: true });
-          return { ...album, images: images || [] };
+          // Map the images to ensure correct video_type typing
+          const mappedImages: AlbumMedia[] = (images || []).map(img => ({
+            id: img.id,
+            image_url: img.image_url,
+            video_url: img.video_url,
+            video_type: (img.video_type || 'image') as 'image' | 'upload' | 'youtube',
+            youtube_url: img.youtube_url,
+            video_id: img.video_id,
+            caption: img.caption,
+            display_order: img.display_order,
+            original_image_url: img.original_image_url,
+          }));
+          return { ...album, images: mappedImages };
         })
       );
-      setAlbums(albumsWithImages);
+      setAlbums(albumsWithImages as Album[]);
     }
     setLoading(false);
   };
@@ -286,6 +204,16 @@ export default function AlbumManagement() {
       .order("event_date", { ascending: false });
     
     if (data) setEvents(data);
+  };
+
+  const loadLibraryVideos = async () => {
+    const { data } = await supabase
+      .from("videos")
+      .select("id, title, video_url")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+    
+    if (data) setLibraryVideos(data);
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -431,8 +359,8 @@ export default function AlbumManagement() {
     }
   };
 
-  const handleCropExistingImage = (image: AlbumImage) => {
-    setCropExistingImage(image);
+  const handleCropExistingImage = (media: AlbumMedia) => {
+    setCropExistingImage(media);
     setShowCropDialog(true);
   };
 
@@ -702,9 +630,9 @@ export default function AlbumManagement() {
     }
   };
 
-  const handleEditCaption = (image: AlbumImage) => {
-    setEditingCaption(image);
-    setNewCaption(image.caption || "");
+  const handleEditCaption = (media: AlbumMedia) => {
+    setEditingCaption(media);
+    setNewCaption(media.caption || "");
     setShowCaptionDialog(true);
   };
 
@@ -1087,11 +1015,11 @@ export default function AlbumManagement() {
                       >
                         <SortableContext items={existingImages.map(img => img.id)} strategy={rectSortingStrategy}>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {existingImages.map((image) => (
-                              <SortableImageItem
-                                key={image.id}
-                                image={image}
-                                isCover={editingAlbum.cover_image_url === image.image_url}
+                            {existingImages.map((media) => (
+                              <SortableMediaItem
+                                key={media.id}
+                                media={media}
+                                isCover={editingAlbum.cover_image_url === media.image_url}
                                 onSetCover={handleSetCover}
                                 onEditCaption={handleEditCaption}
                                 onCrop={handleCropExistingImage}
@@ -1104,9 +1032,9 @@ export default function AlbumManagement() {
                     </div>
                   )}
                   
-                  {/* Add New Images */}
+                  {/* Add New Media */}
                   <div className="space-y-2">
-                    {editingAlbum && <p className="text-sm text-muted-foreground">Add New Images</p>}
+                    {editingAlbum && <p className="text-sm text-muted-foreground">Add New Media</p>}
                     <Input
                       ref={fileInputRef}
                       type="file"
@@ -1115,14 +1043,24 @@ export default function AlbumManagement() {
                       onChange={handleImageSelect}
                       className="hidden"
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {editingAlbum ? "Add More Images" : "Select Images"}
-                    </Button>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {editingAlbum ? "Add Images" : "Select Images"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowAddVideoDialog(true)}
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        Add Video
+                      </Button>
+                    </div>
                   </div>
                   
                   {imagePreviews.length > 0 && (
@@ -1345,6 +1283,63 @@ export default function AlbumManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AddVideoDialog
+        open={showAddVideoDialog}
+        onOpenChange={setShowAddVideoDialog}
+        existingVideos={libraryVideos}
+        onVideoAdded={async (video) => {
+          if (!editingAlbum) {
+            toast.error("Please create or edit an album first to add videos");
+            return;
+          }
+          
+          try {
+            const nextOrder = existingImages.length;
+            const { error } = await supabase
+              .from("album_images")
+              .insert({
+                album_id: editingAlbum.id,
+                video_type: video.type === 'youtube' ? 'youtube' : 'upload',
+                video_url: video.url || null,
+                youtube_url: video.youtubeUrl || null,
+                video_id: video.videoId || null,
+                caption: video.caption || null,
+                display_order: nextOrder,
+              });
+
+            if (error) throw error;
+
+            toast.success("Video added to album");
+            loadAlbums();
+            
+            // Reload existing images for the editing form
+            const { data: images } = await supabase
+              .from("album_images")
+              .select("*")
+              .eq("album_id", editingAlbum.id)
+              .order("display_order", { ascending: true });
+            
+            if (images) {
+              const mappedImages: AlbumMedia[] = images.map(img => ({
+                id: img.id,
+                image_url: img.image_url,
+                video_url: img.video_url,
+                video_type: (img.video_type || 'image') as 'image' | 'upload' | 'youtube',
+                youtube_url: img.youtube_url,
+                video_id: img.video_id,
+                caption: img.caption,
+                display_order: img.display_order,
+                original_image_url: img.original_image_url,
+              }));
+              setExistingImages(mappedImages);
+            }
+          } catch (error: any) {
+            console.error("Error adding video:", error);
+            toast.error(error.message || "Failed to add video");
+          }
+        }}
+      />
     </div>
   );
 }
