@@ -309,6 +309,8 @@ export const PrintifyProductImporter = () => {
         // Pass the original Printify values for baseline tracking
         original_title: product.title,
         original_description: product.description,
+        // Pass original images (before any reordering) for change detection
+        original_images: product.images,
       };
       const { data, error } = await supabase.functions.invoke('import-printify-product', {
         body: { printifyProduct: modifiedProduct, priceMarkup },

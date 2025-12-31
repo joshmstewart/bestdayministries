@@ -100,6 +100,9 @@ serve(async (req) => {
 
     // Get all image URLs
     const imageUrls = printifyProduct.images?.map((img: any) => img.src) || [];
+    
+    // Store original image URLs for change detection
+    const originalPrintifyImages = printifyProduct.original_images?.map((img: any) => img.src) || imageUrls;
 
     // Get house vendor for official merch
     const { data: houseVendor } = await supabaseClient
@@ -129,6 +132,7 @@ serve(async (req) => {
         printify_original_title: originalPrintifyTitle,
         printify_original_description: originalPrintifyDescription,
         printify_original_price: basePriceInDollars, // Raw Printify price in dollars, no markup
+        printify_original_images: originalPrintifyImages, // Original Printify image URLs for change detection
         // Auto-assign to house vendor for official merch
         vendor_id: houseVendor?.id || null,
       })

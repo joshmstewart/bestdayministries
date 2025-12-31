@@ -114,7 +114,7 @@ serve(async (req) => {
     // Get existing imported products with their original Printify data for comparison
     const { data: existingProducts } = await supabaseClient
       .from('products')
-      .select('id, printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price, printify_original_title, printify_original_description, printify_original_price, is_active')
+      .select('id, printify_product_id, printify_blueprint_id, printify_print_provider_id, name, description, price, images, printify_original_title, printify_original_description, printify_original_price, printify_original_images, is_active')
       .eq('is_printify_product', true);
 
     const importedByProductId = new Map(
@@ -148,7 +148,12 @@ serve(async (req) => {
         const descriptionChanged = originalDescription !== cleanedDescription;
         const priceChanged = Math.abs(originalPrice - currentBasePrice) > 0.01;
         
-        hasChanges = titleChanged || descriptionChanged || priceChanged;
+        // Check if images have changed
+        const currentPrintifyImages = (product.images || []).map((img: any) => img.src).sort();
+        const originalImages = (existingProduct.printify_original_images || existingProduct.images || []).sort();
+        const imagesChanged = JSON.stringify(currentPrintifyImages) !== JSON.stringify(originalImages);
+        
+        hasChanges = titleChanged || descriptionChanged || priceChanged || imagesChanged;
         
         // Debug logging for change detection
         if (hasChanges) {
@@ -156,6 +161,7 @@ serve(async (req) => {
           if (titleChanged) console.log(`  Title: "${originalTitle}" -> "${cleanedTitle}"`);
           if (descriptionChanged) console.log(`  Description changed (length: ${originalDescription?.length || 0} -> ${cleanedDescription?.length || 0})`);
           if (priceChanged) console.log(`  Price: ${originalPrice} -> ${currentBasePrice}`);
+          if (imagesChanged) console.log(`  Images: ${originalImages.length} -> ${currentPrintifyImages.length} images`);
         }
       }
 
