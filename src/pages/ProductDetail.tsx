@@ -84,9 +84,10 @@ const ProductDetail = () => {
       }))
     : [];
 
-  // Intelligently parse variants into colors and sizes (format: "OptionA / OptionB")
-  // Detects which option is which by checking for known size patterns
-  const { colors, sizes, hasMultipleOptions, colorToVariantId, defaultColor, defaultSize } = (() => {
+  // Intelligently parse variants into option groups
+  // For two-part variants like "Color / Size", splits them
+  // For single-part variants, treats them as a single option
+  const { option1Values, option2Values, option1Label, option2Label, hasMultipleOptions, option1ToVariantId, defaultOption1, defaultOption2 } = (() => {
     const option1Set = new Set<string>();
     const option2Set = new Set<string>();
     const option1VariantMap = new Map<string, number>();
@@ -96,47 +97,75 @@ const ProductDetail = () => {
       if (parts.length === 2) {
         option1Set.add(parts[0]);
         option2Set.add(parts[1]);
-        // Store one variant ID per option1 (for image matching)
+        if (!option1VariantMap.has(parts[0])) {
+          option1VariantMap.set(parts[0], v.id);
+        }
+      } else if (parts.length === 1) {
+        // Single-part variant (e.g., "With lid and straw")
+        option1Set.add(parts[0]);
         if (!option1VariantMap.has(parts[0])) {
           option1VariantMap.set(parts[0], v.id);
         }
       }
     });
     
-    const option1Values = Array.from(option1Set);
-    const option2Values = Array.from(option2Set);
+    const opt1Values = Array.from(option1Set);
+    const opt2Values = Array.from(option2Set);
     
-    // Detect which set contains sizes based on common size patterns
+    // Detect if values look like sizes or colors
     const sizePatterns = /^(xs|s|m|l|xl|xxl|2xl|3xl|4xl|5xl|6xl|one size|\d+)$/i;
-    const option1IsSize = option1Values.some(v => sizePatterns.test(v.trim()));
-    const option2IsSize = option2Values.some(v => sizePatterns.test(v.trim()));
+    const colorPatterns = /^(white|black|red|blue|green|yellow|orange|purple|pink|gray|grey|brown|navy|natural|beige|cream|tan|olive|teal|coral|lime|gold|silver|maroon|burgundy)$/i;
     
-    // Determine which is color and which is size
-    // If option1 looks like sizes, swap them. Otherwise keep original order.
-    const colorsAreFirst = !option1IsSize || (option1IsSize && option2IsSize);
+    const opt1IsSize = opt1Values.some(v => sizePatterns.test(v.trim()));
+    const opt1IsColor = opt1Values.some(v => colorPatterns.test(v.trim().toLowerCase()));
+    const opt2IsSize = opt2Values.some(v => sizePatterns.test(v.trim()));
+    const opt2IsColor = opt2Values.some(v => colorPatterns.test(v.trim().toLowerCase()));
     
-    const finalColors = colorsAreFirst ? option1Values : option2Values;
-    const finalSizes = colorsAreFirst ? option2Values : option1Values;
+    // Determine labels based on detected patterns
+    let label1 = "Option";
+    let label2 = "Option";
+    
+    if (opt2Values.length > 0) {
+      // Two-part variants
+      if (opt1IsColor && opt2IsSize) {
+        label1 = "Color";
+        label2 = "Size";
+      } else if (opt1IsSize && opt2IsColor) {
+        label1 = "Size";
+        label2 = "Color";
+      } else if (opt1IsSize) {
+        label1 = "Size";
+        label2 = "Style";
+      } else if (opt2IsSize) {
+        label1 = "Style";
+        label2 = "Size";
+      } else {
+        label1 = "Style";
+        label2 = "Option";
+      }
+    } else {
+      // Single-part variants - use a generic "Style" label
+      label1 = "Style";
+    }
     
     return {
-      colors: finalColors,
-      sizes: finalSizes,
-      hasMultipleOptions: option1Set.size > 0 && option2Set.size > 0,
-      colorToVariantId: colorsAreFirst ? option1VariantMap : new Map(
-        // Rebuild map with option2 (color) values
-        variants
-          .filter(v => v.title.includes(' / '))
-          .reduce((map, v) => {
-            const color = v.title.split(' / ')[1];
-            if (!map.has(color)) map.set(color, v.id);
-            return map;
-          }, new Map<string, number>())
-      ),
-      // Auto-select if only one option exists
-      defaultColor: finalColors.length === 1 ? finalColors[0] : "",
-      defaultSize: finalSizes.length === 1 ? finalSizes[0] : ""
+      option1Values: opt1Values,
+      option2Values: opt2Values,
+      option1Label: label1,
+      option2Label: label2,
+      hasMultipleOptions: opt1Values.length > 0 && opt2Values.length > 0,
+      option1ToVariantId: option1VariantMap,
+      defaultOption1: opt1Values.length === 1 ? opt1Values[0] : "",
+      defaultOption2: opt2Values.length === 1 ? opt2Values[0] : ""
     };
   })();
+
+  // Rename state for clarity but keep backward compatibility
+  const colors = option1Values;
+  const sizes = option2Values;
+  const colorToVariantId = option1ToVariantId;
+  const defaultColor = defaultOption1;
+  const defaultSize = defaultOption2;
 
   // Auto-select single options when product loads
   useEffect(() => {
@@ -165,8 +194,13 @@ const ProductDetail = () => {
   // Build the effective variant from selections
   const effectiveVariant = (() => {
     if (variants.length === 1) return variants[0].title;
+    // Two-part variants (Color / Size format)
     if (hasMultipleOptions && selectedColor && selectedSize) {
       return `${selectedColor} / ${selectedSize}`;
+    }
+    // Single-option variants (just one selection needed)
+    if (!hasMultipleOptions && selectedColor) {
+      return selectedColor;
     }
     return "";
   })();
@@ -176,9 +210,10 @@ const ProductDetail = () => {
 
     // For Printify products with multiple variants, we need a variant selection
     if (product?.is_printify_product && variants.length > 1 && !effectiveVariant) {
+      const optionText = hasMultipleOptions ? `${option1Label.toLowerCase()} and ${option2Label.toLowerCase()}` : option1Label.toLowerCase();
       toast({
         title: "Select options",
-        description: "Please select color and size before adding to cart",
+        description: `Please select ${optionText} before adding to cart`,
         variant: "destructive"
       });
       return;
@@ -317,16 +352,16 @@ const ProductDetail = () => {
                 {product.description || 'No description available.'}
               </p>
 
-              {/* Variant Selection - separate Color and Size dropdowns */}
-              {product.is_printify_product && variants.length > 1 && hasMultipleOptions && (
+              {/* Variant Selection - dynamic labels based on option types */}
+              {product.is_printify_product && variants.length > 1 && (
                 <div className="space-y-4">
-                  {/* Color Selection */}
+                  {/* Option 1 Selection (Color, Style, etc.) */}
                   {colors.length > 1 && (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Color</label>
+                      <label className="text-sm font-medium">{option1Label}</label>
                       <Select value={selectedColor} onValueChange={setSelectedColor}>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Choose color..." />
+                          <SelectValue placeholder={`Choose ${option1Label.toLowerCase()}...`} />
                         </SelectTrigger>
                         <SelectContent>
                           {colors.map((color) => (
@@ -339,13 +374,13 @@ const ProductDetail = () => {
                     </div>
                   )}
 
-                  {/* Size Selection */}
-                  {sizes.length > 1 && (
+                  {/* Option 2 Selection (Size, Option, etc.) - only if there are two-part variants */}
+                  {sizes.length > 1 && hasMultipleOptions && (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Size</label>
+                      <label className="text-sm font-medium">{option2Label}</label>
                       <Select value={selectedSize} onValueChange={setSelectedSize}>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Choose size..." />
+                          <SelectValue placeholder={`Choose ${option2Label.toLowerCase()}...`} />
                         </SelectTrigger>
                         <SelectContent>
                           {sizes.map((size) => (
