@@ -21,6 +21,38 @@ const Marketplace = () => {
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, isAuthenticated, isLoading: cartSessionLoading } = useCartSession();
 
+  // Check which categories have products
+  const { data: categoryStatus } = useQuery({
+    queryKey: ['category-status'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id,
+          is_printify_product,
+          vendor_id,
+          vendor:vendors(is_house_vendor)
+        `)
+        .eq('is_active', true);
+
+      if (error) throw error;
+      
+      const hasMerch = data?.some(p => 
+        p.is_printify_product === true || 
+        (p.vendor as any)?.is_house_vendor === true
+      ) || false;
+      
+      const hasHandmade = data?.some(p => 
+        p.vendor_id !== null && 
+        (p.vendor as any)?.is_house_vendor !== true
+      ) || false;
+      
+      return { hasMerch, hasHandmade };
+    }
+  });
+
+  const activeCategoryCount = (categoryStatus?.hasMerch ? 1 : 0) + (categoryStatus?.hasHandmade ? 1 : 0);
+
   // Fetch cart count using session-aware filter
   const { data: cartCount } = useQuery({
     queryKey: ['cart-count', getCartFilter()],
@@ -103,17 +135,19 @@ const Marketplace = () => {
         <section className="py-12">
           <div className="container mx-auto px-4">
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8">
-                <TabsTrigger value="all" onClick={() => setSelectedCategory(null)} className="whitespace-nowrap">
-                  All Products
-                </TabsTrigger>
-                <TabsTrigger value="handmade" onClick={() => setSelectedCategory('handmade')}>
-                  Artisan-Made
-                </TabsTrigger>
-                <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap">
-                  Official Merch
-                </TabsTrigger>
-              </TabsList>
+              {activeCategoryCount > 1 && (
+                <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8">
+                  <TabsTrigger value="all" onClick={() => setSelectedCategory(null)} className="whitespace-nowrap">
+                    All Products
+                  </TabsTrigger>
+                  <TabsTrigger value="handmade" onClick={() => setSelectedCategory('handmade')}>
+                    Artisan-Made
+                  </TabsTrigger>
+                  <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap">
+                    Official Merch
+                  </TabsTrigger>
+                </TabsList>
+              )}
               
               <TabsContent value="all">
                 <div className="space-y-12">
