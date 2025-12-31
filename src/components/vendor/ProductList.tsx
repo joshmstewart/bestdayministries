@@ -141,14 +141,11 @@ export const ProductList = ({ vendorId }: ProductListProps) => {
                 <Package className="h-16 w-16 text-muted-foreground opacity-50" />
               </div>
             )}
-            <div className="absolute top-2 right-2 flex gap-2">
+            <div className="absolute top-2 right-2">
               {product.is_active ? (
                 <Badge>Active</Badge>
               ) : (
                 <Badge variant="secondary">Inactive</Badge>
-              )}
-              {product.inventory_count === 0 && (
-                <Badge variant="destructive">Out of Stock</Badge>
               )}
             </div>
           </div>
@@ -159,11 +156,8 @@ export const ProductList = ({ vendorId }: ProductListProps) => {
               {product.description}
             </p>
             
-            <div className="flex justify-between items-center mb-4">
+            <div className="mb-4">
               <span className="text-xl font-bold">${product.price}</span>
-              <span className="text-sm text-muted-foreground">
-                Stock: {product.inventory_count}
-              </span>
             </div>
 
             {product.category && (
