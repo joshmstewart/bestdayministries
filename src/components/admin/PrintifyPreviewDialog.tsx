@@ -171,11 +171,13 @@ export const PrintifyPreviewDialog = ({
         values: opt.values
           // Normalize to strings first (Printify API can return objects like {id, title})
           .map(v => typeof v === 'string' ? v : (v as any)?.title || String(v))
-          // Only include values that appear in enabled variants (case-insensitive)
+          // Only include values that appear in enabled variants
+          // Use exact matching by splitting variant title on " / " and comparing each part
           .filter(valueStr => 
-            enabledVariants.some(variant => 
-              variant.title.toLowerCase().includes(valueStr.toLowerCase())
-            )
+            enabledVariants.some(variant => {
+              const variantParts = variant.title.split(' / ').map(p => p.toLowerCase().trim());
+              return variantParts.includes(valueStr.toLowerCase().trim());
+            })
           )
       })).filter(opt => opt.values.length > 0)
     : extractOptionsFromVariants(product.variants);
