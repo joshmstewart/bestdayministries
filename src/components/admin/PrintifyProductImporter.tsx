@@ -280,17 +280,30 @@ export const PrintifyProductImporter = () => {
       product, 
       priceMarkup,
       editedTitle,
-      editedDescription 
+      editedDescription,
+      defaultImageIndex
     }: { 
       product: PrintifyProduct; 
       priceMarkup: number;
       editedTitle: string;
       editedDescription: string;
+      defaultImageIndex?: number;
     }) => {
+      // Reorder images if a default image was selected (not the first one)
+      let reorderedImages = product.images;
+      if (defaultImageIndex !== undefined && defaultImageIndex > 0 && product.images.length > 1) {
+        reorderedImages = [
+          product.images[defaultImageIndex],
+          ...product.images.slice(0, defaultImageIndex),
+          ...product.images.slice(defaultImageIndex + 1),
+        ];
+      }
+      
       // Send both user-edited values AND original Printify values
       // The edge function uses user-edited for display, original for baseline tracking
       const modifiedProduct = {
         ...product,
+        images: reorderedImages,
         title: editedTitle,
         description: editedDescription,
         // Pass the original Printify values for baseline tracking
@@ -401,8 +414,8 @@ export const PrintifyProductImporter = () => {
     setPreviewOpen(true);
   };
 
-  const handleImport = (product: PrintifyProduct, priceMarkup: number, editedTitle: string, editedDescription: string) => {
-    importMutation.mutate({ product, priceMarkup, editedTitle, editedDescription });
+  const handleImport = (product: PrintifyProduct, priceMarkup: number, editedTitle: string, editedDescription: string, defaultImageIndex?: number) => {
+    importMutation.mutate({ product, priceMarkup, editedTitle, editedDescription, defaultImageIndex });
   };
 
   const handleSync = (product: PrintifyProduct) => {
