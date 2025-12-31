@@ -10,6 +10,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { TermsAcceptanceGuard } from "@/components/TermsAcceptanceGuard";
 import { FaviconManager } from "@/components/FaviconManager";
 import { ProductTourRunner } from "@/components/help/ProductTourRunner";
+import { WelcomeRedirectModal } from "@/components/WelcomeRedirectModal";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,6 +156,7 @@ const App = () => {
           <ImpersonationBanner />
           <PWAInstallBanner />
           <TourManager />
+          <WelcomeRedirectModal />
           <TermsAcceptanceGuard>
             <Routes>
             <Route path="/" element={<DomainRouter />} />
