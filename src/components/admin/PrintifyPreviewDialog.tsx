@@ -343,7 +343,7 @@ export const PrintifyPreviewDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {product.is_imported ? "Update Product" : "Preview & Import"}
@@ -387,7 +387,7 @@ export const PrintifyPreviewDialog = ({
           </div>
         )}
 
-        <ScrollArea className="max-h-[calc(90vh-200px)]">
+        <ScrollArea className="flex-1 overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
             {/* Images */}
             <div className="space-y-3">
@@ -491,7 +491,7 @@ export const PrintifyPreviewDialog = ({
           </div>
         </ScrollArea>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
+        <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
