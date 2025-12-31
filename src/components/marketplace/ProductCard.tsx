@@ -150,10 +150,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     });
   };
 
+  // Use default_image_url if available, otherwise fall back to default_image_index
   const defaultIndex = product.default_image_index || 0;
-  const imageUrl = product.images && product.images.length > 0 
-    ? product.images[Math.min(defaultIndex, product.images.length - 1)] 
-    : '/placeholder.svg';
+  const imageUrl = product.default_image_url 
+    ? product.default_image_url 
+    : (product.images && product.images.length > 0 
+        ? product.images[Math.min(defaultIndex, product.images.length - 1)] 
+        : '/placeholder.svg');
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer h-full flex flex-col" onClick={() => navigate(`/store/product/${product.id}`)}>

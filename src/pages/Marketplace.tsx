@@ -31,6 +31,7 @@ const Marketplace = () => {
           id,
           images,
           default_image_index,
+          default_image_url,
           is_printify_product,
           vendor_id,
           vendor:vendors(is_house_vendor)
@@ -54,7 +55,8 @@ const Marketplace = () => {
         return products?.slice(0, 3).map(p => {
           const images = p.images as string[] | null;
           const defaultIndex = p.default_image_index || 0;
-          return images?.[defaultIndex] || images?.[0] || null;
+          // Use default_image_url if available
+          return (p as any).default_image_url || images?.[defaultIndex] || images?.[0] || null;
         }).filter(Boolean) || [];
       };
       

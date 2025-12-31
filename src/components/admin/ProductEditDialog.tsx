@@ -44,6 +44,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [defaultImageIndex, setDefaultImageIndex] = useState<number>(0);
+  const [defaultImageUrl, setDefaultImageUrl] = useState<string | null>(null);
   const [loadingImages, setLoadingImages] = useState(false);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("images, default_image_index, is_printify_product, printify_variant_ids")
+        .select("images, default_image_index, default_image_url, is_printify_product, printify_variant_ids")
         .eq("id", productId)
         .single();
 
@@ -69,10 +70,12 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
 
       setImages(data.images || []);
       setDefaultImageIndex(data.default_image_index ?? 0);
+      setDefaultImageUrl(data.default_image_url);
     } catch (error: any) {
       console.error("Failed to load product images:", error);
       setImages([]);
       setDefaultImageIndex(0);
+      setDefaultImageUrl(null);
     } finally {
       setLoadingImages(false);
     }
@@ -117,6 +120,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
           price: priceNum,
           is_active: isActive,
           default_image_index: defaultImageIndex,
+          default_image_url: defaultImageUrl,
           updated_at: new Date().toISOString(),
         })
         .eq("id", product.id);
@@ -199,32 +203,38 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
               </div>
             ) : images.length > 0 ? (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {images.map((imageUrl, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setDefaultImageIndex(index)}
-                    className={cn(
-                      "relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:opacity-90",
-                      defaultImageIndex === index
-                        ? "border-primary ring-2 ring-primary/20"
-                        : "border-border hover:border-muted-foreground"
-                    )}
-                  >
-                    <img
-                      src={imageUrl}
-                      alt={`Product image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {defaultImageIndex === index && (
-                      <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                        <div className="bg-primary text-primary-foreground rounded-full p-1">
-                          <Check className="h-4 w-4" />
+                {images.map((imageUrl, index) => {
+                  const isDefault = defaultImageUrl ? defaultImageUrl === imageUrl : defaultImageIndex === index;
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        setDefaultImageIndex(index);
+                        setDefaultImageUrl(imageUrl);
+                      }}
+                      className={cn(
+                        "relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:opacity-90",
+                        isDefault
+                          ? "border-primary ring-2 ring-primary/20"
+                          : "border-border hover:border-muted-foreground"
+                      )}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Product image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {isDefault && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <div className="bg-primary text-primary-foreground rounded-full p-1">
+                            <Check className="h-4 w-4" />
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </button>
-                ))}
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground py-2">

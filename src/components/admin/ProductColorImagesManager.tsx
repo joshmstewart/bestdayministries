@@ -92,7 +92,7 @@ export const ProductColorImagesManager = ({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('images, printify_variant_ids, default_image_index')
+        .select('images, printify_variant_ids, default_image_index, default_image_url')
         .eq('id', productId)
         .single();
       if (error) throw error;
@@ -101,12 +101,12 @@ export const ProductColorImagesManager = ({
     enabled: open,
   });
 
-  // Set default image mutation
+  // Set default image mutation - now uses URL instead of index
   const setDefaultMutation = useMutation({
-    mutationFn: async (imageIndex: number) => {
+    mutationFn: async (imageUrl: string) => {
       const { error } = await supabase
         .from('products')
-        .update({ default_image_index: imageIndex })
+        .update({ default_image_url: imageUrl })
         .eq('id', productId);
       if (error) throw error;
     },
@@ -378,7 +378,7 @@ export const ProductColorImagesManager = ({
                   className={cn(
                     "border rounded-lg p-2 space-y-2 relative",
                     img.assignedColor ? "border-primary/50 bg-primary/5" : "border-dashed",
-                    (product?.default_image_index || 0) === img.index && "ring-2 ring-yellow-500"
+                    product?.default_image_url === img.url && "ring-2 ring-yellow-500"
                   )}
                 >
                   <div className="aspect-square rounded overflow-hidden bg-secondary/10 relative">
@@ -395,12 +395,12 @@ export const ProductColorImagesManager = ({
                       size="icon"
                       className={cn(
                         "absolute top-1 left-1 h-7 w-7 bg-background/80 hover:bg-background",
-                        (product?.default_image_index || 0) === img.index && "text-yellow-500"
+                        product?.default_image_url === img.url && "text-yellow-500"
                       )}
-                      onClick={() => setDefaultMutation.mutate(img.index)}
+                      onClick={() => setDefaultMutation.mutate(img.url)}
                       title="Set as default image"
                     >
-                      <Star className={cn("h-4 w-4", (product?.default_image_index || 0) === img.index && "fill-yellow-500")} />
+                      <Star className={cn("h-4 w-4", product?.default_image_url === img.url && "fill-yellow-500")} />
                     </Button>
                   </div>
                   <div className="space-y-1">
@@ -449,7 +449,10 @@ export const ProductColorImagesManager = ({
               {userUploadedImages.map((img) => (
                 <div 
                   key={img.id} 
-                  className="border rounded-lg p-2 space-y-2 relative border-secondary bg-secondary/5"
+                  className={cn(
+                    "border rounded-lg p-2 space-y-2 relative border-secondary bg-secondary/5",
+                    product?.default_image_url === img.image_url && "ring-2 ring-yellow-500"
+                  )}
                 >
                   <div className="aspect-square rounded overflow-hidden bg-secondary/10 relative group">
                     <img 
@@ -460,9 +463,21 @@ export const ProductColorImagesManager = ({
                     <Badge variant="secondary" className="absolute top-1 right-1 text-[10px] px-1 py-0 bg-background/80">
                       Custom
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "absolute top-1 left-1 h-7 w-7 bg-background/80 hover:bg-background",
+                        product?.default_image_url === img.image_url && "text-yellow-500"
+                      )}
+                      onClick={() => setDefaultMutation.mutate(img.image_url)}
+                      title="Set as default image"
+                    >
+                      <Star className={cn("h-4 w-4", product?.default_image_url === img.image_url && "fill-yellow-500")} />
+                    </Button>
                     <button
                       onClick={() => deleteMutation.mutate(img.id)}
-                      className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute bottom-1 left-1 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Delete image"
                     >
                       <Trash2 className="h-3 w-3" />
