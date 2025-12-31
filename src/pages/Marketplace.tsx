@@ -117,7 +117,7 @@ const Marketplace = () => {
               <TabsContent value="all">
                 <div className="space-y-12">
                   <div>
-                    <h2 className="text-2xl font-semibold mb-6">Handmade by Community</h2>
+                    <h2 className="text-2xl font-semibold mb-6">By Our Artisans</h2>
                     <ProductGrid category="handmade" />
                   </div>
                   <div>
