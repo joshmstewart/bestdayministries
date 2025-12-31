@@ -75,6 +75,22 @@ const ProductDetail = () => {
     enabled: !!productId,
   });
 
+  // Fetch custom color images for this product
+  const { data: customColorImages } = useQuery({
+    queryKey: ['product-color-images', productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('product_color_images')
+        .select('*')
+        .eq('product_id', productId)
+        .order('display_order', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!productId,
+  });
+
   const variants: ProductVariant[] = product?.printify_variant_ids 
     ? Object.entries(product.printify_variant_ids as Record<string, number>).map(([title, id]) => ({
         id: id as number,
@@ -173,22 +189,33 @@ const ProductDetail = () => {
     if (defaultSize && !selectedSize) setSelectedSize(defaultSize);
   }, [defaultColor, defaultSize]);
 
-  // Filter images based on selected color's variant ID
+  // Filter images based on selected color's variant ID and include custom color images
   const filteredImages = (() => {
+    // Get custom images for the selected color
+    const customImagesForColor = selectedColor 
+      ? (customColorImages || [])
+          .filter(img => img.color_name === selectedColor)
+          .map(img => img.image_url)
+      : [];
+    
     if (!product?.images || !selectedColor || !hasMultipleOptions) {
-      return product?.images || [];
+      // Include custom images at the end of default images
+      return [...(product?.images || []), ...customImagesForColor];
     }
     
     const variantId = colorToVariantId.get(selectedColor);
-    if (!variantId) return product.images;
+    if (!variantId) {
+      return [...product.images, ...customImagesForColor];
+    }
     
-    // Filter images that contain this variant ID in the URL path
-    const matchingImages = product.images.filter((img: string) => 
+    // Filter Printify images that contain this variant ID in the URL path
+    const matchingPrintifyImages = product.images.filter((img: string) => 
       img.includes(`/${variantId}/`)
     );
     
-    // Return filtered images, or all images if no matches found
-    return matchingImages.length > 0 ? matchingImages : product.images;
+    // Combine Printify images for this color with custom uploaded images
+    const baseImages = matchingPrintifyImages.length > 0 ? matchingPrintifyImages : product.images;
+    return [...baseImages, ...customImagesForColor];
   })();
 
   // Build the effective variant from selections
