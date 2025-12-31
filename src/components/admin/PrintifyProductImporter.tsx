@@ -287,11 +287,15 @@ export const PrintifyProductImporter = () => {
       editedTitle: string;
       editedDescription: string;
     }) => {
-      // Override title and description with edited values
+      // Send both user-edited values AND original Printify values
+      // The edge function uses user-edited for display, original for baseline tracking
       const modifiedProduct = {
         ...product,
         title: editedTitle,
         description: editedDescription,
+        // Pass the original Printify values for baseline tracking
+        original_title: product.title,
+        original_description: product.description,
       };
       const { data, error } = await supabase.functions.invoke('import-printify-product', {
         body: { printifyProduct: modifiedProduct, priceMarkup },
