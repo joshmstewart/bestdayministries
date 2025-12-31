@@ -234,7 +234,9 @@ const sizePatterns = /^(xs|s|m|l|xl|xxl|2xl|3xl|4xl|5xl|6xl|one size|\d+oz|\d+â€
 **Features:**
 - Separate Color and Size dropdowns
 - Smart detection of which option is color vs size
-- Image filtering based on selected color (variant ID in URL)
+- **Image gallery shows ALL images** (Printify + any custom uploads)
+- Images are **ordered by color sections** using `product_color_images` mappings (no duplicates)
+- Selecting a color **jumps** to that color's images (does not filter/hide others)
 - Quantity selector
 - Add to Cart with variant info in `shopping_cart.variant_info`
 

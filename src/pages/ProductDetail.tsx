@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -189,61 +189,105 @@ const ProductDetail = () => {
     if (defaultSize && !selectedSize) setSelectedSize(defaultSize);
   }, [defaultColor, defaultSize]);
 
-  // Build all images: default first, then all API images, then all custom images grouped by color
+  // Build ordered images (no duplicates): group by color using product_color_images mapping.
+  // - Includes Printify API images (already in products.images)
+  // - Includes any custom uploaded images (app-assets/product-colors)
+  // - Selecting a color will jump to that color's "section" in this ordered list
   const allImages = useMemo(() => {
     const apiImages = (product?.images as string[]) || [];
-    const customImages = (customColorImages || []).map(img => img.image_url);
-    
-    // Put default image first if set
-    const defaultImg = product?.default_image_url;
-    const allImageUrls = [...apiImages, ...customImages];
-    
-    if (defaultImg) {
-      // Remove default from its current position and put it first
-      const filtered = allImageUrls.filter(url => url !== defaultImg);
-      return [defaultImg, ...filtered];
-    }
-    
-    return allImageUrls;
-  }, [product?.images, product?.default_image_url, customColorImages]);
+    const apiSet = new Set(apiImages);
+    const rows = customColorImages || [];
+
+    const result: string[] = [];
+    const seen = new Set<string>();
+
+    const add = (url?: string | null) => {
+      if (!url) return;
+      if (seen.has(url)) return;
+      seen.add(url);
+      result.push(url);
+    };
+
+    // 1) Add mapped images per color in order
+    colors.forEach((color) => {
+      const group = rows
+        .filter((r) => r.color_name === color)
+        .slice()
+        .sort((a, b) => {
+          const orderA = Number(a.display_order ?? 0);
+          const orderB = Number(b.display_order ?? 0);
+          if (orderA !== orderB) return orderA - orderB;
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
+
+      group.forEach((r) => add(r.image_url));
+    });
+
+    // 2) Add any remaining API images in their original order
+    apiImages.forEach((url) => add(url));
+
+    // 3) Add any remaining mapped rows (unassigned colors, etc.)
+    rows.forEach((r) => add(r.image_url));
+
+    return result;
+  }, [product?.images, customColorImages, colors]);
 
   // Map colors to their first image index for navigation
   const colorToFirstImageIndex = useMemo(() => {
     const map = new Map<string, number>();
-    
-    // For each color, find the first image that belongs to it
-    colors.forEach(color => {
-      const variantId = colorToVariantId.get(color);
-      
-      // First, check custom images for this color
-      const customImg = customColorImages?.find(img => img.color_name === color);
-      if (customImg) {
-        const idx = allImages.indexOf(customImg.image_url);
-        if (idx !== -1 && !map.has(color)) {
-          map.set(color, idx);
-        }
+    const rows = customColorImages || [];
+
+    colors.forEach((color) => {
+      // Prefer explicit mapping from product_color_images
+      const firstMappedUrl = rows
+        .filter((r) => r.color_name === color)
+        .slice()
+        .sort((a, b) => {
+          const orderA = Number(a.display_order ?? 0);
+          const orderB = Number(b.display_order ?? 0);
+          if (orderA !== orderB) return orderA - orderB;
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        })
+        .map((r) => r.image_url)
+        .find(Boolean);
+
+      if (firstMappedUrl) {
+        const idx = allImages.indexOf(firstMappedUrl);
+        if (idx !== -1) map.set(color, idx);
+        return;
       }
-      
-      // Then check API images by variant ID
-      if (variantId && !map.has(color)) {
-        const idx = allImages.findIndex(url => url.includes(`/${variantId}/`));
-        if (idx !== -1) {
-          map.set(color, idx);
-        }
+
+      // Fallback: detect by Printify variant ID in URL
+      const variantId = colorToVariantId.get(color);
+      if (variantId) {
+        const idx = allImages.findIndex((url) => url.includes(`/${variantId}/`));
+        if (idx !== -1) map.set(color, idx);
       }
     });
-    
+
     return map;
-  }, [colors, colorToVariantId, customColorImages, allImages]);
+  }, [colors, customColorImages, allImages, colorToVariantId]);
+
+  // On first load, if a default image was set in admin, start on it (but keep ordering intact)
+  const hasSetInitialImageRef = useRef(false);
+  useEffect(() => {
+    if (hasSetInitialImageRef.current) return;
+    if (!allImages.length) return;
+
+    const def = product?.default_image_url;
+    if (def) {
+      const idx = allImages.indexOf(def);
+      if (idx !== -1) setCurrentImageIndex(idx);
+    }
+
+    hasSetInitialImageRef.current = true;
+  }, [allImages, product?.default_image_url]);
 
   // When color changes, jump to that color's first image
   useEffect(() => {
-    if (selectedColor) {
-      const targetIndex = colorToFirstImageIndex.get(selectedColor);
-      if (targetIndex !== undefined) {
-        setCurrentImageIndex(targetIndex);
-      }
-    }
+    if (!selectedColor) return;
+    const targetIndex = colorToFirstImageIndex.get(selectedColor);
+    if (targetIndex !== undefined) setCurrentImageIndex(targetIndex);
   }, [selectedColor, colorToFirstImageIndex]);
 
   // Navigation handlers
