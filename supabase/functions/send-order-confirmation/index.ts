@@ -147,7 +147,7 @@ serve(async (req) => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "Best Day Ministries <orders@bestdayministries.org>",
+      from: "Joy House Store <orders@bestdayministries.org>",
       to: [customerEmail],
       subject: `Order Confirmed - #${orderId.substring(0, 8).toUpperCase()}`,
       html: emailHtml,
@@ -161,8 +161,8 @@ serve(async (req) => {
       email_type: "order_confirmation",
       recipient_email: customerEmail,
       subject: `Order Confirmed - #${orderId.substring(0, 8).toUpperCase()}`,
-      from_email: "orders@bestdayministries.com",
-      from_name: "Best Day Ministries",
+      from_email: "orders@bestdayministries.org",
+      from_name: "Joy House Store",
       status: "sent",
       related_type: "order",
       related_id: orderId,

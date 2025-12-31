@@ -156,7 +156,7 @@ serve(async (req) => {
     logStep('Sending shipped email', { to: order.customer_email });
 
     const emailResponse = await resend.emails.send({
-      from: "Best Day Ever Store <orders@bestdayministries.org>",
+      from: "Joy House Store <orders@bestdayministries.org>",
       to: [order.customer_email],
       subject: `📦 Your order has shipped! Tracking: ${trackingNumber}`,
       html: emailHtml,
@@ -171,7 +171,7 @@ serve(async (req) => {
       recipient_email: order.customer_email,
       subject: `📦 Your order has shipped! Tracking: ${trackingNumber}`,
       from_email: "orders@bestdayministries.org",
-      from_name: "Best Day Ever Store",
+      from_name: "Joy House Store",
       status: "sent",
       related_type: "order",
       related_id: orderId,
