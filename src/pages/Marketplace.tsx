@@ -118,15 +118,12 @@ const Marketplace = () => {
               <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground">
                 Joy House Store
               </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Every purchase supports adults with special needs and their caregivers. Shop handmade treasures crafted by our community artisans, plus official Joy House and Best Day Ever merchandise.
-              </p>
               
               {/* Mission callout */}
-              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 max-w-2xl mx-auto mt-8">
-                <h2 className="font-heading text-lg font-semibold text-primary mb-2">More Than a Store</h2>
+              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 max-w-2xl mx-auto">
+                <h2 className="font-heading text-lg font-semibold text-primary mb-2">More Than a Shop</h2>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Joy House Store is where creativity meets community. Our artisans—adults with special needs—pour their hearts into each handcrafted item. When you shop here, you're not just buying a product; you're investing in someone's dignity, independence, and joy. A portion of every sale goes directly back to support our programs and the people who make them special.
+                  Joy House Store is a joyful gift shop where adults with special needs create and sell art and goods—celebrating ability, belonging, and purpose.
                 </p>
               </div>
               
