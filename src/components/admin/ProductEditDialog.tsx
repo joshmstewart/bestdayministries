@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { Loader2, Check, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProductColorImagesManager } from "./ProductColorImagesManager";
 
 interface Product {
   id: string;
@@ -24,6 +25,8 @@ interface Product {
   price: number;
   is_active: boolean;
   inventory_count: number;
+  is_printify_product?: boolean;
+  printify_variant_ids?: Record<string, number> | null;
 }
 
 interface ProductEditDialogProps {
@@ -58,7 +61,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("images, default_image_index")
+        .select("images, default_image_index, is_printify_product, printify_variant_ids")
         .eq("id", productId)
         .single();
 
@@ -74,6 +77,26 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
       setLoadingImages(false);
     }
   };
+
+  // Extract available colors from variant IDs
+  const availableColors = useMemo(() => {
+    if (!product?.printify_variant_ids) return [];
+    const variantIds = product.printify_variant_ids as Record<string, number>;
+    const colors = new Set<string>();
+    const sizePatterns = /^(xs|s|m|l|xl|xxl|2xl|3xl|4xl|5xl|6xl|one size|\d+)$/i;
+    
+    Object.keys(variantIds).forEach((title) => {
+      const parts = title.split(' / ');
+      if (parts.length === 2) {
+        const color = sizePatterns.test(parts[0].trim()) ? parts[1] : parts[0];
+        colors.add(color.trim());
+      } else if (parts.length === 1) {
+        colors.add(parts[0].trim());
+      }
+    });
+    
+    return Array.from(colors).sort();
+  }, [product?.printify_variant_ids]);
 
   const handleSave = async () => {
     if (!product) return;
@@ -214,6 +237,18 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
               </p>
             )}
           </div>
+
+          {/* Color Images Manager for Printify products */}
+          {product?.is_printify_product && availableColors.length > 0 && (
+            <div className="grid gap-2 pt-2 border-t">
+              <Label>Color-Specific Images</Label>
+              <ProductColorImagesManager
+                productId={product.id}
+                productName={product.name}
+                availableColors={availableColors}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>
