@@ -185,6 +185,24 @@ export const PrintifyPreviewDialog = ({
       n.startsWith('color') || n.startsWith('colour');
   };
 
+  // Known color names for validation
+  const knownColors = new Set([
+    'white', 'black', 'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'brown',
+    'gray', 'grey', 'navy', 'teal', 'cyan', 'magenta', 'maroon', 'olive', 'lime', 'aqua',
+    'coral', 'salmon', 'gold', 'silver', 'beige', 'ivory', 'cream', 'tan', 'khaki', 'mint',
+    'turquoise', 'indigo', 'violet', 'lavender', 'lilac', 'plum', 'burgundy', 'crimson',
+    'scarlet', 'ruby', 'rose', 'blush', 'peach', 'apricot', 'copper', 'bronze', 'sand',
+    'charcoal', 'slate', 'ash', 'pewter', 'heather', 'natural', 'oatmeal', 'stone', 'sage',
+    'forest', 'emerald', 'jade', 'seafoam', 'sky', 'royal', 'cobalt', 'sapphire', 'denim',
+    'ocean', 'berry', 'wine', 'mauve', 'fuchsia', 'hot', 'neon', 'pastel', 'light', 'dark'
+  ]);
+
+  // Check if a value looks like a color name
+  const looksLikeColor = (value: string): boolean => {
+    const words = value.toLowerCase().split(/\s+/);
+    return words.some(word => knownColors.has(word));
+  };
+
   // Use product options if available, otherwise extract from variant titles
   const options = product.options && product.options.length > 0
     ? product.options.map(opt => {
@@ -201,20 +219,30 @@ export const PrintifyPreviewDialog = ({
             })
           );
         
-        // For color options, normalize to base color names and deduplicate
+        let displayName = opt.name;
+        
+        // For color options, check if values actually look like colors
         if (isColorOption) {
-          const baseColorMap = new Map<string, string>();
-          values.forEach(v => {
-            const baseColor = getBaseColorName(v);
-            // Keep the first (usually simplest) name for each base color
-            if (!baseColorMap.has(baseColor.toLowerCase())) {
-              baseColorMap.set(baseColor.toLowerCase(), baseColor);
-            }
-          });
-          values = Array.from(baseColorMap.values());
+          const colorLikeCount = values.filter(v => looksLikeColor(v)).length;
+          const isActuallyColors = colorLikeCount > values.length / 2;
+          
+          if (isActuallyColors) {
+            // Normalize to base color names and deduplicate
+            const baseColorMap = new Map<string, string>();
+            values.forEach(v => {
+              const baseColor = getBaseColorName(v);
+              if (!baseColorMap.has(baseColor.toLowerCase())) {
+                baseColorMap.set(baseColor.toLowerCase(), baseColor);
+              }
+            });
+            values = Array.from(baseColorMap.values());
+          } else {
+            // Not actually colors - rename to "Style" or "Configuration"
+            displayName = 'Style';
+          }
         }
         
-        return { name: opt.name, values };
+        return { name: displayName, values };
       }).filter(opt => opt.values.length > 0)
     : extractOptionsFromVariants(product.variants);
 
