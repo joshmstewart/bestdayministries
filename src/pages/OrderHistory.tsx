@@ -17,10 +17,15 @@ interface OrderItem {
   tracking_number: string | null;
   tracking_url: string | null;
   carrier: string | null;
+  vendor_id: string | null;
   products: {
     name: string;
     images: string[];
+    is_printify_product: boolean;
   };
+  vendors: {
+    business_name: string;
+  } | null;
 }
 
 interface ShippingAddress {
@@ -68,6 +73,7 @@ export default function OrderHistory() {
           order_items (
             id,
             product_id,
+            vendor_id,
             quantity,
             price_at_purchase,
             fulfillment_status,
@@ -76,7 +82,11 @@ export default function OrderHistory() {
             carrier,
             products (
               name,
-              images
+              images,
+              is_printify_product
+            ),
+            vendors (
+              business_name
             )
           )
         `)
@@ -202,6 +212,11 @@ export default function OrderHistory() {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-medium">{item.products.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.products.is_printify_product 
+                            ? "Joy House Merch" 
+                            : item.vendors?.business_name || "Joy House Store"}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           Quantity: {item.quantity} × ${item.price_at_purchase}
                         </p>
