@@ -162,15 +162,41 @@ serve(async (req) => {
     const rawTitle = printifyProduct.title || '';
     const cleanTitle = rawTitle.replace(/^\(Printify\)\s*/i, '').trim();
 
-    // Update the product in our database
+    // Get the current product to preserve the markup
+    const { data: currentProduct } = await supabaseClient
+      .from('products')
+      .select('price, printify_original_price')
+      .eq('id', productId)
+      .single();
+
+    // Calculate the markup the admin applied (current price - original base price)
+    // If original price is missing or clearly wrong (like $0.03 for a sticker), default to 0 markup
+    let existingMarkup = 0;
+    if (currentProduct && currentProduct.printify_original_price && currentProduct.printify_original_price > 1) {
+      existingMarkup = Number(currentProduct.price) - currentProduct.printify_original_price;
+    }
+    
+    // Apply the same markup to the new base price
+    const newPriceWithMarkup = basePrice + Math.max(0, existingMarkup);
+
+    console.log(`Price calculation: base=${basePrice}, markup=${existingMarkup}, final=${newPriceWithMarkup}`);
+
+    // Update the product in our database - sync both the tracking fields AND the actual display values
     const { data: updatedProduct, error: updateError } = await supabaseClient
       .from('products')
       .update({
+        // Update actual display values to match Printify (with preserved markup for price)
+        name: cleanTitle,
+        description: cleanDescription,
+        price: newPriceWithMarkup,
+        // Update images and variants
         images: imageUrls,
         printify_variant_ids: variantIds,
+        // Update baseline tracking to mark as synced
         printify_original_title: cleanTitle,
         printify_original_description: cleanDescription,
         printify_original_price: basePrice,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', productId)
       .select()
