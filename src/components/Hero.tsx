@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Heart, Gift, Users, ShoppingBag } from "lucide-react";
+import { ArrowRight, Heart } from "lucide-react";
 import heroImage from "@/assets/hero-hands.jpg";
 import { OptimizedImage } from "@/components/OptimizedImage";
-import { useNavigate } from "react-router-dom";
 
 interface HeroContent {
   badge_text?: string;
@@ -24,8 +23,6 @@ interface HeroProps {
 }
 
 const Hero = ({ content = {} }: HeroProps) => {
-  const navigate = useNavigate();
-  
   const {
     badge_text = "Building Community Through Creativity",
     heading = "Spreading JOY through the unique gifts of the special needs community",
@@ -48,12 +45,6 @@ const Hero = ({ content = {} }: HeroProps) => {
       window.location.href = button_url || "/auth?signup=true";
     }
   };
-
-  const quickActions = [
-    { label: "Donate", icon: Gift, path: "/support", color: "bg-primary hover:bg-primary/90" },
-    { label: "Sponsor a Bestie", icon: Users, path: "/sponsor-bestie", color: "bg-secondary hover:bg-secondary/90" },
-    { label: "Joy House Store", icon: ShoppingBag, path: "/joyhousestore", color: "bg-accent hover:bg-accent/90" },
-  ];
 
   // Extract gradient text if specified
   const gradientTextUpper = gradient_text?.toUpperCase() || "";
@@ -84,21 +75,6 @@ const Hero = ({ content = {} }: HeroProps) => {
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Left Content */}
           <div className="space-y-6 animate-fade-in">
-            {/* Quick Action Buttons */}
-            <div className="flex flex-wrap gap-2">
-              {quickActions.map((action) => (
-                <Button
-                  key={action.path}
-                  size="sm"
-                  onClick={() => navigate(action.path)}
-                  className={`${action.color} text-primary-foreground shadow-md hover:shadow-lg transition-all hover:scale-105`}
-                >
-                  <action.icon className="w-4 h-4 mr-1.5" />
-                  {action.label}
-                </Button>
-              ))}
-            </div>
-
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full border border-primary/20">
               <Heart className="w-3.5 h-3.5 text-primary fill-primary" />
               <span className="text-xs font-semibold text-primary">{badge_text}</span>
