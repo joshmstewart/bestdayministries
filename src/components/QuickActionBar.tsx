@@ -12,7 +12,7 @@ export const QuickActionBar = () => {
   ];
 
   return (
-    <div className="bg-muted/50 border-b border-border">
+    <div className="bg-muted/50 border-b border-border -mt-4">
       <div className="container mx-auto px-4 py-2">
         <div className="flex flex-wrap justify-center gap-6 md:gap-12">
           {quickActions.map((action) => (
