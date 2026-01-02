@@ -106,7 +106,14 @@ export default function OrderHistory() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
+      case "delivered":
         return "bg-green-100 text-green-800 border-green-300";
+      case "shipped":
+        return "bg-blue-100 text-blue-800 border-blue-300";
+      case "in_production":
+        return "bg-purple-100 text-purple-800 border-purple-300";
+      case "processing":
+        return "bg-orange-100 text-orange-800 border-orange-300";
       case "pending":
         return "bg-yellow-100 text-yellow-800 border-yellow-300";
       case "cancelled":
@@ -116,17 +123,27 @@ export default function OrderHistory() {
     }
   };
 
-  const getFulfillmentColor = (status: string) => {
+  const formatStatus = (status: string) => {
     switch (status) {
-      case "delivered":
-        return "bg-green-100 text-green-800 border-green-300";
-      case "shipped":
-        return "bg-blue-100 text-blue-800 border-blue-300";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      case "in_production":
+        return "In Production";
+      case "processing":
+        return "Processing";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
+        return status.charAt(0).toUpperCase() + status.slice(1);
     }
+  };
+
+  // Calculate the effective order status based on item fulfillment statuses
+  const getEffectiveOrderStatus = (order: Order) => {
+    const itemStatuses = order.order_items.map(item => item.fulfillment_status);
+    
+    // Priority order: delivered > shipped > in_production > processing > pending
+    if (itemStatuses.every(s => s === "delivered")) return "delivered";
+    if (itemStatuses.some(s => s === "shipped" || s === "delivered")) return "shipped";
+    if (itemStatuses.some(s => s === "in_production")) return "in_production";
+    if (itemStatuses.some(s => s === "processing")) return "processing";
+    return order.status;
   };
 
   if (loading) {
@@ -176,8 +193,8 @@ export default function OrderHistory() {
                   Placed on {new Date(order.created_at).toLocaleDateString()}
                 </CardDescription>
               </div>
-              <Badge className={getStatusColor(order.status)}>
-                {order.status}
+              <Badge className={`${getStatusColor(getEffectiveOrderStatus(order))} font-medium`}>
+                {formatStatus(getEffectiveOrderStatus(order))}
               </Badge>
             </div>
           </CardHeader>
@@ -221,8 +238,8 @@ export default function OrderHistory() {
                           Quantity: {item.quantity} × ${item.price_at_purchase}
                         </p>
                       </div>
-                      <Badge className={getFulfillmentColor(item.fulfillment_status)}>
-                        {item.fulfillment_status}
+                      <Badge className={`${getStatusColor(item.fulfillment_status)} font-medium`}>
+                        {formatStatus(item.fulfillment_status)}
                       </Badge>
                     </div>
 
