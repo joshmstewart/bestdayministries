@@ -12,7 +12,7 @@ export const QuickActionBar = () => {
   ];
 
   return (
-    <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-b border-border -mt-24">
+    <div className="bg-transparent -mt-24">
       <div className="container mx-auto px-4 py-3">
         <div className="flex flex-wrap justify-center gap-4 md:gap-10">
           {quickActions.map((action, index) => (
