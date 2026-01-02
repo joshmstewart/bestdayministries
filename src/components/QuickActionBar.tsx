@@ -12,17 +12,18 @@ export const QuickActionBar = () => {
   ];
 
   return (
-    <div className="bg-muted/50 border-b border-border -mt-24">
-      <div className="container mx-auto px-4 py-1">
-        <div className="flex flex-wrap justify-center gap-6 md:gap-12">
-          {quickActions.map((action) => (
+    <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-b border-border -mt-24">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex flex-wrap justify-center gap-4 md:gap-10">
+          {quickActions.map((action, index) => (
             <Button
               key={action.path}
               size="lg"
               onClick={() => navigate(action.path)}
-              className={`${action.color} text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 px-6 py-6 text-base font-semibold`}
+              className={`${action.color} text-primary-foreground shadow-xl hover:shadow-2xl transition-all hover:scale-110 px-8 py-7 text-lg font-bold rounded-xl animate-fade-in`}
+              style={{ animationDelay: `${index * 100}ms` }}
             >
-              <action.icon className="w-5 h-5 mr-2" />
+              <action.icon className="w-6 h-6 mr-2" />
               {action.label}
             </Button>
           ))}
