@@ -30,10 +30,14 @@ interface OrderItem {
 
 interface ShippingAddress {
   name: string;
-  street: string;
+  line1?: string;
+  line2?: string;
+  street?: string; // legacy field
   city: string;
   state: string;
-  zip: string;
+  zip?: string;
+  postal_code?: string;
+  country?: string;
 }
 
 interface Order {
@@ -205,8 +209,9 @@ export default function OrderHistory() {
                 <h3 className="font-semibold mb-2">Shipping To:</h3>
                 <p className="text-sm text-muted-foreground">
                   {order.shipping_address.name}<br />
-                  {order.shipping_address.street}<br />
-                  {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}
+                  {order.shipping_address.line1 || order.shipping_address.street}
+                  {order.shipping_address.line2 && <><br />{order.shipping_address.line2}</>}<br />
+                  {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.postal_code || order.shipping_address.zip}
                 </p>
               </div>
             )}
