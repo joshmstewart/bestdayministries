@@ -8,11 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Upload, X, Settings2 } from "lucide-react";
+import { Loader2, Plus, Upload, X, Settings2, ArrowLeft, Eye } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Json } from "@/integrations/supabase/types";
+import { ProductReviewPreview } from "./ProductReviewPreview";
 
 interface ProductOption {
   name: string;
@@ -33,6 +34,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<'edit' | 'review'>('edit');
   
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
@@ -309,14 +311,25 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
     setImageOptionMapping({});
     setNewOptionName("");
     setNewOptionValues("");
+    setStep('edit');
   };
+
+  const handleDialogChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setStep('edit');
+    }
+  };
+
+  // Validate form before allowing review
+  const canReview = name.trim() && description.trim() && price && parseFloat(price) > 0;
 
   // Get all option values for image mapping
   const allOptionValues = options.flatMap(opt => opt.values);
   const totalImages = existingImages.length + imagePreviews.length;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogTrigger asChild>
         <Button>
           {product ? "Edit" : <><Plus className="h-4 w-4 mr-2" /> Add Product</>}
@@ -324,9 +337,63 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{product ? "Edit Product" : "Add New Product"}</DialogTitle>
+          <DialogTitle>
+            {step === 'review' 
+              ? "Review Your Product" 
+              : (product ? "Edit Product" : "Add New Product")}
+          </DialogTitle>
         </DialogHeader>
         
+        {step === 'review' ? (
+          <div className="space-y-6">
+            <ProductReviewPreview
+              name={name}
+              description={description}
+              price={parseFloat(price) || 0}
+              inventoryCount={inventoryCount}
+              category={category}
+              tags={tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : []}
+              images={[...existingImages, ...imagePreviews]}
+              options={options}
+            />
+            
+            <div className="flex gap-2 justify-between">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setStep('edit')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Edit
+              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  type="button" 
+                  variant="secondary"
+                  disabled={loading}
+                  onClick={() => {
+                    setIsActive(false);
+                    handleSubmit(new Event('submit') as any);
+                  }}
+                >
+                  {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save as Draft
+                </Button>
+                <Button 
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setIsActive(true);
+                    handleSubmit(new Event('submit') as any);
+                  }}
+                >
+                  {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Publish Product
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="name">Product Name *</Label>
@@ -632,25 +699,56 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
             )}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="active"
-              checked={isActive}
-              onCheckedChange={setIsActive}
-            />
-            <Label htmlFor="active">Product is active</Label>
-          </div>
+          {/* Hide the active toggle when creating - we'll set it based on save/publish choice */}
+          {product && (
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="active"
+                checked={isActive}
+                onCheckedChange={setIsActive}
+              />
+              <Label htmlFor="active">Product is active</Label>
+            </div>
+          )}
 
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <div className="flex gap-2 justify-between">
+            <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {product ? "Update" : "Create"} Product
-            </Button>
+            <div className="flex gap-2">
+              {product ? (
+                <Button type="submit" disabled={loading}>
+                  {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Update Product
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    disabled={loading}
+                    onClick={() => {
+                      setIsActive(false);
+                      handleSubmit(new Event('submit') as any);
+                    }}
+                  >
+                    {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save Draft
+                  </Button>
+                  <Button 
+                    type="button"
+                    disabled={loading || !canReview}
+                    onClick={() => setStep('review')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Review & Publish
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
