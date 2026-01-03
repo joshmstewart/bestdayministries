@@ -473,6 +473,7 @@ export const DonationHistory = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Designation</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
@@ -484,6 +485,11 @@ export const DonationHistory = () => {
                   <TableRow key={tx.id}>
                     <TableCell>
                       {format(new Date(tx.transaction_date), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      <span className={tx.designation?.startsWith('Sponsorship:') ? 'text-primary font-medium' : 'text-muted-foreground'}>
+                        {tx.designation || 'General Support'}
+                      </span>
                     </TableCell>
                     <TableCell className="font-semibold">
                       {new Intl.NumberFormat('en-US', {
