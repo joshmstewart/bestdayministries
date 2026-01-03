@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
-import { CheckSquare, Copy, Loader2, RefreshCw, PlusCircle, AlertCircle } from "lucide-react";
+import { CheckSquare, Copy, Loader2, RefreshCw, PlusCircle, AlertCircle, CheckCircle2, FileText, Database, Receipt } from "lucide-react";
+
 const getTzOffsetString = (tz: string) => {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "longOffset" }).formatToParts(
     new Date()
@@ -42,10 +43,27 @@ type SnapshotItem = {
   raw: any;
 };
 
+type CombinedTransaction = {
+  id: string;
+  stripe_mode: string;
+  email: string;
+  amount: number;
+  frequency: string;
+  status: string;
+  transaction_date: string;
+  stripe_invoice_id?: string;
+  stripe_payment_intent_id?: string;
+  stripe_charge_id?: string;
+  stripe_subscription_id?: string;
+  donation_id?: string;
+  receipt_id?: string;
+  merged_metadata?: Record<string, any>;
+};
+
 type SnapshotResponse = {
   email: string;
   stripeMode: StripeMode;
-  date: string; // YYYY-MM-DD (interpreted as UTC)
+  date: string;
   window: { start: string; end: string };
   customerIds: string[];
   stripe: {
@@ -60,6 +78,7 @@ type SnapshotResponse = {
     orderItems: any[];
     donationHistoryCache: any[];
     activeSubscriptionsCache: any[];
+    combinedTransactions: CombinedTransaction[];
   };
   links: {
     byPaymentIntentId: Record<string, string[]>;
@@ -72,7 +91,7 @@ type SnapshotResponse = {
 type Group = {
   id: string;
   label: string;
-  itemIds: string[]; // `${type}:${id}`
+  itemIds: string[];
 };
 
 const itemKey = (it: Pick<SnapshotItem, "type" | "id">) => `${it.type}:${it.id}`;
@@ -152,20 +171,44 @@ export const DonationMappingWorkbench = () => {
     toast({ title: okTitle, description: "Copied to clipboard." });
   };
 
-  // Check if a group has a matching DB donation
-  const groupHasDbRecord = (group: Group) => {
-    if (!snapshot) return true; // Assume yes if no snapshot
-    const donations = snapshot.database.donations || [];
-    const sponsorships = snapshot.database.sponsorships || [];
-    // If there are any donations or sponsorships in the snapshot, assume some match
-    // For a more precise check, we'd need to match by payment_intent_id or invoice_id
-    return donations.length > 0 || sponsorships.length > 0;
-  };
-
   // Get Stripe items for a group
   const getGroupStripeItems = (group: Group) => {
     if (!snapshot) return [];
     return snapshot.stripe.items.filter((it) => group.itemIds.includes(itemKey(it)));
+  };
+
+  // Check group status - what records exist for these Stripe items
+  const getGroupStatus = (group: Group) => {
+    if (!snapshot) return { hasCombined: false, hasDonation: false, hasReceipt: false };
+    
+    const stripeItems = getGroupStripeItems(group);
+    const invoiceIds = stripeItems.filter(i => i.type === 'invoice').map(i => i.id);
+    const piIds = stripeItems.map(i => i.payment_intent_id).filter(Boolean);
+    
+    const combinedTransactions = snapshot.database.combinedTransactions || [];
+    const donations = snapshot.database.donations || [];
+    const receipts = snapshot.database.receipts || [];
+    
+    // Check for combined transaction
+    const hasCombined = combinedTransactions.some(ct => 
+      invoiceIds.includes(ct.stripe_invoice_id || '') || 
+      piIds.includes(ct.stripe_payment_intent_id || '')
+    );
+    
+    // Check for donation (by subscription or PI)
+    const subscriptionIds = stripeItems.map(i => i.subscription_id).filter(Boolean);
+    const hasDonation = donations.some(d => 
+      piIds.includes(d.stripe_payment_intent_id) || 
+      subscriptionIds.includes(d.stripe_subscription_id)
+    );
+    
+    // Check for receipt (by invoice id or transaction_id pattern)
+    const hasReceipt = receipts.some(r => 
+      invoiceIds.includes(r.transaction_id) ||
+      piIds.some(pi => r.transaction_id?.includes(pi))
+    );
+    
+    return { hasCombined, hasDonation, hasReceipt };
   };
 
   // Create donation from Stripe data
@@ -189,12 +232,27 @@ export const DonationMappingWorkbench = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to get more details from the error
+        const errorMessage = error.message || "Unknown error";
+        toast({ 
+          title: "Error creating donation", 
+          description: errorMessage,
+          variant: "destructive" 
+        });
+        return;
+      }
 
       if (data?.success) {
+        const actionMsg = data.action === 'already_exists' 
+          ? 'Combined transaction already exists'
+          : data.existingDonation 
+            ? 'Created receipt & combined transaction for existing donation'
+            : 'Created donation, receipt & combined transaction';
+        
         toast({ 
-          title: "Donation created!", 
-          description: `Created donation ID: ${data.donation?.id?.substring(0, 8)}...` 
+          title: "Success!", 
+          description: actionMsg
         });
         // Reload snapshot to show the new record
         await loadSnapshot();
@@ -233,6 +291,10 @@ export const DonationMappingWorkbench = () => {
         body: { email: normalizedEmail, date, stripe_mode: stripeMode, timezone },
       });
       if (error) throw error;
+      // Ensure combinedTransactions exists
+      if (data?.database && !data.database.combinedTransactions) {
+        data.database.combinedTransactions = [];
+      }
       setSnapshot(data);
     } catch (e: any) {
       toast({ title: "Snapshot error", description: e?.message || String(e), variant: "destructive" });
@@ -250,6 +312,8 @@ export const DonationMappingWorkbench = () => {
       notes: "These groups were created manually in the admin Donation Mapping Workbench.",
     };
   }, [snapshot, groups]);
+
+  const combinedTransactions = snapshot?.database.combinedTransactions || [];
 
   return (
     <div className="space-y-6">
@@ -318,7 +382,7 @@ export const DonationMappingWorkbench = () => {
           </div>
 
           {snapshot && (
-            <div className="grid gap-3 md:grid-cols-5">
+            <div className="grid gap-3 md:grid-cols-6">
               <div className="rounded-md bg-muted p-3 text-sm">
                 <div className="text-muted-foreground">Customers</div>
                 <div className="font-mono text-xs break-all whitespace-pre-wrap">{snapshot.customerIds.join("\n")}</div>
@@ -336,17 +400,90 @@ export const DonationMappingWorkbench = () => {
                   <div className="text-2xl font-semibold">{value}</div>
                 </div>
               ))}
+              <div className="rounded-md bg-primary/10 border border-primary/20 p-3 text-sm">
+                <div className="text-muted-foreground">Combined</div>
+                <div className="text-2xl font-semibold text-primary">{combinedTransactions.length}</div>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Combined Transactions - The unified view */}
+      {snapshot && combinedTransactions.length > 0 && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
+              Combined Transactions ({combinedTransactions.length})
+            </CardTitle>
+            <CardDescription>
+              These are the unified transaction records that combine invoice + charge + payment_intent into one event.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {combinedTransactions.map((ct) => (
+                <div key={ct.id} className="rounded-md border bg-card p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="text-lg font-semibold">${ct.amount.toFixed(2)}</div>
+                      <Badge variant="outline">{ct.frequency}</Badge>
+                      <Badge variant="secondary">{ct.status}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {new Date(ct.transaction_date).toLocaleString()}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 grid gap-2 md:grid-cols-3 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Invoice: </span>
+                      <span className="font-mono">{ct.stripe_invoice_id || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">PI: </span>
+                      <span className="font-mono">{ct.stripe_payment_intent_id || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Charge: </span>
+                      <span className="font-mono">{ct.stripe_charge_id || '—'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 flex items-center gap-4 text-xs">
+                    {ct.donation_id && (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Donation linked
+                      </div>
+                    )}
+                    {ct.receipt_id && (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <Receipt className="h-3.5 w-3.5" />
+                        Receipt linked
+                      </div>
+                    )}
+                    {ct.stripe_subscription_id && (
+                      <div className="flex items-center gap-1 text-blue-600">
+                        <FileText className="h-3.5 w-3.5" />
+                        Subscription: {ct.stripe_subscription_id.substring(0, 12)}...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {snapshot && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Manual Groups</CardTitle>
             <CardDescription>
-              Select any Stripe items below, then add a group. These groups are included in the export JSON.
+              Select any Stripe items below, then add a group. Click "Create from Stripe" to merge them into a combined transaction.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -365,30 +502,56 @@ export const DonationMappingWorkbench = () => {
             </div>
 
             {groups.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No groups yet.</div>
+              <div className="text-sm text-muted-foreground">No groups yet. Select Stripe items below and create a group.</div>
             ) : (
               <div className="space-y-2">
                 {groups.map((g) => {
-                  const stripeItems = getGroupStripeItems(g);
-                  const hasStripeData = stripeItems.length > 0;
-                  const hasDonations = (snapshot?.database.donations || []).length > 0;
-                  const hasSponsorships = (snapshot?.database.sponsorships || []).length > 0;
-                  const hasDbRecord = hasDonations || hasSponsorships;
+                  const status = getGroupStatus(g);
+                  const allComplete = status.hasCombined && status.hasDonation && status.hasReceipt;
                   
                   return (
                     <div key={g.id} className="rounded-md border p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <div className="font-medium">{g.label}</div>
-                          {hasStripeData && !hasDbRecord && (
+                          
+                          {/* Status badges */}
+                          {status.hasCombined ? (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              Combined
+                            </Badge>
+                          ) : (
                             <Badge variant="destructive" className="text-xs">
                               <AlertCircle className="mr-1 h-3 w-3" />
-                              No DB Record
+                              No Combined Record
+                            </Badge>
+                          )}
+                          
+                          {status.hasDonation ? (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              Donation
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                              No Donation
+                            </Badge>
+                          )}
+                          
+                          {status.hasReceipt ? (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              Receipt
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                              No Receipt
                             </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {hasStripeData && !hasDbRecord && (
+                          {!allComplete && (
                             <Button
                               size="sm"
                               variant="default"
@@ -504,6 +667,7 @@ export const DonationMappingWorkbench = () => {
                         ["donations", snapshot.database.donations],
                         ["sponsorships", snapshot.database.sponsorships],
                         ["receipts", snapshot.database.receipts],
+                        ["combinedTransactions", snapshot.database.combinedTransactions],
                         ["orders", snapshot.database.orders],
                         ["orderItems", snapshot.database.orderItems],
                         ["donationHistoryCache", snapshot.database.donationHistoryCache],
@@ -513,10 +677,10 @@ export const DonationMappingWorkbench = () => {
                       <div key={label} className="rounded-md border p-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="font-medium">{label}</div>
-                          <Badge variant="secondary">{rows.length}</Badge>
+                          <Badge variant="secondary">{rows?.length || 0}</Badge>
                         </div>
                         <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-[260px]">
-                          {JSON.stringify(rows, null, 2)}
+                          {JSON.stringify(rows || [], null, 2)}
                         </pre>
                       </div>
                     ))}

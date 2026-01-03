@@ -74,11 +74,14 @@ serve(async (req) => {
     let customerId: string | undefined;
     let paymentIntentId: string | undefined;
     let checkoutSessionId: string | undefined;
+    let invoiceId: string | undefined;
+    let chargeId: string | undefined;
     let createdAt: string | undefined;
 
     // Priority: invoice > checkout_session > charge > payment_intent
     if (invoice?.raw) {
       const inv = invoice.raw;
+      invoiceId = inv.id;
       customerId = inv.customer;
       paymentIntentId = typeof inv.payment_intent === 'string' ? inv.payment_intent : inv.payment_intent?.id;
       amount = typeof inv.amount_paid === 'number' ? inv.amount_paid / 100 : undefined;
@@ -127,6 +130,7 @@ serve(async (req) => {
 
     if (charge?.raw) {
       const ch = charge.raw;
+      chargeId = ch.id;
       if (!customerId) customerId = ch.customer;
       if (!paymentIntentId) paymentIntentId = typeof ch.payment_intent === 'string' ? ch.payment_intent : ch.payment_intent?.id;
       if (!amount) amount = typeof ch.amount === 'number' ? ch.amount / 100 : undefined;
@@ -170,6 +174,12 @@ serve(async (req) => {
       throw new Error("Could not extract amount from Stripe data");
     }
 
+    // Determine transaction key for combined record (invoice > PI > charge)
+    const transactionKey = invoiceId || paymentIntentId || chargeId;
+    if (!transactionKey) {
+      throw new Error("Could not determine transaction key from Stripe data");
+    }
+
     // Look up user by email
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -183,7 +193,7 @@ serve(async (req) => {
     // Determine status
     const status = frequency === 'monthly' ? 'active' : 'completed';
 
-    console.log("[CREATE-DONATION-FROM-STRIPE] Creating donation", {
+    console.log("[CREATE-DONATION-FROM-STRIPE] Processing", {
       donorId,
       donorEmail,
       amount,
@@ -193,113 +203,210 @@ serve(async (req) => {
       customerId,
       subscriptionId,
       paymentIntentId,
-      checkoutSessionId,
+      invoiceId,
+      chargeId,
+      transactionKey,
       metadata
     });
 
-    // Check for existing donation to avoid duplicates
-    let duplicateExists = false;
+    // Check if combined transaction already exists (idempotency)
+    let existingTransaction: any = null;
     
-    if (paymentIntentId) {
-      const { data: piMatch } = await supabaseAdmin
-        .from("donations")
-        .select("id")
+    if (invoiceId) {
+      const { data } = await supabaseAdmin
+        .from("donation_stripe_transactions")
+        .select("*")
+        .eq("stripe_mode", stripeMode)
+        .eq("stripe_invoice_id", invoiceId)
+        .maybeSingle();
+      existingTransaction = data;
+    }
+    
+    if (!existingTransaction && paymentIntentId) {
+      const { data } = await supabaseAdmin
+        .from("donation_stripe_transactions")
+        .select("*")
         .eq("stripe_mode", stripeMode)
         .eq("stripe_payment_intent_id", paymentIntentId)
+        .is("stripe_invoice_id", null)
         .maybeSingle();
-      if (piMatch?.id) duplicateExists = true;
-    }
-    
-    if (!duplicateExists && subscriptionId) {
-      const { data: subMatch } = await supabaseAdmin
-        .from("donations")
-        .select("id")
-        .eq("stripe_mode", stripeMode)
-        .eq("stripe_subscription_id", subscriptionId)
-        .maybeSingle();
-      if (subMatch?.id) duplicateExists = true;
+      existingTransaction = data;
     }
 
-    if (duplicateExists) {
+    if (existingTransaction) {
+      console.log("[CREATE-DONATION-FROM-STRIPE] Combined transaction already exists", { id: existingTransaction.id });
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "A donation with this payment intent or subscription already exists"
+        JSON.stringify({
+          success: true,
+          action: "already_exists",
+          message: "Combined transaction already exists for this payment",
+          combinedTransaction: existingTransaction,
+          donationId: existingTransaction.donation_id,
+          receiptId: existingTransaction.receipt_id
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Create the donation
-    const donationData: any = {
-      donor_id: donorId,
-      donor_email: donorEmail,
-      amount,
-      amount_charged: amount,
-      frequency,
-      status,
-      stripe_mode: stripeMode,
-      stripe_customer_id: customerId || null,
-      stripe_subscription_id: subscriptionId || null,
-      stripe_payment_intent_id: paymentIntentId || null,
-      stripe_checkout_session_id: checkoutSessionId || null,
-      created_at: createdAt || new Date().toISOString(),
-      started_at: createdAt || new Date().toISOString(),
-    };
-
-    const { data: newDonation, error: insertError } = await supabaseAdmin
-      .from("donations")
-      .insert(donationData)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error("[CREATE-DONATION-FROM-STRIPE] Insert error", insertError);
-      throw new Error(`Failed to create donation: ${insertError.message}`);
+    // Find existing donation (for subscription renewals, don't create a new one)
+    let existingDonation: any = null;
+    
+    if (subscriptionId) {
+      const { data } = await supabaseAdmin
+        .from("donations")
+        .select("*")
+        .eq("stripe_mode", stripeMode)
+        .eq("stripe_subscription_id", subscriptionId)
+        .maybeSingle();
+      existingDonation = data;
+    }
+    
+    if (!existingDonation && paymentIntentId) {
+      const { data } = await supabaseAdmin
+        .from("donations")
+        .select("*")
+        .eq("stripe_mode", stripeMode)
+        .eq("stripe_payment_intent_id", paymentIntentId)
+        .maybeSingle();
+      existingDonation = data;
     }
 
-    console.log("[CREATE-DONATION-FROM-STRIPE] Created donation", { id: newDonation.id });
+    let donationRecord = existingDonation;
 
-    // Now create a receipt for this donation
-    const { data: receiptSettings } = await supabaseAdmin
-      .from("receipt_settings")
-      .select("organization_name, organization_ein")
-      .limit(1)
+    // If no existing donation, create one
+    if (!existingDonation) {
+      const donationData: any = {
+        donor_id: donorId,
+        donor_email: donorEmail,
+        amount,
+        amount_charged: amount,
+        frequency,
+        status,
+        stripe_mode: stripeMode,
+        stripe_customer_id: customerId || null,
+        stripe_subscription_id: subscriptionId || null,
+        stripe_payment_intent_id: paymentIntentId || null,
+        stripe_checkout_session_id: checkoutSessionId || null,
+        created_at: createdAt || new Date().toISOString(),
+        started_at: createdAt || new Date().toISOString(),
+      };
+
+      const { data: newDonation, error: insertError } = await supabaseAdmin
+        .from("donations")
+        .insert(donationData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("[CREATE-DONATION-FROM-STRIPE] Insert error", insertError);
+        throw new Error(`Failed to create donation: ${insertError.message}`);
+      }
+
+      donationRecord = newDonation;
+      console.log("[CREATE-DONATION-FROM-STRIPE] Created donation", { id: newDonation.id });
+    } else {
+      console.log("[CREATE-DONATION-FROM-STRIPE] Using existing donation", { id: existingDonation.id });
+    }
+
+    // Create receipt for this specific transaction (keyed by invoice_id or PI)
+    const receiptTransactionId = invoiceId || `pi_${paymentIntentId}` || `ch_${chargeId}`;
+    
+    // Check if receipt already exists
+    const { data: existingReceipt } = await supabaseAdmin
+      .from("sponsorship_receipts")
+      .select("*")
+      .eq("transaction_id", receiptTransactionId)
+      .eq("stripe_mode", stripeMode)
       .maybeSingle();
 
-    const receiptData = {
-      sponsor_email: email,
-      sponsor_name: email.split('@')[0],
-      user_id: donorId,
-      bestie_name: 'General Support',
-      amount,
-      frequency,
-      transaction_id: `donation_${newDonation.id}`,
-      transaction_date: createdAt || new Date().toISOString(),
+    let receiptRecord = existingReceipt;
+
+    if (!existingReceipt) {
+      const { data: receiptSettings } = await supabaseAdmin
+        .from("receipt_settings")
+        .select("organization_name, organization_ein")
+        .limit(1)
+        .maybeSingle();
+
+      const receiptData = {
+        sponsor_email: email,
+        sponsor_name: email.split('@')[0],
+        user_id: donorId,
+        bestie_name: 'General Support',
+        amount,
+        frequency,
+        transaction_id: receiptTransactionId,
+        transaction_date: createdAt || new Date().toISOString(),
+        stripe_mode: stripeMode,
+        organization_name: receiptSettings?.organization_name || 'Best Day Ministries',
+        organization_ein: receiptSettings?.organization_ein || '00-0000000',
+        receipt_number: `RCP-API-${Date.now()}-${donationRecord.id.substring(0, 8)}`,
+        tax_year: new Date(createdAt || new Date()).getFullYear(),
+      };
+
+      const { data: newReceipt, error: receiptError } = await supabaseAdmin
+        .from("sponsorship_receipts")
+        .insert(receiptData)
+        .select()
+        .single();
+
+      if (receiptError) {
+        console.warn("[CREATE-DONATION-FROM-STRIPE] Receipt creation failed", receiptError);
+      } else {
+        receiptRecord = newReceipt;
+        console.log("[CREATE-DONATION-FROM-STRIPE] Created receipt", { id: newReceipt.id });
+      }
+    } else {
+      console.log("[CREATE-DONATION-FROM-STRIPE] Using existing receipt", { id: existingReceipt.id });
+    }
+
+    // Create the combined transaction record
+    const combinedData = {
       stripe_mode: stripeMode,
-      organization_name: receiptSettings?.organization_name || 'Best Day Ministries',
-      organization_ein: receiptSettings?.organization_ein || '00-0000000',
-      receipt_number: `RCP-API-${Date.now()}-${newDonation.id.substring(0, 8)}`,
-      tax_year: new Date(createdAt || new Date()).getFullYear(),
+      email: email.toLowerCase(),
+      donor_id: donorId,
+      stripe_customer_id: customerId || null,
+      stripe_subscription_id: subscriptionId || null,
+      stripe_invoice_id: invoiceId || null,
+      stripe_payment_intent_id: paymentIntentId || null,
+      stripe_charge_id: chargeId || null,
+      amount,
+      currency: 'usd',
+      status,
+      frequency,
+      transaction_date: createdAt || new Date().toISOString(),
+      raw_invoice: invoice?.raw || null,
+      raw_payment_intent: paymentIntent?.raw || null,
+      raw_charge: charge?.raw || null,
+      raw_checkout_session: checkoutSession?.raw || null,
+      merged_metadata: metadata,
+      donation_id: donationRecord?.id || null,
+      receipt_id: receiptRecord?.id || null,
     };
 
-    const { data: newReceipt, error: receiptError } = await supabaseAdmin
-      .from("sponsorship_receipts")
-      .insert(receiptData)
+    const { data: combinedTransaction, error: combinedError } = await supabaseAdmin
+      .from("donation_stripe_transactions")
+      .insert(combinedData)
       .select()
       .single();
 
-    if (receiptError) {
-      console.warn("[CREATE-DONATION-FROM-STRIPE] Receipt creation failed (donation still created)", receiptError);
+    if (combinedError) {
+      console.warn("[CREATE-DONATION-FROM-STRIPE] Combined transaction creation failed", combinedError);
     } else {
-      console.log("[CREATE-DONATION-FROM-STRIPE] Created receipt", { id: newReceipt.id });
+      console.log("[CREATE-DONATION-FROM-STRIPE] Created combined transaction", { id: combinedTransaction.id });
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        donation: newDonation,
-        receipt: newReceipt || null,
+        action: existingDonation ? "receipt_and_transaction_created" : "all_created",
+        message: existingDonation 
+          ? "Created receipt and combined transaction for existing donation" 
+          : "Created donation, receipt, and combined transaction",
+        donation: donationRecord,
+        receipt: receiptRecord || null,
+        combinedTransaction: combinedTransaction || null,
+        existingDonation: !!existingDonation,
         extractedData: {
           amount,
           frequency,
@@ -307,6 +414,9 @@ serve(async (req) => {
           customerId,
           subscriptionId,
           paymentIntentId,
+          invoiceId,
+          chargeId,
+          transactionKey,
           metadata
         }
       }),

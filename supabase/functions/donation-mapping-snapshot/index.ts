@@ -500,6 +500,24 @@ serve(async (req) => {
       .select("*")
       .ilike("user_email", email);
 
+    // Fetch combined transactions for this email/date
+    const combinedTransactionsByEmail = await supabaseAdmin
+      .from("donation_stripe_transactions")
+      .select("*")
+      .eq("stripe_mode", stripeMode)
+      .ilike("email", email)
+      .gte("transaction_date", start)
+      .lt("transaction_date", end);
+
+    const combinedTransactionsById = profileIds.length
+      ? await supabaseAdmin
+          .from("donation_stripe_transactions")
+          .select("*")
+          .in("donor_id", profileIds)
+          .gte("transaction_date", start)
+          .lt("transaction_date", end)
+      : { data: [] as any[] };
+
     const uniqById = (rows: any[]) => {
       const m = new Map<string, any>();
       for (const r of rows) {
@@ -513,6 +531,7 @@ serve(async (req) => {
     const sponsorships = uniqById([...(sponsorshipsByEmail.data || []), ...(sponsorshipsById.data || [])]);
     const receipts = uniqById([...(receiptsByEmail.data || []), ...(receiptsById.data || [])]);
     const orders = uniqById(ordersMerged);
+    const combinedTransactions = uniqById([...(combinedTransactionsByEmail.data || []), ...(combinedTransactionsById.data || [])]);
 
     // ---- Lightweight auto-linking (for human inspection) ----
     const byPaymentIntentId: Record<string, string[]> = {};
@@ -608,6 +627,7 @@ serve(async (req) => {
           orderItems: orderItems.data || [],
           donationHistoryCache: donationHistoryCache.data || [],
           activeSubscriptionsCache: activeSubscriptionsCache.data || [],
+          combinedTransactions,
         },
         links: { byPaymentIntentId, byInvoiceId, byOrderId, clusters },
       }),

@@ -1459,6 +1459,131 @@ export type Database = {
         }
         Relationships: []
       }
+      donation_stripe_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string | null
+          donation_id: string | null
+          donor_id: string | null
+          email: string
+          frequency: string
+          id: string
+          merged_metadata: Json | null
+          raw_charge: Json | null
+          raw_checkout_session: Json | null
+          raw_invoice: Json | null
+          raw_payment_intent: Json | null
+          receipt_id: string | null
+          status: string
+          stripe_charge_id: string | null
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          stripe_mode: string
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          transaction_date: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string | null
+          donation_id?: string | null
+          donor_id?: string | null
+          email: string
+          frequency: string
+          id?: string
+          merged_metadata?: Json | null
+          raw_charge?: Json | null
+          raw_checkout_session?: Json | null
+          raw_invoice?: Json | null
+          raw_payment_intent?: Json | null
+          receipt_id?: string | null
+          status: string
+          stripe_charge_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_mode: string
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          transaction_date: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string | null
+          donation_id?: string | null
+          donor_id?: string | null
+          email?: string
+          frequency?: string
+          id?: string
+          merged_metadata?: Json | null
+          raw_charge?: Json | null
+          raw_checkout_session?: Json | null
+          raw_invoice?: Json | null
+          raw_payment_intent?: Json | null
+          receipt_id?: string | null
+          status?: string
+          stripe_charge_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_mode?: string
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donation_stripe_transactions_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "donations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donation_stripe_transactions_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "donations_missing_receipts"
+            referencedColumns: ["donation_id"]
+          },
+          {
+            foreignKeyName: "donation_stripe_transactions_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "orphaned_receipts_analysis"
+            referencedColumns: ["potential_donation_id"]
+          },
+          {
+            foreignKeyName: "donation_stripe_transactions_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donation_stripe_transactions_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donation_stripe_transactions_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "orphaned_receipts_analysis"
+            referencedColumns: ["receipt_id"]
+          },
+          {
+            foreignKeyName: "donation_stripe_transactions_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "sponsorship_receipts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       donation_sync_status: {
         Row: {
           donations_synced: number | null
