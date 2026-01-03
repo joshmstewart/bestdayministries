@@ -482,12 +482,49 @@ export const VendorManagement = () => {
 
   const updateVendorStatus = async (vendorId: string, newStatus: "approved" | "pending" | "rejected" | "suspended") => {
     try {
+      // Get vendor info before updating for email notification
+      const { data: vendorData } = await supabase
+        .from("vendors")
+        .select("business_name, user_id")
+        .eq("id", vendorId)
+        .single();
+
       const { error } = await supabase
         .from("vendors")
         .update({ status: newStatus })
         .eq("id", vendorId);
 
       if (error) throw error;
+
+      // Send automated email for approval/rejection
+      if (vendorData?.user_id && (newStatus === "approved" || newStatus === "rejected")) {
+        // Get user email from profiles
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", vendorData.user_id)
+          .single();
+
+        if (profileData?.email) {
+          const triggerEvent = newStatus === "approved" ? "vendor_approved" : "vendor_rejected";
+          
+          supabase.functions.invoke("send-automated-campaign", {
+            body: {
+              trigger_event: triggerEvent,
+              recipient_email: profileData.email,
+              recipient_user_id: vendorData.user_id,
+              trigger_data: {
+                business_name: vendorData.business_name,
+                vendor_email: profileData.email,
+              },
+            },
+          }).then(({ error: emailError }) => {
+            if (emailError) {
+              console.error("Failed to send vendor status email:", emailError);
+            }
+          });
+        }
+      }
 
       toast({
         title: "Success",
