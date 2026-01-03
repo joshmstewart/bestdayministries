@@ -127,6 +127,10 @@ interface Vendor {
   rejection_reason: string | null;
   contact_email?: string;
   social_links?: unknown;
+  profile?: {
+    display_name: string;
+    email: string | null;
+  } | null;
 }
 
 interface Product {
@@ -263,13 +267,31 @@ export const VendorManagement = () => {
   };
 
   const loadVendors = async () => {
-    const { data, error } = await supabase
+    const { data: vendorsData, error } = await supabase
       .from("vendors")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    setVendors(data || []);
+    
+    if (vendorsData && vendorsData.length > 0) {
+      // Fetch profiles for all vendor user_ids
+      const userIds = vendorsData.map(v => v.user_id);
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, display_name, email")
+        .in("id", userIds);
+      
+      // Merge profile data into vendors
+      const vendorsWithProfiles = vendorsData.map(vendor => ({
+        ...vendor,
+        profile: profilesData?.find(p => p.id === vendor.user_id) || null
+      }));
+      
+      setVendors(vendorsWithProfiles as Vendor[]);
+    } else {
+      setVendors([]);
+    }
   };
 
   const loadProducts = async () => {
@@ -684,6 +706,7 @@ export const VendorManagement = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Applicant</TableHead>
                     <TableHead>Business Name</TableHead>
                     <TableHead>Categories</TableHead>
                     <TableHead>Status</TableHead>
@@ -694,6 +717,14 @@ export const VendorManagement = () => {
                 <TableBody>
                   {vendors.map((vendor) => (
                     <TableRow key={vendor.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{vendor.profile?.display_name || "Unknown"}</p>
+                          {vendor.profile?.email && (
+                            <p className="text-xs text-muted-foreground">{vendor.profile.email}</p>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">{vendor.business_name}</TableCell>
                       <TableCell className="max-w-[200px]">
                         {vendor.product_categories?.length ? (
@@ -1098,6 +1129,24 @@ export const VendorManagement = () => {
           
           {reviewVendor && (
             <div className="space-y-6 py-4">
+              {/* Applicant Info */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Eye className="w-4 h-4" />
+                  Applicant
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                  <div>
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wide">Name</Label>
+                    <p className="font-medium">{reviewVendor.profile?.display_name || "Unknown"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wide">Email</Label>
+                    <p className="font-medium">{reviewVendor.profile?.email || <span className="text-muted-foreground italic">Not available</span>}</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Business Info */}
               <div className="space-y-3">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
