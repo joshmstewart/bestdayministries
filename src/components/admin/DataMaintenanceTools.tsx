@@ -13,6 +13,7 @@ import { DonationRecoveryManager } from "./DonationRecoveryManager";
 import { RecalculateAmountsTest } from "./RecalculateAmountsTest";
 import { DonationDebugger } from "./DonationDebugger";
 import { DonationHistoryDebugger } from "./DonationHistoryDebugger";
+import { DonationMappingWorkbench } from "./DonationMappingWorkbench";
 import { StripeCustomerChecker } from "./StripeCustomerChecker";
 import { DeleteFakeDonations } from "./DeleteFakeDonations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -573,9 +574,30 @@ export const DataMaintenanceTools = () => {
 
         {/* Debug Tab */}
         <TabsContent value="debug" className="space-y-6">
-          <StripeCustomerChecker />
-          <DonationDebugger />
-          <DonationHistoryDebugger />
+          <Tabs defaultValue="mapping" className="space-y-4">
+            <TabsList className="flex flex-wrap h-auto w-full">
+              <TabsTrigger value="mapping">Mapping</TabsTrigger>
+              <TabsTrigger value="history">History Debugger</TabsTrigger>
+              <TabsTrigger value="donations">Donation Debugger</TabsTrigger>
+              <TabsTrigger value="customers">Customer Checker</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="mapping" className="space-y-6">
+              <DonationMappingWorkbench />
+            </TabsContent>
+
+            <TabsContent value="history" className="space-y-6">
+              <DonationHistoryDebugger />
+            </TabsContent>
+
+            <TabsContent value="donations" className="space-y-6">
+              <DonationDebugger />
+            </TabsContent>
+
+            <TabsContent value="customers" className="space-y-6">
+              <StripeCustomerChecker />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         {/* Cleanup Tab */}
