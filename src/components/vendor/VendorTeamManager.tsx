@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Crown, Shield, User, Mail, Clock } from "lucide-react";
+import { UserPlus, Trash2, Crown, Shield, User, Mail, Clock, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface VendorTeamManagerProps {
@@ -237,38 +237,102 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
                     The user must already have an account
                   </p>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label>Role</Label>
-                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as TeamRole)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">
-                        <div className="flex items-center gap-2">
-                          <Shield className="h-4 w-4 text-blue-500" />
-                          <div>
-                            <div>Admin</div>
-                            <div className="text-xs text-muted-foreground">
-                              Can manage products and orders
-                            </div>
-                          </div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="staff">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <div>Staff</div>
-                            <div className="text-xs text-muted-foreground">
-                              Can view orders and update tracking
-                            </div>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  
+                  {/* Admin Role Card */}
+                  <div
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      inviteRole === "admin" 
+                        ? "border-blue-500 bg-blue-500/5" 
+                        : "border-border hover:border-blue-500/50"
+                    }`}
+                    onClick={() => setInviteRole("admin")}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <Shield className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div className="font-medium">Admin</div>
+                      {inviteRole === "admin" && (
+                        <Badge variant="secondary" className="ml-auto">Selected</Badge>
+                      )}
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1 ml-11">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        Add, edit, and delete products
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        View and manage all orders
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        Update order status and tracking
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        View earnings and reports
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <XCircle className="h-3 w-3 text-red-500" />
+                        Cannot manage team members
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <XCircle className="h-3 w-3 text-red-500" />
+                        Cannot access Stripe payouts
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  {/* Staff Role Card */}
+                  <div
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      inviteRole === "staff" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => setInviteRole("staff")}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="font-medium">Staff</div>
+                      {inviteRole === "staff" && (
+                        <Badge variant="secondary" className="ml-auto">Selected</Badge>
+                      )}
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1 ml-11">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        View orders assigned to them
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        Update tracking information
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        Mark orders as shipped/delivered
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <XCircle className="h-3 w-3 text-red-500" />
+                        Cannot add or edit products
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <XCircle className="h-3 w-3 text-red-500" />
+                        Cannot view earnings or reports
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <XCircle className="h-3 w-3 text-red-500" />
+                        Cannot manage team members
+                      </li>
+                    </ul>
+                  </div>
                 </div>
+                
                 <Button
                   className="w-full"
                   onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
