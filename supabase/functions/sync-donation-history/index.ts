@@ -172,7 +172,7 @@ serve(async (req) => {
           }
         });
 
-        // Process invoices -> monthly donations
+        // Process invoices -> monthly donations (subscriptions only)
         const donationRecords: any[] = [];
         
         for (const invoice of invoices.data) {
@@ -189,6 +189,24 @@ serve(async (req) => {
             subscriptionId = invoice.lines.data[0].subscription as string;
           }
 
+          // SKIP store/marketplace purchases (they have order_id in metadata)
+          const metadata = invoice.metadata || {};
+          if (metadata.order_id) {
+            logStep("Skipping marketplace invoice", { invoiceId: invoice.id, orderId: metadata.order_id });
+            continue;
+          }
+
+          // Only include if it's a known sponsorship OR donation
+          const isKnownSponsorship = subscriptionId && subscriptionToDesignation.has(subscriptionId);
+          const isKnownDonation = metadata.type === "donation";
+          const isFromKnownCustomer = customerToDesignation.has(customer.id);
+          
+          // Must be a donation or sponsorship - skip unknown charges
+          if (!isKnownSponsorship && !isKnownDonation && !isFromKnownCustomer) {
+            logStep("Skipping unknown invoice", { invoiceId: invoice.id });
+            continue;
+          }
+
           // Determine designation
           let designation = "General Support";
           if (subscriptionId && subscriptionToDesignation.has(subscriptionId)) {
@@ -197,8 +215,6 @@ serve(async (req) => {
             designation = customerToDesignation.get(customer.id)!;
           }
 
-          // Check metadata for donation vs sponsorship
-          const metadata = invoice.metadata || {};
           if (metadata.type === "donation") {
             designation = "General Support";
           }
@@ -221,7 +237,7 @@ serve(async (req) => {
           });
         }
 
-        // Process standalone charges (one-time donations)
+        // Process standalone charges (one-time donations/sponsorships only)
         for (const charge of charges.data) {
           // Skip if this charge is linked to an invoice
           if (invoiceChargeIds.has(charge.id)) continue;
@@ -230,16 +246,28 @@ serve(async (req) => {
           if (charge.status !== "succeeded") continue;
           if (!charge.amount || charge.amount <= 0) continue;
 
+          const metadata = charge.metadata || {};
+          
+          // SKIP store/marketplace purchases (they have order_id in metadata)
+          if (metadata.order_id) {
+            logStep("Skipping marketplace charge", { chargeId: charge.id, orderId: metadata.order_id });
+            continue;
+          }
+
+          // Only include if it's explicitly a donation or sponsorship
+          const isSponsorship = metadata.bestie_id || metadata.bestieId || metadata.bestieName;
+          const isDonation = metadata.type === "donation";
+          
+          // Must be a donation or sponsorship - skip unknown charges
+          if (!isSponsorship && !isDonation) {
+            logStep("Skipping unknown charge", { chargeId: charge.id, metadata });
+            continue;
+          }
+
           // Determine designation from metadata
           let designation = "General Support";
-          const metadata = charge.metadata || {};
-          if (metadata.bestieId || metadata.bestieName) {
+          if (isSponsorship) {
             designation = `Sponsorship: ${metadata.bestieName || "Unknown"}`;
-          } else if (customerToDesignation.has(customer.id) && metadata.type !== "donation") {
-            designation = customerToDesignation.get(customer.id)!;
-          }
-          if (metadata.type === "donation") {
-            designation = "General Support";
           }
 
           donationRecords.push({
