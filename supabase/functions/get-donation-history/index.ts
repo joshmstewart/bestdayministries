@@ -133,19 +133,42 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     console.log("[GET-DONATION-HISTORY] Found customer:", customerId);
 
-    // Fetch Stripe data
-    const [charges, subscriptions, invoices] = await Promise.all([
+    // Fetch Stripe data (API-first source of truth)
+    const [charges, subscriptions, invoices, checkoutSessions] = await Promise.all([
       stripe.charges.list({ customer: customerId, limit: 100 }),
       stripe.subscriptions.list({ customer: customerId, status: "all", limit: 100 }),
       stripe.invoices.list({ customer: customerId, limit: 100 }),
+      stripe.checkout.sessions.list({ customer: customerId, limit: 100 }),
     ]);
 
     console.log("[GET-DONATION-HISTORY] Found:", {
       charges: charges.data.length,
       subscriptions: subscriptions.data.length,
       invoices: invoices.data.length,
+      sessions: checkoutSessions.data.length,
     });
 
+    // Checkout session metadata is the most reliable place to detect marketplace vs donation/sponsorship
+    const paymentIntentToSessionMeta = new Map<string, Record<string, any>>();
+    const subscriptionToSessionMeta = new Map<string, Record<string, any>>();
+
+    for (const s of checkoutSessions.data as any[]) {
+      const meta = (s?.metadata || {}) as Record<string, any>;
+      const piId = readId(s?.payment_intent);
+      if (piId) paymentIntentToSessionMeta.set(piId, meta);
+      const subId = readId(s?.subscription);
+      if (subId) subscriptionToSessionMeta.set(subId, meta);
+    }
+
+    // payment_intent → charge ids map (used to de-dupe invoice-backed charges)
+    const paymentIntentToChargeIds = new Map<string, string[]>();
+    for (const ch of charges.data as any[]) {
+      const piId = readId(ch?.payment_intent);
+      if (!piId) continue;
+      const existing = paymentIntentToChargeIds.get(piId) || [];
+      existing.push(ch.id);
+      paymentIntentToChargeIds.set(piId, existing);
+    }
     // --- Sponsorship lookup (DB supplement) ---
     const sponsorshipByStripeRefId = new Map<string, string>();
     const sponsorBestieIds = new Set<string>();
@@ -182,6 +205,10 @@ serve(async (req) => {
     }
     for (const ch of charges.data) {
       const id = readSponsorBestieIdFromMeta((ch as any)?.metadata);
+      if (id) sponsorBestieIds.add(id);
+    }
+    for (const s of checkoutSessions.data as any[]) {
+      const id = readSponsorBestieIdFromMeta((s as any)?.metadata);
       if (id) sponsorBestieIds.add(id);
     }
 
@@ -221,15 +248,22 @@ serve(async (req) => {
     // This is the canonical de-duplication approach
     // =====================================================
     const invoiceChargeIds = new Set<string>();
-    
+
     for (const invoice of invoices.data) {
       const invAny = invoice as any;
-      // invoice.charge is the primary link to the charge
+      // invoice.charge is the primary link to the charge (may be null depending on API/version)
       const chargeId = readId(invAny.charge);
       if (chargeId) invoiceChargeIds.add(chargeId);
+
       // Some versions use latest_charge
       const latestChargeId = readId(invAny.latest_charge);
       if (latestChargeId) invoiceChargeIds.add(latestChargeId);
+
+      // Most reliable: invoice.payment_intent -> charges that share that payment_intent
+      const piId = readId(invAny.payment_intent);
+      if (piId && paymentIntentToChargeIds.has(piId)) {
+        for (const cid of paymentIntentToChargeIds.get(piId) || []) invoiceChargeIds.add(cid);
+      }
     }
 
     console.log("[GET-DONATION-HISTORY] Invoice-linked charge IDs:", invoiceChargeIds.size);
@@ -246,10 +280,7 @@ serve(async (req) => {
 
       const invAny = invoice as any;
 
-      // Skip store/marketplace purchases
       const invMeta = (invAny.metadata || {}) as any;
-      if (invMeta?.order_id) continue;
-
       // Resolve subscription ID
       let subscriptionId: string | undefined = readId(invAny.subscription);
 
@@ -276,26 +307,46 @@ serve(async (req) => {
 
       const invPaymentIntentId = readId(invAny.payment_intent);
 
+      // Merge metadata from invoice + checkout sessions.
+      // Session metadata is what reliably identifies marketplace vs donation/sponsorship.
+      const sessionMetaFromSub = subscriptionId ? subscriptionToSessionMeta.get(subscriptionId) : undefined;
+      const sessionMetaFromPi = invPaymentIntentId ? paymentIntentToSessionMeta.get(invPaymentIntentId) : undefined;
+      const mergedMeta: Record<string, any> = {
+        ...(invMeta || {}),
+        ...(sessionMetaFromSub || {}),
+        ...(sessionMetaFromPi || {}),
+      };
+
+      // Skip marketplace/store purchases
+      if ((mergedMeta as any).order_id) continue;
+
       // Resolve designation
       let designation = "General Support";
       const sponsorBestieFromDb =
         (subscriptionId ? sponsorshipByStripeRefId.get(subscriptionId) : undefined) ||
         (invPaymentIntentId ? sponsorshipByStripeRefId.get(invPaymentIntentId) : undefined);
 
+      const sponsorBestieFromMeta = readSponsorBestieIdFromMeta(mergedMeta);
+
       if (sponsorBestieFromDb) {
-        designation = sponsorBestieNameMap[sponsorBestieFromDb] || "Sponsorship";
+        const name = sponsorBestieNameMap[sponsorBestieFromDb];
+        designation = name ? `Sponsorship: ${name}` : "Sponsorship";
+      } else if (isDonationMeta(mergedMeta)) {
+        designation = "General Support";
+      } else if (sponsorBestieFromMeta) {
+        const name = sponsorBestieNameMap[sponsorBestieFromMeta];
+        designation = name ? `Sponsorship: ${name}` : "Sponsorship";
       } else if (subscriptionId) {
+        // Fallback to subscription object metadata (can be missing for older sessions)
         const sub = subscriptionsById.get(subscriptionId);
         const subMeta: any = (sub as any)?.metadata || {};
-
         if (isDonationMeta(subMeta)) {
           designation = "General Support";
         } else {
-          const sponsorBestieId = readSponsorBestieIdFromMeta(subMeta);
-          if (sponsorBestieId && sponsorBestieNameMap[sponsorBestieId]) {
-            designation = sponsorBestieNameMap[sponsorBestieId];
-          } else if (sponsorBestieId) {
-            designation = "Sponsorship";
+          const subBestieId = readSponsorBestieIdFromMeta(subMeta);
+          if (subBestieId) {
+            const name = sponsorBestieNameMap[subBestieId];
+            designation = name ? `Sponsorship: ${name}` : "Sponsorship";
           }
         }
       }
