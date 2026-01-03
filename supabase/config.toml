@@ -210,3 +210,6 @@ verify_jwt = false
 
 [functions.lookup-guest-order]
 verify_jwt = false
+
+[functions.get-donation-history]
+verify_jwt = true

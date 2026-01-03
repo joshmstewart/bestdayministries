@@ -1,9 +1,31 @@
 # DONATION SYSTEM - COMPLETE DOCUMENTATION
 
-## OVERVIEW
-General donation system on the Support Us page (`/support`) allowing one-time and monthly recurring donations via Stripe, with automated webhook processing for status updates.
+## 🚨 CRITICAL PRINCIPLE: API-FIRST, NOT WEBHOOK-FIRST 🚨
+
+**STRIPE API IS THE SOURCE OF TRUTH. DATABASE IS A CACHE. WEBHOOKS ARE UNRELIABLE.**
+
+This system uses an **API-first approach**:
+1. **User-facing donation history**: ALWAYS fetches from Stripe API directly via `get-donation-history` edge function
+2. **Database records**: Are a cache/supplement, NOT the source of truth
+3. **Webhooks**: Are used for background processing (receipts, notifications) but NEVER relied upon for user-facing data
+4. **Reconciliation**: Runs hourly to catch any missed webhook events, but users never see stale data because we query Stripe directly
+
+**WHY:**
+- Webhooks can fail, be delayed, or be missed entirely
+- Database records can be corrupted or out of sync
+- Stripe API ALWAYS has the correct current state
+- Users should NEVER see incorrect donation history
+
+**IMPLEMENTATION:**
+- `/donation-history` page calls `get-donation-history` edge function
+- Edge function queries Stripe API for charges, subscriptions, and invoices
+- Returns data directly from Stripe, ensuring accuracy
+- No dependency on webhooks for user-facing features
 
 ---
+
+## OVERVIEW
+General donation system on the Support Us page (`/support`) allowing one-time and monthly recurring donations via Stripe.
 
 ## DATABASE SCHEMA
 
@@ -65,6 +87,40 @@ ALTER TABLE donations ADD CONSTRAINT donations_status_check
 
 ### Edge Functions
 
+**get-donation-history** ⭐ PRIMARY - API-FIRST
+- **Location:** `supabase/functions/get-donation-history/index.ts`
+- **Auth:** JWT required (authenticated users only)
+- **Purpose:** Fetch donation history DIRECTLY from Stripe API - the source of truth
+- **Flow:**
+  1. Authenticates user via JWT
+  2. Looks up Stripe customer by user email
+  3. Fetches ALL charges, subscriptions, and invoices from Stripe API
+  4. Returns combined donation history with receipt URLs
+- **Response:**
+  ```typescript
+  {
+    donations: Array<{
+      id: string;
+      amount: number;
+      frequency: "one-time" | "monthly";
+      status: string;
+      created_at: string;
+      designation: string;
+      receipt_url?: string;
+    }>;
+    subscriptions: Array<{
+      id: string;
+      amount: number;
+      designation: string;
+      status: string;
+      current_period_end: string;
+      cancel_at_period_end: boolean;
+    }>;
+    stripe_mode: "test" | "live";
+  }
+  ```
+- **WHY THIS EXISTS:** Users should ALWAYS see accurate data from Stripe, not potentially stale database records
+
 **create-donation-checkout**
 - **Location:** `supabase/functions/create-donation-checkout/index.ts`
 - **Auth:** No JWT required (public access)
@@ -77,14 +133,16 @@ ALTER TABLE donations ADD CONSTRAINT donations_status_check
   4. Creates Stripe Checkout session:
      - Mode: 'payment' (one-time) or 'subscription' (monthly)
      - Metadata: `{type: 'donation', frequency, amount, coverStripeFee, donation_type: 'general'}`
-  5. Inserts 'pending' donation record in database
+  5. Inserts 'pending' donation record in database (as cache)
   6. Returns `{url}` for redirect to Stripe Checkout
 - **Success URL:** `/support?donation=success`
 - **Cancel URL:** `/support`
 
-**stripe-webhook**
+**stripe-webhook** (Background Processing Only)
 - **Location:** `supabase/functions/stripe-webhook/index.ts`
 - **Auth:** Verified via Stripe webhook signature
+- **Purpose:** Background processing for receipts and notifications - NOT for user-facing data
+- **Important:** Webhooks are UNRELIABLE. Never rely on them for user-facing features.
 - **Dual Mode Support:** Handles both test and live webhooks
 
 **Handled Events:**
