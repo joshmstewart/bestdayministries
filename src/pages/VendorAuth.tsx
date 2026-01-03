@@ -38,6 +38,7 @@ const VendorAuth = () => {
   const [businessName, setBusinessName] = useState("");
   const [businessDescription, setBusinessDescription] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [otherCategoryText, setOtherCategoryText] = useState("");
   const [processingDays, setProcessingDays] = useState("3");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(true);
@@ -121,10 +122,24 @@ const VendorAuth = () => {
   }, [navigate, searchParams]);
 
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
+    setSelectedCategories(prev => {
+      if (prev.includes(category)) {
+        // If unchecking "Other", clear the text field
+        if (category === "Other") {
+          setOtherCategoryText("");
+        }
+        return prev.filter(c => c !== category);
+      }
+      return [...prev, category];
+    });
+  };
+
+  // Get final categories array including "Other" specification
+  const getFinalCategories = () => {
+    return selectedCategories.map(cat => 
+      cat === "Other" && otherCategoryText.trim() 
+        ? `Other: ${otherCategoryText.trim()}` 
+        : cat
     );
   };
 
@@ -160,7 +175,7 @@ const VendorAuth = () => {
           user_id: existingUser.id,
           business_name: businessName,
           description: businessDescription,
-          product_categories: selectedCategories,
+          product_categories: getFinalCategories(),
           estimated_processing_days: parseInt(processingDays),
           agreed_to_vendor_terms: true,
           agreed_to_terms_at: new Date().toISOString(),
@@ -273,7 +288,7 @@ const VendorAuth = () => {
           user_id: data.user.id,
           business_name: businessName,
           description: businessDescription,
-          product_categories: selectedCategories,
+          product_categories: getFinalCategories(),
           estimated_processing_days: parseInt(processingDays),
           agreed_to_vendor_terms: true,
           agreed_to_terms_at: new Date().toISOString(),
@@ -428,6 +443,14 @@ const VendorAuth = () => {
                     </div>
                   ))}
                 </div>
+                {selectedCategories.includes("Other") && (
+                  <Input
+                    placeholder="Please specify what type of products..."
+                    value={otherCategoryText}
+                    onChange={(e) => setOtherCategoryText(e.target.value)}
+                    className="mt-2"
+                  />
+                )}
               </div>
 
               <div className="space-y-2">
@@ -590,6 +613,14 @@ const VendorAuth = () => {
                         </div>
                       ))}
                     </div>
+                    {selectedCategories.includes("Other") && (
+                      <Input
+                        placeholder="Please specify what type of products..."
+                        value={otherCategoryText}
+                        onChange={(e) => setOtherCategoryText(e.target.value)}
+                        className="mt-2"
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-2">
