@@ -146,11 +146,20 @@ serve(async (req) => {
       }
     }
 
-    const invoicePaymentIntentIds = new Set<string>();
-    for (const inv of invoices.data) {
-      const pi = (inv as any)?.payment_intent;
-      if (typeof pi === "string") invoicePaymentIntentIds.add(pi);
-    }
+    // Only de-dupe against *recurring* invoices. Non-recurring invoices are skipped so their charges remain.
+    const recurringInvoiceIds = new Set<string>();
+    const recurringInvoicePaymentIntentIds = new Set<string>();
+
+    let recurringInvoicesIncluded = 0;
+    let nonRecurringInvoicesSkipped = 0;
+    let invoiceBackedChargesSkipped = 0;
+
+    const readId = (val: any): string | undefined => {
+      if (!val) return undefined;
+      if (typeof val === "string") return val;
+      if (typeof val === "object" && val !== null && typeof val.id === "string") return val.id;
+      return undefined;
+    };
 
     // Process invoices (recurring payments) - these are the actual payment records
     for (const invoice of invoices.data) {
@@ -168,13 +177,7 @@ serve(async (req) => {
       let frequency: "one-time" | "monthly" = "one-time";
 
       const invAny = invoice as any;
-
-      const readId = (val: any): string | undefined => {
-        if (!val) return undefined;
-        if (typeof val === "string") return val;
-        if (typeof val === "object" && val !== null && typeof val.id === "string") return val.id;
-        return undefined;
-      };
+      const billingReason = typeof invAny.billing_reason === "string" ? invAny.billing_reason : "";
 
       subscriptionId = readId(invAny.subscription);
 
@@ -194,6 +197,19 @@ serve(async (req) => {
           }
         }
       }
+
+      // Only include recurring invoices; non-recurring invoices are represented by the charge.
+      const isRecurring = Boolean(subscriptionId) || billingReason.startsWith("subscription");
+      if (!isRecurring) {
+        nonRecurringInvoicesSkipped++;
+        continue;
+      }
+
+      recurringInvoiceIds.add(invoice.id);
+      const invPaymentIntentId = typeof invAny.payment_intent === "string" ? invAny.payment_intent : undefined;
+      if (invPaymentIntentId) recurringInvoicePaymentIntentIds.add(invPaymentIntentId);
+
+      frequency = "monthly";
 
       // Determine designation/frequency using subscription metadata when possible
       if (subscriptionId) {
@@ -245,20 +261,31 @@ serve(async (req) => {
           invoice_id: invoice.id,
           receipt_url: invoice.hosted_invoice_url || undefined,
         });
+        recurringInvoicesIncluded++;
       } catch (e) {
         console.error("[GET-DONATION-HISTORY] Error processing invoice:", invoice.id, e);
       }
     }
 
-    // Process one-time charges that aren't part of subscriptions/invoices
+    // Process one-time charges (and non-recurring invoice payments)
     for (const charge of charges.data) {
       if (charge.status !== "succeeded") continue;
-      // If this charge is tied to an invoice, we already include the invoice record (prevents duplicates)
-      if ((charge as any).invoice) continue;
 
       const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : undefined;
-      // De-dupe: subscription payments often show up as both invoice + charge
-      if (paymentIntentId && invoicePaymentIntentIds.has(paymentIntentId)) continue;
+
+      // De-dupe: recurring invoice payments show up as both an invoice + a charge.
+      const chargeInvoiceId =
+        typeof (charge as any).invoice === "string"
+          ? (charge as any).invoice
+          : (charge as any).invoice?.id;
+
+      if (
+        (paymentIntentId && recurringInvoicePaymentIntentIds.has(paymentIntentId)) ||
+        (chargeInvoiceId && recurringInvoiceIds.has(chargeInvoiceId))
+      ) {
+        invoiceBackedChargesSkipped++;
+        continue;
+      }
 
       // Skip if no valid timestamp
       if (!charge.created || typeof charge.created !== 'number') {
@@ -329,7 +356,11 @@ serve(async (req) => {
         };
       });
 
-    console.log("[GET-DONATION-HISTORY] Returning", donations.length, "donations");
+    console.log("[GET-DONATION-HISTORY] Returning", donations.length, "donations", {
+      recurringInvoicesIncluded,
+      nonRecurringInvoicesSkipped,
+      invoiceBackedChargesSkipped,
+    });
 
     return new Response(JSON.stringify({ 
       donations, 
