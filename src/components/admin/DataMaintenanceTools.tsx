@@ -12,6 +12,7 @@ import { DuplicateTransactionsDetector } from "./DuplicateTransactionsDetector";
 import { DonationRecoveryManager } from "./DonationRecoveryManager";
 import { RecalculateAmountsTest } from "./RecalculateAmountsTest";
 import { DonationDebugger } from "./DonationDebugger";
+import { DonationHistoryDebugger } from "./DonationHistoryDebugger";
 import { StripeCustomerChecker } from "./StripeCustomerChecker";
 import { DeleteFakeDonations } from "./DeleteFakeDonations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -574,6 +575,7 @@ export const DataMaintenanceTools = () => {
         <TabsContent value="debug" className="space-y-6">
           <StripeCustomerChecker />
           <DonationDebugger />
+          <DonationHistoryDebugger />
         </TabsContent>
 
         {/* Cleanup Tab */}
