@@ -1,0 +1,199 @@
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface DonationRecord {
+  id: string;
+  amount: number;
+  frequency: "one-time" | "monthly";
+  status: string;
+  created_at: string;
+  designation: string;
+  stripe_customer_id: string;
+  stripe_subscription_id?: string;
+  stripe_payment_intent_id?: string;
+  invoice_id?: string;
+  receipt_url?: string;
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log("[GET-DONATION-HISTORY] Starting...");
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("No authorization header provided");
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    
+    const user = userData.user;
+    if (!user?.email) throw new Error("User not authenticated or email not available");
+    
+    console.log("[GET-DONATION-HISTORY] User:", user.email);
+
+    // Get Stripe mode from app settings
+    const { data: settingsData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "stripe_mode")
+      .maybeSingle();
+
+    const stripeMode = settingsData?.setting_value?.mode || "live";
+    const stripeKey = stripeMode === "live" 
+      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
+      : Deno.env.get("STRIPE_SECRET_KEY_TEST");
+
+    if (!stripeKey) throw new Error(`Stripe ${stripeMode} key not configured`);
+    
+    console.log("[GET-DONATION-HISTORY] Using Stripe mode:", stripeMode);
+
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    // Find customer by email
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    
+    if (customers.data.length === 0) {
+      console.log("[GET-DONATION-HISTORY] No Stripe customer found");
+      return new Response(JSON.stringify({ donations: [], subscriptions: [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const customerId = customers.data[0].id;
+    console.log("[GET-DONATION-HISTORY] Found customer:", customerId);
+
+    // Fetch all charges (one-time payments)
+    const charges = await stripe.charges.list({
+      customer: customerId,
+      limit: 100,
+    });
+
+    // Fetch all subscriptions (recurring)
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 100,
+    });
+
+    // Fetch all invoices (for recurring payment history)
+    const invoices = await stripe.invoices.list({
+      customer: customerId,
+      limit: 100,
+    });
+
+    console.log("[GET-DONATION-HISTORY] Found:", {
+      charges: charges.data.length,
+      subscriptions: subscriptions.data.length,
+      invoices: invoices.data.length,
+    });
+
+    const donations: DonationRecord[] = [];
+
+    // Process invoices (recurring payments) - these are the actual payment records
+    for (const invoice of invoices.data) {
+      if (invoice.status !== "paid") continue;
+      
+      // Get metadata from the subscription if available
+      let designation = "General Support";
+      let subscriptionId: string | undefined;
+      
+      if (typeof invoice.subscription === "string") {
+        subscriptionId = invoice.subscription;
+        const sub = subscriptions.data.find((s: Stripe.Subscription) => s.id === subscriptionId);
+        if (sub?.metadata?.bestie_name) {
+          designation = sub.metadata.bestie_name;
+        } else if (sub?.metadata?.type === "sponsorship") {
+          designation = "Sponsorship";
+        }
+      }
+
+      donations.push({
+        id: invoice.id,
+        amount: (invoice.amount_paid || 0) / 100,
+        frequency: subscriptionId ? "monthly" : "one-time",
+        status: "completed",
+        created_at: new Date(invoice.created * 1000).toISOString(),
+        designation,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        invoice_id: invoice.id,
+        receipt_url: invoice.hosted_invoice_url || undefined,
+      });
+    }
+
+    // Process one-time charges that aren't part of subscriptions/invoices
+    for (const charge of charges.data) {
+      if (charge.status !== "succeeded") continue;
+      if (charge.invoice) continue; // Already covered by invoices above
+      
+      let designation = "General Support";
+      if (charge.metadata?.bestie_name) {
+        designation = charge.metadata.bestie_name;
+      } else if (charge.metadata?.type === "sponsorship") {
+        designation = "Sponsorship";
+      }
+
+      donations.push({
+        id: charge.id,
+        amount: charge.amount / 100,
+        frequency: "one-time",
+        status: "completed",
+        created_at: new Date(charge.created * 1000).toISOString(),
+        designation,
+        stripe_customer_id: customerId,
+        stripe_payment_intent_id: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
+        receipt_url: charge.receipt_url || undefined,
+      });
+    }
+
+    // Sort by date descending
+    donations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Get active subscriptions summary
+    const activeSubscriptions = subscriptions.data
+      .filter((s: Stripe.Subscription) => s.status === "active")
+      .map((s: Stripe.Subscription) => ({
+        id: s.id,
+        amount: s.items.data[0]?.price?.unit_amount ? s.items.data[0].price.unit_amount / 100 : 0,
+        designation: s.metadata?.bestie_name || "General Support",
+        status: s.status,
+        current_period_end: new Date(s.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: s.cancel_at_period_end,
+      }));
+
+    console.log("[GET-DONATION-HISTORY] Returning", donations.length, "donations");
+
+    return new Response(JSON.stringify({ 
+      donations, 
+      subscriptions: activeSubscriptions,
+      stripe_mode: stripeMode,
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[GET-DONATION-HISTORY] ERROR:", errorMessage);
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
