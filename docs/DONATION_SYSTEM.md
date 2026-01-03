@@ -95,7 +95,7 @@ ALTER TABLE donations ADD CONSTRAINT donations_status_check
   1. Authenticates user via JWT
   2. Looks up Stripe customer by user email
   3. Fetches ALL charges, subscriptions, and invoices from Stripe API
-  4. De-dupes invoice-backed charges and classifies designation using Stripe metadata (subscription → invoice lines → payment intent fallback)
+  4. De-dupes invoice-backed charges and classifies designation using (a) DB sponsorship cache (fallback) → (b) Stripe subscription metadata → (c) invoice/payment-intent metadata
   5. Returns combined donation history with receipt URLs
 - **Response:**
   ```typescript
