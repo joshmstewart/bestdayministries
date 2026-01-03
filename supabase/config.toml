@@ -207,3 +207,6 @@ verify_jwt = false
 
 [functions.printify-webhook]
 verify_jwt = false
+
+[functions.lookup-guest-order]
+verify_jwt = false
