@@ -33,6 +33,7 @@ const VendorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [productRefreshTrigger, setProductRefreshTrigger] = useState(0);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalSales: 0,
@@ -401,9 +402,15 @@ const VendorDashboard = () => {
               <TabsContent value="products" className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-semibold">Your Products</h2>
-                  <ProductForm vendorId={selectedVendorId} onSuccess={() => loadStats(selectedVendorId)} />
+                  <ProductForm 
+                    vendorId={selectedVendorId} 
+                    onSuccess={() => {
+                      loadStats(selectedVendorId);
+                      setProductRefreshTrigger(prev => prev + 1);
+                    }} 
+                  />
                 </div>
-                <ProductList vendorId={selectedVendorId} />
+                <ProductList vendorId={selectedVendorId} refreshTrigger={productRefreshTrigger} />
               </TabsContent>
               
               <TabsContent value="orders">
