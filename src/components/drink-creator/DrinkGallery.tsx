@@ -202,27 +202,6 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
                   </div>
                 )}
 
-                {/* Overlay on hover */}
-                <div 
-                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => toggleLike(drink.id)}
-                    disabled={likingDrink === drink.id}
-                    className="text-white hover:text-primary hover:bg-white/20"
-                  >
-                    <Heart
-                      className={cn(
-                        "h-6 w-6 transition-all",
-                        isLiked && "fill-red-500 text-red-500"
-                      )}
-                    />
-                  </Button>
-                </div>
-
                 {/* Own badge */}
                 {isOwn && (
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-medium">
@@ -232,15 +211,24 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
               </div>
 
               {/* Info */}
-              <div className="p-3">
-                <h3 className="font-medium text-sm truncate">{drink.name}</h3>
-                {drink.creator_name && (
-                  <p className="text-xs text-muted-foreground truncate">by {drink.creator_name}</p>
-                )}
-                <div className="flex items-center gap-1 text-muted-foreground text-xs mt-1">
-                  <Heart className={cn("h-3 w-3", isLiked && "fill-red-500 text-red-500")} />
-                  <span>{drink.likes_count}</span>
+              <div className="p-3 flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-sm truncate">{drink.name}</h3>
+                  {drink.creator_name && (
+                    <p className="text-xs text-muted-foreground truncate">by {drink.creator_name}</p>
+                  )}
                 </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleLike(drink.id);
+                  }}
+                  disabled={likingDrink === drink.id}
+                  className="flex items-center gap-1 px-2 py-1 -mr-1 rounded-md hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  <Heart className={cn("h-4 w-4", isLiked && "fill-red-500 text-red-500")} />
+                  <span className="text-xs text-muted-foreground">{drink.likes_count}</span>
+                </button>
               </div>
             </CardContent>
           </Card>
