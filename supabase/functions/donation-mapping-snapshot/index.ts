@@ -378,13 +378,29 @@ serve(async (req) => {
 
     const stripeItemsUniq = uniqByKey(stripeItems, (it) => `${it.type}:${it.id}`);
 
+    // Normalize invoice IDs (Stripe sometimes returns shortened invoice references on PaymentIntents)
+    const invoiceIds = stripeItemsUniq.filter((i) => i.type === "invoice").map((i) => i.id);
+    const resolveInvoiceId = (invId?: string) => {
+      if (!invId) return undefined;
+      if (invoiceIds.includes(invId)) return invId;
+      if (!invId.startsWith("in_")) return invId;
+      const matches = invoiceIds.filter((full) => full.startsWith(invId));
+      return matches.length === 1 ? matches[0] : invId;
+    };
+
+    const stripeItemsResolved = stripeItemsUniq.map((it) => {
+      const resolved = resolveInvoiceId(it.invoice_id);
+      if (!resolved || resolved === it.invoice_id) return it;
+      return { ...it, invoice_id: resolved };
+    });
+
     console.log("[DONATION-MAPPING-SNAPSHOT] Stripe items", {
-      total: stripeItemsUniq.length,
-      charges: stripeItemsUniq.filter((i) => i.type === "charge").length,
-      invoices: stripeItemsUniq.filter((i) => i.type === "invoice").length,
-      sessions: stripeItemsUniq.filter((i) => i.type === "checkout_session").length,
-      paymentIntents: stripeItemsUniq.filter((i) => i.type === "payment_intent").length,
-      subscriptions: stripeItemsUniq.filter((i) => i.type === "subscription").length,
+      total: stripeItemsResolved.length,
+      charges: stripeItemsResolved.filter((i) => i.type === "charge").length,
+      invoices: stripeItemsResolved.filter((i) => i.type === "invoice").length,
+      sessions: stripeItemsResolved.filter((i) => i.type === "checkout_session").length,
+      paymentIntents: stripeItemsResolved.filter((i) => i.type === "payment_intent").length,
+      subscriptions: stripeItemsResolved.filter((i) => i.type === "subscription").length,
     });
 
     // ---- DB side (ALL records for that date + email + linked user IDs) ----
@@ -503,15 +519,63 @@ serve(async (req) => {
     const byOrderId: Record<string, string[]> = {};
     const byInvoiceId: Record<string, string[]> = {};
 
-    for (const it of stripeItemsUniq) {
+    // Suggested clusters = connected components across PI/invoice/order_id
+    const itemKeys = stripeItemsResolved.map((it) => `${it.type}:${it.id}`);
+    const parent = new Map<string, string>(itemKeys.map((k) => [k, k]));
+
+    const find = (x: string): string => {
+      let p = parent.get(x) || x;
+      while (p !== (parent.get(p) || p)) p = parent.get(p) || p;
+      // path compression
+      let cur = x;
+      while (cur !== p) {
+        const next = parent.get(cur) || cur;
+        parent.set(cur, p);
+        cur = next;
+      }
+      return p;
+    };
+
+    const unionAll = (arr: string[]) => {
+      if (arr.length < 2) return;
+      const root = find(arr[0]);
+      for (let i = 1; i < arr.length; i++) {
+        parent.set(find(arr[i]), root);
+      }
+    };
+
+    const tmpByPi: Record<string, string[]> = {};
+    const tmpByOrder: Record<string, string[]> = {};
+    const tmpByInv: Record<string, string[]> = {};
+
+    for (const it of stripeItemsResolved) {
       const key = `${it.type}:${it.id}`;
       const pi = it.payment_intent_id;
       const orderId = it.order_id;
       const invId = it.invoice_id || (it.type === "invoice" ? it.id : undefined);
-      if (pi) byPaymentIntentId[pi] = [...(byPaymentIntentId[pi] || []), key];
-      if (orderId) byOrderId[orderId] = [...(byOrderId[orderId] || []), key];
-      if (invId) byInvoiceId[invId] = [...(byInvoiceId[invId] || []), key];
+
+      if (pi) tmpByPi[pi] = [...(tmpByPi[pi] || []), key];
+      if (orderId) tmpByOrder[orderId] = [...(tmpByOrder[orderId] || []), key];
+      if (invId) tmpByInv[invId] = [...(tmpByInv[invId] || []), key];
     }
+
+    Object.assign(byPaymentIntentId, tmpByPi);
+    Object.assign(byOrderId, tmpByOrder);
+    Object.assign(byInvoiceId, tmpByInv);
+
+    for (const arr of Object.values(tmpByPi)) unionAll(arr);
+    for (const arr of Object.values(tmpByOrder)) unionAll(arr);
+    for (const arr of Object.values(tmpByInv)) unionAll(arr);
+
+    const clustersMap = new Map<string, string[]>();
+    for (const k of itemKeys) {
+      const r = find(k);
+      clustersMap.set(r, [...(clustersMap.get(r) || []), k]);
+    }
+
+    const clusters = Array.from(clustersMap.values())
+      .filter((c) => c.length > 1)
+      .map((c) => c.sort((a, b) => a.localeCompare(b)));
 
     return new Response(
       JSON.stringify({
@@ -521,7 +585,7 @@ serve(async (req) => {
         window: { start: startIso, end: endIso },
         customerIds: uniqByKey(customerIds, (x) => x),
         stripe: {
-          items: stripeItemsUniq,
+          items: stripeItemsResolved,
           debug: {
             emailInput,
             emailNormalized: email,
@@ -545,7 +609,7 @@ serve(async (req) => {
           donationHistoryCache: donationHistoryCache.data || [],
           activeSubscriptionsCache: activeSubscriptionsCache.data || [],
         },
-        links: { byPaymentIntentId, byOrderId, byInvoiceId },
+        links: { byPaymentIntentId, byInvoiceId, byOrderId, clusters },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
