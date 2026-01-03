@@ -12,6 +12,7 @@ export const PasswordChangeDialog = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [passwords, setPasswords] = useState({
+    currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
@@ -40,6 +41,22 @@ export const PasswordChangeDialog = () => {
     setLoading(true);
 
     try {
+      // First verify the current password by attempting to sign in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        throw new Error("Unable to verify user email");
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwords.currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error("Current password is incorrect");
+      }
+
+      // Now update to the new password
       const { error } = await supabase.auth.updateUser({
         password: passwords.newPassword,
       });
@@ -51,7 +68,7 @@ export const PasswordChangeDialog = () => {
         description: "Your password has been changed successfully.",
       });
 
-      setPasswords({ newPassword: "", confirmPassword: "" });
+      setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setOpen(false);
     } catch (error: any) {
       toast({
@@ -81,6 +98,16 @@ export const PasswordChangeDialog = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                required
+                value={passwords.currentPassword}
+                onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
               <Input
