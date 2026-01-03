@@ -366,25 +366,98 @@ Donation receipts use these values:
 
 ---
 
+## DONATION HISTORY DISPLAY SYSTEM
+
+The `/donation-history` page and `DonationHistory.tsx` component display user donations by querying the `donation_stripe_transactions` table, which is populated by the `sync-donation-history` edge function.
+
+### Key Tables
+
+| Table | Purpose |
+|-------|---------|
+| `donation_stripe_transactions` | Combined transactions synced from Stripe (invoices + charges) |
+| `active_subscriptions_cache` | Cache of active recurring subscriptions |
+| `donation_sync_status` | Tracks sync status per user |
+
+### Edge Function: sync-donation-history
+
+**Location:** `supabase/functions/sync-donation-history/index.ts`
+
+**Auth:** JWT Required (manual sync) or Cron header (scheduled sync)
+
+**Purpose:** Syncs all paid transactions from Stripe to `donation_stripe_transactions` table.
+
+**Processing Flow:**
+1. Gets Stripe mode from `app_settings`
+2. Collects emails from: `donations`, `sponsorships`, existing cache
+3. For each email:
+   - Finds Stripe customer
+   - Fetches invoices, charges, payment_intents from Stripe
+   - **Filters out marketplace purchases** (see below)
+   - Creates/updates records in `donation_stripe_transactions`
+   - Syncs active subscriptions to `active_subscriptions_cache`
+
+**Marketplace Filtering (CRITICAL):**
+
+Store purchases must be excluded from donation history. Two methods are used:
+
+1. **Metadata Check:** Skip if any metadata source contains `order_id`
+2. **Orders Table Check:** Skip if `stripe_payment_intent_id` exists in `orders` table
+
+```typescript
+// Load marketplace payment intents to exclude
+const { data: ordersData } = await supabaseAdmin
+  .from("orders")
+  .select("stripe_payment_intent_id")
+  .not("stripe_payment_intent_id", "is", null);
+
+const marketplacePaymentIntentIds = new Set<string>();
+ordersData?.forEach(o => {
+  if (o.stripe_payment_intent_id) {
+    marketplacePaymentIntentIds.add(o.stripe_payment_intent_id);
+  }
+});
+
+// During processing, skip if match:
+if (piId && marketplacePaymentIntentIds.has(piId)) {
+  continue; // Skip marketplace purchase
+}
+```
+
+### Frontend Component: DonationHistory.tsx
+
+**Location:** `src/components/sponsor/DonationHistory.tsx`
+
+**Features:**
+- Transaction history table (date, designation, amount, type, status, receipt)
+- Active subscriptions display with "Manage Subscriptions" button
+- Year-end summary cards with download/email options
+- Year filter dropdown
+- Stripe mode toggle (admin/owner only)
+
+**Data Query:**
+```typescript
+const { data: txData } = await supabase
+  .from("donation_stripe_transactions")
+  .select("*")
+  .eq("email", userEmail)
+  .eq("stripe_mode", stripeMode)
+  .order("transaction_date", { ascending: false });
+```
+
+### Designation Logic
+
+- **"General Support"** - General donations (`metadata.type = 'donation'`)
+- **"Sponsorship: {BestieName}"** - Bestie sponsorships (matched via `sponsorships.stripe_subscription_id`)
+
+### Full Documentation
+
+See `docs/DONATION_HISTORY_SYSTEM.md` for complete architecture details.
+
+---
+
 ## NOT IMPLEMENTED ❌
 
 ### Critical
-- Automated receipt generation (like sponsorships have) - **Partially implemented: audit logs viewable**
-- Donation history page for donors (currently only in admin)
-- Ability to update monthly donation amount
-- Stripe Customer Portal link for subscription management
-
-### Important
-- Year-end tax summaries for donors
-- Donation analytics dashboard
-- Email notifications for successful donations (welcome, thank you, receipts)
-
-### Nice to Have
-- Linking guest donations to accounts on signup
-- Multiple payment methods (beyond cards)
-- Recurring donation reminders
-- Honor/memorial donation dedications
-- Matching gift programs
 
 ---
 
@@ -530,4 +603,4 @@ The `reconcile-donations-from-stripe` edge function runs hourly to fix pending d
 
 ---
 
-**Last Updated:** 2025-12-11 - Added auto-cancellation of stale pending donations (2h threshold), multi-select status filter defaulting to cancelled deselected, polling-first reconciliation architecture
+**Last Updated:** 2026-01-03 - Added DONATION HISTORY DISPLAY SYSTEM section documenting sync-donation-history, marketplace filtering, and DonationHistory.tsx component
