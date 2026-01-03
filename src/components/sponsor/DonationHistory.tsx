@@ -160,7 +160,21 @@ export const DonationHistory = () => {
         .returns<Array<{ setting_key: string; setting_value: any }>>();
 
       const logoSetting = appSettings?.find((s) => s.setting_key === 'logo_url');
-      const logoUrl = logoSetting?.setting_value as string || '';
+      // The setting_value may be a JSON-encoded string with quotes, so we need to parse it
+      let logoUrl = '';
+      if (logoSetting?.setting_value) {
+        const rawValue = logoSetting.setting_value;
+        // If it's a string that starts with a quote, it's JSON-encoded
+        if (typeof rawValue === 'string' && rawValue.startsWith('"')) {
+          try {
+            logoUrl = JSON.parse(rawValue);
+          } catch {
+            logoUrl = rawValue;
+          }
+        } else {
+          logoUrl = rawValue as string;
+        }
+      }
 
       // Generate HTML receipt
       const html = `
