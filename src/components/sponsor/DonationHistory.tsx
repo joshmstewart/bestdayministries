@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText, Mail, Calendar, RefreshCw, ExternalLink, Loader2, Clock } from "lucide-react";
+import { Download, FileText, Mail, Calendar, RefreshCw, ExternalLink, Loader2, CloudDownload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -14,9 +14,10 @@ interface Transaction {
   amount: number;
   frequency: string;
   status: string;
-  transaction_date: string;
+  donation_date: string;
   stripe_subscription_id: string | null;
-  receipt_id: string | null;
+  receipt_url: string | null;
+  designation?: string;
 }
 
 interface ActiveSubscription {
@@ -36,6 +37,7 @@ export const DonationHistory = () => {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const [stripeMode, setStripeMode] = useState<StripeMode>("live");
   const [canChooseStripeMode, setCanChooseStripeMode] = useState(false);
@@ -46,6 +48,7 @@ export const DonationHistory = () => {
 
   const { toast } = useToast();
   const hasFetchedRef = useRef(false);
+  const hasSyncedRef = useRef(false);
 
   // Get current user
   useEffect(() => {
@@ -68,23 +71,57 @@ export const DonationHistory = () => {
     getUser();
   }, []);
 
+  // Sync donation history from Stripe
+  const syncFromStripe = useCallback(async () => {
+    setSyncing(true);
+    try {
+      console.log("[DonationHistory] Syncing from Stripe...");
+      const { data, error } = await supabase.functions.invoke('sync-donation-history', {
+        body: {}
+      });
+
+      if (error) throw error;
+
+      console.log("[DonationHistory] Sync result:", data);
+      return data?.synced || 0;
+    } catch (error: any) {
+      console.error("[DonationHistory] Sync error:", error);
+      // Don't show toast for sync errors - just log them
+      return 0;
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
+
   // Load transactions from database
-  const loadTransactions = useCallback(async (isRefresh = false) => {
+  const loadTransactions = useCallback(async (isRefresh = false, skipAutoSync = false) => {
     if (!userId || !userEmail) return;
 
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      // Get transactions from the combined table
+      // Get transactions from the cache table (populated by sync)
       const { data: txData, error: txError } = await supabase
-        .from("donation_stripe_transactions")
-        .select("id, amount, frequency, status, transaction_date, stripe_subscription_id, receipt_id")
+        .from("donation_history_cache")
+        .select("id, amount, frequency, status, donation_date, stripe_subscription_id, receipt_url")
         .eq("stripe_mode", stripeMode)
-        .or(`donor_id.eq.${userId},email.ilike.${userEmail}`)
-        .order("transaction_date", { ascending: false });
+        .or(`user_id.eq.${userId},user_email.ilike.${userEmail}`)
+        .order("donation_date", { ascending: false });
 
       if (txError) throw txError;
+
+      // If no transactions and haven't synced yet, auto-sync from Stripe
+      if ((txData || []).length === 0 && !skipAutoSync && !hasSyncedRef.current) {
+        hasSyncedRef.current = true;
+        console.log("[DonationHistory] No transactions found, auto-syncing from Stripe...");
+        const synced = await syncFromStripe();
+        if (synced > 0) {
+          // Reload after sync
+          await loadTransactions(false, true);
+          return;
+        }
+      }
 
       setTransactions(txData || []);
 
@@ -120,7 +157,20 @@ export const DonationHistory = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId, userEmail, stripeMode, toast]);
+  }, [userId, userEmail, stripeMode, toast, syncFromStripe]);
+
+  // Manual sync button handler
+  const handleManualSync = async () => {
+    const synced = await syncFromStripe();
+    if (synced > 0) {
+      await loadTransactions(true, true);
+    } else {
+      toast({
+        title: "Sync Complete",
+        description: "No new transactions found",
+      });
+    }
+  };
 
   const refresh = () => loadTransactions(true);
 
@@ -218,14 +268,14 @@ export const DonationHistory = () => {
   // Filter by year
   const filteredTransactions = selectedYear === "all"
     ? transactions 
-    : transactions.filter(t => new Date(t.transaction_date).getFullYear().toString() === selectedYear);
+    : transactions.filter(t => new Date(t.donation_date).getFullYear().toString() === selectedYear);
 
   const availableYears = Array.from(
-    new Set(transactions.map(t => new Date(t.transaction_date).getFullYear()))
+    new Set(transactions.map(t => new Date(t.donation_date).getFullYear()))
   ).sort((a, b) => b - a);
 
   const yearlyTotals = transactions.reduce((acc, tx) => {
-    const year = new Date(tx.transaction_date).getFullYear();
+    const year = new Date(tx.donation_date).getFullYear();
     if (!acc[year]) {
       acc[year] = { count: 0, total: 0 };
     }
@@ -234,20 +284,25 @@ export const DonationHistory = () => {
     return acc;
   }, {} as Record<number, { count: number; total: number }>);
 
-  if (loading) {
+  if (loading || syncing) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Loader2 className="w-5 h-5 animate-spin" />
-            Loading donation history...
+            {syncing ? "Syncing donation history from Stripe..." : "Loading donation history..."}
           </CardTitle>
+          {syncing && (
+            <CardDescription>
+              This may take a moment the first time.
+            </CardDescription>
+          )}
         </CardHeader>
       </Card>
     );
   }
 
-  if (transactions.length === 0 && !refreshing) {
+  if (transactions.length === 0 && !refreshing && !syncing) {
     return (
       <Card>
         <CardHeader>
@@ -255,22 +310,37 @@ export const DonationHistory = () => {
             <div>
               <CardTitle>Donation History</CardTitle>
               <CardDescription>
-                No donations found. Your donations will appear here after they're processed.
+                No donations found. Click "Sync from Stripe" to load your donation history.
               </CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refresh}
-              disabled={refreshing}
-            >
-              {refreshing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleManualSync}
+                disabled={syncing}
+              >
+                {syncing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CloudDownload className="w-4 h-4 mr-2" />
+                )}
+                Sync from Stripe
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refresh}
+                disabled={refreshing}
+              >
+                {refreshing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -300,6 +370,14 @@ export const DonationHistory = () => {
             </Select>
           )}
 
+          <Button variant="outline" onClick={handleManualSync} disabled={syncing}>
+            {syncing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <CloudDownload className="h-4 w-4 mr-2" />
+            )}
+            Sync
+          </Button>
           <Button variant="outline" onClick={refresh} disabled={refreshing}>
             {refreshing ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -447,7 +525,7 @@ export const DonationHistory = () => {
                 {filteredTransactions.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell>
-                      {format(new Date(tx.transaction_date), "MMM d, yyyy")}
+                      {format(new Date(tx.donation_date), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell className="font-semibold">
                       {new Intl.NumberFormat('en-US', {
@@ -466,11 +544,13 @@ export const DonationHistory = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {tx.receipt_id ? (
-                        <Badge variant="outline" className="text-green-600">
-                          <FileText className="w-3 h-3 mr-1" />
-                          Available
-                        </Badge>
+                      {tx.receipt_url ? (
+                        <a href={tx.receipt_url} target="_blank" rel="noopener noreferrer">
+                          <Badge variant="outline" className="text-green-600 cursor-pointer hover:bg-green-50">
+                            <FileText className="w-3 h-3 mr-1" />
+                            View
+                          </Badge>
+                        </a>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
