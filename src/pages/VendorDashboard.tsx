@@ -17,6 +17,7 @@ import { VendorEarnings } from "@/components/vendor/VendorEarnings";
 import { VendorProfileSettings } from "@/components/vendor/VendorProfileSettings";
 import { VendorBestieLinkRequest } from "@/components/vendor/VendorBestieLinkRequest";
 import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
+import { VendorTeamManager } from "@/components/vendor/VendorTeamManager";
 
 interface Vendor {
   id: string;
@@ -424,6 +425,11 @@ const VendorDashboard = () => {
                 <div>
                   <h2 className="text-2xl font-semibold mb-6">Store Settings</h2>
                   <VendorProfileSettings vendorId={selectedVendorId} />
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Team Members</h3>
+                  <VendorTeamManager vendorId={selectedVendorId} />
                 </div>
                 
                 <div>

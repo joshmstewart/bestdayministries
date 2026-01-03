@@ -5305,6 +5305,57 @@ export type Database = {
           },
         ]
       }
+      vendor_team_members: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          invited_at: string | null
+          invited_by: string | null
+          role: Database["public"]["Enums"]["vendor_team_role"]
+          updated_at: string
+          user_id: string
+          vendor_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["vendor_team_role"]
+          updated_at?: string
+          user_id: string
+          vendor_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["vendor_team_role"]
+          updated_at?: string
+          user_id?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_team_members_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_earnings"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "vendor_team_members_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           agreed_to_terms_at: string | null
@@ -5859,6 +5910,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_user_vendor_id: { Args: { _user_id: string }; Returns: string }
       get_users_needing_digest: {
         Args: { _frequency: string }
         Returns: {
@@ -5877,11 +5929,23 @@ export type Database = {
         Returns: boolean
       }
       is_owner: { Args: { _user_id: string }; Returns: boolean }
+      is_vendor_admin: {
+        Args: { _user_id: string; _vendor_id: string }
+        Returns: boolean
+      }
       is_vendor_for_order: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
       }
       is_vendor_for_order_item: {
+        Args: { _user_id: string; _vendor_id: string }
+        Returns: boolean
+      }
+      is_vendor_owner: {
+        Args: { _user_id: string; _vendor_id: string }
+        Returns: boolean
+      }
+      is_vendor_team_member: {
         Args: { _user_id: string; _vendor_id: string }
         Returns: boolean
       }
@@ -5935,6 +5999,7 @@ export type Database = {
         | "owner"
         | "vendor"
       vendor_status: "pending" | "approved" | "rejected" | "suspended"
+      vendor_team_role: "owner" | "admin" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6114,6 +6179,7 @@ export const Constants = {
         "vendor",
       ],
       vendor_status: ["pending", "approved", "rejected", "suspended"],
+      vendor_team_role: ["owner", "admin", "staff"],
     },
   },
 } as const

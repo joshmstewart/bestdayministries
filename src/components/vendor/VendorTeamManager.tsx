@@ -1,0 +1,390 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { UserPlus, Trash2, Crown, Shield, User, Mail, Clock } from "lucide-react";
+import { format } from "date-fns";
+
+interface VendorTeamManagerProps {
+  vendorId: string;
+}
+
+type TeamRole = "owner" | "admin" | "staff";
+
+interface TeamMember {
+  id: string;
+  vendor_id: string;
+  user_id: string;
+  role: TeamRole;
+  invited_by: string | null;
+  invited_at: string;
+  accepted_at: string | null;
+  created_at: string;
+  profile?: {
+    display_name: string;
+    email: string;
+    avatar_number: number | null;
+  };
+}
+
+export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
+  const queryClient = useQueryClient();
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<TeamRole>("staff");
+
+  // Fetch current user
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
+  // Fetch team members
+  const { data: teamMembers, isLoading } = useQuery({
+    queryKey: ["vendor-team-members", vendorId],
+    queryFn: async () => {
+      // First get team members
+      const { data: members, error } = await supabase
+        .from("vendor_team_members")
+        .select("*")
+        .eq("vendor_id", vendorId)
+        .order("role", { ascending: true });
+
+      if (error) throw error;
+      
+      // Then fetch profiles for each member
+      const userIds = members.map(m => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, email, avatar_number")
+        .in("id", userIds);
+      
+      // Combine the data
+      return members.map(member => ({
+        ...member,
+        profile: profiles?.find(p => p.id === member.user_id),
+      })) as TeamMember[];
+    },
+  });
+
+  // Check if current user is owner
+  const isOwner = teamMembers?.some(
+    m => m.user_id === currentUser?.id && m.role === "owner"
+  );
+
+  // Invite team member mutation
+  const inviteMutation = useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: TeamRole }) => {
+      // Find user by email
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error("User not found. They must have an account first.");
+      }
+
+      // Check if already a team member
+      const { data: existing } = await supabase
+        .from("vendor_team_members")
+        .select("id")
+        .eq("vendor_id", vendorId)
+        .eq("user_id", profile.id)
+        .single();
+
+      if (existing) {
+        throw new Error("User is already a team member.");
+      }
+
+      // Add team member
+      const { error } = await supabase
+        .from("vendor_team_members")
+        .insert({
+          vendor_id: vendorId,
+          user_id: profile.id,
+          role,
+          invited_by: currentUser?.id,
+          accepted_at: new Date().toISOString(), // Auto-accept for now
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Team member added successfully");
+      queryClient.invalidateQueries({ queryKey: ["vendor-team-members", vendorId] });
+      setInviteDialogOpen(false);
+      setInviteEmail("");
+      setInviteRole("staff");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add team member");
+    },
+  });
+
+  // Update role mutation
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ memberId, role }: { memberId: string; role: TeamRole }) => {
+      const { error } = await supabase
+        .from("vendor_team_members")
+        .update({ role })
+        .eq("id", memberId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Role updated");
+      queryClient.invalidateQueries({ queryKey: ["vendor-team-members", vendorId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update role");
+    },
+  });
+
+  // Remove team member mutation
+  const removeMutation = useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await supabase
+        .from("vendor_team_members")
+        .delete()
+        .eq("id", memberId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Team member removed");
+      queryClient.invalidateQueries({ queryKey: ["vendor-team-members", vendorId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to remove team member");
+    },
+  });
+
+  const getRoleIcon = (role: TeamRole) => {
+    switch (role) {
+      case "owner": return <Crown className="h-4 w-4 text-yellow-500" />;
+      case "admin": return <Shield className="h-4 w-4 text-blue-500" />;
+      case "staff": return <User className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getRoleBadgeVariant = (role: TeamRole) => {
+    switch (role) {
+      case "owner": return "default";
+      case "admin": return "secondary";
+      case "staff": return "outline";
+    }
+  };
+
+  const getRoleDescription = (role: TeamRole) => {
+    switch (role) {
+      case "owner": return "Full access, can manage team";
+      case "admin": return "Can manage products and orders";
+      case "staff": return "Can view orders and update tracking";
+    }
+  };
+
+  if (isLoading) {
+    return <div className="text-muted-foreground">Loading team...</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-lg">Team Members</CardTitle>
+          <CardDescription>
+            Manage who has access to your vendor account
+          </CardDescription>
+        </div>
+        {isOwner && (
+          <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Member
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Team Member</DialogTitle>
+                <DialogDescription>
+                  Add someone to help manage your vendor account
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="member@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The user must already have an account
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as TeamRole)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-blue-500" />
+                          <div>
+                            <div>Admin</div>
+                            <div className="text-xs text-muted-foreground">
+                              Can manage products and orders
+                            </div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="staff">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <div>Staff</div>
+                            <div className="text-xs text-muted-foreground">
+                              Can view orders and update tracking
+                            </div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
+                  disabled={!inviteEmail || inviteMutation.isPending}
+                >
+                  {inviteMutation.isPending ? "Adding..." : "Add Team Member"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {teamMembers?.map((member) => (
+            <div
+              key={member.id}
+              className="flex items-center justify-between p-3 rounded-lg border bg-card"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  {getRoleIcon(member.role)}
+                </div>
+                <div>
+                  <div className="font-medium flex items-center gap-2">
+                    {member.profile?.display_name || "Unknown User"}
+                    <Badge variant={getRoleBadgeVariant(member.role)} className="text-xs">
+                      {member.role}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    {member.profile?.email || "No email"}
+                  </div>
+                  {member.accepted_at && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3" />
+                      Joined {format(new Date(member.accepted_at), "MMM d, yyyy")}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {isOwner && member.user_id !== currentUser?.id && (
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={member.role}
+                    onValueChange={(value) => 
+                      updateRoleMutation.mutate({ memberId: member.id, role: value as TeamRole })
+                    }
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="staff">Staff</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (confirm("Remove this team member?")) {
+                        removeMutation.mutate(member.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              
+              {member.user_id === currentUser?.id && member.role !== "owner" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => {
+                    if (confirm("Leave this vendor team?")) {
+                      removeMutation.mutate(member.id);
+                    }
+                  }}
+                >
+                  Leave Team
+                </Button>
+              )}
+            </div>
+          ))}
+          
+          {(!teamMembers || teamMembers.length === 0) && (
+            <div className="text-center py-6 text-muted-foreground">
+              No team members yet
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-4 pt-4 border-t">
+          <p className="text-sm font-medium mb-2">Role Permissions</p>
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Crown className="h-3 w-3 text-yellow-500" />
+              <span><strong>Owner:</strong> {getRoleDescription("owner")}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-3 w-3 text-blue-500" />
+              <span><strong>Admin:</strong> {getRoleDescription("admin")}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <User className="h-3 w-3" />
+              <span><strong>Staff:</strong> {getRoleDescription("staff")}</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
