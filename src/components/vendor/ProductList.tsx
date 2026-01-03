@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,16 +20,22 @@ import {
 
 interface ProductListProps {
   vendorId: string;
+  refreshTrigger?: number;
 }
 
-export const ProductList = ({ vendorId }: ProductListProps) => {
+export interface ProductListRef {
+  refresh: () => void;
+}
+
+export const ProductList = forwardRef<ProductListRef, ProductListProps>(
+  ({ vendorId, refreshTrigger }, ref) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadProducts();
-  }, [vendorId]);
+  }, [vendorId, refreshTrigger]);
 
   const loadProducts = async () => {
     try {
@@ -51,6 +57,11 @@ export const ProductList = ({ vendorId }: ProductListProps) => {
       setLoading(false);
     }
   };
+
+  // Expose refresh method via ref
+  useImperativeHandle(ref, () => ({
+    refresh: loadProducts
+  }));
 
   const toggleProductStatus = async (productId: string, currentStatus: boolean) => {
     try {
@@ -214,4 +225,4 @@ export const ProductList = ({ vendorId }: ProductListProps) => {
       ))}
     </div>
   );
-};
+});
