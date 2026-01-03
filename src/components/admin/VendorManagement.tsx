@@ -181,6 +181,7 @@ export const VendorManagement = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [productVendorFilter, setProductVendorFilter] = useState<string>("all");
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   
@@ -309,7 +310,9 @@ export const VendorManagement = () => {
         images,
         default_image_index,
         default_image_url,
+        vendor_id,
         vendor:vendors (
+          id,
           business_name
         )
       `)
@@ -318,6 +321,20 @@ export const VendorManagement = () => {
     if (error) throw error;
     setProducts(data || []);
   };
+
+  // Get unique vendors from products for the filter dropdown
+  const productVendors = Array.from(
+    new Map(
+      products
+        .filter(p => p.vendor)
+        .map(p => [p.vendor!.business_name, { id: (p as any).vendor_id, name: p.vendor!.business_name }])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  // Filter products by selected vendor
+  const filteredProducts = productVendorFilter === "all" 
+    ? products 
+    : products.filter(p => (p as any).vendor_id === productVendorFilter);
 
   const loadOrders = async () => {
     // Fetch orders first
@@ -826,6 +843,38 @@ export const VendorManagement = () => {
             </TabsContent>
 
             <TabsContent value="products" className="space-y-4">
+              {/* Vendor Filter */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="vendor-filter" className="text-sm text-muted-foreground whitespace-nowrap">
+                  Filter by Vendor:
+                </Label>
+                <Select value={productVendorFilter} onValueChange={setProductVendorFilter}>
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="All Vendors" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Vendors ({products.length} products)</SelectItem>
+                    {productVendors.map((vendor) => {
+                      const count = products.filter(p => (p as any).vendor_id === vendor.id).length;
+                      return (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                          {vendor.name} ({count})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {productVendorFilter !== "all" && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setProductVendorFilter("all")}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -838,7 +887,7 @@ export const VendorManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => {
+                  {filteredProducts.map((product) => {
                     const defaultIndex = product.default_image_index || 0;
                     const imageUrl = product.default_image_url || product.images?.[defaultIndex] || product.images?.[0];
                     
