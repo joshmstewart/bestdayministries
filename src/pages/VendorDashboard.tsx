@@ -339,14 +339,16 @@ const VendorDashboard = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button 
-                    variant="outline" 
                     onClick={() => navigate(`/vendors/${selectedVendorId}`)}
                   >
                     <Store className="mr-2 h-4 w-4" />
-                    View Your Store
+                    View My Store
                   </Button>
-                  <Button onClick={() => navigate('/joyhousestore')}>
-                    View Store
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/joyhousestore')}
+                  >
+                    View Full Store
                   </Button>
                 </div>
               </div>
