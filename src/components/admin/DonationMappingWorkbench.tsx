@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { CheckSquare, Copy, Loader2, RefreshCw } from "lucide-react";
+
+const getTzOffsetString = (tz: string) => {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "longOffset" }).formatToParts(
+    new Date()
+  );
+  const offsetPart = parts.find((p) => p.type === "timeZoneName");
+  return offsetPart?.value ?? "UTC";
+};
 
 type StripeMode = "test" | "live";
 
@@ -68,10 +76,20 @@ type Group = {
 
 const itemKey = (it: Pick<SnapshotItem, "type" | "id">) => `${it.type}:${it.id}`;
 
+const TIMEZONES = [
+  "America/Phoenix",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "UTC",
+];
+
 export const DonationMappingWorkbench = () => {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [timezone, setTimezone] = useState<string>("America/Phoenix");
   const [stripeMode, setStripeMode] = useState<StripeMode>("live");
   const [loading, setLoading] = useState(false);
   const [snapshot, setSnapshot] = useState<SnapshotResponse | null>(null);
@@ -149,7 +167,7 @@ export const DonationMappingWorkbench = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("donation-mapping-snapshot", {
-        body: { email: email.trim(), date, stripe_mode: stripeMode },
+        body: { email: email.trim(), date, stripe_mode: stripeMode, timezone },
       });
       if (error) throw error;
       setSnapshot(data);
@@ -176,8 +194,7 @@ export const DonationMappingWorkbench = () => {
         <CardHeader>
           <CardTitle>Donation Mapping Workbench (by date)</CardTitle>
           <CardDescription>
-            Enter an email + date and this will load ALL Stripe + database records for that UTC day, so you can group
-            related events and copy an export.
+            Enter an email + date and this will load ALL Stripe + database records for that day in the chosen timezone.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -188,8 +205,24 @@ export const DonationMappingWorkbench = () => {
             </div>
 
             <div className="w-[170px]">
-              <Label>Date (UTC)</Label>
+              <Label>Date</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+
+            <div className="w-[180px]">
+              <Label>Timezone ({getTzOffsetString(timezone)})</Label>
+              <Select value={timezone} onValueChange={(v) => setTimezone(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz} value={tz}>
+                      {tz}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="w-[120px]">

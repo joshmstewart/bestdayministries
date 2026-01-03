@@ -69,14 +69,25 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const email = (body.email || "").toString().trim();
-    const date = (body.date || "").toString().trim(); // YYYY-MM-DD (UTC)
+    const date = (body.date || "").toString().trim(); // YYYY-MM-DD
     const stripeMode = body.stripe_mode === "live" ? "live" : "test";
+    const timezone = (body.timezone || "America/Phoenix").toString().trim();
 
     if (!email) throw new Error("email is required");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("date must be YYYY-MM-DD");
 
-    const startIso = `${date}T00:00:00.000Z`;
-    const endIso = new Date(new Date(startIso).getTime() + 24 * 60 * 60 * 1000).toISOString();
+    // Convert date to ISO range at 00:00-24:00 in chosen timezone
+    const fakeStart = new Date(`${date}T00:00:00`);
+    const formatInTz = (d: Date, tz: string) => {
+      return new Date(d.toLocaleString("en-US", { timeZone: tz }));
+    };
+    // Get offset in milliseconds between UTC and chosen timezone for that day
+    const tzStartLocal = new Date(fakeStart.toLocaleString("en-US", { timeZone: timezone }));
+    const tzStartUtc = new Date(fakeStart.toLocaleString("en-US", { timeZone: "UTC" }));
+    const offsetMs = tzStartUtc.getTime() - tzStartLocal.getTime();
+
+    const startIso = new Date(fakeStart.getTime() + offsetMs).toISOString();
+    const endIso = new Date(fakeStart.getTime() + offsetMs + 24 * 60 * 60 * 1000).toISOString();
 
     const stripeKey = stripeMode === "live" ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") : Deno.env.get("STRIPE_SECRET_KEY_TEST");
     if (!stripeKey) throw new Error(`Stripe ${stripeMode} key not configured`);
