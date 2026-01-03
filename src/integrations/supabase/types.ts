@@ -3812,12 +3812,14 @@ export type Database = {
           default_image_url: string | null
           description: string | null
           id: string
+          image_option_mapping: Json | null
           images: string[] | null
           inventory_count: number
           is_active: boolean
           is_printify: boolean
           is_printify_product: boolean | null
           name: string
+          options: Json | null
           price: number
           printify_blueprint_id: number | null
           printify_original_description: string | null
@@ -3838,12 +3840,14 @@ export type Database = {
           default_image_url?: string | null
           description?: string | null
           id?: string
+          image_option_mapping?: Json | null
           images?: string[] | null
           inventory_count?: number
           is_active?: boolean
           is_printify?: boolean
           is_printify_product?: boolean | null
           name: string
+          options?: Json | null
           price: number
           printify_blueprint_id?: number | null
           printify_original_description?: string | null
@@ -3864,12 +3868,14 @@ export type Database = {
           default_image_url?: string | null
           description?: string | null
           id?: string
+          image_option_mapping?: Json | null
           images?: string[] | null
           inventory_count?: number
           is_active?: boolean
           is_printify?: boolean
           is_printify_product?: boolean | null
           name?: string
+          options?: Json | null
           price?: number
           printify_blueprint_id?: number | null
           printify_original_description?: string | null
