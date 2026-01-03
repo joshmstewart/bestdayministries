@@ -116,8 +116,17 @@ interface Vendor {
   id: string;
   user_id: string;
   business_name: string;
+  description: string | null;
   status: "approved" | "pending" | "rejected" | "suspended";
   created_at: string;
+  product_categories: string[] | null;
+  estimated_processing_days: number | null;
+  agreed_to_vendor_terms: boolean;
+  agreed_to_terms_at: string | null;
+  application_notes: string | null;
+  rejection_reason: string | null;
+  contact_email?: string;
+  social_links?: unknown;
 }
 
 interface Product {
@@ -187,6 +196,10 @@ export const VendorManagement = () => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<{ image_url: string; caption?: string }[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  
+  // Application review state
+  const [reviewVendor, setReviewVendor] = useState<Vendor | null>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -662,7 +675,7 @@ export const VendorManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Business Name</TableHead>
-                    <TableHead>User ID</TableHead>
+                    <TableHead>Categories</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -672,10 +685,34 @@ export const VendorManagement = () => {
                   {vendors.map((vendor) => (
                     <TableRow key={vendor.id}>
                       <TableCell className="font-medium">{vendor.business_name}</TableCell>
-                      <TableCell>{vendor.user_id.slice(0, 8)}...</TableCell>
+                      <TableCell className="max-w-[200px]">
+                        {vendor.product_categories?.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {vendor.product_categories.slice(0, 2).map((cat, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">{cat}</Badge>
+                            ))}
+                            {vendor.product_categories.length > 2 && (
+                              <Badge variant="outline" className="text-xs">+{vendor.product_categories.length - 2}</Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Not specified</span>
+                        )}
+                      </TableCell>
                       <TableCell>{getStatusBadge(vendor.status)}</TableCell>
                       <TableCell>{new Date(vendor.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setReviewVendor(vendor);
+                            setReviewDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Review
+                        </Button>
                         {vendor.status === "pending" && (
                           <>
                             <Button
@@ -1035,6 +1072,160 @@ export const VendorManagement = () => {
         onPrevious={() => setLightboxIndex(prev => (prev > 0 ? prev - 1 : lightboxImages.length - 1))}
         onNext={() => setLightboxIndex(prev => (prev < lightboxImages.length - 1 ? prev + 1 : 0))}
       />
+
+      {/* Vendor Application Review Dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Store className="w-5 h-5" />
+              Vendor Application Review
+            </DialogTitle>
+            <DialogDescription>
+              Review the vendor application details before approving or rejecting.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {reviewVendor && (
+            <div className="space-y-6 py-4">
+              {/* Business Info */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Store className="w-4 h-4" />
+                  Business Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                  <div>
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wide">Business Name</Label>
+                    <p className="font-medium">{reviewVendor.business_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wide">Status</Label>
+                    <p>{getStatusBadge(reviewVendor.status)}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wide">Description</Label>
+                    <p className="whitespace-pre-wrap">{reviewVendor.description || <span className="text-muted-foreground italic">No description provided</span>}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product Categories */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  Product Categories
+                </h3>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  {reviewVendor.product_categories?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {reviewVendor.product_categories.map((cat, i) => (
+                        <Badge key={i} variant="secondary">{cat}</Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground italic">No categories specified</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Processing & Terms */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Processing & Terms
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                  <div>
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wide">Est. Processing Time</Label>
+                    <p className="font-medium">
+                      {reviewVendor.estimated_processing_days 
+                        ? `${reviewVendor.estimated_processing_days} business days` 
+                        : <span className="text-muted-foreground italic">Not specified</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs uppercase tracking-wide">Terms Accepted</Label>
+                    <p className="flex items-center gap-1">
+                      {reviewVendor.agreed_to_vendor_terms ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="text-green-600 font-medium">Yes</span>
+                          {reviewVendor.agreed_to_terms_at && (
+                            <span className="text-muted-foreground text-xs ml-1">
+                              ({new Date(reviewVendor.agreed_to_terms_at).toLocaleDateString()})
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4 text-red-500" />
+                          <span className="text-red-600 font-medium">No</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Application Notes */}
+              {reviewVendor.application_notes && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Application Notes</h3>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <p className="whitespace-pre-wrap">{reviewVendor.application_notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Rejection Reason (if previously rejected) */}
+              {reviewVendor.rejection_reason && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg text-red-600">Previous Rejection Reason</h3>
+                  <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 p-4 rounded-lg">
+                    <p className="text-red-700 dark:text-red-400">{reviewVendor.rejection_reason}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Meta Info */}
+              <div className="text-xs text-muted-foreground border-t pt-4">
+                <div className="flex flex-wrap gap-4">
+                  <span>User ID: {reviewVendor.user_id.slice(0, 8)}...</span>
+                  <span>Applied: {new Date(reviewVendor.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              {reviewVendor.status === "pending" && (
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      updateVendorStatus(reviewVendor.id, "approved");
+                      setReviewDialogOpen(false);
+                    }}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Approve Vendor
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      updateVendorStatus(reviewVendor.id, "rejected");
+                      setReviewDialogOpen(false);
+                    }}
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Reject Vendor
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
