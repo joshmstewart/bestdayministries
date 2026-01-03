@@ -26,9 +26,9 @@ interface DrinkCreatorWizardProps {
 
 const STEPS = [
   { key: "base", title: "Choose Your Base", description: "Start with a delicious foundation" },
+  { key: "extra", title: "Customize Your Base", description: "Add milk alternatives, ice preferences & more" },
   { key: "flavor", title: "Add Flavors", description: "Make it uniquely yours" },
   { key: "topping", title: "Pick Toppings", description: "The finishing touches" },
-  { key: "extra", title: "Any Extras?", description: "Customize even more" },
   { key: "vibe", title: "Set the Vibe", description: "Optional: choose an atmosphere" },
   { key: "generate", title: "Create Your Drink!", description: "Watch the magic happen" },
 ];
