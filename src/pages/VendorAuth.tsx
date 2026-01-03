@@ -671,7 +671,7 @@ const VendorAuth = () => {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => navigate("/marketplace")}
+                onClick={() => navigate("/joyhousestore")}
               >
                 <ShoppingBag className="w-4 h-4 mr-2" />
                 Joy House Store
