@@ -18,6 +18,7 @@ import { VendorProfileSettings } from "@/components/vendor/VendorProfileSettings
 import { VendorBestieLinkRequest } from "@/components/vendor/VendorBestieLinkRequest";
 import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
 import { VendorTeamManager } from "@/components/vendor/VendorTeamManager";
+import { CartInsights } from "@/components/vendor/CartInsights";
 
 interface Vendor {
   id: string;
@@ -389,6 +390,9 @@ const VendorDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Cart Insights */}
+            <CartInsights vendorId={selectedVendorId} />
 
             <Tabs defaultValue="products" className="w-full">
               <TabsList className="inline-flex flex-wrap h-auto">
