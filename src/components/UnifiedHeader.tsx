@@ -308,13 +308,14 @@ export const UnifiedHeader = () => {
       }
 
       // Check if user is an approved vendor
-      const { data: vendorData } = await supabase
+      const { data: vendorData, error: vendorError } = await supabase
         .from("vendors")
         .select("status")
         .eq("user_id", userId)
         .eq("status", "approved")
         .maybeSingle();
       
+      console.log('🏪 Vendor check for user', userId, ':', vendorData, vendorError);
       setIsApprovedVendor(!!vendorData);
 
       // Check if bestie has shared sponsorships
