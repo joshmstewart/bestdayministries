@@ -28,11 +28,15 @@ VENDOR SYSTEM - CONCISE DOCS
 
 **Check Vendor Status**
 ```typescript
-const { data: vendor } = await supabase
+// Prefer an array-based query (limit 1) to avoid failures if duplicates exist
+const { data: vendorRows } = await supabase
   .from('vendors')
-  .select('*')
+  .select('id,status')
   .eq('user_id', userId)
-  .maybeSingle();
+  .eq('status', 'approved')
+  .limit(1);
+
+const isApprovedVendor = (vendorRows?.length ?? 0) > 0;
 ```
 
 **Dashboard** (`/vendor-dashboard`)

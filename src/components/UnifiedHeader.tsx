@@ -308,16 +308,19 @@ export const UnifiedHeader = () => {
       }
 
       // Check if user is an approved vendor
-      const { data: vendorData, error: vendorError } = await supabase
+      // NOTE: A user may (rarely) have multiple vendor rows (e.g. duplicates), so avoid maybeSingle().
+      const { data: vendorRows, error: vendorError } = await supabase
         .from("vendors")
-        .select("status")
+        .select("id")
         .eq("user_id", userId)
         .eq("status", "approved")
-        .maybeSingle();
-      
-      console.log('🏪 Vendor check for user', userId, ':', vendorData, vendorError);
-      setIsApprovedVendor(!!vendorData);
+        .limit(1);
 
+      if (vendorError) {
+        console.warn("Vendor check error:", vendorError);
+      }
+
+      setIsApprovedVendor((vendorRows?.length ?? 0) > 0);
       // Check if bestie has shared sponsorships
       if (profile.role === "bestie") {
         const { data: shares } = await supabase
