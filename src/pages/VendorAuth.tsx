@@ -692,314 +692,347 @@ const VendorAuth = () => {
               </div>
             </div>
 
-            <form onSubmit={isSignUp ? handleVendorSignUp : handleVendorSignIn} className="space-y-4">
-              {isSignUp && (
+            <form onSubmit={isSignUp ? handleVendorSignUp : handleVendorSignIn} className="space-y-6">
+              {isSignUp ? (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="displayName">Your Name *</Label>
-                    <Input
-                      id="displayName"
-                      placeholder="John Doe"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      required
-                    />
-                  </div>
+                  {/* SECTION 1: Account Information */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b border-border">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">1</div>
+                      <h3 className="font-semibold text-foreground">Account Information</h3>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="role">I am a...</Label>
-                    <Select value={role} onValueChange={(value: any) => setRole(value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bestie">
-                          <div className="flex flex-col gap-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="displayName">Your Name *</Label>
+                      <Input
+                        id="displayName"
+                        placeholder="John Doe"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="vendor@business.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="role">I am a...</Label>
+                      <Select value={role} onValueChange={(value: any) => setRole(value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bestie">
                             <div className="flex items-center gap-2">
                               <Heart className="w-4 h-4 text-primary" />
                               <span className="font-semibold">Bestie (Adult with Special Needs)</span>
                             </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="caregiver">
-                          <div className="flex flex-col gap-1">
+                          </SelectItem>
+                          <SelectItem value="caregiver">
                             <div className="flex items-center gap-2">
                               <Users className="w-4 h-4 text-secondary" />
                               <span className="font-semibold">Guardian</span>
                             </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="supporter">
-                          <div className="flex flex-col gap-1">
+                          </SelectItem>
+                          <SelectItem value="supporter">
                             <div className="flex items-center gap-2">
                               <Sparkles className="w-4 h-4 text-accent" />
                               <span className="font-semibold">Supporter (Volunteer/Friend)</span>
                             </div>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <AvatarPicker 
-                    selectedAvatar={selectedAvatar} 
-                    onSelectAvatar={setSelectedAvatar}
-                  />
-
-                  <div className="space-y-2">
-                    <Label htmlFor="businessName">Business Name *</Label>
-                    <Input
-                      id="businessName"
-                      placeholder="Your Business Name"
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="businessDescription">Business Description *</Label>
-                    <Textarea
-                      id="businessDescription"
-                      placeholder="Tell us about your business and what makes your products special..."
-                      value={businessDescription}
-                      onChange={(e) => setBusinessDescription(e.target.value)}
-                      required
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Product Categories * <span className="text-muted-foreground text-xs">(select all that apply)</span></Label>
-                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3 bg-background">
-                      {PRODUCT_CATEGORIES.map((category) => (
-                        <div key={category} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`signup-cat-${category}`}
-                            checked={selectedCategories.includes(category)}
-                            onCheckedChange={() => toggleCategory(category)}
-                          />
-                          <label
-                            htmlFor={`signup-cat-${category}`}
-                            className="text-sm cursor-pointer"
-                          >
-                            {category}
-                          </label>
-                        </div>
-                      ))}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    {selectedCategories.includes("Other") && (
-                      <Input
-                        placeholder="Please specify what type of products..."
-                        value={otherCategoryText}
-                        onChange={(e) => setOtherCategoryText(e.target.value)}
-                        className="mt-2"
-                      />
-                    )}
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="signupProcessingDays">Order Processing Time *</Label>
-                    <Select value={processingDays} onValueChange={setProcessingDays}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select processing time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1-2 business days</SelectItem>
-                        <SelectItem value="3">3-5 business days</SelectItem>
-                        <SelectItem value="7">5-7 business days</SelectItem>
-                        <SelectItem value="14">1-2 weeks</SelectItem>
-                        <SelectItem value="21">2-3 weeks (custom orders)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">How long to prepare orders before shipping</p>
-                  </div>
-                </>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="vendor@business.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              {isSignUp && (
-                <>
-                  <div className="flex items-start space-x-2 pt-2">
-                    <Checkbox 
-                      id="newsletter" 
-                      checked={subscribeToNewsletter}
-                      onCheckedChange={(checked) => setSubscribeToNewsletter(checked as boolean)}
+                    <AvatarPicker 
+                      selectedAvatar={selectedAvatar} 
+                      onSelectAvatar={setSelectedAvatar}
                     />
-                    <label
-                      htmlFor="newsletter"
-                      className="text-sm text-muted-foreground leading-none cursor-pointer"
-                    >
-                      Send me monthly updates and inspiring stories
-                    </label>
-                  </div>
 
-                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm space-y-3">
-                    <p className="font-semibold text-foreground">Vendor Terms & Commitments:</p>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                      <li>Process and ship orders within stated timeframe</li>
-                      <li>Respond to customer inquiries within 48 hours</li>
-                      <li>Maintain accurate product inventory</li>
-                      <li className="flex items-center gap-1 list-none ml-4">
-                        <span className="mr-1">•</span>
-                        Accept the marketplace commission structure (20%)
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <button type="button" className="inline-flex items-center text-primary hover:text-primary/80">
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-md">
-                            <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
-                                <CreditCard className="h-5 w-5 text-primary" />
-                                Commission Structure
-                              </DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 text-sm">
-                              <p className="text-muted-foreground">
-                                Our marketplace charges a <strong className="text-foreground">20% commission</strong> on each sale to cover:
-                              </p>
-                              <ul className="space-y-2 text-muted-foreground">
-                                <li className="flex items-start gap-2">
-                                  <span className="text-primary font-bold">•</span>
-                                  <span><strong className="text-foreground">Payment processing</strong> - Stripe fees and secure transactions</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <span className="text-primary font-bold">•</span>
-                                  <span><strong className="text-foreground">Platform hosting</strong> - Website, infrastructure, and maintenance</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <span className="text-primary font-bold">•</span>
-                                  <span><strong className="text-foreground">Customer support</strong> - Helping customers find your products</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                  <span className="text-primary font-bold">•</span>
-                                  <span><strong className="text-foreground">Marketing</strong> - Promoting the marketplace and vendors</span>
-                                </li>
-                              </ul>
-                              <div className="bg-muted/50 p-3 rounded-lg">
-                                <p className="font-medium text-foreground mb-1">Example:</p>
-                                <p className="text-muted-foreground">
-                                  You sell a product for <strong className="text-foreground">$50</strong><br />
-                                  Commission (20%): <strong className="text-foreground">$10</strong><br />
-                                  Your payout: <strong className="text-primary">$40</strong>
-                                </p>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </li>
-                      <li>Provide tracking information for shipped orders</li>
-                      <li>Handle returns and customer issues professionally</li>
-                    </ul>
-                    
-                    <Collapsible>
-                      <CollapsibleTrigger asChild>
-                        <button type="button" className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium w-full pt-2 border-t border-accent/20">
-                          <HelpCircle className="h-4 w-4" />
-                          <span>How does selling work?</span>
-                          <ChevronDown className="h-4 w-4 ml-auto transition-transform group-data-[state=open]:rotate-180" />
-                        </button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="pt-3 space-y-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-3">
-                            <div className="bg-primary/10 p-2 rounded-lg">
-                              <Package className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">1. Receive Orders</p>
-                              <p className="text-muted-foreground text-xs">When a customer buys your product, you'll see the order in your Vendor Dashboard with all shipping details.</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-start gap-3">
-                            <div className="bg-primary/10 p-2 rounded-lg">
-                              <Truck className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">2. Ship & Add Tracking</p>
-                              <p className="text-muted-foreground text-xs">Prepare the order, ship it, then enter the tracking number in your dashboard. The customer will be notified automatically.</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-start gap-3">
-                            <div className="bg-primary/10 p-2 rounded-lg">
-                              <CreditCard className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">3. Get Paid</p>
-                              <p className="text-muted-foreground text-xs">Once you add tracking and mark the order as shipped, your payout (minus 20% commission) is transferred to your connected Stripe account.</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="bg-muted/50 p-3 rounded-lg text-xs text-muted-foreground">
-                          <p className="font-medium text-foreground mb-1">Stripe Connect Required</p>
-                          <p>After approval, you'll set up Stripe Connect to receive payments directly to your bank account. This is secure and handles all payment processing.</p>
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                    
-                    <div className="flex items-start space-x-2 pt-2 border-t border-accent/20">
-                      <Checkbox
-                        id="signupAgreeVendorTerms"
-                        checked={agreedToVendorTerms}
-                        onCheckedChange={(checked) => setAgreedToVendorTerms(checked as boolean)}
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="newsletter" 
+                        checked={subscribeToNewsletter}
+                        onCheckedChange={(checked) => setSubscribeToNewsletter(checked as boolean)}
                       />
                       <label
-                        htmlFor="signupAgreeVendorTerms"
-                        className="text-sm cursor-pointer leading-tight"
+                        htmlFor="newsletter"
+                        className="text-sm text-muted-foreground leading-none cursor-pointer"
                       >
-                        I agree to these vendor terms and commit to providing excellent service to customers
+                        Send me monthly updates and inspiring stories
+                      </label>
+                    </div>
+
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="userTerms" 
+                        checked={acceptedUserTerms}
+                        onCheckedChange={(checked) => setAcceptedUserTerms(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="userTerms"
+                        className="text-sm text-muted-foreground leading-none"
+                      >
+                        I agree to the{" "}
+                        <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
+                          Terms of Service
+                        </Link>{" "}
+                        and{" "}
+                        <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">
+                          Privacy Policy
+                        </Link>
                       </label>
                     </div>
                   </div>
 
-                  <div className="flex items-start space-x-2 pt-2">
-                    <Checkbox 
-                      id="userTerms" 
-                      checked={acceptedUserTerms}
-                      onCheckedChange={(checked) => setAcceptedUserTerms(checked as boolean)}
+                  {/* SECTION 2: Vendor Application */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b border-border">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">2</div>
+                      <h3 className="font-semibold text-foreground">Vendor Application</h3>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="businessName">Business Name *</Label>
+                      <Input
+                        id="businessName"
+                        placeholder="Your Business Name"
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="businessDescription">Business Description *</Label>
+                      <Textarea
+                        id="businessDescription"
+                        placeholder="Tell us about your business and what makes your products special..."
+                        value={businessDescription}
+                        onChange={(e) => setBusinessDescription(e.target.value)}
+                        required
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Product Categories * <span className="text-muted-foreground text-xs">(select all that apply)</span></Label>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3 bg-background">
+                        {PRODUCT_CATEGORIES.map((category) => (
+                          <div key={category} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`signup-cat-${category}`}
+                              checked={selectedCategories.includes(category)}
+                              onCheckedChange={() => toggleCategory(category)}
+                            />
+                            <label
+                              htmlFor={`signup-cat-${category}`}
+                              className="text-sm cursor-pointer"
+                            >
+                              {category}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      {selectedCategories.includes("Other") && (
+                        <Input
+                          placeholder="Please specify what type of products..."
+                          value={otherCategoryText}
+                          onChange={(e) => setOtherCategoryText(e.target.value)}
+                          className="mt-2"
+                        />
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="signupProcessingDays">Order Processing Time *</Label>
+                      <Select value={processingDays} onValueChange={setProcessingDays}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select processing time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1-2 business days</SelectItem>
+                          <SelectItem value="3">3-5 business days</SelectItem>
+                          <SelectItem value="7">5-7 business days</SelectItem>
+                          <SelectItem value="14">1-2 weeks</SelectItem>
+                          <SelectItem value="21">2-3 weeks (custom orders)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">How long to prepare orders before shipping</p>
+                    </div>
+
+                    <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm space-y-3">
+                      <p className="font-semibold text-foreground">Vendor Terms & Commitments:</p>
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                        <li>Process and ship orders within stated timeframe</li>
+                        <li>Respond to customer inquiries within 48 hours</li>
+                        <li>Maintain accurate product inventory</li>
+                        <li className="flex items-center gap-1 list-none ml-4">
+                          <span className="mr-1">•</span>
+                          Accept the marketplace commission structure (20%)
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button type="button" className="inline-flex items-center text-primary hover:text-primary/80">
+                                <Info className="h-3.5 w-3.5" />
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                              <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                  <CreditCard className="h-5 w-5 text-primary" />
+                                  Commission Structure
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4 text-sm">
+                                <p className="text-muted-foreground">
+                                  Our marketplace charges a <strong className="text-foreground">20% commission</strong> on each sale to cover:
+                                </p>
+                                <ul className="space-y-2 text-muted-foreground">
+                                  <li className="flex items-start gap-2">
+                                    <span className="text-primary font-bold">•</span>
+                                    <span><strong className="text-foreground">Payment processing</strong> - Stripe fees and secure transactions</span>
+                                  </li>
+                                  <li className="flex items-start gap-2">
+                                    <span className="text-primary font-bold">•</span>
+                                    <span><strong className="text-foreground">Platform hosting</strong> - Website, infrastructure, and maintenance</span>
+                                  </li>
+                                  <li className="flex items-start gap-2">
+                                    <span className="text-primary font-bold">•</span>
+                                    <span><strong className="text-foreground">Customer support</strong> - Helping customers find your products</span>
+                                  </li>
+                                  <li className="flex items-start gap-2">
+                                    <span className="text-primary font-bold">•</span>
+                                    <span><strong className="text-foreground">Marketing</strong> - Promoting the marketplace and vendors</span>
+                                  </li>
+                                </ul>
+                                <div className="bg-muted/50 p-3 rounded-lg">
+                                  <p className="font-medium text-foreground mb-1">Example:</p>
+                                  <p className="text-muted-foreground">
+                                    You sell a product for <strong className="text-foreground">$50</strong><br />
+                                    Commission (20%): <strong className="text-foreground">$10</strong><br />
+                                    Your payout: <strong className="text-primary">$40</strong>
+                                  </p>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </li>
+                        <li>Provide tracking information for shipped orders</li>
+                        <li>Handle returns and customer issues professionally</li>
+                      </ul>
+                      
+                      <Collapsible>
+                        <CollapsibleTrigger asChild>
+                          <button type="button" className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium w-full pt-2 border-t border-accent/20">
+                            <HelpCircle className="h-4 w-4" />
+                            <span>How does selling work?</span>
+                            <ChevronDown className="h-4 w-4 ml-auto transition-transform group-data-[state=open]:rotate-180" />
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pt-3 space-y-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <div className="bg-primary/10 p-2 rounded-lg">
+                                <Package className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">1. Receive Orders</p>
+                                <p className="text-muted-foreground text-xs">When a customer buys your product, you'll see the order in your Vendor Dashboard with all shipping details.</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-start gap-3">
+                              <div className="bg-primary/10 p-2 rounded-lg">
+                                <Truck className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">2. Ship & Add Tracking</p>
+                                <p className="text-muted-foreground text-xs">Prepare the order, ship it, then enter the tracking number in your dashboard. The customer will be notified automatically.</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-start gap-3">
+                              <div className="bg-primary/10 p-2 rounded-lg">
+                                <CreditCard className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">3. Get Paid</p>
+                                <p className="text-muted-foreground text-xs">Once you add tracking and mark the order as shipped, your payout (minus 20% commission) is transferred to your connected Stripe account.</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-muted/50 p-3 rounded-lg text-xs text-muted-foreground">
+                            <p className="font-medium text-foreground mb-1">Stripe Connect Required</p>
+                            <p>After approval, you'll set up Stripe Connect to receive payments directly to your bank account. This is secure and handles all payment processing.</p>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                      
+                      <div className="flex items-start space-x-2 pt-2 border-t border-accent/20">
+                        <Checkbox
+                          id="signupAgreeVendorTerms"
+                          checked={agreedToVendorTerms}
+                          onCheckedChange={(checked) => setAgreedToVendorTerms(checked as boolean)}
+                        />
+                        <label
+                          htmlFor="signupAgreeVendorTerms"
+                          className="text-sm cursor-pointer leading-tight"
+                        >
+                          I agree to these vendor terms and commit to providing excellent service to customers
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="vendor@business.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                     />
-                    <label
-                      htmlFor="userTerms"
-                      className="text-sm text-muted-foreground leading-none"
-                    >
-                      I agree to the{" "}
-                      <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
-                        Terms of Service
-                      </Link>{" "}
-                      and{" "}
-                      <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">
-                        Privacy Policy
-                      </Link>
-                    </label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
                   </div>
                 </>
               )}
@@ -1008,10 +1041,10 @@ const VendorAuth = () => {
                 type="submit" 
                 className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
                 disabled={loading || (isSignUp && (!agreedToVendorTerms || !acceptedUserTerms))}
-            >
-              {loading ? "Please wait..." : isSignUp ? "Submit Application" : "Sign In"}
-            </Button>
-          </form>
+              >
+                {loading ? "Please wait..." : isSignUp ? "Submit Application" : "Sign In"}
+              </Button>
+            </form>
 
           <div className="text-center">
             <button
