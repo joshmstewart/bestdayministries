@@ -38,33 +38,45 @@ serve(async (req) => {
 
     console.log('Generating year-end summary for:', user.email, 'Year:', year);
 
-    // Get receipts directly instead of relying on view (which may have duplicates)
-    const { data: receipts, error: receiptsError } = await supabaseAdmin
-      .from('sponsorship_receipts')
+    // Get transactions from the combined donation_stripe_transactions table (matches DonationHistory display)
+    const startDate = `${year}-01-01`;
+    const endDate = `${year}-12-31`;
+    
+    const { data: transactions, error: txError } = await supabaseAdmin
+      .from('donation_stripe_transactions')
       .select('*')
-      .or(`user_id.eq.${user.id},sponsor_email.eq.${user.email}`)
-      .eq('tax_year', year)
+      .eq('email', user.email)
+      .eq('stripe_mode', 'live') // Year-end summaries should always use live mode
+      .gte('transaction_date', startDate)
+      .lte('transaction_date', endDate)
       .order('transaction_date', { ascending: true });
 
-    if (receiptsError) throw receiptsError;
+    if (txError) throw txError;
 
-    // Build summary from receipts
+    // Build summary from transactions
     let summaryData: any = null;
-    if (receipts && receipts.length > 0) {
-      const totalAmount = receipts.reduce((sum, r) => sum + Number(r.amount), 0);
-      const donations = receipts.map(r => ({
-        date: r.transaction_date,
-        bestie_name: r.bestie_name,
-        amount: r.amount,
-        receipt_number: r.receipt_number
+    if (transactions && transactions.length > 0) {
+      const totalAmount = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+      const donations = transactions.map(t => ({
+        date: t.transaction_date,
+        bestie_name: t.designation || 'General Donation',
+        amount: t.amount,
+        receipt_number: t.stripe_invoice_id || t.stripe_charge_id || t.id.substring(0, 20).toUpperCase()
       }));
+      
+      // Get user profile for name
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .maybeSingle();
       
       summaryData = {
         sponsor_email: user.email,
-        sponsor_name: receipts[0].sponsor_name || user.email.split('@')[0],
+        sponsor_name: profile?.full_name || user.email.split('@')[0],
         tax_year: year,
         total_amount: totalAmount,
-        total_donations: receipts.length,
+        total_donations: transactions.length,
         donations
       };
     }
@@ -357,7 +369,7 @@ serve(async (req) => {
       }
 
       // Log sent email to database (only if real data)
-      if (receipts && receipts.length > 0) {
+      if (transactions && transactions.length > 0) {
         await supabaseAdmin
           .from('year_end_summary_sent')
           .insert({
@@ -378,7 +390,7 @@ serve(async (req) => {
       html: emailHtml,
       emailSent: sendEmail || false,
       resendEmailId,
-      isMockData: !receipts || receipts.length === 0
+      isMockData: !transactions || transactions.length === 0
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
