@@ -53,7 +53,7 @@ serve(async (req) => {
     const adminUserIds = adminRoles.map(r => r.user_id);
     const { data: adminProfiles, error: profilesError } = await supabaseClient
       .from("profiles")
-      .select("email, display_name")
+      .select("id, email, display_name")
       .in("id", adminUserIds);
 
     if (profilesError) {
@@ -69,11 +69,33 @@ serve(async (req) => {
       );
     }
 
+    // Check for an active campaign template for vendor_application
+    const { data: template } = await supabaseClient
+      .from("campaign_templates")
+      .select("*")
+      .eq("trigger_event", "vendor_application")
+      .eq("is_active", true)
+      .eq("auto_send", true)
+      .single();
+
     // Get organization settings for email branding
     const { data: orgData } = await supabaseClient
       .from("app_settings")
       .select("setting_value")
       .eq("setting_key", "newsletter_organization")
+      .single();
+
+    // Get header and footer if template exists
+    const { data: headerData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_header")
+      .single();
+
+    const { data: footerData } = await supabaseClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "newsletter_footer")
       .single();
 
     const orgInfo = orgData?.setting_value as any;
@@ -88,92 +110,156 @@ serve(async (req) => {
       ? productCategories.join(", ") 
       : "Not specified";
 
-    // Build email HTML
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">🏪 New Vendor Application</h1>
-        </div>
-        
-        <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-          <p style="font-size: 16px; margin-bottom: 20px;">A new vendor has applied to join the Joy House Store marketplace.</p>
+    // Build email content - use template if available, otherwise use default
+    let subject: string;
+    let htmlContent: string;
+    const baseUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
+
+    if (template) {
+      console.log("Using campaign template for vendor application email");
+      
+      // Replace placeholders in subject
+      subject = template.subject
+        .replace(/\[BUSINESS_NAME\]/g, businessName)
+        .replace(/\[APPLICANT_EMAIL\]/g, applicantEmail)
+        .replace(/\[CATEGORIES\]/g, categoriesDisplay);
+
+      // Build content with header/footer
+      htmlContent = "";
+      
+      if (headerData?.setting_value?.enabled && headerData?.setting_value?.html) {
+        htmlContent += headerData.setting_value.html;
+      }
+      
+      // Replace placeholders in content
+      htmlContent += template.content
+        .replace(/\[BUSINESS_NAME\]/g, businessName)
+        .replace(/\[APPLICANT_EMAIL\]/g, applicantEmail)
+        .replace(/\[CATEGORIES\]/g, categoriesDisplay)
+        .replace(/\[DESCRIPTION\]/g, businessDescription || "Not provided")
+        .replace(/\[ADMIN_LINK\]/g, `${baseUrl}/admin?tab=vendors`);
+      
+      if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
+        htmlContent += footerData.setting_value.html;
+      }
+    } else {
+      console.log("No template found, using default vendor application email");
+      
+      subject = `🏪 New Vendor Application: ${businessName}`;
+      htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🏪 New Vendor Application</h1>
+          </div>
           
-          <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #374151;">Application Details</h2>
+          <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <p style="font-size: 16px; margin-bottom: 20px;">A new vendor has applied to join the Joy House Store marketplace.</p>
             
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Business Name:</td>
-                <td style="padding: 8px 0; color: #111827;">${businessName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Applicant Email:</td>
-                <td style="padding: 8px 0; color: #111827;">${applicantEmail}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280; font-weight: 500; vertical-align: top;">Categories:</td>
-                <td style="padding: 8px 0; color: #111827;">${categoriesDisplay}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #6b7280; font-weight: 500; vertical-align: top;">Description:</td>
-                <td style="padding: 8px 0; color: #111827;">${businessDescription || "Not provided"}</td>
-              </tr>
-            </table>
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #374151;">Application Details</h2>
+              
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Business Name:</td>
+                  <td style="padding: 8px 0; color: #111827;">${businessName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Applicant Email:</td>
+                  <td style="padding: 8px 0; color: #111827;">${applicantEmail}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500; vertical-align: top;">Categories:</td>
+                  <td style="padding: 8px 0; color: #111827;">${categoriesDisplay}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500; vertical-align: top;">Description:</td>
+                  <td style="padding: 8px 0; color: #111827;">${businessDescription || "Not provided"}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${baseUrl}/admin?tab=vendors" 
+                 style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                Review Application
+              </a>
+            </div>
+            
+            <p style="font-size: 14px; color: #6b7280; margin-top: 25px; text-align: center;">
+              This is an automated notification from the Joy House Store vendor system.
+            </p>
           </div>
-          
-          <div style="text-align: center; margin-top: 25px;">
-            <a href="${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app')}/admin?tab=vendors" 
-               style="display: inline-block; background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
-              Review Application
-            </a>
-          </div>
-          
-          <p style="font-size: 14px; color: #6b7280; margin-top: 25px; text-align: center;">
-            This is an automated notification from the Joy House Store vendor system.
-          </p>
-        </div>
-      </body>
-      </html>
-    `;
+        </body>
+        </html>
+      `;
+    }
 
     // Send email to each admin
     const adminEmails = adminProfiles.map(p => p.email).filter(Boolean);
     console.log(`Sending vendor application notification to ${adminEmails.length} admin(s)`);
 
     let sentCount = 0;
-    for (const adminEmail of adminEmails) {
+    for (const admin of adminProfiles) {
+      if (!admin.email) continue;
+      
       try {
-        const { error: sendError } = await resend.emails.send({
+        const { data: emailData, error: sendError } = await resend.emails.send({
           from: `${fromName} <${fromEmail}>`,
-          to: adminEmail,
-          subject: `🏪 New Vendor Application: ${businessName}`,
+          to: admin.email,
+          subject: subject,
           html: htmlContent,
         });
 
         if (sendError) {
-          console.error(`Failed to send to ${adminEmail}:`, sendError);
+          console.error(`Failed to send to ${admin.email}:`, sendError);
+          
+          // Log failed send
+          if (template) {
+            await supabaseClient.from("automated_campaign_sends").insert({
+              template_id: template.id,
+              trigger_event: "vendor_application",
+              recipient_email: admin.email,
+              recipient_user_id: admin.id,
+              status: "failed",
+              error_message: sendError.message || String(sendError),
+              trigger_data: { businessName, applicantEmail, productCategories },
+            });
+          }
         } else {
           sentCount++;
-          console.log(`Successfully sent notification to ${adminEmail}`);
+          console.log(`Successfully sent notification to ${admin.email}`);
+          
+          // Log successful send
+          if (template) {
+            await supabaseClient.from("automated_campaign_sends").insert({
+              template_id: template.id,
+              trigger_event: "vendor_application",
+              recipient_email: admin.email,
+              recipient_user_id: admin.id,
+              status: "sent",
+              sent_at: new Date().toISOString(),
+              trigger_data: { businessName, applicantEmail, productCategories },
+            });
+          }
         }
-      } catch (emailError) {
-        console.error(`Error sending to ${adminEmail}:`, emailError);
+      } catch (emailError: any) {
+        console.error(`Error sending to ${admin.email}:`, emailError);
       }
     }
 
-    // Log the notification
+    // Log the notification to audit log
     await supabaseClient.from("email_audit_log").insert({
       email_type: "vendor_application_notification",
       from_email: fromEmail,
       from_name: fromName,
       recipient_email: adminEmails.join(", "),
-      subject: `New Vendor Application: ${businessName}`,
+      subject: subject,
       status: sentCount > 0 ? "sent" : "failed",
       related_type: "vendor",
       related_id: vendorId,
@@ -181,6 +267,7 @@ serve(async (req) => {
         business_name: businessName,
         applicant_email: applicantEmail,
         admins_notified: sentCount,
+        used_template: !!template,
       },
     });
 
@@ -188,7 +275,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: `Notified ${sentCount} admin(s)`,
-        sentCount 
+        sentCount,
+        usedTemplate: !!template,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
