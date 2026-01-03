@@ -23,8 +23,8 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Generate a prompt for the ingredient icon - request small, simple icons for fast loading
-    const iconPrompt = `Create a small 256x256 pixel square icon of ${ingredientName}. Simple flat illustration style with minimal details. Solid single-color background filling entire canvas edge-to-edge. Sharp 90-degree corners, no rounded frames. No text, no gradients, no shadows. Category: ${category}.`;
+    // Generate a prompt for the ingredient icon - request small, simple square icons
+    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName}. Image must be exactly 256x256 pixels with equal width and height. Simple flat illustration style with minimal details. Solid single-color background filling entire square canvas edge-to-edge. Sharp 90-degree corners, no rounded frames or borders. No text, no gradients, no shadows. Center the subject within the square frame. Category: ${category}.`;
 
     console.log("Generating icon for:", ingredientName);
     console.log("Prompt:", iconPrompt);
