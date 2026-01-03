@@ -432,17 +432,23 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
                 {/* Add New Option */}
                 <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
                   <Label className="text-sm font-medium">Add New Option</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      placeholder="Option name (e.g., Color)"
-                      value={newOptionName}
-                      onChange={(e) => setNewOptionName(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Values (comma separated)"
-                      value={newOptionValues}
-                      onChange={(e) => setNewOptionValues(e.target.value)}
-                    />
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Option Name</Label>
+                      <Input
+                        placeholder="e.g., Color, Size, Material"
+                        value={newOptionName}
+                        onChange={(e) => setNewOptionName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Option Choices (comma separated)</Label>
+                      <Input
+                        placeholder="e.g., Red, Blue, Green"
+                        value={newOptionValues}
+                        onChange={(e) => setNewOptionValues(e.target.value)}
+                      />
+                    </div>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={addOption}>
                     <Plus className="h-3 w-3 mr-1" /> Add Option
@@ -451,6 +457,13 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+
+          {/* Tip about linking images */}
+          {options.length > 0 && totalImages === 0 && (
+            <p className="text-xs text-muted-foreground italic">
+              💡 Add images below, then you can link specific images to each option choice.
+            </p>
+          )}
 
           <div>
             <Label htmlFor="images">Product Images</Label>
