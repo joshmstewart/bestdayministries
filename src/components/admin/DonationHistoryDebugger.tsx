@@ -46,6 +46,7 @@ interface DebugResponse {
   email: string;
   stripeMode: string;
   customerId: string;
+  customerIds?: string[];
   summary: {
     totalCharges: number;
     totalInvoices: number;
@@ -154,9 +155,13 @@ export const DonationHistoryDebugger = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="space-y-1">
-                  <div className="text-muted-foreground">Customer</div>
-                  <div className="font-mono text-xs">{result.customerId}</div>
+                <div className="space-y-1 md:col-span-2">
+                  <div className="text-muted-foreground">Customers (email match)</div>
+                  <div className="font-mono text-xs whitespace-pre-wrap break-all">
+                    {(result.customerIds && result.customerIds.length > 0)
+                      ? result.customerIds.join("\n")
+                      : result.customerId}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-muted-foreground">Stripe Mode</div>

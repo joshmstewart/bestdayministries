@@ -98,23 +98,47 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Find customer
-    const customers = await stripe.customers.list({ email, limit: 1 });
+    // Find ALL customers (Stripe can create multiple customers for the same email)
+    const customers = await stripe.customers.list({ email, limit: 100 });
     if (customers.data.length === 0) {
       return new Response(JSON.stringify({ error: "No Stripe customer found for this email", items: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const customerId = customers.data[0].id;
+    const customerIds = customers.data.map((c: any) => c.id);
+    const customerId = customerIds[0];
 
-    // Fetch all related Stripe data
-    const [charges, subscriptions, invoices, checkoutSessions] = await Promise.all([
-      stripe.charges.list({ customer: customerId, limit: 50 }),
-      stripe.subscriptions.list({ customer: customerId, status: "all", limit: 50 }),
-      stripe.invoices.list({ customer: customerId, limit: 50 }),
-      stripe.checkout.sessions.list({ customer: customerId, limit: 50 }),
-    ]);
+    // Fetch all related Stripe data across ALL customers
+    const perCustomer = await Promise.all(
+      customerIds.map(async (cid: string) => {
+        const [charges, subscriptions, invoices, checkoutSessions] = await Promise.all([
+          stripe.charges.list({ customer: cid, limit: 100 }),
+          stripe.subscriptions.list({ customer: cid, status: "all", limit: 100 }),
+          stripe.invoices.list({ customer: cid, limit: 100 }),
+          stripe.checkout.sessions.list({ customer: cid, limit: 100 }),
+        ]);
+
+        return {
+          cid,
+          charges: charges.data.map((x: any) => ({ ...x, __customerId: cid })),
+          subscriptions: subscriptions.data.map((x: any) => ({ ...x, __customerId: cid })),
+          invoices: invoices.data.map((x: any) => ({ ...x, __customerId: cid })),
+          checkoutSessions: checkoutSessions.data.map((x: any) => ({ ...x, __customerId: cid })),
+        };
+      })
+    );
+
+    const allCharges = perCustomer.flatMap((p: any) => p.charges);
+    const allSubscriptions = perCustomer.flatMap((p: any) => p.subscriptions);
+    const allInvoices = perCustomer.flatMap((p: any) => p.invoices);
+    const allCheckoutSessions = perCustomer.flatMap((p: any) => p.checkoutSessions);
+
+    // Keep existing code below mostly unchanged by mimicking Stripe list responses
+    const charges = { data: allCharges } as any;
+    const subscriptions = { data: allSubscriptions } as any;
+    const invoices = { data: allInvoices } as any;
+    const checkoutSessions = { data: allCheckoutSessions } as any;
 
     // Build lookup maps
     const sessionByPaymentIntent = new Map<string, any>();
@@ -156,16 +180,25 @@ serve(async (req) => {
       }
     }
 
-    // DB lookups
-    const { data: sponsorshipRows } = await supabaseAdmin
-      .from("sponsorships")
-      .select("*")
-      .eq("sponsor_email", email);
+    // DB lookups (by email OR by linked user id)
+    const { data: profileRow } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
 
-    const { data: donationRows } = await supabaseAdmin
-      .from("donations")
-      .select("*")
-      .eq("donor_email", email);
+    const profileId = profileRow?.id as string | undefined;
+
+    const sponsorshipQuery = supabaseAdmin.from("sponsorships").select("*");
+    const donationQuery = supabaseAdmin.from("donations").select("*");
+
+    const { data: sponsorshipRows } = profileId
+      ? await sponsorshipQuery.or(`sponsor_email.eq.${email},sponsor_id.eq.${profileId}`)
+      : await sponsorshipQuery.eq("sponsor_email", email);
+
+    const { data: donationRows } = profileId
+      ? await donationQuery.or(`donor_email.eq.${email},donor_id.eq.${profileId}`)
+      : await donationQuery.eq("donor_email", email);
 
     const sponsorBestieIds = new Set<string>();
     (sponsorshipRows || []).forEach((r: any) => {
@@ -197,8 +230,8 @@ serve(async (req) => {
 
     const items: DebugItem[] = [];
 
-    // Debug charges
-    for (const charge of charges.data.slice(0, limit)) {
+    // Debug ALL charges (not limited)
+    for (const charge of charges.data) {
       const piId = readId((charge as any).payment_intent);
       const session = piId ? sessionByPaymentIntent.get(piId) : undefined;
       
@@ -284,8 +317,8 @@ serve(async (req) => {
       });
     }
 
-    // Debug invoices
-    for (const invoice of invoices.data.filter((i: any) => i.status === "paid").slice(0, limit)) {
+    // Debug ALL paid invoices (not limited)
+    for (const invoice of invoices.data.filter((i: any) => i.status === "paid")) {
       const invAny = invoice as any;
       const subId = readId(invAny.subscription);
       const piId = readId(invAny.payment_intent);
@@ -372,21 +405,22 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        email,
-        stripeMode,
-        customerId,
-        summary: {
-          totalCharges: charges.data.length,
-          totalInvoices: invoices.data.length,
-          totalSubscriptions: subscriptions.data.length,
-          totalCheckoutSessions: checkoutSessions.data.length,
-          invoiceLinkedCharges: invoiceChargeIds.size,
-          dbSponsorships: (sponsorshipRows || []).length,
-          dbDonations: (donationRows || []).length,
-        },
-        items,
-      }),
+       JSON.stringify({
+         email,
+         stripeMode,
+         customerId,
+         customerIds,
+         summary: {
+           totalCharges: charges.data.length,
+           totalInvoices: invoices.data.length,
+           totalSubscriptions: subscriptions.data.length,
+           totalCheckoutSessions: checkoutSessions.data.length,
+           invoiceLinkedCharges: invoiceChargeIds.size,
+           dbSponsorships: (sponsorshipRows || []).length,
+           dbDonations: (donationRows || []).length,
+         },
+         items,
+       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
