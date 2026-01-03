@@ -253,6 +253,8 @@ serve(async (req) => {
     // Process one-time charges that aren't part of subscriptions/invoices
     for (const charge of charges.data) {
       if (charge.status !== "succeeded") continue;
+      // If this charge is tied to an invoice, we already include the invoice record (prevents duplicates)
+      if ((charge as any).invoice) continue;
 
       const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : undefined;
       // De-dupe: subscription payments often show up as both invoice + charge
