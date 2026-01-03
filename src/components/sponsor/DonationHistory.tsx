@@ -9,29 +9,20 @@ import { Download, FileText, Mail, Calendar, RefreshCw, ExternalLink, Loader2, C
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-interface CachedDonation {
+interface Transaction {
   id: string;
   amount: number;
   frequency: string;
   status: string;
-  designation: string;
-  donation_date: string;
-  receipt_url: string | null;
+  transaction_date: string;
   stripe_subscription_id: string | null;
+  receipt_id: string | null;
 }
 
-interface CachedSubscription {
-  id: string;
-  amount: number;
-  designation: string;
-  status: string;
-  current_period_end: string | null;
+interface ActiveSubscription {
   stripe_subscription_id: string;
-}
-
-interface SyncStatus {
-  last_synced_at: string | null;
-  sync_status: string;
+  amount: number;
+  status: string;
 }
 
 type StripeMode = "live" | "test";
@@ -40,16 +31,13 @@ export const DonationHistory = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  const [donations, setDonations] = useState<CachedDonation[]>([]);
-  const [subscriptions, setSubscriptions] = useState<CachedSubscription[]>([]);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [subscriptions, setSubscriptions] = useState<ActiveSubscription[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Owner/Admin can switch between live/test to match Stripe dashboard view
   const [stripeMode, setStripeMode] = useState<StripeMode>("live");
-  const [stripeModeUsed, setStripeModeUsed] = useState<StripeMode | null>(null);
   const [canChooseStripeMode, setCanChooseStripeMode] = useState(false);
 
   const [selectedYear, setSelectedYear] = useState<string>("all");
@@ -57,8 +45,6 @@ export const DonationHistory = () => {
   const [managingSubscription, setManagingSubscription] = useState(false);
 
   const { toast } = useToast();
-
-  // Prevent double-fetch in React StrictMode
   const hasFetchedRef = useRef(false);
 
   // Get current user
@@ -68,7 +54,6 @@ export const DonationHistory = () => {
       setUserEmail(user?.email || null);
       setUserId(user?.id || null);
 
-      // Only owners/admins should be able to override stripe mode in the UI.
       if (user?.id) {
         const { data: roleRow } = await supabase
           .from("user_roles")
@@ -83,81 +68,75 @@ export const DonationHistory = () => {
     getUser();
   }, []);
 
-  // Load from Stripe API (source of truth)
-  const loadFromStripe = useCallback(async (reason: "initial" | "refresh" = "refresh") => {
-    if (!userId) return;
+  // Load transactions from database
+  const loadTransactions = useCallback(async (isRefresh = false) => {
+    if (!userId || !userEmail) return;
 
-    if (reason === "refresh") setSyncing(true);
+    if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      console.log("[DonationHistory] Loading from Stripe API...", { stripeMode });
+      // Get transactions from the combined table
+      const { data: txData, error: txError } = await supabase
+        .from("donation_stripe_transactions")
+        .select("id, amount, frequency, status, transaction_date, stripe_subscription_id, receipt_id")
+        .eq("stripe_mode", stripeMode)
+        .or(`donor_id.eq.${userId},email.ilike.${userEmail}`)
+        .order("transaction_date", { ascending: false });
 
-      const { data, error } = await supabase.functions.invoke("get-donation-history", {
-        body: { stripe_mode: stripeMode },
+      if (txError) throw txError;
+
+      setTransactions(txData || []);
+
+      // Get unique active subscriptions from transactions
+      const activeSubMap = new Map<string, ActiveSubscription>();
+      (txData || []).forEach(tx => {
+        if (tx.stripe_subscription_id && tx.status === "paid") {
+          if (!activeSubMap.has(tx.stripe_subscription_id)) {
+            activeSubMap.set(tx.stripe_subscription_id, {
+              stripe_subscription_id: tx.stripe_subscription_id,
+              amount: tx.amount,
+              status: "active"
+            });
+          }
+        }
       });
+      setSubscriptions(Array.from(activeSubMap.values()));
 
-      if (error) throw error;
-
-      const nextDonations: CachedDonation[] = (data?.donations || []).map((d: any) => ({
-        id: d.id,
-        amount: Number(d.amount) || 0,
-        frequency: d.frequency || "one-time",
-        status: d.status || "completed",
-        designation: d.designation || "General Support",
-        donation_date: d.created_at,
-        receipt_url: d.receipt_url ?? null,
-        stripe_subscription_id: d.stripe_subscription_id ?? null,
-      }));
-
-      const nextSubscriptions: CachedSubscription[] = (data?.subscriptions || []).map((s: any) => ({
-        id: s.id,
-        amount: Number(s.amount) || 0,
-        designation: s.designation || "General Support",
-        status: s.status || "active",
-        current_period_end: s.current_period_end ?? null,
-        stripe_subscription_id: s.id,
-      }));
-
-      setDonations(nextDonations);
-      setSubscriptions(nextSubscriptions);
-      setStripeModeUsed((data?.stripe_mode as StripeMode) || null);
-      setSyncStatus({ last_synced_at: new Date().toISOString(), sync_status: "completed" });
-
-      if (reason === "refresh") {
+      if (isRefresh) {
         toast({
           title: "Updated",
-          description: `Loaded ${nextDonations.length} transactions from Stripe`,
+          description: `Loaded ${(txData || []).length} transactions`,
         });
       }
     } catch (error: any) {
-      console.error("[DonationHistory] Stripe API load error:", error);
+      console.error("[DonationHistory] Load error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to load donation history from Stripe",
+        description: error.message || "Failed to load donation history",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
-      setSyncing(false);
+      setRefreshing(false);
     }
-  }, [userId, stripeMode, toast]);
+  }, [userId, userEmail, stripeMode, toast]);
 
-  const refresh = () => loadFromStripe("refresh");
+  const refresh = () => loadTransactions(true);
 
   // Initial load
   useEffect(() => {
-    if (userId && !hasFetchedRef.current) {
+    if (userId && userEmail && !hasFetchedRef.current) {
       hasFetchedRef.current = true;
-      loadFromStripe("initial");
+      loadTransactions(false);
     }
-  }, [userId, loadFromStripe]);
+  }, [userId, userEmail, loadTransactions]);
 
-  // Reload when switching stripe mode (owner/admin)
+  // Reload when switching stripe mode
   useEffect(() => {
-    if (!userId || !hasFetchedRef.current) return;
-    loadFromStripe("refresh");
-  }, [stripeMode, userId, loadFromStripe]);
+    if (!userId || !userEmail || !hasFetchedRef.current) return;
+    loadTransactions(true);
+  }, [stripeMode, userId, userEmail, loadTransactions]);
 
   const generateYearEndSummary = async (year: number, sendEmail: boolean = false) => {
     setGeneratingYear(year);
@@ -237,21 +216,21 @@ export const DonationHistory = () => {
   };
 
   // Filter by year
-  const filteredDonations = selectedYear === "all"
-    ? donations 
-    : donations.filter(d => new Date(d.donation_date).getFullYear().toString() === selectedYear);
+  const filteredTransactions = selectedYear === "all"
+    ? transactions 
+    : transactions.filter(t => new Date(t.transaction_date).getFullYear().toString() === selectedYear);
 
   const availableYears = Array.from(
-    new Set(donations.map(d => new Date(d.donation_date).getFullYear()))
+    new Set(transactions.map(t => new Date(t.transaction_date).getFullYear()))
   ).sort((a, b) => b - a);
 
-  const yearlyTotals = donations.reduce((acc, donation) => {
-    const year = new Date(donation.donation_date).getFullYear();
+  const yearlyTotals = transactions.reduce((acc, tx) => {
+    const year = new Date(tx.transaction_date).getFullYear();
     if (!acc[year]) {
       acc[year] = { count: 0, total: 0 };
     }
     acc[year].count++;
-    acc[year].total += Number(donation.amount);
+    acc[year].total += Number(tx.amount);
     return acc;
   }, {} as Record<number, { count: number; total: number }>);
 
@@ -268,7 +247,7 @@ export const DonationHistory = () => {
     );
   }
 
-  if (donations.length === 0 && !syncing) {
+  if (transactions.length === 0 && !refreshing) {
     return (
       <Card>
         <CardHeader>
@@ -276,16 +255,16 @@ export const DonationHistory = () => {
             <div>
               <CardTitle>Donation History</CardTitle>
               <CardDescription>
-                No donations found. Click refresh to sync from Stripe.
+                No donations found. Your donations will appear here after they're processed.
               </CardDescription>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={refresh}
-              disabled={syncing}
+              disabled={refreshing}
             >
-              {syncing ? (
+              {refreshing ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -300,20 +279,12 @@ export const DonationHistory = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with sync status */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          {syncStatus?.last_synced_at && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              Last refreshed: {format(new Date(syncStatus.last_synced_at), "MMM d, yyyy h:mm a")}
-            </p>
-          )}
-          {stripeModeUsed && (
-            <p className="text-sm text-muted-foreground">
-              Stripe mode: <span className="font-medium">{stripeModeUsed}</span>
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground">
+            Stripe mode: <span className="font-medium">{stripeMode}</span>
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -329,8 +300,8 @@ export const DonationHistory = () => {
             </Select>
           )}
 
-          <Button variant="outline" onClick={refresh} disabled={syncing}>
-            {syncing ? (
+          <Button variant="outline" onClick={refresh} disabled={refreshing}>
+            {refreshing ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -365,19 +336,14 @@ export const DonationHistory = () => {
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {subscriptions.map(sub => (
-                <div key={sub.id} className="p-4 border rounded-lg">
+                <div key={sub.stripe_subscription_id} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-medium">{sub.designation}</span>
+                    <span className="font-medium">Monthly Donation</span>
                     <Badge variant="default">Active</Badge>
                   </div>
                   <div className="text-2xl font-bold text-primary">
                     ${sub.amount.toFixed(2)}/mo
                   </div>
-                  {sub.current_period_end && (
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Next: {format(new Date(sub.current_period_end), "MMM d, yyyy")}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -435,14 +401,14 @@ export const DonationHistory = () => {
         </div>
       )}
 
-      {/* Donation History Table */}
+      {/* Transaction History Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Donation History</CardTitle>
+              <CardTitle>Transaction History</CardTitle>
               <CardDescription>
-                All donations synced from Stripe
+                All your donations
               </CardDescription>
             </div>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -461,7 +427,7 @@ export const DonationHistory = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredDonations.length === 0 ? (
+          {filteredTransactions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No donations found for this period</p>
@@ -471,42 +437,42 @@ export const DonationHistory = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Designation</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Receipt</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDonations.map((donation) => (
-                  <TableRow key={donation.id}>
+                {filteredTransactions.map((tx) => (
+                  <TableRow key={tx.id}>
                     <TableCell>
-                      {format(new Date(donation.donation_date), "MMM d, yyyy h:mm a")}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {donation.designation}
+                      {format(new Date(tx.transaction_date), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell className="font-semibold">
                       {new Intl.NumberFormat('en-US', {
                         style: 'currency',
                         currency: 'USD'
-                      }).format(donation.amount)}
+                      }).format(tx.amount)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={donation.frequency === 'monthly' ? 'default' : 'secondary'}>
-                        {donation.frequency === 'monthly' ? 'Monthly' : 'One-Time'}
+                      <Badge variant={tx.frequency === 'monthly' ? 'default' : 'secondary'}>
+                        {tx.frequency === 'monthly' ? 'Monthly' : 'One-Time'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={tx.status === 'paid' ? 'default' : 'secondary'}>
+                        {tx.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {donation.receipt_url && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(donation.receipt_url!, '_blank')}
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Receipt
-                        </Button>
+                      {tx.receipt_id ? (
+                        <Badge variant="outline" className="text-green-600">
+                          <FileText className="w-3 h-3 mr-1" />
+                          Available
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </TableCell>
                   </TableRow>
