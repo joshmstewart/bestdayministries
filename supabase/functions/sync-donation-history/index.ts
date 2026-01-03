@@ -238,20 +238,25 @@ serve(async (req) => {
         for (const invoice of invoices.data) {
           if (!invoice.amount_paid || invoice.amount_paid <= 0) continue;
           
-          const metadata = invoice.metadata || {};
+          const invoiceMetadata = invoice.metadata || {};
           
-          // SKIP store/marketplace purchases
-          if (metadata.order_id) {
-            logStep("Skipping marketplace invoice", { invoiceId: invoice.id });
-            continue;
-          }
-
           // Get related objects
           const chargeId = typeof invoice.charge === "string" ? invoice.charge : invoice.charge?.id;
           const charge = chargeId ? chargeMap.get(chargeId) || invoice.charge : null;
           
           const piId = typeof invoice.payment_intent === "string" ? invoice.payment_intent : invoice.payment_intent?.id;
           const paymentIntent = piId ? paymentIntentMap.get(piId) || invoice.payment_intent : null;
+          
+          // Combine metadata from invoice, charge, and payment_intent
+          const chargeMetadata = typeof charge === "object" ? charge?.metadata || {} : {};
+          const piMetadata = typeof paymentIntent === "object" ? paymentIntent?.metadata || {} : {};
+          const combinedInvoiceMetadata = { ...piMetadata, ...chargeMetadata, ...invoiceMetadata };
+          
+          // SKIP store/marketplace purchases - check all metadata sources
+          if (combinedInvoiceMetadata.order_id) {
+            logStep("Skipping marketplace invoice", { invoiceId: invoice.id, orderId: combinedInvoiceMetadata.order_id });
+            continue;
+          }
 
           // Get subscription ID
           let subscriptionId: string | null = null;
@@ -271,15 +276,15 @@ serve(async (req) => {
           } else if (customerToDesignation.has(customer.id)) {
             designation = customerToDesignation.get(customer.id)!;
           }
-          if (metadata.type === "donation") {
+          if (combinedInvoiceMetadata.type === "donation") {
             designation = "General Support";
           }
 
           // Merge metadata from all sources
           const mergedMetadata = {
-            ...(paymentIntent?.metadata || {}),
-            ...(typeof charge === "object" ? charge?.metadata || {} : {}),
-            ...(metadata || {}),
+            ...(piMetadata || {}),
+            ...(chargeMetadata || {}),
+            ...(invoiceMetadata || {}),
           };
 
           // Find linked donation record
@@ -328,43 +333,47 @@ serve(async (req) => {
           if (charge.status !== "succeeded") continue;
           if (!charge.amount || charge.amount <= 0) continue;
 
-          const metadata = charge.metadata || {};
+          const chargeMetadata = charge.metadata || {};
           
-          // SKIP marketplace purchases
-          if (metadata.order_id) {
-            logStep("Skipping marketplace charge", { chargeId: charge.id });
+          // Get payment intent for additional metadata
+          const chargePiId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
+          const chargePaymentIntent = chargePiId ? paymentIntentMap.get(chargePiId) : null;
+          const chargePiMetadata = chargePaymentIntent?.metadata || {};
+          
+          // Combine all metadata sources for checking marketplace purchases
+          const combinedMetadata = { ...chargePiMetadata, ...chargeMetadata };
+          
+          // SKIP marketplace purchases - check all metadata sources (charge, payment_intent)
+          if (combinedMetadata.order_id) {
+            logStep("Skipping marketplace charge", { chargeId: charge.id, orderId: combinedMetadata.order_id });
             continue;
           }
 
-          // Get payment intent if available
-          const piId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
-          const paymentIntent = piId ? paymentIntentMap.get(piId) : null;
-
           // Determine designation
-          const isSponsorship = metadata.bestie_id || metadata.bestieId || metadata.bestieName;
+          const isSponsorship = combinedMetadata.bestie_id || combinedMetadata.bestieId || combinedMetadata.bestieName;
           let designation = "General Support";
           if (isSponsorship) {
-            designation = `Sponsorship: ${metadata.bestieName || "Unknown"}`;
+            designation = `Sponsorship: ${combinedMetadata.bestieName || "Unknown"}`;
           }
 
-          // Merge metadata
+          // Merge metadata for storage
           const mergedMetadata = {
-            ...(paymentIntent?.metadata || {}),
-            ...(metadata || {}),
+            ...(chargePiMetadata || {}),
+            ...(chargeMetadata || {}),
           };
 
           // Find linked donation
           let donationId: string | null = null;
-          if (piId && donationLookup.has(piId)) {
-            donationId = donationLookup.get(piId)!;
+          if (chargePiId && donationLookup.has(chargePiId)) {
+            donationId = donationLookup.get(chargePiId)!;
           }
 
           // Find linked receipt
           let receiptId: string | null = null;
           if (charge.id && receiptLookup.has(charge.id)) {
             receiptId = receiptLookup.get(charge.id)!;
-          } else if (piId && receiptLookup.has(piId)) {
-            receiptId = receiptLookup.get(piId)!;
+          } else if (chargePiId && receiptLookup.has(chargePiId)) {
+            receiptId = receiptLookup.get(chargePiId)!;
           }
 
           transactionRecords.push({
@@ -374,7 +383,7 @@ serve(async (req) => {
             receipt_id: receiptId,
             stripe_invoice_id: null,
             stripe_charge_id: charge.id,
-            stripe_payment_intent_id: piId,
+            stripe_payment_intent_id: chargePiId,
             stripe_subscription_id: null,
             stripe_customer_id: customer.id,
             amount: charge.amount / 100,
@@ -383,10 +392,10 @@ serve(async (req) => {
             status: "paid",
             transaction_date: new Date(charge.created * 1000).toISOString(),
             stripe_mode: stripeMode,
-            designation, // Store the calculated designation
+            designation,
             raw_invoice: null,
             raw_charge: charge,
-            raw_payment_intent: paymentIntent,
+            raw_payment_intent: chargePaymentIntent,
             merged_metadata: mergedMetadata,
           });
         }
