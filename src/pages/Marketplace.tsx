@@ -3,7 +3,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Package, Store } from "lucide-react";
+import { ShoppingCart, Package, Store, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 import { useCartSession } from "@/hooks/useCartSession";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Marketplace = () => {
   const navigate = useNavigate();
@@ -20,6 +21,50 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, isAuthenticated, isLoading: cartSessionLoading } = useCartSession();
+
+  // Check store access mode and user role
+  const { data: accessCheck, isLoading: accessLoading } = useQuery({
+    queryKey: ['store-access-check'],
+    queryFn: async () => {
+      // Get access mode setting
+      const { data: settingData } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'store_access_mode')
+        .maybeSingle();
+      
+      const accessMode = settingData?.setting_value 
+        ? (typeof settingData.setting_value === 'string' 
+            ? settingData.setting_value 
+            : JSON.stringify(settingData.setting_value).replace(/"/g, ''))
+        : 'open';
+      
+      // Get current user and role
+      const { data: { user } } = await supabase.auth.getUser();
+      let userRole: string | null = null;
+      
+      if (user) {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        userRole = roleData?.role || null;
+      }
+      
+      const isAdmin = userRole === 'admin' || userRole === 'owner';
+      
+      // Determine access
+      let hasAccess = true;
+      if (accessMode === 'admins_only' && !isAdmin) {
+        hasAccess = false;
+      } else if (accessMode === 'authenticated' && !user) {
+        hasAccess = false;
+      }
+      
+      return { hasAccess, accessMode, isAdmin, isAuthenticated: !!user };
+    }
+  });
 
   // Check if user is a vendor
   const { data: userVendors } = useQuery({
@@ -115,6 +160,38 @@ const Marketplace = () => {
   });
 
   const totalCartCount = (cartCount || 0) + shopifyCartItems();
+
+  // Show access denied message if user doesn't have access
+  if (!accessLoading && accessCheck && !accessCheck.hasAccess) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <UnifiedHeader />
+        <main className="flex-1 pt-14 flex items-center justify-center">
+          <Card className="max-w-md mx-4">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Lock className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <CardTitle>Store Currently Unavailable</CardTitle>
+              <CardDescription>
+                {accessCheck.accessMode === 'admins_only' 
+                  ? "The store is currently in maintenance mode. Please check back later."
+                  : "Please sign in to access the store."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              {!accessCheck.isAuthenticated && (
+                <Button onClick={() => navigate('/auth')}>
+                  Sign In
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
