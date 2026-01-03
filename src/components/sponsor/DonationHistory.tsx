@@ -455,7 +455,7 @@ export const DonationHistory = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Bestie</TableHead>
+                  <TableHead>Designation</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Receipt #</TableHead>
