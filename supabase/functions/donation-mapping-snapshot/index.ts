@@ -334,6 +334,12 @@ serve(async (req) => {
       for (const pi of block.paymentIntents) {
         const piAny: any = pi;
         const meta = piAny.metadata || {};
+        // Extract invoice_id from payment_intent (can be in `invoice` or `payment_details.order_reference`)
+        let invoiceId = readId(piAny.invoice);
+        if (!invoiceId && piAny.payment_details?.order_reference) {
+          const ref = piAny.payment_details.order_reference;
+          if (typeof ref === "string" && ref.startsWith("in_")) invoiceId = ref;
+        }
         pushStripeItem({
           type: "payment_intent",
           id: piAny.id,
@@ -343,6 +349,7 @@ serve(async (req) => {
           status: piAny.status,
           customer_id: cid,
           payment_intent_id: piAny.id,
+          invoice_id: invoiceId,
           order_id: (meta as any).order_id,
           metadata: meta,
           raw: pi,
@@ -494,13 +501,16 @@ serve(async (req) => {
     // ---- Lightweight auto-linking (for human inspection) ----
     const byPaymentIntentId: Record<string, string[]> = {};
     const byOrderId: Record<string, string[]> = {};
+    const byInvoiceId: Record<string, string[]> = {};
 
     for (const it of stripeItemsUniq) {
       const key = `${it.type}:${it.id}`;
       const pi = it.payment_intent_id;
       const orderId = it.order_id;
+      const invId = it.invoice_id || (it.type === "invoice" ? it.id : undefined);
       if (pi) byPaymentIntentId[pi] = [...(byPaymentIntentId[pi] || []), key];
       if (orderId) byOrderId[orderId] = [...(byOrderId[orderId] || []), key];
+      if (invId) byInvoiceId[invId] = [...(byInvoiceId[invId] || []), key];
     }
 
     return new Response(
@@ -535,7 +545,7 @@ serve(async (req) => {
           donationHistoryCache: donationHistoryCache.data || [],
           activeSubscriptionsCache: activeSubscriptionsCache.data || [],
         },
-        links: { byPaymentIntentId, byOrderId },
+        links: { byPaymentIntentId, byOrderId, byInvoiceId },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
