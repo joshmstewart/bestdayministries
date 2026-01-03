@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, Loader2 } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Heart, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SortOption = "newest" | "popular";
@@ -30,6 +31,7 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [likingDrink, setLikingDrink] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [selectedDrink, setSelectedDrink] = useState<CustomDrink | null>(null);
 
   useEffect(() => {
     loadDrinks();
@@ -180,7 +182,11 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
         const isOwn = drink.creator_id === userId;
 
         return (
-          <Card key={drink.id} className="overflow-hidden group">
+          <Card 
+            key={drink.id} 
+            className="overflow-hidden group cursor-pointer"
+            onClick={() => setSelectedDrink(drink)}
+          >
             <CardContent className="p-0 relative">
               {/* Image */}
               <div className="aspect-square relative">
@@ -197,7 +203,10 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
                 )}
 
                 {/* Overlay on hover */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div 
+                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Button
                     variant="ghost"
                     size="icon"
@@ -238,6 +247,59 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
         );
       })}
       </div>
+
+      {/* Lightbox Dialog */}
+      <Dialog open={!!selectedDrink} onOpenChange={() => setSelectedDrink(null)}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          {selectedDrink && (
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white"
+                onClick={() => setSelectedDrink(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              
+              {selectedDrink.generated_image_url ? (
+                <img
+                  src={selectedDrink.generated_image_url}
+                  alt={selectedDrink.name}
+                  className="w-full h-auto max-h-[70vh] object-contain"
+                />
+              ) : (
+                <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <span className="text-8xl">☕</span>
+                </div>
+              )}
+              
+              <div className="p-4 bg-background">
+                <h2 className="text-xl font-semibold">{selectedDrink.name}</h2>
+                {selectedDrink.creator_name && (
+                  <p className="text-sm text-muted-foreground">by {selectedDrink.creator_name}</p>
+                )}
+                <div className="flex items-center gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleLike(selectedDrink.id)}
+                    disabled={likingDrink === selectedDrink.id}
+                  >
+                    <Heart
+                      className={cn(
+                        "h-4 w-4 mr-1",
+                        userLikes.has(selectedDrink.id) && "fill-red-500 text-red-500"
+                      )}
+                    />
+                    {selectedDrink.likes_count}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
