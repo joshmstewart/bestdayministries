@@ -70,7 +70,7 @@ serve(async (req) => {
 
     console.log("[GET-DONATION-HISTORY] User:", user.email);
 
-    // Get Stripe mode from app settings (supports both legacy string and object shapes)
+    // Get Stripe mode from app settings
     const { data: settingsData } = await supabaseAdmin
       .from("app_settings")
       .select("setting_value")
@@ -122,7 +122,6 @@ serve(async (req) => {
     });
 
     // --- Sponsorship lookup (DB supplement) ---
-    // Stripe metadata is not always present on Charge/Invoice, but our DB has a reliable mapping.
     const sponsorshipByStripeRefId = new Map<string, string>();
     const sponsorBestieIds = new Set<string>();
 
@@ -151,7 +150,7 @@ serve(async (req) => {
       console.log("[GET-DONATION-HISTORY] Sponsorship lookup failed (non-fatal)");
     }
 
-    // Also add any sponsor_bestie ids we can see directly in Stripe metadata
+    // Also add any sponsor_bestie ids from Stripe metadata
     for (const sub of subscriptions.data) {
       const id = readSponsorBestieIdFromMeta((sub as any)?.metadata);
       if (id) sponsorBestieIds.add(id);
@@ -182,7 +181,7 @@ serve(async (req) => {
 
     const donations: DonationRecord[] = [];
 
-    // Build helper maps for invoice → subscription resolution and de-duping
+    // Build helper maps
     const subscriptionItemToSubscriptionId = new Map<string, string>();
     const subscriptionsById = new Map<string, Stripe.Subscription>();
     for (const s of subscriptions.data) {
@@ -192,27 +191,37 @@ serve(async (req) => {
       }
     }
 
-    // Only de-dupe against *recurring* invoices.
-    const recurringInvoiceIds = new Set<string>();
-    const recurringInvoicePaymentIntentIds = new Set<string>();
+    // =====================================================
+    // KEY FIX: Build set of charge IDs referenced by invoices
+    // This is the canonical de-duplication approach
+    // =====================================================
+    const invoiceChargeIds = new Set<string>();
+    
+    for (const invoice of invoices.data) {
+      const invAny = invoice as any;
+      // invoice.charge is the primary link to the charge
+      const chargeId = readId(invAny.charge);
+      if (chargeId) invoiceChargeIds.add(chargeId);
+      // Some versions use latest_charge
+      const latestChargeId = readId(invAny.latest_charge);
+      if (latestChargeId) invoiceChargeIds.add(latestChargeId);
+    }
 
-    let recurringInvoicesIncluded = 0;
-    let nonRecurringInvoicesSkipped = 0;
+    console.log("[GET-DONATION-HISTORY] Invoice-linked charge IDs:", invoiceChargeIds.size);
+
+    let invoicesProcessed = 0;
+    let chargesProcessed = 0;
     let invoiceBackedChargesSkipped = 0;
 
-    // Process invoices (recurring payments)
+    // Process invoices (subscription payments)
     for (const invoice of invoices.data) {
       if (invoice.status !== "paid") continue;
 
-      if (!invoice.created || typeof invoice.created !== "number") {
-        console.log("[GET-DONATION-HISTORY] Skipping invoice with invalid created timestamp:", invoice.id);
-        continue;
-      }
+      if (!invoice.created || typeof invoice.created !== "number") continue;
 
       const invAny = invoice as any;
-      const billingReason = typeof invAny.billing_reason === "string" ? invAny.billing_reason : "";
 
-      // Resolve subscription ID (Stripe can return these in a few places)
+      // Resolve subscription ID
       let subscriptionId: string | undefined = readId(invAny.subscription);
 
       if (!subscriptionId && invAny.lines?.data?.length) {
@@ -222,7 +231,6 @@ serve(async (req) => {
             subscriptionId = lineSubId;
             break;
           }
-
           const subItemId = typeof line?.subscription_item === "string" ? line.subscription_item : undefined;
           if (subItemId && subscriptionItemToSubscriptionId.has(subItemId)) {
             subscriptionId = subscriptionItemToSubscriptionId.get(subItemId);
@@ -231,25 +239,16 @@ serve(async (req) => {
         }
       }
 
-      const isRecurring = Boolean(subscriptionId) || Boolean(readId(invAny.subscription)) || billingReason.startsWith("subscription");
-      if (!isRecurring) {
-        nonRecurringInvoicesSkipped++;
-        continue;
-      }
+      // Only process invoices that are subscription-based
+      const billingReason = typeof invAny.billing_reason === "string" ? invAny.billing_reason : "";
+      const isSubscriptionInvoice = Boolean(subscriptionId) || billingReason.startsWith("subscription");
+      
+      if (!isSubscriptionInvoice) continue;
 
-      recurringInvoiceIds.add(invoice.id);
       const invPaymentIntentId = readId(invAny.payment_intent);
-      if (invPaymentIntentId) recurringInvoicePaymentIntentIds.add(invPaymentIntentId);
 
-      // Default: recurring invoices are monthly
-      let frequency: "one-time" | "monthly" = "monthly";
-
-      // Resolve designation in priority order:
-      // 1) DB sponsorship mapping by subscription/payment_intent
-      // 2) Stripe subscription metadata (bestie_id)
-      // 3) Stripe invoice/payment_intent metadata
+      // Resolve designation
       let designation = "General Support";
-
       const sponsorBestieFromDb =
         (subscriptionId ? sponsorshipByStripeRefId.get(subscriptionId) : undefined) ||
         (invPaymentIntentId ? sponsorshipByStripeRefId.get(invPaymentIntentId) : undefined);
@@ -270,36 +269,12 @@ serve(async (req) => {
             designation = "Sponsorship";
           }
         }
-      } else {
-        // Fallback: classification sometimes lives on the PaymentIntent
-        let meta: Record<string, any> = (invAny.metadata || {}) as any;
-        if ((!readSponsorBestieIdFromMeta(meta) && !meta.type) && typeof invAny.payment_intent === "string") {
-          try {
-            const pi = await stripe.paymentIntents.retrieve(invAny.payment_intent);
-            meta = (pi?.metadata || {}) as any;
-          } catch {
-            console.log("[GET-DONATION-HISTORY] Failed to retrieve payment intent for invoice:", invoice.id);
-          }
-        }
-
-        if (meta.frequency === "one-time") frequency = "one-time";
-
-        if (isDonationMeta(meta)) {
-          designation = "General Support";
-        } else {
-          const sponsorBestieId = readSponsorBestieIdFromMeta(meta);
-          if (sponsorBestieId && sponsorBestieNameMap[sponsorBestieId]) {
-            designation = sponsorBestieNameMap[sponsorBestieId];
-          } else if (sponsorBestieId) {
-            designation = "Sponsorship";
-          }
-        }
       }
 
       donations.push({
         id: invoice.id,
         amount: (invoice.amount_paid || 0) / 100,
-        frequency,
+        frequency: "monthly", // All subscription invoices are monthly
         status: "completed",
         created_at: new Date(invoice.created * 1000).toISOString(),
         designation,
@@ -309,29 +284,24 @@ serve(async (req) => {
         receipt_url: invoice.hosted_invoice_url || undefined,
       });
 
-      recurringInvoicesIncluded++;
+      invoicesProcessed++;
     }
 
-    // Process one-time charges (and non-recurring invoice payments)
+    // Process charges (one-time payments ONLY)
     for (const charge of charges.data) {
       if (charge.status !== "succeeded") continue;
 
-      const paymentIntentId = readId((charge as any).payment_intent);
-
-      // De-dupe: recurring invoice payments show up as both an invoice + a charge.
-      const chargeInvoiceId = readId((charge as any).invoice);
-      if (
-        (paymentIntentId && recurringInvoicePaymentIntentIds.has(paymentIntentId)) ||
-        (chargeInvoiceId && recurringInvoiceIds.has(chargeInvoiceId))
-      ) {
+      // =====================================================
+      // KEY FIX: Skip if this charge is linked to any invoice
+      // =====================================================
+      if (invoiceChargeIds.has(charge.id)) {
         invoiceBackedChargesSkipped++;
         continue;
       }
 
-      if (!charge.created || typeof charge.created !== "number") {
-        console.log("[GET-DONATION-HISTORY] Skipping charge with invalid created timestamp:", charge.id);
-        continue;
-      }
+      if (!charge.created || typeof charge.created !== "number") continue;
+
+      const paymentIntentId = readId((charge as any).payment_intent);
 
       let meta: Record<string, any> = ((charge as any).metadata || {}) as any;
       if ((!readSponsorBestieIdFromMeta(meta) && !meta.type) && paymentIntentId) {
@@ -339,13 +309,12 @@ serve(async (req) => {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
           meta = (pi?.metadata || {}) as any;
         } catch {
-          console.log("[GET-DONATION-HISTORY] Failed to retrieve payment intent for charge:", charge.id);
+          // Non-fatal
         }
       }
 
       let designation = "General Support";
 
-      // DB sponsorship mapping is the most reliable for one-time sponsorships
       const sponsorBestieFromDb = paymentIntentId ? sponsorshipByStripeRefId.get(paymentIntentId) : undefined;
       if (sponsorBestieFromDb) {
         designation = sponsorBestieNameMap[sponsorBestieFromDb] || "Sponsorship";
@@ -374,6 +343,8 @@ serve(async (req) => {
         stripe_payment_intent_id: paymentIntentId,
         receipt_url: charge.receipt_url || undefined,
       });
+
+      chargesProcessed++;
     }
 
     // Sort by date descending
@@ -388,7 +359,6 @@ serve(async (req) => {
             ? new Date(s.current_period_end * 1000).toISOString()
             : null;
 
-        // Prefer DB mapping, then Stripe metadata
         const sponsorBestieFromDb = sponsorshipByStripeRefId.get(s.id);
         const sponsorBestieFromMeta = readSponsorBestieIdFromMeta((s as any).metadata);
         const sponsorBestieId = sponsorBestieFromDb || sponsorBestieFromMeta;
@@ -411,9 +381,10 @@ serve(async (req) => {
       });
 
     console.log("[GET-DONATION-HISTORY] Returning", donations.length, "donations", {
-      recurringInvoicesIncluded,
-      nonRecurringInvoicesSkipped,
+      invoicesProcessed,
+      chargesProcessed,
       invoiceBackedChargesSkipped,
+      invoiceChargeIdsCount: invoiceChargeIds.size,
     });
 
     return new Response(
