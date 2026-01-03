@@ -666,6 +666,27 @@ const VendorAuth = () => {
 
         <Card className="w-full max-w-lg border-2 shadow-xl relative z-10 max-h-[90vh] overflow-y-auto">
           <CardContent className="p-8 space-y-6">
+            {/* Navigation buttons at top */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/marketplace")}
+              >
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                Joy House Store
+              </Button>
+              
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/")}
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Homepage
+              </Button>
+            </div>
+
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Store className="w-8 h-8 text-primary" />
@@ -1058,27 +1079,7 @@ const VendorAuth = () => {
             </button>
           </div>
 
-          <div className="pt-4 border-t border-border space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate("/marketplace")}
-              >
-                <ShoppingBag className="w-4 h-4 mr-2" />
-                Joy House Store
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate("/")}
-              >
-                <Home className="w-4 h-4 mr-2" />
-                BDM Homepage
-              </Button>
-            </div>
-            
+          <div className="pt-4 border-t border-border">
             <Button
               variant="ghost"
               className="w-full"
