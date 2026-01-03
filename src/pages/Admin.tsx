@@ -73,6 +73,7 @@ import { SoundEffectsManager } from "@/components/admin/SoundEffectsManager";
 import { DrinkIngredientsManager } from "@/components/admin/DrinkIngredientsManager";
 import { DrinkVibesManager } from "@/components/admin/DrinkVibesManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
+import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -742,6 +743,7 @@ const Admin = () => {
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
                     <TabsTrigger value="coins">Coins</TabsTrigger>
                     <TabsTrigger value="store">Store Items</TabsTrigger>
+                    <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
                     <TabsTrigger value="pet-types">Pet Types</TabsTrigger>
                     <TabsTrigger value="locations">Locations</TabsTrigger>
                     <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
@@ -792,6 +794,10 @@ const Admin = () => {
 
                   <TabsContent value="store">
                     <StoreItemsManager />
+                  </TabsContent>
+
+                  <TabsContent value="marketplace">
+                    <StoreAccessManager />
                   </TabsContent>
 
                   <TabsContent value="pet-types">
