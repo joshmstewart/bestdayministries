@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText, Mail, Calendar, RefreshCw } from "lucide-react";
+import { Download, FileText, Mail, Calendar, RefreshCw, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Receipt {
@@ -18,6 +18,7 @@ interface Receipt {
   tax_year: number;
   sent_at: string;
   stripe_mode: string;
+  sponsorship_id: string | null;
 }
 
 export const DonationHistory = () => {
@@ -26,6 +27,7 @@ export const DonationHistory = () => {
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [generatingYear, setGeneratingYear] = useState<number | null>(null);
   const [generatingReceipts, setGeneratingReceipts] = useState(false);
+  const [managingId, setManagingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -144,6 +146,41 @@ export const DonationHistory = () => {
       });
     } finally {
       setGeneratingReceipts(false);
+    }
+  };
+
+  const manageDonation = async (receipt: Receipt) => {
+    if (!receipt.sponsorship_id) {
+      toast({
+        title: "Cannot Manage",
+        description: "This donation cannot be managed through the portal",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setManagingId(receipt.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-sponsorship', {
+        body: { sponsorshipId: receipt.sponsorship_id }
+      });
+
+      if (error) throw error;
+
+      if (data.portalUrl) {
+        window.open(data.portalUrl, '_blank');
+      } else {
+        throw new Error('No portal URL returned');
+      }
+    } catch (error: any) {
+      console.error('Error managing donation:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to open management portal",
+        variant: "destructive",
+      });
+    } finally {
+      setManagingId(null);
     }
   };
 
@@ -468,14 +505,27 @@ export const DonationHistory = () => {
                       <Badge variant="outline">{receipt.tax_year}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => downloadIndividualReceipt(receipt)}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </Button>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => downloadIndividualReceipt(receipt)}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                        {receipt.frequency === 'monthly' && receipt.sponsorship_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => manageDonation(receipt)}
+                            disabled={managingId === receipt.id}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Manage
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
