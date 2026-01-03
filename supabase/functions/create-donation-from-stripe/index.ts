@@ -198,19 +198,33 @@ serve(async (req) => {
     });
 
     // Check for existing donation to avoid duplicates
-    const duplicateCheck = await supabaseAdmin
-      .from("donations")
-      .select("id")
-      .eq("stripe_mode", stripeMode)
-      .or(`stripe_payment_intent_id.eq.${paymentIntentId},stripe_subscription_id.eq.${subscriptionId}`.replace(/\.eq\.undefined/g, '.is.null'))
-      .maybeSingle();
+    let duplicateExists = false;
+    
+    if (paymentIntentId) {
+      const { data: piMatch } = await supabaseAdmin
+        .from("donations")
+        .select("id")
+        .eq("stripe_mode", stripeMode)
+        .eq("stripe_payment_intent_id", paymentIntentId)
+        .maybeSingle();
+      if (piMatch?.id) duplicateExists = true;
+    }
+    
+    if (!duplicateExists && subscriptionId) {
+      const { data: subMatch } = await supabaseAdmin
+        .from("donations")
+        .select("id")
+        .eq("stripe_mode", stripeMode)
+        .eq("stripe_subscription_id", subscriptionId)
+        .maybeSingle();
+      if (subMatch?.id) duplicateExists = true;
+    }
 
-    if (duplicateCheck?.data?.id) {
+    if (duplicateExists) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "A donation with this payment intent or subscription already exists",
-          existingDonationId: duplicateCheck.data.id
+          error: "A donation with this payment intent or subscription already exists"
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }
       );
