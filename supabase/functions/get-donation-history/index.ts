@@ -70,7 +70,13 @@ serve(async (req) => {
 
     console.log("[GET-DONATION-HISTORY] User:", user.email);
 
-    // Get Stripe mode from app settings
+    // Read optional stripe mode override (owners/admins only)
+    const body = await req.json().catch(() => ({} as any));
+    const requestedMode = body?.stripe_mode;
+    const requestedStripeMode: "test" | "live" | null =
+      requestedMode === "test" || requestedMode === "live" ? requestedMode : null;
+
+    // Get Stripe mode from app settings (default)
     const { data: settingsData } = await supabaseAdmin
       .from("app_settings")
       .select("setting_value")
@@ -78,19 +84,38 @@ serve(async (req) => {
       .maybeSingle();
 
     const rawStripeMode: any = settingsData?.setting_value;
-    const stripeMode =
+    const defaultStripeMode =
       rawStripeMode === "test" || rawStripeMode === "live"
         ? rawStripeMode
         : rawStripeMode?.mode === "test" || rawStripeMode?.mode === "live"
           ? rawStripeMode.mode
           : "live";
 
+    // Check role for override permission
+    let allowOverride = false;
+    try {
+      const { data: roleRow } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      allowOverride = roleRow?.role === "admin" || roleRow?.role === "owner";
+    } catch {
+      allowOverride = false;
+    }
+
+    const stripeMode = allowOverride && requestedStripeMode ? requestedStripeMode : defaultStripeMode;
+
     const stripeKey =
       stripeMode === "live" ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") : Deno.env.get("STRIPE_SECRET_KEY_TEST");
 
     if (!stripeKey) throw new Error(`Stripe ${stripeMode} key not configured`);
 
-    console.log("[GET-DONATION-HISTORY] Using Stripe mode:", stripeMode);
+    console.log("[GET-DONATION-HISTORY] Using Stripe mode:", stripeMode, {
+      requestedStripeMode,
+      allowOverride,
+    });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -221,6 +246,10 @@ serve(async (req) => {
 
       const invAny = invoice as any;
 
+      // Skip store/marketplace purchases
+      const invMeta = (invAny.metadata || {}) as any;
+      if (invMeta?.order_id) continue;
+
       // Resolve subscription ID
       let subscriptionId: string | undefined = readId(invAny.subscription);
 
@@ -312,6 +341,9 @@ serve(async (req) => {
           // Non-fatal
         }
       }
+
+      // Skip store/marketplace purchases
+      if ((meta as any)?.order_id) continue;
 
       let designation = "General Support";
 

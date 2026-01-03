@@ -34,18 +34,30 @@ interface SyncStatus {
   sync_status: string;
 }
 
+type StripeMode = "live" | "test";
+
 export const DonationHistory = () => {
+  const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+
   const [donations, setDonations] = useState<CachedDonation[]>([]);
   const [subscriptions, setSubscriptions] = useState<CachedSubscription[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+
+  // Owner/Admin can switch between live/test to match Stripe dashboard view
+  const [stripeMode, setStripeMode] = useState<StripeMode>("live");
+  const [stripeModeUsed, setStripeModeUsed] = useState<StripeMode | null>(null);
+  const [canChooseStripeMode, setCanChooseStripeMode] = useState(false);
+
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [generatingYear, setGeneratingYear] = useState<number | null>(null);
   const [managingSubscription, setManagingSubscription] = useState(false);
+
   const { toast } = useToast();
-  
+
   // Prevent double-fetch in React StrictMode
   const hasFetchedRef = useRef(false);
 
@@ -54,120 +66,98 @@ export const DonationHistory = () => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserEmail(user?.email || null);
+      setUserId(user?.id || null);
+
+      // Only owners/admins should be able to override stripe mode in the UI.
+      if (user?.id) {
+        const { data: roleRow } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        setCanChooseStripeMode(roleRow?.role === "admin" || roleRow?.role === "owner");
+      }
     };
+
     getUser();
   }, []);
 
-  // Load from cache
-  const loadCachedData = useCallback(async () => {
-    if (!userEmail) return;
+  // Load from Stripe API (source of truth)
+  const loadFromStripe = useCallback(async (reason: "initial" | "refresh" = "refresh") => {
+    if (!userId) return;
+
+    if (reason === "refresh") setSyncing(true);
+    else setLoading(true);
 
     try {
-      console.log('[DonationHistory] Loading from cache...');
-      
-      // Load cached donations
-      const { data: donationsData, error: donationsError } = await supabase
-        .from("donation_history_cache")
-        .select("*")
-        .order("donation_date", { ascending: false });
+      console.log("[DonationHistory] Loading from Stripe API...", { stripeMode });
 
-      if (donationsError) {
-        console.error('[DonationHistory] Cache error:', donationsError);
-        throw donationsError;
+      const { data, error } = await supabase.functions.invoke("get-donation-history", {
+        body: { stripe_mode: stripeMode },
+      });
+
+      if (error) throw error;
+
+      const nextDonations: CachedDonation[] = (data?.donations || []).map((d: any) => ({
+        id: d.id,
+        amount: Number(d.amount) || 0,
+        frequency: d.frequency || "one-time",
+        status: d.status || "completed",
+        designation: d.designation || "General Support",
+        donation_date: d.created_at,
+        receipt_url: d.receipt_url ?? null,
+        stripe_subscription_id: d.stripe_subscription_id ?? null,
+      }));
+
+      const nextSubscriptions: CachedSubscription[] = (data?.subscriptions || []).map((s: any) => ({
+        id: s.id,
+        amount: Number(s.amount) || 0,
+        designation: s.designation || "General Support",
+        status: s.status || "active",
+        current_period_end: s.current_period_end ?? null,
+        stripe_subscription_id: s.id,
+      }));
+
+      setDonations(nextDonations);
+      setSubscriptions(nextSubscriptions);
+      setStripeModeUsed((data?.stripe_mode as StripeMode) || null);
+      setSyncStatus({ last_synced_at: new Date().toISOString(), sync_status: "completed" });
+
+      if (reason === "refresh") {
+        toast({
+          title: "Updated",
+          description: `Loaded ${nextDonations.length} transactions from Stripe`,
+        });
       }
-      
-      console.log('[DonationHistory] Loaded', donationsData?.length, 'cached donations');
-      setDonations(donationsData || []);
-
-      // Load cached subscriptions
-      const { data: subsData, error: subsError } = await supabase
-        .from("active_subscriptions_cache")
-        .select("*");
-
-      if (subsError) throw subsError;
-      setSubscriptions(subsData || []);
-
-      // Load sync status
-      const { data: statusData } = await supabase
-        .from("donation_sync_status")
-        .select("last_synced_at, sync_status")
-        .eq("user_email", userEmail)
-        .maybeSingle();
-
-      setSyncStatus(statusData);
-
     } catch (error: any) {
-      console.error('[DonationHistory] Error loading cached data:', error);
+      console.error("[DonationHistory] Stripe API load error:", error);
       toast({
         title: "Error",
-        description: "Failed to load donation history",
+        description: error.message || "Failed to load donation history from Stripe",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
-    }
-  }, [userEmail, toast]);
-
-  // Sync from Stripe API
-  const syncFromStripe = async () => {
-    if (!userEmail) return;
-    
-    setSyncing(true);
-    try {
-      console.log('[DonationHistory] Syncing from Stripe...');
-      const { data, error } = await supabase.functions.invoke("sync-donation-history");
-      
-      if (error) throw error;
-      
-      console.log('[DonationHistory] Sync result:', data);
-      toast({
-        title: "Synced",
-        description: `Synced ${data.donationsSynced} donations from Stripe`,
-      });
-      
-      // Reload cached data
-      await loadCachedData();
-    } catch (error: any) {
-      console.error('[DonationHistory] Sync error:', error);
-      toast({
-        title: "Sync Failed",
-        description: error.message || "Failed to sync from Stripe",
-        variant: "destructive",
-      });
-    } finally {
       setSyncing(false);
     }
-  };
+  }, [userId, stripeMode, toast]);
+
+  const refresh = () => loadFromStripe("refresh");
 
   // Initial load
   useEffect(() => {
-    if (userEmail && !hasFetchedRef.current) {
+    if (userId && !hasFetchedRef.current) {
       hasFetchedRef.current = true;
-      loadCachedData();
+      loadFromStripe("initial");
     }
-  }, [userEmail, loadCachedData]);
+  }, [userId, loadFromStripe]);
 
-  // Auto-sync if no data or stale (older than 1 hour)
+  // Reload when switching stripe mode (owner/admin)
   useEffect(() => {
-    if (loading || syncing || !userEmail) return;
-    
-    // No cached data - need to sync
-    if (donations.length === 0) {
-      console.log('[DonationHistory] No cached data, triggering sync...');
-      syncFromStripe();
-      return;
-    }
-    
-    // Check if data is stale
-    if (syncStatus?.last_synced_at) {
-      const lastSync = new Date(syncStatus.last_synced_at);
-      const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      if (lastSync < hourAgo) {
-        console.log('[DonationHistory] Data is stale, triggering sync...');
-        syncFromStripe();
-      }
-    }
-  }, [loading, donations.length, syncStatus, userEmail, syncing]);
+    if (!userId || !hasFetchedRef.current) return;
+    loadFromStripe("refresh");
+  }, [stripeMode, userId, loadFromStripe]);
 
   const generateYearEndSummary = async (year: number, sendEmail: boolean = false) => {
     setGeneratingYear(year);
@@ -292,7 +282,7 @@ export const DonationHistory = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={syncFromStripe}
+              onClick={refresh}
               disabled={syncing}
             >
               {syncing ? (
@@ -312,26 +302,42 @@ export const DonationHistory = () => {
     <div className="space-y-6">
       {/* Header with sync status */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="space-y-1">
           {syncStatus?.last_synced_at && (
             <p className="text-sm text-muted-foreground flex items-center gap-1">
               <Clock className="w-4 h-4" />
-              Last synced: {format(new Date(syncStatus.last_synced_at), "MMM d, yyyy h:mm a")}
+              Last refreshed: {format(new Date(syncStatus.last_synced_at), "MMM d, yyyy h:mm a")}
+            </p>
+          )}
+          {stripeModeUsed && (
+            <p className="text-sm text-muted-foreground">
+              Stripe mode: <span className="font-medium">{stripeModeUsed}</span>
             </p>
           )}
         </div>
-        <Button 
-          variant="outline" 
-          onClick={syncFromStripe} 
-          disabled={syncing}
-        >
-          {syncing ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4 mr-2" />
+
+        <div className="flex items-center gap-3">
+          {canChooseStripeMode && (
+            <Select value={stripeMode} onValueChange={(v) => setStripeMode(v as StripeMode)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Stripe mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="live">Live</SelectItem>
+                <SelectItem value="test">Test</SelectItem>
+              </SelectContent>
+            </Select>
           )}
-          Refresh
-        </Button>
+
+          <Button variant="outline" onClick={refresh} disabled={syncing}>
+            {syncing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Active Subscriptions */}
@@ -475,7 +481,7 @@ export const DonationHistory = () => {
                 {filteredDonations.map((donation) => (
                   <TableRow key={donation.id}>
                     <TableCell>
-                      {format(new Date(donation.donation_date), "MMM d, yyyy")}
+                      {format(new Date(donation.donation_date), "MMM d, yyyy h:mm a")}
                     </TableCell>
                     <TableCell className="font-medium">
                       {donation.designation}
