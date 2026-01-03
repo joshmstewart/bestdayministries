@@ -3,8 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Heart, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type SortOption = "newest" | "popular";
 
 interface CustomDrink {
   id: string;
@@ -26,19 +29,28 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
   const [loading, setLoading] = useState(true);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [likingDrink, setLikingDrink] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   useEffect(() => {
     loadDrinks();
     loadUserLikes();
-  }, [userId]);
+  }, [userId, sortBy]);
 
   const loadDrinks = async () => {
-    const { data, error } = await supabase
+    setLoading(true);
+    const query = supabase
       .from("custom_drinks")
       .select("*")
       .eq("is_public", true)
-      .order("created_at", { ascending: false })
       .limit(50);
+
+    if (sortBy === "newest") {
+      query.order("created_at", { ascending: false });
+    } else {
+      query.order("likes_count", { ascending: false });
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({
@@ -150,7 +162,19 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="popular">Most Popular</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
       {drinks.map((drink) => {
         const isLiked = userLikes.has(drink.id);
         const isOwn = drink.creator_id === userId;
@@ -213,6 +237,7 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
           </Card>
         );
       })}
+      </div>
     </div>
   );
 };
