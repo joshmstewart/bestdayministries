@@ -33,6 +33,36 @@ async function listAll<T>(
   return out;
 }
 
+async function searchAll<T>(
+  fn: (params: any) => Promise<{ data: T[]; has_more: boolean; next_page?: string }>,
+  params: Record<string, any>
+): Promise<T[]> {
+  const out: T[] = [];
+  let page: string | undefined = undefined;
+  for (let i = 0; i < 50; i++) {
+    const resp = await fn({ ...params, limit: 100, ...(page ? { page } : {}) });
+    out.push(...(resp.data || []));
+    if (!resp.has_more || resp.data.length === 0) break;
+    page = (resp as any).next_page;
+    if (!page) break;
+  }
+  return out;
+}
+
+const uniqByKey = <T>(items: T[], keyFn: (t: T) => string) => {
+  const m = new Map<string, T>();
+  for (const it of items) {
+    const k = keyFn(it);
+    if (!m.has(k)) m.set(k, it);
+  }
+  return Array.from(m.values());
+};
+
+const safeStr = (v: any) => (v === null || v === undefined ? "" : String(v));
+
+const escapeStripeQueryValue = (v: string) => v.replace(/\\/g, "\\\\").replace(/\"/g, "\\\"");
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -68,20 +98,22 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const email = (body.email || "").toString().trim();
-    const date = (body.date || "").toString().trim(); // YYYY-MM-DD
+    const emailInput = safeStr(body.email).trim();
+    const email = emailInput.toLowerCase();
+    const date = safeStr(body.date).trim(); // YYYY-MM-DD
     const stripeMode = body.stripe_mode === "live" ? "live" : "test";
-    const timezone = (body.timezone || "America/Phoenix").toString().trim();
+    const timezone = safeStr(body.timezone || "America/Phoenix").trim();
 
     if (!email) throw new Error("email is required");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("date must be YYYY-MM-DD");
 
+    console.log("[DONATION-MAPPING-SNAPSHOT] Request", { emailInput, emailNormalized: email, date, timezone, stripeMode });
+
     // Convert date to ISO range at 00:00-24:00 in chosen timezone
     const fakeStart = new Date(`${date}T00:00:00`);
-    const formatInTz = (d: Date, tz: string) => {
-      return new Date(d.toLocaleString("en-US", { timeZone: tz }));
-    };
-    // Get offset in milliseconds between UTC and chosen timezone for that day
+
+    // Get offset in milliseconds between UTC and chosen timezone for that day.
+    // We do this by formatting the same instant into the target TZ and UTC, then comparing.
     const tzStartLocal = new Date(fakeStart.toLocaleString("en-US", { timeZone: timezone }));
     const tzStartUtc = new Date(fakeStart.toLocaleString("en-US", { timeZone: "UTC" }));
     const offsetMs = tzStartUtc.getTime() - tzStartLocal.getTime();
@@ -89,19 +121,49 @@ serve(async (req) => {
     const startIso = new Date(fakeStart.getTime() + offsetMs).toISOString();
     const endIso = new Date(fakeStart.getTime() + offsetMs + 24 * 60 * 60 * 1000).toISOString();
 
+    const startTs = toUnix(startIso);
+    const endTs = toUnix(endIso);
+
+    console.log("[DONATION-MAPPING-SNAPSHOT] Window", { startIso, endIso, startTs, endTs });
+
     const stripeKey = stripeMode === "live" ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") : Deno.env.get("STRIPE_SECRET_KEY_TEST");
     if (!stripeKey) throw new Error(`Stripe ${stripeMode} key not configured`);
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Stripe customers (can be >1 per email)
-    const customers = await stripe.customers.list({ email, limit: 100 });
-    const customerIds = customers.data.map((c: any) => c.id);
+    const customerIds: string[] = [];
+    const stripeCustomers: any[] = [];
 
-    // If Stripe has no customer for the email, still return DB-only snapshot
-    const created = { gte: toUnix(startIso), lt: toUnix(endIso) };
+    // Prefer Search API when available (more reliable than list-by-email in some cases)
+    if ((stripe as any).customers?.search) {
+      const q = `email:"${escapeStripeQueryValue(email)}"`;
+      const found = await searchAll((p) => (stripe as any).customers.search(p), { query: q });
+      stripeCustomers.push(...found);
+    } else {
+      const listed = await stripe.customers.list({ email, limit: 100 });
+      stripeCustomers.push(...(listed.data || []));
+    }
 
-    const stripeItems: any[] = [];
+    // If still none, retry with the original casing (Stripe can be picky)
+    if (stripeCustomers.length === 0 && emailInput && emailInput !== email) {
+      const email2 = emailInput.trim();
+      try {
+        const listed2 = await stripe.customers.list({ email: email2, limit: 100 });
+        stripeCustomers.push(...(listed2.data || []));
+      } catch {
+        // ignore
+      }
+    }
+
+    for (const c of stripeCustomers) customerIds.push(c.id);
+
+    console.log("[DONATION-MAPPING-SNAPSHOT] Customers", { found: customerIds.length, customerIds });
+
+    // If Stripe has no customer for the email, we still try email-based Stripe searches.
+    const created = { gte: startTs, lt: endTs };
+
+    const stripeItemsRaw: any[] = [];
 
     const perCustomer = await Promise.all(
       customerIds.map(async (customer: string) => {
@@ -117,13 +179,62 @@ serve(async (req) => {
       })
     );
 
+    // Fallback: email-based searches (covers guest checkouts / missing customer email)
+    let searchCounts = {
+      chargesByBillingEmail: 0,
+      chargesByReceiptEmail: 0,
+      invoicesByCustomerEmail: 0,
+      paymentIntentsByReceiptEmail: 0,
+      checkoutSessionsByCustomerDetailsEmail: 0,
+    };
+
+    if ((stripe as any).charges?.search) {
+      const q1 = `created>=${startTs} AND created<${endTs} AND billing_details.email:"${escapeStripeQueryValue(email)}"`;
+      const q2 = `created>=${startTs} AND created<${endTs} AND receipt_email:"${escapeStripeQueryValue(email)}"`;
+      const [a, b] = await Promise.all([
+        searchAll((p) => (stripe as any).charges.search(p), { query: q1 }),
+        searchAll((p) => (stripe as any).charges.search(p), { query: q2 }),
+      ]);
+      searchCounts.chargesByBillingEmail = a.length;
+      searchCounts.chargesByReceiptEmail = b.length;
+      stripeItemsRaw.push(...a.map((x: any) => ({ __searchType: "charge", raw: x })));
+      stripeItemsRaw.push(...b.map((x: any) => ({ __searchType: "charge", raw: x })));
+    }
+
+    if ((stripe as any).invoices?.search) {
+      const q = `created>=${startTs} AND created<${endTs} AND customer_email:"${escapeStripeQueryValue(email)}"`;
+      const inv = await searchAll((p) => (stripe as any).invoices.search(p), { query: q });
+      searchCounts.invoicesByCustomerEmail = inv.length;
+      stripeItemsRaw.push(...inv.map((x: any) => ({ __searchType: "invoice", raw: x })));
+    }
+
+    if ((stripe as any).paymentIntents?.search) {
+      const q = `created>=${startTs} AND created<${endTs} AND receipt_email:"${escapeStripeQueryValue(email)}"`;
+      const pis = await searchAll((p) => (stripe as any).paymentIntents.search(p), { query: q });
+      searchCounts.paymentIntentsByReceiptEmail = pis.length;
+      stripeItemsRaw.push(...pis.map((x: any) => ({ __searchType: "payment_intent", raw: x })));
+    }
+
+    if ((stripe as any).checkout?.sessions?.search) {
+      const q = `created>=${startTs} AND created<${endTs} AND customer_details.email:"${escapeStripeQueryValue(email)}"`;
+      const sess = await searchAll((p) => (stripe as any).checkout.sessions.search(p), { query: q });
+      searchCounts.checkoutSessionsByCustomerDetailsEmail = sess.length;
+      stripeItemsRaw.push(...sess.map((x: any) => ({ __searchType: "checkout_session", raw: x })));
+    }
+
+    console.log("[DONATION-MAPPING-SNAPSHOT] Search fallback counts", searchCounts);
+
+    const stripeItems: any[] = [];
+
+    const pushStripeItem = (it: any) => stripeItems.push(it);
+
     for (const block of perCustomer) {
       const cid = block.customer;
 
       for (const ch of block.charges) {
         const piId = readId((ch as any).payment_intent);
         const meta = (ch as any).metadata || {};
-        stripeItems.push({
+        pushStripeItem({
           type: "charge",
           id: (ch as any).id,
           created: (ch as any).created ? new Date(((ch as any).created as number) * 1000).toISOString() : undefined,
@@ -142,7 +253,7 @@ serve(async (req) => {
       for (const inv of block.invoices) {
         const invAny = inv as any;
         const meta = invAny.metadata || {};
-        stripeItems.push({
+        pushStripeItem({
           type: "invoice",
           id: invAny.id,
           created: invAny.created ? new Date((invAny.created as number) * 1000).toISOString() : undefined,
@@ -161,7 +272,7 @@ serve(async (req) => {
       for (const s of block.sessions) {
         const sess: any = s;
         const meta = sess.metadata || {};
-        stripeItems.push({
+        pushStripeItem({
           type: "checkout_session",
           id: sess.id,
           created: sess.created ? new Date((sess.created as number) * 1000).toISOString() : undefined,
@@ -180,7 +291,7 @@ serve(async (req) => {
       for (const pi of block.paymentIntents) {
         const piAny: any = pi;
         const meta = piAny.metadata || {};
-        stripeItems.push({
+        pushStripeItem({
           type: "payment_intent",
           id: piAny.id,
           created: piAny.created ? new Date((piAny.created as number) * 1000).toISOString() : undefined,
@@ -198,7 +309,7 @@ serve(async (req) => {
       for (const sub of block.subscriptions) {
         const subAny: any = sub;
         const meta = subAny.metadata || {};
-        stripeItems.push({
+        pushStripeItem({
           type: "subscription",
           id: subAny.id,
           created: subAny.created ? new Date((subAny.created as number) * 1000).toISOString() : undefined,
@@ -213,8 +324,98 @@ serve(async (req) => {
       }
     }
 
+    // Merge in fallback search results (if any)
+    for (const r of stripeItemsRaw) {
+      const raw = r.raw;
+      const type = r.__searchType as string;
+      const cid = readId((raw as any).customer);
+
+      if (type === "charge") {
+        const piId = readId((raw as any).payment_intent);
+        const meta = (raw as any).metadata || {};
+        pushStripeItem({
+          type: "charge",
+          id: (raw as any).id,
+          created: (raw as any).created ? new Date(((raw as any).created as number) * 1000).toISOString() : undefined,
+          amount: typeof (raw as any).amount === "number" ? (raw as any).amount / 100 : undefined,
+          currency: (raw as any).currency,
+          status: (raw as any).status,
+          customer_id: cid,
+          payment_intent_id: piId,
+          invoice_id: readId((raw as any).invoice),
+          order_id: (meta as any).order_id,
+          metadata: meta,
+          raw,
+        });
+      }
+
+      if (type === "invoice") {
+        const meta = (raw as any).metadata || {};
+        pushStripeItem({
+          type: "invoice",
+          id: (raw as any).id,
+          created: (raw as any).created ? new Date(((raw as any).created as number) * 1000).toISOString() : undefined,
+          amount: typeof (raw as any).amount_paid === "number" ? (raw as any).amount_paid / 100 : undefined,
+          currency: (raw as any).currency,
+          status: (raw as any).status,
+          customer_id: cid,
+          payment_intent_id: readId((raw as any).payment_intent),
+          subscription_id: readId((raw as any).subscription),
+          order_id: (meta as any).order_id,
+          metadata: meta,
+          raw,
+        });
+      }
+
+      if (type === "payment_intent") {
+        const meta = (raw as any).metadata || {};
+        pushStripeItem({
+          type: "payment_intent",
+          id: (raw as any).id,
+          created: (raw as any).created ? new Date(((raw as any).created as number) * 1000).toISOString() : undefined,
+          amount: typeof (raw as any).amount === "number" ? (raw as any).amount / 100 : undefined,
+          currency: (raw as any).currency,
+          status: (raw as any).status,
+          customer_id: cid,
+          payment_intent_id: (raw as any).id,
+          order_id: (meta as any).order_id,
+          metadata: meta,
+          raw,
+        });
+      }
+
+      if (type === "checkout_session") {
+        const meta = (raw as any).metadata || {};
+        pushStripeItem({
+          type: "checkout_session",
+          id: (raw as any).id,
+          created: (raw as any).created ? new Date(((raw as any).created as number) * 1000).toISOString() : undefined,
+          amount: typeof (raw as any).amount_total === "number" ? (raw as any).amount_total / 100 : undefined,
+          currency: (raw as any).currency,
+          status: (raw as any).status,
+          customer_id: cid,
+          payment_intent_id: readId((raw as any).payment_intent),
+          subscription_id: readId((raw as any).subscription),
+          order_id: (meta as any).order_id,
+          metadata: meta,
+          raw,
+        });
+      }
+    }
+
+    const stripeItemsUniq = uniqByKey(stripeItems, (it) => `${it.type}:${it.id}`);
+
+    console.log("[DONATION-MAPPING-SNAPSHOT] Stripe items", {
+      total: stripeItemsUniq.length,
+      charges: stripeItemsUniq.filter((i) => i.type === "charge").length,
+      invoices: stripeItemsUniq.filter((i) => i.type === "invoice").length,
+      sessions: stripeItemsUniq.filter((i) => i.type === "checkout_session").length,
+      paymentIntents: stripeItemsUniq.filter((i) => i.type === "payment_intent").length,
+      subscriptions: stripeItemsUniq.filter((i) => i.type === "subscription").length,
+    });
+
     // ---- DB side (ALL records for that date + email + linked user IDs) ----
-    const { data: profiles } = await supabaseAdmin.from("profiles").select("*").eq("email", email);
+    const { data: profiles } = await supabaseAdmin.from("profiles").select("*").ilike("email", email);
     const profileIds = (profiles || []).map((p: any) => p.id);
 
     const start = startIso;
@@ -223,7 +424,7 @@ serve(async (req) => {
     const donationsByEmail = await supabaseAdmin
       .from("donations")
       .select("*")
-      .eq("donor_email", email)
+      .ilike("donor_email", email)
       .gte("created_at", start)
       .lt("created_at", end);
 
@@ -239,7 +440,7 @@ serve(async (req) => {
     const sponsorshipsByEmail = await supabaseAdmin
       .from("sponsorships")
       .select("*")
-      .eq("sponsor_email", email)
+      .ilike("sponsor_email", email)
       .gte("created_at", start)
       .lt("created_at", end);
 
@@ -255,7 +456,7 @@ serve(async (req) => {
     const receiptsByEmail = await supabaseAdmin
       .from("sponsorship_receipts")
       .select("*")
-      .eq("sponsor_email", email)
+      .ilike("sponsor_email", email)
       .gte("transaction_date", start)
       .lt("transaction_date", end);
 
@@ -271,7 +472,7 @@ serve(async (req) => {
     const ordersByEmail = await supabaseAdmin
       .from("orders")
       .select("*")
-      .eq("customer_email", email)
+      .ilike("customer_email", email)
       .gte("created_at", start)
       .lt("created_at", end);
 
@@ -279,13 +480,13 @@ serve(async (req) => {
       ? await supabaseAdmin
           .from("orders")
           .select("*")
-          .or(
-            [
-              `user_id.in.(${profileIds.join(",")})`,
-              `customer_id.in.(${profileIds.join(",")})`,
-              `customer_email.eq.${email}`,
-            ].join(",")
-          )
+            .or(
+              [
+                `user_id.in.(${profileIds.join(",")})`,
+                `customer_id.in.(${profileIds.join(",")})`,
+                `customer_email.ilike.${email}`,
+              ].join(",")
+            )
           .gte("created_at", start)
           .lt("created_at", end)
       : { data: [] as any[] };
@@ -301,14 +502,14 @@ serve(async (req) => {
     const donationHistoryCache = await supabaseAdmin
       .from("donation_history_cache")
       .select("*")
-      .eq("user_email", email)
+      .ilike("user_email", email)
       .gte("donation_date", start)
       .lt("donation_date", end);
 
     const activeSubscriptionsCache = await supabaseAdmin
       .from("active_subscriptions_cache")
       .select("*")
-      .eq("user_email", email);
+      .ilike("user_email", email);
 
     const uniqById = (rows: any[]) => {
       const m = new Map<string, any>();
@@ -328,7 +529,7 @@ serve(async (req) => {
     const byPaymentIntentId: Record<string, string[]> = {};
     const byOrderId: Record<string, string[]> = {};
 
-    for (const it of stripeItems) {
+    for (const it of stripeItemsUniq) {
       const key = `${it.type}:${it.id}`;
       const pi = it.payment_intent_id;
       const orderId = it.order_id;
@@ -342,8 +543,22 @@ serve(async (req) => {
         stripeMode,
         date,
         window: { start: startIso, end: endIso },
-        customerIds,
-        stripe: { items: stripeItems },
+        customerIds: uniqByKey(customerIds, (x) => x),
+        stripe: {
+          items: stripeItemsUniq,
+          debug: {
+            emailInput,
+            emailNormalized: email,
+            customerCount: customerIds.length,
+            usedSearchApis: {
+              customersSearch: Boolean((stripe as any).customers?.search),
+              chargesSearch: Boolean((stripe as any).charges?.search),
+              invoicesSearch: Boolean((stripe as any).invoices?.search),
+              paymentIntentsSearch: Boolean((stripe as any).paymentIntents?.search),
+              checkoutSessionsSearch: Boolean((stripe as any).checkout?.sessions?.search),
+            },
+          },
+        },
         database: {
           profiles: profiles || [],
           donations,

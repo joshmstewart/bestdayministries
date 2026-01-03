@@ -24,6 +24,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 ### Payments & Donations
 - **`create-donation-checkout`** - [Public] Creates Stripe checkout for one-time and recurring donations
 - **`create-sponsorship-checkout`** - [Public] Creates Stripe checkout for bestie sponsorships
+- **`donation-mapping-snapshot`** - [Admin Only] Loads all Stripe + DB objects for an email + date window for manual mapping
 - **`stripe-webhook`** - [Webhook] Handles all Stripe events (dual mode: test/live)
 - **`manage-sponsorship`** - [Auth Required] Customer portal for managing subscriptions
 - **`update-sponsorship`** - [Auth Required] Updates sponsorship tier/amount
@@ -95,6 +96,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | create-user | Admin | Supabase | Creates test user accounts |
 | create-vendor-transfer | Internal | Stripe | Transfers funds to vendor on fulfillment |
 | check-stripe-connect-status | Auth | Stripe | Checks vendor Stripe Connect status |
+| donation-mapping-snapshot | Admin | Stripe, Supabase | Loads all Stripe + DB objects for email + date mapping |
 | generate-receipts | Cron | Resend, Stripe | Batch generates monthly receipts |
 | generate-year-end-summary | Cron | Supabase | Creates annual giving summaries |
 | get-google-places-key | Public | None | Returns Google Places API key |
