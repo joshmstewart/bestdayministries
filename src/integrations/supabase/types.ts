@@ -6126,6 +6126,13 @@ export type Database = {
           status: string
         }[]
       }
+      get_marketplace_access_settings: {
+        Args: never
+        Returns: {
+          marketplace_stripe_mode: string
+          store_access_mode: string
+        }[]
+      }
       get_notification_preferences: {
         Args: { _user_id: string }
         Returns: {
