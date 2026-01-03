@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Store, ArrowLeft, Info, ChevronDown, Package, CreditCard, Truck, HelpCircle, Heart, Users, Sparkles } from "lucide-react";
+import { Store, ArrowLeft, Info, ChevronDown, Package, CreditCard, Truck, HelpCircle, Heart, Users, Sparkles, ShoppingBag, Home } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { AvatarPicker } from "@/components/AvatarPicker";
@@ -657,9 +657,9 @@ const VendorAuth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative elements */}
-      <div className="absolute inset-0">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4 relative overflow-auto">
+      {/* Decorative elements - pointer-events-none allows scrolling through them */}
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-20 right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
       </div>
@@ -1059,21 +1059,33 @@ const VendorAuth = () => {
           </div>
 
           <div className="pt-4 border-t border-border space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/marketplace")}
+              >
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                Joy House Store
+              </Button>
+              
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/")}
+              >
+                <Home className="w-4 h-4 mr-2" />
+                BDM Homepage
+              </Button>
+            </div>
+            
             <Button
-              variant="outline"
+              variant="ghost"
               className="w-full"
               onClick={() => navigate("/auth")}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Regular User Login
-            </Button>
-            
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => navigate("/")}
-            >
-              Back to Home
             </Button>
           </div>
         </CardContent>
