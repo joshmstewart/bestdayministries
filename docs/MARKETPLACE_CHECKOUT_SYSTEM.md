@@ -151,7 +151,21 @@ The checkout uses **polling-based verification** instead of webhooks:
 | `/vendor-auth` | VendorAuth.tsx | Vendor application |
 | `/vendors/:id` | VendorStorefront.tsx | Public vendor store page |
 
+### Store Access / Maintenance Mode
+
+The marketplace page supports a simple “store temporarily down” gate for testing/maintenance.
+
+**Settings (in `app_settings`):**
+- `marketplace_stripe_mode`: `live` | `test`
+- `store_access_mode`: `open` | `authenticated` | `admins_only`
+
+**Behavior:**
+- If `marketplace_stripe_mode = test`, then **non-admin / non-owner users** can still load the page route, but will see a **Store Currently Unavailable** message instead of products.
+- If `store_access_mode = admins_only`, only admins/owners can view the store.
+- If `store_access_mode = authenticated`, guests are prompted to sign in.
+
 ### Recent Updates (2025-01)
+
 
 | Feature | Description |
 |---------|-------------|

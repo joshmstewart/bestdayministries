@@ -26,23 +26,17 @@ const Marketplace = () => {
   const { data: accessCheck, isLoading: accessLoading } = useQuery({
     queryKey: ['store-access-check'],
     queryFn: async () => {
-      // Get access mode and stripe mode settings
-      const { data: settings } = await supabase
-        .from('app_settings')
-        .select('setting_key, setting_value')
-        .in('setting_key', ['store_access_mode', 'marketplace_stripe_mode']);
-      
-      const getSetting = (key: string) => {
-        const setting = settings?.find(s => s.setting_key === key);
-        if (!setting?.setting_value) return null;
-        return typeof setting.setting_value === 'string' 
-          ? setting.setting_value 
-          : JSON.stringify(setting.setting_value).replace(/"/g, '');
-      };
-      
-      const accessMode = getSetting('store_access_mode') || 'open';
-      const stripeMode = getSetting('marketplace_stripe_mode') || 'live';
-      
+      // Get access mode and stripe mode settings (via backend function so non-admins can read them)
+      const { data: accessRows, error: settingsError } = await supabase.rpc(
+        'get_marketplace_access_settings'
+      );
+
+      if (settingsError) throw settingsError;
+
+      const accessRow = Array.isArray(accessRows) ? accessRows[0] : (accessRows as any);
+      const accessMode = accessRow?.store_access_mode || 'open';
+      const stripeMode = accessRow?.marketplace_stripe_mode || 'live';
+
       // Get current user and role
       const { data: { user } } = await supabase.auth.getUser();
       let userRole: string | null = null;
