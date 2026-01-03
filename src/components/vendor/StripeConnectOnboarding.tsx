@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle, AlertCircle, CreditCard } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, CreditCard, ExternalLink } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface StripeConnectOnboardingProps {
@@ -13,6 +13,7 @@ interface StripeConnectOnboardingProps {
 export const StripeConnectOnboarding = ({ vendorId }: StripeConnectOnboardingProps) => {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [managingAccount, setManagingAccount] = useState(false);
   const [status, setStatus] = useState<{
     connected: boolean;
     onboardingComplete?: boolean;
@@ -70,6 +71,30 @@ export const StripeConnectOnboarding = ({ vendorId }: StripeConnectOnboardingPro
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleManageAccount = async () => {
+    try {
+      setManagingAccount(true);
+      const { data, error } = await supabase.functions.invoke(
+        "create-stripe-login-link"
+      );
+
+      if (error) throw error;
+
+      if (data.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to open Stripe dashboard",
+        variant: "destructive",
+      });
+    } finally {
+      setManagingAccount(false);
     }
   };
 
@@ -148,9 +173,16 @@ export const StripeConnectOnboarding = ({ vendorId }: StripeConnectOnboardingPro
                 </div>
               </div>
             </div>
-            <Button variant="outline" onClick={checkStatus} disabled={checking}>
-              Refresh Status
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleManageAccount} disabled={managingAccount}>
+                {managingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Manage Stripe Account
+              </Button>
+              <Button variant="outline" onClick={checkStatus} disabled={checking}>
+                Refresh Status
+              </Button>
+            </div>
           </>
         )}
       </CardContent>
