@@ -138,6 +138,20 @@ serve(async (req) => {
       console.log("[GET-DONATION-HISTORY] Loaded bestie names:", bestieNameMap);
     }
 
+    // Build helper maps for invoice → subscription resolution and de-duping
+    const subscriptionItemToSubscriptionId = new Map<string, string>();
+    for (const s of subscriptions.data) {
+      for (const item of (s.items?.data || [])) {
+        if (item?.id) subscriptionItemToSubscriptionId.set(item.id, s.id);
+      }
+    }
+
+    const invoicePaymentIntentIds = new Set<string>();
+    for (const inv of invoices.data) {
+      const pi = (inv as any)?.payment_intent;
+      if (typeof pi === "string") invoicePaymentIntentIds.add(pi);
+    }
+
     // Process invoices (recurring payments) - these are the actual payment records
     for (const invoice of invoices.data) {
       if (invoice.status !== "paid") continue;
@@ -148,34 +162,73 @@ serve(async (req) => {
         continue;
       }
       
-      // Get metadata from the subscription if available
+      // Resolve subscription ID (Stripe can return these in a few places depending on invoice type)
       let designation = "General Support";
       let subscriptionId: string | undefined;
       let frequency: "one-time" | "monthly" = "one-time";
-      
-      // Handle subscription as string ID or object with id property
-      if (invoice.subscription) {
-        if (typeof invoice.subscription === "string") {
-          subscriptionId = invoice.subscription;
-        } else if (typeof invoice.subscription === "object" && invoice.subscription !== null && "id" in invoice.subscription) {
-          subscriptionId = (invoice.subscription as { id: string }).id;
-        }
-        
-        if (subscriptionId) {
-          frequency = "monthly"; // If it has a subscription, it's monthly
-          const sub = subscriptions.data.find((s: Stripe.Subscription) => s.id === subscriptionId);
-          if (sub?.metadata) {
-            // Look up bestie name from the bestie_id in metadata
-            const bestieId = sub.metadata.bestie_id;
-            if (bestieId && bestieNameMap[bestieId]) {
-              designation = bestieNameMap[bestieId];
-            } else if (sub.metadata.type === "donation") {
-              designation = "General Support";
-            } else if (bestieId) {
-              // Has bestie_id but name not found - it's still a sponsorship
-              designation = "Sponsorship";
-            }
+
+      const invAny = invoice as any;
+
+      const readId = (val: any): string | undefined => {
+        if (!val) return undefined;
+        if (typeof val === "string") return val;
+        if (typeof val === "object" && val !== null && typeof val.id === "string") return val.id;
+        return undefined;
+      };
+
+      subscriptionId = readId(invAny.subscription);
+
+      // Fallback: some invoices expose the subscription via line items
+      if (!subscriptionId && invAny.lines?.data?.length) {
+        for (const line of invAny.lines.data) {
+          const lineSubId = readId(line?.subscription);
+          if (lineSubId) {
+            subscriptionId = lineSubId;
+            break;
           }
+
+          const subItemId = typeof line?.subscription_item === "string" ? line.subscription_item : undefined;
+          if (subItemId && subscriptionItemToSubscriptionId.has(subItemId)) {
+            subscriptionId = subscriptionItemToSubscriptionId.get(subItemId);
+            break;
+          }
+        }
+      }
+
+      // Determine designation/frequency using subscription metadata when possible
+      if (subscriptionId) {
+        frequency = "monthly";
+        const sub = subscriptions.data.find((s: Stripe.Subscription) => s.id === subscriptionId);
+        const meta: Record<string, any> = ((sub as any)?.metadata || {}) as any;
+        const bestieId = meta.bestie_id;
+
+        if (meta.type === "donation" || meta.donation_type === "general") {
+          designation = "General Support";
+        } else if (bestieId && bestieNameMap[bestieId]) {
+          designation = bestieNameMap[bestieId];
+        } else if (bestieId) {
+          designation = "Sponsorship";
+        }
+      } else {
+        // Fallback: classification sometimes lives on the PaymentIntent
+        let meta: Record<string, any> = (invAny.metadata || {}) as any;
+        if ((!meta.bestie_id && !meta.type) && typeof invAny.payment_intent === "string") {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(invAny.payment_intent);
+            meta = (pi?.metadata || {}) as any;
+          } catch {
+            console.log("[GET-DONATION-HISTORY] Failed to retrieve payment intent for invoice:", invoice.id);
+          }
+        }
+
+        if (meta.frequency === "monthly") frequency = "monthly";
+
+        if (meta.type === "donation" || meta.donation_type === "general") {
+          designation = "General Support";
+        } else if (meta.bestie_id && bestieNameMap[meta.bestie_id]) {
+          designation = bestieNameMap[meta.bestie_id];
+        } else if (meta.bestie_id) {
+          designation = "Sponsorship";
         }
       }
 
@@ -200,21 +253,33 @@ serve(async (req) => {
     // Process one-time charges that aren't part of subscriptions/invoices
     for (const charge of charges.data) {
       if (charge.status !== "succeeded") continue;
-      if (charge.invoice) continue; // Already covered by invoices above
-      
+
+      const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : undefined;
+      // De-dupe: subscription payments often show up as both invoice + charge
+      if (paymentIntentId && invoicePaymentIntentIds.has(paymentIntentId)) continue;
+
       // Skip if no valid timestamp
       if (!charge.created || typeof charge.created !== 'number') {
         console.log("[GET-DONATION-HISTORY] Skipping charge with invalid created timestamp:", charge.id);
         continue;
       }
-      
+
+      let meta: Record<string, any> = (charge.metadata || {}) as any;
+      if ((!meta.bestie_id && !meta.type) && paymentIntentId) {
+        try {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          meta = (pi?.metadata || {}) as any;
+        } catch {
+          console.log("[GET-DONATION-HISTORY] Failed to retrieve payment intent for charge:", charge.id);
+        }
+      }
+
       let designation = "General Support";
-      const bestieId = charge.metadata?.bestie_id;
-      if (bestieId && bestieNameMap[bestieId]) {
-        designation = bestieNameMap[bestieId];
-      } else if (charge.metadata?.type === "donation") {
+      if (meta.type === "donation" || meta.donation_type === "general") {
         designation = "General Support";
-      } else if (bestieId) {
+      } else if (meta.bestie_id && bestieNameMap[meta.bestie_id]) {
+        designation = bestieNameMap[meta.bestie_id];
+      } else if (meta.bestie_id) {
         designation = "Sponsorship";
       }
 
@@ -227,7 +292,7 @@ serve(async (req) => {
           created_at: new Date(charge.created * 1000).toISOString(),
           designation,
           stripe_customer_id: customerId,
-          stripe_payment_intent_id: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
+          stripe_payment_intent_id: paymentIntentId,
           receipt_url: charge.receipt_url || undefined,
         });
       } catch (e) {
