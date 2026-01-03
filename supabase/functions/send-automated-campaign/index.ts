@@ -86,11 +86,16 @@ serve(async (req) => {
     let subject = template.subject;
     let content = template.content;
 
+    // Helper to escape regex special characters
+    const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     // Replace common placeholders
     Object.keys(trigger_data).forEach((key) => {
       const placeholder = `[${key.toUpperCase()}]`;
-      subject = subject.replace(new RegExp(placeholder, 'g'), trigger_data[key] || '');
-      content = content.replace(new RegExp(placeholder, 'g'), trigger_data[key] || '');
+      const escapedPlaceholder = escapeRegex(placeholder);
+      const value = trigger_data[key] || '';
+      subject = subject.replace(new RegExp(escapedPlaceholder, 'g'), value);
+      content = content.replace(new RegExp(escapedPlaceholder, 'g'), value);
     });
 
     // Construct final HTML with header and footer
