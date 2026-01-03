@@ -191,11 +191,11 @@ const App = () => {
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />
             <Route path="/orders" element={<OrderHistory />} />
             <Route path="/donation-history" element={<DonationHistoryPage />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/newsletter" element={<Newsletter />} />
-          <Route path="/unsubscribe-success" element={<UnsubscribeSuccess />} />
-          <Route path="/unsubscribe-error" element={<UnsubscribeError />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/newsletter" element={<Newsletter />} />
+            <Route path="/unsubscribe-success" element={<UnsubscribeSuccess />} />
+            <Route path="/unsubscribe-error" element={<UnsubscribeError />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/notifications" element={<Notifications />} />
           <Route path="/games/memory-match" element={<MemoryMatchPage />} />
