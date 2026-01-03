@@ -169,6 +169,7 @@ export const CampaignTemplateDialog = ({ template, open, onOpenChange }: Campaig
                   <SelectItem value="subscription_created">Subscription Created</SelectItem>
                   <SelectItem value="event_published">Event Published</SelectItem>
                   <SelectItem value="product_published">Product Published</SelectItem>
+                  <SelectItem value="vendor_application">Vendor Application (Admin)</SelectItem>
                   <SelectItem value="vendor_approved">Vendor Approved</SelectItem>
                   <SelectItem value="vendor_rejected">Vendor Rejected</SelectItem>
                 </SelectContent>

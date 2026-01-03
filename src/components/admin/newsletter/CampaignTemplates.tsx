@@ -119,6 +119,9 @@ export const CampaignTemplates = () => {
       case "subscription_created": return "Subscription Created";
       case "event_published": return "Event Published";
       case "product_published": return "Product Published";
+      case "vendor_application": return "Vendor Application (Admin)";
+      case "vendor_approved": return "Vendor Approved";
+      case "vendor_rejected": return "Vendor Rejected";
       default: return trigger;
     }
   };
