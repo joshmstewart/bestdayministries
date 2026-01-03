@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft } from "lucide-react";
+import { Loader2, Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus } from "lucide-react";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
 import { VendorOrderList } from "@/components/vendor/VendorOrderList";
@@ -17,22 +18,41 @@ import { VendorProfileSettings } from "@/components/vendor/VendorProfileSettings
 import { VendorBestieLinkRequest } from "@/components/vendor/VendorBestieLinkRequest";
 import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
 
+interface Vendor {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  business_name: string;
+}
+
 const VendorDashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [vendorStatus, setVendorStatus] = useState<'none' | 'pending' | 'approved' | 'rejected' | 'suspended'>('none');
-  const [vendorId, setVendorId] = useState<string | null>(null);
-  const [businessName, setBusinessName] = useState<string>('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalSales: 0,
     pendingOrders: 0
   });
 
+  const selectedVendor = vendors.find(v => v.id === selectedVendorId);
+
   useEffect(() => {
     checkVendorStatus();
   }, []);
+
+  // Handle vendor selection from URL params
+  useEffect(() => {
+    const vendorIdParam = searchParams.get('vendor');
+    if (vendorIdParam && vendors.length > 0) {
+      const vendorExists = vendors.find(v => v.id === vendorIdParam);
+      if (vendorExists) {
+        setSelectedVendorId(vendorIdParam);
+      }
+    }
+  }, [searchParams, vendors]);
 
   const checkVendorStatus = async () => {
     try {
@@ -43,25 +63,29 @@ const VendorDashboard = () => {
         return;
       }
 
-      const { data: vendor, error } = await supabase
+      const { data: vendorData, error } = await supabase
         .from('vendors')
         .select('id, status, business_name')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .order('created_at', { ascending: false });
 
-      if (!error && vendor) {
-        setVendorStatus(vendor.status);
-        setVendorId(vendor.id);
-        setBusinessName(vendor.business_name || 'My Shop');
+      if (!error && vendorData && vendorData.length > 0) {
+        setVendors(vendorData as Vendor[]);
         
-        if (vendor.status === 'approved') {
-          loadStats(vendor.id);
+        // Select the first approved vendor, or first vendor if none approved
+        const approvedVendor = vendorData.find(v => v.status === 'approved');
+        const vendorIdParam = searchParams.get('vendor');
+        
+        if (vendorIdParam && vendorData.find(v => v.id === vendorIdParam)) {
+          setSelectedVendorId(vendorIdParam);
+        } else if (approvedVendor) {
+          setSelectedVendorId(approvedVendor.id);
+        } else {
+          setSelectedVendorId(vendorData[0].id);
         }
       } else {
-        // User is not a vendor - redirect to application page
-        setVendorStatus('none');
-        navigate('/vendor-auth');
-        return;
+        // User has no vendors - they can create one
+        setVendors([]);
       }
     } catch (error) {
       console.error('Error checking vendor status:', error);
@@ -74,6 +98,12 @@ const VendorDashboard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (selectedVendor?.status === 'approved' && selectedVendorId) {
+      loadStats(selectedVendorId);
+    }
+  }, [selectedVendorId, selectedVendor?.status]);
 
   const loadStats = async (vendorId: string) => {
     try {
@@ -116,35 +146,9 @@ const VendorDashboard = () => {
     }
   };
 
-  const applyToBeVendor = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase
-        .from('vendors')
-        .insert({
-          user_id: user.id,
-          business_name: 'My Shop', // This will be customizable in a form
-          description: '',
-          status: 'pending'
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Application submitted!",
-        description: "We'll review your application and get back to you soon."
-      });
-
-      setVendorStatus('pending');
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
+  const handleVendorChange = (vendorId: string) => {
+    setSelectedVendorId(vendorId);
+    setSearchParams({ vendor: vendorId });
   };
 
   if (loading) {
@@ -155,12 +159,12 @@ const VendorDashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <UnifiedHeader />
-      
-      <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
-        {vendorStatus === 'none' && (
+  // No vendors at all - redirect to vendor auth
+  if (vendors.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <UnifiedHeader />
+        <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
           <div className="max-w-2xl mx-auto">
             <Card>
               <CardHeader>
@@ -169,40 +173,80 @@ const VendorDashboard = () => {
                   <CardTitle className="text-3xl">Become a Vendor</CardTitle>
                 </div>
                 <CardDescription className="text-base">
-                  Join our marketplace and sell your handmade products to our community
+                  You don't have any vendor accounts yet. Apply to become a vendor and sell your products!
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Benefits:</h3>
-                  <ul className="space-y-2 list-disc list-inside text-muted-foreground">
-                    <li>Reach our engaged community of supporters</li>
-                    <li>Easy product management dashboard</li>
-                    <li>Automatic payment processing</li>
-                    <li>Manage your own inventory and fulfillment</li>
-                    <li>Low commission fees</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Requirements:</h3>
-                  <ul className="space-y-2 list-disc list-inside text-muted-foreground">
-                    <li>Products must be handmade or designed by you</li>
-                    <li>Responsible for shipping and customer service</li>
-                    <li>Maintain accurate inventory</li>
-                    <li>Ship orders within 3-5 business days</li>
-                  </ul>
-                </div>
-
-                <Button onClick={applyToBeVendor} size="lg" className="w-full">
-                  Apply Now
+              <CardContent>
+                <Button onClick={() => navigate('/vendor-auth')} size="lg" className="w-full">
+                  Apply to Become a Vendor
                 </Button>
               </CardContent>
             </Card>
           </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
+      
+      <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
+        {/* Vendor Selector - show if multiple vendors */}
+        {vendors.length > 1 && (
+          <div className="mb-6 flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">Select vendor:</span>
+            <Select value={selectedVendorId || ''} onValueChange={handleVendorChange}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Select a vendor" />
+              </SelectTrigger>
+              <SelectContent>
+                {vendors.map((vendor) => (
+                  <SelectItem key={vendor.id} value={vendor.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{vendor.business_name}</span>
+                      {vendor.status === 'approved' && (
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                      )}
+                      {vendor.status === 'pending' && (
+                        <Clock className="h-3 w-3 text-yellow-500" />
+                      )}
+                      {vendor.status === 'rejected' && (
+                        <XCircle className="h-3 w-3 text-red-500" />
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/vendor-auth?new=true')}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Vendor
+            </Button>
+          </div>
         )}
 
-        {vendorStatus === 'pending' && (
+        {/* Single vendor - show add button */}
+        {vendors.length === 1 && (
+          <div className="mb-6 flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/vendor-auth?new=true')}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Another Vendor
+            </Button>
+          </div>
+        )}
+
+        {selectedVendor?.status === 'pending' && (
           <div className="max-w-2xl mx-auto">
             <Button 
               variant="outline" 
@@ -220,7 +264,9 @@ const VendorDashboard = () => {
                     <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
                   </div>
                   <div>
-                    <CardTitle className="text-yellow-600 dark:text-yellow-400">Vendor Application Pending</CardTitle>
+                    <CardTitle className="text-yellow-600 dark:text-yellow-400">
+                      {selectedVendor.business_name} - Application Pending
+                    </CardTitle>
                     <CardDescription>
                       Your application is being reviewed by our admin team
                     </CardDescription>
@@ -246,7 +292,7 @@ const VendorDashboard = () => {
           </div>
         )}
 
-        {vendorStatus === 'rejected' && (
+        {selectedVendor?.status === 'rejected' && (
           <div className="max-w-2xl mx-auto">
             <Card className="border-red-500/50 bg-red-500/5">
               <CardHeader>
@@ -255,7 +301,9 @@ const VendorDashboard = () => {
                     <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
                   </div>
                   <div>
-                    <CardTitle className="text-red-600 dark:text-red-400">Application Not Approved</CardTitle>
+                    <CardTitle className="text-red-600 dark:text-red-400">
+                      {selectedVendor.business_name} - Application Not Approved
+                    </CardTitle>
                     <CardDescription>
                       Your vendor application was not approved at this time
                     </CardDescription>
@@ -279,13 +327,13 @@ const VendorDashboard = () => {
           </div>
         )}
 
-        {vendorStatus === 'approved' && (
+        {selectedVendor?.status === 'approved' && selectedVendorId && (
           <div className="space-y-6">
-              <div className="space-y-2">
+            <div className="space-y-2">
               <p className="text-sm text-muted-foreground uppercase tracking-wide">Vendor Account</p>
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <h1 className="text-4xl font-heading font-bold">{businessName}</h1>
+                  <h1 className="text-4xl font-heading font-bold">{selectedVendor.business_name}</h1>
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <span className="text-sm font-medium text-green-600 dark:text-green-400">Approved</span>
@@ -294,7 +342,7 @@ const VendorDashboard = () => {
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
-                    onClick={() => navigate(`/vendors/${vendorId}`)}
+                    onClick={() => navigate(`/vendors/${selectedVendorId}`)}
                   >
                     <Store className="mr-2 h-4 w-4" />
                     View Your Store
@@ -353,38 +401,36 @@ const VendorDashboard = () => {
               <TabsContent value="products" className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-semibold">Your Products</h2>
-                  {vendorId && (
-                    <ProductForm vendorId={vendorId} onSuccess={() => loadStats(vendorId)} />
-                  )}
+                  <ProductForm vendorId={selectedVendorId} onSuccess={() => loadStats(selectedVendorId)} />
                 </div>
-                {vendorId && <ProductList vendorId={vendorId} />}
+                <ProductList vendorId={selectedVendorId} />
               </TabsContent>
               
               <TabsContent value="orders">
-                <VendorOrderList vendorId={vendorId!} />
+                <VendorOrderList vendorId={selectedVendorId} />
               </TabsContent>
 
               <TabsContent value="earnings" className="space-y-4">
                 <h2 className="text-2xl font-semibold">Your Earnings</h2>
-                <VendorEarnings vendorId={vendorId!} />
+                <VendorEarnings vendorId={selectedVendorId} />
               </TabsContent>
               
               <TabsContent value="payments" className="space-y-4">
                 <h2 className="text-2xl font-semibold">Payment Settings</h2>
-                <StripeConnectOnboarding vendorId={vendorId!} />
+                <StripeConnectOnboarding vendorId={selectedVendorId} />
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-8">
                 <div>
                   <h2 className="text-2xl font-semibold mb-6">Store Settings</h2>
-                  <VendorProfileSettings vendorId={vendorId!} />
+                  <VendorProfileSettings vendorId={selectedVendorId} />
                 </div>
                 
                 <div>
                   <h3 className="text-xl font-semibold mb-4">Link to Besties</h3>
                   <div className="space-y-6">
-                    <VendorBestieLinkRequest vendorId={vendorId!} />
-                    <VendorLinkedBesties vendorId={vendorId!} />
+                    <VendorBestieLinkRequest vendorId={selectedVendorId} />
+                    <VendorLinkedBesties vendorId={selectedVendorId} />
                   </div>
                 </div>
               </TabsContent>
