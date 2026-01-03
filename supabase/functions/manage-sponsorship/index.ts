@@ -36,14 +36,18 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Get Stripe mode from app settings
-    const { data: settingsData } = await supabaseClient
-      .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "stripe_mode")
-      .maybeSingle();
+    // Parse request body for optional mode override
+    let requestedMode: string | null = null;
+    try {
+      const body = await req.json();
+      requestedMode = body.mode || null;
+    } catch {
+      // No body or invalid JSON, use default
+    }
 
-    const stripeMode = settingsData?.setting_value?.mode || "test";
+    // Default to live mode for customer portal since that's where real subscriptions are
+    // Only use test mode if explicitly requested
+    const stripeMode = requestedMode === "test" ? "test" : "live";
     const stripeKey = stripeMode === "live" 
       ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
       : Deno.env.get("STRIPE_SECRET_KEY_TEST");
