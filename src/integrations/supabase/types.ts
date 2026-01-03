@@ -47,6 +47,51 @@ export type Database = {
         }
         Relationships: []
       }
+      active_subscriptions_cache: {
+        Row: {
+          amount: number
+          created_at: string
+          current_period_end: string | null
+          designation: string
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_mode: string
+          stripe_subscription_id: string
+          updated_at: string
+          user_email: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          current_period_end?: string | null
+          designation?: string
+          id?: string
+          status: string
+          stripe_customer_id?: string | null
+          stripe_mode?: string
+          stripe_subscription_id: string
+          updated_at?: string
+          user_email: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          current_period_end?: string | null
+          designation?: string
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_mode?: string
+          stripe_subscription_id?: string
+          updated_at?: string
+          user_email?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       album_images: {
         Row: {
           album_id: string
@@ -1356,6 +1401,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      donation_history_cache: {
+        Row: {
+          amount: number
+          created_at: string
+          designation: string
+          donation_date: string
+          frequency: string
+          id: string
+          receipt_url: string | null
+          status: string
+          stripe_charge_id: string | null
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          stripe_mode: string
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_email: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          designation?: string
+          donation_date: string
+          frequency: string
+          id?: string
+          receipt_url?: string | null
+          status: string
+          stripe_charge_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_mode?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_email: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          designation?: string
+          donation_date?: string
+          frequency?: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          stripe_charge_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_mode?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_email?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      donation_sync_status: {
+        Row: {
+          donations_synced: number | null
+          error_message: string | null
+          id: string
+          last_synced_at: string
+          stripe_mode: string
+          subscriptions_synced: number | null
+          sync_status: string
+          user_email: string
+        }
+        Insert: {
+          donations_synced?: number | null
+          error_message?: string | null
+          id?: string
+          last_synced_at?: string
+          stripe_mode?: string
+          subscriptions_synced?: number | null
+          sync_status?: string
+          user_email: string
+        }
+        Update: {
+          donations_synced?: number | null
+          error_message?: string | null
+          id?: string
+          last_synced_at?: string
+          stripe_mode?: string
+          subscriptions_synced?: number | null
+          sync_status?: string
+          user_email?: string
+        }
+        Relationships: []
       }
       donations: {
         Row: {

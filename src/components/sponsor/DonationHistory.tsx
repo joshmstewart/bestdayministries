@@ -1,77 +1,173 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText, Mail, Calendar, RefreshCw, ExternalLink } from "lucide-react";
+import { Download, FileText, Mail, Calendar, RefreshCw, ExternalLink, Loader2, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
-interface Donation {
+interface CachedDonation {
   id: string;
   amount: number;
-  frequency: "one-time" | "monthly";
+  frequency: string;
   status: string;
-  created_at: string;
   designation: string;
-  stripe_customer_id: string;
-  stripe_subscription_id?: string;
-  stripe_payment_intent_id?: string;
-  invoice_id?: string;
-  receipt_url?: string;
+  donation_date: string;
+  receipt_url: string | null;
+  stripe_subscription_id: string | null;
 }
 
-interface ActiveSubscription {
+interface CachedSubscription {
   id: string;
   amount: number;
   designation: string;
   status: string;
-  current_period_end: string;
-  cancel_at_period_end: boolean;
+  current_period_end: string | null;
+  stripe_subscription_id: string;
+}
+
+interface SyncStatus {
+  last_synced_at: string | null;
+  sync_status: string;
 }
 
 export const DonationHistory = () => {
-  const [donations, setDonations] = useState<Donation[]>([]);
-  const [subscriptions, setSubscriptions] = useState<ActiveSubscription[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [donations, setDonations] = useState<CachedDonation[]>([]);
+  const [subscriptions, setSubscriptions] = useState<CachedSubscription[]>([]);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [generatingYear, setGeneratingYear] = useState<number | null>(null);
   const [managingSubscription, setManagingSubscription] = useState(false);
   const { toast } = useToast();
+  
+  // Prevent double-fetch in React StrictMode
+  const hasFetchedRef = useRef(false);
 
+  // Get current user
   useEffect(() => {
-    loadDonationHistory();
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserEmail(user?.email || null);
+    };
+    getUser();
   }, []);
 
-  // API-FIRST APPROACH: Fetch directly from Stripe API, not database
-  // This is the source of truth - never rely on webhooks
-  const loadDonationHistory = async () => {
+  // Load from cache
+  const loadCachedData = useCallback(async () => {
+    if (!userEmail) return;
+
     try {
-      console.log('[DonationHistory] Fetching from Stripe API...');
+      console.log('[DonationHistory] Loading from cache...');
       
-      const { data, error } = await supabase.functions.invoke('get-donation-history');
+      // Load cached donations
+      const { data: donationsData, error: donationsError } = await supabase
+        .from("donation_history_cache")
+        .select("*")
+        .order("donation_date", { ascending: false });
 
-      if (error) {
-        console.error('[DonationHistory] API error:', error);
-        throw error;
+      if (donationsError) {
+        console.error('[DonationHistory] Cache error:', donationsError);
+        throw donationsError;
       }
+      
+      console.log('[DonationHistory] Loaded', donationsData?.length, 'cached donations');
+      setDonations(donationsData || []);
 
-      console.log('[DonationHistory] Received:', data?.donations?.length, 'donations');
-      setDonations(data?.donations || []);
-      setSubscriptions(data?.subscriptions || []);
-    } catch (error) {
-      console.error('[DonationHistory] Error:', error);
+      // Load cached subscriptions
+      const { data: subsData, error: subsError } = await supabase
+        .from("active_subscriptions_cache")
+        .select("*");
+
+      if (subsError) throw subsError;
+      setSubscriptions(subsData || []);
+
+      // Load sync status
+      const { data: statusData } = await supabase
+        .from("donation_sync_status")
+        .select("last_synced_at, sync_status")
+        .eq("user_email", userEmail)
+        .maybeSingle();
+
+      setSyncStatus(statusData);
+
+    } catch (error: any) {
+      console.error('[DonationHistory] Error loading cached data:', error);
       toast({
         title: "Error",
         description: "Failed to load donation history",
         variant: "destructive",
       });
-      setDonations([]);
     } finally {
       setLoading(false);
     }
+  }, [userEmail, toast]);
+
+  // Sync from Stripe API
+  const syncFromStripe = async () => {
+    if (!userEmail) return;
+    
+    setSyncing(true);
+    try {
+      console.log('[DonationHistory] Syncing from Stripe...');
+      const { data, error } = await supabase.functions.invoke("sync-donation-history");
+      
+      if (error) throw error;
+      
+      console.log('[DonationHistory] Sync result:', data);
+      toast({
+        title: "Synced",
+        description: `Synced ${data.donationsSynced} donations from Stripe`,
+      });
+      
+      // Reload cached data
+      await loadCachedData();
+    } catch (error: any) {
+      console.error('[DonationHistory] Sync error:', error);
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync from Stripe",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
   };
+
+  // Initial load
+  useEffect(() => {
+    if (userEmail && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      loadCachedData();
+    }
+  }, [userEmail, loadCachedData]);
+
+  // Auto-sync if no data or stale (older than 1 hour)
+  useEffect(() => {
+    if (loading || syncing || !userEmail) return;
+    
+    // No cached data - need to sync
+    if (donations.length === 0) {
+      console.log('[DonationHistory] No cached data, triggering sync...');
+      syncFromStripe();
+      return;
+    }
+    
+    // Check if data is stale
+    if (syncStatus?.last_synced_at) {
+      const lastSync = new Date(syncStatus.last_synced_at);
+      const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (lastSync < hourAgo) {
+        console.log('[DonationHistory] Data is stale, triggering sync...');
+        syncFromStripe();
+      }
+    }
+  }, [loading, donations.length, syncStatus, userEmail, syncing]);
 
   const generateYearEndSummary = async (year: number, sendEmail: boolean = false) => {
     setGeneratingYear(year);
@@ -97,7 +193,6 @@ export const DonationHistory = () => {
           description: `Year-end summary for ${year} has been sent to your email`,
         });
       } else {
-        // Download HTML as file
         const blob = new Blob([data.html], { type: 'text/html' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -122,18 +217,6 @@ export const DonationHistory = () => {
       });
     } finally {
       setGeneratingYear(null);
-    }
-  };
-
-  const openStripeReceipt = (donation: Donation) => {
-    if (donation.receipt_url) {
-      window.open(donation.receipt_url, '_blank');
-    } else {
-      toast({
-        title: "No Receipt Available",
-        description: "Stripe receipt not available for this donation",
-        variant: "destructive",
-      });
     }
   };
 
@@ -163,17 +246,17 @@ export const DonationHistory = () => {
     }
   };
 
-  // Filter and group by year
+  // Filter by year
   const filteredDonations = selectedYear === "all"
     ? donations 
-    : donations.filter(d => new Date(d.created_at).getFullYear().toString() === selectedYear);
+    : donations.filter(d => new Date(d.donation_date).getFullYear().toString() === selectedYear);
 
   const availableYears = Array.from(
-    new Set(donations.map(d => new Date(d.created_at).getFullYear()))
+    new Set(donations.map(d => new Date(d.donation_date).getFullYear()))
   ).sort((a, b) => b - a);
 
   const yearlyTotals = donations.reduce((acc, donation) => {
-    const year = new Date(donation.created_at).getFullYear();
+    const year = new Date(donation.donation_date).getFullYear();
     if (!acc[year]) {
       acc[year] = { count: 0, total: 0 };
     }
@@ -187,15 +270,15 @@ export const DonationHistory = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 animate-spin" />
-            Loading donation history from Stripe...
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Loading donation history...
           </CardTitle>
         </CardHeader>
       </Card>
     );
   }
 
-  if (donations.length === 0) {
+  if (donations.length === 0 && !syncing) {
     return (
       <Card>
         <CardHeader>
@@ -203,15 +286,20 @@ export const DonationHistory = () => {
             <div>
               <CardTitle>Donation History</CardTitle>
               <CardDescription>
-                No donations found. Your donation history is pulled directly from Stripe.
+                No donations found. Click refresh to sync from Stripe.
               </CardDescription>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={loadDonationHistory}
+              onClick={syncFromStripe}
+              disabled={syncing}
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
+              {syncing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
               Refresh
             </Button>
           </div>
@@ -222,6 +310,30 @@ export const DonationHistory = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header with sync status */}
+      <div className="flex items-center justify-between">
+        <div>
+          {syncStatus?.last_synced_at && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              Last synced: {format(new Date(syncStatus.last_synced_at), "MMM d, yyyy h:mm a")}
+            </p>
+          )}
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={syncFromStripe} 
+          disabled={syncing}
+        >
+          {syncing ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Refresh
+        </Button>
+      </div>
+
       {/* Active Subscriptions */}
       {subscriptions.length > 0 && (
         <Card>
@@ -250,16 +362,16 @@ export const DonationHistory = () => {
                 <div key={sub.id} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-medium">{sub.designation}</span>
-                    <Badge variant={sub.cancel_at_period_end ? "destructive" : "default"}>
-                      {sub.cancel_at_period_end ? "Canceling" : "Active"}
-                    </Badge>
+                    <Badge variant="default">Active</Badge>
                   </div>
                   <div className="text-2xl font-bold text-primary">
                     ${sub.amount.toFixed(2)}/mo
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    Next: {new Date(sub.current_period_end).toLocaleDateString()}
-                  </div>
+                  {sub.current_period_end && (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Next: {format(new Date(sub.current_period_end), "MMM d, yyyy")}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -324,32 +436,22 @@ export const DonationHistory = () => {
             <div>
               <CardTitle>Donation History</CardTitle>
               <CardDescription>
-                All donations from Stripe (source of truth)
+                All donations synced from Stripe
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadDonationHistory}
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
-              </Button>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by year" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Years</SelectItem>
-                  {availableYears.map(year => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by year" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Years</SelectItem>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -373,11 +475,7 @@ export const DonationHistory = () => {
                 {filteredDonations.map((donation) => (
                   <TableRow key={donation.id}>
                     <TableCell>
-                      {new Date(donation.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
+                      {format(new Date(donation.donation_date), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell className="font-medium">
                       {donation.designation}
@@ -398,7 +496,7 @@ export const DonationHistory = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openStripeReceipt(donation)}
+                          onClick={() => window.open(donation.receipt_url!, '_blank')}
                         >
                           <ExternalLink className="w-4 h-4 mr-2" />
                           Receipt
