@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +12,17 @@ import { useQuery } from "@tanstack/react-query";
 
 const VendorAuth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(true);
+  const [isAddingNewVendor, setIsAddingNewVendor] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [existingUser, setExistingUser] = useState<{ id: string; email: string } | null>(null);
 
   // Fetch the logo from database
   const { data: logoData } = useQuery({
@@ -45,17 +48,26 @@ const VendorAuth = () => {
   });
 
   useEffect(() => {
-    // Check if user is already logged in as vendor
+    const newParam = searchParams.get('new');
+    
+    // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        // Check if they're already a vendor
+        setExistingUser({ id: session.user.id, email: session.user.email || '' });
+        
+        // If ?new=true, show form to add new vendor
+        if (newParam === 'true') {
+          setIsAddingNewVendor(true);
+          return;
+        }
+        
+        // Otherwise check if they have vendors and redirect
         supabase
           .from('vendors')
-          .select('*')
+          .select('id')
           .eq('user_id', session.user.id)
-          .maybeSingle()
-          .then(({ data: vendor }) => {
-            if (vendor) {
+          .then(({ data: vendors }) => {
+            if (vendors && vendors.length > 0) {
               navigate("/vendor-dashboard", { replace: true });
             }
           });
@@ -64,14 +76,21 @@ const VendorAuth = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user && event === 'SIGNED_IN') {
-        // They just signed in, check vendor status
+        setExistingUser({ id: session.user.id, email: session.user.email || '' });
+        
+        // If adding new vendor, don't redirect
+        if (newParam === 'true') {
+          setIsAddingNewVendor(true);
+          return;
+        }
+        
+        // Check vendor status
         supabase
           .from('vendors')
-          .select('*')
+          .select('id')
           .eq('user_id', session.user.id)
-          .maybeSingle()
-          .then(({ data: vendor }) => {
-            if (vendor) {
+          .then(({ data: vendors }) => {
+            if (vendors && vendors.length > 0) {
               navigate("/vendor-dashboard", { replace: true });
             }
           });
@@ -79,7 +98,43 @@ const VendorAuth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, searchParams]);
+
+  const handleAddNewVendor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!existingUser) return;
+    
+    setLoading(true);
+
+    try {
+      // Create vendor record with pending status
+      const { error: vendorError } = await supabase
+        .from('vendors')
+        .insert({
+          user_id: existingUser.id,
+          business_name: businessName,
+          status: 'pending',
+        });
+
+      if (vendorError) throw vendorError;
+
+      toast({
+        title: "Vendor Application Submitted!",
+        description: "Your application is pending admin approval. You'll be notified once approved.",
+      });
+
+      // Redirect to vendor dashboard
+      navigate("/vendor-dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create vendor account",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleVendorSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,23 +239,21 @@ const VendorAuth = () => {
 
       // Check if they're a vendor
       if (data.user) {
-        const { data: vendor, error: vendorError } = await supabase
+        const { data: vendors, error: vendorError } = await supabase
           .from('vendors')
           .select('*')
-          .eq('user_id', data.user.id)
-          .maybeSingle();
+          .eq('user_id', data.user.id);
 
         if (vendorError) throw vendorError;
 
-        if (!vendor) {
-          // They have an account but aren't a vendor
-          await supabase.auth.signOut();
+        if (!vendors || vendors.length === 0) {
+          // They have an account but aren't a vendor - let them create one
+          setExistingUser({ id: data.user.id, email: data.user.email || '' });
+          setIsAddingNewVendor(true);
           toast({
-            title: "Not a Vendor",
-            description: "This account is not registered as a vendor. Please sign up as a vendor first.",
-            variant: "destructive",
+            title: "No Vendor Account",
+            description: "You don't have a vendor account yet. Create one below!",
           });
-          setIsSignUp(true);
           return;
         }
 
@@ -208,6 +261,8 @@ const VendorAuth = () => {
           title: "Welcome back!",
           description: "Redirecting to your vendor dashboard...",
         });
+        
+        navigate("/vendor-dashboard");
       }
     } catch (error: any) {
       toast({
@@ -219,6 +274,88 @@ const VendorAuth = () => {
       setLoading(false);
     }
   };
+
+  // Show "Add New Vendor" form for logged-in users
+  if (isAddingNewVendor && existingUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-20 right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+        </div>
+
+        <Card className="w-full max-w-md border-2 shadow-xl relative z-10">
+          <CardContent className="p-8 space-y-6">
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Store className="w-8 h-8 text-primary" />
+                <span className="text-2xl font-bold text-primary">Add New Vendor</span>
+              </div>
+              
+              {logoData && (
+                <img 
+                  src={logoData} 
+                  alt="Best Day Ministries" 
+                  className="h-16 mx-auto object-contain"
+                />
+              )}
+              
+              <div>
+                <h1 className="text-3xl font-black text-foreground mb-2">
+                  Create Another Vendor
+                </h1>
+                <p className="text-muted-foreground">
+                  Logged in as {existingUser.email}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleAddNewVendor} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="businessName">Business Name</Label>
+                <Input
+                  id="businessName"
+                  placeholder="Your Business Name"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm text-muted-foreground">
+                <p className="font-semibold text-foreground mb-2">Application Process:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Submit your vendor application</li>
+                  <li>Admin reviews your application</li>
+                  <li>Receive approval notification</li>
+                  <li>Start selling in the marketplace!</li>
+                </ul>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+                disabled={loading}
+              >
+                {loading ? "Please wait..." : "Submit Application"}
+              </Button>
+            </form>
+
+            <div className="pt-4 border-t border-border">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/vendor-dashboard")}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4 relative overflow-hidden">
