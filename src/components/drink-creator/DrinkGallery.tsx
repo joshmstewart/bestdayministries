@@ -35,7 +35,7 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
   const loadDrinks = async () => {
     const { data, error } = await supabase
       .from("custom_drinks")
-      .select("*, profiles:creator_id(display_name)")
+      .select("*")
       .eq("is_public", true)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -49,9 +49,24 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
       return;
     }
 
-    const drinksWithCreators = (data || []).map((drink: any) => ({
+    if (!data || data.length === 0) {
+      setDrinks([]);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch creator names separately
+    const creatorIds = [...new Set(data.map((d) => d.creator_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("id", creatorIds);
+
+    const profileMap = new Map(profiles?.map((p) => [p.id, p.display_name]) || []);
+
+    const drinksWithCreators = data.map((drink) => ({
       ...drink,
-      creator_name: drink.profiles?.display_name || null,
+      creator_name: profileMap.get(drink.creator_id) || null,
     }));
 
     setDrinks(drinksWithCreators);
