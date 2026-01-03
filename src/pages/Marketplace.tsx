@@ -3,7 +3,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Package } from "lucide-react";
+import { ShoppingCart, Package, Store } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +20,26 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, isAuthenticated, isLoading: cartSessionLoading } = useCartSession();
+
+  // Check if user is a vendor
+  const { data: userVendors } = useQuery({
+    queryKey: ['user-vendors'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('vendors')
+        .select('id, business_name, status')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAuthenticated
+  });
+
+  const isVendor = userVendors && userVendors.length > 0;
 
   // Check which categories have products and get sample images
   const { data: categoryStatus } = useQuery({
@@ -104,14 +124,24 @@ const Marketplace = () => {
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 py-16">
           <div className="container mx-auto px-4">
-            {/* Become a Vendor link - upper right */}
+            {/* Vendor link - upper right */}
             <div className="flex justify-end mb-4">
-              <button
-                onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
-              >
-                Become a Vendor
-              </button>
+              {isVendor ? (
+                <button
+                  onClick={() => navigate('/vendor-dashboard')}
+                  className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+                >
+                  <Store className="h-4 w-4" />
+                  Vendor Dashboard
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+                >
+                  Become a Vendor
+                </button>
+              )}
             </div>
             
             <div className="max-w-4xl mx-auto text-center space-y-6">
