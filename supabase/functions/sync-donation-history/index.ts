@@ -29,9 +29,11 @@ serve(async (req) => {
     let targetEmail: string | null = null;
     let isCronJob = false;
 
-    // Check if this is a cron job call
+    // Check if this is a cron job call (using schedule header or service role key prefix)
     const cronSecret = req.headers.get("x-cron-secret");
-    if (cronSecret === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.substring(0, 32)) {
+    const isScheduledCall = req.headers.get("x-schedule") !== null;
+    
+    if (isScheduledCall || cronSecret === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.substring(0, 32)) {
       isCronJob = true;
       logStep("Cron job triggered");
     } else if (authHeader) {
@@ -88,23 +90,31 @@ serve(async (req) => {
       emailsToSync = [targetEmail];
     } else if (isCronJob) {
       // For cron: get all users who have made donations or have active subscriptions
-      const { data: customers } = await supabaseAdmin
+      const { data: donationEmails } = await supabaseAdmin
         .from("donations")
         .select("donor_email")
         .not("donor_email", "is", null)
         .eq("stripe_mode", stripeMode);
       
-      const { data: sponsorships } = await supabaseAdmin
+      const { data: sponsorshipEmails } = await supabaseAdmin
         .from("sponsorships")
         .select("sponsor_email")
         .not("sponsor_email", "is", null)
         .eq("stripe_mode", stripeMode);
 
+      // Also get emails from existing cache to ensure we sync returning users
+      const { data: cachedEmails } = await supabaseAdmin
+        .from("donation_stripe_transactions")
+        .select("email")
+        .eq("stripe_mode", stripeMode);
+
       const emailSet = new Set<string>();
-      customers?.forEach(d => d.donor_email && emailSet.add(d.donor_email));
-      sponsorships?.forEach(s => s.sponsor_email && emailSet.add(s.sponsor_email));
+      donationEmails?.forEach(d => d.donor_email && emailSet.add(d.donor_email));
+      sponsorshipEmails?.forEach(s => s.sponsor_email && emailSet.add(s.sponsor_email));
+      cachedEmails?.forEach(c => c.email && emailSet.add(c.email));
+      
       emailsToSync = Array.from(emailSet);
-      logStep("Cron syncing emails", { count: emailsToSync.length });
+      logStep("Cron syncing emails", { count: emailsToSync.length, mode: stripeMode });
     }
 
     // Load sponsorship mappings for designation lookup
@@ -133,7 +143,33 @@ serve(async (req) => {
       }
     });
 
-    let totalDonationsSynced = 0;
+    // Load existing donation records for linking
+    const { data: existingDonations } = await supabaseAdmin
+      .from("donations")
+      .select("id, stripe_payment_intent_id, stripe_subscription_id, stripe_customer_id, donor_email, amount, stripe_mode")
+      .eq("stripe_mode", stripeMode);
+
+    const donationLookup = new Map<string, string>();
+    existingDonations?.forEach(d => {
+      if (d.stripe_payment_intent_id) donationLookup.set(d.stripe_payment_intent_id, d.id);
+      // Also index by customer + amount for fallback matching
+      if (d.stripe_customer_id && d.amount) {
+        donationLookup.set(`${d.stripe_customer_id}_${d.amount}`, d.id);
+      }
+    });
+
+    // Load existing receipts for linking
+    const { data: existingReceipts } = await supabaseAdmin
+      .from("sponsorship_receipts")
+      .select("id, transaction_id, stripe_mode")
+      .eq("stripe_mode", stripeMode);
+
+    const receiptLookup = new Map<string, string>();
+    existingReceipts?.forEach(r => {
+      if (r.transaction_id) receiptLookup.set(r.transaction_id, r.id);
+    });
+
+    let totalTransactionsSynced = 0;
     let totalSubscriptionsSynced = 0;
 
     for (const email of emailsToSync) {
@@ -152,14 +188,14 @@ serve(async (req) => {
           .select("id")
           .eq("email", email)
           .maybeSingle();
-        const userId = profile?.id || null;
+        const donorId = profile?.id || null;
 
         // Fetch all invoices (subscription payments)
         const invoices = await stripe.invoices.list({
           customer: customer.id,
           status: "paid",
           limit: 100,
-          expand: ["data.subscription"],
+          expand: ["data.subscription", "data.payment_intent", "data.charge"],
         });
 
         // Fetch all charges
@@ -168,24 +204,55 @@ serve(async (req) => {
           limit: 100,
         });
 
-        // Build set of charge IDs that are linked to invoices
+        // Fetch payment intents for additional context
+        const paymentIntents = await stripe.paymentIntents.list({
+          customer: customer.id,
+          limit: 100,
+        });
+
+        // Build maps for combining data
+        const chargeMap = new Map<string, any>();
+        charges.data.forEach((c: any) => chargeMap.set(c.id, c));
+
+        const paymentIntentMap = new Map<string, any>();
+        paymentIntents.data.forEach((pi: any) => paymentIntentMap.set(pi.id, pi));
+
+        // Build set of charge IDs that are linked to invoices (to avoid duplicates)
         const invoiceChargeIds = new Set<string>();
+        const invoicePaymentIntentIds = new Set<string>();
+        
         invoices.data.forEach((inv: any) => {
-          if (inv.charge && typeof inv.charge === "string") {
-            invoiceChargeIds.add(inv.charge);
+          if (inv.charge) {
+            const chargeId = typeof inv.charge === "string" ? inv.charge : inv.charge?.id;
+            if (chargeId) invoiceChargeIds.add(chargeId);
           }
-          // Also check latest_charge for newer API versions
-          if (inv.latest_charge && typeof inv.latest_charge === "string") {
-            invoiceChargeIds.add(inv.latest_charge);
+          if (inv.payment_intent) {
+            const piId = typeof inv.payment_intent === "string" ? inv.payment_intent : inv.payment_intent?.id;
+            if (piId) invoicePaymentIntentIds.add(piId);
           }
         });
 
-        // Process invoices -> monthly donations (subscriptions only)
-        const donationRecords: any[] = [];
+        // Process invoices -> combined transaction records
+        const transactionRecords: any[] = [];
         
         for (const invoice of invoices.data) {
           if (!invoice.amount_paid || invoice.amount_paid <= 0) continue;
           
+          const metadata = invoice.metadata || {};
+          
+          // SKIP store/marketplace purchases
+          if (metadata.order_id) {
+            logStep("Skipping marketplace invoice", { invoiceId: invoice.id });
+            continue;
+          }
+
+          // Get related objects
+          const chargeId = typeof invoice.charge === "string" ? invoice.charge : invoice.charge?.id;
+          const charge = chargeId ? chargeMap.get(chargeId) || invoice.charge : null;
+          
+          const piId = typeof invoice.payment_intent === "string" ? invoice.payment_intent : invoice.payment_intent?.id;
+          const paymentIntent = piId ? paymentIntentMap.get(piId) || invoice.payment_intent : null;
+
           // Get subscription ID
           let subscriptionId: string | null = null;
           if (invoice.subscription) {
@@ -193,23 +260,9 @@ serve(async (req) => {
               ? invoice.subscription 
               : invoice.subscription.id;
           }
-          if (!subscriptionId && invoice.lines?.data?.[0]?.subscription) {
-            subscriptionId = invoice.lines.data[0].subscription as string;
-          }
 
-          // SKIP store/marketplace purchases (they have order_id in metadata)
-          const metadata = invoice.metadata || {};
-          if (metadata.order_id) {
-            logStep("Skipping marketplace invoice", { invoiceId: invoice.id, orderId: metadata.order_id });
-            continue;
-          }
-
-          // Only include subscription invoices (monthly donations)
-          const billingReason = typeof (invoice as any)?.billing_reason === "string" ? (invoice as any).billing_reason : "";
-          const isSubscriptionInvoice = Boolean(subscriptionId) || billingReason.startsWith("subscription");
-          if (!isSubscriptionInvoice) {
-            continue;
-          }
+          // Determine frequency
+          const frequency = subscriptionId ? "monthly" : "one-time";
 
           // Determine designation
           let designation = "General Support";
@@ -218,87 +271,149 @@ serve(async (req) => {
           } else if (customerToDesignation.has(customer.id)) {
             designation = customerToDesignation.get(customer.id)!;
           }
-
           if (metadata.type === "donation") {
             designation = "General Support";
           }
 
-          donationRecords.push({
-            user_id: userId,
-            user_email: email,
+          // Merge metadata from all sources
+          const mergedMetadata = {
+            ...(paymentIntent?.metadata || {}),
+            ...(typeof charge === "object" ? charge?.metadata || {} : {}),
+            ...(metadata || {}),
+          };
+
+          // Find linked donation record
+          let donationId: string | null = null;
+          if (piId && donationLookup.has(piId)) {
+            donationId = donationLookup.get(piId)!;
+          } else if (donationLookup.has(`${customer.id}_${invoice.amount_paid / 100}`)) {
+            donationId = donationLookup.get(`${customer.id}_${invoice.amount_paid / 100}`)!;
+          }
+
+          // Find linked receipt
+          let receiptId: string | null = null;
+          if (invoice.id && receiptLookup.has(invoice.id)) {
+            receiptId = receiptLookup.get(invoice.id)!;
+          } else if (piId && receiptLookup.has(piId)) {
+            receiptId = receiptLookup.get(piId)!;
+          }
+
+          transactionRecords.push({
+            email,
+            donor_id: donorId,
+            donation_id: donationId,
+            receipt_id: receiptId,
             stripe_invoice_id: invoice.id,
-            stripe_charge_id: typeof invoice.charge === "string" ? invoice.charge : null,
+            stripe_charge_id: chargeId || null,
+            stripe_payment_intent_id: piId || null,
             stripe_subscription_id: subscriptionId,
             stripe_customer_id: customer.id,
             amount: invoice.amount_paid / 100,
-            frequency: "monthly",
+            currency: invoice.currency?.toUpperCase() || "USD",
+            frequency,
             status: "paid",
-            designation,
-            donation_date: new Date(invoice.created * 1000).toISOString(),
-            receipt_url: invoice.hosted_invoice_url || null,
+            transaction_date: new Date(invoice.created * 1000).toISOString(),
             stripe_mode: stripeMode,
-            updated_at: new Date().toISOString(),
+            raw_invoice: invoice,
+            raw_charge: typeof charge === "object" ? charge : null,
+            raw_payment_intent: typeof paymentIntent === "object" ? paymentIntent : null,
+            merged_metadata: mergedMetadata,
           });
         }
 
-        // Process standalone charges (one-time donations/sponsorships only)
+        // Process standalone charges (not linked to invoices)
         for (const charge of charges.data) {
-          // Skip if this charge is linked to an invoice
           if (invoiceChargeIds.has(charge.id)) continue;
-          
-          // Skip failed charges
           if (charge.status !== "succeeded") continue;
           if (!charge.amount || charge.amount <= 0) continue;
 
           const metadata = charge.metadata || {};
           
-          // SKIP store/marketplace purchases (they have order_id in metadata)
+          // SKIP marketplace purchases
           if (metadata.order_id) {
-            logStep("Skipping marketplace charge", { chargeId: charge.id, orderId: metadata.order_id });
+            logStep("Skipping marketplace charge", { chargeId: charge.id });
             continue;
           }
 
-          // Determine designation from metadata
+          // Get payment intent if available
+          const piId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
+          const paymentIntent = piId ? paymentIntentMap.get(piId) : null;
+
+          // Determine designation
           const isSponsorship = metadata.bestie_id || metadata.bestieId || metadata.bestieName;
           let designation = "General Support";
           if (isSponsorship) {
             designation = `Sponsorship: ${metadata.bestieName || "Unknown"}`;
           }
 
-          donationRecords.push({
-            user_id: userId,
-            user_email: email,
+          // Merge metadata
+          const mergedMetadata = {
+            ...(paymentIntent?.metadata || {}),
+            ...(metadata || {}),
+          };
+
+          // Find linked donation
+          let donationId: string | null = null;
+          if (piId && donationLookup.has(piId)) {
+            donationId = donationLookup.get(piId)!;
+          }
+
+          // Find linked receipt
+          let receiptId: string | null = null;
+          if (charge.id && receiptLookup.has(charge.id)) {
+            receiptId = receiptLookup.get(charge.id)!;
+          } else if (piId && receiptLookup.has(piId)) {
+            receiptId = receiptLookup.get(piId)!;
+          }
+
+          transactionRecords.push({
+            email,
+            donor_id: donorId,
+            donation_id: donationId,
+            receipt_id: receiptId,
             stripe_invoice_id: null,
             stripe_charge_id: charge.id,
+            stripe_payment_intent_id: piId,
             stripe_subscription_id: null,
             stripe_customer_id: customer.id,
             amount: charge.amount / 100,
+            currency: charge.currency?.toUpperCase() || "USD",
             frequency: "one-time",
             status: "paid",
-            designation,
-            donation_date: new Date(charge.created * 1000).toISOString(),
-            receipt_url: charge.receipt_url || null,
+            transaction_date: new Date(charge.created * 1000).toISOString(),
             stripe_mode: stripeMode,
-            updated_at: new Date().toISOString(),
+            raw_invoice: null,
+            raw_charge: charge,
+            raw_payment_intent: paymentIntent,
+            merged_metadata: mergedMetadata,
           });
         }
 
-        // Upsert donations
-        if (donationRecords.length > 0) {
-          const { error: upsertError } = await supabaseAdmin
-            .from("donation_history_cache")
-            .upsert(donationRecords, {
-              onConflict: "user_email,stripe_charge_id,stripe_invoice_id,stripe_mode",
-              ignoreDuplicates: false,
-            });
-          if (upsertError) {
-            logStep("Upsert donations error", { email, error: upsertError.message });
-          } else {
-            totalDonationsSynced += donationRecords.length;
+        // Upsert to donation_stripe_transactions (the COMBINED table)
+        if (transactionRecords.length > 0) {
+          for (const record of transactionRecords) {
+            // Use a composite key for upsert - prefer invoice_id, then charge_id
+            const { error: upsertError } = await supabaseAdmin
+              .from("donation_stripe_transactions")
+              .upsert(record, {
+                onConflict: "stripe_invoice_id,stripe_mode",
+                ignoreDuplicates: false,
+              });
+            
+            // If invoice_id is null, try upserting by charge_id
+            if (upsertError && !record.stripe_invoice_id && record.stripe_charge_id) {
+              await supabaseAdmin
+                .from("donation_stripe_transactions")
+                .upsert(record, {
+                  onConflict: "stripe_charge_id,stripe_mode",
+                  ignoreDuplicates: false,
+                });
+            }
           }
+          totalTransactionsSynced += transactionRecords.length;
         }
 
-        // Fetch and sync active subscriptions
+        // Fetch and sync active subscriptions to cache
         const subscriptions = await stripe.subscriptions.list({
           customer: customer.id,
           status: "active",
@@ -319,7 +434,7 @@ serve(async (req) => {
             : 0;
 
           subscriptionRecords.push({
-            user_id: userId,
+            user_id: donorId,
             user_email: email,
             stripe_subscription_id: sub.id,
             stripe_customer_id: customer.id,
@@ -356,7 +471,7 @@ serve(async (req) => {
             stripe_mode: stripeMode,
             last_synced_at: new Date().toISOString(),
             sync_status: "completed",
-            donations_synced: donationRecords.length,
+            donations_synced: transactionRecords.length,
             subscriptions_synced: subscriptionRecords.length,
           }, {
             onConflict: "user_email,stripe_mode",
@@ -364,7 +479,7 @@ serve(async (req) => {
 
         logStep("Synced user", { 
           email, 
-          donations: donationRecords.length, 
+          transactions: transactionRecords.length, 
           subscriptions: subscriptionRecords.length 
         });
 
@@ -386,14 +501,14 @@ serve(async (req) => {
 
     logStep("Sync complete", { 
       emailsProcessed: emailsToSync.length,
-      totalDonationsSynced,
+      totalTransactionsSynced,
       totalSubscriptionsSynced,
     });
 
     return new Response(JSON.stringify({
       success: true,
       emailsProcessed: emailsToSync.length,
-      donationsSynced: totalDonationsSynced,
+      transactionsSynced: totalTransactionsSynced,
       subscriptionsSynced: totalSubscriptionsSynced,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
