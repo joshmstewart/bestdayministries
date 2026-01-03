@@ -335,6 +335,19 @@ const VendorAuth = () => {
 
       if (vendorError) throw vendorError;
 
+      // Notify admins about the new vendor application
+      setTimeout(() => {
+        supabase.functions.invoke("send-vendor-application-email", {
+          body: {
+            vendorId: data.user.id,
+            businessName,
+            businessDescription,
+            productCategories: getFinalCategories(),
+            applicantEmail: email,
+          },
+        }).catch(err => console.error("Error sending admin notification:", err));
+      }, 0);
+
       toast({
         title: "Vendor Application Submitted!",
         description: "Your application is pending admin approval. You'll be notified once approved.",
