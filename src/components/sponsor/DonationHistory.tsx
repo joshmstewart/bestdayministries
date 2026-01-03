@@ -150,24 +150,19 @@ export const DonationHistory = () => {
   };
 
   const manageDonation = async (receipt: Receipt) => {
-    if (!receipt.sponsorship_id) {
-      toast({
-        title: "Cannot Manage",
-        description: "This donation cannot be managed through the portal",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setManagingId(receipt.id);
     try {
+      // The manage-sponsorship function looks up the customer by user email,
+      // so we don't need sponsorship_id - it works for all donations
       const { data, error } = await supabase.functions.invoke('manage-sponsorship', {
-        body: { sponsorshipId: receipt.sponsorship_id }
+        body: {}
       });
 
       if (error) throw error;
 
-      if (data.portalUrl) {
+      if (data.url) {
+        window.open(data.url, '_blank');
+      } else if (data.portalUrl) {
         window.open(data.portalUrl, '_blank');
       } else {
         throw new Error('No portal URL returned');
@@ -514,7 +509,7 @@ export const DonationHistory = () => {
                           <Download className="w-4 h-4 mr-2" />
                           Download
                         </Button>
-                        {receipt.frequency === 'monthly' && receipt.sponsorship_id && (
+                        {receipt.frequency === 'monthly' && (
                           <Button
                             variant="outline"
                             size="sm"
