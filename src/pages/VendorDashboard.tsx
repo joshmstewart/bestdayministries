@@ -116,23 +116,18 @@ const VendorDashboard = () => {
         .eq('vendor_id', vendorId)
         .eq('is_active', true);
 
-      // Load pending orders count
+      // Load pending orders count (items not yet shipped or delivered)
       const { count: orderCount } = await supabase
         .from('order_items')
         .select('*', { count: 'exact', head: true })
         .eq('vendor_id', vendorId)
-        .eq('fulfillment_status', 'pending');
+        .in('fulfillment_status', ['pending', 'in_production']);
 
-      // Load total sales (this month)
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-
+      // Load total sales (all time)
       const { data: salesData } = await supabase
         .from('order_items')
         .select('price_at_purchase, quantity')
-        .eq('vendor_id', vendorId)
-        .gte('created_at', startOfMonth.toISOString());
+        .eq('vendor_id', vendorId);
 
       const totalSales = salesData?.reduce((sum, item) => 
         sum + (item.price_at_purchase * item.quantity), 0
