@@ -60,6 +60,9 @@ export default function OrderHistory() {
   // Guest lookup state
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
+  
+  // Search filter for authenticated users
+  const [searchQuery, setSearchQuery] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
   const [guestOrder, setGuestOrder] = useState<Order | null>(null);
 
@@ -409,6 +412,11 @@ export default function OrderHistory() {
     );
   }
 
+  // Filter orders by search query
+  const filteredOrders = orders.filter(order => 
+    order.id.toLowerCase().includes(searchQuery.toLowerCase().replace(/^#/, ''))
+  );
+
   // Authenticated view with orders
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -419,7 +427,25 @@ export default function OrderHistory() {
         </Button>
       </div>
 
-      {orders.map((order) => renderOrder(order))}
+      <div className="flex items-center gap-2">
+        <Search className="w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by order number..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-xs"
+        />
+      </div>
+
+      {filteredOrders.length === 0 && searchQuery ? (
+        <Card>
+          <CardContent className="pt-6 text-center text-muted-foreground">
+            No orders found matching "{searchQuery}"
+          </CardContent>
+        </Card>
+      ) : (
+        filteredOrders.map((order) => renderOrder(order))
+      )}
     </div>
   );
 }
