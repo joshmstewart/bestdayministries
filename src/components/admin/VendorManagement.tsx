@@ -742,52 +742,82 @@ export const VendorManagement = () => {
                       </TableCell>
                       <TableCell>{getStatusBadge(vendor.status)}</TableCell>
                       <TableCell>{new Date(vendor.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setReviewVendor(vendor);
-                            setReviewDialogOpen(true);
-                          }}
-                        >
-                          <Eye className="w-3 h-3 mr-1" />
-                          Review
-                        </Button>
-                        {vendor.status === "pending" && (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => updateVendorStatus(vendor.id, "approved")}
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => updateVendorStatus(vendor.id, "rejected")}
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                        {vendor.status === "approved" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateVendorStatus(vendor.id, "rejected")}
-                          >
-                            Suspend
-                          </Button>
-                        )}
-                        {vendor.status === "rejected" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateVendorStatus(vendor.id, "approved")}
-                          >
-                            Reactivate
-                          </Button>
-                        )}
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end gap-1">
+                          {vendor.status === "pending" && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setReviewVendor(vendor);
+                                  setReviewDialogOpen(true);
+                                }}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                Review
+                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateVendorStatus(vendor.id, "approved")}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => updateVendorStatus(vendor.id, "rejected")}
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                          {vendor.status === "approved" && (
+                            <div className="flex gap-1">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => {
+                                  setReviewVendor(vendor);
+                                  setReviewDialogOpen(true);
+                                }}
+                                title="View application"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateVendorStatus(vendor.id, "rejected")}
+                              >
+                                Suspend
+                              </Button>
+                            </div>
+                          )}
+                          {vendor.status === "rejected" && (
+                            <div className="flex gap-1">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => {
+                                  setReviewVendor(vendor);
+                                  setReviewDialogOpen(true);
+                                }}
+                                title="View application"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => updateVendorStatus(vendor.id, "approved")}
+                              >
+                                Reactivate
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
