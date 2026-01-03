@@ -187,7 +187,7 @@ const Marketplace = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <UnifiedHeader />
-        <main className="flex-1 pt-24 flex items-center justify-center py-40">
+        <main className="flex-1 pt-24 flex items-center justify-center mt-16 py-40">
           <Card className="max-w-md mx-4">
             <CardHeader className="text-center">
               <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
