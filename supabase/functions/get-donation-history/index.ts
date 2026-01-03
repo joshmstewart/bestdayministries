@@ -109,6 +109,12 @@ serve(async (req) => {
     for (const invoice of invoices.data) {
       if (invoice.status !== "paid") continue;
       
+      // Skip if no valid timestamp
+      if (!invoice.created || typeof invoice.created !== 'number') {
+        console.log("[GET-DONATION-HISTORY] Skipping invoice with invalid created timestamp:", invoice.id);
+        continue;
+      }
+      
       // Get metadata from the subscription if available
       let designation = "General Support";
       let subscriptionId: string | undefined;
@@ -123,24 +129,34 @@ serve(async (req) => {
         }
       }
 
-      donations.push({
-        id: invoice.id,
-        amount: (invoice.amount_paid || 0) / 100,
-        frequency: subscriptionId ? "monthly" : "one-time",
-        status: "completed",
-        created_at: new Date(invoice.created * 1000).toISOString(),
-        designation,
-        stripe_customer_id: customerId,
-        stripe_subscription_id: subscriptionId,
-        invoice_id: invoice.id,
-        receipt_url: invoice.hosted_invoice_url || undefined,
-      });
+      try {
+        donations.push({
+          id: invoice.id,
+          amount: (invoice.amount_paid || 0) / 100,
+          frequency: subscriptionId ? "monthly" : "one-time",
+          status: "completed",
+          created_at: new Date(invoice.created * 1000).toISOString(),
+          designation,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          invoice_id: invoice.id,
+          receipt_url: invoice.hosted_invoice_url || undefined,
+        });
+      } catch (e) {
+        console.error("[GET-DONATION-HISTORY] Error processing invoice:", invoice.id, e);
+      }
     }
 
     // Process one-time charges that aren't part of subscriptions/invoices
     for (const charge of charges.data) {
       if (charge.status !== "succeeded") continue;
       if (charge.invoice) continue; // Already covered by invoices above
+      
+      // Skip if no valid timestamp
+      if (!charge.created || typeof charge.created !== 'number') {
+        console.log("[GET-DONATION-HISTORY] Skipping charge with invalid created timestamp:", charge.id);
+        continue;
+      }
       
       let designation = "General Support";
       if (charge.metadata?.bestie_name) {
@@ -149,17 +165,21 @@ serve(async (req) => {
         designation = "Sponsorship";
       }
 
-      donations.push({
-        id: charge.id,
-        amount: charge.amount / 100,
-        frequency: "one-time",
-        status: "completed",
-        created_at: new Date(charge.created * 1000).toISOString(),
-        designation,
-        stripe_customer_id: customerId,
-        stripe_payment_intent_id: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
-        receipt_url: charge.receipt_url || undefined,
-      });
+      try {
+        donations.push({
+          id: charge.id,
+          amount: charge.amount / 100,
+          frequency: "one-time",
+          status: "completed",
+          created_at: new Date(charge.created * 1000).toISOString(),
+          designation,
+          stripe_customer_id: customerId,
+          stripe_payment_intent_id: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
+          receipt_url: charge.receipt_url || undefined,
+        });
+      } catch (e) {
+        console.error("[GET-DONATION-HISTORY] Error processing charge:", charge.id, e);
+      }
     }
 
     // Sort by date descending
