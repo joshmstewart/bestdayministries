@@ -38,19 +38,39 @@ serve(async (req) => {
 
     console.log('Generating year-end summary for:', user.email, 'Year:', year);
 
-    // Get summary data
-    const { data: summary, error: summaryError } = await supabaseAdmin
-      .from('sponsorship_year_end_summary')
+    // Get receipts directly instead of relying on view (which may have duplicates)
+    const { data: receipts, error: receiptsError } = await supabaseAdmin
+      .from('sponsorship_receipts')
       .select('*')
-      .eq('sponsor_email', user.email)
+      .or(`user_id.eq.${user.id},sponsor_email.eq.${user.email}`)
       .eq('tax_year', year)
-      .maybeSingle();
+      .order('transaction_date', { ascending: true });
 
-    if (summaryError) throw summaryError;
+    if (receiptsError) throw receiptsError;
+
+    // Build summary from receipts
+    let summaryData: any = null;
+    if (receipts && receipts.length > 0) {
+      const totalAmount = receipts.reduce((sum, r) => sum + Number(r.amount), 0);
+      const donations = receipts.map(r => ({
+        date: r.transaction_date,
+        bestie_name: r.bestie_name,
+        amount: r.amount,
+        receipt_number: r.receipt_number
+      }));
+      
+      summaryData = {
+        sponsor_email: user.email,
+        sponsor_name: receipts[0].sponsor_name || user.email.split('@')[0],
+        tax_year: year,
+        total_amount: totalAmount,
+        total_donations: receipts.length,
+        donations
+      };
+    }
     
     // If no summary found and not sending email, create mock data for preview
-    let summaryData = summary;
-    if (!summary && !sendEmail) {
+    if (!summaryData && !sendEmail) {
       // Generate mock data for preview
       summaryData = {
         sponsor_email: user.email,
@@ -73,7 +93,7 @@ serve(async (req) => {
           { date: `${year}-12-15`, bestie_name: 'Sample Bestie 2', amount: 25.00, receipt_number: 'RCPT-012' },
         ]
       };
-    } else if (!summary && sendEmail) {
+    } else if (!summaryData && sendEmail) {
       // If trying to send actual email but no data, return error
       return new Response(JSON.stringify({ 
         error: 'No donations found for this year',
@@ -337,15 +357,15 @@ serve(async (req) => {
       }
 
       // Log sent email to database (only if real data)
-      if (summary) {
+      if (receipts && receipts.length > 0) {
         await supabaseAdmin
           .from('year_end_summary_sent')
           .insert({
             user_id: user.id,
             user_email: user.email,
-            user_name: summary.sponsor_name,
+            user_name: summaryData.sponsor_name,
             tax_year: year,
-            total_amount: summary.total_amount,
+            total_amount: summaryData.total_amount,
             resend_email_id: resendEmailId,
             status: 'sent',
           });
@@ -358,7 +378,7 @@ serve(async (req) => {
       html: emailHtml,
       emailSent: sendEmail || false,
       resendEmailId,
-      isMockData: !summary
+      isMockData: !receipts || receipts.length === 0
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
