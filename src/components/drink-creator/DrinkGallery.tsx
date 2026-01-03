@@ -13,6 +13,7 @@ interface CustomDrink {
   likes_count: number;
   created_at: string;
   creator_id: string;
+  creator_name: string | null;
 }
 
 interface DrinkGalleryProps {
@@ -34,7 +35,7 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
   const loadDrinks = async () => {
     const { data, error } = await supabase
       .from("custom_drinks")
-      .select("*")
+      .select("*, profiles:creator_id(display_name)")
       .eq("is_public", true)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -48,7 +49,12 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
       return;
     }
 
-    setDrinks(data || []);
+    const drinksWithCreators = (data || []).map((drink: any) => ({
+      ...drink,
+      creator_name: drink.profiles?.display_name || null,
+    }));
+
+    setDrinks(drinksWithCreators);
     setLoading(false);
   };
 
@@ -180,6 +186,9 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
               {/* Info */}
               <div className="p-3">
                 <h3 className="font-medium text-sm truncate">{drink.name}</h3>
+                {drink.creator_name && (
+                  <p className="text-xs text-muted-foreground truncate">by {drink.creator_name}</p>
+                )}
                 <div className="flex items-center gap-1 text-muted-foreground text-xs mt-1">
                   <Heart className={cn("h-3 w-3", isLiked && "fill-red-500 text-red-500")} />
                   <span>{drink.likes_count}</span>
