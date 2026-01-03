@@ -11,6 +11,7 @@ import { ProductCard } from "@/components/marketplace/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { VendorBestieAssetDisplay } from "@/components/vendor/VendorBestieAssetDisplay";
+import ImageLightbox from "@/components/ImageLightbox";
 
 interface Vendor {
   id: string;
@@ -39,6 +40,8 @@ const VendorProfile = () => {
   const [bestieAssets, setBestieAssets] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   useEffect(() => {
     loadVendorProfile();
@@ -227,7 +230,11 @@ const VendorProfile = () => {
                     <img 
                       src={vendor.logo_url} 
                       alt={vendor.business_name}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-background shadow-md"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-background shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => {
+                        setLightboxImage(vendor.logo_url);
+                        setLightboxOpen(true);
+                      }}
                     />
                   ) : (
                     <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center border-4 border-background shadow-md">
@@ -377,6 +384,21 @@ const VendorProfile = () => {
       </main>
 
       <Footer />
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <ImageLightbox
+          isOpen={lightboxOpen}
+          onClose={() => {
+            setLightboxOpen(false);
+            setLightboxImage(null);
+          }}
+          images={[{ image_url: lightboxImage, caption: vendor?.business_name }]}
+          currentIndex={0}
+          onPrevious={() => {}}
+          onNext={() => {}}
+        />
+      )}
     </div>
   );
 };
