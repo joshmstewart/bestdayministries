@@ -14,7 +14,7 @@ interface Transaction {
   amount: number;
   frequency: string;
   status: string;
-  donation_date: string;
+  transaction_date: string;
   stripe_subscription_id: string | null;
   receipt_url: string | null;
   designation?: string;
@@ -24,6 +24,7 @@ interface ActiveSubscription {
   stripe_subscription_id: string;
   amount: number;
   status: string;
+  designation?: string;
 }
 
 type StripeMode = "live" | "test";
@@ -48,9 +49,9 @@ export const DonationHistory = () => {
   const { toast } = useToast();
   const hasFetchedRef = useRef(false);
 
-  // Get current user
+  // Get current user and stripe mode setting
   useEffect(() => {
-    const getUser = async () => {
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserEmail(user?.email || null);
       setUserId(user?.id || null);
@@ -64,59 +65,82 @@ export const DonationHistory = () => {
 
         setCanChooseStripeMode(roleRow?.role === "admin" || roleRow?.role === "owner");
       }
+
+      // Get app stripe mode setting
+      const { data: modeData } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "stripe_mode")
+        .maybeSingle();
+
+      const rawMode: any = modeData?.setting_value;
+      const mode = rawMode === "test" || rawMode === "live"
+        ? rawMode
+        : rawMode?.mode === "test" || rawMode?.mode === "live"
+          ? rawMode.mode
+          : "live";
+      setStripeMode(mode);
     };
 
-    getUser();
+    init();
   }, []);
 
-  // Load donation history DIRECTLY from Stripe (API-first source of truth)
+  // Load donation history from the COMBINED TABLE (donation_stripe_transactions)
   const loadTransactions = useCallback(async (isRefresh = false) => {
-    if (!userId || !userEmail) return;
+    if (!userEmail) return;
 
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("get-donation-history", {
-        body: canChooseStripeMode ? { stripe_mode: stripeMode } : {},
-      });
+      // Query the combined transactions table directly
+      const { data: txData, error: txError } = await supabase
+        .from("donation_stripe_transactions")
+        .select("*")
+        .eq("email", userEmail)
+        .eq("stripe_mode", stripeMode)
+        .order("transaction_date", { ascending: false });
 
-      if (error) throw error;
+      if (txError) throw txError;
 
-      const usedMode = data?.stripe_mode;
-      if (!canChooseStripeMode && (usedMode === "live" || usedMode === "test")) {
-        setStripeMode(usedMode);
-      }
-
-      const donations = (data?.donations || []) as Array<any>;
-      const mappedTransactions: Transaction[] = donations.map((d) => ({
+      const mappedTransactions: Transaction[] = (txData || []).map((d: any) => ({
         id: d.id,
         amount: Number(d.amount || 0),
         frequency: d.frequency,
         status: d.status,
-        donation_date: d.created_at,
+        transaction_date: d.transaction_date,
         stripe_subscription_id: d.stripe_subscription_id ?? null,
-        receipt_url: d.receipt_url ?? null,
-        designation: d.designation,
+        receipt_url: d.raw_invoice?.hosted_invoice_url || d.raw_charge?.receipt_url || null,
+        designation: d.merged_metadata?.bestieName 
+          ? `Sponsorship: ${d.merged_metadata.bestieName}` 
+          : "General Support",
       }));
 
       setTransactions(mappedTransactions);
 
-      const subs = (data?.subscriptions || []) as Array<any>;
-      const mappedSubs: ActiveSubscription[] = subs
-        .filter((s) => s?.status === "active")
-        .map((s) => ({
-          stripe_subscription_id: s.id,
-          amount: Number(s.amount || 0),
-          status: s.status,
-        }));
+      // Query active subscriptions cache
+      const { data: subData, error: subError } = await supabase
+        .from("active_subscriptions_cache")
+        .select("*")
+        .eq("user_email", userEmail)
+        .eq("stripe_mode", stripeMode)
+        .eq("status", "active");
+
+      if (subError) throw subError;
+
+      const mappedSubs: ActiveSubscription[] = (subData || []).map((s: any) => ({
+        stripe_subscription_id: s.stripe_subscription_id,
+        amount: Number(s.amount || 0),
+        status: s.status,
+        designation: s.designation,
+      }));
 
       setSubscriptions(mappedSubs);
 
       if (isRefresh) {
         toast({
           title: "Updated",
-          description: `Loaded ${mappedTransactions.length} donations`,
+          description: `Loaded ${mappedTransactions.length} transactions`,
         });
       }
     } catch (error: any) {
@@ -130,23 +154,23 @@ export const DonationHistory = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId, userEmail, stripeMode, canChooseStripeMode, toast]);
+  }, [userEmail, stripeMode, toast]);
 
   const refresh = () => loadTransactions(true);
 
   // Initial load
   useEffect(() => {
-    if (userId && userEmail && !hasFetchedRef.current) {
+    if (userEmail && !hasFetchedRef.current) {
       hasFetchedRef.current = true;
       loadTransactions(false);
     }
-  }, [userId, userEmail, loadTransactions]);
+  }, [userEmail, loadTransactions]);
 
   // Reload when switching stripe mode
   useEffect(() => {
-    if (!userId || !userEmail || !hasFetchedRef.current) return;
+    if (!userEmail || !hasFetchedRef.current) return;
     loadTransactions(true);
-  }, [stripeMode, userId, userEmail, loadTransactions]);
+  }, [stripeMode, userEmail, loadTransactions]);
 
   const generateYearEndSummary = async (year: number, sendEmail: boolean = false) => {
     setGeneratingYear(year);
@@ -228,14 +252,14 @@ export const DonationHistory = () => {
   // Filter by year
   const filteredTransactions = selectedYear === "all"
     ? transactions 
-    : transactions.filter(t => new Date(t.donation_date).getFullYear().toString() === selectedYear);
+    : transactions.filter(t => new Date(t.transaction_date).getFullYear().toString() === selectedYear);
 
   const availableYears = Array.from(
-    new Set(transactions.map(t => new Date(t.donation_date).getFullYear()))
+    new Set(transactions.map(t => new Date(t.transaction_date).getFullYear()))
   ).sort((a, b) => b - a);
 
   const yearlyTotals = transactions.reduce((acc, tx) => {
-    const year = new Date(tx.donation_date).getFullYear();
+    const year = new Date(tx.transaction_date).getFullYear();
     if (!acc[year]) {
       acc[year] = { count: 0, total: 0 };
     }
@@ -292,9 +316,11 @@ export const DonationHistory = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">
-            Stripe mode: <span className="font-medium">{stripeMode}</span>
-          </p>
+          {canChooseStripeMode && (
+            <p className="text-sm text-muted-foreground">
+              Mode: <span className="font-medium">{stripeMode}</span>
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -348,7 +374,7 @@ export const DonationHistory = () => {
               {subscriptions.map(sub => (
                 <div key={sub.stripe_subscription_id} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-medium">Monthly Donation</span>
+                    <span className="font-medium">{sub.designation || "Monthly Donation"}</span>
                     <Badge variant="default">Active</Badge>
                   </div>
                   <div className="text-2xl font-bold text-primary">
@@ -457,7 +483,7 @@ export const DonationHistory = () => {
                 {filteredTransactions.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell>
-                      {format(new Date(tx.donation_date), "MMM d, yyyy")}
+                      {format(new Date(tx.transaction_date), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell className="font-semibold">
                       {new Intl.NumberFormat('en-US', {
