@@ -317,7 +317,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                   <Separator />
                 )}
 
-                {/* Store Items Section (all database items) */}
+                {/* Store Items Section - grouped by vendor */}
                 {allCartItems.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
@@ -325,72 +325,80 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                       <h3 className="font-semibold text-lg">Store Items</h3>
                     </div>
 
-                    {/* Free Shipping Progress - per vendor */}
-                    <div className="space-y-2">
-                      {Object.entries(vendorTotals).map(([vendorId, vendor]) => (
-                        <FreeShippingProgress 
-                          key={vendorId}
-                          currentSubtotal={vendor.subtotal} 
-                          threshold={vendor.freeShippingThreshold}
-                          vendorName={vendor.vendorName}
-                        />
-                      ))}
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {allCartItems.map((item) => (
-                        <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
-                          <img
-                            src={item.product.images?.[0] || '/placeholder.svg'}
-                            alt={item.product.name}
-                            className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                    {/* Group items by vendor */}
+                    {Object.entries(vendorTotals).map(([vendorId, vendor], index) => {
+                      const vendorItems = allCartItems.filter(item => item.product.vendor_id === vendorId);
+                      return (
+                        <div key={vendorId} className="space-y-3">
+                          {index > 0 && <Separator className="my-2" />}
+                          
+                          {/* Vendor name header */}
+                          <div className="flex items-center gap-2">
+                            <Store className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">{vendor.vendorName}</span>
+                          </div>
+                          
+                          {/* Vendor's items */}
+                          <div className="space-y-2">
+                            {vendorItems.map((item) => (
+                              <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
+                                <img
+                                  src={item.product.images?.[0] || '/placeholder.svg'}
+                                  alt={item.product.name}
+                                  className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                                />
+                                
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium truncate text-sm">{item.product.name}</h4>
+                                  <p className="font-semibold text-sm text-primary">
+                                    ${(typeof item.product.price === 'string' 
+                                      ? parseFloat(item.product.price) 
+                                      : item.product.price).toFixed(2)}
+                                  </p>
+                                </div>
+                                
+                                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-destructive hover:text-destructive"
+                                    onClick={() => removeHandmadeItem(item.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                  
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => updateHandmadeQuantity(item.id, item.quantity, -1)}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="w-6 text-center text-sm">{item.quantity}</span>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => updateHandmadeQuantity(item.id, item.quantity, 1)}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Vendor's shipping progress */}
+                          <FreeShippingProgress 
+                            currentSubtotal={vendor.subtotal} 
+                            threshold={vendor.freeShippingThreshold}
                           />
-                          
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate text-sm">{item.product.name}</h4>
-                            <p className="text-xs text-muted-foreground">
-                              by {item.product.vendors?.business_name || 'Vendor'}
-                            </p>
-                            <p className="font-semibold text-sm text-primary">
-                              ${(typeof item.product.price === 'string' 
-                                ? parseFloat(item.product.price) 
-                                : item.product.price).toFixed(2)}
-                            </p>
-                          </div>
-                          
-                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive hover:text-destructive"
-                              onClick={() => removeHandmadeItem(item.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                            
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => updateHandmadeQuantity(item.id, item.quantity, -1)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="w-6 text-center text-sm">{item.quantity}</span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => updateHandmadeQuantity(item.id, item.quantity, 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                     
                     <div className="p-3 bg-muted/50 rounded-lg space-y-2">
                       <div className="flex justify-between text-sm">
