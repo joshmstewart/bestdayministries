@@ -21,6 +21,24 @@ interface DonationRecord {
   receipt_url?: string;
 }
 
+const readId = (val: any): string | undefined => {
+  if (!val) return undefined;
+  if (typeof val === "string") return val;
+  if (typeof val === "object" && val !== null && typeof val.id === "string") return val.id;
+  return undefined;
+};
+
+const readSponsorBestieIdFromMeta = (meta: any): string | undefined => {
+  if (!meta || typeof meta !== "object") return undefined;
+  const direct = meta.bestie_id ?? meta.sponsor_bestie_id ?? meta.bestieId ?? meta.sponsorBestieId;
+  return typeof direct === "string" ? direct : undefined;
+};
+
+const isDonationMeta = (meta: any): boolean => {
+  if (!meta || typeof meta !== "object") return false;
+  return meta.type === "donation" || meta.donation_type === "general";
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,44 +47,56 @@ serve(async (req) => {
   try {
     console.log("[GET-DONATION-HISTORY] Starting...");
 
-    const supabaseClient = createClient(
+    const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
     );
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: userData, error: userError } = await supabaseAnon.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    
+
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    
+
     console.log("[GET-DONATION-HISTORY] User:", user.email);
 
-    // Get Stripe mode from app settings
-    const { data: settingsData } = await supabaseClient
+    // Get Stripe mode from app settings (supports both legacy string and object shapes)
+    const { data: settingsData } = await supabaseAdmin
       .from("app_settings")
       .select("setting_value")
       .eq("setting_key", "stripe_mode")
       .maybeSingle();
 
-    const stripeMode = settingsData?.setting_value?.mode || "live";
-    const stripeKey = stripeMode === "live" 
-      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
-      : Deno.env.get("STRIPE_SECRET_KEY_TEST");
+    const rawStripeMode: any = settingsData?.setting_value;
+    const stripeMode =
+      rawStripeMode === "test" || rawStripeMode === "live"
+        ? rawStripeMode
+        : rawStripeMode?.mode === "test" || rawStripeMode?.mode === "live"
+          ? rawStripeMode.mode
+          : "live";
+
+    const stripeKey =
+      stripeMode === "live" ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") : Deno.env.get("STRIPE_SECRET_KEY_TEST");
 
     if (!stripeKey) throw new Error(`Stripe ${stripeMode} key not configured`);
-    
+
     console.log("[GET-DONATION-HISTORY] Using Stripe mode:", stripeMode);
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Find customer by email
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
+
     if (customers.data.length === 0) {
       console.log("[GET-DONATION-HISTORY] No Stripe customer found");
       return new Response(JSON.stringify({ donations: [], subscriptions: [] }), {
@@ -78,24 +108,12 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     console.log("[GET-DONATION-HISTORY] Found customer:", customerId);
 
-    // Fetch all charges (one-time payments)
-    const charges = await stripe.charges.list({
-      customer: customerId,
-      limit: 100,
-    });
-
-    // Fetch all subscriptions (recurring)
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "all",
-      limit: 100,
-    });
-
-    // Fetch all invoices (for recurring payment history)
-    const invoices = await stripe.invoices.list({
-      customer: customerId,
-      limit: 100,
-    });
+    // Fetch Stripe data
+    const [charges, subscriptions, invoices] = await Promise.all([
+      stripe.charges.list({ customer: customerId, limit: 100 }),
+      stripe.subscriptions.list({ customer: customerId, status: "all", limit: 100 }),
+      stripe.invoices.list({ customer: customerId, limit: 100 }),
+    ]);
 
     console.log("[GET-DONATION-HISTORY] Found:", {
       charges: charges.data.length,
@@ -103,50 +121,78 @@ serve(async (req) => {
       invoices: invoices.data.length,
     });
 
+    // --- Sponsorship lookup (DB supplement) ---
+    // Stripe metadata is not always present on Charge/Invoice, but our DB has a reliable mapping.
+    const sponsorshipByStripeRefId = new Map<string, string>();
+    const sponsorBestieIds = new Set<string>();
+
+    try {
+      const { data: sponsorshipRows, error: sponsorshipErr } = await supabaseAdmin
+        .from("sponsorships")
+        .select("sponsor_bestie_id, stripe_subscription_id, stripe_payment_intent_id, frequency")
+        .or(`sponsor_id.eq.${user.id},sponsor_email.eq.${user.email}`);
+
+      if (sponsorshipErr) {
+        console.log("[GET-DONATION-HISTORY] Sponsorship lookup error (non-fatal):", sponsorshipErr.message);
+      }
+
+      (sponsorshipRows || []).forEach((row: any) => {
+        if (row?.sponsor_bestie_id) sponsorBestieIds.add(row.sponsor_bestie_id);
+        if (row?.stripe_subscription_id) sponsorshipByStripeRefId.set(row.stripe_subscription_id, row.sponsor_bestie_id);
+        if (row?.stripe_payment_intent_id)
+          sponsorshipByStripeRefId.set(row.stripe_payment_intent_id, row.sponsor_bestie_id);
+      });
+
+      console.log("[GET-DONATION-HISTORY] Loaded sponsorship mappings:", {
+        sponsorshipRows: (sponsorshipRows || []).length,
+        stripeRefs: sponsorshipByStripeRefId.size,
+      });
+    } catch (e) {
+      console.log("[GET-DONATION-HISTORY] Sponsorship lookup failed (non-fatal)");
+    }
+
+    // Also add any sponsor_bestie ids we can see directly in Stripe metadata
+    for (const sub of subscriptions.data) {
+      const id = readSponsorBestieIdFromMeta((sub as any)?.metadata);
+      if (id) sponsorBestieIds.add(id);
+    }
+    for (const ch of charges.data) {
+      const id = readSponsorBestieIdFromMeta((ch as any)?.metadata);
+      if (id) sponsorBestieIds.add(id);
+    }
+
+    // Build sponsor_bestie_id → bestie_name map
+    const sponsorBestieNameMap: Record<string, string> = {};
+    if (sponsorBestieIds.size > 0) {
+      const { data: sponsorBesties, error: sponsorBestiesErr } = await supabaseAdmin
+        .from("sponsor_besties")
+        .select("id, bestie_name")
+        .in("id", Array.from(sponsorBestieIds));
+
+      if (sponsorBestiesErr) {
+        console.log("[GET-DONATION-HISTORY] sponsor_besties lookup error (non-fatal):", sponsorBestiesErr.message);
+      }
+
+      (sponsorBesties || []).forEach((sb: any) => {
+        sponsorBestieNameMap[sb.id] = sb.bestie_name;
+      });
+
+      console.log("[GET-DONATION-HISTORY] Loaded sponsor bestie names:", sponsorBestieNameMap);
+    }
+
     const donations: DonationRecord[] = [];
-
-    // Log subscription metadata for debugging
-    for (const sub of subscriptions.data) {
-      console.log("[GET-DONATION-HISTORY] Subscription metadata:", sub.id, JSON.stringify(sub.metadata));
-    }
-
-    // Create a map of bestie_id to bestie_name from sponsor_besties table
-    const bestieIds = new Set<string>();
-    for (const sub of subscriptions.data) {
-      if (sub.metadata?.bestie_id) {
-        bestieIds.add(sub.metadata.bestie_id);
-      }
-    }
-    for (const charge of charges.data) {
-      if (charge.metadata?.bestie_id) {
-        bestieIds.add(charge.metadata.bestie_id);
-      }
-    }
-    
-    const bestieNameMap: Record<string, string> = {};
-    if (bestieIds.size > 0) {
-      const { data: sponsorBesties } = await supabaseClient
-        .from('sponsor_besties')
-        .select('id, bestie_name')
-        .in('id', Array.from(bestieIds));
-      
-      if (sponsorBesties) {
-        for (const sb of sponsorBesties) {
-          bestieNameMap[sb.id] = sb.bestie_name;
-        }
-      }
-      console.log("[GET-DONATION-HISTORY] Loaded bestie names:", bestieNameMap);
-    }
 
     // Build helper maps for invoice → subscription resolution and de-duping
     const subscriptionItemToSubscriptionId = new Map<string, string>();
+    const subscriptionsById = new Map<string, Stripe.Subscription>();
     for (const s of subscriptions.data) {
+      subscriptionsById.set(s.id, s);
       for (const item of (s.items?.data || [])) {
         if (item?.id) subscriptionItemToSubscriptionId.set(item.id, s.id);
       }
     }
 
-    // Only de-dupe against *recurring* invoices. Non-recurring invoices are skipped so their charges remain.
+    // Only de-dupe against *recurring* invoices.
     const recurringInvoiceIds = new Set<string>();
     const recurringInvoicePaymentIntentIds = new Set<string>();
 
@@ -154,34 +200,21 @@ serve(async (req) => {
     let nonRecurringInvoicesSkipped = 0;
     let invoiceBackedChargesSkipped = 0;
 
-    const readId = (val: any): string | undefined => {
-      if (!val) return undefined;
-      if (typeof val === "string") return val;
-      if (typeof val === "object" && val !== null && typeof val.id === "string") return val.id;
-      return undefined;
-    };
-
-    // Process invoices (recurring payments) - these are the actual payment records
+    // Process invoices (recurring payments)
     for (const invoice of invoices.data) {
       if (invoice.status !== "paid") continue;
-      
-      // Skip if no valid timestamp
-      if (!invoice.created || typeof invoice.created !== 'number') {
+
+      if (!invoice.created || typeof invoice.created !== "number") {
         console.log("[GET-DONATION-HISTORY] Skipping invoice with invalid created timestamp:", invoice.id);
         continue;
       }
-      
-      // Resolve subscription ID (Stripe can return these in a few places depending on invoice type)
-      let designation = "General Support";
-      let subscriptionId: string | undefined;
-      let frequency: "one-time" | "monthly" = "one-time";
 
       const invAny = invoice as any;
       const billingReason = typeof invAny.billing_reason === "string" ? invAny.billing_reason : "";
 
-      subscriptionId = readId(invAny.subscription);
+      // Resolve subscription ID (Stripe can return these in a few places)
+      let subscriptionId: string | undefined = readId(invAny.subscription);
 
-      // Fallback: some invoices expose the subscription via line items
       if (!subscriptionId && invAny.lines?.data?.length) {
         for (const line of invAny.lines.data) {
           const lineSubId = readId(line?.subscription);
@@ -198,37 +231,49 @@ serve(async (req) => {
         }
       }
 
-      // Only include recurring invoices; non-recurring invoices are represented by the charge.
-      const isRecurring = Boolean(subscriptionId) || billingReason.startsWith("subscription");
+      const isRecurring = Boolean(subscriptionId) || Boolean(readId(invAny.subscription)) || billingReason.startsWith("subscription");
       if (!isRecurring) {
         nonRecurringInvoicesSkipped++;
         continue;
       }
 
       recurringInvoiceIds.add(invoice.id);
-      const invPaymentIntentId = typeof invAny.payment_intent === "string" ? invAny.payment_intent : undefined;
+      const invPaymentIntentId = readId(invAny.payment_intent);
       if (invPaymentIntentId) recurringInvoicePaymentIntentIds.add(invPaymentIntentId);
 
-      frequency = "monthly";
+      // Default: recurring invoices are monthly
+      let frequency: "one-time" | "monthly" = "monthly";
 
-      // Determine designation/frequency using subscription metadata when possible
-      if (subscriptionId) {
-        frequency = "monthly";
-        const sub = subscriptions.data.find((s: Stripe.Subscription) => s.id === subscriptionId);
-        const meta: Record<string, any> = ((sub as any)?.metadata || {}) as any;
-        const bestieId = meta.bestie_id;
+      // Resolve designation in priority order:
+      // 1) DB sponsorship mapping by subscription/payment_intent
+      // 2) Stripe subscription metadata (bestie_id)
+      // 3) Stripe invoice/payment_intent metadata
+      let designation = "General Support";
 
-        if (meta.type === "donation" || meta.donation_type === "general") {
+      const sponsorBestieFromDb =
+        (subscriptionId ? sponsorshipByStripeRefId.get(subscriptionId) : undefined) ||
+        (invPaymentIntentId ? sponsorshipByStripeRefId.get(invPaymentIntentId) : undefined);
+
+      if (sponsorBestieFromDb) {
+        designation = sponsorBestieNameMap[sponsorBestieFromDb] || "Sponsorship";
+      } else if (subscriptionId) {
+        const sub = subscriptionsById.get(subscriptionId);
+        const subMeta: any = (sub as any)?.metadata || {};
+
+        if (isDonationMeta(subMeta)) {
           designation = "General Support";
-        } else if (bestieId && bestieNameMap[bestieId]) {
-          designation = bestieNameMap[bestieId];
-        } else if (bestieId) {
-          designation = "Sponsorship";
+        } else {
+          const sponsorBestieId = readSponsorBestieIdFromMeta(subMeta);
+          if (sponsorBestieId && sponsorBestieNameMap[sponsorBestieId]) {
+            designation = sponsorBestieNameMap[sponsorBestieId];
+          } else if (sponsorBestieId) {
+            designation = "Sponsorship";
+          }
         }
       } else {
         // Fallback: classification sometimes lives on the PaymentIntent
         let meta: Record<string, any> = (invAny.metadata || {}) as any;
-        if ((!meta.bestie_id && !meta.type) && typeof invAny.payment_intent === "string") {
+        if ((!readSponsorBestieIdFromMeta(meta) && !meta.type) && typeof invAny.payment_intent === "string") {
           try {
             const pi = await stripe.paymentIntents.retrieve(invAny.payment_intent);
             meta = (pi?.metadata || {}) as any;
@@ -237,48 +282,44 @@ serve(async (req) => {
           }
         }
 
-        if (meta.frequency === "monthly") frequency = "monthly";
+        if (meta.frequency === "one-time") frequency = "one-time";
 
-        if (meta.type === "donation" || meta.donation_type === "general") {
+        if (isDonationMeta(meta)) {
           designation = "General Support";
-        } else if (meta.bestie_id && bestieNameMap[meta.bestie_id]) {
-          designation = bestieNameMap[meta.bestie_id];
-        } else if (meta.bestie_id) {
-          designation = "Sponsorship";
+        } else {
+          const sponsorBestieId = readSponsorBestieIdFromMeta(meta);
+          if (sponsorBestieId && sponsorBestieNameMap[sponsorBestieId]) {
+            designation = sponsorBestieNameMap[sponsorBestieId];
+          } else if (sponsorBestieId) {
+            designation = "Sponsorship";
+          }
         }
       }
 
-      try {
-        donations.push({
-          id: invoice.id,
-          amount: (invoice.amount_paid || 0) / 100,
-          frequency,
-          status: "completed",
-          created_at: new Date(invoice.created * 1000).toISOString(),
-          designation,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
-          invoice_id: invoice.id,
-          receipt_url: invoice.hosted_invoice_url || undefined,
-        });
-        recurringInvoicesIncluded++;
-      } catch (e) {
-        console.error("[GET-DONATION-HISTORY] Error processing invoice:", invoice.id, e);
-      }
+      donations.push({
+        id: invoice.id,
+        amount: (invoice.amount_paid || 0) / 100,
+        frequency,
+        status: "completed",
+        created_at: new Date(invoice.created * 1000).toISOString(),
+        designation,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        invoice_id: invoice.id,
+        receipt_url: invoice.hosted_invoice_url || undefined,
+      });
+
+      recurringInvoicesIncluded++;
     }
 
     // Process one-time charges (and non-recurring invoice payments)
     for (const charge of charges.data) {
       if (charge.status !== "succeeded") continue;
 
-      const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : undefined;
+      const paymentIntentId = readId((charge as any).payment_intent);
 
       // De-dupe: recurring invoice payments show up as both an invoice + a charge.
-      const chargeInvoiceId =
-        typeof (charge as any).invoice === "string"
-          ? (charge as any).invoice
-          : (charge as any).invoice?.id;
-
+      const chargeInvoiceId = readId((charge as any).invoice);
       if (
         (paymentIntentId && recurringInvoicePaymentIntentIds.has(paymentIntentId)) ||
         (chargeInvoiceId && recurringInvoiceIds.has(chargeInvoiceId))
@@ -287,14 +328,13 @@ serve(async (req) => {
         continue;
       }
 
-      // Skip if no valid timestamp
-      if (!charge.created || typeof charge.created !== 'number') {
+      if (!charge.created || typeof charge.created !== "number") {
         console.log("[GET-DONATION-HISTORY] Skipping charge with invalid created timestamp:", charge.id);
         continue;
       }
 
-      let meta: Record<string, any> = (charge.metadata || {}) as any;
-      if ((!meta.bestie_id && !meta.type) && paymentIntentId) {
+      let meta: Record<string, any> = ((charge as any).metadata || {}) as any;
+      if ((!readSponsorBestieIdFromMeta(meta) && !meta.type) && paymentIntentId) {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
           meta = (pi?.metadata || {}) as any;
@@ -304,29 +344,36 @@ serve(async (req) => {
       }
 
       let designation = "General Support";
-      if (meta.type === "donation" || meta.donation_type === "general") {
+
+      // DB sponsorship mapping is the most reliable for one-time sponsorships
+      const sponsorBestieFromDb = paymentIntentId ? sponsorshipByStripeRefId.get(paymentIntentId) : undefined;
+      if (sponsorBestieFromDb) {
+        designation = sponsorBestieNameMap[sponsorBestieFromDb] || "Sponsorship";
+      } else if (isDonationMeta(meta)) {
         designation = "General Support";
-      } else if (meta.bestie_id && bestieNameMap[meta.bestie_id]) {
-        designation = bestieNameMap[meta.bestie_id];
-      } else if (meta.bestie_id) {
-        designation = "Sponsorship";
+      } else {
+        const sponsorBestieId = readSponsorBestieIdFromMeta(meta);
+        if (sponsorBestieId && sponsorBestieNameMap[sponsorBestieId]) {
+          designation = sponsorBestieNameMap[sponsorBestieId];
+        } else if (sponsorBestieId) {
+          designation = "Sponsorship";
+        } else {
+          const desc = ((charge as any).description || "").toString().toLowerCase();
+          if (desc.includes("bestie sponsorship")) designation = "Sponsorship";
+        }
       }
 
-      try {
-        donations.push({
-          id: charge.id,
-          amount: charge.amount / 100,
-          frequency: "one-time",
-          status: "completed",
-          created_at: new Date(charge.created * 1000).toISOString(),
-          designation,
-          stripe_customer_id: customerId,
-          stripe_payment_intent_id: paymentIntentId,
-          receipt_url: charge.receipt_url || undefined,
-        });
-      } catch (e) {
-        console.error("[GET-DONATION-HISTORY] Error processing charge:", charge.id, e);
-      }
+      donations.push({
+        id: charge.id,
+        amount: charge.amount / 100,
+        frequency: "one-time",
+        status: "completed",
+        created_at: new Date(charge.created * 1000).toISOString(),
+        designation,
+        stripe_customer_id: customerId,
+        stripe_payment_intent_id: paymentIntentId,
+        receipt_url: charge.receipt_url || undefined,
+      });
     }
 
     // Sort by date descending
@@ -336,16 +383,23 @@ serve(async (req) => {
     const activeSubscriptions = subscriptions.data
       .filter((s: Stripe.Subscription) => s.status === "active")
       .map((s: Stripe.Subscription) => {
-        const periodEnd = s.current_period_end && typeof s.current_period_end === 'number' 
-          ? new Date(s.current_period_end * 1000).toISOString() 
-          : null;
-        const bestieId = s.metadata?.bestie_id;
+        const periodEnd =
+          s.current_period_end && typeof s.current_period_end === "number"
+            ? new Date(s.current_period_end * 1000).toISOString()
+            : null;
+
+        // Prefer DB mapping, then Stripe metadata
+        const sponsorBestieFromDb = sponsorshipByStripeRefId.get(s.id);
+        const sponsorBestieFromMeta = readSponsorBestieIdFromMeta((s as any).metadata);
+        const sponsorBestieId = sponsorBestieFromDb || sponsorBestieFromMeta;
+
         let designation = "General Support";
-        if (bestieId && bestieNameMap[bestieId]) {
-          designation = bestieNameMap[bestieId];
-        } else if (bestieId) {
+        if (sponsorBestieId && sponsorBestieNameMap[sponsorBestieId]) {
+          designation = sponsorBestieNameMap[sponsorBestieId];
+        } else if (sponsorBestieId) {
           designation = "Sponsorship";
         }
+
         return {
           id: s.id,
           amount: s.items.data[0]?.price?.unit_amount ? s.items.data[0].price.unit_amount / 100 : 0,
@@ -362,15 +416,17 @@ serve(async (req) => {
       invoiceBackedChargesSkipped,
     });
 
-    return new Response(JSON.stringify({ 
-      donations, 
-      subscriptions: activeSubscriptions,
-      stripe_mode: stripeMode,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-
+    return new Response(
+      JSON.stringify({
+        donations,
+        subscriptions: activeSubscriptions,
+        stripe_mode: stripeMode,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("[GET-DONATION-HISTORY] ERROR:", errorMessage);
