@@ -60,9 +60,10 @@ const uniqByKey = <T>(items: T[], keyFn: (t: T) => string) => {
 
 const safeStr = (v: any) => (v === null || v === undefined ? "" : String(v));
 
+const normalizeEmail = (v: any) => safeStr(v).trim().toLowerCase();
+const emailMatches = (candidate: any, targetNormalized: string) => normalizeEmail(candidate) === targetNormalized;
+
 const escapeStripeQueryValue = (v: string) => v.replace(/\\/g, "\\\\").replace(/\"/g, "\\\"");
-
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -160,69 +161,111 @@ serve(async (req) => {
 
     console.log("[DONATION-MAPPING-SNAPSHOT] Customers", { found: customerIds.length, customerIds });
 
-    // If Stripe has no customer for the email, we still try email-based Stripe searches.
+    // If Stripe has no customer for the email, we still try to find guest checkouts.
     const created = { gte: startTs, lt: endTs };
 
-    const stripeItemsRaw: any[] = [];
-
-    const perCustomer = await Promise.all(
-      customerIds.map(async (customer: string) => {
-        const [charges, invoices, sessions, paymentIntents, subscriptions] = await Promise.all([
-          listAll((p) => stripe.charges.list(p) as any, { customer, created }),
-          listAll((p) => stripe.invoices.list(p) as any, { customer, created }),
-          listAll((p) => stripe.checkout.sessions.list(p) as any, { customer, created }),
-          listAll((p) => stripe.paymentIntents.list(p) as any, { customer, created }),
-          listAll((p) => stripe.subscriptions.list(p) as any, { customer, status: "all", created }),
-        ]);
-
-        return { customer, charges, invoices, sessions, paymentIntents, subscriptions };
-      })
-    );
-
-    // Fallback: email-based searches (covers guest checkouts / missing customer email)
-    let searchCounts = {
-      chargesByBillingEmail: 0,
-      chargesByReceiptEmail: 0,
-      invoicesByCustomerEmail: 0,
-      paymentIntentsByReceiptEmail: 0,
-      checkoutSessionsByCustomerDetailsEmail: 0,
+    type CustomerBlock = {
+      customer: string;
+      charges: any[];
+      invoices: any[];
+      sessions: any[];
+      paymentIntents: any[];
+      subscriptions: any[];
     };
 
-    if ((stripe as any).charges?.search) {
-      const q1 = `created>=${startTs} AND created<${endTs} AND billing_details.email:"${escapeStripeQueryValue(email)}"`;
-      const q2 = `created>=${startTs} AND created<${endTs} AND receipt_email:"${escapeStripeQueryValue(email)}"`;
-      const [a, b] = await Promise.all([
-        searchAll((p) => (stripe as any).charges.search(p), { query: q1 }),
-        searchAll((p) => (stripe as any).charges.search(p), { query: q2 }),
+    const perCustomerBlocks: CustomerBlock[] = customerIds.length
+      ? await Promise.all(
+          customerIds.map(async (customer: string) => {
+            const [charges, invoices, sessions, paymentIntents, subscriptions] = await Promise.all([
+              listAll((p) => stripe.charges.list(p) as any, { customer, created }),
+              listAll((p) => stripe.invoices.list(p) as any, { customer, created }),
+              listAll((p) => stripe.checkout.sessions.list(p) as any, { customer, created }),
+              listAll((p) => stripe.paymentIntents.list(p) as any, { customer, created }),
+              listAll((p) => stripe.subscriptions.list(p) as any, { customer, status: "all", created }),
+            ]);
+
+            return { customer, charges, invoices, sessions, paymentIntents, subscriptions };
+          })
+        )
+      : [];
+
+    // Guest fallback: list-by-date then filter by email (Stripe Search does NOT support email fields on some objects)
+    const listAllWithMeta = async <T>(
+      fn: (params: any) => Promise<{ data: T[]; has_more: boolean }>,
+      params: Record<string, any>,
+      maxPages = 50
+    ): Promise<{ items: T[]; capped: boolean }> => {
+      const out: T[] = [];
+      let starting_after: string | undefined = undefined;
+      let capped = false;
+      for (let i = 0; i < maxPages; i++) {
+        const resp = await fn({ ...params, limit: 100, ...(starting_after ? { starting_after } : {}) });
+        out.push(...(resp.data || []));
+        if (!resp.has_more || resp.data.length === 0) break;
+        const last: any = resp.data[resp.data.length - 1];
+        starting_after = last?.id;
+        if (!starting_after) break;
+        if (i === maxPages - 1 && resp.has_more) capped = true;
+      }
+      return { items: out, capped };
+    };
+
+    let guestFallback: any = null;
+    const guestBlocks: CustomerBlock[] = [];
+
+    if (customerIds.length === 0) {
+      const [chargesAll, invoicesAll, sessionsAll, pisAll] = await Promise.all([
+        listAllWithMeta((p) => stripe.charges.list(p) as any, { created }),
+        listAllWithMeta((p) => stripe.invoices.list(p) as any, { created }),
+        listAllWithMeta((p) => stripe.checkout.sessions.list(p) as any, { created }),
+        listAllWithMeta((p) => stripe.paymentIntents.list(p) as any, { created }),
       ]);
-      searchCounts.chargesByBillingEmail = a.length;
-      searchCounts.chargesByReceiptEmail = b.length;
-      stripeItemsRaw.push(...a.map((x: any) => ({ __searchType: "charge", raw: x })));
-      stripeItemsRaw.push(...b.map((x: any) => ({ __searchType: "charge", raw: x })));
+
+      const charges = (chargesAll.items || []).filter(
+        (ch: any) => emailMatches(ch?.billing_details?.email, email) || emailMatches(ch?.receipt_email, email)
+      );
+
+      const invoices = (invoicesAll.items || []).filter((inv: any) => emailMatches(inv?.customer_email, email));
+
+      const sessions = (sessionsAll.items || []).filter(
+        (s: any) =>
+          emailMatches(s?.customer_details?.email, email) ||
+          emailMatches(s?.customer_email, email) ||
+          emailMatches(s?.customer_details?.email, email)
+      );
+
+      const paymentIntents = (pisAll.items || []).filter(
+        (pi: any) => emailMatches(pi?.receipt_email, email) || emailMatches(pi?.shipping?.email, email)
+      );
+
+      guestBlocks.push({ customer: "(guest)", charges, invoices, sessions, paymentIntents, subscriptions: [] });
+
+      guestFallback = {
+        used: true,
+        scanned: {
+          charges: chargesAll.items.length,
+          invoices: invoicesAll.items.length,
+          sessions: sessionsAll.items.length,
+          payment_intents: pisAll.items.length,
+        },
+        matched: {
+          charges: charges.length,
+          invoices: invoices.length,
+          sessions: sessions.length,
+          payment_intents: paymentIntents.length,
+        },
+        capped: {
+          charges: chargesAll.capped,
+          invoices: invoicesAll.capped,
+          sessions: sessionsAll.capped,
+          payment_intents: pisAll.capped,
+        },
+      };
+
+      console.log("[DONATION-MAPPING-SNAPSHOT] Guest fallback", guestFallback);
     }
 
-    if ((stripe as any).invoices?.search) {
-      const q = `created>=${startTs} AND created<${endTs} AND customer_email:"${escapeStripeQueryValue(email)}"`;
-      const inv = await searchAll((p) => (stripe as any).invoices.search(p), { query: q });
-      searchCounts.invoicesByCustomerEmail = inv.length;
-      stripeItemsRaw.push(...inv.map((x: any) => ({ __searchType: "invoice", raw: x })));
-    }
-
-    if ((stripe as any).paymentIntents?.search) {
-      const q = `created>=${startTs} AND created<${endTs} AND receipt_email:"${escapeStripeQueryValue(email)}"`;
-      const pis = await searchAll((p) => (stripe as any).paymentIntents.search(p), { query: q });
-      searchCounts.paymentIntentsByReceiptEmail = pis.length;
-      stripeItemsRaw.push(...pis.map((x: any) => ({ __searchType: "payment_intent", raw: x })));
-    }
-
-    if ((stripe as any).checkout?.sessions?.search) {
-      const q = `created>=${startTs} AND created<${endTs} AND customer_details.email:"${escapeStripeQueryValue(email)}"`;
-      const sess = await searchAll((p) => (stripe as any).checkout.sessions.search(p), { query: q });
-      searchCounts.checkoutSessionsByCustomerDetailsEmail = sess.length;
-      stripeItemsRaw.push(...sess.map((x: any) => ({ __searchType: "checkout_session", raw: x })));
-    }
-
-    console.log("[DONATION-MAPPING-SNAPSHOT] Search fallback counts", searchCounts);
+    const perCustomer: CustomerBlock[] = [...perCustomerBlocks, ...guestBlocks];
 
     const stripeItems: any[] = [];
 
@@ -324,84 +367,7 @@ serve(async (req) => {
       }
     }
 
-    // Merge in fallback search results (if any)
-    for (const r of stripeItemsRaw) {
-      const raw = r.raw;
-      const type = r.__searchType as string;
-      const cid = readId((raw as any).customer);
-
-      if (type === "charge") {
-        const piId = readId((raw as any).payment_intent);
-        const meta = (raw as any).metadata || {};
-        pushStripeItem({
-          type: "charge",
-          id: (raw as any).id,
-          created: (raw as any).created ? new Date(((raw as any).created as number) * 1000).toISOString() : undefined,
-          amount: typeof (raw as any).amount === "number" ? (raw as any).amount / 100 : undefined,
-          currency: (raw as any).currency,
-          status: (raw as any).status,
-          customer_id: cid,
-          payment_intent_id: piId,
-          invoice_id: readId((raw as any).invoice),
-          order_id: (meta as any).order_id,
-          metadata: meta,
-          raw,
-        });
-      }
-
-      if (type === "invoice") {
-        const meta = (raw as any).metadata || {};
-        pushStripeItem({
-          type: "invoice",
-          id: (raw as any).id,
-          created: (raw as any).created ? new Date(((raw as any).created as number) * 1000).toISOString() : undefined,
-          amount: typeof (raw as any).amount_paid === "number" ? (raw as any).amount_paid / 100 : undefined,
-          currency: (raw as any).currency,
-          status: (raw as any).status,
-          customer_id: cid,
-          payment_intent_id: readId((raw as any).payment_intent),
-          subscription_id: readId((raw as any).subscription),
-          order_id: (meta as any).order_id,
-          metadata: meta,
-          raw,
-        });
-      }
-
-      if (type === "payment_intent") {
-        const meta = (raw as any).metadata || {};
-        pushStripeItem({
-          type: "payment_intent",
-          id: (raw as any).id,
-          created: (raw as any).created ? new Date(((raw as any).created as number) * 1000).toISOString() : undefined,
-          amount: typeof (raw as any).amount === "number" ? (raw as any).amount / 100 : undefined,
-          currency: (raw as any).currency,
-          status: (raw as any).status,
-          customer_id: cid,
-          payment_intent_id: (raw as any).id,
-          order_id: (meta as any).order_id,
-          metadata: meta,
-          raw,
-        });
-      }
-
-      if (type === "checkout_session") {
-        const meta = (raw as any).metadata || {};
-        pushStripeItem({
-          type: "checkout_session",
-          id: (raw as any).id,
-          created: (raw as any).created ? new Date(((raw as any).created as number) * 1000).toISOString() : undefined,
-          amount: typeof (raw as any).amount_total === "number" ? (raw as any).amount_total / 100 : undefined,
-          currency: (raw as any).currency,
-          status: (raw as any).status,
-          customer_id: cid,
-          payment_intent_id: readId((raw as any).payment_intent),
-          subscription_id: readId((raw as any).subscription),
-          order_id: (meta as any).order_id,
-          metadata: meta,
-          raw,
-        });
-      }
-    }
+    // No Stripe Search merge step here. Guest fallback (if needed) is handled via list-by-date + email filtering above.
 
     const stripeItemsUniq = uniqByKey(stripeItems, (it) => `${it.type}:${it.id}`);
 
