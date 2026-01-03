@@ -163,6 +163,7 @@ const App = () => {
             <Route path="/coffee-shop" element={<CoffeeShopHome />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/vendor" element={<VendorAuth />} />
+            <Route path="/vendor-auth" element={<VendorAuth />} />
             <Route path="/community" element={<Community />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/avatars" element={<AvatarManagement />} />
