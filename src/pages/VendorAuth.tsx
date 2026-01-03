@@ -5,10 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Store, ArrowLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
+
+const PRODUCT_CATEGORIES = [
+  "Handmade Crafts",
+  "Jewelry & Accessories",
+  "Art & Prints",
+  "Home Decor",
+  "Clothing & Apparel",
+  "Food & Treats",
+  "Bath & Beauty",
+  "Toys & Games",
+  "Stationery & Paper Goods",
+  "Pet Products",
+  "Other"
+];
 
 const VendorAuth = () => {
   const navigate = useNavigate();
@@ -20,6 +36,10 @@ const VendorAuth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [businessDescription, setBusinessDescription] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [processingDays, setProcessingDays] = useState("3");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(true);
   const [loading, setLoading] = useState(false);
   const [existingUser, setExistingUser] = useState<{ id: string; email: string } | null>(null);
@@ -100,9 +120,35 @@ const VendorAuth = () => {
     return () => subscription.unsubscribe();
   }, [navigate, searchParams]);
 
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
   const handleAddNewVendor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!existingUser) return;
+    
+    if (!agreedToTerms) {
+      toast({
+        title: "Terms Required",
+        description: "You must agree to the vendor terms to submit your application.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedCategories.length === 0) {
+      toast({
+        title: "Categories Required",
+        description: "Please select at least one product category.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setLoading(true);
 
@@ -113,6 +159,11 @@ const VendorAuth = () => {
         .insert({
           user_id: existingUser.id,
           business_name: businessName,
+          description: businessDescription,
+          product_categories: selectedCategories,
+          estimated_processing_days: parseInt(processingDays),
+          agreed_to_vendor_terms: true,
+          agreed_to_terms_at: new Date().toISOString(),
           status: 'pending',
         });
 
@@ -138,6 +189,25 @@ const VendorAuth = () => {
 
   const handleVendorSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!agreedToTerms) {
+      toast({
+        title: "Terms Required",
+        description: "You must agree to the vendor terms to submit your application.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedCategories.length === 0) {
+      toast({
+        title: "Categories Required",
+        description: "Please select at least one product category.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -196,12 +266,17 @@ const VendorAuth = () => {
         });
       }, 0);
 
-      // Create vendor record with pending status
+      // Create vendor record with pending status and application details
       const { error: vendorError } = await supabase
         .from('vendors')
         .insert({
           user_id: data.user.id,
           business_name: businessName,
+          description: businessDescription,
+          product_categories: selectedCategories,
+          estimated_processing_days: parseInt(processingDays),
+          agreed_to_vendor_terms: true,
+          agreed_to_terms_at: new Date().toISOString(),
           status: 'pending',
         });
 
@@ -284,12 +359,12 @@ const VendorAuth = () => {
           <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
         </div>
 
-        <Card className="w-full max-w-md border-2 shadow-xl relative z-10">
+        <Card className="w-full max-w-lg border-2 shadow-xl relative z-10 max-h-[90vh] overflow-y-auto">
           <CardContent className="p-8 space-y-6">
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Store className="w-8 h-8 text-primary" />
-                <span className="text-2xl font-bold text-primary">Add New Vendor</span>
+                <span className="text-2xl font-bold text-primary">Vendor Application</span>
               </div>
               
               {logoData && (
@@ -301,10 +376,10 @@ const VendorAuth = () => {
               )}
               
               <div>
-                <h1 className="text-3xl font-black text-foreground mb-2">
+                <h1 className="text-2xl font-black text-foreground mb-2">
                   Create Another Vendor
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Logged in as {existingUser.email}
                 </p>
               </div>
@@ -312,7 +387,7 @@ const VendorAuth = () => {
 
             <form onSubmit={handleAddNewVendor} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="businessName">Business Name</Label>
+                <Label htmlFor="businessName">Business Name *</Label>
                 <Input
                   id="businessName"
                   placeholder="Your Business Name"
@@ -322,20 +397,86 @@ const VendorAuth = () => {
                 />
               </div>
 
-              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm text-muted-foreground">
-                <p className="font-semibold text-foreground mb-2">Application Process:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Submit your vendor application</li>
-                  <li>Admin reviews your application</li>
-                  <li>Receive approval notification</li>
-                  <li>Start selling in the marketplace!</li>
+              <div className="space-y-2">
+                <Label htmlFor="businessDescription">Business Description *</Label>
+                <Textarea
+                  id="businessDescription"
+                  placeholder="Tell us about your business and what makes your products special..."
+                  value={businessDescription}
+                  onChange={(e) => setBusinessDescription(e.target.value)}
+                  required
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Product Categories * <span className="text-muted-foreground text-xs">(select all that apply)</span></Label>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-background">
+                  {PRODUCT_CATEGORIES.map((category) => (
+                    <div key={category} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`cat-${category}`}
+                        checked={selectedCategories.includes(category)}
+                        onCheckedChange={() => toggleCategory(category)}
+                      />
+                      <label
+                        htmlFor={`cat-${category}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {category}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="processingDays">Order Processing Time *</Label>
+                <Select value={processingDays} onValueChange={setProcessingDays}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select processing time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1-2 business days</SelectItem>
+                    <SelectItem value="3">3-5 business days</SelectItem>
+                    <SelectItem value="7">5-7 business days</SelectItem>
+                    <SelectItem value="14">1-2 weeks</SelectItem>
+                    <SelectItem value="21">2-3 weeks (custom orders)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">How long to prepare orders before shipping</p>
+              </div>
+
+              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm space-y-3">
+                <p className="font-semibold text-foreground">Vendor Terms & Commitments:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Process and ship orders within stated timeframe</li>
+                  <li>Respond to customer inquiries within 48 hours</li>
+                  <li>Maintain accurate product inventory</li>
+                  <li>Accept the marketplace commission structure (20%)</li>
+                  <li>Provide tracking information for shipped orders</li>
+                  <li>Handle returns and customer issues professionally</li>
                 </ul>
+                
+                <div className="flex items-start space-x-2 pt-2 border-t border-accent/20">
+                  <Checkbox
+                    id="agreeTerms"
+                    checked={agreedToTerms}
+                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="agreeTerms"
+                    className="text-sm cursor-pointer leading-tight"
+                  >
+                    I agree to these vendor terms and commit to providing excellent service to customers
+                  </label>
+                </div>
               </div>
 
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
-                disabled={loading}
+                disabled={loading || !agreedToTerms}
               >
                 {loading ? "Please wait..." : "Submit Application"}
               </Button>
@@ -365,118 +506,184 @@ const VendorAuth = () => {
         <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
       </div>
 
-      <Card className="w-full max-w-md border-2 shadow-xl relative z-10">
-        <CardContent className="p-8 space-y-6">
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Store className="w-8 h-8 text-primary" />
-              <span className="text-2xl font-bold text-primary">Vendor Portal</span>
-            </div>
-            
-            {logoData && (
-              <img 
-                src={logoData} 
-                alt="Best Day Ministries" 
-                className="h-16 mx-auto object-contain"
-              />
-            )}
-            
-            <div>
-              <h1 className="text-3xl font-black text-foreground mb-2">
-                {isSignUp ? "Become a Vendor" : "Vendor Sign In"}
-              </h1>
-              <p className="text-muted-foreground">
-                {isSignUp 
-                  ? "Apply to become a vendor and sell your products. You'll need an account first - if you don't have one, create it at regular login." 
-                  : "Sign in to manage your vendor account and products"}
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={isSignUp ? handleVendorSignUp : handleVendorSignIn} className="space-y-4">
-            {isSignUp && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Your Name</Label>
-                  <Input
-                    id="displayName"
-                    placeholder="John Doe"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="businessName">Business Name</Label>
-                  <Input
-                    id="businessName"
-                    placeholder="Your Business Name"
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    required
-                  />
-                </div>
-              </>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="vendor@business.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+        <Card className="w-full max-w-lg border-2 shadow-xl relative z-10 max-h-[90vh] overflow-y-auto">
+          <CardContent className="p-8 space-y-6">
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Store className="w-8 h-8 text-primary" />
+                <span className="text-2xl font-bold text-primary">Vendor Portal</span>
+              </div>
+              
+              {logoData && (
+                <img 
+                  src={logoData} 
+                  alt="Best Day Ministries" 
+                  className="h-16 mx-auto object-contain"
+                />
+              )}
+              
+              <div>
+                <h1 className="text-2xl font-black text-foreground mb-2">
+                  {isSignUp ? "Become a Vendor" : "Vendor Sign In"}
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  {isSignUp 
+                    ? "Apply to become a vendor and sell your products" 
+                    : "Sign in to manage your vendor account"}
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
+            <form onSubmit={isSignUp ? handleVendorSignUp : handleVendorSignIn} className="space-y-4">
+              {isSignUp && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Your Name *</Label>
+                    <Input
+                      id="displayName"
+                      placeholder="John Doe"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      required
+                    />
+                  </div>
 
-            {isSignUp && (
-              <>
-                <div className="flex items-start space-x-2 pt-2">
-                  <Checkbox 
-                    id="newsletter" 
-                    checked={subscribeToNewsletter}
-                    onCheckedChange={(checked) => setSubscribeToNewsletter(checked as boolean)}
-                  />
-                  <label
-                    htmlFor="newsletter"
-                    className="text-sm text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    Send me monthly updates and inspiring stories
-                  </label>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="businessName">Business Name *</Label>
+                    <Input
+                      id="businessName"
+                      placeholder="Your Business Name"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm text-muted-foreground">
-                  <p className="font-semibold text-foreground mb-2">Application Process:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Submit your vendor application</li>
-                    <li>Admin reviews your application</li>
-                    <li>Receive approval notification</li>
-                    <li>Start selling in the marketplace!</li>
-                  </ul>
-                </div>
-              </>
-            )}
+                  <div className="space-y-2">
+                    <Label htmlFor="businessDescription">Business Description *</Label>
+                    <Textarea
+                      id="businessDescription"
+                      placeholder="Tell us about your business and what makes your products special..."
+                      value={businessDescription}
+                      onChange={(e) => setBusinessDescription(e.target.value)}
+                      required
+                      rows={3}
+                    />
+                  </div>
 
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
-              disabled={loading}
+                  <div className="space-y-2">
+                    <Label>Product Categories * <span className="text-muted-foreground text-xs">(select all that apply)</span></Label>
+                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-3 bg-background">
+                      {PRODUCT_CATEGORIES.map((category) => (
+                        <div key={category} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`signup-cat-${category}`}
+                            checked={selectedCategories.includes(category)}
+                            onCheckedChange={() => toggleCategory(category)}
+                          />
+                          <label
+                            htmlFor={`signup-cat-${category}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {category}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signupProcessingDays">Order Processing Time *</Label>
+                    <Select value={processingDays} onValueChange={setProcessingDays}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select processing time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1-2 business days</SelectItem>
+                        <SelectItem value="3">3-5 business days</SelectItem>
+                        <SelectItem value="7">5-7 business days</SelectItem>
+                        <SelectItem value="14">1-2 weeks</SelectItem>
+                        <SelectItem value="21">2-3 weeks (custom orders)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">How long to prepare orders before shipping</p>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="vendor@business.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              {isSignUp && (
+                <>
+                  <div className="flex items-start space-x-2 pt-2">
+                    <Checkbox 
+                      id="newsletter" 
+                      checked={subscribeToNewsletter}
+                      onCheckedChange={(checked) => setSubscribeToNewsletter(checked as boolean)}
+                    />
+                    <label
+                      htmlFor="newsletter"
+                      className="text-sm text-muted-foreground leading-none cursor-pointer"
+                    >
+                      Send me monthly updates and inspiring stories
+                    </label>
+                  </div>
+
+                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm space-y-3">
+                    <p className="font-semibold text-foreground">Vendor Terms & Commitments:</p>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                      <li>Process and ship orders within stated timeframe</li>
+                      <li>Respond to customer inquiries within 48 hours</li>
+                      <li>Maintain accurate product inventory</li>
+                      <li>Accept the marketplace commission structure (20%)</li>
+                      <li>Provide tracking information for shipped orders</li>
+                      <li>Handle returns and customer issues professionally</li>
+                    </ul>
+                    
+                    <div className="flex items-start space-x-2 pt-2 border-t border-accent/20">
+                      <Checkbox
+                        id="signupAgreeTerms"
+                        checked={agreedToTerms}
+                        onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="signupAgreeTerms"
+                        className="text-sm cursor-pointer leading-tight"
+                      >
+                        I agree to these vendor terms and commit to providing excellent service to customers
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+                disabled={loading || (isSignUp && !agreedToTerms)}
             >
               {loading ? "Please wait..." : isSignUp ? "Submit Application" : "Sign In"}
             </Button>
