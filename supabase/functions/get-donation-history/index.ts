@@ -188,14 +188,19 @@ serve(async (req) => {
     // Get active subscriptions summary
     const activeSubscriptions = subscriptions.data
       .filter((s: Stripe.Subscription) => s.status === "active")
-      .map((s: Stripe.Subscription) => ({
-        id: s.id,
-        amount: s.items.data[0]?.price?.unit_amount ? s.items.data[0].price.unit_amount / 100 : 0,
-        designation: s.metadata?.bestie_name || "General Support",
-        status: s.status,
-        current_period_end: new Date(s.current_period_end * 1000).toISOString(),
-        cancel_at_period_end: s.cancel_at_period_end,
-      }));
+      .map((s: Stripe.Subscription) => {
+        const periodEnd = s.current_period_end && typeof s.current_period_end === 'number' 
+          ? new Date(s.current_period_end * 1000).toISOString() 
+          : null;
+        return {
+          id: s.id,
+          amount: s.items.data[0]?.price?.unit_amount ? s.items.data[0].price.unit_amount / 100 : 0,
+          designation: s.metadata?.bestie_name || "General Support",
+          status: s.status,
+          current_period_end: periodEnd,
+          cancel_at_period_end: s.cancel_at_period_end,
+        };
+      });
 
     console.log("[GET-DONATION-HISTORY] Returning", donations.length, "donations");
 
