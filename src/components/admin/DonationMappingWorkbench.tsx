@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
-import { CheckSquare, Copy, Loader2, RefreshCw } from "lucide-react";
-
+import { CheckSquare, Copy, Loader2, RefreshCw, PlusCircle, AlertCircle } from "lucide-react";
 const getTzOffsetString = (tz: string) => {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "longOffset" }).formatToParts(
     new Date()
@@ -94,6 +93,7 @@ export const DonationMappingWorkbench = () => {
   const [timezone, setTimezone] = useState<string>("America/Phoenix");
   const [stripeMode, setStripeMode] = useState<StripeMode>("live");
   const [loading, setLoading] = useState(false);
+  const [creatingDonation, setCreatingDonation] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<SnapshotResponse | null>(null);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -150,6 +150,66 @@ export const DonationMappingWorkbench = () => {
   const copyToClipboard = async (text: string, okTitle = "Copied") => {
     await navigator.clipboard.writeText(text);
     toast({ title: okTitle, description: "Copied to clipboard." });
+  };
+
+  // Check if a group has a matching DB donation
+  const groupHasDbRecord = (group: Group) => {
+    if (!snapshot) return true; // Assume yes if no snapshot
+    const donations = snapshot.database.donations || [];
+    const sponsorships = snapshot.database.sponsorships || [];
+    // If there are any donations or sponsorships in the snapshot, assume some match
+    // For a more precise check, we'd need to match by payment_intent_id or invoice_id
+    return donations.length > 0 || sponsorships.length > 0;
+  };
+
+  // Get Stripe items for a group
+  const getGroupStripeItems = (group: Group) => {
+    if (!snapshot) return [];
+    return snapshot.stripe.items.filter((it) => group.itemIds.includes(itemKey(it)));
+  };
+
+  // Create donation from Stripe data
+  const createDonationFromStripe = async (group: Group) => {
+    if (!snapshot) return;
+    
+    const stripeItems = getGroupStripeItems(group);
+    if (stripeItems.length === 0) {
+      toast({ title: "No Stripe items in group", variant: "destructive" });
+      return;
+    }
+
+    setCreatingDonation(group.id);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("create-donation-from-stripe", {
+        body: {
+          stripeItems: stripeItems.map((it) => ({ type: it.type, id: it.id, raw: it.raw })),
+          email: snapshot.email,
+          stripeMode: snapshot.stripeMode,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({ 
+          title: "Donation created!", 
+          description: `Created donation ID: ${data.donation?.id?.substring(0, 8)}...` 
+        });
+        // Reload snapshot to show the new record
+        await loadSnapshot();
+      } else {
+        toast({ 
+          title: "Failed to create donation", 
+          description: data?.error || "Unknown error",
+          variant: "destructive" 
+        });
+      }
+    } catch (e: any) {
+      toast({ title: "Error creating donation", description: e?.message || String(e), variant: "destructive" });
+    } finally {
+      setCreatingDonation(null);
+    }
   };
 
   const loadSnapshot = async () => {
@@ -308,23 +368,56 @@ export const DonationMappingWorkbench = () => {
               <div className="text-sm text-muted-foreground">No groups yet.</div>
             ) : (
               <div className="space-y-2">
-                {groups.map((g) => (
-                  <div key={g.id} className="rounded-md border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium">{g.label}</div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setGroups((prev) => prev.filter((x) => x.id !== g.id))}
-                      >
-                        Remove
-                      </Button>
+                {groups.map((g) => {
+                  const stripeItems = getGroupStripeItems(g);
+                  const hasStripeData = stripeItems.length > 0;
+                  const hasDonations = (snapshot?.database.donations || []).length > 0;
+                  const hasSponsorships = (snapshot?.database.sponsorships || []).length > 0;
+                  const hasDbRecord = hasDonations || hasSponsorships;
+                  
+                  return (
+                    <div key={g.id} className="rounded-md border p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">{g.label}</div>
+                          {hasStripeData && !hasDbRecord && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertCircle className="mr-1 h-3 w-3" />
+                              No DB Record
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {hasStripeData && !hasDbRecord && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => createDonationFromStripe(g)}
+                              disabled={creatingDonation === g.id}
+                            >
+                              {creatingDonation === g.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                              )}
+                              Create from Stripe
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setGroups((prev) => prev.filter((x) => x.id !== g.id))}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mt-2 font-mono text-xs whitespace-pre-wrap break-all text-muted-foreground">
+                        {g.itemIds.join("\n")}
+                      </div>
                     </div>
-                    <div className="mt-2 font-mono text-xs whitespace-pre-wrap break-all text-muted-foreground">
-                      {g.itemIds.join("\n")}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
