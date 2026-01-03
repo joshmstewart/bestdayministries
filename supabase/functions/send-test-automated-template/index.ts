@@ -86,6 +86,53 @@ serve(async (req) => {
       .eq("setting_key", "newsletter_organization")
       .single();
 
+    // Helper to escape regex special characters
+    const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Replace placeholders with sample data for testing
+    let processedContent = template.content;
+    let processedSubject = template.subject;
+    
+    // Sample data for different trigger types
+    const sampleData: Record<string, Record<string, string>> = {
+      vendor_application: {
+        VENDOR_EMAIL: "test@example.com",
+        BUSINESS_NAME: "Test Business (Special Chars: + * ? ^ $ { } | [ ] \\)",
+        VENDOR_NAME: "Test Vendor",
+        DESCRIPTION: "This is a sample vendor description for testing purposes.",
+      },
+      vendor_approved: {
+        VENDOR_EMAIL: "approved@example.com",
+        BUSINESS_NAME: "Approved Business LLC",
+        VENDOR_NAME: "Approved Vendor",
+      },
+      vendor_rejected: {
+        VENDOR_EMAIL: "rejected@example.com",
+        BUSINESS_NAME: "Rejected Business Inc",
+        VENDOR_NAME: "Rejected Vendor",
+      },
+      newsletter_signup: {
+        EMAIL: "subscriber@example.com",
+        NAME: "Test Subscriber",
+      },
+      site_signup: {
+        EMAIL: "newuser@example.com",
+        NAME: "New User",
+      },
+    };
+    
+    // Get sample data for this template's trigger or use empty object
+    const triggerData = sampleData[template.trigger_event || ""] || {};
+    
+    // Replace placeholders with sample data
+    Object.keys(triggerData).forEach((key) => {
+      const placeholder = `[${key.toUpperCase()}]`;
+      const escapedPlaceholder = escapeRegex(placeholder);
+      const value = triggerData[key] || '';
+      processedSubject = processedSubject.replace(new RegExp(escapedPlaceholder, 'g'), value);
+      processedContent = processedContent.replace(new RegExp(escapedPlaceholder, 'g'), value);
+    });
+
     // Construct final HTML with header and footer
     let htmlContent = "";
     
@@ -94,8 +141,8 @@ serve(async (req) => {
       htmlContent += headerData.setting_value.html;
     }
     
-    // Add template content
-    htmlContent += template.content;
+    // Add processed template content
+    htmlContent += processedContent;
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
@@ -130,7 +177,7 @@ serve(async (req) => {
     const { data: emailData, error: sendError } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: testEmail,
-      subject: `[TEST] ${template.subject}`,
+      subject: `[TEST] ${processedSubject}`,
       html: htmlContent,
     });
 
@@ -142,7 +189,7 @@ serve(async (req) => {
         template_id: templateId,
         recipient_email: testEmail,
         recipient_user_id: user.id,
-        subject: `[TEST] ${template.subject}`,
+        subject: `[TEST] ${processedSubject}`,
         html_content: htmlContent,
         status: "failed",
         error_message: sendError.message || String(sendError),
@@ -165,7 +212,7 @@ serve(async (req) => {
       template_id: templateId,
       recipient_email: testEmail,
       recipient_user_id: user.id,
-      subject: `[TEST] ${template.subject}`,
+      subject: `[TEST] ${processedSubject}`,
       html_content: htmlContent,
       status: "sent",
       resend_email_id: emailData?.id,
