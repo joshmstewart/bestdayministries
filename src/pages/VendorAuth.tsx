@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Store, ArrowLeft, Info, ChevronDown, Package, CreditCard, Truck, HelpCircle } from "lucide-react";
+import { Store, ArrowLeft, Info, ChevronDown, Package, CreditCard, Truck, HelpCircle, Heart, Users, Sparkles } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
+import { AvatarPicker } from "@/components/AvatarPicker";
 
 const PRODUCT_CATEGORIES = [
   "Handmade Crafts",
@@ -42,10 +43,13 @@ const VendorAuth = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [otherCategoryText, setOtherCategoryText] = useState("");
   const [processingDays, setProcessingDays] = useState("3");
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [agreedToVendorTerms, setAgreedToVendorTerms] = useState(false);
+  const [acceptedUserTerms, setAcceptedUserTerms] = useState(false);
   const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(true);
   const [loading, setLoading] = useState(false);
   const [existingUser, setExistingUser] = useState<{ id: string; email: string } | null>(null);
+  const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
+  const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
 
   // Fetch the logo from database
   const { data: logoData } = useQuery({
@@ -149,7 +153,7 @@ const VendorAuth = () => {
     e.preventDefault();
     if (!existingUser) return;
     
-    if (!agreedToTerms) {
+    if (!agreedToVendorTerms) {
       toast({
         title: "Terms Required",
         description: "You must agree to the vendor terms to submit your application.",
@@ -207,10 +211,19 @@ const VendorAuth = () => {
   const handleVendorSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!agreedToTerms) {
+    if (!agreedToVendorTerms) {
+      toast({
+        title: "Vendor Terms Required",
+        description: "You must agree to the vendor terms to submit your application.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!acceptedUserTerms) {
       toast({
         title: "Terms Required",
-        description: "You must agree to the vendor terms to submit your application.",
+        description: "Please accept the Terms of Service and Privacy Policy to create an account.",
         variant: "destructive",
       });
       return;
@@ -228,14 +241,15 @@ const VendorAuth = () => {
     setLoading(true);
 
     try {
-      // Create user account
+      // Create user account with role and avatar
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             display_name: displayName,
-            role: 'supporter', // Default role for vendors
+            role: role,
+            avatar_url: selectedAvatar ? `avatar-${selectedAvatar}` : null,
           },
           emailRedirectTo: `${window.location.origin}/vendor-dashboard`,
         },
@@ -244,16 +258,38 @@ const VendorAuth = () => {
       if (signUpError) throw signUpError;
       if (!data.user) throw new Error("Failed to create user");
 
+      // Record terms acceptance immediately after successful signup
+      if (acceptedUserTerms) {
+        try {
+          const termsResult = await supabase.functions.invoke("record-terms-acceptance", {
+            body: {
+              termsVersion: "1.0",
+              privacyVersion: "1.0",
+            },
+          });
+          
+          if (termsResult.error) {
+            console.error("⚠️ Terms recording failed:", termsResult.error);
+          } else {
+            console.log('✅ Terms recorded successfully after vendor signup');
+          }
+        } catch (termsError) {
+          console.error("⚠️ Error recording terms:", termsError);
+        }
+      }
+
       // Subscribe to newsletter if checked
       if (subscribeToNewsletter) {
         try {
           const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          await supabase.from("newsletter_subscribers").insert({
+          await supabase.from("newsletter_subscribers").upsert({
             email,
             user_id: data.user.id,
             status: 'active',
             source: 'vendor_signup',
             timezone,
+          }, {
+            onConflict: 'email'
           });
           
           // Trigger welcome email
@@ -582,12 +618,12 @@ const VendorAuth = () => {
                 
                 <div className="flex items-start space-x-2 pt-2 border-t border-accent/20">
                   <Checkbox
-                    id="agreeTerms"
-                    checked={agreedToTerms}
-                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                    id="agreeVendorTerms"
+                    checked={agreedToVendorTerms}
+                    onCheckedChange={(checked) => setAgreedToVendorTerms(checked as boolean)}
                   />
                   <label
-                    htmlFor="agreeTerms"
+                    htmlFor="agreeVendorTerms"
                     className="text-sm cursor-pointer leading-tight"
                   >
                     I agree to these vendor terms and commit to providing excellent service to customers
@@ -598,7 +634,7 @@ const VendorAuth = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
-                disabled={loading || !agreedToTerms}
+                disabled={loading || !agreedToVendorTerms}
               >
                 {loading ? "Please wait..." : "Submit Application"}
               </Button>
@@ -669,6 +705,46 @@ const VendorAuth = () => {
                       required
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="role">I am a...</Label>
+                    <Select value={role} onValueChange={(value: any) => setRole(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bestie">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <Heart className="w-4 h-4 text-primary" />
+                              <span className="font-semibold">Bestie (Adult with Special Needs)</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="caregiver">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-secondary" />
+                              <span className="font-semibold">Guardian</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="supporter">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-accent" />
+                              <span className="font-semibold">Supporter (Volunteer/Friend)</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <AvatarPicker 
+                    selectedAvatar={selectedAvatar} 
+                    onSelectAvatar={setSelectedAvatar}
+                  />
 
                   <div className="space-y-2">
                     <Label htmlFor="businessName">Business Name *</Label>
@@ -892,17 +968,38 @@ const VendorAuth = () => {
                     
                     <div className="flex items-start space-x-2 pt-2 border-t border-accent/20">
                       <Checkbox
-                        id="signupAgreeTerms"
-                        checked={agreedToTerms}
-                        onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                        id="signupAgreeVendorTerms"
+                        checked={agreedToVendorTerms}
+                        onCheckedChange={(checked) => setAgreedToVendorTerms(checked as boolean)}
                       />
                       <label
-                        htmlFor="signupAgreeTerms"
+                        htmlFor="signupAgreeVendorTerms"
                         className="text-sm cursor-pointer leading-tight"
                       >
                         I agree to these vendor terms and commit to providing excellent service to customers
                       </label>
                     </div>
+                  </div>
+
+                  <div className="flex items-start space-x-2 pt-2">
+                    <Checkbox 
+                      id="userTerms" 
+                      checked={acceptedUserTerms}
+                      onCheckedChange={(checked) => setAcceptedUserTerms(checked as boolean)}
+                    />
+                    <label
+                      htmlFor="userTerms"
+                      className="text-sm text-muted-foreground leading-none"
+                    >
+                      I agree to the{" "}
+                      <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">
+                        Privacy Policy
+                      </Link>
+                    </label>
                   </div>
                 </>
               )}
@@ -910,7 +1007,7 @@ const VendorAuth = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
-                disabled={loading || (isSignUp && !agreedToTerms)}
+                disabled={loading || (isSignUp && (!agreedToVendorTerms || !acceptedUserTerms))}
             >
               {loading ? "Please wait..." : isSignUp ? "Submit Application" : "Sign In"}
             </Button>
