@@ -169,6 +169,20 @@ serve(async (req) => {
       if (r.transaction_id) receiptLookup.set(r.transaction_id, r.id);
     });
 
+    // Load all marketplace order payment intents to EXCLUDE from donation history
+    const { data: ordersData } = await supabaseAdmin
+      .from("orders")
+      .select("stripe_payment_intent_id")
+      .not("stripe_payment_intent_id", "is", null);
+    
+    const marketplacePaymentIntentIds = new Set<string>();
+    ordersData?.forEach(o => {
+      if (o.stripe_payment_intent_id) {
+        marketplacePaymentIntentIds.add(o.stripe_payment_intent_id);
+      }
+    });
+    logStep("Loaded marketplace order payment intents to exclude", { count: marketplacePaymentIntentIds.size });
+
     let totalTransactionsSynced = 0;
     let totalSubscriptionsSynced = 0;
 
@@ -254,7 +268,13 @@ serve(async (req) => {
           
           // SKIP store/marketplace purchases - check all metadata sources
           if (combinedInvoiceMetadata.order_id) {
-            logStep("Skipping marketplace invoice", { invoiceId: invoice.id, orderId: combinedInvoiceMetadata.order_id });
+            logStep("Skipping marketplace invoice (metadata)", { invoiceId: invoice.id, orderId: combinedInvoiceMetadata.order_id });
+            continue;
+          }
+          
+          // SKIP if payment intent matches a marketplace order
+          if (piId && marketplacePaymentIntentIds.has(piId)) {
+            logStep("Skipping marketplace invoice (order match)", { invoiceId: invoice.id, piId });
             continue;
           }
 
@@ -345,7 +365,13 @@ serve(async (req) => {
           
           // SKIP marketplace purchases - check all metadata sources (charge, payment_intent)
           if (combinedMetadata.order_id) {
-            logStep("Skipping marketplace charge", { chargeId: charge.id, orderId: combinedMetadata.order_id });
+            logStep("Skipping marketplace charge (metadata)", { chargeId: charge.id, orderId: combinedMetadata.order_id });
+            continue;
+          }
+          
+          // SKIP if payment intent matches a marketplace order
+          if (chargePiId && marketplacePaymentIntentIds.has(chargePiId)) {
+            logStep("Skipping marketplace charge (order match)", { chargeId: charge.id, piId: chargePiId });
             continue;
           }
 
