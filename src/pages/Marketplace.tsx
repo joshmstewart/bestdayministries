@@ -22,22 +22,26 @@ const Marketplace = () => {
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, isAuthenticated, isLoading: cartSessionLoading } = useCartSession();
 
-  // Check store access mode and user role
+  // Check store access mode, stripe mode, and user role
   const { data: accessCheck, isLoading: accessLoading } = useQuery({
     queryKey: ['store-access-check'],
     queryFn: async () => {
-      // Get access mode setting
-      const { data: settingData } = await supabase
+      // Get access mode and stripe mode settings
+      const { data: settings } = await supabase
         .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', 'store_access_mode')
-        .maybeSingle();
+        .select('setting_key, setting_value')
+        .in('setting_key', ['store_access_mode', 'marketplace_stripe_mode']);
       
-      const accessMode = settingData?.setting_value 
-        ? (typeof settingData.setting_value === 'string' 
-            ? settingData.setting_value 
-            : JSON.stringify(settingData.setting_value).replace(/"/g, ''))
-        : 'open';
+      const getSetting = (key: string) => {
+        const setting = settings?.find(s => s.setting_key === key);
+        if (!setting?.setting_value) return null;
+        return typeof setting.setting_value === 'string' 
+          ? setting.setting_value 
+          : JSON.stringify(setting.setting_value).replace(/"/g, '');
+      };
+      
+      const accessMode = getSetting('store_access_mode') || 'open';
+      const stripeMode = getSetting('marketplace_stripe_mode') || 'live';
       
       // Get current user and role
       const { data: { user } } = await supabase.auth.getUser();
@@ -54,15 +58,22 @@ const Marketplace = () => {
       
       const isAdmin = userRole === 'admin' || userRole === 'owner';
       
-      // Determine access
+      // Determine access - automatically restrict if stripe mode is "test"
       let hasAccess = true;
-      if (accessMode === 'admins_only' && !isAdmin) {
+      let restrictionReason: 'test_mode' | 'admins_only' | 'authenticated' | null = null;
+      
+      if (stripeMode === 'test' && !isAdmin) {
         hasAccess = false;
+        restrictionReason = 'test_mode';
+      } else if (accessMode === 'admins_only' && !isAdmin) {
+        hasAccess = false;
+        restrictionReason = 'admins_only';
       } else if (accessMode === 'authenticated' && !user) {
         hasAccess = false;
+        restrictionReason = 'authenticated';
       }
       
-      return { hasAccess, accessMode, isAdmin, isAuthenticated: !!user };
+      return { hasAccess, accessMode, stripeMode, isAdmin, isAuthenticated: !!user, restrictionReason };
     }
   });
 
@@ -174,9 +185,11 @@ const Marketplace = () => {
               </div>
               <CardTitle>Store Currently Unavailable</CardTitle>
               <CardDescription>
-                {accessCheck.accessMode === 'admins_only' 
-                  ? "The store is currently in maintenance mode. Please check back later."
-                  : "Please sign in to access the store."}
+                {accessCheck.restrictionReason === 'test_mode'
+                  ? "The store is temporarily down for maintenance. Please check back later."
+                  : accessCheck.restrictionReason === 'admins_only' 
+                    ? "The store is currently in maintenance mode. Please check back later."
+                    : "Please sign in to access the store."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
