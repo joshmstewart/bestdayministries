@@ -33,6 +33,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/partners", label: "Partners" },
   { value: "/joyhousestore", label: "Joy House Store" },
   { value: "/orders", label: "Order History" },
+  { value: "/donation-history", label: "Donation History" },
   { value: "/auth", label: "Login/Signup" },
   { value: "/vendor-auth", label: "Vendor Application" },
   { value: "/vendor-dashboard", label: "Vendor Dashboard" },

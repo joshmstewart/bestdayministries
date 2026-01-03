@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HeaderSkeleton } from "@/components/HeaderSkeleton";
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle, Package, Store } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle, Package, Store, Receipt } from "lucide-react";
 
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -519,6 +519,11 @@ export const UnifiedHeader = () => {
                     <DropdownMenuItem onClick={() => navigate("/orders")} className="cursor-pointer">
                       <Package className="w-4 h-4 mr-2" />
                       Order History
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => navigate("/donation-history")} className="cursor-pointer">
+                      <Receipt className="w-4 h-4 mr-2" />
+                      Donation History
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">

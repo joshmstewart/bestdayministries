@@ -61,6 +61,7 @@ import InstallApp from "./pages/InstallApp";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import DrinkCreator from "./pages/DrinkCreator";
 import NotFound from "./pages/NotFound";
+import DonationHistoryPage from "./pages/DonationHistoryPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -189,6 +190,7 @@ const App = () => {
             <Route path="/vendors/:id" element={<VendorProfile />} />
             <Route path="/vendor-dashboard" element={<VendorDashboard />} />
             <Route path="/orders" element={<OrderHistory />} />
+            <Route path="/donation-history" element={<DonationHistoryPage />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/newsletter" element={<Newsletter />} />
