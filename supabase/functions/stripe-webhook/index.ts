@@ -581,55 +581,107 @@ async function processRecurringPayment(
     throw new Error("No customer email in invoice");
   }
 
-  const { data: sponsorship } = await supabaseAdmin
-    .from("sponsorships")
-    .select("id, status, bestie_id")
-    .eq("stripe_subscription_id", subscriptionId)
-    .eq("stripe_mode", stripeMode)
-    .single();
-
-  if (!sponsorship) {
-    await logStep("sponsorship_not_found", "error", { subscriptionId });
-    return;
-  }
-
-  if (sponsorship.status !== "active") {
-    await logStep("sponsorship_not_active", "info", {
-      sponsorshipId: sponsorship.id,
-      status: sponsorship.status,
-    });
-    return;
-  }
-
-  const { data: bestieData } = await supabaseAdmin
-    .from("besties")
-    .select("bestie_name")
-    .eq("id", sponsorship.bestie_id)
-    .single();
-
-  if (!bestieData) {
-    await logStep("bestie_not_found", "error", {
-      bestieId: sponsorship.bestie_id,
-    });
-    return;
-  }
-
   const amountPaid = invoice.amount_paid ? invoice.amount_paid / 100 : 0;
 
-  await logStep("processing_payment", "info", {
-    amount_paid: amountPaid,
-    invoice_id: invoice.id,
-  });
+  // First, try to find a sponsorship with this subscription
+  const { data: sponsorship } = await supabaseAdmin
+    .from("sponsorships")
+    .select("id, status, sponsor_bestie_id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .eq("stripe_mode", stripeMode)
+    .maybeSingle();
 
-  await generateSponsorshipReceipt(
-    sponsorship,
-    customerEmail,
-    bestieData.bestie_name,
-    invoice.id,
-    stripeMode,
-    supabaseAdmin,
-    logStep
-  );
+  if (sponsorship) {
+    await logStep("found_sponsorship_for_recurring", "info", {
+      sponsorship_id: sponsorship.id,
+      status: sponsorship.status,
+    });
+
+    if (sponsorship.status !== "active") {
+      await logStep("sponsorship_not_active", "info", {
+        sponsorshipId: sponsorship.id,
+        status: sponsorship.status,
+      });
+      return;
+    }
+
+    // Get bestie name from sponsor_besties table
+    let bestieName = "Sponsorship";
+    if (sponsorship.sponsor_bestie_id) {
+      const { data: sponsorBestieData } = await supabaseAdmin
+        .from("sponsor_besties")
+        .select("bestie_name")
+        .eq("id", sponsorship.sponsor_bestie_id)
+        .maybeSingle();
+      
+      if (sponsorBestieData?.bestie_name) {
+        bestieName = sponsorBestieData.bestie_name;
+      }
+    }
+
+    await logStep("processing_sponsorship_recurring_payment", "info", {
+      amount_paid: amountPaid,
+      invoice_id: invoice.id,
+      bestie_name: bestieName,
+    });
+
+    await generateSponsorshipReceipt(
+      sponsorship,
+      customerEmail,
+      bestieName,
+      invoice.id,
+      stripeMode,
+      supabaseAdmin,
+      logStep,
+      amountPaid
+    );
+    return;
+  }
+
+  // If no sponsorship found, check for a donation with this subscription
+  const { data: donation } = await supabaseAdmin
+    .from("donations")
+    .select("id, status, donor_id, donor_email")
+    .eq("stripe_subscription_id", subscriptionId)
+    .eq("stripe_mode", stripeMode)
+    .maybeSingle();
+
+  if (donation) {
+    await logStep("found_donation_for_recurring", "info", {
+      donation_id: donation.id,
+      status: donation.status,
+    });
+
+    if (donation.status !== "active") {
+      await logStep("donation_not_active", "info", {
+        donationId: donation.id,
+        status: donation.status,
+      });
+      return;
+    }
+
+    await logStep("processing_donation_recurring_payment", "info", {
+      amount_paid: amountPaid,
+      invoice_id: invoice.id,
+    });
+
+    // Generate receipt for recurring donation
+    await generateDonationReceipt(
+      donation,
+      customerEmail,
+      invoice.id,
+      stripeMode,
+      supabaseAdmin,
+      logStep,
+      amountPaid
+    );
+    return;
+  }
+
+  await logStep("no_subscription_record_found", "warning", {
+    subscriptionId,
+    message: "Neither sponsorship nor donation found for this subscription",
+  });
 }
 
 async function generateSponsorshipReceipt(
@@ -639,21 +691,46 @@ async function generateSponsorshipReceipt(
   transactionId: string,
   stripeMode: string,
   supabaseAdmin: any,
-  logStep: Function
+  logStep: Function,
+  amount?: number
 ) {
   await logStep("generating_receipt", "info", {
     sponsorship_id: sponsorship.id,
     email: customerEmail,
   });
 
+  // Get org info for receipt
+  const { data: orgSettings } = await supabaseAdmin
+    .from("receipt_settings")
+    .select("organization_name, organization_ein")
+    .maybeSingle();
+
+  // Get user profile
+  const { data: profileData } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("email", customerEmail)
+    .maybeSingle();
+
+  const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
   const { data: receipt, error: receiptError } = await supabaseAdmin
     .from("sponsorship_receipts")
     .insert({
       sponsorship_id: sponsorship.id,
-      email: customerEmail,
+      sponsor_email: customerEmail,
+      sponsor_name: customerEmail.split("@")[0],
+      user_id: profileData?.id || null,
       bestie_name: bestieName,
+      amount: amount || 0,
+      frequency: "monthly",
       transaction_id: transactionId,
+      transaction_date: new Date().toISOString(),
       stripe_mode: stripeMode,
+      organization_name: orgSettings?.organization_name || null,
+      organization_ein: orgSettings?.organization_ein || null,
+      receipt_number: receiptNumber,
+      tax_year: new Date().getFullYear(),
     })
     .select()
     .single();
@@ -666,6 +743,59 @@ async function generateSponsorshipReceipt(
   }
 
   await logStep("receipt_generated", "success", { receipt_id: receipt.id });
+}
+
+async function generateDonationReceipt(
+  donation: any,
+  customerEmail: string,
+  transactionId: string,
+  stripeMode: string,
+  supabaseAdmin: any,
+  logStep: Function,
+  amount: number
+) {
+  await logStep("generating_donation_receipt", "info", {
+    donation_id: donation.id,
+    email: customerEmail,
+  });
+
+  // Get org info for receipt
+  const { data: orgSettings } = await supabaseAdmin
+    .from("receipt_settings")
+    .select("organization_name, organization_ein")
+    .maybeSingle();
+
+  const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+  const { data: receipt, error: receiptError } = await supabaseAdmin
+    .from("sponsorship_receipts")
+    .insert({
+      sponsorship_id: null,
+      sponsor_email: customerEmail,
+      sponsor_name: customerEmail.split("@")[0],
+      user_id: donation.donor_id || null,
+      bestie_name: "General Support",
+      amount: amount,
+      frequency: "monthly",
+      transaction_id: transactionId,
+      transaction_date: new Date().toISOString(),
+      stripe_mode: stripeMode,
+      organization_name: orgSettings?.organization_name || null,
+      organization_ein: orgSettings?.organization_ein || null,
+      receipt_number: receiptNumber,
+      tax_year: new Date().getFullYear(),
+    })
+    .select()
+    .single();
+
+  if (receiptError) {
+    await logStep("donation_receipt_generation_failed", "error", {
+      error: receiptError.message,
+    });
+    throw receiptError;
+  }
+
+  await logStep("donation_receipt_generated", "success", { receipt_id: receipt.id });
 }
 
 function getSubscriptionFromInvoice(invoice: Stripe.Invoice): string | null {
