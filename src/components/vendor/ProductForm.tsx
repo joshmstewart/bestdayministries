@@ -384,12 +384,12 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
           </div>
 
           {/* Product Options Section */}
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="options">
-              <AccordionTrigger className="text-sm font-medium">
+          <Accordion type="single" collapsible className="w-full" defaultValue={options.length > 0 ? "options" : undefined}>
+            <AccordionItem value="options" className="border rounded-lg px-3">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline">
                 <div className="flex items-center gap-2">
                   <Settings2 className="h-4 w-4" />
-                  Product Options {options.length > 0 && `(${options.length})`}
+                  Product Options (Color, Size, etc.) {options.length > 0 && <Badge variant="secondary" className="ml-2">{options.length}</Badge>}
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-4">
