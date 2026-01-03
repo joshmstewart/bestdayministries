@@ -25,8 +25,7 @@ interface DrinkCreatorWizardProps {
 }
 
 const STEPS = [
-  { key: "base", title: "Choose Your Base", description: "Start with a delicious foundation" },
-  { key: "extra", title: "Customize Your Base", description: "Add milk alternatives, ice preferences & more" },
+  { key: "base", title: "Choose Your Base", description: "Pick your drink and customize it" },
   { key: "flavor", title: "Add Flavors", description: "Make it uniquely yours" },
   { key: "topping", title: "Pick Toppings", description: "The finishing touches" },
   { key: "vibe", title: "Set the Vibe", description: "Optional: choose an atmosphere" },
@@ -39,9 +38,9 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [selectedIngredients, setSelectedIngredients] = useState<Record<string, string[]>>({
     base: [],
+    modifier: [],
     flavor: [],
     topping: [],
-    extra: [],
   });
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
   const [drinkName, setDrinkName] = useState("");
@@ -84,7 +83,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
         return { ...prev, [category]: isSelected ? [] : [ingredientId] };
       }
 
-      // For others, allow multiple
+      // For others (including modifiers), allow multiple
       if (isSelected) {
         return { ...prev, [category]: current.filter((id) => id !== ingredientId) };
       }
@@ -93,7 +92,12 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   };
 
   const getSelectedIngredientNames = () => {
-    const allSelectedIds = Object.values(selectedIngredients).flat();
+    const allSelectedIds = [
+      ...selectedIngredients.base,
+      ...selectedIngredients.modifier,
+      ...selectedIngredients.flavor,
+      ...selectedIngredients.topping,
+    ];
     return ingredients
       .filter((ing) => allSelectedIds.includes(ing.id))
       .map((ing) => ({ name: ing.name, color: ing.color_hint }));
@@ -169,9 +173,9 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   };
 
   const handleNextStep = async () => {
-    if (currentStep === 4) {
+    if (currentStep === 3) {
       // Moving from vibe to generate step - generate name first
-      setCurrentStep(5);
+      setCurrentStep(4);
       await generateDrinkName();
     } else {
       setCurrentStep((s) => s + 1);
@@ -233,7 +237,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
 
   const resetWizard = () => {
     setCurrentStep(0);
-    setSelectedIngredients({ base: [], flavor: [], topping: [], extra: [] });
+    setSelectedIngredients({ base: [], modifier: [], flavor: [], topping: [] });
     setSelectedVibe(null);
     setDrinkName("");
     setGeneratedImage(null);
@@ -242,7 +246,12 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
 
   const currentStepData = STEPS[currentStep];
   const stepCategory = currentStepData.key;
+  
+  // For base step, separate main bases from modifiers
+  const baseIngredients = ingredients.filter((ing) => ing.category === "base" && ing.display_order < 100);
+  const modifierIngredients = ingredients.filter((ing) => ing.category === "base" && ing.display_order >= 100);
   const categoryIngredients = ingredients.filter((ing) => ing.category === stepCategory);
+  
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
   const canProceed = () => {
@@ -266,14 +275,40 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {currentStep < 4 ? (
+        {currentStep === 0 ? (
+          // Base step: show main bases + modifiers
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Pick Your Drink</h3>
+              <IngredientSelector
+                ingredients={baseIngredients}
+                selected={selectedIngredients.base}
+                onToggle={(id) => handleIngredientToggle("base", id)}
+                multiSelect={false}
+              />
+            </div>
+            
+            {modifierIngredients.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Customize It</h3>
+                <p className="text-sm text-muted-foreground mb-3">Optional: add milk alternatives, ice preferences & more</p>
+                <IngredientSelector
+                  ingredients={modifierIngredients}
+                  selected={selectedIngredients.modifier}
+                  onToggle={(id) => handleIngredientToggle("modifier", id)}
+                  multiSelect={true}
+                />
+              </div>
+            )}
+          </div>
+        ) : currentStep < 3 ? (
           <IngredientSelector
             ingredients={categoryIngredients}
             selected={selectedIngredients[stepCategory] || []}
             onToggle={(id) => handleIngredientToggle(stepCategory, id)}
-            multiSelect={stepCategory !== "base"}
+            multiSelect={true}
           />
-        ) : currentStep === 4 ? (
+        ) : currentStep === 3 ? (
           <VibeSelector selected={selectedVibe} onSelect={setSelectedVibe} />
         ) : (
           <div className="space-y-6">
@@ -393,7 +428,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
         )}
 
         {/* Navigation buttons */}
-        {currentStep < 5 && (
+        {currentStep < 4 && (
           <div className="flex justify-between pt-4">
             <Button
               variant="outline"
@@ -407,7 +442,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
               onClick={handleNextStep}
               disabled={!canProceed()}
             >
-              {currentStep === 4 ? (selectedVibe ? "Create with Vibe!" : "Skip & Create!") : "Next"}
+              {currentStep === 3 ? (selectedVibe ? "Create with Vibe!" : "Skip & Create!") : "Next"}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
