@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Store, ArrowLeft } from "lucide-react";
+import { Store, ArrowLeft, Info, ChevronDown, Package, CreditCard, Truck, HelpCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 
@@ -476,10 +478,107 @@ const VendorAuth = () => {
                   <li>Process and ship orders within stated timeframe</li>
                   <li>Respond to customer inquiries within 48 hours</li>
                   <li>Maintain accurate product inventory</li>
-                  <li>Accept the marketplace commission structure (20%)</li>
+                  <li className="flex items-center gap-1 list-none ml-4">
+                    <span className="mr-1">•</span>
+                    Accept the marketplace commission structure (20%)
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button type="button" className="inline-flex items-center text-primary hover:text-primary/80">
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <CreditCard className="h-5 w-5 text-primary" />
+                            Commission Structure
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 text-sm">
+                          <p className="text-muted-foreground">
+                            Our marketplace charges a <strong className="text-foreground">20% commission</strong> on each sale to cover:
+                          </p>
+                          <ul className="space-y-2 text-muted-foreground">
+                            <li className="flex items-start gap-2">
+                              <span className="text-primary font-bold">•</span>
+                              <span><strong className="text-foreground">Payment processing</strong> - Stripe fees and secure transactions</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-primary font-bold">•</span>
+                              <span><strong className="text-foreground">Platform hosting</strong> - Website, infrastructure, and maintenance</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-primary font-bold">•</span>
+                              <span><strong className="text-foreground">Customer support</strong> - Helping customers find your products</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-primary font-bold">•</span>
+                              <span><strong className="text-foreground">Marketing</strong> - Promoting the marketplace and vendors</span>
+                            </li>
+                          </ul>
+                          <div className="bg-muted/50 p-3 rounded-lg">
+                            <p className="font-medium text-foreground mb-1">Example:</p>
+                            <p className="text-muted-foreground">
+                              You sell a product for <strong className="text-foreground">$50</strong><br />
+                              Commission (20%): <strong className="text-foreground">$10</strong><br />
+                              Your payout: <strong className="text-primary">$40</strong>
+                            </p>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </li>
                   <li>Provide tracking information for shipped orders</li>
                   <li>Handle returns and customer issues professionally</li>
                 </ul>
+                
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <button type="button" className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium w-full pt-2 border-t border-accent/20">
+                      <HelpCircle className="h-4 w-4" />
+                      <span>How does selling work?</span>
+                      <ChevronDown className="h-4 w-4 ml-auto transition-transform group-data-[state=open]:rotate-180" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-3 space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                          <Package className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">1. Receive Orders</p>
+                          <p className="text-muted-foreground text-xs">When a customer buys your product, you'll see the order in your Vendor Dashboard with all shipping details.</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                          <Truck className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">2. Ship & Add Tracking</p>
+                          <p className="text-muted-foreground text-xs">Prepare the order, ship it, then enter the tracking number in your dashboard. The customer will be notified automatically.</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                          <CreditCard className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">3. Get Paid</p>
+                          <p className="text-muted-foreground text-xs">Once you add tracking and mark the order as shipped, your payout (minus 20% commission) is transferred to your connected Stripe account.</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/50 p-3 rounded-lg text-xs text-muted-foreground">
+                      <p className="font-medium text-foreground mb-1">Stripe Connect Required</p>
+                      <p>After approval, you'll set up Stripe Connect to receive payments directly to your bank account. This is secure and handles all payment processing.</p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
                 
                 <div className="flex items-start space-x-2 pt-2 border-t border-accent/20">
                   <Checkbox
@@ -689,10 +788,107 @@ const VendorAuth = () => {
                       <li>Process and ship orders within stated timeframe</li>
                       <li>Respond to customer inquiries within 48 hours</li>
                       <li>Maintain accurate product inventory</li>
-                      <li>Accept the marketplace commission structure (20%)</li>
+                      <li className="flex items-center gap-1 list-none ml-4">
+                        <span className="mr-1">•</span>
+                        Accept the marketplace commission structure (20%)
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button type="button" className="inline-flex items-center text-primary hover:text-primary/80">
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <CreditCard className="h-5 w-5 text-primary" />
+                                Commission Structure
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 text-sm">
+                              <p className="text-muted-foreground">
+                                Our marketplace charges a <strong className="text-foreground">20% commission</strong> on each sale to cover:
+                              </p>
+                              <ul className="space-y-2 text-muted-foreground">
+                                <li className="flex items-start gap-2">
+                                  <span className="text-primary font-bold">•</span>
+                                  <span><strong className="text-foreground">Payment processing</strong> - Stripe fees and secure transactions</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <span className="text-primary font-bold">•</span>
+                                  <span><strong className="text-foreground">Platform hosting</strong> - Website, infrastructure, and maintenance</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <span className="text-primary font-bold">•</span>
+                                  <span><strong className="text-foreground">Customer support</strong> - Helping customers find your products</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <span className="text-primary font-bold">•</span>
+                                  <span><strong className="text-foreground">Marketing</strong> - Promoting the marketplace and vendors</span>
+                                </li>
+                              </ul>
+                              <div className="bg-muted/50 p-3 rounded-lg">
+                                <p className="font-medium text-foreground mb-1">Example:</p>
+                                <p className="text-muted-foreground">
+                                  You sell a product for <strong className="text-foreground">$50</strong><br />
+                                  Commission (20%): <strong className="text-foreground">$10</strong><br />
+                                  Your payout: <strong className="text-primary">$40</strong>
+                                </p>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </li>
                       <li>Provide tracking information for shipped orders</li>
                       <li>Handle returns and customer issues professionally</li>
                     </ul>
+                    
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <button type="button" className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium w-full pt-2 border-t border-accent/20">
+                          <HelpCircle className="h-4 w-4" />
+                          <span>How does selling work?</span>
+                          <ChevronDown className="h-4 w-4 ml-auto transition-transform group-data-[state=open]:rotate-180" />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-3 space-y-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-primary/10 p-2 rounded-lg">
+                              <Package className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">1. Receive Orders</p>
+                              <p className="text-muted-foreground text-xs">When a customer buys your product, you'll see the order in your Vendor Dashboard with all shipping details.</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start gap-3">
+                            <div className="bg-primary/10 p-2 rounded-lg">
+                              <Truck className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">2. Ship & Add Tracking</p>
+                              <p className="text-muted-foreground text-xs">Prepare the order, ship it, then enter the tracking number in your dashboard. The customer will be notified automatically.</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start gap-3">
+                            <div className="bg-primary/10 p-2 rounded-lg">
+                              <CreditCard className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">3. Get Paid</p>
+                              <p className="text-muted-foreground text-xs">Once you add tracking and mark the order as shipped, your payout (minus 20% commission) is transferred to your connected Stripe account.</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-muted/50 p-3 rounded-lg text-xs text-muted-foreground">
+                          <p className="font-medium text-foreground mb-1">Stripe Connect Required</p>
+                          <p>After approval, you'll set up Stripe Connect to receive payments directly to your bank account. This is secure and handles all payment processing.</p>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                     
                     <div className="flex items-start space-x-2 pt-2 border-t border-accent/20">
                       <Checkbox
