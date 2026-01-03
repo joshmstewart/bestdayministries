@@ -64,7 +64,9 @@ type SnapshotResponse = {
   };
   links: {
     byPaymentIntentId: Record<string, string[]>;
+    byInvoiceId: Record<string, string[]>;
     byOrderId: Record<string, string[]>;
+    clusters: string[][];
   };
 };
 
@@ -430,19 +432,37 @@ export const DonationMappingWorkbench = () => {
               </AccordionItem>
 
               <AccordionItem value="links">
-                <AccordionTrigger>Auto links (PI / order_id)</AccordionTrigger>
+                <AccordionTrigger>Auto links (PI / invoice / order_id)</AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-md border p-3">
-                      <div className="font-medium">byPaymentIntentId</div>
-                      <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-[260px]">
-                        {JSON.stringify(snapshot.links.byPaymentIntentId, null, 2)}
-                      </pre>
+                  <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="rounded-md border p-3">
+                        <div className="font-medium">byPaymentIntentId</div>
+                        <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-[260px]">
+                          {JSON.stringify(snapshot.links.byPaymentIntentId, null, 2)}
+                        </pre>
+                      </div>
+                      <div className="rounded-md border p-3">
+                        <div className="font-medium">byInvoiceId</div>
+                        <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-[260px]">
+                          {JSON.stringify(snapshot.links.byInvoiceId, null, 2)}
+                        </pre>
+                      </div>
+                      <div className="rounded-md border p-3">
+                        <div className="font-medium">byOrderId</div>
+                        <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-[260px]">
+                          {JSON.stringify(snapshot.links.byOrderId, null, 2)}
+                        </pre>
+                      </div>
                     </div>
+
                     <div className="rounded-md border p-3">
-                      <div className="font-medium">byOrderId</div>
+                      <div className="font-medium">clusters</div>
+                      <div className="text-xs text-muted-foreground">
+                        Suggested groups (connected components across payment_intent + invoice + order_id).
+                      </div>
                       <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-[260px]">
-                        {JSON.stringify(snapshot.links.byOrderId, null, 2)}
+                        {JSON.stringify(snapshot.links.clusters, null, 2)}
                       </pre>
                     </div>
                   </div>

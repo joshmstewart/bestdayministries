@@ -15,7 +15,7 @@ Given:
 It returns:
 - All relevant Stripe objects for that day window (charges, invoices, checkout sessions, payment intents, subscriptions)
 - All relevant database rows for that same window (profiles, donations, sponsorships, receipts, orders, order_items, caches)
-- A lightweight auto-link map for manual inspection (by `payment_intent_id` and `order_id`)
+- Auto-link helpers (by `payment_intent_id`, `invoice_id`, `order_id`) plus `clusters` (merged suggestions)
 - A UI workflow to manually group related items and export a JSON payload
 
 ## Key edge function
