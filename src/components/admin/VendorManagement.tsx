@@ -662,7 +662,17 @@ export const VendorManagement = () => {
           <Tabs defaultValue="orders">
             <TabsList>
               <TabsTrigger value="orders">Orders</TabsTrigger>
-              <TabsTrigger value="vendors">Vendors</TabsTrigger>
+              <TabsTrigger value="vendors" className="relative">
+                Vendors
+                {stats.pendingVendors > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
+                  >
+                    {stats.pendingVendors}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="printify" className="gap-1">
                 <Printer className="w-3 h-3" />
