@@ -153,20 +153,28 @@ serve(async (req) => {
       let subscriptionId: string | undefined;
       let frequency: "one-time" | "monthly" = "one-time";
       
-      if (typeof invoice.subscription === "string") {
-        subscriptionId = invoice.subscription;
-        frequency = "monthly"; // If it has a subscription, it's monthly
-        const sub = subscriptions.data.find((s: Stripe.Subscription) => s.id === subscriptionId);
-        if (sub?.metadata) {
-          // Look up bestie name from the bestie_id in metadata
-          const bestieId = sub.metadata.bestie_id;
-          if (bestieId && bestieNameMap[bestieId]) {
-            designation = bestieNameMap[bestieId];
-          } else if (sub.metadata.type === "donation") {
-            designation = "General Support";
-          } else if (bestieId) {
-            // Has bestie_id but name not found - it's still a sponsorship
-            designation = "Sponsorship";
+      // Handle subscription as string ID or object with id property
+      if (invoice.subscription) {
+        if (typeof invoice.subscription === "string") {
+          subscriptionId = invoice.subscription;
+        } else if (typeof invoice.subscription === "object" && invoice.subscription !== null && "id" in invoice.subscription) {
+          subscriptionId = (invoice.subscription as { id: string }).id;
+        }
+        
+        if (subscriptionId) {
+          frequency = "monthly"; // If it has a subscription, it's monthly
+          const sub = subscriptions.data.find((s: Stripe.Subscription) => s.id === subscriptionId);
+          if (sub?.metadata) {
+            // Look up bestie name from the bestie_id in metadata
+            const bestieId = sub.metadata.bestie_id;
+            if (bestieId && bestieNameMap[bestieId]) {
+              designation = bestieNameMap[bestieId];
+            } else if (sub.metadata.type === "donation") {
+              designation = "General Support";
+            } else if (bestieId) {
+              // Has bestie_id but name not found - it's still a sponsorship
+              designation = "Sponsorship";
+            }
           }
         }
       }
