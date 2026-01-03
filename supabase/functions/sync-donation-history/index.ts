@@ -389,25 +389,47 @@ serve(async (req) => {
           });
         }
 
-        // Upsert to donation_stripe_transactions (the COMBINED table)
+        // Insert/update donation_stripe_transactions (the COMBINED table)
         if (transactionRecords.length > 0) {
           for (const record of transactionRecords) {
-            // Use a composite key for upsert - prefer invoice_id, then charge_id
-            const { error: upsertError } = await supabaseAdmin
-              .from("donation_stripe_transactions")
-              .upsert(record, {
-                onConflict: "stripe_invoice_id,stripe_mode",
-                ignoreDuplicates: false,
-              });
+            // Check if record already exists by invoice_id or charge_id
+            let existingId: string | null = null;
             
-            // If invoice_id is null, try upserting by charge_id
-            if (upsertError && !record.stripe_invoice_id && record.stripe_charge_id) {
-              await supabaseAdmin
+            if (record.stripe_invoice_id) {
+              const { data: existing } = await supabaseAdmin
                 .from("donation_stripe_transactions")
-                .upsert(record, {
-                  onConflict: "stripe_charge_id,stripe_mode",
-                  ignoreDuplicates: false,
-                });
+                .select("id")
+                .eq("stripe_invoice_id", record.stripe_invoice_id)
+                .eq("stripe_mode", record.stripe_mode)
+                .maybeSingle();
+              existingId = existing?.id || null;
+            } else if (record.stripe_charge_id) {
+              const { data: existing } = await supabaseAdmin
+                .from("donation_stripe_transactions")
+                .select("id")
+                .eq("stripe_charge_id", record.stripe_charge_id)
+                .eq("stripe_mode", record.stripe_mode)
+                .maybeSingle();
+              existingId = existing?.id || null;
+            }
+            
+            if (existingId) {
+              // Update existing record
+              const { error: updateError } = await supabaseAdmin
+                .from("donation_stripe_transactions")
+                .update(record)
+                .eq("id", existingId);
+              if (updateError) {
+                logStep("Update error", { id: existingId, error: updateError.message });
+              }
+            } else {
+              // Insert new record
+              const { error: insertError } = await supabaseAdmin
+                .from("donation_stripe_transactions")
+                .insert(record);
+              if (insertError) {
+                logStep("Insert error", { error: insertError.message });
+              }
             }
           }
           totalTransactionsSynced += transactionRecords.length;
