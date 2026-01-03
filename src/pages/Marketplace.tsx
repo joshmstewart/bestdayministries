@@ -166,8 +166,24 @@ const Marketplace = () => {
 
   const totalCartCount = (cartCount || 0) + shopifyCartItems();
 
+  // Show loading state while checking access
+  if (accessLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <UnifiedHeader />
+        <main className="flex-1 pt-24 flex items-center justify-center">
+          <div className="animate-pulse flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-muted" />
+            <div className="h-4 w-32 bg-muted rounded" />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   // Show access denied message if user doesn't have access
-  if (!accessLoading && accessCheck && !accessCheck.hasAccess) {
+  if (accessCheck && !accessCheck.hasAccess) {
     return (
       <div className="min-h-screen flex flex-col">
         <UnifiedHeader />
