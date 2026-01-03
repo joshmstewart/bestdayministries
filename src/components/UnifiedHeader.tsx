@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HeaderSkeleton } from "@/components/HeaderSkeleton";
-import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle, Package } from "lucide-react";
+import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle, Package, Store } from "lucide-react";
 
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -63,6 +63,7 @@ export const UnifiedHeader = () => {
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
   const { canModerate } = useUserPermissions();
   const [hasStoreAccess, setHasStoreAccess] = useState(false);
+  const [isApprovedVendor, setIsApprovedVendor] = useState(false);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -306,6 +307,16 @@ export const UnifiedHeader = () => {
         setHasStoreAccess(hasVisibleItems || profile.role === "admin" || profile.role === "owner");
       }
 
+      // Check if user is an approved vendor
+      const { data: vendorData } = await supabase
+        .from("vendors")
+        .select("status")
+        .eq("user_id", userId)
+        .eq("status", "approved")
+        .maybeSingle();
+      
+      setIsApprovedVendor(!!vendorData);
+
       // Check if bestie has shared sponsorships
       if (profile.role === "bestie") {
         const { data: shares } = await supabase
@@ -493,6 +504,13 @@ export const UnifiedHeader = () => {
                     </div>
                     
                     <Separator className="my-1" />
+                    
+                    {isApprovedVendor && (
+                      <DropdownMenuItem onClick={() => navigate("/vendor-dashboard")} className="cursor-pointer">
+                        <Store className="w-4 h-4 mr-2" />
+                        Vendor Dashboard
+                      </DropdownMenuItem>
+                    )}
                     
                     <DropdownMenuItem onClick={() => navigate("/orders")} className="cursor-pointer">
                       <Package className="w-4 h-4 mr-2" />
