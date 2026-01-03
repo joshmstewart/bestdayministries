@@ -383,128 +383,42 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
             />
           </div>
 
-          {/* Product Options Section */}
-          <Accordion type="single" collapsible className="w-full" defaultValue={options.length > 0 ? "options" : undefined}>
-            <AccordionItem value="options" className="border rounded-lg px-3">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <Settings2 className="h-4 w-4" />
-                  Product Options (Color, Size, etc.) {options.length > 0 && <Badge variant="secondary" className="ml-2">{options.length}</Badge>}
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pt-4">
-                {/* Existing Options */}
-                {options.length > 0 && (
-                  <div className="space-y-3">
-                    {options.map((option, optIndex) => (
-                      <div key={optIndex} className="border rounded-lg p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-sm">{option.name}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => removeOption(optIndex)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {option.values.map((value, valIndex) => (
-                            <Badge key={valIndex} variant="secondary" className="gap-1">
-                              {value}
-                              <button
-                                type="button"
-                                onClick={() => removeOptionValue(optIndex, valIndex)}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Add New Option */}
-                <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
-                  <Label className="text-sm font-medium">Add New Option</Label>
-                  <div className="space-y-2">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Option Name</Label>
-                      <Input
-                        placeholder="e.g., Color, Size, Material"
-                        value={newOptionName}
-                        onChange={(e) => setNewOptionName(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Option Choices (comma separated)</Label>
-                      <Input
-                        placeholder="e.g., Red, Blue, Green"
-                        value={newOptionValues}
-                        onChange={(e) => setNewOptionValues(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addOption}>
-                    <Plus className="h-3 w-3 mr-1" /> Add Option
-                  </Button>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-
-          {/* Tip about linking images */}
-          {options.length > 0 && totalImages === 0 && (
-            <p className="text-xs text-muted-foreground italic">
-              💡 Add images below, then you can link specific images to each option choice.
-            </p>
-          )}
-
           <div>
             <Label htmlFor="images">Product Images</Label>
+            <p className="text-xs text-muted-foreground mb-2">Upload images first, then assign them to options below</p>
             <div className="space-y-3">
-              {existingImages.length > 0 && (
-                <div className="grid grid-cols-4 gap-2">
+              {(existingImages.length > 0 || imagePreviews.length > 0) && (
+                <div className="grid grid-cols-5 gap-2">
                   {existingImages.map((url, index) => (
-                    <div key={index} className="relative">
-                      <img src={url} alt="" className="w-full h-24 object-cover rounded" />
+                    <div key={`existing-${index}`} className="relative">
+                      <img src={url} alt="" className="w-full h-20 object-cover rounded" />
                       <Button
                         type="button"
                         variant="destructive"
                         size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6"
+                        className="absolute -top-2 -right-2 h-5 w-5"
                         onClick={() => removeExistingImage(index)}
                       >
                         <X className="h-3 w-3" />
                       </Button>
-                      <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1 rounded">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center py-0.5">
                         #{index + 1}
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-              
-              {imagePreviews.length > 0 && (
-                <div className="grid grid-cols-4 gap-2">
                   {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative">
-                      <img src={preview} alt="" className="w-full h-24 object-cover rounded" />
+                    <div key={`new-${index}`} className="relative">
+                      <img src={preview} alt="" className="w-full h-20 object-cover rounded" />
                       <Button
                         type="button"
                         variant="destructive"
                         size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6"
+                        className="absolute -top-2 -right-2 h-5 w-5"
                         onClick={() => removeNewImage(index)}
                       >
                         <X className="h-3 w-3" />
                       </Button>
-                      <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1 rounded">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center py-0.5">
                         #{existingImages.length + index + 1}
                       </div>
                     </div>
@@ -512,10 +426,10 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
                 </div>
               )}
               
-              <Button type="button" variant="outline" className="w-full" asChild>
+              <Button type="button" variant="outline" size="sm" asChild>
                 <label htmlFor="images" className="cursor-pointer">
                   <Upload className="h-4 w-4 mr-2" />
-                  Add Images
+                  {totalImages > 0 ? "Add More Images" : "Upload Images"}
                   <input
                     id="images"
                     type="file"
@@ -529,53 +443,124 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
             </div>
           </div>
 
-          {/* Image-Option Mapping Section */}
-          {allOptionValues.length > 0 && totalImages > 0 && (
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="mapping">
-                <AccordionTrigger className="text-sm font-medium">
-                  Link Images to Options
-                </AccordionTrigger>
-                <AccordionContent className="space-y-4 pt-4">
-                  <p className="text-xs text-muted-foreground">
-                    Select which images should show for each option value. Customers will see the linked images when they select that option.
-                  </p>
-                  <div className="space-y-4">
-                    {allOptionValues.map((optionValue) => (
-                      <div key={optionValue} className="border rounded-lg p-3 space-y-2">
-                        <Label className="text-sm font-medium">{optionValue}</Label>
-                        <div className="grid grid-cols-6 gap-2">
-                          {[...existingImages, ...imagePreviews].map((img, imgIndex) => {
-                            const isLinked = imageOptionMapping[optionValue]?.includes(imgIndex);
-                            return (
-                              <div
-                                key={imgIndex}
-                                className={`relative cursor-pointer rounded overflow-hidden border-2 transition-all ${
-                                  isLinked ? 'border-primary ring-2 ring-primary/30' : 'border-transparent hover:border-muted-foreground/30'
-                                }`}
-                                onClick={() => toggleImageOptionMapping(optionValue, imgIndex)}
-                              >
-                                <img src={img} alt="" className="w-full h-12 object-cover" />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                  <Checkbox
-                                    checked={isLinked}
-                                    className="pointer-events-none"
-                                  />
-                                </div>
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center">
-                                  #{imgIndex + 1}
-                                </div>
+          {/* Product Options Section - with inline image selection */}
+          <div className="border rounded-lg p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              <Label className="text-sm font-medium">Product Options</Label>
+              {options.length > 0 && <Badge variant="secondary">{options.length}</Badge>}
+            </div>
+            
+            {/* Existing Options with Image Selection */}
+            {options.length > 0 && (
+              <div className="space-y-4">
+                {options.map((option, optIndex) => (
+                  <div key={optIndex} className="border rounded-lg p-3 space-y-3 bg-muted/20">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">{option.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => removeOption(optIndex)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    
+                    {/* Each option value with its image selection */}
+                    <div className="space-y-3">
+                      {option.values.map((value, valIndex) => (
+                        <div key={valIndex} className="border rounded p-2 bg-background">
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant="outline">{value}</Badge>
+                            <button
+                              type="button"
+                              onClick={() => removeOptionValue(optIndex, valIndex)}
+                              className="text-xs text-muted-foreground hover:text-destructive"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          
+                          {/* Image selection for this option value */}
+                          {totalImages > 0 ? (
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Click images to link to "{value}":</p>
+                              <div className="flex flex-wrap gap-1">
+                                {[...existingImages, ...imagePreviews].map((img, imgIndex) => {
+                                  const isLinked = imageOptionMapping[value]?.includes(imgIndex);
+                                  return (
+                                    <div
+                                      key={imgIndex}
+                                      className={`relative cursor-pointer rounded overflow-hidden transition-all ${
+                                        isLinked 
+                                          ? 'ring-2 ring-primary ring-offset-1' 
+                                          : 'opacity-50 hover:opacity-100'
+                                      }`}
+                                      onClick={() => toggleImageOptionMapping(value, imgIndex)}
+                                      title={isLinked ? `Unlink image #${imgIndex + 1}` : `Link image #${imgIndex + 1}`}
+                                    >
+                                      <img src={img} alt="" className="w-10 h-10 object-cover" />
+                                      {isLinked && (
+                                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                          <div className="w-3 h-3 bg-primary rounded-full" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            );
-                          })}
+                              {imageOptionMapping[value]?.length > 0 && (
+                                <p className="text-xs text-primary">
+                                  {imageOptionMapping[value].length} image{imageOptionMapping[value].length > 1 ? 's' : ''} linked
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">Upload images above to link them</p>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
+                ))}
+              </div>
+            )}
+
+            {/* Add New Option */}
+            <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+              <Label className="text-sm font-medium">Add New Option</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Option Type</Label>
+                  <Input
+                    placeholder="e.g., Color, Size"
+                    value={newOptionName}
+                    onChange={(e) => setNewOptionName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Choices (comma separated)</Label>
+                  <Input
+                    placeholder="e.g., Red, Blue, Green"
+                    value={newOptionValues}
+                    onChange={(e) => setNewOptionValues(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addOption}>
+                <Plus className="h-3 w-3 mr-1" /> Add Option
+              </Button>
+            </div>
+            
+            {options.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-2">
+                No options yet. Add options like Color, Size, or Material if your product has variants.
+              </p>
+            )}
+          </div>
 
           <div className="flex items-center space-x-2">
             <Switch
