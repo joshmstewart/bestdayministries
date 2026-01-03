@@ -49,6 +49,8 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
   const [options, setOptions] = useState<ProductOption[]>(product?.options || []);
   const [newOptionName, setNewOptionName] = useState("");
   const [newOptionValues, setNewOptionValues] = useState("");
+  const [addingValueToOption, setAddingValueToOption] = useState<number | null>(null);
+  const [newValueForOption, setNewValueForOption] = useState("");
   
   // Image-option mapping state
   const [imageOptionMapping, setImageOptionMapping] = useState<ImageOptionMapping>(product?.image_option_mapping || {});
@@ -156,6 +158,21 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
         ? { ...opt, values: opt.values.filter((_, vi) => vi !== valueIndex) }
         : opt
     ));
+  };
+
+  const addValueToOption = (optionIndex: number) => {
+    if (!newValueForOption.trim()) return;
+    
+    const values = newValueForOption.split(',').map(v => v.trim()).filter(Boolean);
+    if (values.length === 0) return;
+    
+    setOptions(prev => prev.map((opt, i) => 
+      i === optionIndex 
+        ? { ...opt, values: [...opt.values, ...values] }
+        : opt
+    ));
+    setNewValueForOption("");
+    setAddingValueToOption(null);
   };
 
   const toggleImageOptionMapping = (optionValue: string, imageIndex: number) => {
@@ -523,6 +540,59 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
                           )}
                         </div>
                       ))}
+                      
+                      {/* Add more values to this option */}
+                      {addingValueToOption === optIndex ? (
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            placeholder="e.g., Purple, Orange"
+                            value={newValueForOption}
+                            onChange={(e) => setNewValueForOption(e.target.value)}
+                            className="flex-1 h-8 text-sm"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addValueToOption(optIndex);
+                              }
+                              if (e.key === 'Escape') {
+                                setAddingValueToOption(null);
+                                setNewValueForOption("");
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => addValueToOption(optIndex)}
+                          >
+                            Add
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => {
+                              setAddingValueToOption(null);
+                              setNewValueForOption("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-8"
+                          onClick={() => setAddingValueToOption(optIndex)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add {option.name}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
