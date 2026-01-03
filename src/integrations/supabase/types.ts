@@ -5307,6 +5307,9 @@ export type Database = {
       }
       vendors: {
         Row: {
+          agreed_to_terms_at: string | null
+          agreed_to_vendor_terms: boolean | null
+          application_notes: string | null
           approved_at: string | null
           approved_by: string | null
           banner_image_url: string | null
@@ -5314,10 +5317,12 @@ export type Database = {
           commission_percentage: number
           created_at: string
           description: string | null
+          estimated_processing_days: number | null
           featured_bestie_id: string | null
           id: string
           is_house_vendor: boolean
           logo_url: string | null
+          product_categories: string[] | null
           rejection_reason: string | null
           social_links: Json | null
           status: Database["public"]["Enums"]["vendor_status"]
@@ -5330,6 +5335,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agreed_to_terms_at?: string | null
+          agreed_to_vendor_terms?: boolean | null
+          application_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
           banner_image_url?: string | null
@@ -5337,10 +5345,12 @@ export type Database = {
           commission_percentage?: number
           created_at?: string
           description?: string | null
+          estimated_processing_days?: number | null
           featured_bestie_id?: string | null
           id?: string
           is_house_vendor?: boolean
           logo_url?: string | null
+          product_categories?: string[] | null
           rejection_reason?: string | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["vendor_status"]
@@ -5353,6 +5363,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agreed_to_terms_at?: string | null
+          agreed_to_vendor_terms?: boolean | null
+          application_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
           banner_image_url?: string | null
@@ -5360,10 +5373,12 @@ export type Database = {
           commission_percentage?: number
           created_at?: string
           description?: string | null
+          estimated_processing_days?: number | null
           featured_bestie_id?: string | null
           id?: string
           is_house_vendor?: boolean
           logo_url?: string | null
+          product_categories?: string[] | null
           rejection_reason?: string | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["vendor_status"]
