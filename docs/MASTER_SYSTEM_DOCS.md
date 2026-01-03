@@ -629,7 +629,7 @@ ROUTE:/support
 DB:donations[CRITICAL-CONSTRAINT-donor_identifier_check:EITHER-donor_id-OR-donor_email-NOT-BOTH-NOT-NEITHER|must-allow:pending+completed+active+cancelled+paused]
 WORKFLOW:select-frequency+amount→email→terms→Stripe→success
 GUEST:donor_email→link-on-signup
-EDGE:create-donation-checkout[creates-pending]|stripe-webhook[updates-to-completed-or-active]|reconcile-donations-from-stripe[CRITICAL-auto-fix-pending-donations]|recalculate-sponsorship-amounts[admin-tool-fix-historical-amounts]|recover-all-missing-donations[RECOMMENDED-auto-recovery-from-orphaned-receipts]|recover-missing-donations[LEGACY-CSV-based]
+EDGE:create-donation-checkout[creates-pending]|stripe-webhook[updates-to-completed-or-active]|reconcile-donations-from-stripe[CRITICAL-auto-fix-pending-donations]|sync-donation-history[syncs-Stripe-to-donation_stripe_transactions]|recalculate-sponsorship-amounts[admin-tool-fix-historical-amounts]|recover-all-missing-donations[RECOMMENDED-auto-recovery-from-orphaned-receipts]|recover-missing-donations[LEGACY-CSV-based]
 STATUS:One-Time[pending→completed]|Monthly[pending→active→cancelled]
 STRIPE-IDS:stripe_customer_id[ALWAYS-set-both-types]|stripe_subscription_id[ONLY-monthly]|stripe_checkout_session_id[REQUIRED-for-webhook-matching]
 FEE-COVERAGE:(amt+0.30)/0.971
@@ -652,6 +652,19 @@ MANUAL-RECOVERY:UPDATE-donations-status+INSERT-sponsorship_receipts+invoke-send-
 RECOVERY-SYSTEM:recover-all-missing-donations[finds-orphaned-receipts→fetches-Stripe-data-any-ID-format→creates-donations→handles-constraint-properly]→handles[cs_|pi_|in_|ch_-transaction-IDs]→checks-existing-donations→validates-timeframe[±24hrs]→proper-constraint-handling
 RECALCULATE-TOOL:Admin→Transactions→Recalculate-Full-Amounts-button→checks-Stripe-metadata[coverStripeFee+baseAmount]→recalculates-full-amount→updates-database-and-receipts
 
+DONATION-HISTORY-DISPLAY:
+  ROUTE:/donation-history|/guardian-links
+  DB:donation_stripe_transactions[combined-Stripe-data]|active_subscriptions_cache[active-subs]|donation_sync_status[sync-tracking]
+  EDGE:sync-donation-history[Auth+Cron→syncs-Stripe-invoices+charges→filters-marketplace-via-orders-table+metadata-check]
+  MARKETPLACE-FILTERING-CRITICAL:
+    METHOD-1:skip-if-combined-metadata-has-order_id
+    METHOD-2:skip-if-stripe_payment_intent_id-in-orders-table
+    WHY-BOTH:metadata-check-catches-explicit-order_id|orders-table-check-catches-when-order_id-only-in-checkout-session-not-propagated
+  COMPONENT:DonationHistory.tsx[transactions-table+active-subs+year-end-summary+stripe-mode-toggle-admin-only]
+  QUERY:donation_stripe_transactions.eq(email,userEmail).eq(stripe_mode,mode)
+  DESIGNATION:General-Support[metadata.type=donation]|Sponsorship:{BestieName}[via-sponsorships.stripe_subscription_id]
+  FEATURES:year-filter|receipt-URL-from-raw_invoice|manage-subscriptions-button|download-email-year-end-summary
+
 RECONCILIATION-SYSTEM[CRITICAL-FIX-FOR-PENDING-HELL]:
   PURPOSE:automatically-fix-ALL-pending-donations-by-checking-actual-Stripe-status→updates-to-active|completed-based-on-source-of-truth
   EDGE-FUNCTION:reconcile-donations-from-stripe[admin-only]
@@ -673,7 +686,7 @@ RECONCILIATION-SYSTEM[CRITICAL-FIX-FOR-PENDING-HELL]:
   LOGGING:comprehensive-per-donation-logs→tracks[old_status|new_status|stripe_object_id|stripe_status|action|error]
   SELF-HEALING:runs-automatically-hourly→catches-webhook-failures→ensures-no-donations-stuck-pending-forever→auto-cancels-abandoned-after-2h
 
-DOC:DONATION_SYSTEM.md|WEBHOOK_CONFIGURATION_GUIDE.md|DONATION_RECOVERY_SYSTEM.md
+DOC:DONATION_SYSTEM.md|DONATION_HISTORY_SYSTEM.md|WEBHOOK_CONFIGURATION_GUIDE.md|DONATION_RECOVERY_SYSTEM.md
 
 ## HELP_CENTER
 ROUTE:/help

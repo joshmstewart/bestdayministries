@@ -24,14 +24,16 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 ### Payments & Donations
 - **`create-donation-checkout`** - [Public] Creates Stripe checkout for one-time and recurring donations
 - **`create-sponsorship-checkout`** - [Public] Creates Stripe checkout for bestie sponsorships
+- **`sync-donation-history`** - [Auth/Cron] Syncs Stripe transactions to `donation_stripe_transactions` table, filters marketplace purchases
 - **`donation-mapping-snapshot`** - [Admin Only] Loads all Stripe + DB objects for an email + date window for manual mapping
 - **`stripe-webhook`** - [Webhook] Handles all Stripe events (dual mode: test/live)
 - **`manage-sponsorship`** - [Auth Required] Customer portal for managing subscriptions
 - **`update-sponsorship`** - [Auth Required] Updates sponsorship tier/amount
 - **`generate-receipts`** - [Cron] Batch generates monthly sponsorship receipts
 - **`send-sponsorship-receipt`** - [Internal] Sends individual tax-deductible receipts
-- **`generate-year-end-summary`** - [Cron] Creates annual giving summaries for tax purposes
+- **`generate-year-end-summary`** - [Auth/Cron] Creates annual giving summaries for tax purposes
 - **`verify-sponsorship-payment`** - [Webhook] Verifies Stripe checkout completion
+- **`reconcile-donations-from-stripe`** - [Cron] Auto-fixes pending donations by checking Stripe status
 
 ### Email & Notifications
 - **`send-notification-email`** - [Internal] Sends individual notification emails via Resend
@@ -125,6 +127,8 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | sentry-webhook | Webhook | Supabase | Logs Sentry error alerts |
 | stripe-webhook | Webhook | Stripe | Handles all Stripe events |
 | submit-tracking | Vendor | AfterShip | Submits order tracking |
+| sync-donation-history | Auth/Cron | Stripe, Supabase | Syncs Stripe transactions to donation_stripe_transactions, filters marketplace |
+| reconcile-donations-from-stripe | Cron | Stripe, Supabase | Auto-fixes pending donations by checking Stripe status |
 | update-sponsorship | Auth | Stripe | Updates sponsorship tier |
 | verify-marketplace-payment | Auth | Stripe | Polling-based marketplace payment verification |
 | verify-sponsorship-payment | Webhook | Stripe | Verifies payment completion |
