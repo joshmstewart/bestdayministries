@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ExternalLink, Package, Truck, Search, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 
 interface OrderItem {
   id: string;
@@ -302,8 +304,12 @@ export default function OrderHistory() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">Loading your orders...</div>
+      <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+        <UnifiedHeader />
+        <main className="pt-24 container mx-auto p-6">
+          <div className="text-center">Loading your orders...</div>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -311,7 +317,9 @@ export default function OrderHistory() {
   // Guest lookup view
   if (!isAuthenticated) {
     return (
-      <div className="container mx-auto p-6 space-y-6 max-w-2xl">
+      <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+        <UnifiedHeader />
+        <main className="pt-24 container mx-auto p-6 space-y-6 max-w-2xl">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Order Lookup</h1>
           <Button variant="outline" onClick={() => navigate("/joyhousestore")}>
@@ -389,6 +397,8 @@ export default function OrderHistory() {
             </p>
           </CardContent>
         </Card>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -396,18 +406,22 @@ export default function OrderHistory() {
   // Authenticated view with no orders
   if (orders.length === 0) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Order History</CardTitle>
-            <CardDescription>You haven't placed any orders yet</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate("/joyhousestore")}>
-              Browse Store
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+        <UnifiedHeader />
+        <main className="pt-24 container mx-auto p-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order History</CardTitle>
+              <CardDescription>You haven't placed any orders yet</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/joyhousestore")}>
+                Browse Store
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -419,33 +433,37 @@ export default function OrderHistory() {
 
   // Authenticated view with orders
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">My Orders</h1>
-        <Button variant="outline" onClick={() => navigate("/joyhousestore")}>
-          Continue Shopping
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+      <UnifiedHeader />
+      <main className="pt-24 container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">My Orders</h1>
+          <Button variant="outline" onClick={() => navigate("/joyhousestore")}>
+            Continue Shopping
+          </Button>
+        </div>
 
-      <div className="flex items-center gap-2">
-        <Search className="w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by order number..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-xs"
-        />
-      </div>
+        <div className="flex items-center gap-2">
+          <Search className="w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by order number..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-xs"
+          />
+        </div>
 
-      {filteredOrders.length === 0 && searchQuery ? (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            No orders found matching "{searchQuery}"
-          </CardContent>
-        </Card>
-      ) : (
-        filteredOrders.map((order) => renderOrder(order))
-      )}
+        {filteredOrders.length === 0 && searchQuery ? (
+          <Card>
+            <CardContent className="pt-6 text-center text-muted-foreground">
+              No orders found matching "{searchQuery}"
+            </CardContent>
+          </Card>
+        ) : (
+          filteredOrders.map((order) => renderOrder(order))
+        )}
+      </main>
+      <Footer />
     </div>
   );
 }
