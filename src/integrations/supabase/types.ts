@@ -5639,6 +5639,7 @@ export type Database = {
           description: string | null
           estimated_processing_days: number | null
           featured_bestie_id: string | null
+          free_shipping_threshold: number | null
           id: string
           is_house_vendor: boolean
           logo_url: string | null
@@ -5667,6 +5668,7 @@ export type Database = {
           description?: string | null
           estimated_processing_days?: number | null
           featured_bestie_id?: string | null
+          free_shipping_threshold?: number | null
           id?: string
           is_house_vendor?: boolean
           logo_url?: string | null
@@ -5695,6 +5697,7 @@ export type Database = {
           description?: string | null
           estimated_processing_days?: number | null
           featured_bestie_id?: string | null
+          free_shipping_threshold?: number | null
           id?: string
           is_house_vendor?: boolean
           logo_url?: string | null

@@ -25,6 +25,7 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
     website: '',
     instagram: '',
     facebook: '',
+    free_shipping_threshold: 35,
   });
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           website: socialLinks?.website || '',
           instagram: socialLinks?.instagram || '',
           facebook: socialLinks?.facebook || '',
+          free_shipping_threshold: data.free_shipping_threshold ?? 35,
         });
       }
     } catch (error) {
@@ -105,6 +107,7 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           description: formData.description,
           logo_url: formData.logo_url || null,
           banner_image_url: formData.banner_image_url || null,
+          free_shipping_threshold: formData.free_shipping_threshold,
           social_links: {
             website: formData.website || undefined,
             instagram: formData.instagram || undefined,
@@ -153,6 +156,21 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
               placeholder="Tell customers about your store..."
               rows={4}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="free_shipping_threshold">Free Shipping Minimum ($)</Label>
+            <Input
+              id="free_shipping_threshold"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.free_shipping_threshold}
+              onChange={(e) => setFormData(prev => ({ ...prev, free_shipping_threshold: parseFloat(e.target.value) || 0 }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Orders over this amount qualify for free shipping. Default is $35.
+            </p>
           </div>
         </CardContent>
       </Card>
