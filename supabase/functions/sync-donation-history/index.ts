@@ -59,11 +59,19 @@ serve(async (req) => {
       .select("setting_value")
       .eq("setting_key", "stripe_mode")
       .maybeSingle();
-    const stripeMode = modeData?.setting_value?.mode === "live" ? "live" : "test";
-    
-    const stripeKey = stripeMode === "live"
-      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") || Deno.env.get("STRIPE_SECRET_KEY")
-      : Deno.env.get("STRIPE_SECRET_KEY_TEST") || Deno.env.get("STRIPE_SECRET_KEY");
+
+    const rawStripeMode: any = modeData?.setting_value;
+    const stripeMode =
+      rawStripeMode === "test" || rawStripeMode === "live"
+        ? rawStripeMode
+        : rawStripeMode?.mode === "test" || rawStripeMode?.mode === "live"
+          ? rawStripeMode.mode
+          : "live";
+
+    const stripeKey =
+      stripeMode === "live"
+        ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") || Deno.env.get("STRIPE_SECRET_KEY")
+        : Deno.env.get("STRIPE_SECRET_KEY_TEST") || Deno.env.get("STRIPE_SECRET_KEY");
 
     if (!stripeKey) {
       throw new Error("Stripe secret key not configured");
@@ -196,14 +204,10 @@ serve(async (req) => {
             continue;
           }
 
-          // Only include if it's a known sponsorship OR donation
-          const isKnownSponsorship = subscriptionId && subscriptionToDesignation.has(subscriptionId);
-          const isKnownDonation = metadata.type === "donation";
-          const isFromKnownCustomer = customerToDesignation.has(customer.id);
-          
-          // Must be a donation or sponsorship - skip unknown charges
-          if (!isKnownSponsorship && !isKnownDonation && !isFromKnownCustomer) {
-            logStep("Skipping unknown invoice", { invoiceId: invoice.id });
+          // Only include subscription invoices (monthly donations)
+          const billingReason = typeof (invoice as any)?.billing_reason === "string" ? (invoice as any).billing_reason : "";
+          const isSubscriptionInvoice = Boolean(subscriptionId) || billingReason.startsWith("subscription");
+          if (!isSubscriptionInvoice) {
             continue;
           }
 
@@ -254,17 +258,8 @@ serve(async (req) => {
             continue;
           }
 
-          // Only include if it's explicitly a donation or sponsorship
-          const isSponsorship = metadata.bestie_id || metadata.bestieId || metadata.bestieName;
-          const isDonation = metadata.type === "donation";
-          
-          // Must be a donation or sponsorship - skip unknown charges
-          if (!isSponsorship && !isDonation) {
-            logStep("Skipping unknown charge", { chargeId: charge.id, metadata });
-            continue;
-          }
-
           // Determine designation from metadata
+          const isSponsorship = metadata.bestie_id || metadata.bestieId || metadata.bestieName;
           let designation = "General Support";
           if (isSponsorship) {
             designation = `Sponsorship: ${metadata.bestieName || "Unknown"}`;
