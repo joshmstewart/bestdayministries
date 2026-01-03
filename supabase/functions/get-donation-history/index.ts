@@ -105,6 +105,39 @@ serve(async (req) => {
 
     const donations: DonationRecord[] = [];
 
+    // Log subscription metadata for debugging
+    for (const sub of subscriptions.data) {
+      console.log("[GET-DONATION-HISTORY] Subscription metadata:", sub.id, JSON.stringify(sub.metadata));
+    }
+
+    // Create a map of bestie_id to bestie_name from sponsor_besties table
+    const bestieIds = new Set<string>();
+    for (const sub of subscriptions.data) {
+      if (sub.metadata?.bestie_id) {
+        bestieIds.add(sub.metadata.bestie_id);
+      }
+    }
+    for (const charge of charges.data) {
+      if (charge.metadata?.bestie_id) {
+        bestieIds.add(charge.metadata.bestie_id);
+      }
+    }
+    
+    const bestieNameMap: Record<string, string> = {};
+    if (bestieIds.size > 0) {
+      const { data: sponsorBesties } = await supabaseClient
+        .from('sponsor_besties')
+        .select('id, bestie_name')
+        .in('id', Array.from(bestieIds));
+      
+      if (sponsorBesties) {
+        for (const sb of sponsorBesties) {
+          bestieNameMap[sb.id] = sb.bestie_name;
+        }
+      }
+      console.log("[GET-DONATION-HISTORY] Loaded bestie names:", bestieNameMap);
+    }
+
     // Process invoices (recurring payments) - these are the actual payment records
     for (const invoice of invoices.data) {
       if (invoice.status !== "paid") continue;
@@ -118,14 +151,23 @@ serve(async (req) => {
       // Get metadata from the subscription if available
       let designation = "General Support";
       let subscriptionId: string | undefined;
+      let frequency: "one-time" | "monthly" = "one-time";
       
       if (typeof invoice.subscription === "string") {
         subscriptionId = invoice.subscription;
+        frequency = "monthly"; // If it has a subscription, it's monthly
         const sub = subscriptions.data.find((s: Stripe.Subscription) => s.id === subscriptionId);
-        if (sub?.metadata?.bestie_name) {
-          designation = sub.metadata.bestie_name;
-        } else if (sub?.metadata?.type === "sponsorship") {
-          designation = "Sponsorship";
+        if (sub?.metadata) {
+          // Look up bestie name from the bestie_id in metadata
+          const bestieId = sub.metadata.bestie_id;
+          if (bestieId && bestieNameMap[bestieId]) {
+            designation = bestieNameMap[bestieId];
+          } else if (sub.metadata.type === "donation") {
+            designation = "General Support";
+          } else if (bestieId) {
+            // Has bestie_id but name not found - it's still a sponsorship
+            designation = "Sponsorship";
+          }
         }
       }
 
@@ -133,7 +175,7 @@ serve(async (req) => {
         donations.push({
           id: invoice.id,
           amount: (invoice.amount_paid || 0) / 100,
-          frequency: subscriptionId ? "monthly" : "one-time",
+          frequency,
           status: "completed",
           created_at: new Date(invoice.created * 1000).toISOString(),
           designation,
@@ -159,9 +201,12 @@ serve(async (req) => {
       }
       
       let designation = "General Support";
-      if (charge.metadata?.bestie_name) {
-        designation = charge.metadata.bestie_name;
-      } else if (charge.metadata?.type === "sponsorship") {
+      const bestieId = charge.metadata?.bestie_id;
+      if (bestieId && bestieNameMap[bestieId]) {
+        designation = bestieNameMap[bestieId];
+      } else if (charge.metadata?.type === "donation") {
+        designation = "General Support";
+      } else if (bestieId) {
         designation = "Sponsorship";
       }
 
@@ -192,10 +237,17 @@ serve(async (req) => {
         const periodEnd = s.current_period_end && typeof s.current_period_end === 'number' 
           ? new Date(s.current_period_end * 1000).toISOString() 
           : null;
+        const bestieId = s.metadata?.bestie_id;
+        let designation = "General Support";
+        if (bestieId && bestieNameMap[bestieId]) {
+          designation = bestieNameMap[bestieId];
+        } else if (bestieId) {
+          designation = "Sponsorship";
+        }
         return {
           id: s.id,
           amount: s.items.data[0]?.price?.unit_amount ? s.items.data[0].price.unit_amount / 100 : 0,
-          designation: s.metadata?.bestie_name || "General Support",
+          designation,
           status: s.status,
           current_period_end: periodEnd,
           cancel_at_period_end: s.cancel_at_period_end,
