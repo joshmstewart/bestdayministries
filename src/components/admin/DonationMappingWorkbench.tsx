@@ -166,8 +166,9 @@ export const DonationMappingWorkbench = () => {
     setGroups([]);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const { data, error } = await supabase.functions.invoke("donation-mapping-snapshot", {
-        body: { email: email.trim(), date, stripe_mode: stripeMode, timezone },
+        body: { email: normalizedEmail, date, stripe_mode: stripeMode, timezone },
       });
       if (error) throw error;
       setSnapshot(data);

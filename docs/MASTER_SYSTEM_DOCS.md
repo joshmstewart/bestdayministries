@@ -634,7 +634,7 @@ STATUS:One-Time[pending→completed]|Monthly[pending→active→cancelled]
 STRIPE-IDS:stripe_customer_id[ALWAYS-set-both-types]|stripe_subscription_id[ONLY-monthly]|stripe_checkout_session_id[REQUIRED-for-webhook-matching]
 FEE-COVERAGE:(amt+0.30)/0.971
 CRITICAL-AMOUNT-STORAGE:ALWAYS-store-FULL-amount-including-Stripe-fees→all-amounts-reflect-total-received→NOT-base-amount
-ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships+recalculate-button+multi-select-status-filter]|DonationRecoveryManager[auto-recovery-from-receipts+reconciliation-button]
+ADMIN:SponsorshipTransactionsManager[shows-donations+sponsorships+recalculate-button+multi-select-status-filter]|DonationRecoveryManager[auto-recovery-from-receipts+reconciliation-button]|DonationMappingWorkbench[email+date→shows-ALL-Stripe+DB→manual-grouping→export-JSON-for-mapping]
 ADMIN-UI-FILTERS:
   STATUS-FILTER:multi-select-dropdown[checkboxes]→default-excludes-cancelled→options[active|scheduled_cancel|pending|completed|cancelled|paused|duplicate|test]
   TYPE-FILTER:single-select[all|sponsorship|donation]
