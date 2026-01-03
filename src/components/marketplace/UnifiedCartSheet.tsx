@@ -71,9 +71,9 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
   // Shipping constants
   const FLAT_SHIPPING_RATE = 6.99;
-  const FREE_SHIPPING_THRESHOLD = 35;
+  const DEFAULT_FREE_SHIPPING_THRESHOLD = 35;
 
-  // Calculate totals by vendor for shipping
+  // Calculate totals by vendor for shipping (including vendor's custom threshold)
   const vendorTotals = allCartItems.reduce((acc, item) => {
     const vendorId = item.product.vendor_id;
     const price = typeof item.product.price === 'string' 
@@ -82,15 +82,20 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     const itemTotal = price * item.quantity;
     
     if (!acc[vendorId]) {
-      acc[vendorId] = { subtotal: 0, vendorName: item.product.vendors?.business_name || 'Vendor' };
+      const vendorThreshold = item.product.vendors?.free_shipping_threshold;
+      acc[vendorId] = { 
+        subtotal: 0, 
+        vendorName: item.product.vendors?.business_name || 'Vendor',
+        freeShippingThreshold: vendorThreshold != null ? Number(vendorThreshold) : DEFAULT_FREE_SHIPPING_THRESHOLD
+      };
     }
     acc[vendorId].subtotal += itemTotal;
     return acc;
-  }, {} as Record<string, { subtotal: number; vendorName: string }>);
+  }, {} as Record<string, { subtotal: number; vendorName: string; freeShippingThreshold: number }>);
 
   const cartSubtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
   const shippingTotal = Object.values(vendorTotals).reduce((sum, v) => 
-    sum + (v.subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_RATE), 0);
+    sum + (v.subtotal >= v.freeShippingThreshold ? 0 : FLAT_SHIPPING_RATE), 0);
   const cartTotal = cartSubtotal + shippingTotal;
 
   const shopifyTotalItems = getShopifyTotalItems();
@@ -320,11 +325,17 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                       <h3 className="font-semibold text-lg">Store Items</h3>
                     </div>
 
-                    {/* Free Shipping Progress */}
-                    <FreeShippingProgress 
-                      currentSubtotal={cartSubtotal} 
-                      threshold={FREE_SHIPPING_THRESHOLD} 
-                    />
+                    {/* Free Shipping Progress - per vendor */}
+                    <div className="space-y-2">
+                      {Object.entries(vendorTotals).map(([vendorId, vendor]) => (
+                        <FreeShippingProgress 
+                          key={vendorId}
+                          currentSubtotal={vendor.subtotal} 
+                          threshold={vendor.freeShippingThreshold}
+                          vendorName={vendor.vendorName}
+                        />
+                      ))}
+                    </div>
                     
                     <div className="space-y-3">
                       {allCartItems.map((item) => (
