@@ -111,9 +111,7 @@ export const DonationHistory = () => {
         transaction_date: d.transaction_date,
         stripe_subscription_id: d.stripe_subscription_id ?? null,
         receipt_url: d.raw_invoice?.hosted_invoice_url || d.raw_charge?.receipt_url || null,
-        designation: d.merged_metadata?.bestieName 
-          ? `Sponsorship: ${d.merged_metadata.bestieName}` 
-          : "General Support",
+        designation: d.designation || "General Support",
       }));
 
       setTransactions(mappedTransactions);

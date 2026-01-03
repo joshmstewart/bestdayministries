@@ -314,6 +314,7 @@ serve(async (req) => {
             status: "paid",
             transaction_date: new Date(invoice.created * 1000).toISOString(),
             stripe_mode: stripeMode,
+            designation, // Store the calculated designation
             raw_invoice: invoice,
             raw_charge: typeof charge === "object" ? charge : null,
             raw_payment_intent: typeof paymentIntent === "object" ? paymentIntent : null,
@@ -382,6 +383,7 @@ serve(async (req) => {
             status: "paid",
             transaction_date: new Date(charge.created * 1000).toISOString(),
             stripe_mode: stripeMode,
+            designation, // Store the calculated designation
             raw_invoice: null,
             raw_charge: charge,
             raw_payment_intent: paymentIntent,
