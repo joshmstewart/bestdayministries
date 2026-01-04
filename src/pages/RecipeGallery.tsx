@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Heart, BookOpen, ChefHat, Loader2, BookmarkPlus } from "lucide-react";
+import { ArrowLeft, Heart, BookOpen, ChefHat, Loader2, BookmarkPlus, ShoppingCart } from "lucide-react";
 import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog";
+import { RecipeExpansionTips } from "@/components/recipe-maker/RecipeExpansionTips";
 
 interface PublicRecipe {
   id: string;
@@ -47,6 +48,7 @@ const RecipeGallery = () => {
   const [publicRecipes, setPublicRecipes] = useState<PublicRecipe[]>([]);
   const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
   const [userIngredients, setUserIngredients] = useState<string[]>([]);
+  const [userTools, setUserTools] = useState<string[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<PublicRecipe | SavedRecipe | null>(null);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortOption>("most_saved");
@@ -82,6 +84,15 @@ const RecipeGallery = () => {
           .maybeSingle();
 
         setUserIngredients(ingredientsData?.ingredients || []);
+
+        // Load user's tools
+        const { data: toolsData } = await supabase
+          .from("user_recipe_tools")
+          .select("tools")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        setUserTools(toolsData?.tools || []);
 
         // Load user's likes
         const { data: likesData } = await supabase
@@ -188,14 +199,19 @@ const RecipeGallery = () => {
         </div>
 
         <Tabs defaultValue="gallery" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="gallery" className="gap-2">
               <BookOpen className="h-4 w-4" />
-              Community Gallery
+              <span className="hidden sm:inline">Community</span>
             </TabsTrigger>
             <TabsTrigger value="cookbook" className="gap-2">
               <ChefHat className="h-4 w-4" />
-              My Cookbook {savedRecipes.length > 0 && `(${savedRecipes.length})`}
+              <span className="hidden sm:inline">My Cookbook</span>
+              {savedRecipes.length > 0 && <span className="text-xs">({savedRecipes.length})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="shopping" className="gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              <span className="hidden sm:inline">Shopping Tips</span>
             </TabsTrigger>
           </TabsList>
 
@@ -254,6 +270,30 @@ const RecipeGallery = () => {
                     onClick={() => setSelectedRecipe(recipe)}
                   />
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="shopping" className="space-y-4">
+            {!user ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">Sign in to get personalized shopping tips</p>
+                <Button onClick={() => navigate("/auth")}>Sign In</Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h2 className="text-xl font-semibold mb-2">🛒 Expand Your Cooking Options</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Based on what you have, here are items that would unlock lots of new recipes!
+                  </p>
+                </div>
+                <RecipeExpansionTips 
+                  ingredients={userIngredients} 
+                  tools={userTools} 
+                  userId={user.id}
+                  showTitle
+                />
               </div>
             )}
           </TabsContent>

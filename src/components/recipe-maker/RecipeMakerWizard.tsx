@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, Sparkles, Loader2, RefreshCw, Wrench } from "lucide-react";
+import { ChevronLeft, Sparkles, Loader2, RefreshCw, Wrench, BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 import { RecipeExpansionTips } from "./RecipeExpansionTips";
 import { RecipeIngredientSelector } from "./RecipeIngredientSelector";
 import { RecipeToolsSelector } from "./RecipeToolsSelector";
@@ -228,9 +229,17 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
       <CardHeader>
         <div className="flex items-center justify-between mb-4">
           <CardTitle className="text-xl">{currentStepData.title}</CardTitle>
-          <span className="text-sm text-muted-foreground">
-            Step {currentStep + 1} of {STEPS.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <Link to="/games/recipe-gallery">
+              <Button variant="outline" size="sm" className="gap-1">
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">My Cookbook</span>
+              </Button>
+            </Link>
+            <span className="text-sm text-muted-foreground">
+              Step {currentStep + 1} of {STEPS.length}
+            </span>
+          </div>
         </div>
         <Progress value={progress} className="h-2" />
         <p className="text-muted-foreground mt-2">{currentStepData.description}</p>
@@ -285,7 +294,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                 </div>
 
                 {/* Expansion Tips */}
-                <RecipeExpansionTips ingredients={ingredients} tools={tools} />
+                <RecipeExpansionTips ingredients={ingredients} tools={tools} userId={userId} />
               </>
             )}
             

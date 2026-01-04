@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lightbulb, Loader2, ChefHat, UtensilsCrossed } from "lucide-react";
+import { Lightbulb, Loader2, ChefHat, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,14 +21,40 @@ interface ToolTip {
 interface RecipeExpansionTipsProps {
   ingredients: string[];
   tools: string[];
+  userId?: string;
+  showTitle?: boolean;
+  compact?: boolean;
 }
 
-export function RecipeExpansionTips({ ingredients, tools }: RecipeExpansionTipsProps) {
+export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = false, compact = false }: RecipeExpansionTipsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [ingredientTips, setIngredientTips] = useState<IngredientTip[]>([]);
   const [toolTips, setToolTips] = useState<ToolTip[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
   const { toast } = useToast();
+
+  // Load saved tips on mount if userId provided
+  useEffect(() => {
+    if (!userId) return;
+    
+    const loadSavedTips = async () => {
+      const { data, error } = await supabase
+        .from("saved_shopping_tips")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!error && data) {
+        setIngredientTips((data.ingredient_tips as unknown as IngredientTip[]) || []);
+        setToolTips((data.tool_tips as unknown as ToolTip[]) || []);
+        setLastGenerated(new Date(data.last_generated_at));
+        setHasLoaded(true);
+      }
+    };
+
+    loadSavedTips();
+  }, [userId]);
 
   const generateTips = async () => {
     setIsLoading(true);
@@ -39,9 +65,28 @@ export function RecipeExpansionTips({ ingredients, tools }: RecipeExpansionTipsP
 
       if (error) throw error;
 
-      setIngredientTips(data.ingredientTips || []);
-      setToolTips(data.toolTips || []);
+      const newIngredientTips = data.ingredientTips || [];
+      const newToolTips = data.toolTips || [];
+
+      setIngredientTips(newIngredientTips);
+      setToolTips(newToolTips);
       setHasLoaded(true);
+      setLastGenerated(new Date());
+
+      // Save to database if user is logged in
+      if (userId) {
+        await supabase
+          .from("saved_shopping_tips")
+          .upsert({
+            user_id: userId,
+            ingredient_tips: newIngredientTips,
+            tool_tips: newToolTips,
+            last_generated_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: "user_id",
+          });
+      }
     } catch (error) {
       console.error("Error getting expansion tips:", error);
       toast({
@@ -56,7 +101,7 @@ export function RecipeExpansionTips({ ingredients, tools }: RecipeExpansionTipsP
 
   if (!hasLoaded) {
     return (
-      <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
+      <Card className={`border-dashed border-2 border-primary/30 bg-primary/5 ${compact ? '' : ''}`}>
         <CardContent className="pt-6">
           <div className="text-center space-y-3">
             <Lightbulb className="h-8 w-8 mx-auto text-primary" />
@@ -106,12 +151,27 @@ export function RecipeExpansionTips({ ingredients, tools }: RecipeExpansionTipsP
 
   return (
     <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-primary" />
-          Shopping Tips
-        </CardTitle>
-      </CardHeader>
+      {showTitle && (
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-primary" />
+            Shopping Tips
+          </CardTitle>
+          {lastGenerated && (
+            <p className="text-xs text-muted-foreground">
+              Last updated: {lastGenerated.toLocaleDateString()}
+            </p>
+          )}
+        </CardHeader>
+      )}
+      {!showTitle && (
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-primary" />
+            Shopping Tips
+          </CardTitle>
+        </CardHeader>
+      )}
       <CardContent className="space-y-4">
         {ingredientTips.length > 0 && (
           <div className="space-y-2">
@@ -175,7 +235,10 @@ export function RecipeExpansionTips({ ingredients, tools }: RecipeExpansionTipsP
               Refreshing...
             </>
           ) : (
-            "Get New Tips"
+            <>
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Get New Tips
+            </>
           )}
         </Button>
       </CardContent>
