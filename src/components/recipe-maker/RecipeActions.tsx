@@ -211,6 +211,7 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex flex-wrap gap-2 justify-center">
+        {/* I Made This - hidden for now
         <Button
           variant="outline"
           size="sm"
@@ -225,6 +226,7 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
           )}
           I Made This!
         </Button>
+        */}
 
         <Button
           variant={isShared ? "secondary" : "default"}
