@@ -169,6 +169,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
       if (data?.suggestions && data.suggestions.length > 0) {
         setSuggestions(data.suggestions);
         setCurrentStep(1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         toast({
           title: "Couldn't find recipes",
