@@ -223,3 +223,9 @@ verify_jwt = true
 
 [functions.donation-mapping-snapshot]
 verify_jwt = true
+
+[functions.sync-order-to-shipstation]
+verify_jwt = true
+
+[functions.poll-shipstation-status]
+verify_jwt = true
