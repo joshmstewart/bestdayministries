@@ -270,15 +270,15 @@ export const RecipeDetailDialog = ({
               </div>
             )}
 
-            {(recipe.creator_name || (recipe.saves_count && recipe.saves_count > 0)) && (
+            {(recipe.creator_name || typeof recipe.saves_count === "number") && (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 {recipe.creator_name && (
                   <span className="font-medium">Recipe by Chef {recipe.creator_name}</span>
                 )}
-                {recipe.saves_count && recipe.saves_count > 0 && (
+                {typeof recipe.saves_count === "number" && (
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" />
-                    In {recipe.saves_count} {recipe.saves_count === 1 ? 'cookbook' : 'cookbooks'}
+                    In {recipe.saves_count} {recipe.saves_count === 1 ? "cookbook" : "cookbooks"}
                   </span>
                 )}
               </div>
