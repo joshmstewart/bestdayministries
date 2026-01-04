@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronRight, Lightbulb, ShoppingBasket } from "lucide-react";
+import { Check, ChevronRight, Lightbulb, ShoppingBasket, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RecipeActions } from "./RecipeActions";
 
@@ -12,6 +12,7 @@ interface RecipeDisplayProps {
     ingredients: string[];
     steps: string[];
     tips: string[];
+    safetyNotes?: string[];
     imageUrl?: string;
   };
   userId?: string;
@@ -69,6 +70,29 @@ export const RecipeDisplay = ({ recipe, userId }: RecipeDisplayProps) => {
           </div>
         )}
       </div>
+
+      {/* Safety Notes - Things that might need help */}
+      {recipe.safetyNotes && recipe.safetyNotes.length > 0 && (
+        <Card className="bg-orange-50 dark:bg-orange-900/20 border-orange-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <h3 className="font-semibold text-orange-800 dark:text-orange-200">Things That Might Need Help</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recipe.safetyNotes.map((note, index) => (
+                <Badge 
+                  key={index} 
+                  variant="outline" 
+                  className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 border-orange-300"
+                >
+                  ⚠️ {note}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Ingredients */}
       <Card>
