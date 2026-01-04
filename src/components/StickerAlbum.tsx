@@ -9,6 +9,7 @@ import { Loader2, Lock, Clock, Sparkles, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import joycoinImage from "@/assets/joycoin.png";
 import { PackOpeningDialog } from "./PackOpeningDialog";
+import { CollectionSelectorDialog } from "./CollectionSelectorDialog";
 import { TextToSpeech } from "./TextToSpeech";
 import {
   Dialog,
@@ -61,6 +62,7 @@ export const StickerAlbum = () => {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedSticker, setSelectedSticker] = useState<any | null>(null);
   const [selectedPackCollectionId, setSelectedPackCollectionId] = useState<string | null>(null);
+  const [showCollectionSelector, setShowCollectionSelector] = useState(false);
 
   // Helper function to get current time in MST (UTC-7)
   const getMSTDate = () => {
@@ -632,6 +634,16 @@ export const StickerAlbum = () => {
                   </div>
                 </button>
               ))}
+              {/* View All button when more than 3 collections */}
+              {collections.length > 3 && (
+                <button
+                  onClick={() => setShowCollectionSelector(true)}
+                  className="flex flex-col items-center justify-center w-32 h-48 sm:w-40 sm:h-56 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors"
+                >
+                  <span className="text-2xl mb-1">+{collections.length - 3}</span>
+                  <span className="text-xs text-muted-foreground">View All</span>
+                </button>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mt-3 text-center">
               Tap a pack to open it! ({availableCards.length} card{availableCards.length !== 1 ? 's' : ''} available)
@@ -958,6 +970,21 @@ export const StickerAlbum = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Collection selector dialog for viewing all packs */}
+      <CollectionSelectorDialog
+        open={showCollectionSelector}
+        onOpenChange={setShowCollectionSelector}
+        onSelectCollection={(collectionId) => {
+          setSelectedPackCollectionId(collectionId);
+          if (availableCards.length > 0) {
+            setSelectedCardId(availableCards[0].id);
+            setShowScratchDialog(true);
+          }
+          setShowCollectionSelector(false);
+        }}
+        isDailyPack={true}
+      />
     </div>
   );
 };
