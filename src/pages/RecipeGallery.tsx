@@ -11,6 +11,7 @@ import { ArrowLeft, BookOpen, ChefHat, Loader2, BookmarkPlus, Check, Sparkles } 
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { toast } from "sonner";
 import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog";
+import { CookingModeDialog } from "@/components/recipe-maker/CookingModeDialog";
 import { CollapsibleShoppingTips } from "@/components/recipe-maker/CollapsibleShoppingTips";
 import { RecipeMakerWizard } from "@/components/recipe-maker/RecipeMakerWizard";
 
@@ -425,6 +426,16 @@ const RecipeGallery = () => {
                       <SavedRecipeCard
                         key={recipe.id}
                         recipe={recipe}
+                        userId={user.id}
+                        onRecipeUpdated={() => {
+                          // Refresh saved recipes after cooking
+                          supabase
+                            .from("saved_recipes")
+                            .select("*")
+                            .eq("user_id", user.id)
+                            .order("created_at", { ascending: false })
+                            .then(({ data }) => setSavedRecipes(data || []));
+                        }}
                         onClick={() => {
                           const publicRecipe = recipe.source_recipe_id
                             ? publicRecipes.find((pr) => pr.id === recipe.source_recipe_id)
@@ -623,44 +634,69 @@ const RecipeCard = ({ recipe, userIngredients, userTools = [], isInCookbook, onA
 
 interface SavedRecipeCardProps {
   recipe: SavedRecipe;
+  userId: string;
   onClick: () => void;
+  onRecipeUpdated?: () => void;
 }
 
-const SavedRecipeCard = ({ recipe, onClick }: SavedRecipeCardProps) => {
+const SavedRecipeCard = ({ recipe, userId, onClick, onRecipeUpdated }: SavedRecipeCardProps) => {
+  const [showCookingMode, setShowCookingMode] = useState(false);
+
   return (
-    <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
-      {recipe.image_url && (
-        <div className="aspect-video relative">
-          <img
-            src={recipe.image_url}
-            alt={recipe.title}
-            className="w-full h-full object-cover"
-          />
-          {recipe.times_made > 0 && (
-            <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-              <ChefHat className="h-3 w-3" />
-              Made {recipe.times_made}x
-            </div>
-          )}
-        </div>
-      )}
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-semibold line-clamp-1">{recipe.title}</h3>
-          <TextToSpeech 
-            text={`${recipe.title}. ${recipe.description}. ${recipe.ingredients.length} ingredients.`}
-            size="icon"
-          />
-        </div>
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{recipe.description}</p>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{recipe.ingredients.length} ingredients</span>
-          {recipe.last_made_at && (
-            <span>Last made: {new Date(recipe.last_made_at).toLocaleDateString()}</span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
+        {recipe.image_url && (
+          <div className="aspect-video relative">
+            <img
+              src={recipe.image_url}
+              alt={recipe.title}
+              className="w-full h-full object-cover"
+            />
+            {recipe.times_made > 0 && (
+              <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                <ChefHat className="h-3 w-3" />
+                Made {recipe.times_made}x
+              </div>
+            )}
+            <Button
+              size="sm"
+              className="absolute bottom-2 right-2 gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCookingMode(true);
+              }}
+            >
+              <ChefHat className="h-4 w-4" />
+              Start Cooking
+            </Button>
+          </div>
+        )}
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold line-clamp-1">{recipe.title}</h3>
+            <TextToSpeech 
+              text={`${recipe.title}. ${recipe.description}. ${recipe.ingredients.length} ingredients.`}
+              size="icon"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{recipe.description}</p>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{recipe.ingredients.length} ingredients</span>
+            {recipe.last_made_at && (
+              <span>Last made: {new Date(recipe.last_made_at).toLocaleDateString()}</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <CookingModeDialog
+        recipe={recipe}
+        userId={userId}
+        open={showCookingMode}
+        onOpenChange={setShowCookingMode}
+        onComplete={onRecipeUpdated}
+      />
+    </>
   );
 };
 
