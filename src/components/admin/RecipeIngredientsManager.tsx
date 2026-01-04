@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus } from "lucide-react";
 
 interface RecipeIngredient {
   id: string;
@@ -22,6 +24,17 @@ interface GenerationError {
   error: string;
 }
 
+// Common ingredient suggestions by category
+const INGREDIENT_SUGGESTIONS: Record<string, string[]> = {
+  protein: ["Chicken Breast", "Ground Beef", "Bacon", "Sausage", "Ham", "Turkey", "Steak", "Pork Chops", "Shrimp", "Salmon", "Tuna", "Hot Dogs", "Pepperoni", "Deli Meat"],
+  dairy: ["Milk", "Butter", "Cheese", "Cream Cheese", "Sour Cream", "Yogurt", "Heavy Cream", "Parmesan", "Mozzarella", "Cheddar", "Cottage Cheese", "Whipped Cream"],
+  grains: ["Bread", "Rice", "Pasta", "Tortillas", "Bagels", "English Muffins", "Cereal", "Oatmeal", "Crackers", "Pancake Mix", "Flour", "Cornbread Mix"],
+  fruits: ["Apples", "Bananas", "Oranges", "Strawberries", "Blueberries", "Grapes", "Lemons", "Limes", "Peaches", "Pineapple", "Mango", "Raisins"],
+  vegetables: ["Lettuce", "Tomatoes", "Onions", "Carrots", "Celery", "Broccoli", "Spinach", "Mushrooms", "Peppers", "Potatoes", "Corn", "Green Beans", "Peas"],
+  condiments: ["Ketchup", "Mustard", "Mayo", "BBQ Sauce", "Soy Sauce", "Hot Sauce", "Ranch", "Salad Dressing", "Honey", "Syrup", "Jam", "Peanut Butter"],
+  pantry: ["Salt", "Pepper", "Sugar", "Olive Oil", "Vegetable Oil", "Vinegar", "Flour", "Baking Soda", "Vanilla Extract", "Cinnamon", "Garlic Powder", "Chicken Broth"],
+};
+
 export const RecipeIngredientsManager = () => {
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +43,12 @@ export const RecipeIngredientsManager = () => {
   const [progress, setProgress] = useState(0);
   const [currentIngredient, setCurrentIngredient] = useState<string | null>(null);
   const [errors, setErrors] = useState<GenerationError[]>([]);
+  
+  // New ingredient form state
+  const [newIngredientName, setNewIngredientName] = useState("");
+  const [newIngredientCategory, setNewIngredientCategory] = useState("pantry");
+  const [addingIngredient, setAddingIngredient] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     loadIngredients();
@@ -56,6 +75,85 @@ export const RecipeIngredientsManager = () => {
       setIngredients(ingredientsWithCacheBust);
     }
     setLoading(false);
+  };
+
+  // Filter suggestions based on input
+  const filteredSuggestions = useMemo(() => {
+    if (!newIngredientName.trim()) return [];
+    
+    const searchTerm = newIngredientName.toLowerCase();
+    const existingNames = new Set(ingredients.map(i => i.name.toLowerCase()));
+    
+    // Get all suggestions across all categories
+    const allSuggestions: { name: string; category: string }[] = [];
+    Object.entries(INGREDIENT_SUGGESTIONS).forEach(([category, items]) => {
+      items.forEach(item => {
+        if (
+          item.toLowerCase().includes(searchTerm) &&
+          !existingNames.has(item.toLowerCase())
+        ) {
+          allSuggestions.push({ name: item, category });
+        }
+      });
+    });
+    
+    return allSuggestions.slice(0, 8); // Limit to 8 suggestions
+  }, [newIngredientName, ingredients]);
+
+  const handleAddIngredient = async (name: string, category: string) => {
+    if (!name.trim()) {
+      toast.error("Please enter an ingredient name");
+      return;
+    }
+
+    // Check if already exists
+    const exists = ingredients.some(
+      i => i.name.toLowerCase() === name.toLowerCase()
+    );
+    if (exists) {
+      toast.error("This ingredient already exists");
+      return;
+    }
+
+    setAddingIngredient(true);
+    setShowSuggestions(false);
+
+    try {
+      // Insert the ingredient
+      const { data: newIngredient, error: insertError } = await supabase
+        .from("recipe_ingredients")
+        .insert({
+          name: name.trim(),
+          category,
+          description: `${name} for cooking`,
+          is_active: true,
+          display_order: 100,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      toast.success(`Added ${name}! Generating icon...`);
+      setNewIngredientName("");
+
+      // Generate icon for the new ingredient
+      const result = await generateIcon(newIngredient as RecipeIngredient);
+      
+      if (result.ok) {
+        toast.success(`Icon generated for ${name}!`);
+      } else {
+        toast.warning(`Added ${name} but icon generation failed. You can regenerate it later.`);
+        setErrors(prev => [...prev, { ingredientName: name, error: result.errorMessage || "Unknown error" }]);
+      }
+
+      await loadIngredients();
+    } catch (error) {
+      console.error("Failed to add ingredient:", error);
+      toast.error("Failed to add ingredient");
+    } finally {
+      setAddingIngredient(false);
+    }
   };
 
   const generateIcon = async (
@@ -220,6 +318,95 @@ export const RecipeIngredientsManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Add New Ingredient */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            Add New Ingredient
+          </CardTitle>
+          <CardDescription>
+            Type an ingredient name to see suggestions, or enter a custom ingredient.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Input
+                placeholder="Type ingredient name (e.g., Cereal, Oatmeal, Chicken...)"
+                value={newIngredientName}
+                onChange={(e) => {
+                  setNewIngredientName(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  // Delay hiding to allow click on suggestions
+                  setTimeout(() => setShowSuggestions(false), 200);
+                }}
+                disabled={addingIngredient}
+              />
+              
+              {/* Suggestions dropdown */}
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto">
+                  {filteredSuggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      className="w-full px-3 py-2 text-left hover:bg-accent flex items-center justify-between gap-2"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setNewIngredientName(suggestion.name);
+                        setNewIngredientCategory(suggestion.category);
+                        setShowSuggestions(false);
+                        handleAddIngredient(suggestion.name, suggestion.category);
+                      }}
+                    >
+                      <span className="font-medium">{suggestion.name}</span>
+                      <span className="text-xs text-muted-foreground capitalize px-2 py-0.5 bg-muted rounded">
+                        {suggestion.category}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <Select value={newIngredientCategory} onValueChange={setNewIngredientCategory}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="protein">🥩 Protein</SelectItem>
+                <SelectItem value="dairy">🧀 Dairy</SelectItem>
+                <SelectItem value="grains">🍞 Grains</SelectItem>
+                <SelectItem value="fruits">🍎 Fruits</SelectItem>
+                <SelectItem value="vegetables">🥕 Vegetables</SelectItem>
+                <SelectItem value="condiments">🍯 Condiments</SelectItem>
+                <SelectItem value="pantry">🧂 Pantry</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Button
+              onClick={() => handleAddIngredient(newIngredientName, newIngredientCategory)}
+              disabled={!newIngredientName.trim() || addingIngredient}
+            >
+              {addingIngredient ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add & Generate
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Header with bulk actions */}
       <Card>
         <CardHeader>
