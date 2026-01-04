@@ -359,16 +359,45 @@ The marketplace page supports a simple “store temporarily down” gate for tes
 - Vendors cannot receive payments until `stripe_charges_enabled = true`
 - Platform collects full payment, transfers on fulfillment (fraud protection)
 
+## Fulfillment Options
+
+### Option 1: AfterShip (Current)
+
+Manual tracking entry by vendors with AfterShip API for status tracking.
+
+See: `submit-tracking` edge function
+
+### Option 2: ShipStation (Prepared, Not Active)
+
+Full order sync to ShipStation for fulfillment management.
+
+**Status:** Edge functions ready, awaiting API credentials.
+
+**Edge Functions:**
+- `sync-order-to-shipstation` - Push orders to ShipStation
+- `poll-shipstation-status` - Poll for tracking updates
+
+**Required Secrets (not yet configured):**
+- `SHIPSTATION_API_KEY`
+- `SHIPSTATION_API_SECRET`
+
+**Documentation:** See `SHIPSTATION_INTEGRATION.md` for full details.
+
 ## Related Documentation
 
 - `VENDOR_SYSTEM_CONCISE.md` - Vendor status vs role explanation
 - `VENDOR_AUTH_SYSTEM.md` - Authentication flow
 - `EDGE_FUNCTIONS_REFERENCE.md` - All edge function details
+- `SHIPSTATION_INTEGRATION.md` - ShipStation fulfillment integration
+- `PRINTIFY_INTEGRATION.md` - Print-on-demand products
 
 ## Secrets Required
 
-| Secret | Purpose |
-|--------|---------|
-| `STRIPE_SECRET_KEY_LIVE` | Live Stripe API |
-| `STRIPE_SECRET_KEY_TEST` | Test Stripe API |
-| `AFTERSHIP_API_KEY` | Order tracking |
+| Secret | Purpose | Status |
+|--------|---------|--------|
+| `STRIPE_SECRET_KEY_LIVE` | Live Stripe API | Configured |
+| `STRIPE_SECRET_KEY_TEST` | Test Stripe API | Configured |
+| `AFTERSHIP_API_KEY` | Order tracking | Configured |
+| `PRINTIFY_API_KEY` | Print-on-demand | Configured |
+| `SHIPSTATION_API_KEY` | ShipStation sync | **Not configured** |
+| `SHIPSTATION_API_SECRET` | ShipStation auth | **Not configured** |
