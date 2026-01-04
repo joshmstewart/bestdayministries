@@ -235,3 +235,6 @@ verify_jwt = true
 
 [functions.generate-full-recipe]
 verify_jwt = true
+
+[functions.generate-recipe-ingredient-icon]
+verify_jwt = true

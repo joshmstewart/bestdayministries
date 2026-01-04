@@ -72,6 +72,7 @@ import { AudioClipsManager } from "@/components/admin/AudioClipsManager";
 import { SoundEffectsManager } from "@/components/admin/SoundEffectsManager";
 import { DrinkIngredientsManager } from "@/components/admin/DrinkIngredientsManager";
 import { DrinkVibesManager } from "@/components/admin/DrinkVibesManager";
+import { RecipeIngredientsManager } from "@/components/admin/RecipeIngredientsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
 
@@ -489,18 +490,23 @@ const Admin = () => {
                 <CardDescription>Manage game assets and settings</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="ingredients" className="space-y-4">
+                <Tabs defaultValue="drink-ingredients" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
-                    <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
-                    <TabsTrigger value="vibes">Vibes</TabsTrigger>
+                    <TabsTrigger value="drink-ingredients">Drink Ingredients</TabsTrigger>
+                    <TabsTrigger value="drink-vibes">Drink Vibes</TabsTrigger>
+                    <TabsTrigger value="recipe-ingredients">Recipe Ingredients</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="ingredients">
+                  <TabsContent value="drink-ingredients">
                     <DrinkIngredientsManager />
                   </TabsContent>
 
-                  <TabsContent value="vibes">
+                  <TabsContent value="drink-vibes">
                     <DrinkVibesManager />
+                  </TabsContent>
+
+                  <TabsContent value="recipe-ingredients">
+                    <RecipeIngredientsManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
