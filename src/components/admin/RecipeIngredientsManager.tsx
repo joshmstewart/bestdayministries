@@ -137,39 +137,136 @@ export const RecipeIngredientsManager = () => {
     return allSuggestions.slice(0, 8); // Limit to 8 suggestions
   }, [newIngredientName, ingredients]);
 
+  // Semantic keywords for grouping similar items together
+  const SEMANTIC_GROUPS: Record<string, string[][]> = {
+    grains: [
+      ["bread", "bun", "roll", "loaf", "baguette", "croissant", "biscuit"],
+      ["rice", "quinoa", "couscous", "grain"],
+      ["pasta", "noodle", "spaghetti", "macaroni", "penne", "ramen"],
+      ["tortilla", "wrap", "pita", "naan", "flatbread"],
+      ["cereal", "oatmeal", "granola", "muesli"],
+      ["pancake", "waffle", "muffin", "cake", "brownie", "cookie"],
+      ["cracker", "crouton", "breadcrumb", "panko"],
+      ["flour", "mix", "instant"],
+    ],
+    protein: [
+      ["chicken", "turkey", "poultry", "wing", "nugget"],
+      ["beef", "steak", "ground beef", "meatball", "burger"],
+      ["pork", "bacon", "ham", "sausage", "hot dog", "pepperoni"],
+      ["fish", "salmon", "tuna", "tilapia", "cod", "shrimp", "crab", "lobster", "seafood"],
+      ["deli", "lunch meat", "cold cut", "jerky"],
+    ],
+    dairy: [
+      ["milk", "cream", "half", "buttermilk", "evaporated", "condensed"],
+      ["cheese", "cheddar", "mozzarella", "parmesan", "swiss", "feta", "ricotta", "brie", "goat"],
+      ["yogurt", "greek"],
+      ["butter", "margarine"],
+      ["sour cream", "cream cheese", "cottage"],
+    ],
+    vegetables: [
+      ["lettuce", "spinach", "kale", "cabbage", "greens", "salad"],
+      ["tomato", "pepper", "cucumber", "zucchini", "squash", "eggplant"],
+      ["onion", "garlic", "ginger", "shallot", "leek"],
+      ["potato", "sweet potato", "yam"],
+      ["carrot", "celery", "broccoli", "cauliflower", "asparagus"],
+      ["corn", "pea", "bean", "frozen"],
+      ["mushroom"],
+    ],
+    fruits: [
+      ["apple", "pear"],
+      ["banana", "plantain"],
+      ["orange", "lemon", "lime", "grapefruit", "citrus", "mandarin"],
+      ["berry", "strawberry", "blueberry", "raspberry", "blackberry", "cranberry"],
+      ["grape", "raisin"],
+      ["melon", "watermelon", "cantaloupe", "honeydew"],
+      ["tropical", "mango", "pineapple", "coconut", "kiwi"],
+      ["peach", "plum", "nectarine", "cherry", "apricot"],
+      ["dried", "fruit cocktail", "applesauce"],
+    ],
+    condiments: [
+      ["ketchup", "mustard", "mayo", "relish"],
+      ["sauce", "bbq", "teriyaki", "soy", "worcestershire", "hot sauce", "sriracha"],
+      ["dressing", "ranch", "vinaigrette"],
+      ["salsa", "guacamole", "hummus", "dip"],
+      ["honey", "syrup", "jam", "jelly"],
+      ["peanut butter", "nutella", "spread"],
+      ["vinegar", "oil"],
+    ],
+    pantry: [
+      ["salt", "pepper", "seasoning", "spice", "powder", "cinnamon", "garlic powder"],
+      ["sugar", "brown sugar", "powdered sugar", "sweetener"],
+      ["flour", "cornstarch", "baking soda", "baking powder", "yeast"],
+      ["oil", "olive oil", "vegetable oil", "cooking spray"],
+      ["broth", "stock", "bouillon"],
+      ["vanilla", "extract", "cocoa", "chocolate"],
+      ["instant", "mix", "pudding", "jello"],
+      ["nut", "almond", "peanut", "walnut", "cashew"],
+      ["cracker", "graham", "marshmallow", "popcorn"],
+    ],
+  };
+
+  // Find semantic similarity score between two ingredient names
+  const getSemanticSimilarity = (name1: string, name2: string, category: string): number => {
+    const n1 = name1.toLowerCase();
+    const n2 = name2.toLowerCase();
+    
+    // Direct substring match is very strong
+    if (n1.includes(n2) || n2.includes(n1)) return 100;
+    
+    // Check if they share words
+    const words1 = n1.split(/\s+/);
+    const words2 = n2.split(/\s+/);
+    const sharedWords = words1.filter(w => words2.some(w2 => w2.includes(w) || w.includes(w2)));
+    if (sharedWords.length > 0) return 80;
+    
+    // Check semantic groups
+    const groups = SEMANTIC_GROUPS[category] || [];
+    for (const group of groups) {
+      const n1InGroup = group.some(keyword => n1.includes(keyword));
+      const n2InGroup = group.some(keyword => n2.includes(keyword));
+      if (n1InGroup && n2InGroup) return 60;
+    }
+    
+    return 0;
+  };
+
   // Calculate smart display_order for new ingredient within its category
   const calculateSmartDisplayOrder = (name: string, category: string): number => {
-    // Get all ingredients in this category, sorted by display_order
     const categoryIngredients = ingredients
       .filter(i => i.category === category)
       .sort((a, b) => a.display_order - b.display_order);
     
     if (categoryIngredients.length === 0) {
-      // First ingredient in category, start at 10
       return 10;
     }
     
-    const newNameLower = name.toLowerCase();
+    // Find the most similar existing ingredient
+    let bestMatch: { ingredient: RecipeIngredient; score: number } | null = null;
     
-    // Find where this ingredient should go alphabetically
-    for (let i = 0; i < categoryIngredients.length; i++) {
-      const currentName = categoryIngredients[i].name.toLowerCase();
-      
-      if (newNameLower < currentName) {
-        // Should go before this ingredient
-        if (i === 0) {
-          // Goes at the very beginning - use half of first item's order
-          return Math.max(1, Math.floor(categoryIngredients[0].display_order / 2));
-        } else {
-          // Goes between previous and current - use midpoint
-          const prevOrder = categoryIngredients[i - 1].display_order;
-          const currOrder = categoryIngredients[i].display_order;
-          return Math.floor((prevOrder + currOrder) / 2);
-        }
+    for (const ingredient of categoryIngredients) {
+      const score = getSemanticSimilarity(name, ingredient.name, category);
+      if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { ingredient, score };
       }
     }
     
-    // Goes at the end - add 10 to last item's order
+    if (bestMatch) {
+      // Place right after the most similar item
+      const matchIndex = categoryIngredients.findIndex(i => i.id === bestMatch!.ingredient.id);
+      const matchOrder = bestMatch.ingredient.display_order;
+      
+      // Get the next item's order (if exists)
+      const nextItem = categoryIngredients[matchIndex + 1];
+      if (nextItem) {
+        // Place between match and next item
+        return Math.floor((matchOrder + nextItem.display_order) / 2);
+      } else {
+        // Place after match
+        return matchOrder + 5;
+      }
+    }
+    
+    // No semantic match found - add at end
     return categoryIngredients[categoryIngredients.length - 1].display_order + 10;
   };
 
