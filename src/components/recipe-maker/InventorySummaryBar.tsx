@@ -15,6 +15,8 @@ interface InventorySummaryBarProps {
   tools: string[];
   isExpanded: boolean;
   onToggleExpand: () => void;
+  title?: string;
+  showIngredients?: boolean;
 }
 
 // Helper to get emoji for tools without images
@@ -50,7 +52,9 @@ export const InventorySummaryBar = ({
   ingredients, 
   tools, 
   isExpanded, 
-  onToggleExpand 
+  onToggleExpand,
+  title = "My Kitchen",
+  showIngredients = true
 }: InventorySummaryBarProps) => {
   const [toolsData, setToolsData] = useState<Record<string, InventoryItem>>({});
   const [ingredientsData, setIngredientsData] = useState<Record<string, InventoryItem>>({});
@@ -79,7 +83,7 @@ export const InventorySummaryBar = ({
     loadItemData();
   }, []);
 
-  const totalItems = ingredients.length + tools.length;
+  const totalItems = (showIngredients ? ingredients.length : 0) + tools.length;
 
   if (totalItems === 0) {
     return null;
@@ -94,9 +98,10 @@ export const InventorySummaryBar = ({
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="flex items-center gap-1.5 text-sm font-medium">
-            <span className="text-primary">My Kitchen</span>
+            <Wrench className="h-4 w-4 text-primary" />
+            <span className="text-primary">{title}</span>
             <span className="text-muted-foreground">
-              ({tools.length} tools, {ingredients.length} ingredients)
+              ({tools.length} selected)
             </span>
           </div>
         </div>
@@ -114,71 +119,33 @@ export const InventorySummaryBar = ({
       </button>
 
       {/* Compact item preview when collapsed */}
-      {!isExpanded && (
-        <div className="px-3 pb-3 space-y-2">
-          {/* Tools row */}
-          {tools.length > 0 && (
-            <div className="flex items-center gap-2">
-              <Wrench className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <div className="flex flex-wrap gap-1">
-                {tools.slice(0, 8).map((name) => {
-                  const item = toolsData[name];
-                  return (
-                    <div
-                      key={name}
-                      className="relative w-8 h-8 rounded-lg overflow-hidden border border-border/50"
-                      title={name}
-                    >
-                      {item?.image_url ? (
-                        <img src={item.image_url} alt={name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-primary/10 text-sm">
-                          {getToolEmoji(name)}
-                        </div>
-                      )}
+      {!isExpanded && tools.length > 0 && (
+        <div className="px-3 pb-3">
+          <div className="flex flex-wrap gap-1">
+            {tools.slice(0, 10).map((name) => {
+              const item = toolsData[name];
+              return (
+                <div
+                  key={name}
+                  className="relative w-8 h-8 rounded-lg overflow-hidden border border-border/50"
+                  title={name}
+                >
+                  {item?.image_url ? (
+                    <img src={item.image_url} alt={name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-primary/10 text-sm">
+                      {getToolEmoji(name)}
                     </div>
-                  );
-                })}
-                {tools.length > 8 && (
-                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-xs font-medium">
-                    +{tools.length - 8}
-                  </div>
-                )}
+                  )}
+                </div>
+              );
+            })}
+            {tools.length > 10 && (
+              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-xs font-medium">
+                +{tools.length - 10}
               </div>
-            </div>
-          )}
-
-          {/* Ingredients row */}
-          {ingredients.length > 0 && (
-            <div className="flex items-center gap-2">
-              <ChefHat className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <div className="flex flex-wrap gap-1">
-                {ingredients.slice(0, 12).map((name) => {
-                  const item = ingredientsData[name];
-                  return (
-                    <div
-                      key={name}
-                      className="relative w-8 h-8 rounded-lg overflow-hidden border border-border/50"
-                      title={name}
-                    >
-                      {item?.image_url ? (
-                        <img src={item.image_url} alt={name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-primary/10 text-sm">
-                          {getIngredientEmoji(name)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {ingredients.length > 12 && (
-                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-xs font-medium">
-                    +{ingredients.length - 12}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
