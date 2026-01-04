@@ -20,6 +20,7 @@ interface PublicRecipe {
   ingredients: string[];
   steps: string[];
   tips: string[];
+  tools?: string[];
   image_url: string | null;
   likes_count: number;
   saves_count: number;
@@ -33,6 +34,7 @@ interface SavedRecipe {
   ingredients: string[];
   steps: string[];
   tips: string[];
+  tools?: string[];
   image_url: string | null;
   times_made: number;
   is_favorite: boolean;
@@ -304,6 +306,7 @@ const RecipeGallery = () => {
         <RecipeDetailDialog
           recipe={selectedRecipe}
           userIngredients={userIngredients}
+          userTools={userTools}
           userId={user?.id}
           open={!!selectedRecipe}
           onOpenChange={(open) => !open && setSelectedRecipe(null)}
