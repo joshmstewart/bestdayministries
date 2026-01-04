@@ -32,9 +32,9 @@ export const TextToSpeech = ({
 
   useEffect(() => {
     const loadUserVoice = async () => {
-      // Don't mark as loaded until we have a user - wait for auth context
       if (!user) {
-        // Keep settingsLoaded false so we wait for user
+        // No user logged in - use defaults and allow TTS
+        setSettingsLoaded(true);
         return;
       }
 
@@ -54,13 +54,13 @@ export const TextToSpeech = ({
         .eq('id', user.id)
         .single();
       
-      const voice = profile?.tts_voice || 'Aria';
+      const fetchedVoice = profile?.tts_voice || 'Aria';
       const enabled = profile?.tts_enabled !== false;
       
       // Cache the result
-      ttsSettingsCache.set(user.id, { voice, enabled });
+      ttsSettingsCache.set(user.id, { voice: fetchedVoice, enabled });
       
-      setUserVoice(voice);
+      setUserVoice(fetchedVoice);
       setTtsEnabled(enabled);
       setSettingsLoaded(true);
     };
