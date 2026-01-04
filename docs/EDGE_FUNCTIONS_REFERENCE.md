@@ -80,6 +80,15 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`get-sentry-dsn`** - [Public] Returns Sentry DSN for client-side error tracking
 - **`get-google-places-key`** - [Public] Returns Google Places API key for location autocomplete
 
+### Recipe Pal (AI Cooking Game)
+- **`generate-recipe-suggestions`** - [Auth Required] Generates 3-5 recipe ideas from user's ingredient/tool inventory via Lovable AI
+- **`generate-full-recipe`** - [Auth Required] Generates complete recipe with steps, tips, safety notes, and AI image
+- **`generate-recipe-expansion-tips`** - [Auth Required] AI suggestions for ingredients/tools to expand cooking options
+- **`regenerate-recipe-image`** - [Auth Required] Regenerates AI image for existing recipe
+- **`generate-recipe-ingredient-icon`** - [Admin Only] Generates realistic ingredient icon via Lovable AI
+- **`generate-recipe-tool-icon`** - [Admin Only] Generates kitchen tool icon via Lovable AI
+- **`backfill-recipe-tools`** - [Admin Only] Infers tools from recipe steps using regex pattern matching
+
 ---
 
 ## Alphabetical Index
@@ -132,6 +141,13 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | update-sponsorship | Auth | Stripe | Updates sponsorship tier |
 | verify-marketplace-payment | Auth | Stripe | Polling-based marketplace payment verification |
 | verify-sponsorship-payment | Webhook | Stripe | Verifies payment completion |
+| generate-recipe-suggestions | Auth | Lovable AI | Generates 3-5 recipe ideas from ingredients/tools |
+| generate-full-recipe | Auth | Lovable AI | Generates complete recipe with steps, tips, safety notes, image |
+| generate-recipe-expansion-tips | Auth | Lovable AI | AI suggestions for expanding cooking options |
+| regenerate-recipe-image | Auth | Lovable AI | Regenerates AI image for recipe |
+| generate-recipe-ingredient-icon | Admin | Lovable AI | Generates realistic ingredient icons |
+| generate-recipe-tool-icon | Admin | Lovable AI | Generates kitchen tool icons |
+| backfill-recipe-tools | Admin | Supabase | Infers tools from recipe steps via regex |
 
 ---
 

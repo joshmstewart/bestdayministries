@@ -149,7 +149,7 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - View email styles and formatting
 
 ### Settings
-**Sub-tabs:** App Settings | Stripe Mode | Social Sharing | Static Meta Tags | Avatars | Text-to-Speech | Coins | Store Items | Pet Types | Locations | Impersonation
+**Sub-tabs:** App Settings | Stripe Mode | Social Sharing | Static Meta Tags | Avatars | Text-to-Speech | Coins | Store Items | Pet Types | Locations | Games | Impersonation
 - **App Settings:** Logo, favicon, mobile app icon/name (`AppSettingsManager`)
   - Favicon dynamically updates via `FaviconManager` component on app load
   - Stored in `app_settings` table with key `favicon_url`
@@ -162,6 +162,11 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - **Store Items:** Configure store products (`StoreItemsManager`)
 - **Pet Types:** Manage pet type categories (`PetTypesManager`)
 - **Locations:** Saved locations management (`SavedLocationsManager`)
+- **Games:** Game-related content management
+  - **Drink Ingredients** (`DrinkIngredientsManager`): Manage Drink Creator ingredients with AI icon generation
+  - **Drink Vibes** (`DrinkVibesManager`): Manage drink moods/vibes with AI icon generation
+  - **Recipe Ingredients** (`RecipeIngredientsManager`): Manage Recipe Pal ingredients (119 items) with AI icons
+  - **Recipe Tools** (`RecipeToolsManager`): Manage Recipe Pal kitchen tools (52 items) with smart suggestions and AI icons
 - **Impersonation:** Test UI as different roles (`RoleImpersonator`)
 
 ## Role Impersonation
