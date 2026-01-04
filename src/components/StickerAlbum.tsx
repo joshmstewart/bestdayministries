@@ -60,6 +60,7 @@ export const StickerAlbum = () => {
   const [showScratchDialog, setShowScratchDialog] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedSticker, setSelectedSticker] = useState<any | null>(null);
+  const [selectedPackCollectionId, setSelectedPackCollectionId] = useState<string | null>(null);
 
   // Helper function to get current time in MST (UTC-7)
   const getMSTDate = () => {
@@ -256,7 +257,7 @@ export const StickerAlbum = () => {
       .from('sticker_collections')
       .select('*')
       .eq('is_active', true)
-      .order('display_order');
+      .order('created_at', { ascending: false }); // Latest first for pack display
 
     if (error) {
       console.error('🎴 FETCH ERROR: Error fetching collections:', error);
@@ -582,8 +583,8 @@ export const StickerAlbum = () => {
 
   return (
     <div className="space-y-6">
-      {/* Available Packs */}
-      {availableCards.length > 0 && (
+      {/* Available Packs - Show 3 latest collections */}
+      {availableCards.length > 0 && collections.length > 0 && (
         <Card className="border-primary bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -593,20 +594,28 @@ export const StickerAlbum = () => {
           </CardHeader>
           <CardContent>
             <div className="flex justify-center gap-4">
-              {availableCards.slice(0, 3).map((card) => (
+              {collections.slice(0, 3).map((collection) => (
                 <button
-                  key={card.id}
+                  key={collection.id}
                   onClick={() => {
-                    setSelectedCardId(card.id);
+                    // Find a card for this collection, or use the first available card
+                    const cardForCollection = availableCards.find(c => c.collection_id === collection.id);
+                    if (cardForCollection) {
+                      setSelectedCardId(cardForCollection.id);
+                    } else if (availableCards.length > 0) {
+                      // Open pack selector with this collection pre-selected
+                      setSelectedPackCollectionId(collection.id);
+                      setSelectedCardId(availableCards[0].id);
+                    }
                     setShowScratchDialog(true);
                   }}
                   className="relative group transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
                 >
                   <div className="relative w-24 h-36 sm:w-28 sm:h-40 rounded-lg overflow-hidden shadow-lg border-2 border-primary/20 group-hover:border-primary/50 transition-colors">
-                    {card.collection?.pack_image_url ? (
+                    {collection.pack_image_url ? (
                       <img
-                        src={card.collection.pack_image_url}
-                        alt={card.collection?.name || 'Sticker Pack'}
+                        src={collection.pack_image_url}
+                        alt={collection.name || 'Sticker Pack'}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -614,24 +623,22 @@ export const StickerAlbum = () => {
                         <Sparkles className="w-8 h-8 text-primary" />
                       </div>
                     )}
-                    {/* Bonus indicator badge */}
-                    {card.is_bonus_card && (
+                    {/* Featured badge */}
+                    {collection.is_featured && (
                       <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                        BONUS
+                        ★
                       </div>
                     )}
-                    {/* Sparkle animation overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
-                      <span className="text-white text-xs font-medium">Open</span>
+                    {/* Collection name overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-center pb-2">
+                      <span className="text-white text-[10px] font-medium text-center px-1 line-clamp-2">{collection.name}</span>
                     </div>
                   </div>
                 </button>
               ))}
             </div>
             <p className="text-sm text-muted-foreground mt-3 text-center">
-              {availableCards.length === 1 
-                ? 'Tap the pack to open it!' 
-                : `Tap a pack to open it! (${availableCards.length} available)`}
+              Tap a pack to open it! ({availableCards.length} card{availableCards.length !== 1 ? 's' : ''} available)
             </p>
           </CardContent>
         </Card>
