@@ -549,9 +549,14 @@ FILE:src/contexts/AuthContext.tsx
 PROVIDER:AuthProvider→wraps-App.tsx
 HOOK:useAuth()→user|session|profile|role|isAdmin|isOwner|isGuardian|isAuthenticated|loading|refetchProfile
 INIT:getSession[1-call]→Promise.all[user_roles+profiles]→onAuthStateChange[listener]
-PERF:auth-calls[8-9→1=88%↓]|user_roles[6+→1=83%↓]|profiles[2-3→1=66%↓]
-CONSUMERS:useModerationCount|usePendingVendorsCount|useMessageModerationCount|useMessagesCount|useGuardianApprovalsCount|useSponsorUnreadCount|useCoins|useUserPermissions|UnifiedHeader
-RULES:✅useAuth-import|✅isAdmin-flags|✅check-loading|❌direct-getUser|❌independent-role-queries
+PERF-TOTAL:auth-calls[15-17→1=94%↓]|user_roles[8-10→1=90%↓]|profiles[4-5→1=80%↓]
+PERF-PHASE1[header]:auth-calls[8-9→1]|user_roles[6+→1]|profiles[2-3→1]
+PERF-PHASE2[community]:auth-calls[6-8→0]|user_roles[4+→0]|profiles[1-2→0]
+CONSUMERS-HOOKS:useModerationCount|usePendingVendorsCount|useMessageModerationCount|useMessagesCount|useGuardianApprovalsCount|useSponsorUnreadCount|useCoins|useUserPermissions
+CONSUMERS-HEADER:UnifiedHeader
+CONSUMERS-COMMUNITY:Community.tsx|TextToSpeech|DailyScratchCard|SponsorBestieDisplay|FeaturedBestieDisplay
+TTS-CACHE:TextToSpeech→ttsSettingsCache[Map<userId,{voice,enabled}>]→avoids-repeated-profile-fetches
+RULES:✅useAuth-import|✅isAdmin-flags|✅check-loading|✅cache-user-settings|❌direct-getUser|❌independent-role-queries
 DOC:HEADER_PERFORMANCE_OPTIMIZATION.md
 
 ## BUTTON_STYLING
