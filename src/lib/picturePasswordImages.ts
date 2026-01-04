@@ -53,7 +53,7 @@ export const getPictureById = (id: string): PictureItem | undefined => {
 
 export const generateRandomSequence = (): string[] => {
   const sequence: string[] = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     const randomIndex = Math.floor(Math.random() * PICTURE_PASSWORD_IMAGES.length);
     sequence.push(PICTURE_PASSWORD_IMAGES[randomIndex].id);
   }
