@@ -121,30 +121,25 @@ export const InventorySummaryBar = ({
       {/* Compact item preview when collapsed */}
       {!isExpanded && tools.length > 0 && (
         <div className="px-3 pb-3">
-          <div className="flex flex-wrap gap-1">
-            {tools.slice(0, 10).map((name) => {
+          <div className="flex flex-wrap gap-1.5">
+            {tools.map((name) => {
               const item = toolsData[name];
               return (
                 <div
                   key={name}
-                  className="relative w-8 h-8 rounded-lg overflow-hidden border border-border/50"
+                  className="relative w-10 h-10 rounded-lg overflow-hidden border border-border/50"
                   title={name}
                 >
                   {item?.image_url ? (
                     <img src={item.image_url} alt={name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-primary/10 text-sm">
+                    <div className="w-full h-full flex items-center justify-center bg-primary/10 text-base">
                       {getToolEmoji(name)}
                     </div>
                   )}
                 </div>
               );
             })}
-            {tools.length > 10 && (
-              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-xs font-medium">
-                +{tools.length - 10}
-              </div>
-            )}
           </div>
         </div>
       )}
