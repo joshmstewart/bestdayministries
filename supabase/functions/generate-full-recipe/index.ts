@@ -123,12 +123,20 @@ Only return the JSON, no other text.`;
     // Generate the image
     console.log("Generating image for recipe:", recipeName);
     
-    const imagePrompt = `A beautiful, appetizing photo of ${recipeName}. 
-The dish should look homemade, warm, and inviting. 
+    // Build a strict ingredient list for the image prompt
+    const ingredientList = recipe.ingredients?.length > 0 
+      ? recipe.ingredients.map((i: string) => i.replace(/^\d+[\s\/\d]*\s*(cups?|tbsp|tsp|oz|lb|g|ml|pieces?|slices?)?\s*/i, '').trim()).join(", ")
+      : availableIngredients?.join(", ") || recipeName;
+    
+    const imagePrompt = `STRICT REQUIREMENT: Generate a photo of ${recipeName} that contains ONLY these exact ingredients: ${ingredientList}.
+
+DO NOT add any ingredients that are not listed above. NO eggs, NO garnishes, NO toppings, NO sauces unless specifically listed.
+
+The dish must show ONLY the listed ingredients - nothing extra.
 Food photography style with soft natural lighting.
 The food is plated nicely on a simple plate or bowl.
 Cozy kitchen background, slightly blurred.
-Make it look delicious and achievable for a home cook.`;
+Homemade, warm, and inviting appearance.`;
 
     try {
       const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
