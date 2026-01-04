@@ -19,7 +19,7 @@ export const PICTURE_PASSWORD_IMAGES: PictureItem[] = [
   { id: "cat", name: "Cat", icon: Cat, color: "text-orange-500" },
   { id: "bird", name: "Bird", icon: Bird, color: "text-sky-500" },
   { id: "fish", name: "Fish", icon: Fish, color: "text-blue-500" },
-  { id: "butterfly", name: "Butterfly", icon: Bug, color: "text-purple-500" },
+  { id: "bug", name: "Bug", icon: Bug, color: "text-purple-500" },
   { id: "rabbit", name: "Rabbit", icon: Rabbit, color: "text-pink-400" },
   
   // Food (6)
