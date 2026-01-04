@@ -356,10 +356,10 @@ export const RecipeIngredientsManager = () => {
                       className="w-full px-3 py-2 text-left hover:bg-accent flex items-center justify-between gap-2"
                       onMouseDown={(e) => {
                         e.preventDefault();
+                        // Fill in both name and category, but don't add yet
                         setNewIngredientName(suggestion.name);
                         setNewIngredientCategory(suggestion.category);
                         setShowSuggestions(false);
-                        handleAddIngredient(suggestion.name, suggestion.category);
                       }}
                     >
                       <span className="font-medium">{suggestion.name}</span>
