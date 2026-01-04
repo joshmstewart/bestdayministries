@@ -288,6 +288,19 @@ export const RecipeDetailDialog = ({
               </div>
             )}
 
+            {/* Start Cooking button for cookbook recipes */}
+            {userId && isInCookbook && (
+              <div className="flex justify-end">
+                <Button 
+                  onClick={() => setShowCookingMode(true)} 
+                  className="gap-2"
+                >
+                  <ChefHat className="h-4 w-4" />
+                  Start Cooking
+                </Button>
+              </div>
+            )}
+
             {(recipe.creator_name || typeof recipe.saves_count === "number") && (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 {recipe.creator_name && (
