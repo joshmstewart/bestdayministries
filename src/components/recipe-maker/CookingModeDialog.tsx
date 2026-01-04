@@ -135,35 +135,25 @@ export const CookingModeDialog = ({
     }
   };
 
-  // Construct TTS text for the full recipe
-  const ttsText = useMemo(() => {
-    const parts = [
-      recipe.title,
-      recipe.description || '',
-      recipe.safetyNotes?.length ? `Things that might need help: ${recipe.safetyNotes.join('. ')}` : '',
-      `Ingredients: ${recipe.ingredients.join(', ')}`,
-      `Steps: ${recipe.steps.map((step, i) => `Step ${i + 1}: ${step}`).join('. ')}`,
-      recipe.tips?.length ? `Helpful tips: ${recipe.tips.join('. ')}` : ''
-    ];
-    return parts.filter(Boolean).join('. ');
-  }, [recipe]);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <DialogTitle className="text-xl flex items-center gap-2">
-              🍳 Cooking Mode
-            </DialogTitle>
-            <TextToSpeech text={ttsText} size="default" />
-          </div>
+          <DialogTitle className="text-xl flex items-center gap-2">
+            🍳 Cooking Mode
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 pb-4">
-          {/* Recipe Title */}
+          {/* Recipe Title with TTS for title + description */}
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-primary">{recipe.title}</h2>
+            <div className="flex items-center justify-center gap-2">
+              <h2 className="text-2xl font-bold text-primary">{recipe.title}</h2>
+              <TextToSpeech 
+                text={`${recipe.title}. ${recipe.description || ''}`}
+                size="icon"
+              />
+            </div>
             {recipe.description && (
               <p className="text-muted-foreground mt-1">{recipe.description}</p>
             )}
@@ -205,12 +195,16 @@ export const CookingModeDialog = ({
             </Card>
           )}
 
-          {/* Ingredients Reference */}
+          {/* Ingredients Reference with TTS */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <ShoppingBasket className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold">Ingredients</h3>
+                <TextToSpeech 
+                  text={`Ingredients you'll need: ${recipe.ingredients.join(', ')}`}
+                  size="icon"
+                />
               </div>
               <ul className="grid grid-cols-2 gap-2">
                 {recipe.ingredients.map((ingredient, index) => (
@@ -260,11 +254,17 @@ export const CookingModeDialog = ({
                           {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
                         </div>
                         <p className={cn(
-                          "text-sm leading-relaxed pt-1",
+                          "text-sm leading-relaxed pt-1 flex-1",
                           isCompleted && "line-through text-muted-foreground"
                         )}>
                           {step}
                         </p>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <TextToSpeech 
+                            text={`Step ${index + 1}: ${step}`}
+                            size="icon"
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -285,13 +285,17 @@ export const CookingModeDialog = ({
             </div>
           )}
 
-          {/* Tips */}
+          {/* Tips with TTS */}
           {recipe.tips && recipe.tips.length > 0 && (
             <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Lightbulb className="h-5 w-5 text-amber-600" />
                   <h3 className="font-semibold text-amber-800 dark:text-amber-200">Helpful Tips</h3>
+                  <TextToSpeech 
+                    text={`Helpful tips: ${recipe.tips.join('. ')}`}
+                    size="icon"
+                  />
                 </div>
                 <ul className="space-y-2">
                   {recipe.tips.map((tip, index) => (
