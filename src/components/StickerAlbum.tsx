@@ -611,7 +611,7 @@ export const StickerAlbum = () => {
                   }}
                   className="relative group transition-all hover:scale-105 active:scale-95 focus:outline-none"
                 >
-                  <div className="relative w-24 h-36 sm:w-28 sm:h-40">
+                  <div className="relative w-32 h-48 sm:w-40 sm:h-56">
                     {collection.pack_image_url ? (
                       <img
                         src={collection.pack_image_url}
@@ -620,7 +620,7 @@ export const StickerAlbum = () => {
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 rounded-lg flex items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-primary" />
+                        <Sparkles className="w-10 h-10 text-primary" />
                       </div>
                     )}
                     {/* Featured badge */}
@@ -630,8 +630,6 @@ export const StickerAlbum = () => {
                       </div>
                     )}
                   </div>
-                  {/* Collection name below image */}
-                  <span className="block text-[10px] text-center text-muted-foreground mt-1 max-w-[7rem] truncate">{collection.name}</span>
                 </button>
               ))}
             </div>
