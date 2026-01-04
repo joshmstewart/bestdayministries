@@ -22,6 +22,7 @@ interface Recipe {
   tips: string[];
   tools?: string[];
   image_url: string | null;
+  creator_id?: string;
 }
 
 interface RecipeDetailDialogProps {
@@ -235,7 +236,7 @@ export const RecipeDetailDialog = ({
                     className="w-full h-full object-cover"
                   />
                 </div>
-                {isAdmin && (
+                {(isAdmin || (userId && recipe.creator_id === userId)) && (
                   <Button
                     variant="secondary"
                     size="sm"
