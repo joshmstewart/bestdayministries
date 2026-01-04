@@ -361,6 +361,19 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
               onSelect={selectRecipe}
             />
             
+            {/* Shopping Tips - same as on setup page */}
+            <RecipeExpansionTips 
+              ingredients={ingredients} 
+              tools={tools} 
+              userId={userId}
+              onIngredientAdded={(name) => {
+                setIngredients(prev => [...prev, name]);
+              }}
+              onToolAdded={(name) => {
+                setTools(prev => [...prev, name]);
+              }}
+            />
+            
             <div className="flex gap-3">
               <Button variant="outline" onClick={goBack} className="flex-1">
                 <ChevronLeft className="h-4 w-4 mr-1" />

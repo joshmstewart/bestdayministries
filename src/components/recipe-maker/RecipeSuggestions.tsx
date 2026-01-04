@@ -19,12 +19,8 @@ interface RecipeSuggestionsProps {
 export const RecipeSuggestions = ({ suggestions, onSelect }: RecipeSuggestionsProps) => {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-center gap-2 py-2">
-        <Sparkles className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-lg">AI Suggestions</h3>
-      </div>
       <p className="text-sm text-muted-foreground text-center">
-        Based on your ingredients - tap a recipe to see how to make it!
+        Tap a recipe to see how to make it!
       </p>
       
       <div className="grid gap-4">
