@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb } from "lucide-react";
 
 interface Recipe {
@@ -130,12 +130,12 @@ export const RecipeDetailDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">{recipe.title}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 max-h-[calc(90vh-140px)] pr-4">
+        <div className="pr-4">
           <div className="space-y-6 pb-4">
             {recipe.image_url && (
               <div className="aspect-video rounded-lg overflow-hidden">
@@ -234,7 +234,7 @@ export const RecipeDetailDialog = ({
               </Card>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {userId && (
           <div className="pt-4 border-t">
