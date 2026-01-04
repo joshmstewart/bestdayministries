@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, BookOpen, ChefHat, Loader2, BookmarkPlus, Check, Sparkles } from "lucide-react";
+import { TextToSpeech } from "@/components/TextToSpeech";
 import { toast } from "sonner";
 import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog";
 import { CollapsibleShoppingTips } from "@/components/recipe-maker/CollapsibleShoppingTips";
@@ -574,7 +575,13 @@ const RecipeCard = ({ recipe, userIngredients, userTools = [], isInCookbook, onA
         </div>
       )}
       <CardContent className="p-4">
-        <h3 className="font-semibold mb-1 line-clamp-1">{recipe.title}</h3>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-semibold line-clamp-1">{recipe.title}</h3>
+          <TextToSpeech 
+            text={`${recipe.title}. ${recipe.description}. ${recipe.ingredients.length} ingredients. ${(recipe.tools?.length ?? 0) > 0 ? `${recipe.tools!.length} tools needed.` : ''}`}
+            size="icon"
+          />
+        </div>
         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{recipe.description}</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -638,7 +645,13 @@ const SavedRecipeCard = ({ recipe, onClick }: SavedRecipeCardProps) => {
         </div>
       )}
       <CardContent className="p-4">
-        <h3 className="font-semibold mb-1 line-clamp-1">{recipe.title}</h3>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-semibold line-clamp-1">{recipe.title}</h3>
+          <TextToSpeech 
+            text={`${recipe.title}. ${recipe.description}. ${recipe.ingredients.length} ingredients.`}
+            size="icon"
+          />
+        </div>
         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{recipe.description}</p>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{recipe.ingredients.length} ingredients</span>
