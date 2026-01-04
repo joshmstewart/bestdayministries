@@ -112,6 +112,22 @@ What should I consider adding to make lots more yummy things?`;
       };
     }
 
+    // Hard filter: remove any suggestions that match user's existing items (case-insensitive)
+    const ingredientsLower = (ingredients || []).map((i: string) => i.toLowerCase().trim());
+    const toolsLower = (tools || []).map((t: string) => t.toLowerCase().trim());
+
+    if (tips.ingredientTips && Array.isArray(tips.ingredientTips)) {
+      tips.ingredientTips = tips.ingredientTips.filter((tip: { name: string }) => 
+        !ingredientsLower.includes(tip.name?.toLowerCase().trim())
+      );
+    }
+
+    if (tips.toolTips && Array.isArray(tips.toolTips)) {
+      tips.toolTips = tips.toolTips.filter((tip: { name: string }) => 
+        !toolsLower.includes(tip.name?.toLowerCase().trim())
+      );
+    }
+
     console.log("Generated expansion tips:", tips);
 
     return new Response(
