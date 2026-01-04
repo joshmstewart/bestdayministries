@@ -9,6 +9,7 @@ interface IngredientTip {
   name: string;
   reason: string;
   emoji: string;
+  unlockedRecipes?: string[];
 }
 
 interface ToolTip {
@@ -16,6 +17,7 @@ interface ToolTip {
   reason: string;
   emoji: string;
   estimatedCost: string;
+  unlockedRecipes?: string[];
 }
 
 interface RecipeExpansionTipsProps {
@@ -382,42 +384,56 @@ export function RecipeExpansionTips({
               {visibleIngredientTips.map((tip, index) => (
                 <div 
                   key={index}
-                  className="flex items-start gap-3 p-2 rounded-lg bg-background/50"
+                  className="p-2 rounded-lg bg-background/50 space-y-2"
                 >
-                  <span className="text-xl">{tip.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{tip.name}</p>
-                    <p className="text-xs text-muted-foreground">{tip.reason}</p>
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">{tip.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{tip.name}</p>
+                      <p className="text-xs text-muted-foreground">{tip.reason}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => addToInventory(tip, 'ingredient')}
+                        title="Add to inventory"
+                      >
+                        <Plus className="h-4 w-4 text-green-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => addToShoppingList(tip, 'ingredient')}
+                        title="Add to shopping list"
+                      >
+                        <ShoppingCart className="h-4 w-4 text-blue-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => dismissTip(tip.name, 'ingredient')}
+                        title="Dismiss"
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => addToInventory(tip, 'ingredient')}
-                      title="Add to inventory"
-                    >
-                      <Plus className="h-4 w-4 text-green-600" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => addToShoppingList(tip, 'ingredient')}
-                      title="Add to shopping list"
-                    >
-                      <ShoppingCart className="h-4 w-4 text-blue-600" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => dismissTip(tip.name, 'ingredient')}
-                      title="Dismiss"
-                    >
-                      <X className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </div>
+                  {tip.unlockedRecipes && tip.unlockedRecipes.length > 0 && (
+                    <div className="ml-8 pl-3 border-l-2 border-primary/20">
+                      <p className="text-xs font-medium text-primary/80 mb-1">You could make:</p>
+                      <ul className="text-xs text-muted-foreground space-y-0.5">
+                        {tip.unlockedRecipes.map((recipe, i) => (
+                          <li key={i} className="flex items-center gap-1">
+                            <span className="text-primary">•</span> {recipe}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -434,45 +450,59 @@ export function RecipeExpansionTips({
               {visibleToolTips.map((tip, index) => (
                 <div 
                   key={index}
-                  className="flex items-start gap-3 p-2 rounded-lg bg-background/50"
+                  className="p-2 rounded-lg bg-background/50 space-y-2"
                 >
-                  <span className="text-xl">{tip.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-medium text-sm">{tip.name}</p>
-                      <span className="text-xs text-primary font-medium shrink-0">{tip.estimatedCost}</span>
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">{tip.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium text-sm">{tip.name}</p>
+                        <span className="text-xs text-primary font-medium shrink-0">{tip.estimatedCost}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{tip.reason}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">{tip.reason}</p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => addToInventory(tip, 'tool')}
+                        title="Add to inventory"
+                      >
+                        <Plus className="h-4 w-4 text-green-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => addToShoppingList(tip, 'tool')}
+                        title="Add to shopping list"
+                      >
+                        <ShoppingCart className="h-4 w-4 text-blue-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => dismissTip(tip.name, 'tool')}
+                        title="Dismiss"
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => addToInventory(tip, 'tool')}
-                      title="Add to inventory"
-                    >
-                      <Plus className="h-4 w-4 text-green-600" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => addToShoppingList(tip, 'tool')}
-                      title="Add to shopping list"
-                    >
-                      <ShoppingCart className="h-4 w-4 text-blue-600" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => dismissTip(tip.name, 'tool')}
-                      title="Dismiss"
-                    >
-                      <X className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </div>
+                  {tip.unlockedRecipes && tip.unlockedRecipes.length > 0 && (
+                    <div className="ml-8 pl-3 border-l-2 border-primary/20">
+                      <p className="text-xs font-medium text-primary/80 mb-1">You could make:</p>
+                      <ul className="text-xs text-muted-foreground space-y-0.5">
+                        {tip.unlockedRecipes.map((recipe, i) => (
+                          <li key={i} className="flex items-center gap-1">
+                            <span className="text-primary">•</span> {recipe}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
