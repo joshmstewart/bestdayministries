@@ -54,6 +54,7 @@ const RecipeGallery = () => {
   const [userTools, setUserTools] = useState<string[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<PublicRecipe | SavedRecipe | null>(null);
   const [savedRecipeIds, setSavedRecipeIds] = useState<Set<string>>(new Set());
+  const [savedTitles, setSavedTitles] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortOption>("most_saved");
 
   useEffect(() => {
@@ -97,8 +98,11 @@ const RecipeGallery = () => {
 
         setUserTools(toolsData?.tools || []);
 
-        // Track which recipes are already saved
-        setSavedRecipeIds(new Set(savedData?.map(r => r.source_recipe_id).filter(Boolean) || []));
+        // Track which recipes are already saved (by source_recipe_id or by title as fallback)
+        const savedBySourceId = new Set(savedData?.map(r => r.source_recipe_id).filter(Boolean) || []);
+        const savedTitles = new Set(savedData?.map(r => r.title.toLowerCase()) || []);
+        setSavedRecipeIds(savedBySourceId);
+        setSavedTitles(savedTitles);
       }
 
       setLoading(false);
@@ -241,7 +245,7 @@ const RecipeGallery = () => {
                       key={recipe.id}
                       recipe={recipe}
                       userIngredients={userIngredients}
-                      isInCookbook={savedRecipeIds.has(recipe.id)}
+                      isInCookbook={savedRecipeIds.has(recipe.id) || savedTitles.has(recipe.title.toLowerCase())}
                       onAddToCookbook={() => addToCookbook(recipe)}
                       onClick={() => setSelectedRecipe(recipe)}
                     />
