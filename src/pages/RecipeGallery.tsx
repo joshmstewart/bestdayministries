@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Heart, BookOpen, ChefHat, Loader2, BookmarkPlus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, BookOpen, ChefHat, Loader2, BookmarkPlus, ShoppingCart, Check } from "lucide-react";
+import { toast } from "sonner";
 import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog";
 import { RecipeExpansionTips } from "@/components/recipe-maker/RecipeExpansionTips";
 
@@ -39,7 +40,7 @@ interface SavedRecipe {
   created_at: string;
 }
 
-type SortOption = "newest" | "most_saved" | "most_liked";
+type SortOption = "newest" | "most_saved";
 
 const RecipeGallery = () => {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ const RecipeGallery = () => {
   const [userIngredients, setUserIngredients] = useState<string[]>([]);
   const [userTools, setUserTools] = useState<string[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<PublicRecipe | SavedRecipe | null>(null);
-  const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
+  const [savedRecipeIds, setSavedRecipeIds] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortOption>("most_saved");
 
   useEffect(() => {
@@ -94,13 +95,8 @@ const RecipeGallery = () => {
 
         setUserTools(toolsData?.tools || []);
 
-        // Load user's likes
-        const { data: likesData } = await supabase
-          .from("public_recipe_likes")
-          .select("recipe_id")
-          .eq("user_id", user.id);
-
-        setUserLikes(new Set(likesData?.map(l => l.recipe_id) || []));
+        // Track which recipes are already saved
+        setSavedRecipeIds(new Set(savedData?.map(r => r.source_recipe_id).filter(Boolean) || []));
       }
 
       setLoading(false);
@@ -116,56 +112,59 @@ const RecipeGallery = () => {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       case "most_saved":
         return (b.saves_count || 0) - (a.saves_count || 0);
-      case "most_liked":
-        return (b.likes_count || 0) - (a.likes_count || 0);
       default:
         return 0;
     }
   });
 
-  const toggleLike = async (recipeId: string) => {
+  const addToCookbook = async (recipe: PublicRecipe) => {
     if (!user) {
       navigate("/auth");
       return;
     }
 
-    const isLiked = userLikes.has(recipeId);
-
-    if (isLiked) {
-      await supabase
-        .from("public_recipe_likes")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("recipe_id", recipeId);
-
-      await supabase
-        .from("public_recipes")
-        .update({ likes_count: publicRecipes.find(r => r.id === recipeId)!.likes_count - 1 })
-        .eq("id", recipeId);
-
-      setUserLikes(prev => {
-        const next = new Set(prev);
-        next.delete(recipeId);
-        return next;
-      });
-      setPublicRecipes(prev =>
-        prev.map(r => r.id === recipeId ? { ...r, likes_count: r.likes_count - 1 } : r)
-      );
-    } else {
-      await supabase
-        .from("public_recipe_likes")
-        .insert({ user_id: user.id, recipe_id: recipeId });
-
-      await supabase
-        .from("public_recipes")
-        .update({ likes_count: publicRecipes.find(r => r.id === recipeId)!.likes_count + 1 })
-        .eq("id", recipeId);
-
-      setUserLikes(prev => new Set(prev).add(recipeId));
-      setPublicRecipes(prev =>
-        prev.map(r => r.id === recipeId ? { ...r, likes_count: r.likes_count + 1 } : r)
-      );
+    // Check if already saved
+    if (savedRecipeIds.has(recipe.id)) {
+      toast.info("Already in your cookbook!");
+      return;
     }
+
+    const { error } = await supabase.from("saved_recipes").insert({
+      user_id: user.id,
+      source_recipe_id: recipe.id,
+      title: recipe.title,
+      description: recipe.description,
+      ingredients: recipe.ingredients,
+      steps: recipe.steps,
+      tips: recipe.tips,
+      image_url: recipe.image_url,
+    });
+
+    if (error) {
+      toast.error("Failed to save recipe");
+      return;
+    }
+
+    // Update saves count on public recipe
+    await supabase
+      .from("public_recipes")
+      .update({ saves_count: recipe.saves_count + 1 })
+      .eq("id", recipe.id);
+
+    setSavedRecipeIds(prev => new Set(prev).add(recipe.id));
+    setPublicRecipes(prev =>
+      prev.map(r => r.id === recipe.id ? { ...r, saves_count: r.saves_count + 1 } : r)
+    );
+
+    // Refresh saved recipes
+    const { data } = await supabase
+      .from("saved_recipes")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    setSavedRecipes(data || []);
+
+    toast.success("Added to your cookbook!");
   };
 
   if (loading) {
@@ -231,7 +230,6 @@ const RecipeGallery = () => {
                     <SelectContent>
                       <SelectItem value="most_saved">Most Saved</SelectItem>
                       <SelectItem value="newest">Newest</SelectItem>
-                      <SelectItem value="most_liked">Most Liked</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -241,8 +239,8 @@ const RecipeGallery = () => {
                       key={recipe.id}
                       recipe={recipe}
                       userIngredients={userIngredients}
-                      isLiked={userLikes.has(recipe.id)}
-                      onLike={() => toggleLike(recipe.id)}
+                      isInCookbook={savedRecipeIds.has(recipe.id)}
+                      onAddToCookbook={() => addToCookbook(recipe)}
                       onClick={() => setSelectedRecipe(recipe)}
                     />
                   ))}
@@ -329,15 +327,32 @@ const RecipeGallery = () => {
 interface RecipeCardProps {
   recipe: PublicRecipe;
   userIngredients: string[];
-  isLiked: boolean;
-  onLike: () => void;
+  isInCookbook: boolean;
+  onAddToCookbook: () => void;
   onClick: () => void;
 }
 
-const RecipeCard = ({ recipe, userIngredients, isLiked, onLike, onClick }: RecipeCardProps) => {
-  const matchingCount = recipe.ingredients.filter(ing =>
-    userIngredients.some(ui => ing.toLowerCase().includes(ui.toLowerCase()))
-  ).length;
+const RecipeCard = ({ recipe, userIngredients, isInCookbook, onAddToCookbook, onClick }: RecipeCardProps) => {
+  // Better ingredient matching - normalize and compare core ingredient names
+  const normalizeIngredient = (ing: string) => {
+    // Extract the main ingredient name, ignoring quantities and common modifiers
+    const cleaned = ing.toLowerCase()
+      .replace(/\d+[\d\/\s]*(?:cups?|cup|tbsp|tsp|oz|lb|lbs|g|kg|ml|l|tablespoons?|teaspoons?|ounces?|pounds?|grams?|pieces?|slices?|cloves?|heads?|bunches?|cans?|jars?|bottles?|packages?|bags?)/gi, '')
+      .replace(/\b(?:fresh|dried|chopped|diced|minced|sliced|whole|ground|large|small|medium|optional|to taste|for serving|for garnish)\b/gi, '')
+      .replace(/[,()]/g, '')
+      .trim();
+    return cleaned;
+  };
+
+  const matchingCount = recipe.ingredients.filter(recipeIng => {
+    const normalizedRecipe = normalizeIngredient(recipeIng);
+    return userIngredients.some(userIng => {
+      const normalizedUser = userIng.toLowerCase().trim();
+      // Check if user ingredient is contained in recipe ingredient or vice versa
+      return normalizedRecipe.includes(normalizedUser) || normalizedUser.includes(normalizedRecipe);
+    });
+  }).length;
+
   const matchPercentage = recipe.ingredients.length > 0
     ? Math.round((matchingCount / recipe.ingredients.length) * 100)
     : 0;
@@ -372,16 +387,25 @@ const RecipeCard = ({ recipe, userIngredients, isLiked, onLike, onClick }: Recip
             )}
           </div>
           <Button
-            variant="ghost"
+            variant={isInCookbook ? "secondary" : "outline"}
             size="sm"
             className="gap-1"
             onClick={(e) => {
               e.stopPropagation();
-              onLike();
+              onAddToCookbook();
             }}
           >
-            <Heart className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
-            {recipe.likes_count}
+            {isInCookbook ? (
+              <>
+                <Check className="h-4 w-4" />
+                In Cookbook
+              </>
+            ) : (
+              <>
+                <BookmarkPlus className="h-4 w-4" />
+                Add
+              </>
+            )}
           </Button>
         </div>
       </CardContent>
