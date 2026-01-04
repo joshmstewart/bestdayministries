@@ -9,6 +9,7 @@ interface RecipeTool {
   name: string;
   category: string;
   icon: string | null;
+  image_url: string | null;
   display_order: number;
 }
 
@@ -86,7 +87,15 @@ export const RecipeToolsSelector = ({ selectedTools, onToggle }: RecipeToolsSele
                         : "border-border hover:border-primary/50 hover:bg-accent/50"
                     )}
                   >
-                    <span className="text-lg flex-shrink-0">{tool.icon || "🔧"}</span>
+                    {tool.image_url ? (
+                      <img 
+                        src={tool.image_url} 
+                        alt={tool.name}
+                        className="w-8 h-8 object-contain flex-shrink-0 rounded"
+                      />
+                    ) : (
+                      <span className="text-lg flex-shrink-0">{tool.icon || "🔧"}</span>
+                    )}
                     <span className={cn(
                       "line-clamp-1",
                       isSelected && "font-medium"
