@@ -299,9 +299,9 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
 
       {/* Lightbox Dialog */}
       <Dialog open={!!selectedDrink} onOpenChange={() => setSelectedDrink(null)}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-2xl p-0 overflow-hidden mt-8">
           {selectedDrink && (
-            <div className="relative">
+            <div className="relative pt-6">
               <Button
                 variant="ghost"
                 size="icon"
