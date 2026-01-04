@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wand2, RefreshCw, Check, ImageOff } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy } from "lucide-react";
 
 interface RecipeIngredient {
   id: string;
@@ -16,6 +17,11 @@ interface RecipeIngredient {
   is_active: boolean;
 }
 
+interface GenerationError {
+  ingredientName: string;
+  error: string;
+}
+
 export const RecipeIngredientsManager = () => {
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +29,7 @@ export const RecipeIngredientsManager = () => {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [currentIngredient, setCurrentIngredient] = useState<string | null>(null);
+  const [errors, setErrors] = useState<GenerationError[]>([]);
 
   useEffect(() => {
     loadIngredients();
@@ -53,7 +60,7 @@ export const RecipeIngredientsManager = () => {
 
   const generateIcon = async (
     ingredient: RecipeIngredient
-  ): Promise<{ ok: boolean; imageUrl?: string }> => {
+  ): Promise<{ ok: boolean; imageUrl?: string; errorMessage?: string }> => {
     try {
       const { data, error } = await supabase.functions.invoke(
         "generate-recipe-ingredient-icon",
@@ -66,13 +73,22 @@ export const RecipeIngredientsManager = () => {
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error(`Failed to generate icon for ${ingredient.name}:`, error);
+        return { ok: false, errorMessage: error.message || String(error) };
+      }
+      
+      // Check if the response contains an error
+      if ((data as any)?.error) {
+        return { ok: false, errorMessage: (data as any).error };
+      }
 
       const imageUrl = (data as any)?.imageUrl as string | undefined;
       return { ok: true, imageUrl };
     } catch (error) {
       console.error(`Failed to generate icon for ${ingredient.name}:`, error);
-      return { ok: false };
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, errorMessage: message };
     }
   };
 
@@ -86,16 +102,25 @@ export const RecipeIngredientsManager = () => {
 
     setGenerating(true);
     setProgress(0);
+    setErrors([]); // Clear previous errors
 
     let successCount = 0;
     const total = missingIcons.length;
+    const newErrors: GenerationError[] = [];
 
     for (let i = 0; i < missingIcons.length; i++) {
       const ingredient = missingIcons[i];
       setCurrentIngredient(ingredient.name);
 
-      const success = await generateIcon(ingredient);
-      if (success.ok) successCount++;
+      const result = await generateIcon(ingredient);
+      if (result.ok) {
+        successCount++;
+      } else {
+        newErrors.push({
+          ingredientName: ingredient.name,
+          error: result.errorMessage || "Unknown error",
+        });
+      }
 
       setProgress(((i + 1) / total) * 100);
 
@@ -107,11 +132,12 @@ export const RecipeIngredientsManager = () => {
 
     setGenerating(false);
     setCurrentIngredient(null);
+    setErrors(newErrors);
 
     if (successCount === total) {
       toast.success(`Generated ${successCount} icons!`);
     } else {
-      toast.warning(`Generated ${successCount}/${total} icons. Some failed.`);
+      toast.warning(`Generated ${successCount}/${total} icons. ${newErrors.length} failed - see errors below.`);
     }
 
     await loadIngredients();
@@ -129,12 +155,31 @@ export const RecipeIngredientsManager = () => {
           prev.map((i) => (i.id === ingredient.id ? { ...i, image_url: cacheBustedUrl } : i))
         );
       }
+      // Remove from errors if it was there
+      setErrors((prev) => prev.filter((e) => e.ingredientName !== ingredient.name));
       toast.success(`Regenerated icon for ${ingredient.name}`);
     } else {
+      // Add to errors for persistent display
+      setErrors((prev) => {
+        const filtered = prev.filter((e) => e.ingredientName !== ingredient.name);
+        return [...filtered, { ingredientName: ingredient.name, error: result.errorMessage || "Unknown error" }];
+      });
       toast.error(`Failed to regenerate icon for ${ingredient.name}`);
     }
 
     setRegeneratingId(null);
+  };
+
+  const handleCopyErrors = () => {
+    const errorText = errors
+      .map((e) => `${e.ingredientName}: ${e.error}`)
+      .join("\n");
+    navigator.clipboard.writeText(errorText);
+    toast.success("Errors copied to clipboard");
+  };
+
+  const handleDismissErrors = () => {
+    setErrors([]);
   };
 
   const missingCount = ingredients.filter((i) => !i.image_url).length;
@@ -218,6 +263,45 @@ export const RecipeIngredientsManager = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Persistent Error Display */}
+      {errors.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle className="flex items-center justify-between">
+            <span>{errors.length} Generation Error{errors.length > 1 ? "s" : ""}</span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCopyErrors}
+                className="h-7 px-2"
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Copy
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleDismissErrors}
+                className="h-7 px-2"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          </AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 max-h-48 overflow-y-auto space-y-1 font-mono text-xs">
+              {errors.map((err, idx) => (
+                <div key={idx} className="p-2 bg-destructive/10 rounded">
+                  <span className="font-semibold">{err.ingredientName}:</span>{" "}
+                  <span className="break-all">{err.error}</span>
+                </div>
+              ))}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Ingredients by category */}
       {Object.entries(groupedIngredients).map(([category, categoryIngredients]) => (
