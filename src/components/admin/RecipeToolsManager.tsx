@@ -1,11 +1,36 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus } from "lucide-react";
+
+// Tool suggestions by category
+const TOOL_SUGGESTIONS: Record<string, string[]> = {
+  appliances: [
+    "Air Fryer", "Blender", "Coffee Maker", "Crockpot", "Food Processor", "Griddle", 
+    "Grill", "Instant Pot", "Microwave", "Mixer", "Oven", "Rice Cooker", "Slow Cooker", 
+    "Stovetop", "Toaster", "Toaster Oven", "Waffle Iron", "Espresso Machine", "Juicer",
+    "Electric Kettle", "Stand Mixer", "Hand Mixer", "Bread Machine", "Ice Cream Maker"
+  ],
+  cookware: [
+    "Baking Pan", "Baking Sheet", "Cast Iron Skillet", "Cookie Sheet", "Dutch Oven", 
+    "Frying Pan", "Loaf Pan", "Muffin Tin", "Pie Dish", "Pot", "Roasting Pan", 
+    "Saucepan", "Skillet", "Wok", "Casserole Dish", "Stockpot", "Saute Pan", 
+    "Grill Pan", "Steamer Basket", "Double Boiler"
+  ],
+  utensils: [
+    "Bowl", "Colander", "Cutting Board", "Fork", "Knife", "Ladle", "Measuring Cups",
+    "Measuring Spoons", "Mixing Bowl", "Peeler", "Plate", "Rubber Spatula", "Slotted Spoon",
+    "Spatula", "Spoon", "Tongs", "Turner", "Whisk", "Wooden Spoon", "Grater", "Zester",
+    "Rolling Pin", "Can Opener", "Bottle Opener", "Ice Cream Scoop", "Meat Thermometer",
+    "Timer", "Oven Mitts", "Paper Towels", "Aluminum Foil", "Plastic Wrap", "Parchment Paper"
+  ],
+};
 
 interface RecipeTool {
   id: string;
@@ -30,10 +55,39 @@ export const RecipeToolsManager = () => {
   const [progress, setProgress] = useState(0);
   const [currentTool, setCurrentTool] = useState<string | null>(null);
   const [errors, setErrors] = useState<GenerationError[]>([]);
+  
+  // New tool form state
+  const [newToolName, setNewToolName] = useState("");
+  const [newToolCategory, setNewToolCategory] = useState("utensils");
+  const [addingTool, setAddingTool] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     loadTools();
   }, []);
+
+  // Filter suggestions based on input
+  const filteredSuggestions = useMemo(() => {
+    if (!newToolName.trim()) return [];
+    
+    const searchTerm = newToolName.toLowerCase();
+    const existingNames = new Set(tools.map(t => t.name.toLowerCase()));
+    
+    // Get all suggestions across all categories
+    const allSuggestions: { name: string; category: string }[] = [];
+    Object.entries(TOOL_SUGGESTIONS).forEach(([category, items]) => {
+      items.forEach(item => {
+        if (
+          item.toLowerCase().includes(searchTerm) &&
+          !existingNames.has(item.toLowerCase())
+        ) {
+          allSuggestions.push({ name: item, category });
+        }
+      });
+    });
+    
+    return allSuggestions.slice(0, 8); // Limit to 8 suggestions
+  }, [newToolName, tools]);
 
   const loadTools = async () => {
     const { data, error } = await supabase
@@ -56,6 +110,79 @@ export const RecipeToolsManager = () => {
       setTools(toolsWithCacheBust);
     }
     setLoading(false);
+  };
+
+  // Calculate smart display_order for new tool within its category
+  const calculateSmartDisplayOrder = (name: string, category: string): number => {
+    const categoryTools = tools
+      .filter(t => t.category === category)
+      .sort((a, b) => a.display_order - b.display_order);
+    
+    if (categoryTools.length === 0) {
+      return 10;
+    }
+    
+    // Add at end of category
+    return categoryTools[categoryTools.length - 1].display_order + 10;
+  };
+
+  const handleAddTool = async (name: string, category: string) => {
+    if (!name.trim()) {
+      toast.error("Please enter a tool name");
+      return;
+    }
+
+    // Check if already exists
+    const exists = tools.some(
+      t => t.name.toLowerCase() === name.toLowerCase()
+    );
+    if (exists) {
+      toast.error("This tool already exists");
+      return;
+    }
+
+    setAddingTool(true);
+    setShowSuggestions(false);
+
+    // Calculate smart display order
+    const smartDisplayOrder = calculateSmartDisplayOrder(name.trim(), category);
+
+    try {
+      // Insert the tool
+      const { data: newTool, error: insertError } = await supabase
+        .from("recipe_tools")
+        .insert({
+          name: name.trim(),
+          category,
+          description: `${name} for cooking`,
+          is_active: true,
+          display_order: smartDisplayOrder,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      toast.success(`Added ${name}! Generating icon...`);
+      setNewToolName("");
+
+      // Generate icon for the new tool
+      const result = await generateIcon(newTool as RecipeTool);
+      
+      if (result.ok) {
+        toast.success(`Icon generated for ${name}!`);
+      } else {
+        toast.warning(`Added ${name} but icon generation failed. You can regenerate it later.`);
+        setErrors(prev => [...prev, { toolName: name, error: result.errorMessage || "Unknown error" }]);
+      }
+
+      await loadTools();
+    } catch (error) {
+      console.error("Failed to add tool:", error);
+      toast.error("Failed to add tool");
+    } finally {
+      setAddingTool(false);
+    }
   };
 
   const generateIcon = async (
@@ -219,6 +346,94 @@ export const RecipeToolsManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Add New Tool */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            Add New Tool
+          </CardTitle>
+          <CardDescription>
+            Type a tool name to see suggestions, or enter a custom tool.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Input
+                placeholder="Type tool name (e.g., Rolling Pin, Wok, Blender...)"
+                value={newToolName}
+                onChange={(e) => {
+                  setNewToolName(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  // Delay hiding to allow click on suggestions
+                  setTimeout(() => setShowSuggestions(false), 200);
+                }}
+                disabled={addingTool}
+              />
+              
+              {/* Suggestions dropdown - only shows NEW tools not in database */}
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto">
+                  <div className="px-3 py-1.5 text-xs text-muted-foreground bg-muted/50 border-b border-border font-medium">
+                    Suggestions (not yet in database)
+                  </div>
+                  {filteredSuggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      className="w-full px-3 py-2 text-left hover:bg-accent flex items-center justify-between gap-2"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        // Fill in both name and category, but don't add yet
+                        setNewToolName(suggestion.name);
+                        setNewToolCategory(suggestion.category);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      <span className="font-medium">{suggestion.name}</span>
+                      <span className="text-xs text-muted-foreground capitalize px-2 py-0.5 bg-muted rounded">
+                        {suggestion.category}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <Select value={newToolCategory} onValueChange={setNewToolCategory}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="appliances">🔌 Appliances</SelectItem>
+                <SelectItem value="cookware">🍳 Cookware</SelectItem>
+                <SelectItem value="utensils">🥄 Utensils</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Button
+              onClick={() => handleAddTool(newToolName, newToolCategory)}
+              disabled={!newToolName.trim() || addingTool}
+            >
+              {addingTool ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add & Generate
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Header with bulk actions */}
       <Card>
         <CardHeader>
