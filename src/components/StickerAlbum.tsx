@@ -251,6 +251,7 @@ export const StickerAlbum = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.log('🎴 FETCH: No user found, returning');
+      setLoading(false);
       return;
     }
 
@@ -289,6 +290,7 @@ export const StickerAlbum = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.log('🎴 FETCH: No user found for stickers');
+      setLoading(false);
       return;
     }
 
