@@ -85,24 +85,45 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
     }
   };
 
-  const shareToGallery = async () => {
+  const saveAndShare = async () => {
     setIsSharing(true);
     try {
-      // Check if already shared
-      const { data: existing } = await supabase
+      // First save to cookbook
+      const { data: existingSaved } = await supabase
+        .from("saved_recipes")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("title", recipe.title)
+        .maybeSingle();
+
+      if (!existingSaved) {
+        await supabase.from("saved_recipes").insert({
+          user_id: userId,
+          title: recipe.title,
+          description: recipe.description,
+          ingredients: recipe.ingredients,
+          steps: recipe.steps,
+          tips: recipe.tips || [],
+          image_url: recipe.imageUrl,
+          is_favorite: true,
+        });
+      }
+      setIsSaved(true);
+
+      // Then share to gallery
+      const { data: existingShared } = await supabase
         .from("public_recipes")
         .select("id")
         .eq("creator_id", userId)
         .eq("title", recipe.title)
         .maybeSingle();
 
-      if (existing) {
+      if (existingShared) {
         toast({
           title: "Already shared!",
           description: "This recipe is already in the gallery",
         });
         setIsShared(true);
-        setShowShareDialog(false);
         return;
       }
 
@@ -119,15 +140,14 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
       if (error) throw error;
 
       setIsShared(true);
-      setShowShareDialog(false);
       toast({
-        title: "Shared to gallery! 🎉",
-        description: "Others can now see and save your recipe",
+        title: "Saved & Shared! 🎉",
+        description: "Recipe added to your cookbook and shared with the community",
       });
     } catch (error: any) {
-      console.error("Error sharing recipe:", error);
+      console.error("Error saving/sharing recipe:", error);
       toast({
-        title: "Couldn't share recipe",
+        title: "Couldn't save recipe",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -189,7 +209,7 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
   };
 
   return (
-    <>
+    <div className="flex flex-col items-center gap-2">
       <div className="flex flex-wrap gap-2 justify-center">
         <Button
           variant="outline"
@@ -207,57 +227,31 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
         </Button>
 
         <Button
-          variant={isSaved ? "secondary" : "outline"}
+          variant={isShared ? "secondary" : "default"}
           size="sm"
-          onClick={saveToMyCookbook}
-          disabled={isSaving || isSaved}
+          onClick={saveAndShare}
+          disabled={isSharing || isShared}
           className="gap-2"
         >
-          {isSaving ? (
+          {isSharing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <BookmarkPlus className="h-4 w-4" />
+            <Share2 className="h-4 w-4" />
           )}
-          {isSaved ? "Saved!" : "Save to Cookbook"}
-        </Button>
-
-        <Button
-          variant={isShared ? "secondary" : "outline"}
-          size="sm"
-          onClick={() => setShowShareDialog(true)}
-          disabled={isShared}
-          className="gap-2"
-        >
-          <Share2 className="h-4 w-4" />
-          {isShared ? "Shared!" : "Share to Gallery"}
+          {isShared ? "Saved & Shared!" : "Save & Share"}
         </Button>
       </div>
 
-      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share to Recipe Gallery</DialogTitle>
-            <DialogDescription>
-              Share "{recipe.title}" with the community? Others will be able to see your recipe and add it to their own cookbooks.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-3 justify-end mt-4">
-            <Button variant="outline" onClick={() => setShowShareDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={shareToGallery} disabled={isSharing}>
-              {isSharing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sharing...
-                </>
-              ) : (
-                "Share Recipe"
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      {/* Private save option - smaller link */}
+      {!isSaved && !isShared && (
+        <button
+          onClick={saveToMyCookbook}
+          disabled={isSaving}
+          className="text-xs text-muted-foreground hover:text-primary underline-offset-2 hover:underline transition-colors"
+        >
+          {isSaving ? "Saving..." : "or save to cookbook only (private)"}
+        </button>
+      )}
+    </div>
   );
 };
