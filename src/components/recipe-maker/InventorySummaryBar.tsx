@@ -118,9 +118,12 @@ export const InventorySummaryBar = ({
         </div>
       </button>
 
-      {/* Compact item preview when collapsed */}
+      {/* Compact item preview when collapsed - also clickable */}
       {!isExpanded && tools.length > 0 && (
-        <div className="px-3 pb-3">
+        <div 
+          className="px-3 pb-3 cursor-pointer hover:bg-primary/5 transition-colors"
+          onClick={onToggleExpand}
+        >
           <div className="flex flex-wrap gap-1.5">
             {tools.map((name) => {
               const item = toolsData[name];
