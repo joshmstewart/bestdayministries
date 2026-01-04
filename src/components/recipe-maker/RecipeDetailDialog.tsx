@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw } from "lucide-react";
+import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw, Users } from "lucide-react";
 
 interface Recipe {
   id: string;
@@ -24,6 +24,7 @@ interface Recipe {
   image_url: string | null;
   creator_id?: string;
   creator_name?: string;
+  saves_count?: number;
 }
 
 interface RecipeDetailDialogProps {
@@ -269,10 +270,18 @@ export const RecipeDetailDialog = ({
               </div>
             )}
 
-            {recipe.creator_name && (
-              <p className="text-sm text-muted-foreground font-medium">
-                Recipe by Chef {recipe.creator_name}
-              </p>
+            {(recipe.creator_name || (recipe.saves_count && recipe.saves_count > 0)) && (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                {recipe.creator_name && (
+                  <span className="font-medium">Recipe by Chef {recipe.creator_name}</span>
+                )}
+                {recipe.saves_count && recipe.saves_count > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    In {recipe.saves_count} {recipe.saves_count === 1 ? 'cookbook' : 'cookbooks'}
+                  </span>
+                )}
+              </div>
             )}
 
             {recipe.description && (
