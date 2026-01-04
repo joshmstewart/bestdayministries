@@ -26,7 +26,7 @@ export const TextToSpeech = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
-  const [userVoice, setUserVoice] = useState<string>('Aria');
+  const [userVoice, setUserVoice] = useState<string>('Sarah');
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
