@@ -384,9 +384,12 @@ export const RecipeIngredientsManager = () => {
                 disabled={addingIngredient}
               />
               
-              {/* Suggestions dropdown */}
+              {/* Suggestions dropdown - only shows NEW ingredients not in database */}
               {showSuggestions && filteredSuggestions.length > 0 && (
                 <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-64 overflow-y-auto">
+                  <div className="px-3 py-1.5 text-xs text-muted-foreground bg-muted/50 border-b border-border font-medium">
+                    Suggestions (not yet in database)
+                  </div>
                   {filteredSuggestions.map((suggestion, idx) => (
                     <button
                       key={idx}
