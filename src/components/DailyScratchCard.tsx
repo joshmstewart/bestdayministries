@@ -6,11 +6,13 @@ import { PackOpeningDialog } from "./PackOpeningDialog";
 import { CollectionSelectorDialog } from "./CollectionSelectorDialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const DailyScratchCard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { user, role } = useAuth();
   const [card, setCard] = useState<any>(null);
   const [bonusCard, setBonusCard] = useState<any>(null);
   const [sampleSticker, setSampleSticker] = useState<string>("");
@@ -20,7 +22,6 @@ export const DailyScratchCard = () => {
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState<string>("");
   const [bonusPacksEnabled, setBonusPacksEnabled] = useState(true);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [coinBalance, setCoinBalance] = useState<number>(0);
   const [showCollectionSelector, setShowCollectionSelector] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
@@ -35,85 +36,74 @@ export const DailyScratchCard = () => {
   };
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     console.log('🎯 COMPONENT: DailyScratchCard mounting');
     console.log('🎯 COMPONENT: location.key =', location.key);
     
     checkDailyCard();
     loadBonusPacksSetting();
-    loadUserRole();
 
-    // Set up realtime subscription with proper user ID
-    const setupRealtime = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('⚠️ REALTIME: No user found, skipping subscription');
-        return;
-      }
+    // Set up realtime subscription with user ID from context
+    console.log('🔔 REALTIME: Setting up subscription for user:', user.id);
+    
+    const channel = supabase
+      .channel('daily_scratch_cards_changes')
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'daily_scratch_cards',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('🗑️ REALTIME: Card deleted, clearing state and regenerating...', payload);
+        setCard(null);
+        setBonusCard(null);
+        setSampleSticker("");
+        setLoading(true);
+        checkDailyCard();
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'daily_scratch_cards',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('✅ REALTIME: New card created, refreshing...', payload);
+        checkDailyCard();
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'daily_scratch_cards',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('📝 REALTIME: Card updated, refreshing...', payload);
+        checkDailyCard();
+      })
+      .subscribe((status) => {
+        console.log('🔔 REALTIME: Subscription status:', status);
+      });
 
-      console.log('🔔 REALTIME: Setting up subscription for user:', user.id);
-      
-      const channel = supabase
-        .channel('daily_scratch_cards_changes')
-        .on('postgres_changes', {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'daily_scratch_cards',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          console.log('🗑️ REALTIME: Card deleted, clearing state and regenerating...', payload);
-          setCard(null);
-          setBonusCard(null);
-          setSampleSticker("");
-          setLoading(true);
-          checkDailyCard();
-        })
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'daily_scratch_cards',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          console.log('✅ REALTIME: New card created, refreshing...', payload);
-          checkDailyCard();
-        })
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'daily_scratch_cards',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          console.log('📝 REALTIME: Card updated, refreshing...', payload);
-          checkDailyCard();
-        })
-        .subscribe((status) => {
-          console.log('🔔 REALTIME: Subscription status:', status);
-        });
-
-      return () => {
-        console.log('🔔 REALTIME: Cleaning up subscription');
-        supabase.removeChannel(channel);
-      };
-    };
-
-    const cleanup = setupRealtime();
     return () => {
-      cleanup.then(fn => fn && fn());
+      console.log('🔔 REALTIME: Cleaning up subscription');
+      supabase.removeChannel(channel);
     };
-  }, [location.key]); // Refetch whenever navigation occurs
+  }, [user?.id, location.key]); // Refetch whenever navigation occurs or user changes
 
   const checkDailyCard = async () => {
     console.log('📋 CHECK_DAILY_CARD: Starting...');
     
+    if (!user) {
+      console.log('❌ CHECK: No user found');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      console.log('📋 CHECK: Getting current user...');
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('📋 CHECK: User ID:', user?.id);
-      
-      if (!user) {
-        console.log('❌ CHECK: No user found');
-        setLoading(false);
-        return;
-      }
+      console.log('📋 CHECK: User ID:', user.id);
 
       console.log('📋 CHECK: Calculating MST date...');
       const mstDate = getMSTDate();
@@ -356,32 +346,17 @@ export const DailyScratchCard = () => {
     
     const visibleRoles = rolesData?.setting_value as string[] || ["supporter", "bestie", "caregiver", "admin", "owner"];
     
-    // Only enable if both the feature is on AND user has the right role
-    const canSee = userRole && visibleRoles.includes(userRole);
-    setBonusPacksEnabled(isEnabled && canSee);
+    // Only enable if both the feature is on AND user has the right role (from AuthContext)
+    const canSee = role && visibleRoles.includes(role);
+    setBonusPacksEnabled(isEnabled && !!canSee);
   };
 
-  const loadUserRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-    
-    if (data?.role) {
-      setUserRole(data.role);
-    }
-  };
-
-  // Re-check bonus packs visibility when user role changes
+  // Re-check bonus packs visibility when user role changes (from AuthContext)
   useEffect(() => {
-    if (userRole) {
+    if (role) {
       loadBonusPacksSetting();
     }
-  }, [userRole]);
+  }, [role]);
 
   if (loading) {
     return (

@@ -3,14 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Pause, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import AudioPlayer from "@/components/AudioPlayer";
 import { FundingProgressBar } from "@/components/FundingProgressBar";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useNavigate } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { SponsorshipBreakdownDialog } from "@/components/SponsorshipBreakdownDialog";
-
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TextSection {
   header: string;
@@ -45,11 +44,11 @@ interface SponsorBestieDisplayProps {
 
 export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadComplete }: SponsorBestieDisplayProps = {}) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [besties, setBesties] = useState<SponsorBestie[]>([]);
   const [fundingProgress, setFundingProgress] = useState<Record<string, FundingProgress>>({});
   const [endingAmounts, setEndingAmounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sponsoringBesties, setSponsoringBesties] = useState<Set<string>>(new Set());
   const [isPlaying, setIsPlaying] = useState(!selectedBestieId); // Pause if coming from direct link
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -59,10 +58,9 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
 
   useEffect(() => {
     if (canLoad) {
-      loadUserRole();
       loadCurrentBesties();
     }
-  }, [canLoad]);
+  }, [canLoad, user?.id]);
 
   useEffect(() => {
     if (!api) return;
@@ -98,13 +96,6 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
 
     return () => clearInterval(intervalId);
   }, [api, isPlaying, isAudioPlaying]);
-
-  const loadUserRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setCurrentUserId(user.id);
-    }
-  };
 
   const checkSponsorshipStatuses = async (bestieIds: string[], userId: string) => {
     const { data: sponsorships } = await supabase
@@ -168,11 +159,11 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
         
         setBesties(orderedBesties);
 
-        // Check sponsorship statuses if user is logged in
-        if (currentUserId) {
+        // Check sponsorship statuses if user is logged in (use user from AuthContext)
+        if (user?.id) {
           const bestieIds = orderedBesties.map(b => b.bestie_id).filter(Boolean) as string[];
           if (bestieIds.length > 0) {
-            await checkSponsorshipStatuses(bestieIds, currentUserId);
+            await checkSponsorshipStatuses(bestieIds, user.id);
           }
         }
 

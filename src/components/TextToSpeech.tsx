@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TextToSpeechProps {
   text: string;
@@ -11,6 +12,9 @@ interface TextToSpeechProps {
   onPlayingChange?: (isPlaying: boolean) => void;
 }
 
+// Cache TTS settings per user to avoid repeated fetches
+const ttsSettingsCache = new Map<string, { voice: string; enabled: boolean }>();
+
 export const TextToSpeech = ({ 
   text, 
   voice,
@@ -18,33 +22,50 @@ export const TextToSpeech = ({
   onPlayingChange
 }: TextToSpeechProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [userVoice, setUserVoice] = useState<string>('Aria');
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
     const loadUserVoice = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('tts_voice, tts_enabled')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile?.tts_voice) {
-          setUserVoice(profile.tts_voice);
-        }
-        if (profile?.tts_enabled !== undefined) {
-          setTtsEnabled(profile.tts_enabled);
-        }
+      if (!user) {
+        setSettingsLoaded(true);
+        return;
       }
+
+      // Check cache first
+      const cached = ttsSettingsCache.get(user.id);
+      if (cached) {
+        setUserVoice(cached.voice);
+        setTtsEnabled(cached.enabled);
+        setSettingsLoaded(true);
+        return;
+      }
+
+      // Fetch from DB
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tts_voice, tts_enabled')
+        .eq('id', user.id)
+        .single();
+      
+      const voice = profile?.tts_voice || 'Aria';
+      const enabled = profile?.tts_enabled !== false;
+      
+      // Cache the result
+      ttsSettingsCache.set(user.id, { voice, enabled });
+      
+      setUserVoice(voice);
+      setTtsEnabled(enabled);
+      setSettingsLoaded(true);
     };
     
     loadUserVoice();
-  }, []);
+  }, [user?.id]);
 
   const handlePlay = async (e: React.MouseEvent) => {
     // Prevent the click from bubbling up to parent elements
@@ -141,8 +162,8 @@ export const TextToSpeech = ({
     }
   };
 
-  // Don't render if TTS is disabled
-  if (!ttsEnabled) {
+  // Don't render if TTS is disabled or settings not loaded yet
+  if (!settingsLoaded || !ttsEnabled) {
     return null;
   }
 
