@@ -287,7 +287,7 @@ const RecipeGallery = () => {
                 <div className="flex justify-end">
                   <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
                     <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Sort by..." />
+                      <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="most_saved">Most Saved</SelectItem>
