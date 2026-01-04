@@ -250,3 +250,6 @@ verify_jwt = true
 
 [functions.generate-recipe-expansion-tips]
 verify_jwt = true
+
+[functions.picture-password-login]
+verify_jwt = false

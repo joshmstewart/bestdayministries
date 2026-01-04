@@ -513,6 +513,29 @@ const Auth = () => {
             >
               {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
             </Button>
+
+            {!isSignUp && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+            )}
+
+            {!isSignUp && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2 border-2"
+                onClick={() => navigate("/auth/picture")}
+              >
+                <Sparkles className="w-4 h-4 text-primary" />
+                Sign in with Pictures
+              </Button>
+            )}
           </form>
           )}
 

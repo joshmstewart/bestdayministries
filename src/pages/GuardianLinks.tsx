@@ -26,6 +26,7 @@ import { TextToSpeech } from "@/components/TextToSpeech";
 import { GuardianSponsorMessenger } from "@/components/guardian/GuardianSponsorMessenger";
 import { SponsorMessageInbox } from "@/components/sponsor/SponsorMessageInbox";
 import { DonationHistory } from "@/components/sponsor/DonationHistory";
+import { PicturePasswordManager } from "@/components/auth/PicturePasswordManager";
 
 // Build timestamp for admin visibility
 const BUILD_TIMESTAMP = new Date().toISOString();
@@ -1371,6 +1372,25 @@ export default function GuardianLinks() {
                                 </AccordionContent>
                               </AccordionItem>
                             )}
+
+                            {/* Picture Password */}
+                            <AccordionItem value="picture-password">
+                              <AccordionTrigger className="hover:no-underline">
+                                <div className="flex items-center gap-2">
+                                  <Settings className="w-4 h-4" />
+                                  <span className="font-medium">Picture Password</span>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="pt-2">
+                                  <PicturePasswordManager
+                                    userId={link.bestie_id}
+                                    isGuardianManaging={true}
+                                    bestieName={link.bestie.display_name}
+                                  />
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
                           </Accordion>
 
                           {/* Linked Vendors Section */}
