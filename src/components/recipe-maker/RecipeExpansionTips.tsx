@@ -281,9 +281,18 @@ export function RecipeExpansionTips({
     }
   };
 
-  // Filter out dismissed tips
-  const visibleIngredientTips = ingredientTips.filter(t => !dismissedIngredients.includes(t.name));
-  const visibleToolTips = toolTips.filter(t => !dismissedTools.includes(t.name));
+  // Filter out dismissed tips AND tips for items already in inventory (case-insensitive)
+  const ingredientsLower = ingredients.map(i => i.toLowerCase().trim());
+  const toolsLower = tools.map(t => t.toLowerCase().trim());
+  
+  const visibleIngredientTips = ingredientTips.filter(t => 
+    !dismissedIngredients.includes(t.name) && 
+    !ingredientsLower.includes(t.name.toLowerCase().trim())
+  );
+  const visibleToolTips = toolTips.filter(t => 
+    !dismissedTools.includes(t.name) && 
+    !toolsLower.includes(t.name.toLowerCase().trim())
+  );
 
   // Show loading state while auto-generating
   if (isLoading && !hasLoaded) {
