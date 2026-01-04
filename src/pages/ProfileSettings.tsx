@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
+import { PicturePasswordManager } from "@/components/auth/PicturePasswordManager";
 import { formatFriendCode, generateRandomFriendCode } from "@/lib/friendCodeEmojis";
 import { profileSchema, validateInput } from "@/lib/validation";
 
@@ -1158,6 +1159,11 @@ const ProfileSettings = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Picture Password */}
+              {user && (
+                <PicturePasswordManager userId={user.id} />
+              )}
             </TabsContent>
           </Tabs>
         </div>

@@ -65,6 +65,7 @@ import RecipeMaker from "./pages/RecipeMaker";
 import RecipeGallery from "./pages/RecipeGallery";
 import NotFound from "./pages/NotFound";
 import DonationHistoryPage from "./pages/DonationHistoryPage";
+import PictureLogin from "./pages/PictureLogin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -167,6 +168,7 @@ const App = () => {
             <Route path="/" element={<DomainRouter />} />
             <Route path="/coffee-shop" element={<CoffeeShopHome />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/picture" element={<PictureLogin />} />
             <Route path="/auth/vendor" element={<VendorAuth />} />
             <Route path="/vendor-auth" element={<VendorAuth />} />
             <Route path="/community" element={<Community />} />
