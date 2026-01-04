@@ -351,7 +351,25 @@ const RecipeGallery = () => {
                 <Button onClick={() => navigate("/auth")}>Sign In</Button>
               </div>
             ) : (
-              <RecipeMakerWizard userId={user.id} />
+              <RecipeMakerWizard 
+                userId={user.id} 
+                onSaved={() => {
+                  // Refresh cookbook data and switch to cookbook tab
+                  supabase
+                    .from("saved_recipes")
+                    .select("*")
+                    .eq("user_id", user.id)
+                    .order("created_at", { ascending: false })
+                    .then(({ data }) => {
+                      setSavedRecipes(data || []);
+                      const savedBySourceId = new Set(data?.map(r => r.source_recipe_id).filter(Boolean) || []);
+                      const titles = new Set(data?.map(r => r.title.toLowerCase()) || []);
+                      setSavedRecipeIds(savedBySourceId);
+                      setSavedTitles(titles);
+                    });
+                  handleTabChange("cookbook");
+                }}
+              />
             )}
           </TabsContent>
 
