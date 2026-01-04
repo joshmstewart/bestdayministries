@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { KeyRound, UserCircle, X } from "lucide-react";
+import { KeyRound, UserCircle } from "lucide-react";
 import { PicturePasswordManager } from "./PicturePasswordManager";
 import { PICTURE_PASSWORD_IMAGES } from "@/lib/picturePasswordImages";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface LinkedBestie {
   id: string;
@@ -91,6 +92,10 @@ export function PicturePasswordFeaturePrompt({
     );
   }
 
+  const ttsText = isGuardian 
+    ? "New Feature: Picture Login! Make signing in easier for your besties with a simple 3-picture code! Just remember 3 pictures, it's that easy!"
+    : "New Feature: Picture Login! Sign in faster with a fun 3-picture code instead of typing a password! Just remember 3 pictures, it's that easy!";
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -98,6 +103,7 @@ export function PicturePasswordFeaturePrompt({
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-primary" />
             New Feature: Picture Login! 🎉
+            <TextToSpeech text={ttsText} size="icon" />
           </DialogTitle>
           <DialogDescription>
             {isGuardian 
