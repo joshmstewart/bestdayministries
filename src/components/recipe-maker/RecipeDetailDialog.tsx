@@ -11,7 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw, Users, ChefHat } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw, Users, ChefHat, MoreHorizontal, Plus, Minus, ShoppingCart, Package } from "lucide-react";
 import { CookingModeDialog } from "./CookingModeDialog";
 
 interface Recipe {
@@ -39,6 +45,7 @@ interface RecipeDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   onAddToCookbook?: () => void;
   onImageRegenerated?: (newImageUrl: string) => void;
+  onIngredientChanged?: () => void;
 }
 
 export const RecipeDetailDialog = ({
@@ -52,17 +59,176 @@ export const RecipeDetailDialog = ({
   onOpenChange,
   onAddToCookbook,
   onImageRegenerated,
+  onIngredientChanged,
 }: RecipeDetailDialogProps) => {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState(recipe.image_url);
   const [showCookingMode, setShowCookingMode] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Update currentImageUrl when recipe changes
   useEffect(() => {
     setCurrentImageUrl(recipe.image_url);
   }, [recipe.image_url]);
+
+  // Extract the core ingredient name for inventory/shopping list
+  const extractIngredientName = (ingredient: string): string => {
+    // Remove quantities, measurements, and common descriptors
+    const cleaned = ingredient
+      .replace(/^\d+[\d\/\.\s]*\s*(cups?|tablespoons?|teaspoons?|tbsp|tsp|oz|ounces?|lbs?|pounds?|g|grams?|ml|liters?|pieces?|slices?|cloves?|pinch(es)?|dash(es)?|bunch(es)?|handful|can|cans|package|packages|container|containers|bottle|bottles|jar|jars|box|boxes)\s*/gi, '')
+      .replace(/^\d+[\d\/\.\s]*/g, '')
+      .replace(/\s*\([^)]*\)/g, '') // Remove parenthetical content
+      .replace(/,.*$/, '') // Remove everything after comma
+      .replace(/^(a|an|some|tiny bit of|little bit of|small|medium|large|fresh|dried|frozen|canned|chopped|diced|minced|sliced|grated|shredded|ground|whole|cooked|raw)\s+/gi, '')
+      .trim();
+    return cleaned || ingredient;
+  };
+
+  const addToShoppingList = async (ingredient: string) => {
+    if (!userId) return;
+    setActionLoading(`shopping-${ingredient}`);
+    try {
+      const itemName = extractIngredientName(ingredient);
+      
+      // Check if already exists
+      const { data: existing } = await supabase
+        .from("recipe_shopping_list")
+        .select("id")
+        .eq("user_id", userId)
+        .ilike("item_name", itemName)
+        .maybeSingle();
+
+      if (existing) {
+        toast({
+          title: "Already on list",
+          description: `${itemName} is already on your shopping list`,
+        });
+        return;
+      }
+
+      await supabase.from("recipe_shopping_list").insert({
+        user_id: userId,
+        item_name: itemName,
+        item_type: "ingredient",
+        reason: `For ${recipe.title}`,
+      });
+
+      toast({
+        title: "Added to shopping list! 🛒",
+        description: itemName,
+      });
+    } catch (error) {
+      console.error("Error adding to shopping list:", error);
+      toast({
+        title: "Couldn't add to list",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const addToInventory = async (ingredient: string) => {
+    if (!userId) return;
+    setActionLoading(`inventory-${ingredient}`);
+    try {
+      const itemName = extractIngredientName(ingredient);
+      
+      // Get current ingredients
+      const { data: current } = await supabase
+        .from("user_recipe_ingredients")
+        .select("ingredients")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const currentIngredients: string[] = current?.ingredients || [];
+      
+      // Check if similar ingredient already exists
+      const alreadyHas = currentIngredients.some(ing => 
+        ing.toLowerCase().includes(itemName.toLowerCase()) ||
+        itemName.toLowerCase().includes(ing.toLowerCase())
+      );
+
+      if (alreadyHas) {
+        toast({
+          title: "Already in inventory",
+          description: `You already have ${itemName}`,
+        });
+        return;
+      }
+
+      const newIngredients = [...currentIngredients, itemName];
+
+      if (current) {
+        await supabase
+          .from("user_recipe_ingredients")
+          .update({ ingredients: newIngredients })
+          .eq("user_id", userId);
+      } else {
+        await supabase
+          .from("user_recipe_ingredients")
+          .insert({ user_id: userId, ingredients: newIngredients });
+      }
+
+      toast({
+        title: "Added to inventory! 📦",
+        description: itemName,
+      });
+      onIngredientChanged?.();
+    } catch (error) {
+      console.error("Error adding to inventory:", error);
+      toast({
+        title: "Couldn't add to inventory",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const removeFromInventory = async (ingredient: string) => {
+    if (!userId) return;
+    setActionLoading(`remove-${ingredient}`);
+    try {
+      const itemName = extractIngredientName(ingredient);
+      
+      // Get current ingredients
+      const { data: current } = await supabase
+        .from("user_recipe_ingredients")
+        .select("ingredients")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!current?.ingredients) return;
+
+      // Remove matching ingredient
+      const newIngredients = current.ingredients.filter((ing: string) => 
+        !ing.toLowerCase().includes(itemName.toLowerCase()) &&
+        !itemName.toLowerCase().includes(ing.toLowerCase())
+      );
+
+      await supabase
+        .from("user_recipe_ingredients")
+        .update({ ingredients: newIngredients })
+        .eq("user_id", userId);
+
+      toast({
+        title: "Removed from inventory",
+        description: `${itemName} - ran out`,
+      });
+      onIngredientChanged?.();
+    } catch (error) {
+      console.error("Error removing from inventory:", error);
+      toast({
+        title: "Couldn't remove",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const isAssumedAvailableIngredient = (ingredient: string) => {
     // Assumed pantry items (always available)
@@ -353,11 +519,47 @@ export const RecipeDetailDialog = ({
                       ) : (
                         <X className="h-4 w-4 text-orange-500 flex-shrink-0" />
                       )}
-                      <span>{ingredient}</span>
+                      <span className="flex-1">{ingredient}</span>
                       {!hasIt && (
-                        <span className="text-xs text-orange-600 dark:text-orange-400 ml-auto">
+                        <span className="text-xs text-orange-600 dark:text-orange-400">
                           Need to get
                         </span>
+                      )}
+                      {userId && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 flex-shrink-0"
+                              disabled={actionLoading !== null}
+                            >
+                              {actionLoading?.includes(ingredient) ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => addToShoppingList(ingredient)}>
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              Add to Shopping List
+                            </DropdownMenuItem>
+                            {!hasIt && (
+                              <DropdownMenuItem onClick={() => addToInventory(ingredient)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add to My Inventory
+                              </DropdownMenuItem>
+                            )}
+                            {hasIt && (
+                              <DropdownMenuItem onClick={() => removeFromInventory(ingredient)}>
+                                <Minus className="h-4 w-4 mr-2" />
+                                Remove (Ran Out)
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </li>
                   ))}
