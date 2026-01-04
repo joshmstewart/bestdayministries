@@ -4,20 +4,55 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, Clock, Zap, Star, RotateCcw, Home } from "lucide-react";
+import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 
+// Default coffee shop theme images
+import espressoImg from "@/assets/games/memory-match/espresso.png";
+import latteImg from "@/assets/games/memory-match/latte.png";
+import croissantImg from "@/assets/games/memory-match/croissant.png";
+import coffeeBeansImg from "@/assets/games/memory-match/coffee-beans.png";
+import cappuccinoImg from "@/assets/games/memory-match/cappuccino.png";
+import muffinImg from "@/assets/games/memory-match/muffin.png";
+import donutImg from "@/assets/games/memory-match/donut.png";
+import frenchPressImg from "@/assets/games/memory-match/french-press.png";
+import takeawayCupImg from "@/assets/games/memory-match/takeaway-cup.png";
+import cookieImg from "@/assets/games/memory-match/cookie.png";
+
 type Difficulty = 'easy' | 'medium' | 'hard';
 
-interface Card {
+interface GameCard {
   id: number;
-  emoji: string;
+  imageUrl: string;
+  imageName: string;
   isFlipped: boolean;
   isMatched: boolean;
 }
 
-const EMOJIS = ['🎨', '🎭', '🎪', '🎸', '🎹', '🎺', '🎻', '🥁', '🎮', '🎯', '🎲', '🧩', '🚀', '🌟', '⭐', '🌈', '🎈', '🎉', '🎊', '🎁'];
+interface ImagePack {
+  id: string;
+  name: string;
+  description: string | null;
+  preview_image_url: string | null;
+  is_default: boolean;
+  price_coins: number;
+  images: { name: string; image_url: string }[];
+}
+
+// Default bundled images (always available)
+const DEFAULT_IMAGES = [
+  { name: "Espresso", image_url: espressoImg },
+  { name: "Latte", image_url: latteImg },
+  { name: "Croissant", image_url: croissantImg },
+  { name: "Coffee Beans", image_url: coffeeBeansImg },
+  { name: "Cappuccino", image_url: cappuccinoImg },
+  { name: "Muffin", image_url: muffinImg },
+  { name: "Donut", image_url: donutImg },
+  { name: "French Press", image_url: frenchPressImg },
+  { name: "Takeaway Cup", image_url: takeawayCupImg },
+  { name: "Cookie", image_url: cookieImg },
+];
 
 const DIFFICULTY_CONFIG = {
   easy: { pairs: 6, coins: 10, label: 'Easy', color: 'bg-green-500' },
@@ -29,7 +64,7 @@ export const MemoryMatch = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<GameCard[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
   const [matchedPairs, setMatchedPairs] = useState(0);
@@ -43,21 +78,73 @@ export const MemoryMatch = () => {
     medium: null,
     hard: null,
   });
+  
+  // Image pack state
+  const [availablePacks, setAvailablePacks] = useState<ImagePack[]>([]);
+  const [ownedPackIds, setOwnedPackIds] = useState<string[]>([]);
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [currentImages, setCurrentImages] = useState(DEFAULT_IMAGES);
 
   useEffect(() => {
     checkHardModeUnlock();
     loadBestScores();
+    loadImagePacks();
   }, []);
 
+  // Update current images when pack selection changes
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (gameStarted && !gameCompleted) {
-      interval = setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
-      }, 1000);
+    if (selectedPackId) {
+      const pack = availablePacks.find(p => p.id === selectedPackId);
+      if (pack && pack.images.length > 0) {
+        setCurrentImages(pack.images);
+      }
+    } else {
+      setCurrentImages(DEFAULT_IMAGES);
     }
-    return () => clearInterval(interval);
-  }, [gameStarted, gameCompleted, startTime]);
+  }, [selectedPackId, availablePacks]);
+
+  const loadImagePacks = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Load all active packs with their images
+    const { data: packs } = await supabase
+      .from('memory_match_packs')
+      .select('id, name, description, preview_image_url, is_default, price_coins')
+      .eq('is_active', true)
+      .order('display_order');
+
+    if (packs) {
+      // Load images for each pack
+      const packsWithImages: ImagePack[] = await Promise.all(
+        packs.map(async (pack) => {
+          const { data: images } = await supabase
+            .from('memory_match_images')
+            .select('name, image_url')
+            .eq('pack_id', pack.id)
+            .order('display_order');
+          
+          return {
+            ...pack,
+            images: images || [],
+          };
+        })
+      );
+      
+      setAvailablePacks(packsWithImages);
+    }
+
+    // Load user's owned packs
+    if (user) {
+      const { data: owned } = await supabase
+        .from('user_memory_match_packs')
+        .select('pack_id')
+        .eq('user_id', user.id);
+      
+      if (owned) {
+        setOwnedPackIds(owned.map(o => o.pack_id));
+      }
+    }
+  };
 
   const checkHardModeUnlock = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -111,14 +198,25 @@ export const MemoryMatch = () => {
     }
   };
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (gameStarted && !gameCompleted) {
+      interval = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [gameStarted, gameCompleted, startTime]);
+
   const initializeGame = () => {
     const pairCount = DIFFICULTY_CONFIG[difficulty].pairs;
-    const selectedEmojis = EMOJIS.slice(0, pairCount);
-    const gameCards = [...selectedEmojis, ...selectedEmojis]
+    const selectedImages = currentImages.slice(0, pairCount);
+    const gameCards = [...selectedImages, ...selectedImages]
       .sort(() => Math.random() - 0.5)
-      .map((emoji, index) => ({
+      .map((img, index) => ({
         id: index,
-        emoji,
+        imageUrl: img.image_url,
+        imageName: img.name,
         isFlipped: false,
         isMatched: false,
       }));
@@ -148,7 +246,7 @@ export const MemoryMatch = () => {
       setMoves(moves + 1);
       const [first, second] = newFlipped;
 
-      if (cards[first].emoji === cards[second].emoji) {
+      if (cards[first].imageUrl === cards[second].imageUrl) {
         setCards(cards.map(card =>
           card.id === first || card.id === second
             ? { ...card, isMatched: true }
@@ -238,6 +336,10 @@ export const MemoryMatch = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const canUsePack = (pack: ImagePack) => {
+    return pack.is_default || ownedPackIds.includes(pack.id);
+  };
+
   if (!gameStarted) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
@@ -252,6 +354,42 @@ export const MemoryMatch = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Image Pack Selection */}
+            {availablePacks.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Image Pack
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedPackId === null ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPackId(null)}
+                  >
+                    ☕ Coffee Shop (Default)
+                  </Button>
+                  {availablePacks.filter(p => !p.is_default && p.images.length >= 10).map((pack) => {
+                    const canUse = canUsePack(pack);
+                    return (
+                      <Button
+                        key={pack.id}
+                        variant={selectedPackId === pack.id ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => canUse && setSelectedPackId(pack.id)}
+                        disabled={!canUse}
+                        className={!canUse ? "opacity-50" : ""}
+                      >
+                        {pack.name}
+                        {!canUse && <span className="ml-1">🔒</span>}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Difficulty Selection */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => {
                 const config = DIFFICULTY_CONFIG[diff];
@@ -369,7 +507,7 @@ export const MemoryMatch = () => {
               </div>
             </div>
           ) : (
-            <div className={`grid gap-4 ${
+            <div className={`grid gap-3 ${
               difficulty === 'easy' ? 'grid-cols-4' :
               difficulty === 'medium' ? 'grid-cols-4' :
               'grid-cols-5'
@@ -378,15 +516,23 @@ export const MemoryMatch = () => {
                 <button
                   key={card.id}
                   onClick={() => handleCardClick(card.id)}
-                  className={`game-card aspect-square rounded-lg flex items-center justify-center text-4xl cursor-pointer transition-all transform hover:scale-105 ${
+                  className={`game-card aspect-square rounded-xl flex items-center justify-center cursor-pointer transition-all transform hover:scale-105 overflow-hidden ${
                     card.isFlipped || card.isMatched
-                      ? 'bg-gradient-warm text-white'
+                      ? 'bg-gradient-warm'
                       : 'bg-secondary hover:bg-secondary/80'
                   } ${card.isMatched ? 'opacity-50 cursor-default' : ''}`}
                   disabled={card.isMatched || flippedCards.includes(card.id)}
-                  aria-label={`Card ${card.id + 1}`}
+                  aria-label={`Card ${card.id + 1}${card.isFlipped || card.isMatched ? `: ${card.imageName}` : ''}`}
                 >
-                  {(card.isFlipped || card.isMatched) ? card.emoji : '?'}
+                  {(card.isFlipped || card.isMatched) ? (
+                    <img 
+                      src={card.imageUrl} 
+                      alt={card.imageName}
+                      className="w-full h-full object-contain p-2"
+                    />
+                  ) : (
+                    <span className="text-4xl text-muted-foreground">?</span>
+                  )}
                 </button>
               ))}
             </div>
