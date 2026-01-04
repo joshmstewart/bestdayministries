@@ -18,37 +18,63 @@ export interface InternalPage {
 }
 
 export const INTERNAL_PAGES: InternalPage[] = [
+  // Public Pages
   { value: "/", label: "Landing Page" },
-  { value: "/community", label: "Community" },
-  { value: "/discussions", label: "Discussions" },
-  { value: "/events", label: "Events" },
-  { value: "/gallery", label: "Albums" },
-  { value: "/videos", label: "Videos" },
-  { value: "/sponsor-bestie", label: "Sponsor a Bestie" },
   { value: "/about", label: "About/Resources" },
   { value: "/ambassador", label: "Meet Our Ambassador" },
   { value: "/support", label: "Support Us" },
   { value: "/joy-rocks", label: "Joy Rocks Coffee" },
   { value: "/coffee-shop", label: "Coffee Shop" },
   { value: "/partners", label: "Partners" },
+  { value: "/terms", label: "Terms of Service" },
+  { value: "/privacy", label: "Privacy Policy" },
+  { value: "/install", label: "Install App" },
+  
+  // Community Features
+  { value: "/community", label: "Community" },
+  { value: "/discussions", label: "Discussions" },
+  { value: "/events", label: "Events" },
+  { value: "/gallery", label: "Albums" },
+  { value: "/videos", label: "Videos" },
+  
+  // Sponsorship
+  { value: "/sponsor-bestie", label: "Sponsor a Bestie" },
+  { value: "/sponsorship-success", label: "Sponsorship Success" },
+  
+  // Marketplace
   { value: "/joyhousestore", label: "Joy House Store" },
   { value: "/orders", label: "Order History" },
-  { value: "/donation-history", label: "Donation History" },
+  { value: "/checkout-success", label: "Checkout Success" },
+  
+  // User Management
   { value: "/auth", label: "Login/Signup" },
-  { value: "/vendor-auth", label: "Vendor Application" },
-  { value: "/vendor-dashboard", label: "Vendor Dashboard" },
   { value: "/profile", label: "Profile" },
+  { value: "/donation-history", label: "Donation History" },
+  { value: "/notifications", label: "Notifications" },
+  { value: "/newsletter", label: "Newsletter" },
+  
+  // Guardian/Bestie
   { value: "/guardian-links", label: "My Besties" },
   { value: "/guardian-approvals", label: "Guardian Approvals" },
   { value: "/bestie-messages", label: "Bestie Messages" },
-  { value: "/help", label: "Help Center" },
-  { value: "/newsletter", label: "Newsletter" },
-  { value: "/notifications", label: "Notifications" },
-  { value: "/sticker-album", label: "Sticker Album" },
+  { value: "/moderation", label: "Moderation Queue" },
+  
+  // Vendor
+  { value: "/vendor-auth", label: "Vendor Application" },
+  { value: "/vendor-dashboard", label: "Vendor Dashboard" },
+  
+  // Games & Fun
   { value: "/games/memory-match", label: "Memory Match Game" },
   { value: "/games/match3", label: "Match-3 Game" },
   { value: "/games/drink-creator", label: "Drink Creator" },
+  { value: "/games/recipe-maker", label: "Recipe Maker" },
   { value: "/virtual-pet", label: "Virtual Pet" },
+  { value: "/sticker-album", label: "Sticker Album" },
   { value: "/store", label: "JoyCoins Store" },
+  
+  // Help & Support
+  { value: "/help", label: "Help Center" },
+  
+  // Admin
   { value: "/admin", label: "Admin Panel" },
 ];
