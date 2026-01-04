@@ -546,67 +546,12 @@ DOC:AUTH_SYSTEM_CONCISE.md|CHANGELOG_2025_10_25.md
 ## AUTH_CONTEXT
 OVERVIEW:centralized-auth-provider→single-source-of-truth→eliminates-redundant-API-calls
 FILE:src/contexts/AuthContext.tsx
-PROVIDER:AuthProvider→wraps-App.tsx→provides-auth-state-to-all-components
-HOOK:useAuth()→returns-user|session|profile|role|isAdmin|isOwner|isGuardian|isAuthenticated|loading|refetchProfile
-
-STATE-PROVIDED:
-  user[User|null]→Supabase-auth-user-object
-  session[Session|null]→Supabase-session-with-tokens
-  profile[Profile|null]→id|display_name|avatar_number|coins|role
-  role[UserRole|null]→supporter|bestie|caregiver|moderator|admin|owner
-  isAdmin[boolean]→role=admin-OR-owner
-  isOwner[boolean]→role=owner
-  isGuardian[boolean]→role=caregiver
-  isAuthenticated[boolean]→!!user
-  loading[boolean]→initial-auth-check-in-progress
-  refetchProfile[()=>Promise<void>]→manual-refresh-function
-
-INITIALIZATION:
-  1-supabase.auth.getSession()→single-call-on-mount
-  2-Promise.all[user_roles-query|profiles-query]→parallel-fetch
-  3-onAuthStateChange→listener-for-login-logout-events
-  4-setTimeout-pattern→avoids-blocking-auth-state-changes
-
-PERFORMANCE-BEFORE:
-  auth.getUser-calls:8-9-per-page-load
-  user_roles-queries:6+-per-page-load
-  profiles-queries:2-3-per-page-load
-
-PERFORMANCE-AFTER:
-  auth.getSession-calls:1-per-page-load[88%-reduction]
-  user_roles-queries:1-per-page-load[83%-reduction]
-  profiles-queries:1-per-page-load[66%-reduction]
-
-CONSUMING-HOOKS:
-  useModerationCount→uses-isAdmin-from-context
-  usePendingVendorsCount→uses-isAdmin-from-context
-  useMessageModerationCount→uses-isAdmin-from-context
-  useMessagesCount→uses-isAdmin-from-context
-  useGuardianApprovalsCount→uses-isGuardian+user-from-context
-  useSponsorUnreadCount→uses-user+isAuthenticated-from-context
-  useCoins→uses-user+profile-from-context
-  useUserPermissions→uses-user+isAdmin+isAuthenticated-from-context
-
-CONSUMING-COMPONENTS:
-  UnifiedHeader→uses-user|profile|isAdmin|isAuthenticated|loading
-  Any-component-needing-auth-state→import-useAuth
-
-USAGE-PATTERN:
-```tsx
-import { useAuth } from "@/contexts/AuthContext";
-const { user, profile, isAdmin, loading } = useAuth();
-if (loading) return <Skeleton />;
-if (!isAdmin) return null;
-```
-
-MIGRATION-RULES:
-  ✅DO:import-useAuth-from-@/contexts/AuthContext
-  ✅DO:use-isAdmin|isGuardian|isOwner-boolean-flags
-  ✅DO:check-loading-state-before-accessing-user-data
-  ❌DON'T:call-supabase.auth.getUser()-directly-in-hooks
-  ❌DON'T:query-user_roles-table-independently-for-role-checks
-  ❌DON'T:duplicate-profile-fetching-logic
-
+PROVIDER:AuthProvider→wraps-App.tsx
+HOOK:useAuth()→user|session|profile|role|isAdmin|isOwner|isGuardian|isAuthenticated|loading|refetchProfile
+INIT:getSession[1-call]→Promise.all[user_roles+profiles]→onAuthStateChange[listener]
+PERF:auth-calls[8-9→1=88%↓]|user_roles[6+→1=83%↓]|profiles[2-3→1=66%↓]
+CONSUMERS:useModerationCount|usePendingVendorsCount|useMessageModerationCount|useMessagesCount|useGuardianApprovalsCount|useSponsorUnreadCount|useCoins|useUserPermissions|UnifiedHeader
+RULES:✅useAuth-import|✅isAdmin-flags|✅check-loading|❌direct-getUser|❌independent-role-queries
 DOC:HEADER_PERFORMANCE_OPTIMIZATION.md
 
 ## BUTTON_STYLING
