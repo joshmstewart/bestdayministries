@@ -329,6 +329,7 @@ const RecipeGallery = () => {
                       key={recipe.id}
                       recipe={recipe}
                       userIngredients={userIngredients}
+                      userTools={userTools}
                       isInCookbook={savedRecipeIds.has(recipe.id) || savedTitles.has(recipe.title.toLowerCase())}
                       onAddToCookbook={() => addToCookbook(recipe)}
                       onClick={() => setSelectedRecipe(recipe)}
@@ -421,12 +422,13 @@ const RecipeGallery = () => {
 interface RecipeCardProps {
   recipe: PublicRecipe;
   userIngredients: string[];
+  userTools?: string[];
   isInCookbook: boolean;
   onAddToCookbook: () => void;
   onClick: () => void;
 }
 
-const RecipeCard = ({ recipe, userIngredients, isInCookbook, onAddToCookbook, onClick }: RecipeCardProps) => {
+const RecipeCard = ({ recipe, userIngredients, userTools = [], isInCookbook, onAddToCookbook, onClick }: RecipeCardProps) => {
   const normalizeIngredient = (ing: string) => {
     const cleaned = ing.toLowerCase()
       .replace(/\d+[\d\/\s]*(?:cups?|cup|tbsp|tsp|oz|lb|lbs|g|kg|ml|l|tablespoons?|teaspoons?|ounces?|pounds?|grams?|pieces?|slices?|cloves?|heads?|bunches?|cans?|jars?|bottles?|packages?|bags?)/gi, '')
@@ -462,8 +464,21 @@ const RecipeCard = ({ recipe, userIngredients, isInCookbook, onAddToCookbook, on
     });
   }).length;
 
-  const matchPercentage = recipe.ingredients.length > 0
-    ? Math.round((matchingCount / recipe.ingredients.length) * 100)
+  // Calculate tool matches
+  const recipeTools = recipe.tools || [];
+  const matchingToolsCount = recipeTools.filter((recipeTool) => {
+    return userTools.some((userTool) => {
+      const normalizedRecipe = recipeTool.toLowerCase().trim();
+      const normalizedUser = userTool.toLowerCase().trim();
+      return normalizedRecipe.includes(normalizedUser) || normalizedUser.includes(normalizedRecipe);
+    });
+  }).length;
+
+  // Combined match percentage (ingredients + tools)
+  const totalItems = recipe.ingredients.length + recipeTools.length;
+  const totalMatches = matchingCount + matchingToolsCount;
+  const matchPercentage = totalItems > 0
+    ? Math.round((totalMatches / totalItems) * 100)
     : 0;
 
   return (
