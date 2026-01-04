@@ -11,13 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw, Users, ChefHat, MoreHorizontal, Plus, Minus, ShoppingCart, Package } from "lucide-react";
+import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw, Users, ChefHat, Plus, Minus, ShoppingCart } from "lucide-react";
 import { CookingModeDialog } from "./CookingModeDialog";
 
 interface Recipe {
@@ -520,46 +514,46 @@ export const RecipeDetailDialog = ({
                         <X className="h-4 w-4 text-orange-500 flex-shrink-0" />
                       )}
                       <span className="flex-1">{ingredient}</span>
-                      {!hasIt && (
-                        <span className="text-xs text-orange-600 dark:text-orange-400">
-                          Need to get
-                        </span>
-                      )}
                       {userId && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6 flex-shrink-0"
-                              disabled={actionLoading !== null}
-                            >
-                              {actionLoading?.includes(ingredient) ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <MoreHorizontal className="h-3 w-3" />
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {actionLoading?.includes(ingredient) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              {!hasIt && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => addToInventory(ingredient)}
+                                  title="Add to inventory"
+                                >
+                                  <Plus className="h-4 w-4 text-green-600" />
+                                </Button>
                               )}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => addToShoppingList(ingredient)}>
-                              <ShoppingCart className="h-4 w-4 mr-2" />
-                              Add to Shopping List
-                            </DropdownMenuItem>
-                            {!hasIt && (
-                              <DropdownMenuItem onClick={() => addToInventory(ingredient)}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add to My Inventory
-                              </DropdownMenuItem>
-                            )}
-                            {hasIt && (
-                              <DropdownMenuItem onClick={() => removeFromInventory(ingredient)}>
-                                <Minus className="h-4 w-4 mr-2" />
-                                Remove (Ran Out)
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              {hasIt && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => removeFromInventory(ingredient)}
+                                  title="Remove from inventory (ran out)"
+                                >
+                                  <Minus className="h-4 w-4 text-orange-600" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => addToShoppingList(ingredient)}
+                                title="Add to shopping list"
+                              >
+                                <ShoppingCart className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       )}
                     </li>
                   ))}
