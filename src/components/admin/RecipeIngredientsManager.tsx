@@ -7,7 +7,17 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2 } from "lucide-react";
 
 interface RecipeIngredient {
   id: string;
@@ -86,6 +96,10 @@ export const RecipeIngredientsManager = () => {
   const [newIngredientCategory, setNewIngredientCategory] = useState("pantry");
   const [addingIngredient, setAddingIngredient] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Delete confirmation state
+  const [ingredientToDelete, setIngredientToDelete] = useState<RecipeIngredient | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadIngredients();
@@ -459,6 +473,29 @@ export const RecipeIngredientsManager = () => {
     setErrors([]);
   };
 
+  const handleDeleteIngredient = async () => {
+    if (!ingredientToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("recipe_ingredients")
+        .delete()
+        .eq("id", ingredientToDelete.id);
+
+      if (error) throw error;
+
+      toast.success(`Deleted ${ingredientToDelete.name}`);
+      setIngredients(prev => prev.filter(i => i.id !== ingredientToDelete.id));
+    } catch (error) {
+      console.error("Failed to delete ingredient:", error);
+      toast.error("Failed to delete ingredient");
+    } finally {
+      setDeleting(false);
+      setIngredientToDelete(null);
+    }
+  };
+
   const missingCount = ingredients.filter((i) => !i.image_url).length;
 
   // Group ingredients by category
@@ -708,8 +745,8 @@ export const RecipeIngredientsManager = () => {
                     <span className="text-xs text-white font-medium">{ingredient.name}</span>
                   </div>
 
-                  {/* Regenerate button on hover */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {/* Actions on hover */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                     <Button
                       size="sm"
                       variant="secondary"
@@ -725,6 +762,14 @@ export const RecipeIngredientsManager = () => {
                         </>
                       )}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setIngredientToDelete(ingredient)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -732,6 +777,35 @@ export const RecipeIngredientsManager = () => {
           </CardContent>
         </Card>
       ))}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!ingredientToDelete} onOpenChange={(open) => !open && setIngredientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Ingredient</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{ingredientToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteIngredient}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
