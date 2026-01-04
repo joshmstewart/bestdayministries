@@ -4,8 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, Sparkles, Loader2, RefreshCw, Wrench, Apple } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, Loader2, RefreshCw, Wrench } from "lucide-react";
 import { RecipeIngredientSelector } from "./RecipeIngredientSelector";
 import { RecipeToolsSelector } from "./RecipeToolsSelector";
 import { RecipeSuggestions, RecipeSuggestion } from "./RecipeSuggestions";
@@ -39,7 +38,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
     imageUrl?: string;
   } | null>(null);
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
-  const [activeTab, setActiveTab] = useState<"ingredients" | "tools">("ingredients");
+  
 
   // Load saved ingredients and tools on mount
   useEffect(() => {
@@ -137,7 +136,6 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
         description: "We need to know what equipment you have",
         variant: "destructive",
       });
-      setActiveTab("tools");
       return;
     }
 
@@ -253,44 +251,37 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                   </p>
                 )}
                 
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "ingredients" | "tools")}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="ingredients" className="gap-2">
-                      <Apple className="h-4 w-4" />
-                      Ingredients {ingredients.length > 0 && `(${ingredients.length})`}
-                    </TabsTrigger>
-                    <TabsTrigger value="tools" className="gap-2">
-                      <Wrench className="h-4 w-4" />
-                      Kitchen Tools {tools.length > 0 && `(${tools.length})`}
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="ingredients" className="mt-4">
-                    <RecipeIngredientSelector 
-                      selectedIngredients={ingredients} 
-                      onToggle={(name) => {
-                        setIngredients(prev => 
-                          prev.includes(name) 
-                            ? prev.filter(i => i !== name)
-                            : [...prev, name]
-                        );
-                      }}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="tools" className="mt-4">
-                    <RecipeToolsSelector
-                      selectedTools={tools}
-                      onToggle={(name) => {
-                        setTools(prev =>
-                          prev.includes(name)
-                            ? prev.filter(t => t !== name)
-                            : [...prev, name]
-                        );
-                      }}
-                    />
-                  </TabsContent>
-                </Tabs>
+                {/* Kitchen Tools Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Kitchen Tools {tools.length > 0 && `(${tools.length} selected)`}</h3>
+                  </div>
+                  <RecipeToolsSelector
+                    selectedTools={tools}
+                    onToggle={(name) => {
+                      setTools(prev =>
+                        prev.includes(name)
+                          ? prev.filter(t => t !== name)
+                          : [...prev, name]
+                      );
+                    }}
+                  />
+                </div>
+
+                {/* Ingredients Section */}
+                <div className="space-y-3">
+                  <RecipeIngredientSelector 
+                    selectedIngredients={ingredients} 
+                    onToggle={(name) => {
+                      setIngredients(prev => 
+                        prev.includes(name) 
+                          ? prev.filter(i => i !== name)
+                          : [...prev, name]
+                      );
+                    }}
+                  />
+                </div>
               </>
             )}
             
