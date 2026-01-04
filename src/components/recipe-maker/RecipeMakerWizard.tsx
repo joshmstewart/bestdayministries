@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, Sparkles, Loader2, RefreshCw, Wrench, BookOpen } from "lucide-react";
+import { ChevronLeft, Sparkles, Loader2, RefreshCw, Wrench, BookOpen, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { RecipeExpansionTips } from "./RecipeExpansionTips";
 import { RecipeIngredientSelector } from "./RecipeIngredientSelector";
@@ -40,7 +40,8 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
     imageUrl?: string;
   } | null>(null);
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
-  
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Load saved ingredients and tools on mount
   useEffect(() => {
@@ -77,6 +78,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
 
   // Save ingredients whenever they change (debounced)
   const saveIngredients = useCallback(async (newIngredients: string[]) => {
+    setIsSaving(true);
     try {
       await supabase
         .from("user_recipe_ingredients")
@@ -87,13 +89,17 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
         }, {
           onConflict: "user_id",
         });
+      setLastSaved(new Date());
     } catch (error) {
       console.error("Error saving ingredients:", error);
+    } finally {
+      setIsSaving(false);
     }
   }, [userId]);
 
   // Save tools whenever they change (debounced)
   const saveTools = useCallback(async (newTools: string[]) => {
+    setIsSaving(true);
     try {
       await supabase
         .from("user_recipe_tools")
@@ -104,8 +110,11 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
         }, {
           onConflict: "user_id",
         });
+      setLastSaved(new Date());
     } catch (error) {
       console.error("Error saving tools:", error);
+    } finally {
+      setIsSaving(false);
     }
   }, [userId]);
 
@@ -256,9 +265,24 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
             ) : (
               <>
                 {(ingredients.length > 0 || tools.length > 0) && (
-                  <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                    ✨ We remembered your selections from last time! Just update what's changed.
-                  </p>
+                  <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      ✨ We remembered your selections! Just update what's changed.
+                    </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 ml-2">
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : lastSaved ? (
+                        <>
+                          <Check className="h-3 w-3 text-green-600" />
+                          <span className="text-green-600">Saved</span>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
                 )}
                 
                 {/* Kitchen Tools Section */}
