@@ -91,13 +91,24 @@ Only return the JSON, no other text.`;
     });
 
     if (!recipeResponse.ok) {
+      const errorText = await recipeResponse.text();
+      console.error("Recipe generation API error:", recipeResponse.status, errorText);
+      
       if (recipeResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      throw new Error("Failed to generate recipe");
+      
+      if (recipeResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI usage limit reached. Please try again later." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      throw new Error(`Failed to generate recipe: ${recipeResponse.status} - ${errorText.substring(0, 200)}`);
     }
 
     const recipeData = await recipeResponse.json();
