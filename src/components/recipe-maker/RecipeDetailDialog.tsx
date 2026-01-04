@@ -23,6 +23,7 @@ interface Recipe {
   tools?: string[];
   image_url: string | null;
   creator_id?: string;
+  creator_name?: string;
 }
 
 interface RecipeDetailDialogProps {
@@ -266,6 +267,12 @@ export const RecipeDetailDialog = ({
                   </Button>
                 )}
               </div>
+            )}
+
+            {recipe.creator_name && (
+              <p className="text-sm text-muted-foreground font-medium">
+                Recipe by Chef {recipe.creator_name}
+              </p>
             )}
 
             {recipe.description && (
