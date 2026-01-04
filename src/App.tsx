@@ -60,6 +60,7 @@ import StickerAlbumPage from "./pages/StickerAlbumPage";
 import InstallApp from "./pages/InstallApp";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import DrinkCreator from "./pages/DrinkCreator";
+import RecipeMaker from "./pages/RecipeMaker";
 import NotFound from "./pages/NotFound";
 import DonationHistoryPage from "./pages/DonationHistoryPage";
 
@@ -201,6 +202,7 @@ const App = () => {
           <Route path="/games/memory-match" element={<MemoryMatchPage />} />
           <Route path="/games/match3" element={<Match3Page />} />
           <Route path="/games/drink-creator" element={<DrinkCreator />} />
+          <Route path="/games/recipe-maker" element={<RecipeMaker />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
           <Route path="/store/product/:productId" element={<ProductDetail />} />
