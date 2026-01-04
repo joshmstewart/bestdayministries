@@ -2659,6 +2659,91 @@ export type Database = {
         }
         Relationships: []
       }
+      memory_match_images: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          image_url: string
+          name: string
+          pack_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          image_url: string
+          name: string
+          pack_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          name?: string
+          pack_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_match_images_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "memory_match_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memory_match_packs: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          preview_image_url: string | null
+          price_coins: number | null
+          store_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          preview_image_url?: string | null
+          price_coins?: number | null
+          store_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          preview_image_url?: string | null
+          price_coins?: number | null
+          store_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_match_packs_store_item_id_fkey"
+            columns: ["store_item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderation_settings: {
         Row: {
           auto_approve_low_severity: boolean | null
@@ -5634,6 +5719,35 @@ export type Database = {
             columns: ["badge_id"]
             isOneToOne: false
             referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_memory_match_packs: {
+        Row: {
+          id: string
+          pack_id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          pack_id: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          pack_id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memory_match_packs_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "memory_match_packs"
             referencedColumns: ["id"]
           },
         ]
