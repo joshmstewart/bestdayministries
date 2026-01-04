@@ -269,7 +269,7 @@ export const RecipeIngredientSelector = ({
 
       {/* Selected ingredients summary */}
       {selectedIngredients.length > 0 && (
-        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 sticky bottom-0">
+        <div className="p-3 rounded-lg bg-background/80 backdrop-blur-md border border-primary/20 shadow-lg sticky bottom-4 mx-1">
           <p className="text-sm font-medium mb-2">
             Selected ({selectedIngredients.length}):
           </p>
