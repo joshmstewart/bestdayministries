@@ -4472,6 +4472,33 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_shopping_tips: {
+        Row: {
+          id: string
+          ingredient_tips: Json | null
+          last_generated_at: string
+          tool_tips: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ingredient_tips?: Json | null
+          last_generated_at?: string
+          tool_tips?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ingredient_tips?: Json | null
+          last_generated_at?: string
+          tool_tips?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shopping_cart: {
         Row: {
           created_at: string
