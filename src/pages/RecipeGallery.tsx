@@ -48,7 +48,7 @@ interface SavedRecipe {
   created_at: string;
 }
 
-type SortOption = "newest" | "most_saved";
+type SortOption = "newest" | "most_saved" | "best_match";
 
 const RecipeGallery = () => {
   const navigate = useNavigate();
@@ -163,6 +163,55 @@ const RecipeGallery = () => {
     load();
   }, []);
 
+  // Helper to calculate match percentage for sorting
+  const calculateMatchPercentage = (recipe: PublicRecipe) => {
+    const normalizeIngredient = (ing: string) => {
+      return ing.toLowerCase()
+        .replace(/\d+[\d\/\s]*(?:cups?|cup|tbsp|tsp|oz|lb|lbs|g|kg|ml|l|tablespoons?|teaspoons?|ounces?|pounds?|grams?|pieces?|slices?|cloves?|heads?|bunches?|cans?|jars?|bottles?|packages?|bags?)/gi, '')
+        .replace(/\b(?:fresh|dried|chopped|diced|minced|sliced|whole|ground|large|small|medium|optional|to taste|for serving|for garnish)\b/gi, '')
+        .replace(/[,()]/g, '')
+        .trim();
+    };
+
+    const toSingular = (word: string) => {
+      if (word.endsWith('ies')) return word.slice(0, -3) + 'y';
+      if (word.endsWith('es') && (word.endsWith('shes') || word.endsWith('ches') || word.endsWith('xes') || word.endsWith('ses') || word.endsWith('zes'))) {
+        return word.slice(0, -2);
+      }
+      if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+      return word;
+    };
+
+    const matchingIngredients = recipe.ingredients.filter((recipeIng) => {
+      const normalizedRecipe = normalizeIngredient(recipeIng);
+      if (normalizedRecipe === "water" || normalizedRecipe.includes(" water") || normalizedRecipe.includes("water ")) {
+        return true;
+      }
+      return userIngredients.some((userIng) => {
+        const normalizedUser = userIng.toLowerCase().trim();
+        const singularRecipe = toSingular(normalizedRecipe);
+        const singularUser = toSingular(normalizedUser);
+        return normalizedRecipe.includes(normalizedUser) || 
+               normalizedUser.includes(normalizedRecipe) ||
+               singularRecipe.includes(singularUser) ||
+               singularUser.includes(singularRecipe);
+      });
+    }).length;
+
+    const recipeTools = recipe.tools || [];
+    const matchingTools = recipeTools.filter((recipeTool) => {
+      return userTools.some((userTool) => {
+        const normalizedRecipe = recipeTool.toLowerCase().trim();
+        const normalizedUser = userTool.toLowerCase().trim();
+        return normalizedRecipe.includes(normalizedUser) || normalizedUser.includes(normalizedRecipe);
+      });
+    }).length;
+
+    const totalItems = recipe.ingredients.length + recipeTools.length;
+    const totalMatches = matchingIngredients + matchingTools;
+    return totalItems > 0 ? Math.round((totalMatches / totalItems) * 100) : 0;
+  };
+
   // Sort recipes based on selected option
   const sortedRecipes = [...publicRecipes].sort((a, b) => {
     switch (sortBy) {
@@ -170,6 +219,8 @@ const RecipeGallery = () => {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       case "most_saved":
         return (b.saves_count || 0) - (a.saves_count || 0);
+      case "best_match":
+        return calculateMatchPercentage(b) - calculateMatchPercentage(a);
       default:
         return 0;
     }
@@ -322,6 +373,7 @@ const RecipeGallery = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="best_match">Best Match</SelectItem>
                       <SelectItem value="most_saved">Most Saved</SelectItem>
                       <SelectItem value="newest">Newest</SelectItem>
                     </SelectContent>
