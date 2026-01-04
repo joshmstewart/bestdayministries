@@ -279,6 +279,44 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
                 <div className="space-y-3">
                   <Label>Role</Label>
                   
+                  {/* Owner Role Card */}
+                  <div
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      inviteRole === "owner" 
+                        ? "border-yellow-500 bg-yellow-500/5" 
+                        : "border-border hover:border-yellow-500/50"
+                    }`}
+                    onClick={() => setInviteRole("owner")}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="h-8 w-8 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                        <Crown className="h-4 w-4 text-yellow-500" />
+                      </div>
+                      <div className="font-medium">Owner</div>
+                      {inviteRole === "owner" && (
+                        <Badge variant="secondary" className="ml-auto">Selected</Badge>
+                      )}
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-1 ml-11">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        Full access to all features
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        Manage team members
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        Access Stripe payouts
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        Delete vendor account
+                      </li>
+                    </ul>
+                  </div>
+                  
                   {/* Admin Role Card */}
                   <div
                     className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
@@ -427,6 +465,7 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="owner">Owner</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="staff">Staff</SelectItem>
                     </SelectContent>
