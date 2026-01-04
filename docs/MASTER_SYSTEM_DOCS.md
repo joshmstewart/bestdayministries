@@ -1139,3 +1139,66 @@ Without-checking-these-docs-FIRST→AI-will:
 CURRENT-STATUS:Week-1-complete[93-unit-tests]|Week-2-complete[90-integration-tests|exceeded-target]|Week-3-ready[forms+admin+notifications]
 PROGRESS:174-integration-tests-total|~340-E2E-remaining|target-18-E2E-final
 DOC:docs/OPTION_1_PLUS_IMPLEMENTATION.md
+
+## RECIPE_PAL_SYSTEM
+OVERVIEW:AI-powered-cooking-assistant-game→adults-with-IDD→discover-recipes-from-inventory→step-by-step-instructions→save-share-cookbook
+ROUTE:/games/recipe-gallery[main-page-3-tabs]|/games/recipe-gallery?tab=maker|?tab=community|?tab=cookbook|/games/recipe-maker[redirect]
+
+DATABASE:
+  public_recipes[creator_id|title|description|ingredients[]|steps[]|tips[]|tools[]|image_url|is_active|likes_count|saves_count]→community-shared-recipes
+  saved_recipes[user_id|title|description|ingredients[]|steps[]|tips[]|tools[]|image_url|source_recipe_id|times_made|is_favorite|last_made_at]→personal-cookbook
+  public_recipe_likes[recipe_id|user_id]→like-tracking
+  recipe_ingredients[name|category|description|image_url|display_order|is_active]→master-ingredient-library[119-items]
+  recipe_tools[name|category|icon|image_url|display_order|is_active]→master-tool-library[52-items]
+  user_recipe_ingredients[user_id|ingredients[]]→user-selected-ingredients
+  user_recipe_tools[user_id|tools[]]→user-selected-tools
+  recipe_shopping_list[user_id|item_name|item_type|emoji|reason|estimated_cost|is_purchased]→shopping-suggestions
+  saved_shopping_tips[user_id|ingredient_tips|tool_tips|dismissed_ingredients[]|dismissed_tools[]]→cached-AI-tips
+
+CATEGORIES:
+  INGREDIENTS:protein[🥩]|dairy[🧀]|grains[🍞]|fruits[🍎]|vegetables[🥕]|condiments[🍯]|pantry[🧂]
+  TOOLS:appliances[🔌]|cookware[🍳]|utensils[🥄]
+
+EDGE-FUNCTIONS:
+  generate-recipe-suggestions[auth]→3-5-recipe-ideas-from-inventory→Lovable-AI[gemini-2.5-flash]
+  generate-full-recipe[auth]→complete-recipe[title+description+ingredients+steps+tips+safetyNotes+tools+imageUrl]→AI-image-generation
+  generate-recipe-expansion-tips[auth]→suggest-ingredients/tools-to-expand-cooking-options→AI-powered
+  regenerate-recipe-image[auth]→regenerate-AI-image-for-existing-recipe
+  generate-recipe-ingredient-icon[admin]→generate-realistic-ingredient-icon→Lovable-AI
+  generate-recipe-tool-icon[admin]→generate-kitchen-tool-icon→Lovable-AI
+  backfill-recipe-tools[admin]→infer-tools-from-recipe-steps→regex-pattern-matching
+
+COMPONENTS:
+  RecipeGallery[main-page+3-tabs:maker|community|cookbook]
+  RecipeMakerWizard[multi-step:select-ingredients→select-tools→get-suggestions→full-recipe]
+  RecipeIngredientSelector[visual-grid+category-grouping+lazy-images+selection-state]
+  RecipeToolsSelector[visual-grid+category-grouping+lazy-images+selection-state]
+  RecipeSuggestions[tappable-cards-with-difficulty+time]
+  RecipeDisplay[step-tracking+tap-to-complete+confetti-celebration+safety-notes]
+  RecipeDetailDialog[ingredient/tool-match-status+add-to-cookbook+regenerate-image]
+  RecipeActions[save-to-cookbook+share-to-community+mark-as-made]
+  RecipeExpansionTips[AI-shopping-tips+add-to-inventory+add-to-shopping-list+dismiss]
+  CollapsibleShoppingTips[collapsible-wrapper-for-RecipeExpansionTips]
+
+ADMIN:
+  RecipeIngredientsManager[Admin→Settings→Games→Recipe-Ingredients-tab]→CRUD+icon-generation
+  RecipeToolsManager[Admin→Settings→Games→Recipe-Tools-tab]→CRUD+smart-suggestions+icon-generation
+
+WORKFLOW:
+  RECIPE-CREATION:select-ingredients→select-tools→click-Get-Recipe-Ideas→AI-suggestions→tap-suggestion→full-recipe→follow-steps→save-or-share
+  COMMUNITY:browse-public-recipes→sort[best-match|most-saved|newest]→view-detail→add-to-cookbook
+  SHOPPING-TIPS:auto-generate-on-selection[2s-debounce]→add-to-inventory|add-to-shopping-list|dismiss→cached-per-user
+
+UI-PATTERNS:
+  LAZY-LOADING:IntersectionObserver[50px-rootMargin]+blur-placeholder
+  SELECTION:border-primary+ring-2+checkmark-badge
+  STEP-TRACKING:tap-to-complete+green-bg+strikethrough+auto-advance+confetti
+  AUTO-SAVE:1s-debounce+Loader2-spinner+green-checkmark-saved
+
+AI-PROMPTS:
+  RECIPE-GENERATION:friendly-cooking-teacher→adults-with-IDD→SIMPLE-steps+SHORT-words+SAFE→5-8-steps-max
+  SAFETY-NOTES:safetyNotes[]→tasks-needing-help[Using-sharp-knife|Hot-stove|Hot-oven|Boiling-water]
+
+FILES:src/pages/RecipeGallery.tsx|src/pages/RecipeMaker.tsx|src/components/recipe-maker/*[11-components]|src/components/admin/RecipeIngredientsManager.tsx|src/components/admin/RecipeToolsManager.tsx
+EDGE:supabase/functions/generate-recipe-*|supabase/functions/backfill-recipe-tools
+DOC:RECIPE_PAL_SYSTEM.md

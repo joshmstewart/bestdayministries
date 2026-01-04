@@ -115,4 +115,18 @@ interface InternalPage {
 
 ---
 
-**Last Updated:** After adding Help Center (`/help`) route
+## Games Pages
+
+The following game pages are registered:
+- `/games/memory-match` - Memory Match Game
+- `/games/match3` - Match-3 Game
+- `/games/drink-creator` - Drink Creator
+- `/games/recipe-gallery` - Recipe Pal (main unified page with 3 tabs)
+- `/games/recipe-maker` - Recipe Maker (redirects to Recipe Pal)
+- `/virtual-pet` - Virtual Pet
+- `/sticker-album` - Sticker Album
+- `/store` - JoyCoins Store
+
+---
+
+**Last Updated:** After adding Recipe Pal (`/games/recipe-gallery`) route
