@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BookOpen, ChefHat, Loader2, BookmarkPlus, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, BookOpen, ChefHat, Loader2, BookmarkPlus, Check, Sparkles, ShoppingCart } from "lucide-react";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { toast } from "sonner";
 import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog";
 import { CookingModeDialog } from "@/components/recipe-maker/CookingModeDialog";
 import { CollapsibleShoppingTips } from "@/components/recipe-maker/CollapsibleShoppingTips";
 import { RecipeMakerWizard } from "@/components/recipe-maker/RecipeMakerWizard";
+import { ShoppingListTab } from "@/components/recipe-maker/ShoppingListTab";
 
 interface PublicRecipe {
   id: string;
@@ -318,7 +319,7 @@ const RecipeGallery = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="maker" className="gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Recipe Maker</span>
@@ -334,6 +335,11 @@ const RecipeGallery = () => {
               <span className="hidden sm:inline">My Cookbook</span>
               <span className="sm:hidden">Saved</span>
               {savedRecipes.length > 0 && <span className="text-xs">({savedRecipes.length})</span>}
+            </TabsTrigger>
+            <TabsTrigger value="shopping" className="gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              <span className="hidden sm:inline">Shopping List</span>
+              <span className="sm:hidden">Shop</span>
             </TabsTrigger>
           </TabsList>
 
@@ -455,6 +461,18 @@ const RecipeGallery = () => {
                   </div>
                 )}
               </>
+            )}
+          </TabsContent>
+
+          {/* Shopping List Tab */}
+          <TabsContent value="shopping" className="space-y-4">
+            {!user ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">Sign in to use the shopping list</p>
+                <Button onClick={() => navigate("/auth")}>Sign In</Button>
+              </div>
+            ) : (
+              <ShoppingListTab userId={user.id} onAddToInventory={refreshUserData} />
             )}
           </TabsContent>
         </Tabs>
