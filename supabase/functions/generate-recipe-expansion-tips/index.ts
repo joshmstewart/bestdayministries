@@ -29,6 +29,7 @@ RULES FOR INGREDIENT SUGGESTIONS:
 - Focus on versatile staples (like eggs, butter, cheese, bread, rice, pasta)
 - Don't suggest items they already have
 - Think about what pairs well with what they have
+- For each suggestion, list 2-3 SPECIFIC simple recipes they could make if they added just that one item
 
 RULES FOR TOOL SUGGESTIONS:
 - Suggest 1-2 INEXPENSIVE kitchen tools (under $20 typically)
@@ -36,6 +37,7 @@ RULES FOR TOOL SUGGESTIONS:
 - Good examples: wooden spoon, whisk, spatula, baking sheet, pot, pan, measuring cups, mixing bowl, cutting board
 - Focus on tools that enable many simple recipes
 - Don't suggest items they already have
+- For each suggestion, list 2-3 SPECIFIC simple recipes they could make if they added just that one tool
 
 You MUST respond with a JSON object in this exact format:
 {
@@ -43,7 +45,8 @@ You MUST respond with a JSON object in this exact format:
     {
       "name": "Ingredient Name",
       "reason": "Short reason why it helps (1 sentence)",
-      "emoji": "🥚"
+      "emoji": "🥚",
+      "unlockedRecipes": ["Recipe 1", "Recipe 2", "Recipe 3"]
     }
   ],
   "toolTips": [
@@ -51,12 +54,13 @@ You MUST respond with a JSON object in this exact format:
       "name": "Tool Name", 
       "reason": "Short reason why it helps (1 sentence)",
       "emoji": "🍳",
-      "estimatedCost": "$5-10"
+      "estimatedCost": "$5-10",
+      "unlockedRecipes": ["Recipe 1", "Recipe 2", "Recipe 3"]
     }
   ]
 }
 
-Keep reasons VERY simple and friendly. Only return the JSON, no other text.`;
+Keep reasons VERY simple and friendly. The unlockedRecipes should be simple dishes they could make with their CURRENT inventory PLUS that one new item. Only return the JSON, no other text.`;
 
     const userMessage = `I currently have these ingredients: ${currentIngredients}. 
 I have these kitchen tools: ${currentTools}.
