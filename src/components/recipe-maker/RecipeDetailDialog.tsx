@@ -96,6 +96,20 @@ export const RecipeDetailDialog = ({
 
       if (error) throw error;
 
+      // Increment the saves_count on the public recipe
+      const { data: currentRecipe } = await supabase
+        .from("public_recipes")
+        .select("saves_count")
+        .eq("id", recipe.id)
+        .single();
+
+      if (currentRecipe) {
+        await supabase
+          .from("public_recipes")
+          .update({ saves_count: (currentRecipe.saves_count || 0) + 1 })
+          .eq("id", recipe.id);
+      }
+
       toast({
         title: "Added to cookbook! 📚",
         description: "You can find this recipe in your cookbook",
