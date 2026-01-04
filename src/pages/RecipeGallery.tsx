@@ -344,9 +344,15 @@ const RecipeCard = ({ recipe, userIngredients, isInCookbook, onAddToCookbook, on
     return cleaned;
   };
 
-  const matchingCount = recipe.ingredients.filter(recipeIng => {
+  const matchingCount = recipe.ingredients.filter((recipeIng) => {
     const normalizedRecipe = normalizeIngredient(recipeIng);
-    return userIngredients.some(userIng => {
+
+    // Assumed pantry items (always available)
+    if (normalizedRecipe === "water" || normalizedRecipe.includes(" water") || normalizedRecipe.includes("water ")) {
+      return true;
+    }
+
+    return userIngredients.some((userIng) => {
       const normalizedUser = userIng.toLowerCase().trim();
       // Check if user ingredient is contained in recipe ingredient or vice versa
       return normalizedRecipe.includes(normalizedUser) || normalizedUser.includes(normalizedRecipe);
