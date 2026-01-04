@@ -26,6 +26,7 @@ interface PublicRecipe {
   likes_count: number;
   saves_count: number;
   created_at: string;
+  creator_name?: string;
 }
 
 interface SavedRecipe {
@@ -74,13 +75,19 @@ const RecipeGallery = () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
-      // Load public recipes
+      // Load public recipes with creator names
       const { data: publicData } = await supabase
         .from("public_recipes")
-        .select("*")
+        .select("*, profiles_public!public_recipes_creator_id_fkey(display_name)")
         .eq("is_active", true);
 
-      setPublicRecipes(publicData || []);
+      // Flatten the creator name into the recipe object
+      const recipesWithCreators = (publicData || []).map((recipe: any) => ({
+        ...recipe,
+        creator_name: recipe.profiles_public?.display_name || null,
+      }));
+
+      setPublicRecipes(recipesWithCreators);
 
       if (user) {
         // Check if user is admin
@@ -451,6 +458,13 @@ const RecipeCard = ({ recipe, userIngredients, isInCookbook, onAddToCookbook, on
           {userIngredients.length > 0 && (
             <div className="absolute top-2 right-2 bg-background/90 px-2 py-1 rounded-full text-xs font-medium">
               {matchPercentage}% match
+            </div>
+          )}
+          {recipe.creator_name && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+              <p className="text-xs text-white/90 font-medium">
+                Recipe by Chef {recipe.creator_name}
+              </p>
             </div>
           )}
         </div>
