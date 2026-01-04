@@ -107,26 +107,38 @@ export const RecipeIngredientsManager = () => {
     let successCount = 0;
     const total = missingIcons.length;
     const newErrors: GenerationError[] = [];
+    const BATCH_SIZE = 5;
 
-    for (let i = 0; i < missingIcons.length; i++) {
-      const ingredient = missingIcons[i];
-      setCurrentIngredient(ingredient.name);
+    // Process in batches of 5
+    for (let i = 0; i < missingIcons.length; i += BATCH_SIZE) {
+      const batch = missingIcons.slice(i, i + BATCH_SIZE);
+      setCurrentIngredient(`${batch.map(b => b.name).join(", ")}`);
 
-      const result = await generateIcon(ingredient);
-      if (result.ok) {
-        successCount++;
-      } else {
-        newErrors.push({
-          ingredientName: ingredient.name,
-          error: result.errorMessage || "Unknown error",
-        });
+      // Run batch in parallel
+      const results = await Promise.all(
+        batch.map(async (ingredient) => {
+          const result = await generateIcon(ingredient);
+          return { ingredient, result };
+        })
+      );
+
+      // Process results
+      for (const { ingredient, result } of results) {
+        if (result.ok) {
+          successCount++;
+        } else {
+          newErrors.push({
+            ingredientName: ingredient.name,
+            error: result.errorMessage || "Unknown error",
+          });
+        }
       }
 
-      setProgress(((i + 1) / total) * 100);
+      setProgress(((Math.min(i + BATCH_SIZE, total)) / total) * 100);
 
-      // Small delay between requests to avoid rate limiting
-      if (i < missingIcons.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Small delay between batches to avoid rate limiting
+      if (i + BATCH_SIZE < missingIcons.length) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
