@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, Calendar, Users, MessageSquare, Gift, Sparkles, ArrowRight } from "lucide-react";
@@ -20,12 +19,12 @@ import { FeaturedItem } from "@/components/FeaturedItem";
 import { DailyScratchCard } from "@/components/DailyScratchCard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isProblematicIOSVersion } from "@/lib/browserDetection";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Community = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const { user, profile: authProfile, role, loading: authLoading, isAuthenticated } = useAuth();
 
   // Extract YouTube video ID from various URL formats
   const getYouTubeVideoId = (url: string): string | null => {
@@ -54,6 +53,9 @@ const Community = () => {
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
   const [effectiveRole, setEffectiveRole] = useState<UserRole | null>(null);
 
+  // Create profile object compatible with existing code (combines AuthContext data)
+  const profile = authProfile ? { ...authProfile, role } : null;
+
   // Default quick links - moved to top to avoid TDZ error
   const defaultQuickLinks = [
     { label: "Sponsor a Bestie", href: "/sponsor-bestie", icon: "Gift", color: "from-primary/20 to-secondary/5" },
@@ -64,27 +66,29 @@ const Community = () => {
 
   // Update effective role whenever profile or impersonation changes
   useEffect(() => {
-    if (profile) {
-      const role = getEffectiveRole(profile.role);
-      console.log('Community - Setting effectiveRole:', role);
-      setEffectiveRole(role);
+    if (profile && profile.role) {
+      // Cast to UserRole for impersonation (excludes moderator which isn't impersonatable)
+      const impersonatableRole = profile.role as UserRole;
+      const effectiveRoleResult = getEffectiveRole(impersonatableRole);
+      console.log('Community - Setting effectiveRole:', effectiveRoleResult);
+      setEffectiveRole(effectiveRoleResult);
     }
   }, [profile, isImpersonating, getEffectiveRole]);
 
+  // Redirect if not authenticated (after auth loading completes)
   useEffect(() => {
-    checkUser();
+    if (!authLoading && !isAuthenticated) {
+      navigate("/auth");
+    }
+  }, [authLoading, isAuthenticated, navigate]);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-        fetchProfile(session.user.id);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  // Load section order when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadSectionOrder();
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
   // Reload content when impersonation changes or when user/profile/effectiveRole are set
   useEffect(() => {
@@ -98,27 +102,6 @@ const Community = () => {
       loadLatestContent();
     }
   }, [user, profile, effectiveRole]); // Include all dependencies
-
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      // Load community page for all authenticated users
-      setUser(session.user);
-      await fetchProfile(session.user.id);
-      await loadSectionOrder();
-      // Don't call loadLatestContent here - let the effectiveRole useEffect handle it
-      setLoading(false);
-    } catch (error) {
-      // Silently handle error, allow page to render
-      setLoading(false);
-    }
-  };
 
   const loadSectionOrder = async () => {
     try {
@@ -293,22 +276,7 @@ const Community = () => {
     }
   };
 
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles_public")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
-    if (error) {
-      console.error("Error fetching profile:", error);
-      return;
-    }
-
-    setProfile(data);
-  };
-
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">

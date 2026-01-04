@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/carousel";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface FeaturedBestie {
   id: string;
@@ -46,28 +47,21 @@ interface FeaturedBestieDisplayProps {
 
 export const FeaturedBestieDisplay = ({ canLoad = true, onLoadComplete }: FeaturedBestieDisplayProps = {}) => {
   const navigate = useNavigate();
+  const { user, role } = useAuth();
   const [besties, setBesties] = useState<FeaturedBestie[]>([]);
   const [fundingProgress, setFundingProgress] = useState<Record<string, FundingProgress>>({});
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [sponsoringIds, setSponsoringIds] = useState<Set<string>>(new Set());
-  const [userId, setUserId] = useState<string | null>(null);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const autoScrollRef = useRef(false);
 
   useEffect(() => {
-    if (canLoad) {
-      loadUserRole();
-    }
-  }, [canLoad]);
-
-  useEffect(() => {
-    if (canLoad && userId !== null) {
+    if (canLoad && user?.id) {
       loadCurrentBesties();
     }
-  }, [userId, canLoad]);
+  }, [canLoad, user?.id]);
 
   useEffect(() => {
     if (!carouselApi || besties.length <= 1) return;
@@ -92,23 +86,6 @@ export const FeaturedBestieDisplay = ({ canLoad = true, onLoadComplete }: Featur
 
     return () => clearInterval(intervalId);
   }, [carouselApi, isPlaying, besties.length]);
-
-  const loadUserRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUserId(user.id);
-      // Fetch role from user_roles table (security requirement)
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      if (roleData) {
-        setUserRole(roleData.role as UserRole);
-      }
-    }
-  };
 
   const checkSponsorshipStatuses = async (bestieIds: string[], currentUserId: string) => {
     try {
@@ -163,10 +140,10 @@ export const FeaturedBestieDisplay = ({ canLoad = true, onLoadComplete }: Featur
       setBesties(shuffled);
 
       // Check sponsorship statuses for all besties
-      if (shuffled.length > 0 && userId) {
+      if (shuffled.length > 0 && user?.id) {
         const bestieIds = shuffled.map(b => b.bestie_id).filter(Boolean) as string[];
         if (bestieIds.length > 0) {
-          await checkSponsorshipStatuses(bestieIds, userId);
+          await checkSponsorshipStatuses(bestieIds, user.id);
         }
       }
 
@@ -293,7 +270,7 @@ export const FeaturedBestieDisplay = ({ canLoad = true, onLoadComplete }: Featur
               />
             )}
             
-            {bestie.available_for_sponsorship && !bestie.is_fully_funded && userRole !== "bestie" && !isSponsoring && (
+            {bestie.available_for_sponsorship && !bestie.is_fully_funded && role !== "bestie" && !isSponsoring && (
               <Button 
                 onClick={() => navigate(`/sponsor-bestie?bestie=${bestie.id}`)}
                 className="mt-4 bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all"
@@ -395,7 +372,7 @@ export const FeaturedBestieDisplay = ({ canLoad = true, onLoadComplete }: Featur
                         />
                       )}
                       
-                      {bestie.available_for_sponsorship && !bestie.is_fully_funded && userRole !== "bestie" && !isSponsoring && (
+                      {bestie.available_for_sponsorship && !bestie.is_fully_funded && role !== "bestie" && !isSponsoring && (
                         <Button 
                           onClick={() => navigate(`/sponsor-bestie?bestie=${bestie.id}`)}
                           className="mt-4 bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all"
