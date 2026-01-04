@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,6 +82,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { user, role, isAdmin: authIsAdmin, isOwner: authIsOwner, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -100,9 +102,34 @@ const Admin = () => {
     totalFeatured: 0,
   });
 
+  // Check admin access using AuthContext
   useEffect(() => {
-    checkAdminAccess();
-  }, []);
+    if (authLoading) return;
+    
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    // Check for admin-level access using role from AuthContext
+    if (!authIsAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access this page.",
+        variant: "destructive",
+      });
+      navigate("/community");
+      return;
+    }
+
+    // Store actual role and calculate effective role with impersonation
+    setActualRole(role as UserRole);
+    const effectiveRole = getEffectiveRole(role as UserRole);
+    setIsAdmin(effectiveRole === "admin" || effectiveRole === "owner");
+    setIsOwner(effectiveRole === "owner");
+    loadStats();
+    setLoading(false);
+  }, [authLoading, user, role, authIsAdmin, navigate, toast, getEffectiveRole]);
 
   // Update effective permissions when impersonation changes
   useEffect(() => {
@@ -112,51 +139,6 @@ const Admin = () => {
       setIsOwner(effectiveRole === "owner");
     }
   }, [actualRole, impersonatedRole, getEffectiveRole]);
-
-  const checkAdminAccess = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      // Fetch role from user_roles table (security requirement)
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-    // Check for admin-level access (owner role automatically has admin access)
-    if (roleData?.role !== "admin" && roleData?.role !== "owner") {
-      toast({
-        title: "Access Denied",
-          description: "You don't have permission to access this page.",
-          variant: "destructive",
-        });
-        navigate("/community");
-        return;
-      }
-
-      // Store actual role and calculate effective role with impersonation
-      setActualRole(roleData?.role as UserRole);
-      const effectiveRole = getEffectiveRole(roleData?.role as UserRole);
-      setIsAdmin(effectiveRole === "admin" || effectiveRole === "owner");
-      setIsOwner(effectiveRole === "owner");
-      await loadStats();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      navigate("/community");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadStats = async () => {
     const [usersCount, eventsCount, postsCount, featuredCount] = await Promise.all([
