@@ -89,16 +89,40 @@ const VendorDashboard = () => {
           vendorData = data as Vendor[];
         }
       } else {
-        // Regular users only see their own vendors
-        const { data, error } = await supabase
+        // Regular users see their own vendors AND vendors they're team members of
+        const { data: ownedVendors } = await supabase
           .from('vendors')
           .select('id, status, business_name')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         
-        if (!error && data) {
-          vendorData = data as Vendor[];
+        // Also get vendors where user is a team member
+        const { data: teamMemberships } = await supabase
+          .from('vendor_team_members')
+          .select('vendor_id, accepted_at')
+          .eq('user_id', user.id)
+          .not('accepted_at', 'is', null);
+        
+        const teamVendorIds = teamMemberships?.map(m => m.vendor_id) || [];
+        
+        let teamVendors: Vendor[] = [];
+        if (teamVendorIds.length > 0) {
+          const { data } = await supabase
+            .from('vendors')
+            .select('id, status, business_name')
+            .in('id', teamVendorIds)
+            .eq('status', 'approved');
+          
+          if (data) {
+            teamVendors = data as Vendor[];
+          }
         }
+        
+        // Combine and dedupe
+        const allVendors = [...(ownedVendors || []), ...teamVendors];
+        const uniqueVendorMap = new Map<string, Vendor>();
+        allVendors.forEach(v => uniqueVendorMap.set(v.id, v as Vendor));
+        vendorData = Array.from(uniqueVendorMap.values());
       }
 
       if (vendorData.length > 0) {
