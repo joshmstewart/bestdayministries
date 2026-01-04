@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,67 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Heart, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Lazy loading image component with blur placeholder
+const LazyImage = ({ 
+  src, 
+  alt, 
+  className,
+}: { 
+  src: string; 
+  alt: string; 
+  className?: string;
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imgRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100px" }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div 
+      ref={imgRef} 
+      className={cn("relative overflow-hidden", className)}
+    >
+      {/* Blur placeholder */}
+      <div 
+        className={cn(
+          "absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 transition-opacity duration-300",
+          isLoaded ? "opacity-0" : "opacity-100"
+        )}
+      />
+      
+      {isInView && (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onLoad={() => setIsLoaded(true)}
+          className={cn(
+            "w-full h-full object-cover transition-opacity duration-300",
+            isLoaded ? "opacity-100" : "opacity-0"
+          )}
+        />
+      )}
+    </div>
+  );
+};
 
 type SortOption = "newest" | "popular";
 
@@ -188,13 +249,13 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
             onClick={() => setSelectedDrink(drink)}
           >
             <CardContent className="p-0 relative">
-              {/* Image */}
+              {/* Image with lazy loading */}
               <div className="aspect-square relative">
                 {drink.generated_image_url ? (
-                  <img
+                  <LazyImage
                     src={drink.generated_image_url}
                     alt={drink.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
