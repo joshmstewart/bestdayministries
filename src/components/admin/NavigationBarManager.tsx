@@ -394,19 +394,71 @@ export function NavigationBarManager() {
         }
       }
 
-      // Save all links
-      const results = await Promise.all(
-        links.map(async (link) => {
+      // Separate parent links (no parent_id) and child links (have parent_id)
+      const parentLinks = links.filter(l => !l.parent_id);
+      const childLinks = links.filter(l => l.parent_id);
+      
+      // Map to track temp IDs to real IDs
+      const tempIdToRealId: Record<string, string> = {};
+      
+      // First, save all parent links
+      const parentResults = await Promise.all(
+        parentLinks.map(async (link) => {
           const isNew = link.id.startsWith("temp-");
           
           const linkData = {
             label: link.label.trim(),
-            href: (link.href && link.href.trim()) || '', // Allow empty href for dropdown parents
+            href: (link.href && link.href.trim()) || '',
             display_order: link.display_order,
             is_active: link.is_active,
             visible_to_roles: link.visible_to_roles || USER_ROLES.map(r => r.value),
             link_type: link.link_type,
-            parent_id: link.parent_id,
+            parent_id: null,
+          };
+          
+          if (isNew) {
+            const { data, error } = await supabase.from("navigation_links").insert([{
+              ...linkData,
+              created_by: userData.user.id,
+            }]).select('id').single();
+            
+            if (data) {
+              tempIdToRealId[link.id] = data.id;
+            }
+            return { error, type: 'insert', link };
+          } else {
+            const { error } = await supabase.from("navigation_links").update(linkData).eq("id", link.id);
+            return { error, type: 'update', link };
+          }
+        })
+      );
+      
+      // Check for parent errors before proceeding
+      const parentErrors = parentResults.filter(r => r.error);
+      if (parentErrors.length > 0) {
+        console.error("Parent save errors:", parentErrors);
+        throw new Error(`Failed to save ${parentErrors.length} parent link(s): ${parentErrors[0].error.message}`);
+      }
+      
+      // Now save all child links, mapping temp parent IDs to real IDs
+      const childResults = await Promise.all(
+        childLinks.map(async (link) => {
+          const isNew = link.id.startsWith("temp-");
+          
+          // Resolve the parent_id - if it was a temp ID, use the real ID
+          let resolvedParentId = link.parent_id;
+          if (resolvedParentId && resolvedParentId.startsWith("temp-")) {
+            resolvedParentId = tempIdToRealId[resolvedParentId] || null;
+          }
+          
+          const linkData = {
+            label: link.label.trim(),
+            href: (link.href && link.href.trim()) || '',
+            display_order: link.display_order,
+            is_active: link.is_active,
+            visible_to_roles: link.visible_to_roles || USER_ROLES.map(r => r.value),
+            link_type: link.link_type,
+            parent_id: resolvedParentId,
           };
           
           if (isNew) {
@@ -421,6 +473,8 @@ export function NavigationBarManager() {
           }
         })
       );
+      
+      const results = [...parentResults, ...childResults];
 
       const errors = results.filter(r => r.error);
       if (errors.length > 0) {
