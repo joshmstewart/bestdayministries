@@ -75,16 +75,36 @@ const RecipeGallery = () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
-      // Load public recipes with creator names
-      const { data: publicData } = await supabase
+      // Load public recipes
+      const { data: publicData, error: recipesError } = await supabase
         .from("public_recipes")
-        .select("*, profiles_public!public_recipes_creator_id_fkey(display_name)")
+        .select("*")
         .eq("is_active", true);
+
+      if (recipesError) {
+        console.error("Error loading recipes:", recipesError);
+      }
+
+      // Get unique creator IDs and fetch their names
+      const creatorIds = [...new Set((publicData || []).map(r => r.creator_id))];
+      let creatorNames: Record<string, string> = {};
+      
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, display_name")
+          .in("id", creatorIds);
+        
+        creatorNames = (profiles || []).reduce((acc, p) => {
+          acc[p.id] = p.display_name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
 
       // Flatten the creator name into the recipe object
       const recipesWithCreators = (publicData || []).map((recipe: any) => ({
         ...recipe,
-        creator_name: recipe.profiles_public?.display_name || null,
+        creator_name: creatorNames[recipe.creator_id] || null,
       }));
 
       setPublicRecipes(recipesWithCreators);
