@@ -15,6 +15,8 @@ interface RecipeTool {
 interface RecipeToolsSelectorProps {
   selectedTools: string[];
   onToggle: (toolName: string) => void;
+  isSaving?: boolean;
+  lastSaved?: Date | null;
 }
 
 // Lazy loading image component
@@ -102,7 +104,7 @@ const categoryLabels: Record<string, string> = {
 
 const categoryOrder = ["appliances", "cookware", "utensils"];
 
-export const RecipeToolsSelector = ({ selectedTools, onToggle }: RecipeToolsSelectorProps) => {
+export const RecipeToolsSelector = ({ selectedTools, onToggle, isSaving = false, lastSaved = null }: RecipeToolsSelectorProps) => {
   const [tools, setTools] = useState<RecipeTool[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -215,10 +217,26 @@ export const RecipeToolsSelector = ({ selectedTools, onToggle }: RecipeToolsSele
 
       {/* Selected tools summary */}
       {selectedTools.length > 0 && (
-        <div className="p-3 rounded-lg bg-background/80 backdrop-blur-md border border-primary/20 shadow-lg sticky bottom-4 mx-1">
-          <p className="text-sm font-medium mb-2">
-            Selected ({selectedTools.length}):
-          </p>
+        <div className="p-3 rounded-lg bg-background/80 backdrop-blur-md border border-primary/20 shadow-lg sticky bottom-4 mx-1 z-20">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium">
+              Selected ({selectedTools.length}):
+            </p>
+            {/* Save status indicator */}
+            <div className="flex items-center gap-1 text-xs">
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  <span className="text-muted-foreground">Saving...</span>
+                </>
+              ) : lastSaved ? (
+                <>
+                  <Check className="h-3 w-3 text-green-600" />
+                  <span className="text-green-600">Saved</span>
+                </>
+              ) : null}
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2">
             {selectedTools.map((name) => (
               <button

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Wrench, ChefHat, Loader2, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Wrench, ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface InventoryItem {
@@ -17,8 +17,6 @@ interface InventorySummaryBarProps {
   onToggleExpand: () => void;
   title?: string;
   showIngredients?: boolean;
-  isSaving?: boolean;
-  lastSaved?: Date | null;
 }
 
 // Helper to get emoji for tools without images
@@ -56,9 +54,7 @@ export const InventorySummaryBar = ({
   isExpanded, 
   onToggleExpand,
   title = "My Kitchen",
-  showIngredients = true,
-  isSaving = false,
-  lastSaved = null
+  showIngredients = true
 }: InventorySummaryBarProps) => {
   const [toolsData, setToolsData] = useState<Record<string, InventoryItem>>({});
   const [ingredientsData, setIngredientsData] = useState<Record<string, InventoryItem>>({});
@@ -110,24 +106,7 @@ export const InventorySummaryBar = ({
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          {/* Save status indicator */}
-          {(ingredients.length > 0 || tools.length > 0) && (
-            <div className="flex items-center gap-1 text-xs">
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                  <span className="text-muted-foreground">Saving...</span>
-                </>
-              ) : lastSaved ? (
-                <>
-                  <Check className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">Saved</span>
-                </>
-              ) : null}
-            </div>
-          )}
-          
+        <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
             {isExpanded ? "Collapse" : "Edit"}
           </span>
