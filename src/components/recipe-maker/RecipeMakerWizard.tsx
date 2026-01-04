@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ interface RecipeMakerWizardProps {
 }
 
 const STEPS = [
-  { key: "ingredients", title: "What Do You Have?", description: "List the ingredients you have available (or pick fun ones!)" },
+  { key: "ingredients", title: "What Do You Have?", description: "Select ingredients you have - we'll remember them for next time!" },
   { key: "suggestions", title: "Pick a Recipe", description: "Choose from these easy recipes you can make" },
   { key: "recipe", title: "Let's Make It!", description: "Follow along step by step" },
 ];
@@ -23,6 +23,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [ingredients, setIngredients] = useState<string[]>([]);
+  const [isLoadingIngredients, setIsLoadingIngredients] = useState(true);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<RecipeSuggestion[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeSuggestion | null>(null);
@@ -35,6 +36,60 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
     imageUrl?: string;
   } | null>(null);
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
+
+  // Load saved ingredients on mount
+  useEffect(() => {
+    const loadSavedIngredients = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_recipe_ingredients")
+          .select("ingredients")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (data?.ingredients) {
+          setIngredients(data.ingredients);
+        }
+      } catch (error) {
+        console.error("Error loading saved ingredients:", error);
+      } finally {
+        setIsLoadingIngredients(false);
+      }
+    };
+
+    loadSavedIngredients();
+  }, [userId]);
+
+  // Save ingredients whenever they change (debounced)
+  const saveIngredients = useCallback(async (newIngredients: string[]) => {
+    try {
+      const { error } = await supabase
+        .from("user_recipe_ingredients")
+        .upsert({
+          user_id: userId,
+          ingredients: newIngredients,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: "user_id",
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error saving ingredients:", error);
+    }
+  }, [userId]);
+
+  // Debounced save effect
+  useEffect(() => {
+    if (isLoadingIngredients) return; // Don't save while initially loading
+    
+    const timeout = setTimeout(() => {
+      saveIngredients(ingredients);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [ingredients, isLoadingIngredients, saveIngredients]);
 
   const generateSuggestions = async () => {
     if (ingredients.length === 0) {
@@ -109,7 +164,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
 
   const resetWizard = () => {
     setCurrentStep(0);
-    setIngredients([]);
+    // Keep ingredients - user will just remove what they don't have
     setSuggestions([]);
     setSelectedRecipe(null);
     setFullRecipe(null);
@@ -145,20 +200,34 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
       <CardContent className="space-y-6">
         {currentStep === 0 && (
           <div className="space-y-6">
-            <RecipeIngredientSelector 
-              selectedIngredients={ingredients} 
-              onToggle={(name) => {
-                setIngredients(prev => 
-                  prev.includes(name) 
-                    ? prev.filter(i => i !== name)
-                    : [...prev, name]
-                );
-              }}
-            />
+            {isLoadingIngredients ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading your saved ingredients...</p>
+              </div>
+            ) : (
+              <>
+                {ingredients.length > 0 && (
+                  <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                    ✨ We remembered your ingredients from last time! Just update what's changed.
+                  </p>
+                )}
+                <RecipeIngredientSelector 
+                  selectedIngredients={ingredients} 
+                  onToggle={(name) => {
+                    setIngredients(prev => 
+                      prev.includes(name) 
+                        ? prev.filter(i => i !== name)
+                        : [...prev, name]
+                    );
+                  }}
+                />
+              </>
+            )}
             
             <Button
               onClick={generateSuggestions}
-              disabled={isLoadingSuggestions || ingredients.length === 0}
+              disabled={isLoadingSuggestions || ingredients.length === 0 || isLoadingIngredients}
               className="w-full"
               size="lg"
             >
