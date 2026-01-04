@@ -12,6 +12,7 @@ import { FaviconManager } from "@/components/FaviconManager";
 import { ProductTourRunner } from "@/components/help/ProductTourRunner";
 import { WelcomeRedirectModal } from "@/components/WelcomeRedirectModal";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeSentry } from "@/lib/sentry";
@@ -150,11 +151,12 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ScrollToTop />
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <ScrollToTop />
           <FaviconManager />
           <ImpersonationBanner />
           <PWAInstallBanner />
@@ -217,6 +219,7 @@ const App = () => {
           </TermsAcceptanceGuard>
         </BrowserRouter>
       </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

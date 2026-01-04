@@ -1,35 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type PermissionType = 'moderate' | 'manage_vendors' | 'view_analytics' | 'store_access';
 
 export const useUserPermissions = () => {
+  const { user, isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [permissions, setPermissions] = useState<Set<PermissionType>>(new Set());
   const [loading, setLoading] = useState(true);
   const [canModerate, setCanModerate] = useState(false);
   const [hasStoreAccess, setHasStoreAccess] = useState(false);
 
-  useEffect(() => {
-    loadPermissions();
-  }, []);
+  const loadPermissions = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
-  const loadPermissions = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      // Check if user has admin access (admins can do everything)
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const isAdmin = roleData?.role && ['admin', 'owner'].includes(roleData.role);
-
       if (isAdmin) {
         // Admins have all permissions
         setCanModerate(true);
@@ -56,7 +44,18 @@ export const useUserPermissions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isAdmin]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    loadPermissions();
+  }, [authLoading, isAuthenticated, loadPermissions]);
 
   const hasPermission = (permission: PermissionType): boolean => {
     return permissions.has(permission);
@@ -64,7 +63,7 @@ export const useUserPermissions = () => {
 
   return {
     permissions,
-    loading,
+    loading: loading || authLoading,
     canModerate,
     hasStoreAccess,
     hasPermission,

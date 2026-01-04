@@ -1,23 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useCoins = () => {
+  const { user, profile, isAuthenticated, loading: authLoading } = useAuth();
   const [coins, setCoins] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchCoins = async () => {
-    try {
-      console.log('💰 HOOK: useCoins fetching coins...');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('💰 HOOK: No user found, setting loading false');
-        setLoading(false);
-        return;
+  // Initialize coins from profile when available
+  useEffect(() => {
+    if (!authLoading) {
+      if (profile) {
+        setCoins(profile.coins || 0);
       }
+      setLoading(false);
+    }
+  }, [authLoading, profile]);
 
-      console.log('💰 HOOK: Fetching coins for user:', user.id);
+  const fetchCoins = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
       const { data, error } = await supabase
         .from('profiles')
         .select('coins')
@@ -25,19 +33,22 @@ export const useCoins = () => {
         .single();
 
       if (error) throw error;
-      console.log('💰 HOOK: Coins fetched successfully:', data?.coins || 0);
       setCoins(data?.coins || 0);
     } catch (error) {
-      console.error('💰 HOOK ERROR: Error fetching coins:', error);
+      console.error('Error fetching coins:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    fetchCoins();
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
 
-    // Subscribe to realtime updates
+    // Subscribe to realtime updates for coins
     const channel = supabase
       .channel('coins-changes')
       .on(
@@ -46,29 +57,28 @@ export const useCoins = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'profiles',
+          filter: `id=eq.${user?.id}`,
         },
-        () => {
-          fetchCoins();
-        }
+        () => fetchCoins()
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [authLoading, isAuthenticated, user?.id, fetchCoins]);
 
   const awardCoins = async (userId: string, amount: number, description: string) => {
     try {
-      const { data: profile } = await supabase
+      const { data: currentProfile } = await supabase
         .from('profiles')
         .select('coins')
         .eq('id', userId)
         .single();
 
-      if (!profile) throw new Error('User not found');
+      if (!currentProfile) throw new Error('User not found');
 
-      const newBalance = (profile.coins || 0) + amount;
+      const newBalance = (currentProfile.coins || 0) + amount;
 
       const { error: updateError } = await supabase
         .from('profiles')
@@ -106,7 +116,7 @@ export const useCoins = () => {
 
   return {
     coins,
-    loading,
+    loading: loading || authLoading,
     refetch: fetchCoins,
     awardCoins,
   };
