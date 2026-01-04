@@ -310,10 +310,17 @@ export const StickerAlbum = () => {
     
     console.log('📅 DATE CHECK - MST today:', today, 'UTC now:', new Date().toISOString());
     
-    // Get all cards for today (unopened ones)
+    // Get all cards for today (unopened ones) with collection info for pack images
     const { data: cards } = await supabase
       .from('daily_scratch_cards')
-      .select('*')
+      .select(`
+        *,
+        collection:sticker_collections!inner(
+          id,
+          name,
+          pack_image_url
+        )
+      `)
       .eq('user_id', user.id)
       .eq('date', today)
       .eq('is_scratched', false)
@@ -514,10 +521,17 @@ export const StickerAlbum = () => {
 
       const today = new Date().toISOString().split('T')[0];
       
-      // Get all cards for today (unopened ones)
+      // Get all cards for today (unopened ones) with collection info for pack images
       const { data: cards } = await supabase
         .from('daily_scratch_cards')
-        .select('*')
+        .select(`
+          *,
+          collection:sticker_collections!inner(
+            id,
+            name,
+            pack_image_url
+          )
+        `)
         .eq('user_id', session.user.id)
         .eq('date', today)
         .eq('is_scratched', false)
@@ -578,25 +592,46 @@ export const StickerAlbum = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-3">
-              {availableCards.map((card) => (
-                <Button
+            <div className="flex justify-center gap-4">
+              {availableCards.slice(0, 3).map((card) => (
+                <button
                   key={card.id}
                   onClick={() => {
                     setSelectedCardId(card.id);
                     setShowScratchDialog(true);
                   }}
-                  size="lg"
-                  variant={card.is_bonus_card ? "default" : "outline"}
-                  className="flex items-center gap-2"
+                  className="relative group transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  {card.is_bonus_card ? 'Bonus Card' : 'Daily Card'}
-                </Button>
+                  <div className="relative w-24 h-36 sm:w-28 sm:h-40 rounded-lg overflow-hidden shadow-lg border-2 border-primary/20 group-hover:border-primary/50 transition-colors">
+                    {card.collection?.pack_image_url ? (
+                      <img
+                        src={card.collection.pack_image_url}
+                        alt={card.collection?.name || 'Sticker Pack'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-primary" />
+                      </div>
+                    )}
+                    {/* Bonus indicator badge */}
+                    {card.is_bonus_card && (
+                      <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        BONUS
+                      </div>
+                    )}
+                    {/* Sparkle animation overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
+                      <span className="text-white text-xs font-medium">Open</span>
+                    </div>
+                  </div>
+                </button>
               ))}
             </div>
-            <p className="text-sm text-muted-foreground mt-3">
-              Click a card to scratch it and reveal your sticker!
+            <p className="text-sm text-muted-foreground mt-3 text-center">
+              {availableCards.length === 1 
+                ? 'Tap the pack to open it!' 
+                : `Tap a pack to open it! (${availableCards.length} available)`}
             </p>
           </CardContent>
         </Card>
