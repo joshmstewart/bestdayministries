@@ -105,48 +105,42 @@ export const RecipeIngredientsManager = () => {
     setErrors([]); // Clear previous errors
 
     let successCount = 0;
-    const total = missingIcons.length;
-    const newErrors: GenerationError[] = [];
     const BATCH_SIZE = 5;
+    const batch = missingIcons.slice(0, BATCH_SIZE); // Only take first 5
+    const total = batch.length;
+    const newErrors: GenerationError[] = [];
 
-    // Process in batches of 5
-    for (let i = 0; i < missingIcons.length; i += BATCH_SIZE) {
-      const batch = missingIcons.slice(i, i + BATCH_SIZE);
-      setCurrentIngredient(`${batch.map(b => b.name).join(", ")}`);
+    setCurrentIngredient(`${batch.map(b => b.name).join(", ")}`);
 
-      // Run batch in parallel
-      const results = await Promise.all(
-        batch.map(async (ingredient) => {
-          const result = await generateIcon(ingredient);
-          return { ingredient, result };
-        })
-      );
+    // Run batch in parallel
+    const results = await Promise.all(
+      batch.map(async (ingredient) => {
+        const result = await generateIcon(ingredient);
+        return { ingredient, result };
+      })
+    );
 
-      // Process results
-      for (const { ingredient, result } of results) {
-        if (result.ok) {
-          successCount++;
-        } else {
-          newErrors.push({
-            ingredientName: ingredient.name,
-            error: result.errorMessage || "Unknown error",
-          });
-        }
-      }
-
-      setProgress(((Math.min(i + BATCH_SIZE, total)) / total) * 100);
-
-      // Small delay between batches to avoid rate limiting
-      if (i + BATCH_SIZE < missingIcons.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Process results
+    for (const { ingredient, result } of results) {
+      if (result.ok) {
+        successCount++;
+      } else {
+        newErrors.push({
+          ingredientName: ingredient.name,
+          error: result.errorMessage || "Unknown error",
+        });
       }
     }
 
+    setProgress(100);
     setGenerating(false);
     setCurrentIngredient(null);
     setErrors(newErrors);
 
-    if (successCount === total) {
+    const remaining = missingIcons.length - BATCH_SIZE;
+    if (successCount === total && remaining > 0) {
+      toast.success(`Generated ${successCount} icons! ${remaining} remaining.`);
+    } else if (successCount === total) {
       toast.success(`Generated ${successCount} icons!`);
     } else {
       toast.warning(`Generated ${successCount}/${total} icons. ${newErrors.length} failed - see errors below.`);
