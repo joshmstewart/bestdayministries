@@ -44,7 +44,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [isInventoryExpanded, setIsInventoryExpanded] = useState(true); // Start expanded for first-time users
+  const [isToolsExpanded, setIsToolsExpanded] = useState(true); // Start expanded for first-time users
 
   // Load saved ingredients and tools on mount
   useEffect(() => {
@@ -70,9 +70,9 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
           setTools(toolsRes.data.tools);
         }
         
-        // Collapse inventory if user already has items saved (returning user)
-        if ((ingredientsRes.data?.ingredients?.length > 0) || (toolsRes.data?.tools?.length > 0)) {
-          setIsInventoryExpanded(false);
+        // Collapse tools section if user already has tools saved (returning user)
+        if (toolsRes.data?.tools?.length > 0) {
+          setIsToolsExpanded(false);
         }
       } catch (error) {
         console.error("Error loading saved data:", error);
@@ -272,13 +272,32 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
               </div>
             ) : (
               <>
-                {/* Inventory Summary Bar - shows compact view when collapsed */}
-                <InventorySummaryBar
-                  ingredients={ingredients}
-                  tools={tools}
-                  isExpanded={isInventoryExpanded}
-                  onToggleExpand={() => setIsInventoryExpanded(prev => !prev)}
-                />
+                {/* Tools Summary Bar - collapsible, collapsed by default for returning users */}
+                <div className="space-y-2">
+                  <InventorySummaryBar
+                    ingredients={[]}
+                    tools={tools}
+                    isExpanded={isToolsExpanded}
+                    onToggleExpand={() => setIsToolsExpanded(prev => !prev)}
+                    title="My Kitchen Tools"
+                    showIngredients={false}
+                  />
+                  
+                  <Collapsible open={isToolsExpanded} onOpenChange={setIsToolsExpanded}>
+                    <CollapsibleContent>
+                      <RecipeToolsSelector
+                        selectedTools={tools}
+                        onToggle={(name) => {
+                          setTools(prev =>
+                            prev.includes(name)
+                              ? prev.filter(t => t !== name)
+                              : [...prev, name]
+                          );
+                        }}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
 
                 {/* Save indicator */}
                 {(ingredients.length > 0 || tools.length > 0) && (
@@ -297,42 +316,19 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                   </div>
                 )}
 
-                {/* Collapsible Inventory Editor */}
-                <Collapsible open={isInventoryExpanded} onOpenChange={setIsInventoryExpanded}>
-                  <CollapsibleContent className="space-y-6">
-                    {/* Kitchen Tools Section */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Wrench className="h-5 w-5 text-primary" />
-                        <h3 className="font-semibold">Kitchen Tools {tools.length > 0 && `(${tools.length} selected)`}</h3>
-                      </div>
-                      <RecipeToolsSelector
-                        selectedTools={tools}
-                        onToggle={(name) => {
-                          setTools(prev =>
-                            prev.includes(name)
-                              ? prev.filter(t => t !== name)
-                              : [...prev, name]
-                          );
-                        }}
-                      />
-                    </div>
-
-                    {/* Ingredients Section */}
-                    <div className="space-y-3">
-                      <RecipeIngredientSelector 
-                        selectedIngredients={ingredients} 
-                        onToggle={(name) => {
-                          setIngredients(prev => 
-                            prev.includes(name) 
-                              ? prev.filter(i => i !== name)
-                              : [...prev, name]
-                          );
-                        }}
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                {/* Ingredients Section - always expanded */}
+                <div className="space-y-3">
+                  <RecipeIngredientSelector 
+                    selectedIngredients={ingredients} 
+                    onToggle={(name) => {
+                      setIngredients(prev => 
+                        prev.includes(name) 
+                          ? prev.filter(i => i !== name)
+                          : [...prev, name]
+                      );
+                    }}
+                  />
+                </div>
 
                 {/* Expansion Tips - always visible */}
                 <RecipeExpansionTips ingredients={ingredients} tools={tools} userId={userId} />
