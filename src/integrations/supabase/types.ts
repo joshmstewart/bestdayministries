@@ -4256,6 +4256,39 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_tools: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          display_order: number
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       reconciliation_changes: {
         Row: {
           after_state: Json
@@ -5532,6 +5565,27 @@ export type Database = {
         Update: {
           id?: string
           ingredients?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_recipe_tools: {
+        Row: {
+          id: string
+          tools: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          tools?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          tools?: string[]
           updated_at?: string
           user_id?: string
         }

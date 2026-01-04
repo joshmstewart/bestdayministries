@@ -4,8 +4,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronLeft, ChevronRight, Sparkles, Loader2, RefreshCw, Wrench, Apple } from "lucide-react";
 import { RecipeIngredientSelector } from "./RecipeIngredientSelector";
+import { RecipeToolsSelector } from "./RecipeToolsSelector";
 import { RecipeSuggestions, RecipeSuggestion } from "./RecipeSuggestions";
 import { RecipeDisplay } from "./RecipeDisplay";
 
@@ -14,8 +16,8 @@ interface RecipeMakerWizardProps {
 }
 
 const STEPS = [
-  { key: "ingredients", title: "What Do You Have?", description: "Select ingredients you have - we'll remember them for next time!" },
-  { key: "suggestions", title: "Pick a Recipe", description: "Choose from these easy recipes you can make" },
+  { key: "setup", title: "What Do You Have?", description: "Select your ingredients and kitchen tools - we'll remember them!" },
+  { key: "suggestions", title: "Pick a Recipe", description: "Choose from recipes you can make with your tools" },
   { key: "recipe", title: "Let's Make It!", description: "Follow along step by step" },
 ];
 
@@ -23,7 +25,8 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [ingredients, setIngredients] = useState<string[]>([]);
-  const [isLoadingIngredients, setIsLoadingIngredients] = useState(true);
+  const [tools, setTools] = useState<string[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<RecipeSuggestion[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeSuggestion | null>(null);
@@ -36,35 +39,45 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
     imageUrl?: string;
   } | null>(null);
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
+  const [activeTab, setActiveTab] = useState<"ingredients" | "tools">("ingredients");
 
-  // Load saved ingredients on mount
+  // Load saved ingredients and tools on mount
   useEffect(() => {
-    const loadSavedIngredients = async () => {
+    const loadSavedData = async () => {
       try {
-        const { data, error } = await supabase
-          .from("user_recipe_ingredients")
-          .select("ingredients")
-          .eq("user_id", userId)
-          .maybeSingle();
+        const [ingredientsRes, toolsRes] = await Promise.all([
+          supabase
+            .from("user_recipe_ingredients")
+            .select("ingredients")
+            .eq("user_id", userId)
+            .maybeSingle(),
+          supabase
+            .from("user_recipe_tools")
+            .select("tools")
+            .eq("user_id", userId)
+            .maybeSingle(),
+        ]);
 
-        if (error) throw error;
-        if (data?.ingredients) {
-          setIngredients(data.ingredients);
+        if (ingredientsRes.data?.ingredients) {
+          setIngredients(ingredientsRes.data.ingredients);
+        }
+        if (toolsRes.data?.tools) {
+          setTools(toolsRes.data.tools);
         }
       } catch (error) {
-        console.error("Error loading saved ingredients:", error);
+        console.error("Error loading saved data:", error);
       } finally {
-        setIsLoadingIngredients(false);
+        setIsLoadingData(false);
       }
     };
 
-    loadSavedIngredients();
+    loadSavedData();
   }, [userId]);
 
   // Save ingredients whenever they change (debounced)
   const saveIngredients = useCallback(async (newIngredients: string[]) => {
     try {
-      const { error } = await supabase
+      await supabase
         .from("user_recipe_ingredients")
         .upsert({
           user_id: userId,
@@ -73,23 +86,40 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
         }, {
           onConflict: "user_id",
         });
-
-      if (error) throw error;
     } catch (error) {
       console.error("Error saving ingredients:", error);
     }
   }, [userId]);
 
-  // Debounced save effect
-  useEffect(() => {
-    if (isLoadingIngredients) return; // Don't save while initially loading
-    
-    const timeout = setTimeout(() => {
-      saveIngredients(ingredients);
-    }, 500);
+  // Save tools whenever they change (debounced)
+  const saveTools = useCallback(async (newTools: string[]) => {
+    try {
+      await supabase
+        .from("user_recipe_tools")
+        .upsert({
+          user_id: userId,
+          tools: newTools,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: "user_id",
+        });
+    } catch (error) {
+      console.error("Error saving tools:", error);
+    }
+  }, [userId]);
 
+  // Debounced save effects
+  useEffect(() => {
+    if (isLoadingData) return;
+    const timeout = setTimeout(() => saveIngredients(ingredients), 500);
     return () => clearTimeout(timeout);
-  }, [ingredients, isLoadingIngredients, saveIngredients]);
+  }, [ingredients, isLoadingData, saveIngredients]);
+
+  useEffect(() => {
+    if (isLoadingData) return;
+    const timeout = setTimeout(() => saveTools(tools), 500);
+    return () => clearTimeout(timeout);
+  }, [tools, isLoadingData, saveTools]);
 
   const generateSuggestions = async () => {
     if (ingredients.length === 0) {
@@ -101,10 +131,20 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
       return;
     }
 
+    if (tools.length === 0) {
+      toast({
+        title: "Select your kitchen tools",
+        description: "We need to know what equipment you have",
+        variant: "destructive",
+      });
+      setActiveTab("tools");
+      return;
+    }
+
     setIsLoadingSuggestions(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-recipe-suggestions", {
-        body: { ingredients },
+        body: { ingredients, tools },
       });
 
       if (error) throw error;
@@ -200,34 +240,63 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
       <CardContent className="space-y-6">
         {currentStep === 0 && (
           <div className="space-y-6">
-            {isLoadingIngredients ? (
+            {isLoadingData ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground">Loading your saved ingredients...</p>
+                <p className="text-muted-foreground">Loading your saved data...</p>
               </div>
             ) : (
               <>
-                {ingredients.length > 0 && (
+                {(ingredients.length > 0 || tools.length > 0) && (
                   <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                    ✨ We remembered your ingredients from last time! Just update what's changed.
+                    ✨ We remembered your selections from last time! Just update what's changed.
                   </p>
                 )}
-                <RecipeIngredientSelector 
-                  selectedIngredients={ingredients} 
-                  onToggle={(name) => {
-                    setIngredients(prev => 
-                      prev.includes(name) 
-                        ? prev.filter(i => i !== name)
-                        : [...prev, name]
-                    );
-                  }}
-                />
+                
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "ingredients" | "tools")}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="ingredients" className="gap-2">
+                      <Apple className="h-4 w-4" />
+                      Ingredients {ingredients.length > 0 && `(${ingredients.length})`}
+                    </TabsTrigger>
+                    <TabsTrigger value="tools" className="gap-2">
+                      <Wrench className="h-4 w-4" />
+                      Kitchen Tools {tools.length > 0 && `(${tools.length})`}
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="ingredients" className="mt-4">
+                    <RecipeIngredientSelector 
+                      selectedIngredients={ingredients} 
+                      onToggle={(name) => {
+                        setIngredients(prev => 
+                          prev.includes(name) 
+                            ? prev.filter(i => i !== name)
+                            : [...prev, name]
+                        );
+                      }}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="tools" className="mt-4">
+                    <RecipeToolsSelector
+                      selectedTools={tools}
+                      onToggle={(name) => {
+                        setTools(prev =>
+                          prev.includes(name)
+                            ? prev.filter(t => t !== name)
+                            : [...prev, name]
+                        );
+                      }}
+                    />
+                  </TabsContent>
+                </Tabs>
               </>
             )}
             
             <Button
               onClick={generateSuggestions}
-              disabled={isLoadingSuggestions || ingredients.length === 0 || isLoadingIngredients}
+              disabled={isLoadingSuggestions || ingredients.length === 0 || tools.length === 0 || isLoadingData}
               className="w-full"
               size="lg"
             >
@@ -243,6 +312,16 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                 </>
               )}
             </Button>
+            
+            {(ingredients.length === 0 || tools.length === 0) && !isLoadingData && (
+              <p className="text-xs text-center text-muted-foreground">
+                {ingredients.length === 0 && tools.length === 0 
+                  ? "Select ingredients and kitchen tools to get started"
+                  : ingredients.length === 0 
+                    ? "Select some ingredients first"
+                    : "Select your kitchen tools so we know what recipes you can make"}
+              </p>
+            )}
           </div>
         )}
 

@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { ingredients } = await req.json();
+    const { ingredients, tools } = await req.json();
 
     if (!ingredients || ingredients.length === 0) {
       return new Response(
@@ -25,14 +25,24 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Build tool constraints for the prompt
+    const toolsList = tools && tools.length > 0 ? tools.join(", ") : null;
+    const toolConstraint = toolsList 
+      ? `IMPORTANT: The person ONLY has these kitchen tools available: ${toolsList}. 
+         You MUST only suggest recipes that can be made using ONLY these tools.
+         For example, if they don't have an oven, don't suggest baked dishes.
+         If they only have a microwave, only suggest microwave recipes.`
+      : "Assume they have basic kitchen tools.";
+
     const systemPrompt = `You are a friendly cooking assistant for people with intellectual disabilities. 
 Your job is to suggest SIMPLE recipes that are:
 - Easy to follow with minimal steps
-- Use common kitchen tools (no complicated equipment)
 - Safe (avoid complex techniques like deep frying)
 - Fun and rewarding to make
 
-Given a list of ingredients, suggest 3-4 simple recipes they could make.
+${toolConstraint}
+
+Given a list of ingredients and available kitchen tools, suggest 3-4 simple recipes they could make.
 Focus on familiar, comforting foods that are hard to mess up.
 
 You MUST respond with a JSON object in this exact format:
@@ -43,12 +53,17 @@ You MUST respond with a JSON object in this exact format:
       "description": "A short, friendly description (1-2 sentences)",
       "difficulty": "easy" or "medium",
       "timeEstimate": "time like '15 mins' or '30 mins'",
-      "emoji": "a single emoji that represents this dish"
+      "emoji": "a single emoji that represents this dish",
+      "toolsNeeded": ["list", "of", "tools", "needed"]
     }
   ]
 }
 
 Only return the JSON, no other text.`;
+
+    const userMessage = toolsList
+      ? `I have these ingredients: ${ingredients.join(", ")}. My kitchen tools are: ${toolsList}. What simple things can I make with just these tools?`
+      : `I have these ingredients: ${ingredients.join(", ")}. What simple things can I make?`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -60,7 +75,7 @@ Only return the JSON, no other text.`;
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I have these ingredients: ${ingredients.join(", ")}. What simple things can I make?` },
+          { role: "user", content: userMessage },
         ],
       }),
     });
