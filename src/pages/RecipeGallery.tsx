@@ -6,7 +6,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Heart, BookOpen, ChefHat, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Heart, BookOpen, ChefHat, Loader2, BookmarkPlus } from "lucide-react";
 import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog";
 
 interface PublicRecipe {
@@ -19,6 +20,7 @@ interface PublicRecipe {
   tips: string[];
   image_url: string | null;
   likes_count: number;
+  saves_count: number;
   created_at: string;
 }
 
@@ -36,6 +38,8 @@ interface SavedRecipe {
   created_at: string;
 }
 
+type SortOption = "newest" | "most_saved" | "most_liked";
+
 const RecipeGallery = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<{ id: string } | null>(null);
@@ -45,18 +49,18 @@ const RecipeGallery = () => {
   const [userIngredients, setUserIngredients] = useState<string[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<PublicRecipe | SavedRecipe | null>(null);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<SortOption>("most_saved");
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
-      // Load public recipes
+      // Load public recipes - we'll sort client-side based on sortBy
       const { data: publicData } = await supabase
         .from("public_recipes")
         .select("*")
-        .eq("is_active", true)
-        .order("likes_count", { ascending: false });
+        .eq("is_active", true);
 
       setPublicRecipes(publicData || []);
 
@@ -93,6 +97,20 @@ const RecipeGallery = () => {
 
     load();
   }, []);
+
+  // Sort recipes based on selected option
+  const sortedRecipes = [...publicRecipes].sort((a, b) => {
+    switch (sortBy) {
+      case "newest":
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "most_saved":
+        return (b.saves_count || 0) - (a.saves_count || 0);
+      case "most_liked":
+        return (b.likes_count || 0) - (a.likes_count || 0);
+      default:
+        return 0;
+    }
+  });
 
   const toggleLike = async (recipeId: string) => {
     if (!user) {
@@ -187,18 +205,33 @@ const RecipeGallery = () => {
                 <p>No recipes shared yet. Be the first to share one!</p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {publicRecipes.map(recipe => (
-                  <RecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    userIngredients={userIngredients}
-                    isLiked={userLikes.has(recipe.id)}
-                    onLike={() => toggleLike(recipe.id)}
-                    onClick={() => setSelectedRecipe(recipe)}
-                  />
-                ))}
-              </div>
+              <>
+                {/* Sort selector */}
+                <div className="flex justify-end">
+                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Sort by..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="most_saved">Most Saved</SelectItem>
+                      <SelectItem value="newest">Newest</SelectItem>
+                      <SelectItem value="most_liked">Most Liked</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {sortedRecipes.map(recipe => (
+                    <RecipeCard
+                      key={recipe.id}
+                      recipe={recipe}
+                      userIngredients={userIngredients}
+                      isLiked={userLikes.has(recipe.id)}
+                      onLike={() => toggleLike(recipe.id)}
+                      onClick={() => setSelectedRecipe(recipe)}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </TabsContent>
 
@@ -289,9 +322,15 @@ const RecipeCard = ({ recipe, userIngredients, isLiked, onLike, onClick }: Recip
         <h3 className="font-semibold mb-1 line-clamp-1">{recipe.title}</h3>
         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{recipe.description}</p>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            {recipe.ingredients.length} ingredients
-          </span>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>{recipe.ingredients.length} ingredients</span>
+            {recipe.saves_count > 0 && (
+              <span className="flex items-center gap-1">
+                <BookmarkPlus className="h-3 w-3" />
+                {recipe.saves_count}
+              </span>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="sm"

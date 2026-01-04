@@ -4019,6 +4019,7 @@ export type Database = {
           ingredients: string[]
           is_active: boolean
           likes_count: number
+          saves_count: number
           steps: string[]
           tips: string[] | null
           title: string
@@ -4033,6 +4034,7 @@ export type Database = {
           ingredients?: string[]
           is_active?: boolean
           likes_count?: number
+          saves_count?: number
           steps?: string[]
           tips?: string[] | null
           title: string
@@ -4047,6 +4049,7 @@ export type Database = {
           ingredients?: string[]
           is_active?: boolean
           likes_count?: number
+          saves_count?: number
           steps?: string[]
           tips?: string[] | null
           title?: string
