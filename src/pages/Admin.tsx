@@ -77,6 +77,7 @@ import { RecipeIngredientsManager } from "@/components/admin/RecipeIngredientsMa
 import { RecipeToolsManager } from "@/components/admin/RecipeToolsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
+import { PicturePasswordImagesViewer } from "@/components/admin/PicturePasswordImagesViewer";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -734,6 +735,7 @@ const Admin = () => {
                     <TabsTrigger value="social-sharing">Social Sharing</TabsTrigger>
                     <TabsTrigger value="static-meta">Static Meta Tags</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
+                    <TabsTrigger value="picture-passwords">Picture Passwords</TabsTrigger>
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
                     <TabsTrigger value="coins">Coins</TabsTrigger>
                     <TabsTrigger value="store">Store Items</TabsTrigger>
@@ -776,6 +778,10 @@ const Admin = () => {
                         </div>
                       </CardContent>
                     </Card>
+                  </TabsContent>
+
+                  <TabsContent value="picture-passwords">
+                    <PicturePasswordImagesViewer />
                   </TabsContent>
 
                   <TabsContent value="tts">
