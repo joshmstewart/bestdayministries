@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, ChevronRight, Lightbulb, ShoppingBasket, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RecipeActions } from "./RecipeActions";
+import { TextToSpeech } from "@/components/TextToSpeech";
 import confetti from "canvas-confetti";
 
 interface RecipeDisplayProps {
@@ -43,6 +44,19 @@ export const RecipeDisplay = ({ recipe, userId }: RecipeDisplayProps) => {
 
   const allStepsCompleted = completedSteps.size === recipe.steps.length && recipe.steps.length > 0;
 
+  // Construct TTS text for the full recipe
+  const ttsText = useMemo(() => {
+    const parts = [
+      recipe.title,
+      recipe.description,
+      recipe.safetyNotes?.length ? `Things that might need help: ${recipe.safetyNotes.join('. ')}` : '',
+      `Ingredients: ${recipe.ingredients.join(', ')}`,
+      `Steps: ${recipe.steps.map((step, i) => `Step ${i + 1}: ${step}`).join('. ')}`,
+      recipe.tips?.length ? `Helpful tips: ${recipe.tips.join('. ')}` : ''
+    ];
+    return parts.filter(Boolean).join('. ');
+  }, [recipe]);
+
   // Trigger confetti when all steps are completed
   useEffect(() => {
     if (allStepsCompleted && !hasTriggeredConfetti.current) {
@@ -72,7 +86,10 @@ export const RecipeDisplay = ({ recipe, userId }: RecipeDisplayProps) => {
     <div className="space-y-6">
       {/* Recipe header with image */}
       <div className="text-center space-y-4">
-        <h2 className="text-2xl font-bold text-primary">{recipe.title}</h2>
+        <div className="flex items-center justify-center gap-3">
+          <h2 className="text-2xl font-bold text-primary">{recipe.title}</h2>
+          <TextToSpeech text={ttsText} size="default" />
+        </div>
         <p className="text-muted-foreground">{recipe.description}</p>
         
         {recipe.imageUrl && (

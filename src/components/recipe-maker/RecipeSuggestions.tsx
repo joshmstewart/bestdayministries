@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChefHat, Clock, Sparkles } from "lucide-react";
+import { ChefHat, Clock } from "lucide-react";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 export interface RecipeSuggestion {
   name: string;
@@ -34,7 +34,13 @@ export const RecipeSuggestions = ({ suggestions, onSelect }: RecipeSuggestionsPr
               <div className="flex items-start gap-4">
                 <div className="text-4xl">{recipe.emoji}</div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg mb-1">{recipe.name}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-lg">{recipe.name}</h3>
+                    <TextToSpeech 
+                      text={`${recipe.name}. ${recipe.description}. Difficulty: ${recipe.difficulty}. Time: ${recipe.timeEstimate}`}
+                      size="icon"
+                    />
+                  </div>
                   <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                     {recipe.description}
                   </p>

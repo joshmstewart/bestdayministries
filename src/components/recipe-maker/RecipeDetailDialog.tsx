@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
+import { TextToSpeech } from "@/components/TextToSpeech";
 import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw, Users } from "lucide-react";
 
 interface Recipe {
@@ -110,6 +110,19 @@ export const RecipeDetailDialog = ({
 
   const haveToolsCount = toolMatches.filter((m) => m.hasTool).length;
   const needToolsCount = toolMatches.filter((m) => !m.hasTool).length;
+
+  // Construct TTS text for the full recipe
+  const ttsText = useMemo(() => {
+    const parts = [
+      recipe.title,
+      recipe.description || '',
+      `Ingredients: ${recipe.ingredients.join(', ')}`,
+      recipeTools.length ? `Tools needed: ${recipeTools.join(', ')}` : '',
+      `Steps: ${recipe.steps.map((step, i) => `Step ${i + 1}: ${step}`).join('. ')}`,
+      recipe.tips?.length ? `Tips: ${recipe.tips.join('. ')}` : ''
+    ];
+    return parts.filter(Boolean).join('. ');
+  }, [recipe, recipeTools]);
 
   const addToCookbook = async () => {
     if (!userId) {
@@ -241,7 +254,10 @@ export const RecipeDetailDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">{recipe.title}</DialogTitle>
+          <div className="flex items-center gap-3">
+            <DialogTitle className="text-xl">{recipe.title}</DialogTitle>
+            <TextToSpeech text={ttsText} size="default" />
+          </div>
         </DialogHeader>
 
         <div className="pr-4">
