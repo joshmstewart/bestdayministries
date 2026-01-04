@@ -2673,15 +2673,16 @@ export const StickerCollectionManager = () => {
                     <p className="text-sm text-muted-foreground">Adjust percentages for each rarity level. Must sum to 100%.</p>
 
                     <div className="grid grid-cols-5 gap-3">
-                      {Object.entries(editingCollection.rarity_percentages || {
-                        common: 50,
-                        uncommon: 30,
-                        rare: 15,
-                        epic: 4,
-                        legendary: 1
-                      }).map(([rarity, value]) => {
+                      {(['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((rarity) => {
+                        const rarityPercentages = editingCollection.rarity_percentages || {
+                          common: 50,
+                          uncommon: 30,
+                          rare: 15,
+                          epic: 4,
+                          legendary: 1
+                        };
                         const stickerCount = editingCollectionStickerCounts[rarity] || 0;
-                        const tierPercentage = Number(value) || 0;
+                        const tierPercentage = Number(rarityPercentages[rarity]) || 0;
                         const perStickerRate = stickerCount > 0 ? (tierPercentage / stickerCount).toFixed(2) : null;
                         
                         return (
