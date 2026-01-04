@@ -23,8 +23,8 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Generate a prompt for the food ingredient icon
-    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName} (food ingredient). Image must be exactly 256x256 pixels with equal width and height. Simple flat illustration style. Show BOTH the typical packaging/container (jar, bag, box, bottle, carton, etc.) AND a small pile or portion of the ingredient together - this helps users identify what the item is from its common store-bought form. Solid single-color background filling entire square canvas edge-to-edge. Sharp 90-degree corners, no rounded frames or borders. No text, no gradients, minimal shadows. Center the items within the square frame. Make it look appetizing and easily recognizable. Category: ${category}.`;
+    // Generate a prompt for the food ingredient icon - show realistic forms
+    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName} (food ingredient). Image must be exactly 256x256 pixels. Simple flat illustration style. Show how this ingredient ACTUALLY appears in real life - for example: lemons as fresh whole lemons OR a lemon juice bottle, peaches as fresh peaches AND/OR canned peaches, raisins in a box with some spilled out, cheese as a wedge or slices, bottled sauces in their typical bottle shape, boxed items in their box form, bagged items with the bag visible. Show the most recognizable real-world form that someone would see in their kitchen or grocery store. Solid single-color background. Sharp corners, no frames or borders. No text labels, minimal shadows. Center the items within the square frame. Make it look appetizing and instantly recognizable. Category: ${category}.`;
 
     console.log("Generating icon for recipe ingredient:", ingredientName);
     console.log("Prompt:", iconPrompt);
