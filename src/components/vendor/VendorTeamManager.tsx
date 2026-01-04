@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Crown, Shield, User, Mail, Clock, CheckCircle, XCircle } from "lucide-react";
+import { UserPlus, Trash2, Crown, Shield, User, Mail, Clock, CheckCircle, XCircle, Check } from "lucide-react";
 import { format } from "date-fns";
 
 interface VendorTeamManagerProps {
@@ -37,7 +37,8 @@ interface TeamMember {
 export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
   const queryClient = useQueryClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [inviteRole, setInviteRole] = useState<TeamRole>("staff");
 
   // Fetch current user
@@ -77,6 +78,29 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
     },
   });
 
+  // Fetch all users for search
+  const { data: allUsers } = useQuery({
+    queryKey: ["all-users-for-team"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name, email")
+        .order("display_name", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: inviteDialogOpen,
+  });
+
+  // Filter out existing team members and current user
+  const availableUsers = useMemo(() => {
+    if (!allUsers) return [];
+    const existingUserIds = new Set(teamMembers?.map(m => m.user_id) || []);
+    return allUsers.filter(u => !existingUserIds.has(u.id) && u.id !== currentUser?.id);
+  }, [allUsers, teamMembers, currentUser?.id]);
+
+  const selectedUser = availableUsers.find(u => u.id === selectedUserId);
+
   // Check if current user is owner
   const isOwner = teamMembers?.some(
     m => m.user_id === currentUser?.id && m.role === "owner"
@@ -84,39 +108,16 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
 
   // Invite team member mutation
   const inviteMutation = useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: TeamRole }) => {
-      // Find user by email
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", email)
-        .single();
-
-      if (profileError || !profile) {
-        throw new Error("User not found. They must have an account first.");
-      }
-
-      // Check if already a team member
-      const { data: existing } = await supabase
-        .from("vendor_team_members")
-        .select("id")
-        .eq("vendor_id", vendorId)
-        .eq("user_id", profile.id)
-        .single();
-
-      if (existing) {
-        throw new Error("User is already a team member.");
-      }
-
-      // Add team member
+    mutationFn: async ({ userId, role }: { userId: string; role: TeamRole }) => {
+      // Add team member directly with selected user ID
       const { error } = await supabase
         .from("vendor_team_members")
         .insert({
           vendor_id: vendorId,
-          user_id: profile.id,
+          user_id: userId,
           role,
           invited_by: currentUser?.id,
-          accepted_at: new Date().toISOString(), // Auto-accept for now
+          accepted_at: new Date().toISOString(),
         });
 
       if (error) throw error;
@@ -124,8 +125,10 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
     onSuccess: () => {
       toast.success("Team member added successfully");
       queryClient.invalidateQueries({ queryKey: ["vendor-team-members", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["all-users-for-team"] });
       setInviteDialogOpen(false);
-      setInviteEmail("");
+      setSelectedUserId(null);
+      setSearchQuery("");
       setInviteRole("staff");
     },
     onError: (error: any) => {
@@ -225,17 +228,53 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="member@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    The user must already have an account
-                  </p>
+                  <Label>Select User</Label>
+                  <Command className="border rounded-md">
+                    <CommandInput 
+                      placeholder="Search by name..." 
+                      value={searchQuery}
+                      onValueChange={setSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No users found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableUsers
+                          .filter(u => 
+                            u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                          )
+                          .slice(0, 10)
+                          .map((user) => (
+                            <CommandItem
+                              key={user.id}
+                              value={user.display_name || user.email || user.id}
+                              onSelect={() => setSelectedUserId(user.id)}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 flex-1">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <User className="h-4 w-4 text-primary" />
+                                </div>
+                                <div>
+                                  <div className="font-medium">{user.display_name || "Unknown"}</div>
+                                  <div className="text-xs text-muted-foreground">{user.email}</div>
+                                </div>
+                              </div>
+                              {selectedUserId === user.id && (
+                                <Check className="h-4 w-4 text-primary" />
+                              )}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                  {selectedUser && (
+                    <div className="flex items-center gap-2 p-2 bg-primary/5 rounded-md border border-primary/20">
+                      <Check className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">{selectedUser.display_name}</span>
+                      <span className="text-xs text-muted-foreground">({selectedUser.email})</span>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-3">
                   <Label>Role</Label>
@@ -335,8 +374,8 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
                 
                 <Button
                   className="w-full"
-                  onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
-                  disabled={!inviteEmail || inviteMutation.isPending}
+                  onClick={() => selectedUserId && inviteMutation.mutate({ userId: selectedUserId, role: inviteRole })}
+                  disabled={!selectedUserId || inviteMutation.isPending}
                 >
                   {inviteMutation.isPending ? "Adding..." : "Add Team Member"}
                 </Button>
