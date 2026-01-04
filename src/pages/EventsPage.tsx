@@ -186,7 +186,8 @@ export default function EventsPage() {
       
       if (isUpcoming) {
         upcomingEventCards.push(card);
-      } else if (!event.expires_after_date) {
+      } else {
+        // Show all past events in the Past Events section
         pastEventCards.push(card);
       }
     });
