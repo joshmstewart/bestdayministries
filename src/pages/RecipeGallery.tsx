@@ -409,6 +409,16 @@ const RecipeCard = ({ recipe, userIngredients, isInCookbook, onAddToCookbook, on
     return cleaned;
   };
 
+  // Normalize to singular form for better matching
+  const toSingular = (word: string) => {
+    if (word.endsWith('ies')) return word.slice(0, -3) + 'y';
+    if (word.endsWith('es') && (word.endsWith('shes') || word.endsWith('ches') || word.endsWith('xes') || word.endsWith('ses') || word.endsWith('zes'))) {
+      return word.slice(0, -2);
+    }
+    if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+    return word;
+  };
+
   const matchingCount = recipe.ingredients.filter((recipeIng) => {
     const normalizedRecipe = normalizeIngredient(recipeIng);
     if (normalizedRecipe === "water" || normalizedRecipe.includes(" water") || normalizedRecipe.includes("water ")) {
@@ -416,7 +426,12 @@ const RecipeCard = ({ recipe, userIngredients, isInCookbook, onAddToCookbook, on
     }
     return userIngredients.some((userIng) => {
       const normalizedUser = userIng.toLowerCase().trim();
-      return normalizedRecipe.includes(normalizedUser) || normalizedUser.includes(normalizedRecipe);
+      const singularRecipe = toSingular(normalizedRecipe);
+      const singularUser = toSingular(normalizedUser);
+      return normalizedRecipe.includes(normalizedUser) || 
+             normalizedUser.includes(normalizedRecipe) ||
+             singularRecipe.includes(singularUser) ||
+             singularUser.includes(singularRecipe);
     });
   }).length;
 

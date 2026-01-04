@@ -65,15 +65,32 @@ export const RecipeDetailDialog = ({
     return /\bwater\b/i.test(ingredient);
   };
 
+  // Normalize to singular form for better matching
+  const toSingular = (word: string) => {
+    if (word.endsWith('ies')) return word.slice(0, -3) + 'y';
+    if (word.endsWith('es') && (word.endsWith('shes') || word.endsWith('ches') || word.endsWith('xes') || word.endsWith('ses') || word.endsWith('zes'))) {
+      return word.slice(0, -2);
+    }
+    if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+    return word;
+  };
+
   // Categorize ingredients
   const ingredientMatches = recipe.ingredients.map((ing) => {
     if (isAssumedAvailableIngredient(ing)) {
       return { ingredient: ing, hasIt: true };
     }
 
-    const hasIt = userIngredients.some(
-      (ui) => ing.toLowerCase().includes(ui.toLowerCase()) || ui.toLowerCase().includes(ing.toLowerCase()),
-    );
+    const hasIt = userIngredients.some((ui) => {
+      const ingLower = ing.toLowerCase();
+      const uiLower = ui.toLowerCase();
+      const singularIng = toSingular(ingLower);
+      const singularUi = toSingular(uiLower);
+      return ingLower.includes(uiLower) || 
+             uiLower.includes(ingLower) ||
+             singularIng.includes(singularUi) ||
+             singularUi.includes(singularIng);
+    });
     return { ingredient: ing, hasIt };
   });
 
