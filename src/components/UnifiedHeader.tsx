@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HeaderSkeleton } from "@/components/HeaderSkeleton";
@@ -21,6 +20,7 @@ import { useSponsorUnreadCount } from "@/hooks/useSponsorUnreadCount";
 import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useMessagesCount } from "@/hooks/useMessagesCount";
+import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Database } from "@/integrations/supabase/types";
+import type { UserRole as ImpersonationRole } from "@/hooks/useRoleImpersonation";
 
 type UserRole = Database['public']['Enums']['user_role'];
 
@@ -42,10 +43,10 @@ export const UnifiedHeader = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { coins } = useCoins();
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
+  
+  // Use centralized auth context
+  const { user, profile: authProfile, role, isAdmin: authIsAdmin, isAuthenticated, loading: authLoading } = useAuth();
+  
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isTestAccount, setIsTestAccount] = useState(false);
   const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
@@ -64,6 +65,18 @@ export const UnifiedHeader = () => {
   const { canModerate } = useUserPermissions();
   const [hasStoreAccess, setHasStoreAccess] = useState(false);
   const [isApprovedVendor, setIsApprovedVendor] = useState(false);
+  
+  // Derive profile with role for compatibility with rest of component
+  const profileRole: UserRole = (role as UserRole) || 'supporter';
+  const profile = authProfile ? { ...authProfile, role: profileRole } : null;
+  
+  // Derive isAdmin considering impersonation
+  // Cast to ImpersonationRole which is a subset of valid roles for UI impersonation
+  const impersonationCompatibleRole = ['admin', 'owner', 'caregiver', 'bestie', 'supporter'].includes(profileRole) 
+    ? profileRole as ImpersonationRole 
+    : 'supporter' as ImpersonationRole;
+  const effectiveRole = profile ? getEffectiveRole(impersonationCompatibleRole) : null;
+  const isAdmin = effectiveRole === "admin" || effectiveRole === "owner";
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -86,22 +99,21 @@ export const UnifiedHeader = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Consolidated initialization effect with retry logic
+  // Load header data (logo, nav links) and additional user-specific data
   useEffect(() => {
     let mounted = true;
     let retryTimeout: NodeJS.Timeout;
 
     const initializeHeader = async () => {
       try {
-        // Load all data in parallel for better performance
-        const [logoResult, navResult, authResult] = await Promise.allSettled([
+        // Load logo and nav links in parallel (auth is handled by AuthContext)
+        const [logoResult, navResult] = await Promise.allSettled([
           loadLogo(),
-          loadNavLinks(),
-          checkUser()
+          loadNavLinks()
         ]);
 
         // Check for failures and retry if needed
-        const hasFailures = [logoResult, navResult, authResult].some(
+        const hasFailures = [logoResult, navResult].some(
           result => result.status === 'rejected'
         );
 
@@ -109,7 +121,7 @@ export const UnifiedHeader = () => {
           console.warn('Header initialization had failures, retrying...', { retryCount });
           retryTimeout = setTimeout(() => {
             setRetryCount(prev => prev + 1);
-          }, 1000 * Math.pow(2, retryCount)); // Exponential backoff
+          }, 1000 * Math.pow(2, retryCount));
         } else if (mounted) {
           setDataLoaded(true);
         }
@@ -125,22 +137,6 @@ export const UnifiedHeader = () => {
 
     initializeHeader();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => {
-          if (mounted) setAuthLoading(false);
-        });
-      } else {
-        setProfile(null);
-        setIsAdmin(false);
-        setAuthLoading(false);
-      }
-    });
-
     // Subscribe to navigation links changes
     const navSubscription = supabase
       .channel('navigation_links_changes')
@@ -152,10 +148,65 @@ export const UnifiedHeader = () => {
     return () => {
       mounted = false;
       clearTimeout(retryTimeout);
-      subscription.unsubscribe();
       navSubscription.unsubscribe();
     };
   }, [retryCount]);
+
+  // Load additional user-specific data when user/profile changes
+  useEffect(() => {
+    if (!user || !profile) return;
+
+    const loadUserSpecificData = async () => {
+      try {
+        // Check store access, vendor status, and shared sponsorships in parallel
+        const [storeResult, vendorResult, sharesResult] = await Promise.allSettled([
+          supabase
+            .from("store_items")
+            .select("id, visible_to_roles")
+            .eq("is_active", true)
+            .limit(1),
+          supabase
+            .from("vendors")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("status", "approved")
+            .limit(1),
+          profile.role === "bestie" 
+            ? supabase
+                .from("sponsorship_shares")
+                .select("id")
+                .eq("bestie_id", user.id)
+                .limit(1)
+            : Promise.resolve({ data: [] })
+        ]);
+
+        // Process store access
+        if (storeResult.status === 'fulfilled' && storeResult.value.data) {
+          const hasVisibleItems = storeResult.value.data.some((item: any) => {
+            if (isAdmin) return true;
+            const visibleRoles = item.visible_to_roles;
+            if (!visibleRoles || visibleRoles.length === 0) return true;
+            return visibleRoles.includes(profile.role);
+          });
+          setHasStoreAccess(hasVisibleItems || isAdmin);
+        }
+
+        // Process vendor status
+        if (vendorResult.status === 'fulfilled') {
+          setIsApprovedVendor((vendorResult.value.data?.length ?? 0) > 0);
+        }
+
+        // Process shared sponsorships
+        if (sharesResult.status === 'fulfilled' && profile.role === "bestie") {
+          setHasSharedSponsorships(((sharesResult.value as any).data?.length ?? 0) > 0);
+        }
+      } catch (error) {
+        console.error("Error loading user-specific data:", error);
+      }
+    };
+
+    loadUserSpecificData();
+  }, [user, profile, isAdmin]);
 
   // Check if Games tab is visible to current user
   const isGamesVisible = () => {
@@ -167,17 +218,8 @@ export const UnifiedHeader = () => {
     );
     if (!gamesLink) return false;
     if (!gamesLink.visible_to_roles || gamesLink.visible_to_roles.length === 0) return true;
-    return gamesLink.visible_to_roles.includes(profile.role);
+    return gamesLink.visible_to_roles.includes(profile.role as UserRole);
   };
-
-  // Update admin status when impersonation changes
-  useEffect(() => {
-    if (profile) {
-      const effectiveRole = getEffectiveRole(profile.role);
-      // Check for admin-level access (owner role automatically has admin access)
-      setIsAdmin(effectiveRole === "admin" || effectiveRole === "owner");
-    }
-  }, [isImpersonating, profile, getEffectiveRole]);
 
   const loadLogo = async () => {
     try {
@@ -235,106 +277,6 @@ export const UnifiedHeader = () => {
     }
   };
 
-
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-      }
-    } catch (error) {
-      console.error("Error checking user:", error);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      // Fetch profile data
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-        return;
-      }
-
-      // Fetch actual role from user_roles table (security requirement)
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .single();
-
-      if (roleError && roleError.code !== 'PGRST116') {
-        console.error("Error fetching role:", roleError);
-      }
-
-      // Combine profile with actual role from user_roles
-      const profile = {
-        ...profileData,
-        role: roleData?.role || "supporter"
-      };
-
-      setProfile(profile);
-      setIsAdmin(profile.role === "admin" || profile.role === "owner");
-      
-      // Note: Test account checking removed as email is no longer stored in profiles
-      setIsTestAccount(false);
-
-      // Check if any store items are visible to this user's role
-      const { data: storeItems, error: storeError } = await supabase
-        .from("store_items")
-        .select("id, visible_to_roles")
-        .eq("is_active", true)
-        .limit(1);
-
-      if (!storeError && storeItems) {
-        const hasVisibleItems = storeItems.some(item => {
-          // Admin/owner can always see store
-          if (profile.role === "admin" || profile.role === "owner") return true;
-          // Check if item is visible to user's role
-          const visibleRoles = (item as any).visible_to_roles;
-          if (!visibleRoles || visibleRoles.length === 0) return true;
-          return visibleRoles.includes(profile.role);
-        });
-        setHasStoreAccess(hasVisibleItems || profile.role === "admin" || profile.role === "owner");
-      }
-
-      // Check if user is an approved vendor
-      // NOTE: A user may (rarely) have multiple vendor rows (e.g. duplicates), so avoid maybeSingle().
-      const { data: vendorRows, error: vendorError } = await supabase
-        .from("vendors")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("status", "approved")
-        .limit(1);
-
-      if (vendorError) {
-        console.warn("Vendor check error:", vendorError);
-      }
-
-      setIsApprovedVendor((vendorRows?.length ?? 0) > 0);
-      // Check if bestie has shared sponsorships
-      if (profile.role === "bestie") {
-        const { data: shares } = await supabase
-          .from("sponsorship_shares")
-          .select("id")
-          .eq("bestie_id", userId)
-          .limit(1);
-        
-        setHasSharedSponsorships((shares?.length ?? 0) > 0);
-      }
-    } catch (error) {
-      console.error("Error in fetchProfile:", error);
-    }
-  };
 
   const handleReturnToAdmin = async () => {
     // Clear any stored backup
@@ -588,7 +530,7 @@ export const UnifiedHeader = () => {
                             .filter(link => !link.parent_id)
                             .filter(link => {
                               if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
-                              return link.visible_to_roles.includes(profile?.role || '');
+                              return link.visible_to_roles.includes(profileRole);
                             })
                             .map((link) => {
                               const isExternal = link.href.startsWith('http');
@@ -626,7 +568,7 @@ export const UnifiedHeader = () => {
                                     {children
                                       .filter(child => {
                                         if (!child.visible_to_roles || child.visible_to_roles.length === 0) return true;
-                                        return child.visible_to_roles.includes(profile?.role || '');
+                                        return child.visible_to_roles.includes(profileRole);
                                       })
                                       .map((child) => {
                                         const isChildExternal = child.href.startsWith('http');
@@ -738,7 +680,7 @@ export const UnifiedHeader = () => {
                       .filter(link => !link.parent_id)
                       .filter(link => {
                         if (!link.visible_to_roles || link.visible_to_roles.length === 0) return true;
-                        return link.visible_to_roles.includes(profile?.role || '');
+                        return link.visible_to_roles.includes(profileRole);
                       })
                       .map((link) => {
                         const children = navLinks.filter(child => child.parent_id === link.id);
@@ -780,7 +722,7 @@ export const UnifiedHeader = () => {
                                   {children
                                     .filter(child => {
                                       if (!child.visible_to_roles || child.visible_to_roles.length === 0) return true;
-                                      return child.visible_to_roles.includes(profile?.role || '');
+                                      return child.visible_to_roles.includes(profileRole);
                                     })
                                     .map((child) => {
                                       if (child.href.startsWith('http')) {
