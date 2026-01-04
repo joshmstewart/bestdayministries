@@ -32,8 +32,9 @@ export const TextToSpeech = ({
 
   useEffect(() => {
     const loadUserVoice = async () => {
+      // Don't mark as loaded until we have a user - wait for auth context
       if (!user) {
-        setSettingsLoaded(true);
+        // Keep settingsLoaded false so we wait for user
         return;
       }
 
