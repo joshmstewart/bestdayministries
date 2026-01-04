@@ -66,14 +66,43 @@ const VendorDashboard = () => {
         return;
       }
 
-      const { data: vendorData, error } = await supabase
-        .from('vendors')
-        .select('id, status, business_name')
+      // Check if user is admin/owner
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .maybeSingle();
+      
+      const isAdminOrOwner = roleData?.role && ['admin', 'owner'].includes(roleData.role);
 
-      if (!error && vendorData && vendorData.length > 0) {
-        setVendors(vendorData as Vendor[]);
+      let vendorData: Vendor[] = [];
+
+      if (isAdminOrOwner) {
+        // Admins/owners can see ALL approved vendors
+        const { data, error } = await supabase
+          .from('vendors')
+          .select('id, status, business_name')
+          .eq('status', 'approved')
+          .order('business_name', { ascending: true });
+        
+        if (!error && data) {
+          vendorData = data as Vendor[];
+        }
+      } else {
+        // Regular users only see their own vendors
+        const { data, error } = await supabase
+          .from('vendors')
+          .select('id, status, business_name')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (!error && data) {
+          vendorData = data as Vendor[];
+        }
+      }
+
+      if (vendorData.length > 0) {
+        setVendors(vendorData);
         
         // Select the first approved vendor, or first vendor if none approved
         const approvedVendor = vendorData.find(v => v.status === 'approved');
