@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, ChevronRight, Lightbulb, ShoppingBasket } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RecipeActions } from "./RecipeActions";
 
 interface RecipeDisplayProps {
   recipe: {
@@ -14,9 +14,10 @@ interface RecipeDisplayProps {
     tips: string[];
     imageUrl?: string;
   };
+  userId?: string;
 }
 
-export const RecipeDisplay = ({ recipe }: RecipeDisplayProps) => {
+export const RecipeDisplay = ({ recipe, userId }: RecipeDisplayProps) => {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [currentStep, setCurrentStep] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -136,6 +137,11 @@ export const RecipeDisplay = ({ recipe }: RecipeDisplayProps) => {
           })}
         </div>
       </div>
+
+      {/* Recipe Actions */}
+      {userId && (
+        <RecipeActions recipe={recipe} userId={userId} />
+      )}
 
       {/* Completion celebration */}
       {allStepsCompleted && (

@@ -281,7 +281,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                 </p>
               </div>
             ) : fullRecipe ? (
-              <RecipeDisplay recipe={fullRecipe} />
+              <RecipeDisplay recipe={fullRecipe} userId={userId} />
             ) : null}
             
             <div className="flex gap-3">
