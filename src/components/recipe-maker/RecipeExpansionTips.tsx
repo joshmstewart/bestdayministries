@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lightbulb, Loader2, ChefHat, UtensilsCrossed, RefreshCw } from "lucide-react";
+import { Lightbulb, Loader2, ChefHat, UtensilsCrossed, RefreshCw, Plus, ShoppingCart, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,12 +24,24 @@ interface RecipeExpansionTipsProps {
   userId?: string;
   showTitle?: boolean;
   compact?: boolean;
+  onIngredientAdded?: (name: string) => void;
+  onToolAdded?: (name: string) => void;
 }
 
-export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = false, compact = false }: RecipeExpansionTipsProps) {
+export function RecipeExpansionTips({ 
+  ingredients, 
+  tools, 
+  userId, 
+  showTitle = false, 
+  compact = false,
+  onIngredientAdded,
+  onToolAdded 
+}: RecipeExpansionTipsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [ingredientTips, setIngredientTips] = useState<IngredientTip[]>([]);
   const [toolTips, setToolTips] = useState<ToolTip[]>([]);
+  const [dismissedIngredients, setDismissedIngredients] = useState<string[]>([]);
+  const [dismissedTools, setDismissedTools] = useState<string[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
   const { toast } = useToast();
@@ -105,6 +117,8 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
       if (!error && data) {
         setIngredientTips((data.ingredient_tips as unknown as IngredientTip[]) || []);
         setToolTips((data.tool_tips as unknown as ToolTip[]) || []);
+        setDismissedIngredients((data.dismissed_ingredients as string[]) || []);
+        setDismissedTools((data.dismissed_tools as string[]) || []);
         setLastGenerated(new Date(data.last_generated_at));
         setHasLoaded(true);
         isInitialLoad.current = false;
@@ -145,6 +159,132 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
     return () => clearTimeout(timeout);
   }, [ingredients, tools, generateTips]);
 
+  const addToInventory = async (tip: IngredientTip | ToolTip, type: 'ingredient' | 'tool') => {
+    if (!userId) {
+      toast({ title: "Please sign in to save items", variant: "destructive" });
+      return;
+    }
+
+    try {
+      if (type === 'ingredient') {
+        // Add to user's ingredients
+        const { data: existing } = await supabase
+          .from("user_recipe_ingredients")
+          .select("ingredients")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        const currentIngredients = existing?.ingredients || [];
+        if (!currentIngredients.includes(tip.name)) {
+          await supabase
+            .from("user_recipe_ingredients")
+            .upsert({
+              user_id: userId,
+              ingredients: [...currentIngredients, tip.name],
+              updated_at: new Date().toISOString()
+            }, { onConflict: "user_id" });
+        }
+        
+        // Remove from tips
+        setIngredientTips(prev => prev.filter(t => t.name !== tip.name));
+        onIngredientAdded?.(tip.name);
+        toast({ title: `${tip.name} added to your inventory!` });
+      } else {
+        // Add to user's tools
+        const { data: existing } = await supabase
+          .from("user_recipe_tools")
+          .select("tools")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        const currentTools = existing?.tools || [];
+        if (!currentTools.includes(tip.name)) {
+          await supabase
+            .from("user_recipe_tools")
+            .upsert({
+              user_id: userId,
+              tools: [...currentTools, tip.name],
+              updated_at: new Date().toISOString()
+            }, { onConflict: "user_id" });
+        }
+        
+        // Remove from tips
+        setToolTips(prev => prev.filter(t => t.name !== tip.name));
+        onToolAdded?.(tip.name);
+        toast({ title: `${tip.name} added to your inventory!` });
+      }
+    } catch (error) {
+      console.error("Error adding to inventory:", error);
+      toast({ title: "Couldn't add item", variant: "destructive" });
+    }
+  };
+
+  const addToShoppingList = async (tip: IngredientTip | ToolTip, type: 'ingredient' | 'tool') => {
+    if (!userId) {
+      toast({ title: "Please sign in to use shopping list", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await supabase.from("recipe_shopping_list").insert({
+        user_id: userId,
+        item_name: tip.name,
+        item_type: type,
+        emoji: tip.emoji,
+        reason: tip.reason,
+        estimated_cost: type === 'tool' ? (tip as ToolTip).estimatedCost : null
+      });
+
+      // Remove from tips
+      if (type === 'ingredient') {
+        setIngredientTips(prev => prev.filter(t => t.name !== tip.name));
+      } else {
+        setToolTips(prev => prev.filter(t => t.name !== tip.name));
+      }
+
+      toast({ title: `${tip.name} added to shopping list!` });
+    } catch (error) {
+      console.error("Error adding to shopping list:", error);
+      toast({ title: "Couldn't add to list", variant: "destructive" });
+    }
+  };
+
+  const dismissTip = async (tipName: string, type: 'ingredient' | 'tool') => {
+    // Remove from visible tips
+    if (type === 'ingredient') {
+      setIngredientTips(prev => prev.filter(t => t.name !== tipName));
+      setDismissedIngredients(prev => [...prev, tipName]);
+    } else {
+      setToolTips(prev => prev.filter(t => t.name !== tipName));
+      setDismissedTools(prev => [...prev, tipName]);
+    }
+
+    // Save dismissed state
+    if (userId) {
+      try {
+        const newDismissed = type === 'ingredient' 
+          ? [...dismissedIngredients, tipName]
+          : [...dismissedTools, tipName];
+        
+        await supabase
+          .from("saved_shopping_tips")
+          .upsert({
+            user_id: userId,
+            ...(type === 'ingredient' 
+              ? { dismissed_ingredients: newDismissed }
+              : { dismissed_tools: newDismissed }),
+            updated_at: new Date().toISOString()
+          }, { onConflict: "user_id" });
+      } catch (error) {
+        console.error("Error saving dismissed state:", error);
+      }
+    }
+  };
+
+  // Filter out dismissed tips
+  const visibleIngredientTips = ingredientTips.filter(t => !dismissedIngredients.includes(t.name));
+  const visibleToolTips = toolTips.filter(t => !dismissedTools.includes(t.name));
+
   // Show loading state while auto-generating
   if (isLoading && !hasLoaded) {
     return (
@@ -177,7 +317,7 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
     );
   }
 
-  const hasTips = ingredientTips.length > 0 || toolTips.length > 0;
+  const hasTips = visibleIngredientTips.length > 0 || visibleToolTips.length > 0;
 
   if (hasLoaded && !hasTips) {
     return (
@@ -223,22 +363,51 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
         </CardHeader>
       )}
       <CardContent className="space-y-4">
-        {ingredientTips.length > 0 && (
+        {visibleIngredientTips.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <ChefHat className="h-4 w-4" />
               Ingredients to Consider
             </div>
             <div className="grid gap-2">
-              {ingredientTips.map((tip, index) => (
+              {visibleIngredientTips.map((tip, index) => (
                 <div 
                   key={index}
                   className="flex items-start gap-3 p-2 rounded-lg bg-background/50"
                 >
                   <span className="text-xl">{tip.emoji}</span>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{tip.name}</p>
                     <p className="text-xs text-muted-foreground">{tip.reason}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => addToInventory(tip, 'ingredient')}
+                      title="Add to inventory"
+                    >
+                      <Plus className="h-4 w-4 text-green-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => addToShoppingList(tip, 'ingredient')}
+                      title="Add to shopping list"
+                    >
+                      <ShoppingCart className="h-4 w-4 text-blue-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => dismissTip(tip.name, 'ingredient')}
+                      title="Dismiss"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -246,25 +415,54 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
           </div>
         )}
 
-        {toolTips.length > 0 && (
+        {visibleToolTips.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <UtensilsCrossed className="h-4 w-4" />
               Budget-Friendly Tools
             </div>
             <div className="grid gap-2">
-              {toolTips.map((tip, index) => (
+              {visibleToolTips.map((tip, index) => (
                 <div 
                   key={index}
                   className="flex items-start gap-3 p-2 rounded-lg bg-background/50"
                 >
                   <span className="text-xl">{tip.emoji}</span>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
                       <p className="font-medium text-sm">{tip.name}</p>
-                      <span className="text-xs text-primary font-medium">{tip.estimatedCost}</span>
+                      <span className="text-xs text-primary font-medium shrink-0">{tip.estimatedCost}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">{tip.reason}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => addToInventory(tip, 'tool')}
+                      title="Add to inventory"
+                    >
+                      <Plus className="h-4 w-4 text-green-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => addToShoppingList(tip, 'tool')}
+                      title="Add to shopping list"
+                    >
+                      <ShoppingCart className="h-4 w-4 text-blue-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => dismissTip(tip.name, 'tool')}
+                      title="Dismiss"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                 </div>
               ))}
