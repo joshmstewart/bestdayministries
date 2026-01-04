@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Sparkles, Loader2, RefreshCw, Wrench } from "lucide-react";
+import { ChevronLeft, Sparkles, Loader2, RefreshCw, Wrench } from "lucide-react";
+import { RecipeExpansionTips } from "./RecipeExpansionTips";
 import { RecipeIngredientSelector } from "./RecipeIngredientSelector";
 import { RecipeToolsSelector } from "./RecipeToolsSelector";
 import { RecipeSuggestions, RecipeSuggestion } from "./RecipeSuggestions";
@@ -282,6 +283,9 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                     }}
                   />
                 </div>
+
+                {/* Expansion Tips */}
+                <RecipeExpansionTips ingredients={ingredients} tools={tools} />
               </>
             )}
             
