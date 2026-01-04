@@ -24,15 +24,52 @@ interface GenerationError {
   error: string;
 }
 
-// Common ingredient suggestions by category
+// Common ingredient suggestions by category - expanded list
 const INGREDIENT_SUGGESTIONS: Record<string, string[]> = {
-  protein: ["Chicken Breast", "Ground Beef", "Bacon", "Sausage", "Ham", "Turkey", "Steak", "Pork Chops", "Shrimp", "Salmon", "Tuna", "Hot Dogs", "Pepperoni", "Deli Meat"],
-  dairy: ["Milk", "Butter", "Cheese", "Cream Cheese", "Sour Cream", "Yogurt", "Heavy Cream", "Parmesan", "Mozzarella", "Cheddar", "Cottage Cheese", "Whipped Cream"],
-  grains: ["Bread", "Rice", "Pasta", "Tortillas", "Bagels", "English Muffins", "Cereal", "Oatmeal", "Crackers", "Pancake Mix", "Flour", "Cornbread Mix"],
-  fruits: ["Apples", "Bananas", "Oranges", "Strawberries", "Blueberries", "Grapes", "Lemons", "Limes", "Peaches", "Pineapple", "Mango", "Raisins"],
-  vegetables: ["Lettuce", "Tomatoes", "Onions", "Carrots", "Celery", "Broccoli", "Spinach", "Mushrooms", "Peppers", "Potatoes", "Corn", "Green Beans", "Peas"],
-  condiments: ["Ketchup", "Mustard", "Mayo", "BBQ Sauce", "Soy Sauce", "Hot Sauce", "Ranch", "Salad Dressing", "Honey", "Syrup", "Jam", "Peanut Butter"],
-  pantry: ["Salt", "Pepper", "Sugar", "Olive Oil", "Vegetable Oil", "Vinegar", "Flour", "Baking Soda", "Vanilla Extract", "Cinnamon", "Garlic Powder", "Chicken Broth"],
+  protein: [
+    "Chicken Breast", "Ground Beef", "Bacon", "Sausage", "Ham", "Turkey", "Steak", "Pork Chops", 
+    "Shrimp", "Salmon", "Tuna", "Hot Dogs", "Pepperoni", "Deli Meat", "Chicken Nuggets", "Fish Sticks",
+    "Meatballs", "Rotisserie Chicken", "Ground Turkey", "Pork Tenderloin", "Lamb", "Crab", "Lobster",
+    "Beef Jerky", "Lunch Meat", "Corned Beef", "Pulled Pork", "Chicken Wings", "Tilapia", "Cod"
+  ],
+  dairy: [
+    "Milk", "Butter", "Cheese", "Cream Cheese", "Sour Cream", "Yogurt", "Heavy Cream", "Parmesan",
+    "Mozzarella", "Cheddar", "Cottage Cheese", "Whipped Cream", "Half & Half", "Greek Yogurt",
+    "American Cheese", "Swiss Cheese", "Feta Cheese", "Ricotta", "Goat Cheese", "Brie", "Blue Cheese",
+    "String Cheese", "Cheese Slices", "Shredded Cheese", "Buttermilk", "Evaporated Milk", "Condensed Milk"
+  ],
+  grains: [
+    "Bread", "Rice", "Pasta", "Tortillas", "Bagels", "English Muffins", "Cereal", "Oatmeal", "Crackers",
+    "Pancake Mix", "Flour", "Cornbread Mix", "Instant Rice", "Instant Oatmeal", "Ramen Noodles", 
+    "Mac & Cheese", "Couscous", "Quinoa", "Hamburger Buns", "Hot Dog Buns", "Dinner Rolls", "Croissants",
+    "Pita Bread", "Naan", "Breadcrumbs", "Croutons", "Granola", "Biscuit Mix", "Waffle Mix", "Muffin Mix"
+  ],
+  fruits: [
+    "Apples", "Bananas", "Oranges", "Strawberries", "Blueberries", "Grapes", "Lemons", "Limes",
+    "Peaches", "Pineapple", "Mango", "Raisins", "Watermelon", "Cantaloupe", "Honeydew", "Cherries",
+    "Raspberries", "Blackberries", "Kiwi", "Pears", "Plums", "Nectarines", "Grapefruit", "Coconut",
+    "Dried Cranberries", "Dried Apricots", "Fruit Cocktail", "Mandarin Oranges", "Applesauce"
+  ],
+  vegetables: [
+    "Lettuce", "Tomatoes", "Onions", "Carrots", "Celery", "Broccoli", "Spinach", "Mushrooms",
+    "Peppers", "Potatoes", "Corn", "Green Beans", "Peas", "Cabbage", "Cauliflower", "Asparagus",
+    "Zucchini", "Squash", "Cucumber", "Avocado", "Sweet Potatoes", "Garlic", "Ginger", "Kale",
+    "Brussels Sprouts", "Artichokes", "Beets", "Radishes", "Eggplant", "Frozen Vegetables", "Mixed Veggies"
+  ],
+  condiments: [
+    "Ketchup", "Mustard", "Mayo", "BBQ Sauce", "Soy Sauce", "Hot Sauce", "Ranch", "Salad Dressing",
+    "Honey", "Syrup", "Jam", "Peanut Butter", "Jelly", "Teriyaki Sauce", "Worcestershire", "Vinegar",
+    "Salsa", "Guacamole", "Hummus", "Relish", "Pickle Juice", "Tartar Sauce", "Cocktail Sauce",
+    "Marinara Sauce", "Alfredo Sauce", "Sriracha", "Hoisin Sauce", "Fish Sauce", "Oyster Sauce"
+  ],
+  pantry: [
+    "Salt", "Pepper", "Sugar", "Olive Oil", "Vegetable Oil", "Vinegar", "Flour", "Baking Soda",
+    "Vanilla Extract", "Cinnamon", "Garlic Powder", "Chicken Broth", "Beef Broth", "Baking Powder",
+    "Brown Sugar", "Powdered Sugar", "Cocoa Powder", "Chocolate Chips", "Cornstarch", "Yeast",
+    "Instant Pudding", "Instant Mashed Potatoes", "Instant Coffee", "Instant Noodles", "Jello",
+    "Cake Mix", "Brownie Mix", "Cookie Mix", "Popcorn", "Marshmallows", "Graham Crackers", 
+    "Nuts", "Almonds", "Peanuts", "Walnuts", "Bread Crumbs", "Panko", "Cooking Spray"
+  ],
 };
 
 export const RecipeIngredientsManager = () => {
