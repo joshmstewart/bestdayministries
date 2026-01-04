@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voice = 'Aria' } = await req.json();
+    const { text, voice = 'Sarah' } = await req.json();
 
     if (!text) {
       return new Response(
@@ -65,7 +65,7 @@ serve(async (req) => {
     };
 
     // Try to get voice ID from database first
-    let voiceId = voiceIds['Aria']; // Default fallback
+    let voiceId = voiceIds['Sarah']; // Default fallback
     
     try {
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
@@ -85,11 +85,11 @@ serve(async (req) => {
         voiceId = voiceData.voice_id;
       } else {
         // Fallback to hardcoded mapping
-        voiceId = voiceIds[voice] || voiceIds['Aria'];
+        voiceId = voiceIds[voice] || voiceIds['Sarah'];
       }
     } catch (error) {
       console.error('Error fetching voice from database, using hardcoded mapping:', error);
-      voiceId = voiceIds[voice] || voiceIds['Aria'];
+      voiceId = voiceIds[voice] || voiceIds['Sarah'];
     }
 
     // Call ElevenLabs API
