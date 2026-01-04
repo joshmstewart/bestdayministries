@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, ChevronRight, Lightbulb, ShoppingBasket, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RecipeActions } from "./RecipeActions";
+import confetti from "canvas-confetti";
 
 interface RecipeDisplayProps {
   recipe: {
@@ -22,6 +23,7 @@ export const RecipeDisplay = ({ recipe, userId }: RecipeDisplayProps) => {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [currentStep, setCurrentStep] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const hasTriggeredConfetti = useRef(false);
 
   const toggleStep = (stepIndex: number) => {
     setCompletedSteps(prev => {
@@ -39,7 +41,32 @@ export const RecipeDisplay = ({ recipe, userId }: RecipeDisplayProps) => {
     });
   };
 
-  const allStepsCompleted = completedSteps.size === recipe.steps.length;
+  const allStepsCompleted = completedSteps.size === recipe.steps.length && recipe.steps.length > 0;
+
+  // Trigger confetti when all steps are completed
+  useEffect(() => {
+    if (allStepsCompleted && !hasTriggeredConfetti.current) {
+      hasTriggeredConfetti.current = true;
+      
+      // Fire confetti from both sides
+      const fireConfetti = () => {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { x: 0.1, y: 0.6 }
+        });
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { x: 0.9, y: 0.6 }
+        });
+      };
+      
+      fireConfetti();
+      // Fire again after a short delay for extra celebration
+      setTimeout(fireConfetti, 250);
+    }
+  }, [allStepsCompleted]);
 
   return (
     <div className="space-y-6">
