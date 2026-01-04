@@ -121,11 +121,15 @@ The following game pages are registered:
 - `/games/memory-match` - Memory Match Game
 - `/games/match3` - Match-3 Game
 - `/games/drink-creator` - Drink Creator
-- `/games/recipe-gallery` - Recipe Pal (main unified page with 3 tabs)
-- `/games/recipe-maker` - Recipe Maker (redirects to Recipe Pal)
 - `/virtual-pet` - Virtual Pet
 - `/sticker-album` - Sticker Album
 - `/store` - JoyCoins Store
+
+## Resources Pages
+
+The following resource pages are registered (accessed via Resources dropdown in nav):
+- `/games/recipe-gallery` - Recipe Pal (main unified page with 3 tabs)
+- `/games/recipe-maker` - Recipe Maker (redirects to Recipe Pal)
 
 ---
 
