@@ -1,5 +1,5 @@
 import { 
-  Dog, Cat, Bird, Fish, Bug, Smile,
+  Dog, Cat, Bird, Fish, Bug, Rabbit,
   Apple, Pizza, IceCream, Cake, Cookie, Banana,
   Sun, Moon, Star, TreeDeciduous, Flower2, Cloud,
   Home, Car, CircleDot, Heart, Music, BookOpen
@@ -20,7 +20,7 @@ export const PICTURE_PASSWORD_IMAGES: PictureItem[] = [
   { id: "bird", name: "Bird", icon: Bird, color: "text-sky-500" },
   { id: "fish", name: "Fish", icon: Fish, color: "text-blue-500" },
   { id: "butterfly", name: "Butterfly", icon: Bug, color: "text-purple-500" },
-  { id: "bear", name: "Bear", icon: Smile, color: "text-amber-700" },
+  { id: "rabbit", name: "Rabbit", icon: Rabbit, color: "text-pink-400" },
   
   // Food (6)
   { id: "apple", name: "Apple", icon: Apple, color: "text-red-500" },
