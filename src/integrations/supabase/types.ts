@@ -4256,6 +4256,45 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_shopping_list: {
+        Row: {
+          created_at: string
+          emoji: string | null
+          estimated_cost: string | null
+          id: string
+          is_purchased: boolean | null
+          item_name: string
+          item_type: string
+          reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string | null
+          estimated_cost?: string | null
+          id?: string
+          is_purchased?: boolean | null
+          item_name: string
+          item_type: string
+          reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string | null
+          estimated_cost?: string | null
+          id?: string
+          is_purchased?: boolean | null
+          item_name?: string
+          item_type?: string
+          reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       recipe_tools: {
         Row: {
           category: string
@@ -4474,6 +4513,8 @@ export type Database = {
       }
       saved_shopping_tips: {
         Row: {
+          dismissed_ingredients: string[] | null
+          dismissed_tools: string[] | null
           id: string
           ingredient_tips: Json | null
           last_generated_at: string
@@ -4482,6 +4523,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          dismissed_ingredients?: string[] | null
+          dismissed_tools?: string[] | null
           id?: string
           ingredient_tips?: Json | null
           last_generated_at?: string
@@ -4490,6 +4533,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          dismissed_ingredients?: string[] | null
+          dismissed_tools?: string[] | null
           id?: string
           ingredient_tips?: Json | null
           last_generated_at?: string
