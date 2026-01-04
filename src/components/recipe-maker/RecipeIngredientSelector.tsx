@@ -145,7 +145,6 @@ export const RecipeIngredientSelector = ({
 }: RecipeIngredientSelectorProps) => {
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     loadIngredients();
@@ -185,102 +184,92 @@ export const RecipeIngredientSelector = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <p className="text-sm text-muted-foreground text-center">
         Tap ingredients you have (or want to pretend you have!)
       </p>
       
-      {/* Category tabs */}
-      <div className="flex flex-wrap gap-2 justify-center">
+      {/* All categories displayed on one page */}
+      <div className="space-y-6">
         {categoryOrder.map((category) => {
           if (!groupedIngredients[category]) return null;
-          const count = groupedIngredients[category].filter(
-            i => selectedIngredients.includes(i.name)
-          ).length;
           
           return (
-            <button
-              key={category}
-              onClick={() => setExpandedCategory(
-                expandedCategory === category ? null : category
-              )}
-              className={cn(
-                "px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                expandedCategory === category
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted hover:bg-muted/80",
-                count > 0 && expandedCategory !== category && "ring-2 ring-primary"
-              )}
-            >
-              {categoryLabels[category] || category}
-              {count > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary/20">
-                  {count}
-                </span>
-              )}
-            </button>
+            <div key={category} className="space-y-3">
+              {/* Category header */}
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                {categoryLabels[category] || category}
+                {groupedIngredients[category].filter(
+                  i => selectedIngredients.includes(i.name)
+                ).length > 0 && (
+                  <span className="px-2 py-0.5 text-xs rounded-full bg-primary text-primary-foreground">
+                    {groupedIngredients[category].filter(
+                      i => selectedIngredients.includes(i.name)
+                    ).length} selected
+                  </span>
+                )}
+              </h3>
+              
+              {/* Ingredients grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                {groupedIngredients[category].map((ingredient) => {
+                  const isSelected = selectedIngredients.includes(ingredient.name);
+
+                  return (
+                    <button
+                      key={ingredient.id}
+                      onClick={() => onToggle(ingredient.name)}
+                      className={cn(
+                        "relative rounded-xl border-2 transition-all duration-200 overflow-hidden",
+                        "hover:scale-105 hover:shadow-lg",
+                        "flex flex-col items-center text-center aspect-square",
+                        isSelected
+                          ? "border-primary shadow-md ring-2 ring-primary/50"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      {/* Selection indicator */}
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center z-10">
+                          <Check className="w-3 h-3 text-primary-foreground" />
+                        </div>
+                      )}
+
+                      {/* Ingredient image or placeholder */}
+                      {ingredient.image_url ? (
+                        <LazyIngredientImage
+                          src={ingredient.image_url}
+                          alt={ingredient.name}
+                        />
+                      ) : (
+                        <div
+                          className="absolute inset-0 w-full h-full flex items-center justify-center text-3xl"
+                          style={{
+                            background: `linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.3))`,
+                          }}
+                        >
+                          {getIngredientEmoji(ingredient.name)}
+                        </div>
+                      )}
+
+                      {/* Ingredient name overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-1.5 pt-4">
+                        <span className="font-medium text-xs text-white drop-shadow-md line-clamp-2">
+                          {ingredient.name}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>
 
-      {/* Ingredients grid for selected category */}
-      {expandedCategory && groupedIngredients[expandedCategory] && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-          {groupedIngredients[expandedCategory].map((ingredient) => {
-            const isSelected = selectedIngredients.includes(ingredient.name);
-
-            return (
-              <button
-                key={ingredient.id}
-                onClick={() => onToggle(ingredient.name)}
-                className={cn(
-                  "relative rounded-xl border-2 transition-all duration-200 overflow-hidden",
-                  "hover:scale-105 hover:shadow-lg",
-                  "flex flex-col items-center text-center aspect-square",
-                  isSelected
-                    ? "border-primary shadow-md ring-2 ring-primary/50"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                {/* Selection indicator */}
-                {isSelected && (
-                  <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center z-10">
-                    <Check className="w-3 h-3 text-primary-foreground" />
-                  </div>
-                )}
-
-                {/* Ingredient image or placeholder */}
-                {ingredient.image_url ? (
-                  <LazyIngredientImage
-                    src={ingredient.image_url}
-                    alt={ingredient.name}
-                  />
-                ) : (
-                  <div
-                    className="absolute inset-0 w-full h-full flex items-center justify-center text-3xl"
-                    style={{
-                      background: `linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.3))`,
-                    }}
-                  >
-                    {getIngredientEmoji(ingredient.name)}
-                  </div>
-                )}
-
-                {/* Ingredient name overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-1.5 pt-4">
-                  <span className="font-medium text-xs text-white drop-shadow-md line-clamp-2">
-                    {ingredient.name}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* Selected ingredients summary */}
       {selectedIngredients.length > 0 && (
-        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 sticky bottom-0">
           <p className="text-sm font-medium mb-2">
             Selected ({selectedIngredients.length}):
           </p>
