@@ -82,6 +82,7 @@ Homemade, warm, and inviting appearance.`;
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Update the public recipe
     const { error: updateError } = await supabaseClient
       .from("public_recipes")
       .update({ image_url: imageUrl })
@@ -92,7 +93,18 @@ Homemade, warm, and inviting appearance.`;
       throw new Error(`Failed to update database: ${updateError.message}`);
     }
 
-    console.log("Database updated successfully");
+    // Also update all saved copies of this recipe
+    const { error: savedError } = await supabaseClient
+      .from("saved_recipes")
+      .update({ image_url: imageUrl })
+      .eq("source_recipe_id", recipeId);
+
+    if (savedError) {
+      console.error("Error updating saved recipes:", savedError);
+      // Don't throw - the main update succeeded
+    }
+
+    console.log("Database updated successfully (public + saved copies)");
 
     return new Response(
       JSON.stringify({ success: true, imageUrl }),
