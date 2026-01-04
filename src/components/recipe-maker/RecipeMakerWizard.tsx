@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Sparkles, Loader2, RefreshCw } from "lucide-react";
-import { IngredientInput } from "./IngredientInput";
+import { RecipeIngredientSelector } from "./RecipeIngredientSelector";
 import { RecipeSuggestions, RecipeSuggestion } from "./RecipeSuggestions";
 import { RecipeDisplay } from "./RecipeDisplay";
 
@@ -145,9 +145,15 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
       <CardContent className="space-y-6">
         {currentStep === 0 && (
           <div className="space-y-6">
-            <IngredientInput 
-              ingredients={ingredients} 
-              onChange={setIngredients} 
+            <RecipeIngredientSelector 
+              selectedIngredients={ingredients} 
+              onToggle={(name) => {
+                setIngredients(prev => 
+                  prev.includes(name) 
+                    ? prev.filter(i => i !== name)
+                    : [...prev, name]
+                );
+              }}
             />
             
             <Button
