@@ -5,6 +5,63 @@ import { Lightbulb, Loader2, ChefHat, UtensilsCrossed, RefreshCw, Plus, Shopping
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Check if a string is a valid emoji (short and contains emoji characters)
+const isValidEmoji = (str: string): boolean => {
+  if (!str || str.length > 10) return false; // Emojis are short, text descriptions are long
+  // Check if it contains emoji-like characters (non-ASCII that aren't regular letters)
+  const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/u;
+  return emojiRegex.test(str);
+};
+
+// Get fallback emoji for ingredients
+const getIngredientFallbackEmoji = (name: string): string => {
+  const lower = name.toLowerCase();
+  if (lower.includes('egg')) return '🥚';
+  if (lower.includes('butter')) return '🧈';
+  if (lower.includes('cheese')) return '🧀';
+  if (lower.includes('bread')) return '🍞';
+  if (lower.includes('rice')) return '🍚';
+  if (lower.includes('pasta') || lower.includes('noodle')) return '🍝';
+  if (lower.includes('milk')) return '🥛';
+  if (lower.includes('chicken')) return '🍗';
+  if (lower.includes('beef') || lower.includes('meat')) return '🥩';
+  if (lower.includes('fish') || lower.includes('salmon')) return '🐟';
+  if (lower.includes('tomato')) return '🍅';
+  if (lower.includes('onion')) return '🧅';
+  if (lower.includes('garlic')) return '🧄';
+  if (lower.includes('carrot')) return '🥕';
+  if (lower.includes('potato')) return '🥔';
+  if (lower.includes('apple')) return '🍎';
+  if (lower.includes('banana')) return '🍌';
+  if (lower.includes('lemon')) return '🍋';
+  if (lower.includes('salt') || lower.includes('pepper') || lower.includes('spice')) return '🧂';
+  if (lower.includes('oil')) return '🫒';
+  if (lower.includes('flour')) return '🌾';
+  if (lower.includes('sugar')) return '🍬';
+  return '🍴';
+};
+
+// Get fallback emoji for tools
+const getToolFallbackEmoji = (name: string): string => {
+  const lower = name.toLowerCase();
+  if (lower.includes('pan') || lower.includes('skillet')) return '🍳';
+  if (lower.includes('pot')) return '🍲';
+  if (lower.includes('knife') || lower.includes('cutting')) return '🔪';
+  if (lower.includes('spoon')) return '🥄';
+  if (lower.includes('fork')) return '🍴';
+  if (lower.includes('whisk')) return '🥄';
+  if (lower.includes('bowl')) return '🥣';
+  if (lower.includes('baking') || lower.includes('sheet') || lower.includes('tray')) return '🍪';
+  if (lower.includes('measuring')) return '🥛';
+  if (lower.includes('colander') || lower.includes('strainer') || lower.includes('drain')) return '🥡';
+  if (lower.includes('grater')) return '🧀';
+  if (lower.includes('spatula') || lower.includes('turner')) return '🍳';
+  if (lower.includes('tong')) return '🥢';
+  if (lower.includes('peeler')) return '🥔';
+  if (lower.includes('oven') || lower.includes('mitt')) return '🧤';
+  if (lower.includes('timer')) return '⏱️';
+  return '🔧';
+};
 interface IngredientTip {
   name: string;
   reason: string;
@@ -387,7 +444,7 @@ export function RecipeExpansionTips({
                   className="p-2 rounded-lg bg-background/50 space-y-2"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-xl">{tip.emoji}</span>
+                    <span className="text-xl">{isValidEmoji(tip.emoji) ? tip.emoji : getIngredientFallbackEmoji(tip.name)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm">{tip.name}</p>
                       <p className="text-xs text-muted-foreground">{tip.reason}</p>
@@ -453,7 +510,7 @@ export function RecipeExpansionTips({
                   className="p-2 rounded-lg bg-background/50 space-y-2"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-xl">{tip.emoji}</span>
+                    <span className="text-xl">{isValidEmoji(tip.emoji) ? tip.emoji : getToolFallbackEmoji(tip.name)}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium text-sm">{tip.name}</p>
