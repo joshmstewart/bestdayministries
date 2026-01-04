@@ -3980,6 +3980,80 @@ export type Database = {
           },
         ]
       }
+      public_recipe_likes: {
+        Row: {
+          created_at: string
+          id: string
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_recipe_likes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "public_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_recipes: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          image_url: string | null
+          ingredients: string[]
+          is_active: boolean
+          likes_count: number
+          steps: string[]
+          tips: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          is_active?: boolean
+          likes_count?: number
+          steps?: string[]
+          tips?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          is_active?: boolean
+          likes_count?: number
+          steps?: string[]
+          tips?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           created_at: string
@@ -4305,6 +4379,57 @@ export type Database = {
           is_active?: boolean
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      saved_recipes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          ingredients: string[]
+          is_favorite: boolean
+          last_made_at: string | null
+          source_recipe_id: string | null
+          steps: string[]
+          times_made: number
+          tips: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          is_favorite?: boolean
+          last_made_at?: string | null
+          source_recipe_id?: string | null
+          steps?: string[]
+          times_made?: number
+          tips?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          is_favorite?: boolean
+          last_made_at?: string | null
+          source_recipe_id?: string | null
+          steps?: string[]
+          times_made?: number
+          tips?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

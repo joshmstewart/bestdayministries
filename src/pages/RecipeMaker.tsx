@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BookOpen } from "lucide-react";
 import { RecipeMakerWizard } from "@/components/recipe-maker/RecipeMakerWizard";
 import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
@@ -47,15 +47,24 @@ const RecipeMaker = () => {
       <UnifiedHeader />
 
       <main className="flex-1 container max-w-4xl mx-auto px-4 py-6 pt-24">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate("/community")}
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Community
-        </Button>
+        <div className="flex justify-between items-center mb-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/community")}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Community
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/games/recipe-gallery")}
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Recipe Gallery
+          </Button>
+        </div>
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">🍳 Recipe Maker</h1>
