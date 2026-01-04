@@ -40,9 +40,15 @@ Your job is to suggest SIMPLE recipes that are:
 - Safe (avoid complex techniques like deep frying)
 - Fun and rewarding to make
 
+CRITICAL INGREDIENT RULE: The person ONLY has these ingredients available: ${ingredients.join(", ")}
+You MUST only suggest recipes that can be made using ONLY these exact ingredients.
+Do NOT suggest any recipe that requires ingredients not in this list.
+The person cannot go shopping - they can ONLY use what they have listed.
+Basic pantry items like salt, pepper, oil, and water can be assumed, but nothing else.
+
 ${toolConstraint}
 
-Given a list of ingredients and available kitchen tools, suggest 3-4 simple recipes they could make.
+Given the available ingredients and kitchen tools, suggest 3-4 simple recipes they could make with ONLY what they have.
 Focus on familiar, comforting foods that are hard to mess up.
 
 You MUST respond with a JSON object in this exact format:
@@ -62,8 +68,8 @@ You MUST respond with a JSON object in this exact format:
 Only return the JSON, no other text.`;
 
     const userMessage = toolsList
-      ? `I have these ingredients: ${ingredients.join(", ")}. My kitchen tools are: ${toolsList}. What simple things can I make with just these tools?`
-      : `I have these ingredients: ${ingredients.join(", ")}. What simple things can I make?`;
+      ? `I ONLY have these ingredients: ${ingredients.join(", ")}. I ONLY have these kitchen tools: ${toolsList}. What simple recipes can I make using ONLY these ingredients and tools? Do not suggest anything that needs ingredients I don't have.`
+      : `I ONLY have these ingredients: ${ingredients.join(", ")}. What simple recipes can I make using ONLY these ingredients? Do not suggest anything that needs ingredients I don't have.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -117,24 +123,10 @@ Only return the JSON, no other text.`;
       }
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Fallback suggestions
+      // Return empty suggestions rather than assuming ingredients the user doesn't have
       suggestions = {
-        suggestions: [
-          {
-            name: "Simple Sandwich",
-            description: "Layer your ingredients between bread for a quick meal!",
-            difficulty: "easy",
-            timeEstimate: "5 mins",
-            emoji: "🥪"
-          },
-          {
-            name: "Mixed Salad",
-            description: "Chop up your veggies and mix them together with dressing",
-            difficulty: "easy",
-            timeEstimate: "10 mins",
-            emoji: "🥗"
-          }
-        ]
+        suggestions: [],
+        message: "Couldn't generate suggestions with these ingredients. Try selecting different items."
       };
     }
 
