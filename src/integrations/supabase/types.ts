@@ -3549,6 +3549,11 @@ export type Database = {
           product_id: string
           quantity: number
           shipped_at: string | null
+          shipstation_last_checked_at: string | null
+          shipstation_order_id: string | null
+          shipstation_order_key: string | null
+          shipstation_shipment_id: string | null
+          shipstation_synced_at: string | null
           stripe_transfer_id: string | null
           tracking_number: string | null
           tracking_url: string | null
@@ -3570,6 +3575,11 @@ export type Database = {
           product_id: string
           quantity: number
           shipped_at?: string | null
+          shipstation_last_checked_at?: string | null
+          shipstation_order_id?: string | null
+          shipstation_order_key?: string | null
+          shipstation_shipment_id?: string | null
+          shipstation_synced_at?: string | null
           stripe_transfer_id?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
@@ -3591,6 +3601,11 @@ export type Database = {
           product_id?: string
           quantity?: number
           shipped_at?: string | null
+          shipstation_last_checked_at?: string | null
+          shipstation_order_id?: string | null
+          shipstation_order_key?: string | null
+          shipstation_shipment_id?: string | null
+          shipstation_synced_at?: string | null
           stripe_transfer_id?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
