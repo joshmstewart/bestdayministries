@@ -73,6 +73,7 @@ import { SoundEffectsManager } from "@/components/admin/SoundEffectsManager";
 import { DrinkIngredientsManager } from "@/components/admin/DrinkIngredientsManager";
 import { DrinkVibesManager } from "@/components/admin/DrinkVibesManager";
 import { RecipeIngredientsManager } from "@/components/admin/RecipeIngredientsManager";
+import { RecipeToolsManager } from "@/components/admin/RecipeToolsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
 
@@ -495,6 +496,7 @@ const Admin = () => {
                     <TabsTrigger value="drink-ingredients">Drink Ingredients</TabsTrigger>
                     <TabsTrigger value="drink-vibes">Drink Vibes</TabsTrigger>
                     <TabsTrigger value="recipe-ingredients">Recipe Ingredients</TabsTrigger>
+                    <TabsTrigger value="recipe-tools">Recipe Tools</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="drink-ingredients">
@@ -507,6 +509,10 @@ const Admin = () => {
 
                   <TabsContent value="recipe-ingredients">
                     <RecipeIngredientsManager />
+                  </TabsContent>
+
+                  <TabsContent value="recipe-tools">
+                    <RecipeToolsManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
