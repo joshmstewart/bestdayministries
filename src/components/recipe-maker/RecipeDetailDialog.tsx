@@ -135,7 +135,7 @@ export const RecipeDetailDialog = ({
           <DialogTitle className="text-xl">{recipe.title}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 max-h-[calc(90vh-140px)] pr-4">
           <div className="space-y-6 pb-4">
             {recipe.image_url && (
               <div className="aspect-video rounded-lg overflow-hidden">
