@@ -238,3 +238,6 @@ verify_jwt = true
 
 [functions.generate-recipe-ingredient-icon]
 verify_jwt = true
+
+[functions.regenerate-recipe-image]
+verify_jwt = true

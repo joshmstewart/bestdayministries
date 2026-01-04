@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench } from "lucide-react";
+import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw } from "lucide-react";
 
 interface Recipe {
   id: string;
@@ -30,9 +30,11 @@ interface RecipeDetailDialogProps {
   userTools?: string[];
   userId?: string;
   isInCookbook?: boolean;
+  isAdmin?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddToCookbook?: () => void;
+  onImageRegenerated?: (newImageUrl: string) => void;
 }
 
 export const RecipeDetailDialog = ({
@@ -41,12 +43,21 @@ export const RecipeDetailDialog = ({
   userTools = [],
   userId,
   isInCookbook = false,
+  isAdmin = false,
   open,
   onOpenChange,
   onAddToCookbook,
+  onImageRegenerated,
 }: RecipeDetailDialogProps) => {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState(recipe.image_url);
+
+  // Update currentImageUrl when recipe changes
+  useEffect(() => {
+    setCurrentImageUrl(recipe.image_url);
+  }, [recipe.image_url]);
 
   const isAssumedAvailableIngredient = (ingredient: string) => {
     // Assumed pantry items (always available)
@@ -173,6 +184,39 @@ export const RecipeDetailDialog = ({
     }
   };
 
+  const regenerateImage = async () => {
+    setIsRegeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('regenerate-recipe-image', {
+        body: {
+          recipeId: recipe.id,
+          recipeName: recipe.title,
+          ingredients: recipe.ingredients
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        setCurrentImageUrl(data.imageUrl);
+        onImageRegenerated?.(data.imageUrl);
+        toast({
+          title: "Image regenerated! 🎨",
+          description: "The recipe image has been updated",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error regenerating image:", error);
+      toast({
+        title: "Couldn't regenerate image",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegeneratingImage(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -182,13 +226,27 @@ export const RecipeDetailDialog = ({
 
         <div className="pr-4">
           <div className="space-y-6 pb-4">
-            {recipe.image_url && (
-              <div className="aspect-video rounded-lg overflow-hidden">
-                <img
-                  src={recipe.image_url}
-                  alt={recipe.title}
-                  className="w-full h-full object-cover"
-                />
+            {currentImageUrl && (
+              <div className="relative">
+                <div className="aspect-video rounded-lg overflow-hidden">
+                  <img
+                    src={currentImageUrl}
+                    alt={recipe.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {isAdmin && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute top-2 right-2 gap-1"
+                    onClick={regenerateImage}
+                    disabled={isRegeneratingImage}
+                  >
+                    <RefreshCw className={`h-3 w-3 ${isRegeneratingImage ? 'animate-spin' : ''}`} />
+                    {isRegeneratingImage ? 'Generating...' : 'Regenerate'}
+                  </Button>
+                )}
               </div>
             )}
 
