@@ -18,9 +18,10 @@ interface RecipeDisplayProps {
     imageUrl?: string;
   };
   userId?: string;
+  onSaved?: () => void;
 }
 
-export const RecipeDisplay = ({ recipe, userId }: RecipeDisplayProps) => {
+export const RecipeDisplay = ({ recipe, userId, onSaved }: RecipeDisplayProps) => {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [currentStep, setCurrentStep] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -208,7 +209,7 @@ export const RecipeDisplay = ({ recipe, userId }: RecipeDisplayProps) => {
 
       {/* Recipe Actions */}
       {userId && (
-        <RecipeActions recipe={recipe} userId={userId} />
+        <RecipeActions recipe={recipe} userId={userId} onSaved={onSaved} />
       )}
 
       {/* Completion celebration */}

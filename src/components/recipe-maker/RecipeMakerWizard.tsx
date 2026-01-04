@@ -16,6 +16,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 interface RecipeMakerWizardProps {
   userId: string;
+  onSaved?: () => void;
 }
 
 const STEPS = [
@@ -24,7 +25,7 @@ const STEPS = [
   { key: "recipe", title: "Let's Make It!", description: "Follow along step by step" },
 ];
 
-export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
+export const RecipeMakerWizard = ({ userId, onSaved }: RecipeMakerWizardProps) => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [ingredients, setIngredients] = useState<string[]>([]);
@@ -405,7 +406,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                 </p>
               </div>
             ) : fullRecipe ? (
-              <RecipeDisplay recipe={fullRecipe} userId={userId} />
+              <RecipeDisplay recipe={fullRecipe} userId={userId} onSaved={onSaved} />
             ) : null}
             
             <div className="flex gap-3">

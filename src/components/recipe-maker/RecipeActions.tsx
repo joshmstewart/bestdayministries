@@ -25,9 +25,10 @@ interface RecipeActionsProps {
   recipe: Recipe;
   userId: string;
   onMadeIt?: () => void;
+  onSaved?: () => void;
 }
 
-export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) => {
+export const RecipeActions = ({ recipe, userId, onMadeIt, onSaved }: RecipeActionsProps) => {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -73,8 +74,9 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
       setIsSaved(true);
       toast({
         title: "Saved to cookbook! 📚",
-        description: "You can find this recipe in your cookbook anytime",
+        description: "Taking you to your cookbook...",
       });
+      onSaved?.();
     } catch (error: any) {
       console.error("Error saving recipe:", error);
       toast({
