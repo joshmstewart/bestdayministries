@@ -231,41 +231,49 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
                   <Label>Select User</Label>
                   <Command className="border rounded-md">
                     <CommandInput 
-                      placeholder="Search by name..." 
+                      placeholder="Type at least 3 characters to search..." 
                       value={searchQuery}
                       onValueChange={setSearchQuery}
                     />
                     <CommandList>
-                      <CommandEmpty>No users found.</CommandEmpty>
-                      <CommandGroup>
-                        {availableUsers
-                          .filter(u => 
-                            u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-                          )
-                          .slice(0, 10)
-                          .map((user) => (
-                            <CommandItem
-                              key={user.id}
-                              value={user.display_name || user.email || user.id}
-                              onSelect={() => setSelectedUserId(user.id)}
-                              className="cursor-pointer"
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <User className="h-4 w-4 text-primary" />
-                                </div>
-                                <div>
-                                  <div className="font-medium">{user.display_name || "Unknown"}</div>
-                                  <div className="text-xs text-muted-foreground">{user.email}</div>
-                                </div>
-                              </div>
-                              {selectedUserId === user.id && (
-                                <Check className="h-4 w-4 text-primary" />
-                              )}
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
+                      {searchQuery.length < 3 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          Type at least 3 characters to search
+                        </div>
+                      ) : (
+                        <>
+                          <CommandEmpty>No users found.</CommandEmpty>
+                          <CommandGroup>
+                            {availableUsers
+                              .filter(u => 
+                                u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                              )
+                              .slice(0, 10)
+                              .map((user) => (
+                                <CommandItem
+                                  key={user.id}
+                                  value={user.display_name || user.email || user.id}
+                                  onSelect={() => setSelectedUserId(user.id)}
+                                  className="cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                      <User className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div>
+                                      <div className="font-medium">{user.display_name || "Unknown"}</div>
+                                      <div className="text-xs text-muted-foreground">{user.email}</div>
+                                    </div>
+                                  </div>
+                                  {selectedUserId === user.id && (
+                                    <Check className="h-4 w-4 text-primary" />
+                                  )}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </>
+                      )}
                     </CommandList>
                   </Command>
                   {selectedUser && (
