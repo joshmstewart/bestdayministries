@@ -52,11 +52,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Look up the picture password
+    // Look up the picture password - convert array to Postgres array literal format
+    const sequenceArray = `{${pictureSequence.join(",")}}`;
+    console.log("Looking up picture sequence:", sequenceArray);
+    
     const { data: passwordData, error: lookupError } = await supabase
       .from("picture_passwords")
       .select("user_id")
-      .eq("picture_sequence", pictureSequence)
+      .filter("picture_sequence", "eq", sequenceArray)
       .maybeSingle();
 
     if (lookupError) {
