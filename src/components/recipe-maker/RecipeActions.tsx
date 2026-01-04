@@ -209,49 +209,53 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex flex-wrap gap-2 justify-center">
-        {/* I Made This - hidden for now
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={markAsMade}
-          disabled={isMarkingMade}
-          className="gap-2"
-        >
-          {isMarkingMade ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <ChefHat className="h-4 w-4" />
-          )}
-          I Made This!
-        </Button>
-        */}
+    <div className="flex flex-col items-center gap-3">
+      {/* I Made This - hidden for now
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={markAsMade}
+        disabled={isMarkingMade}
+        className="gap-2"
+      >
+        {isMarkingMade ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ChefHat className="h-4 w-4" />
+        )}
+        I Made This!
+      </Button>
+      */}
 
-        <Button
-          variant={isShared ? "secondary" : "default"}
-          size="sm"
-          onClick={saveAndShare}
-          disabled={isSharing || isShared}
-          className="gap-2"
-        >
-          {isSharing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Share2 className="h-4 w-4" />
-          )}
-          {isShared ? "Saved & Shared!" : "Save & Share"}
-        </Button>
-      </div>
+      <Button
+        variant={isShared ? "secondary" : "default"}
+        size="lg"
+        onClick={saveAndShare}
+        disabled={isSharing || isShared}
+        className="gap-2 w-full max-w-xs"
+      >
+        {isSharing ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <BookmarkPlus className="h-5 w-5" />
+        )}
+        {isShared ? "Recipe Saved!" : "Save Recipe"}
+      </Button>
 
-      {/* Private save option - smaller link */}
+      {!isShared && (
+        <p className="text-xs text-muted-foreground text-center max-w-xs">
+          Saving will also share your recipe with the community
+        </p>
+      )}
+
+      {/* Private save option */}
       {!isSaved && !isShared && (
         <button
           onClick={saveToMyCookbook}
           disabled={isSaving}
-          className="text-xs text-muted-foreground hover:text-primary underline-offset-2 hover:underline transition-colors"
+          className="text-sm text-primary underline hover:text-primary/80 transition-colors"
         >
-          {isSaving ? "Saving..." : "or save to cookbook only (private)"}
+          {isSaving ? "Saving..." : "Save to My Cookbook only (private)"}
         </button>
       )}
     </div>
