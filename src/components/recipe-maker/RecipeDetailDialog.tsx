@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw, Users } from "lucide-react";
+import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench, RefreshCw, Users, ChefHat } from "lucide-react";
+import { CookingModeDialog } from "./CookingModeDialog";
 
 interface Recipe {
   id: string;
@@ -56,6 +57,7 @@ export const RecipeDetailDialog = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState(recipe.image_url);
+  const [showCookingMode, setShowCookingMode] = useState(false);
 
   // Update currentImageUrl when recipe changes
   useEffect(() => {
@@ -444,12 +446,21 @@ export const RecipeDetailDialog = ({
         </div>
 
         {userId && (
-          <div className="pt-4 border-t">
+          <div className="pt-4 border-t space-y-2">
             {isInCookbook ? (
-              <Button variant="secondary" disabled className="w-full gap-2">
-                <Check className="h-4 w-4" />
-                In My Cookbook
-              </Button>
+              <>
+                <Button 
+                  onClick={() => setShowCookingMode(true)} 
+                  className="w-full gap-2"
+                >
+                  <ChefHat className="h-4 w-4" />
+                  Start Cooking
+                </Button>
+                <Button variant="secondary" disabled className="w-full gap-2">
+                  <Check className="h-4 w-4" />
+                  In My Cookbook
+                </Button>
+              </>
             ) : (
               <Button onClick={addToCookbook} disabled={isSaving} className="w-full gap-2">
                 {isSaving ? (
@@ -461,6 +472,17 @@ export const RecipeDetailDialog = ({
               </Button>
             )}
           </div>
+        )}
+
+        {/* Cooking Mode Dialog */}
+        {userId && isInCookbook && (
+          <CookingModeDialog
+            recipe={recipe}
+            userId={userId}
+            open={showCookingMode}
+            onOpenChange={setShowCookingMode}
+            onComplete={onAddToCookbook}
+          />
         )}
       </DialogContent>
     </Dialog>
