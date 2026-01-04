@@ -19,26 +19,53 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2 } from "lucide-react";
 
-// Tool suggestions by category
+// Tool suggestions by category - comprehensive list
 const TOOL_SUGGESTIONS: Record<string, string[]> = {
   appliances: [
-    "Air Fryer", "Blender", "Coffee Maker", "Crockpot", "Food Processor", "Griddle", 
-    "Grill", "Instant Pot", "Microwave", "Mixer", "Oven", "Rice Cooker", "Slow Cooker", 
-    "Stovetop", "Toaster", "Toaster Oven", "Waffle Iron", "Espresso Machine", "Juicer",
-    "Electric Kettle", "Stand Mixer", "Hand Mixer", "Bread Machine", "Ice Cream Maker"
+    "Air Fryer", "Blender", "Bread Machine", "Coffee Grinder", "Coffee Maker", 
+    "Convection Oven", "Crockpot", "Deep Fryer", "Dehydrator", "Electric Griddle",
+    "Electric Kettle", "Electric Skillet", "Espresso Machine", "Food Dehydrator",
+    "Food Processor", "Freezer", "George Foreman Grill", "Griddle", "Grill", 
+    "Hand Blender", "Hand Mixer", "Hot Plate", "Ice Cream Maker", "Immersion Blender",
+    "Induction Cooktop", "Instant Pot", "Juicer", "Meat Grinder", "Microwave", 
+    "Mixer", "Oven", "Panini Press", "Popcorn Maker", "Pressure Cooker", 
+    "Rice Cooker", "Sandwich Maker", "Slow Cooker", "Smoker", "Sous Vide", 
+    "Stand Mixer", "Stovetop", "Toaster", "Toaster Oven", "Vacuum Sealer", 
+    "Waffle Iron", "Waffle Maker", "Yogurt Maker"
   ],
   cookware: [
-    "Baking Pan", "Baking Sheet", "Cast Iron Skillet", "Cookie Sheet", "Dutch Oven", 
-    "Frying Pan", "Loaf Pan", "Muffin Tin", "Pie Dish", "Pot", "Roasting Pan", 
-    "Saucepan", "Skillet", "Wok", "Casserole Dish", "Stockpot", "Saute Pan", 
-    "Grill Pan", "Steamer Basket", "Double Boiler"
+    "Baking Dish", "Baking Pan", "Baking Sheet", "Braiser", "Broiler Pan", 
+    "Bundt Pan", "Cake Pan", "Casserole Dish", "Cast Iron Skillet", "Ceramic Bakeware",
+    "Cookie Sheet", "Crepe Pan", "Double Boiler", "Dutch Oven", "Fondue Pot",
+    "Frying Pan", "Glass Bakeware", "Griddle Pan", "Grill Pan", "Jelly Roll Pan",
+    "Loaf Pan", "Muffin Tin", "Nonstick Pan", "Omelet Pan", "Paella Pan", 
+    "Pie Dish", "Pie Pan", "Pizza Pan", "Pizza Stone", "Pot", "Pressure Cooker Pot",
+    "Ramekins", "Roasting Pan", "Saucepan", "Saucier", "Saute Pan", "Sheet Pan",
+    "Skillet", "Souffle Dish", "Springform Pan", "Steamer", "Steamer Basket", 
+    "Stock Pot", "Stockpot", "Tagine", "Tart Pan", "Tube Pan", "Wok"
   ],
   utensils: [
-    "Bowl", "Colander", "Cutting Board", "Fork", "Knife", "Ladle", "Measuring Cups",
-    "Measuring Spoons", "Mixing Bowl", "Peeler", "Plate", "Rubber Spatula", "Slotted Spoon",
-    "Spatula", "Spoon", "Tongs", "Turner", "Whisk", "Wooden Spoon", "Grater", "Zester",
-    "Rolling Pin", "Can Opener", "Bottle Opener", "Ice Cream Scoop", "Meat Thermometer",
-    "Timer", "Oven Mitts", "Paper Towels", "Aluminum Foil", "Plastic Wrap", "Parchment Paper"
+    "Aluminum Foil", "Apple Corer", "Baster", "Bench Scraper", "Bottle Opener",
+    "Bowl", "Box Grater", "Bread Knife", "Butter Knife", "Can Opener", "Cheese Grater",
+    "Cheese Slicer", "Chef's Knife", "Cherry Pitter", "Chopsticks", "Citrus Juicer",
+    "Citrus Reamer", "Colander", "Cookie Cutters", "Cooling Rack", "Corkscrew",
+    "Cutting Board", "Dough Scraper", "Egg Beater", "Egg Separator", "Egg Slicer",
+    "Fine Mesh Strainer", "Fish Spatula", "Flour Sifter", "Food Mill", "Fork",
+    "Funnel", "Garlic Press", "Grater", "Ice Cream Scoop", "Kitchen Scale",
+    "Kitchen Scissors", "Kitchen Shears", "Kitchen Timer", "Kitchen Torch", "Knife",
+    "Knife Sharpener", "Ladle", "Lemon Squeezer", "Mandoline", "Mandoline Slicer",
+    "Marinade Injector", "Meat Mallet", "Meat Tenderizer", "Meat Thermometer",
+    "Measuring Cups", "Measuring Spoons", "Melon Baller", "Microplane", "Mixing Bowl",
+    "Mortar and Pestle", "Muffin Liners", "Nutcracker", "Offset Spatula", "Oven Mitts",
+    "Paper Towels", "Parchment Paper", "Paring Knife", "Pasta Maker", "Pasta Server",
+    "Pastry Bag", "Pastry Blender", "Pastry Brush", "Pastry Cutter", "Peeler",
+    "Pepper Mill", "Pie Server", "Piping Tips", "Pizza Cutter", "Pizza Wheel",
+    "Plastic Wrap", "Plate", "Potato Masher", "Potato Ricer", "Pot Holder",
+    "Prep Bowls", "Ricer", "Rolling Pin", "Rubber Spatula", "Salad Spinner",
+    "Santoku Knife", "Sieve", "Silicone Baking Mat", "Silicone Spatula", "Skewer",
+    "Slotted Spoon", "Spatula", "Spider Strainer", "Spoon", "Spoon Rest",
+    "Strainer", "Thermometer", "Timer", "Tongs", "Turner", "Vegetable Peeler",
+    "Whisk", "Wire Rack", "Wire Whisk", "Wok Spatula", "Wooden Spoon", "Zester"
   ],
 };
 
