@@ -24,28 +24,28 @@ import {
 } from "@/components/ui/accordion";
 
 // Default bundled images (for reference)
-import espressoImg from "@/assets/games/memory-match/espresso.png";
-import latteImg from "@/assets/games/memory-match/latte.png";
 import croissantImg from "@/assets/games/memory-match/croissant.png";
 import coffeeBeansImg from "@/assets/games/memory-match/coffee-beans.png";
-import cappuccinoImg from "@/assets/games/memory-match/cappuccino.png";
 import muffinImg from "@/assets/games/memory-match/muffin.png";
 import donutImg from "@/assets/games/memory-match/donut.png";
 import frenchPressImg from "@/assets/games/memory-match/french-press.png";
-import takeawayCupImg from "@/assets/games/memory-match/takeaway-cup.png";
 import cookieImg from "@/assets/games/memory-match/cookie.png";
+import milkPitcherImg from "@/assets/games/memory-match/milk-pitcher.png";
+import coffeeGrinderImg from "@/assets/games/memory-match/coffee-grinder.png";
+import cinnamonSticksImg from "@/assets/games/memory-match/cinnamon-sticks.png";
+import sugarBowlImg from "@/assets/games/memory-match/sugar-bowl.png";
 
 const DEFAULT_BUNDLED_IMAGES = [
-  { name: "Espresso", image_url: espressoImg },
-  { name: "Latte", image_url: latteImg },
+  { name: "French Press", image_url: frenchPressImg },
   { name: "Croissant", image_url: croissantImg },
   { name: "Coffee Beans", image_url: coffeeBeansImg },
-  { name: "Cappuccino", image_url: cappuccinoImg },
   { name: "Muffin", image_url: muffinImg },
   { name: "Donut", image_url: donutImg },
-  { name: "French Press", image_url: frenchPressImg },
-  { name: "Takeaway Cup", image_url: takeawayCupImg },
   { name: "Cookie", image_url: cookieImg },
+  { name: "Milk Pitcher", image_url: milkPitcherImg },
+  { name: "Coffee Grinder", image_url: coffeeGrinderImg },
+  { name: "Cinnamon Sticks", image_url: cinnamonSticksImg },
+  { name: "Sugar Bowl", image_url: sugarBowlImg },
 ];
 
 interface ImagePack {
