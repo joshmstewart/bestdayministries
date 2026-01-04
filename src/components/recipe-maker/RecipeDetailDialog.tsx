@@ -43,17 +43,25 @@ export const RecipeDetailDialog = ({
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
+  const isAssumedAvailableIngredient = (ingredient: string) => {
+    // Assumed pantry items (always available)
+    return /\bwater\b/i.test(ingredient);
+  };
+
   // Categorize ingredients
-  const ingredientMatches = recipe.ingredients.map(ing => {
-    const hasIt = userIngredients.some(ui =>
-      ing.toLowerCase().includes(ui.toLowerCase()) ||
-      ui.toLowerCase().includes(ing.toLowerCase())
+  const ingredientMatches = recipe.ingredients.map((ing) => {
+    if (isAssumedAvailableIngredient(ing)) {
+      return { ingredient: ing, hasIt: true };
+    }
+
+    const hasIt = userIngredients.some(
+      (ui) => ing.toLowerCase().includes(ui.toLowerCase()) || ui.toLowerCase().includes(ing.toLowerCase()),
     );
     return { ingredient: ing, hasIt };
   });
 
-  const haveCount = ingredientMatches.filter(m => m.hasIt).length;
-  const needCount = ingredientMatches.filter(m => !m.hasIt).length;
+  const haveCount = ingredientMatches.filter((m) => m.hasIt).length;
+  const needCount = ingredientMatches.filter((m) => !m.hasIt).length;
 
   const addToCookbook = async () => {
     if (!userId) {
@@ -83,16 +91,34 @@ export const RecipeDetailDialog = ({
         return;
       }
 
-      const { error } = await supabase.from("saved_recipes").insert({
-        user_id: userId,
-        title: recipe.title,
-        description: recipe.description,
-        ingredients: recipe.ingredients,
-        steps: recipe.steps,
-        tips: recipe.tips || [],
-        image_url: recipe.image_url,
-        source_recipe_id: recipe.id,
-      });
+      const { data: canonicalPublic } = await supabase
+        .from("public_recipes")
+        .select("title, description, ingredients, steps, tips, image_url")
+        .eq("id", recipe.id)
+        .maybeSingle();
+
+      const insertPayload = canonicalPublic
+        ? {
+            user_id: userId,
+            title: canonicalPublic.title,
+            description: canonicalPublic.description,
+            ingredients: canonicalPublic.ingredients,
+            steps: canonicalPublic.steps,
+            tips: (canonicalPublic.tips || []) as string[],
+            image_url: canonicalPublic.image_url,
+            source_recipe_id: recipe.id,
+          }
+        : {
+            user_id: userId,
+            title: recipe.title,
+            description: recipe.description,
+            ingredients: recipe.ingredients,
+            steps: recipe.steps,
+            tips: recipe.tips || [],
+            image_url: recipe.image_url,
+          };
+
+      const { error } = await supabase.from("saved_recipes").insert(insertPayload);
 
       if (error) throw error;
 
