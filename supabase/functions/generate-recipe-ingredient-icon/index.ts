@@ -23,8 +23,27 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Generate a prompt for the food ingredient icon - show realistic forms
-    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName} (food ingredient). Image must be exactly 256x256 pixels. Simple flat illustration style. Show how this ingredient ACTUALLY appears in real life - for example: lemons as fresh whole lemons OR a lemon juice bottle, peaches as fresh peaches AND/OR canned peaches, raisins in a box with some spilled out, cheese as a wedge or slices, bottled sauces in their typical bottle shape, boxed items in their box form, bagged items with the bag visible. Show the most recognizable real-world form that someone would see in their kitchen or grocery store. Solid single-color background. Sharp corners, no frames or borders. No text labels, minimal shadows. Center the items within the square frame. Make it look appetizing and instantly recognizable. Category: ${category}.`;
+    // Generate a prompt for the food ingredient icon - show realistic kitchen/grocery forms
+    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName} (food ingredient). 256x256 pixels. Simple flat illustration style.
+
+CRITICAL: Show this ingredient exactly as someone would find it in their kitchen or grocery store:
+- Cereal = colorful cereal box with some cereal spilling out
+- Oatmeal = round oatmeal canister/container
+- Raisins = small box with raisins spilling out
+- Milk = milk carton or jug
+- Cheese = wedge or slices
+- Butter = butter stick in wrapper or on dish
+- Eggs = carton with eggs visible
+- Bread = sliced loaf in bag
+- Pasta = box or clear bag showing pasta shapes
+- Canned goods = can with the food visible or pictured
+- Bottled sauces/condiments = in their bottle
+- Spices = in spice jar
+- Fresh fruits/vegetables = whole or cut to show inside
+- Frozen items = in freezer bag or box
+- Broth/stock = carton or can
+
+Show the ACTUAL packaging or common kitchen form. Solid single-color background. No text labels, sharp corners, no frames. Center items in frame. Make it instantly recognizable. Category: ${category}.`;
 
     console.log("Generating icon for recipe ingredient:", ingredientName);
     console.log("Prompt:", iconPrompt);
