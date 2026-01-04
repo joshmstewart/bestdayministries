@@ -609,17 +609,17 @@ export const StickerAlbum = () => {
                     }
                     setShowScratchDialog(true);
                   }}
-                  className="relative group transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
+                  className="relative group transition-all hover:scale-105 active:scale-95 focus:outline-none"
                 >
-                  <div className="relative w-24 h-36 sm:w-28 sm:h-40 rounded-lg overflow-hidden shadow-lg border-2 border-primary/20 group-hover:border-primary/50 transition-colors">
+                  <div className="relative w-24 h-36 sm:w-28 sm:h-40">
                     {collection.pack_image_url ? (
                       <img
                         src={collection.pack_image_url}
                         alt={collection.name || 'Sticker Pack'}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 rounded-lg flex items-center justify-center">
                         <Sparkles className="w-8 h-8 text-primary" />
                       </div>
                     )}
@@ -629,11 +629,9 @@ export const StickerAlbum = () => {
                         ★
                       </div>
                     )}
-                    {/* Collection name overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-center pb-2">
-                      <span className="text-white text-[10px] font-medium text-center px-1 line-clamp-2">{collection.name}</span>
-                    </div>
                   </div>
+                  {/* Collection name below image */}
+                  <span className="block text-[10px] text-center text-muted-foreground mt-1 max-w-[7rem] truncate">{collection.name}</span>
                 </button>
               ))}
             </div>
