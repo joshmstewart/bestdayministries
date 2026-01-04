@@ -16,6 +16,8 @@ interface RecipeIngredient {
 interface RecipeIngredientSelectorProps {
   selectedIngredients: string[];
   onToggle: (ingredientName: string) => void;
+  isSaving?: boolean;
+  lastSaved?: Date | null;
 }
 
 // Lazy loading image component
@@ -142,6 +144,8 @@ const categoryLabels: Record<string, string> = {
 export const RecipeIngredientSelector = ({
   selectedIngredients,
   onToggle,
+  isSaving = false,
+  lastSaved = null,
 }: RecipeIngredientSelectorProps) => {
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -270,9 +274,25 @@ export const RecipeIngredientSelector = ({
       {/* Selected ingredients summary */}
       {selectedIngredients.length > 0 && (
         <div className="p-3 rounded-lg bg-background/80 backdrop-blur-md border border-primary/20 shadow-lg sticky bottom-4 mx-1 z-20">
-          <p className="text-sm font-medium mb-2">
-            Selected ({selectedIngredients.length}):
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium">
+              Selected ({selectedIngredients.length}):
+            </p>
+            {/* Save status indicator */}
+            <div className="flex items-center gap-1 text-xs">
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  <span className="text-muted-foreground">Saving...</span>
+                </>
+              ) : lastSaved ? (
+                <>
+                  <Check className="h-3 w-3 text-green-600" />
+                  <span className="text-green-600">Saved</span>
+                </>
+              ) : null}
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2">
             {selectedIngredients.map((name) => (
               <button

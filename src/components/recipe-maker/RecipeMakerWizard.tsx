@@ -281,8 +281,6 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                     onToggleExpand={() => setIsToolsExpanded(prev => !prev)}
                     title="My Kitchen Tools"
                     showIngredients={false}
-                    isSaving={isSaving}
-                    lastSaved={lastSaved}
                   />
                   
                   <Collapsible open={isToolsExpanded} onOpenChange={setIsToolsExpanded}>
@@ -296,6 +294,8 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                               : [...prev, name]
                           );
                         }}
+                        isSaving={isSaving}
+                        lastSaved={lastSaved}
                       />
                     </CollapsibleContent>
                   </Collapsible>
@@ -313,6 +313,8 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                           : [...prev, name]
                       );
                     }}
+                    isSaving={isSaving}
+                    lastSaved={lastSaved}
                   />
                 </div>
 
