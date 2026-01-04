@@ -26,12 +26,15 @@ serve(async (req) => {
     }
 
     // Generate the recipe steps
-    const recipePrompt = `You are a friendly cooking teacher for people with intellectual disabilities.
+    const recipePrompt = `You are a friendly cooking teacher for adults with intellectual disabilities.
 Create a SIMPLE, step-by-step recipe that is:
 - Easy to follow with SHORT, CLEAR steps
 - Uses simple words (no cooking jargon)
 - Safe and uses basic kitchen tools
 - Encouraging and positive
+
+IMPORTANT: These are ADULTS, not children. Do NOT say "ask a grown-up" or treat them like children.
+Instead, include a "safetyNotes" array listing any tasks that might need extra care or help from a support person.
 
 Recipe to create: ${recipeName}
 Description: ${recipeDescription || ""}
@@ -41,6 +44,7 @@ You MUST respond with a JSON object in this exact format:
 {
   "title": "Recipe Title",
   "description": "A friendly 1-2 sentence description",
+  "safetyNotes": ["Using sharp knife", "Hot stove", "Hot oven"],
   "ingredients": ["ingredient 1 with amount", "ingredient 2 with amount", ...],
   "steps": [
     "Step 1 in simple words",
@@ -52,6 +56,13 @@ You MUST respond with a JSON object in this exact format:
     "Another helpful tip"
   ]
 }
+
+The safetyNotes should list things that might need extra care or help, like:
+- "Using sharp knife for cutting"
+- "Hot stove top"
+- "Hot oven"
+- "Boiling water"
+Only include relevant safety notes for this specific recipe.
 
 Keep steps to 5-8 maximum. Each step should be ONE simple action.
 Only return the JSON, no other text.`;
