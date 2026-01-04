@@ -7,7 +7,17 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2 } from "lucide-react";
 
 // Tool suggestions by category
 const TOOL_SUGGESTIONS: Record<string, string[]> = {
@@ -61,6 +71,10 @@ export const RecipeToolsManager = () => {
   const [newToolCategory, setNewToolCategory] = useState("utensils");
   const [addingTool, setAddingTool] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Delete confirmation state
+  const [toolToDelete, setToolToDelete] = useState<RecipeTool | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadTools();
@@ -315,6 +329,29 @@ export const RecipeToolsManager = () => {
     setErrors([]);
   };
 
+  const handleDeleteTool = async () => {
+    if (!toolToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("recipe_tools")
+        .delete()
+        .eq("id", toolToDelete.id);
+
+      if (error) throw error;
+
+      toast.success(`Deleted ${toolToDelete.name}`);
+      setTools(prev => prev.filter(t => t.id !== toolToDelete.id));
+    } catch (error) {
+      console.error("Failed to delete tool:", error);
+      toast.error("Failed to delete tool");
+    } finally {
+      setDeleting(false);
+      setToolToDelete(null);
+    }
+  };
+
   const missingCount = tools.filter((t) => !t.image_url).length;
 
   // Group tools by category
@@ -559,8 +596,8 @@ export const RecipeToolsManager = () => {
                     <span className="text-xs text-white font-medium">{tool.name}</span>
                   </div>
 
-                  {/* Regenerate button on hover */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {/* Actions on hover */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                     <Button
                       size="sm"
                       variant="secondary"
@@ -576,6 +613,14 @@ export const RecipeToolsManager = () => {
                         </>
                       )}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setToolToDelete(tool)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -583,6 +628,35 @@ export const RecipeToolsManager = () => {
           </CardContent>
         </Card>
       ))}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!toolToDelete} onOpenChange={(open) => !open && setToolToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tool</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{toolToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTool}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
