@@ -47,6 +47,7 @@ type SortOption = "newest" | "most_saved";
 const RecipeGallery = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<{ id: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [publicRecipes, setPublicRecipes] = useState<PublicRecipe[]>([]);
   const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
@@ -71,6 +72,15 @@ const RecipeGallery = () => {
       setPublicRecipes(publicData || []);
 
       if (user) {
+        // Check if user is admin
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        setIsAdmin(roleData?.role === "admin" || roleData?.role === "owner");
+
         // Load user's saved recipes
         const { data: savedData } = await supabase
           .from("saved_recipes")
@@ -313,6 +323,7 @@ const RecipeGallery = () => {
           userTools={userTools}
           userId={user?.id}
           isInCookbook={savedRecipeIds.has(selectedRecipe.id) || savedTitles.has(selectedRecipe.title.toLowerCase())}
+          isAdmin={isAdmin}
           open={!!selectedRecipe}
           onOpenChange={(open) => !open && setSelectedRecipe(null)}
           onAddToCookbook={() => {
@@ -331,6 +342,14 @@ const RecipeGallery = () => {
                   setSavedTitles(titles);
                 });
             }
+          }}
+          onImageRegenerated={(newImageUrl) => {
+            // Update the recipe in the list with the new image
+            setPublicRecipes(prev => prev.map(r => 
+              r.id === selectedRecipe.id ? { ...r, image_url: newImageUrl } : r
+            ));
+            // Also update the selected recipe
+            setSelectedRecipe(prev => prev ? { ...prev, image_url: newImageUrl } : null);
           }}
         />
       )}
