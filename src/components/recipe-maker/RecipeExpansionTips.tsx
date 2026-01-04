@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lightbulb, Loader2, ChefHat, UtensilsCrossed, RefreshCw } from "lucide-react";
@@ -33,30 +33,17 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
   const [hasLoaded, setHasLoaded] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
   const { toast } = useToast();
+  
+  // Track what ingredients/tools we last generated for
+  const lastGeneratedFor = useRef<string>("");
+  const isInitialLoad = useRef(true);
 
-  // Load saved tips on mount if userId provided
-  useEffect(() => {
-    if (!userId) return;
-    
-    const loadSavedTips = async () => {
-      const { data, error } = await supabase
-        .from("saved_shopping_tips")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
+  const generateTips = useCallback(async (silent = false) => {
+    // Don't generate if no items selected
+    if (ingredients.length === 0 && tools.length === 0) {
+      return;
+    }
 
-      if (!error && data) {
-        setIngredientTips((data.ingredient_tips as unknown as IngredientTip[]) || []);
-        setToolTips((data.tool_tips as unknown as ToolTip[]) || []);
-        setLastGenerated(new Date(data.last_generated_at));
-        setHasLoaded(true);
-      }
-    };
-
-    loadSavedTips();
-  }, [userId]);
-
-  const generateTips = async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-recipe-expansion-tips', {
@@ -72,6 +59,9 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
       setToolTips(newToolTips);
       setHasLoaded(true);
       setLastGenerated(new Date());
+      
+      // Track what we generated for
+      lastGeneratedFor.current = JSON.stringify({ ingredients: [...ingredients].sort(), tools: [...tools].sort() });
 
       // Save to database if user is logged in
       if (userId) {
@@ -89,43 +79,98 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
       }
     } catch (error) {
       console.error("Error getting expansion tips:", error);
-      toast({
-        title: "Couldn't get tips",
-        description: "Try again in a moment!",
-        variant: "destructive"
-      });
+      if (!silent) {
+        toast({
+          title: "Couldn't get tips",
+          description: "Try again in a moment!",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [ingredients, tools, userId, toast]);
 
-  if (!hasLoaded) {
+  // Load saved tips on mount if userId provided
+  useEffect(() => {
+    if (!userId) return;
+    
+    const loadSavedTips = async () => {
+      const { data, error } = await supabase
+        .from("saved_shopping_tips")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!error && data) {
+        setIngredientTips((data.ingredient_tips as unknown as IngredientTip[]) || []);
+        setToolTips((data.tool_tips as unknown as ToolTip[]) || []);
+        setLastGenerated(new Date(data.last_generated_at));
+        setHasLoaded(true);
+        isInitialLoad.current = false;
+      } else if (ingredients.length > 0 || tools.length > 0) {
+        // No saved tips, auto-generate if user has items
+        generateTips(true);
+        isInitialLoad.current = false;
+      }
+    };
+
+    loadSavedTips();
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-regenerate when ingredients/tools change significantly
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
+
+    // Don't auto-generate if nothing is selected
+    if (ingredients.length === 0 && tools.length === 0) {
+      return;
+    }
+
+    // Check if selection changed significantly
+    const currentSelection = JSON.stringify({ ingredients: [...ingredients].sort(), tools: [...tools].sort() });
+    if (currentSelection === lastGeneratedFor.current) {
+      return;
+    }
+
+    // Debounce the regeneration
+    const timeout = setTimeout(() => {
+      generateTips(true);
+    }, 2000); // Wait 2 seconds after last change
+
+    return () => clearTimeout(timeout);
+  }, [ingredients, tools, generateTips]);
+
+  // Show loading state while auto-generating
+  if (isLoading && !hasLoaded) {
     return (
-      <Card className={`border-dashed border-2 border-primary/30 bg-primary/5 ${compact ? '' : ''}`}>
+      <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
         <CardContent className="pt-6">
           <div className="text-center space-y-3">
-            <Lightbulb className="h-8 w-8 mx-auto text-primary" />
+            <Loader2 className="h-8 w-8 mx-auto text-primary animate-spin" />
             <p className="text-sm text-muted-foreground">
-              Want ideas for what to add to make more recipes?
+              Finding shopping tips for you...
             </p>
-            <Button
-              onClick={generateTips}
-              disabled={isLoading}
-              variant="outline"
-              size="sm"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Thinking...
-                </>
-              ) : (
-                <>
-                  <Lightbulb className="h-4 w-4 mr-2" />
-                  Get Shopping Tips
-                </>
-              )}
-            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show prompt only if no items selected
+  if (!hasLoaded && ingredients.length === 0 && tools.length === 0) {
+    return (
+      <Card className="border-dashed border-2 border-muted/50 bg-muted/5">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-2">
+            <Lightbulb className="h-6 w-6 mx-auto text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">
+              Select some items above to get shopping tips!
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -134,7 +179,7 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
 
   const hasTips = ingredientTips.length > 0 || toolTips.length > 0;
 
-  if (!hasTips) {
+  if (hasLoaded && !hasTips) {
     return (
       <Card className="border-dashed border-2 border-green-500/30 bg-green-500/5">
         <CardContent className="pt-6">
@@ -166,10 +211,15 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
       )}
       {!showTitle && (
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-primary" />
-            Shopping Tips
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-primary" />
+              Shopping Tips
+            </CardTitle>
+            {isLoading && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
         </CardHeader>
       )}
       <CardContent className="space-y-4">
@@ -223,7 +273,7 @@ export function RecipeExpansionTips({ ingredients, tools, userId, showTitle = fa
         )}
 
         <Button
-          onClick={generateTips}
+          onClick={() => generateTips(false)}
           disabled={isLoading}
           variant="ghost"
           size="sm"
