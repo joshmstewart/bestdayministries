@@ -229,3 +229,9 @@ verify_jwt = true
 
 [functions.poll-shipstation-status]
 verify_jwt = true
+
+[functions.generate-recipe-suggestions]
+verify_jwt = true
+
+[functions.generate-full-recipe]
+verify_jwt = true
