@@ -12,6 +12,7 @@ import { FaviconManager } from "@/components/FaviconManager";
 import { ProductTourRunner } from "@/components/help/ProductTourRunner";
 import { WelcomeRedirectModal } from "@/components/WelcomeRedirectModal";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
+import { PicturePasswordNotificationManager } from "@/components/auth/PicturePasswordNotificationManager";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,6 +164,7 @@ const App = () => {
           <PWAInstallBanner />
           <TourManager />
           <WelcomeRedirectModal />
+          <PicturePasswordNotificationManager />
           <TermsAcceptanceGuard>
             <Routes>
             <Route path="/" element={<DomainRouter />} />

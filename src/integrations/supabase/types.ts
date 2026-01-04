@@ -3802,6 +3802,66 @@ export type Database = {
         }
         Relationships: []
       }
+      picture_password_notifications: {
+        Row: {
+          created_at: string | null
+          dismissed_at: string | null
+          dont_show_again: boolean | null
+          id: string
+          is_read: boolean | null
+          notification_type: string
+          picture_sequence: string[] | null
+          related_bestie_id: string | null
+          related_bestie_name: string | null
+          remind_after: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dismissed_at?: string | null
+          dont_show_again?: boolean | null
+          id?: string
+          is_read?: boolean | null
+          notification_type: string
+          picture_sequence?: string[] | null
+          related_bestie_id?: string | null
+          related_bestie_name?: string | null
+          remind_after?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dismissed_at?: string | null
+          dont_show_again?: boolean | null
+          id?: string
+          is_read?: boolean | null
+          notification_type?: string
+          picture_sequence?: string[] | null
+          related_bestie_id?: string | null
+          related_bestie_name?: string | null
+          remind_after?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "picture_password_notifications_related_bestie_id_fkey"
+            columns: ["related_bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "picture_password_notifications_related_bestie_id_fkey"
+            columns: ["related_bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       picture_passwords: {
         Row: {
           created_at: string
