@@ -24,7 +24,7 @@ serve(async (req) => {
     }
 
     // Generate a prompt for the food ingredient icon
-    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName} (food ingredient). Image must be exactly 256x256 pixels with equal width and height. Simple flat illustration style showing the food item clearly. Solid single-color background filling entire square canvas edge-to-edge. Sharp 90-degree corners, no rounded frames or borders. No text, no gradients, minimal shadows. Center the food item within the square frame. Make it look appetizing and easily recognizable. Category: ${category}.`;
+    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName} (food ingredient). Image must be exactly 256x256 pixels with equal width and height. Simple flat illustration style. Show BOTH the typical packaging/container (jar, bag, box, bottle, carton, etc.) AND a small pile or portion of the ingredient together - this helps users identify what the item is from its common store-bought form. Solid single-color background filling entire square canvas edge-to-edge. Sharp 90-degree corners, no rounded frames or borders. No text, no gradients, minimal shadows. Center the items within the square frame. Make it look appetizing and easily recognizable. Category: ${category}.`;
 
     console.log("Generating icon for recipe ingredient:", ingredientName);
     console.log("Prompt:", iconPrompt);
