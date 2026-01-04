@@ -29,6 +29,7 @@ interface RecipeDetailDialogProps {
   userIngredients: string[];
   userTools?: string[];
   userId?: string;
+  isInCookbook?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddToCookbook?: () => void;
@@ -39,6 +40,7 @@ export const RecipeDetailDialog = ({
   userIngredients,
   userTools = [],
   userId,
+  isInCookbook = false,
   open,
   onOpenChange,
   onAddToCookbook,
@@ -335,14 +337,21 @@ export const RecipeDetailDialog = ({
 
         {userId && (
           <div className="pt-4 border-t">
-            <Button onClick={addToCookbook} disabled={isSaving} className="w-full gap-2">
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <BookmarkPlus className="h-4 w-4" />
-              )}
-              Add to My Cookbook
-            </Button>
+            {isInCookbook ? (
+              <Button variant="secondary" disabled className="w-full gap-2">
+                <Check className="h-4 w-4" />
+                In My Cookbook
+              </Button>
+            ) : (
+              <Button onClick={addToCookbook} disabled={isSaving} className="w-full gap-2">
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <BookmarkPlus className="h-4 w-4" />
+                )}
+                Add to My Cookbook
+              </Button>
+            )}
           </div>
         )}
       </DialogContent>

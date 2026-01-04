@@ -312,6 +312,7 @@ const RecipeGallery = () => {
           userIngredients={userIngredients}
           userTools={userTools}
           userId={user?.id}
+          isInCookbook={savedRecipeIds.has(selectedRecipe.id) || savedTitles.has(selectedRecipe.title.toLowerCase())}
           open={!!selectedRecipe}
           onOpenChange={(open) => !open && setSelectedRecipe(null)}
           onAddToCookbook={() => {
@@ -322,7 +323,13 @@ const RecipeGallery = () => {
                 .select("*")
                 .eq("user_id", user.id)
                 .order("created_at", { ascending: false })
-                .then(({ data }) => setSavedRecipes(data || []));
+                .then(({ data }) => {
+                  setSavedRecipes(data || []);
+                  const savedBySourceId = new Set(data?.map(r => r.source_recipe_id).filter(Boolean) || []);
+                  const titles = new Set(data?.map(r => r.title.toLowerCase()) || []);
+                  setSavedRecipeIds(savedBySourceId);
+                  setSavedTitles(titles);
+                });
             }
           }}
         />
