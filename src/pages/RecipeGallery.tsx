@@ -461,6 +461,9 @@ const RecipeCard = ({ recipe, userIngredients, isInCookbook, onAddToCookbook, on
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>{recipe.ingredients.length} ingredients</span>
+            {(recipe.tools?.length ?? 0) > 0 && (
+              <span>{recipe.tools!.length} tools</span>
+            )}
             {recipe.saves_count > 0 && (
               <span className="flex items-center gap-1">
                 <BookmarkPlus className="h-3 w-3" />

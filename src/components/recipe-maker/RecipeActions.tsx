@@ -17,6 +17,7 @@ interface Recipe {
   ingredients: string[];
   steps: string[];
   tips: string[];
+  tools?: string[];
   imageUrl?: string;
 }
 
@@ -62,6 +63,7 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
         ingredients: recipe.ingredients,
         steps: recipe.steps,
         tips: recipe.tips || [],
+        tools: recipe.tools || [],
         image_url: recipe.imageUrl,
         is_favorite: true,
       });
@@ -104,6 +106,7 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
           ingredients: recipe.ingredients,
           steps: recipe.steps,
           tips: recipe.tips || [],
+          tools: recipe.tools || [],
           image_url: recipe.imageUrl,
           is_favorite: true,
         });
@@ -134,6 +137,7 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
         ingredients: recipe.ingredients,
         steps: recipe.steps,
         tips: recipe.tips || [],
+        tools: recipe.tools || [],
         image_url: recipe.imageUrl,
       });
 
@@ -185,6 +189,7 @@ export const RecipeActions = ({ recipe, userId, onMadeIt }: RecipeActionsProps) 
           ingredients: recipe.ingredients,
           steps: recipe.steps,
           tips: recipe.tips || [],
+          tools: recipe.tools || [],
           image_url: recipe.imageUrl,
           times_made: 1,
           last_made_at: new Date().toISOString(),

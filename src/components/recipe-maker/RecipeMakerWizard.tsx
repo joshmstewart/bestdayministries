@@ -39,6 +39,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
     ingredients: string[];
     steps: string[];
     tips: string[];
+    tools?: string[];
     imageUrl?: string;
   } | null>(null);
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
@@ -200,6 +201,7 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
           recipeName: recipe.name,
           recipeDescription: recipe.description,
           availableIngredients: ingredients,
+          availableTools: tools,
         },
       });
 
