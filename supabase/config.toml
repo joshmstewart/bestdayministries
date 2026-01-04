@@ -241,3 +241,12 @@ verify_jwt = true
 
 [functions.regenerate-recipe-image]
 verify_jwt = true
+
+[functions.backfill-recipe-tools]
+verify_jwt = false
+
+[functions.generate-recipe-tool-icon]
+verify_jwt = true
+
+[functions.generate-recipe-expansion-tips]
+verify_jwt = true
