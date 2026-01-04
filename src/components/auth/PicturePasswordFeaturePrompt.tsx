@@ -37,8 +37,8 @@ export function PicturePasswordFeaturePrompt({
   const [selectedBestieId, setSelectedBestieId] = useState<string | null>(null);
   const [setupForSelf, setSetupForSelf] = useState(false);
 
-  // Get sample images for preview
-  const sampleImages = PICTURE_PASSWORD_IMAGES.slice(0, 3);
+  // Get sample images for preview (4 pictures)
+  const sampleImages = PICTURE_PASSWORD_IMAGES.slice(0, 4);
 
   const handleSetupForBestie = (bestieId: string) => {
     setSelectedBestieId(bestieId);
@@ -93,8 +93,8 @@ export function PicturePasswordFeaturePrompt({
   }
 
   const ttsText = isGuardian 
-    ? "New Feature: Picture Login! Make signing in easier for your besties with a simple 3-picture code! Just remember 3 pictures, it's that easy!"
-    : "New Feature: Picture Login! Sign in faster with a fun 3-picture code instead of typing a password! Just remember 3 pictures, it's that easy!";
+    ? "New Feature: Picture Login! Make signing in easier for your besties with a simple 4-picture code! Just remember 4 pictures, it's that easy!"
+    : "New Feature: Picture Login! Sign in faster with a fun 4-picture code instead of typing a password! Just remember 4 pictures, it's that easy!";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -107,8 +107,8 @@ export function PicturePasswordFeaturePrompt({
           </DialogTitle>
           <DialogDescription>
             {isGuardian 
-              ? "Make signing in easier for your besties with a simple 3-picture code!"
-              : "Sign in faster with a fun 3-picture code instead of typing a password!"}
+              ? "Make signing in easier for your besties with a simple 4-picture code!"
+              : "Sign in faster with a fun 4-picture code instead of typing a password!"}
           </DialogDescription>
         </DialogHeader>
 
@@ -128,7 +128,7 @@ export function PicturePasswordFeaturePrompt({
         </div>
 
         <p className="text-sm text-muted-foreground text-center">
-          Just remember 3 pictures - it's that easy!
+          Just remember 4 pictures - it's that easy!
         </p>
 
         <div className="space-y-3 mt-4">
