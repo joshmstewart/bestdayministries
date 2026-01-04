@@ -20,7 +20,7 @@ export const QuickActionBar = () => {
               key={action.path}
               size="lg"
               onClick={() => navigate(action.path)}
-              className={`${action.color} text-primary-foreground shadow-xl hover:shadow-2xl transition-all hover:scale-110 px-8 py-7 text-lg font-bold rounded-xl animate-fade-in`}
+              className={`${action.color} text-primary-foreground transition-all hover:scale-110 px-8 py-7 text-lg font-bold rounded-xl animate-fade-in`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <action.icon className="w-6 h-6 mr-2" />
