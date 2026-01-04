@@ -326,6 +326,13 @@ export const StickerCollectionManager = () => {
   const [showTestScratch, setShowTestScratch] = useState(false);
   const [testCardId, setTestCardId] = useState<string | null>(null);
   const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
+  const [editingCollectionStickerCounts, setEditingCollectionStickerCounts] = useState<Record<string, number>>({
+    common: 0,
+    uncommon: 0,
+    rare: 0,
+    epic: 0,
+    legendary: 0
+  });
 
   useEffect(() => {
     fetchCollections();
@@ -359,6 +366,32 @@ export const StickerCollectionManager = () => {
       fetchStickers(selectedCollection);
     }
   }, [selectedCollection]);
+
+  // Fetch sticker counts when editing a collection
+  useEffect(() => {
+    const fetchEditingCollectionStickerCounts = async () => {
+      if (!editingCollection?.id) {
+        setEditingCollectionStickerCounts({ common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 });
+        return;
+      }
+
+      const { data: collectionStickers } = await supabase
+        .from('stickers')
+        .select('rarity')
+        .eq('collection_id', editingCollection.id)
+        .eq('is_active', true);
+
+      const counts: Record<string, number> = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 };
+      (collectionStickers || []).forEach(s => {
+        if (counts[s.rarity] !== undefined) {
+          counts[s.rarity]++;
+        }
+      });
+      setEditingCollectionStickerCounts(counts);
+    };
+
+    fetchEditingCollectionStickerCounts();
+  }, [editingCollection?.id]);
 
   const fetchCollections = async () => {
     const { data, error } = await supabase
@@ -2646,29 +2679,42 @@ export const StickerCollectionManager = () => {
                         rare: 15,
                         epic: 4,
                         legendary: 1
-                      }).map(([rarity, value]) => (
-                        <div key={rarity} className="space-y-2">
-                          <Label className="capitalize text-xs">{rarity}</Label>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              value={Number(value) || 0}
-                              onChange={(e) => setEditingCollection({
-                                ...editingCollection,
-                                rarity_percentages: {
-                                  ...(editingCollection.rarity_percentages || {}),
-                                  [rarity]: parseFloat(e.target.value) || 0
-                                }
-                              })}
-                              className="text-xs"
-                            />
-                            <span className="text-xs text-muted-foreground">%</span>
+                      }).map(([rarity, value]) => {
+                        const stickerCount = editingCollectionStickerCounts[rarity] || 0;
+                        const tierPercentage = Number(value) || 0;
+                        const perStickerRate = stickerCount > 0 ? (tierPercentage / stickerCount).toFixed(2) : null;
+                        
+                        return (
+                          <div key={rarity} className="space-y-1">
+                            <Label className="capitalize text-xs">{rarity}</Label>
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                value={tierPercentage}
+                                onChange={(e) => setEditingCollection({
+                                  ...editingCollection,
+                                  rarity_percentages: {
+                                    ...(editingCollection.rarity_percentages || {}),
+                                    [rarity]: parseFloat(e.target.value) || 0
+                                  }
+                                })}
+                                className="text-xs"
+                              />
+                              <span className="text-xs text-muted-foreground">%</span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {stickerCount > 0 ? (
+                                <span>{stickerCount} sticker{stickerCount !== 1 ? 's' : ''} → {perStickerRate}% each</span>
+                              ) : (
+                                <span className="text-orange-500">0 stickers</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
