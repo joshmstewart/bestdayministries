@@ -137,6 +137,42 @@ export const RecipeIngredientsManager = () => {
     return allSuggestions.slice(0, 8); // Limit to 8 suggestions
   }, [newIngredientName, ingredients]);
 
+  // Calculate smart display_order for new ingredient within its category
+  const calculateSmartDisplayOrder = (name: string, category: string): number => {
+    // Get all ingredients in this category, sorted by display_order
+    const categoryIngredients = ingredients
+      .filter(i => i.category === category)
+      .sort((a, b) => a.display_order - b.display_order);
+    
+    if (categoryIngredients.length === 0) {
+      // First ingredient in category, start at 10
+      return 10;
+    }
+    
+    const newNameLower = name.toLowerCase();
+    
+    // Find where this ingredient should go alphabetically
+    for (let i = 0; i < categoryIngredients.length; i++) {
+      const currentName = categoryIngredients[i].name.toLowerCase();
+      
+      if (newNameLower < currentName) {
+        // Should go before this ingredient
+        if (i === 0) {
+          // Goes at the very beginning - use half of first item's order
+          return Math.max(1, Math.floor(categoryIngredients[0].display_order / 2));
+        } else {
+          // Goes between previous and current - use midpoint
+          const prevOrder = categoryIngredients[i - 1].display_order;
+          const currOrder = categoryIngredients[i].display_order;
+          return Math.floor((prevOrder + currOrder) / 2);
+        }
+      }
+    }
+    
+    // Goes at the end - add 10 to last item's order
+    return categoryIngredients[categoryIngredients.length - 1].display_order + 10;
+  };
+
   const handleAddIngredient = async (name: string, category: string) => {
     if (!name.trim()) {
       toast.error("Please enter an ingredient name");
@@ -155,6 +191,9 @@ export const RecipeIngredientsManager = () => {
     setAddingIngredient(true);
     setShowSuggestions(false);
 
+    // Calculate smart display order
+    const smartDisplayOrder = calculateSmartDisplayOrder(name.trim(), category);
+
     try {
       // Insert the ingredient
       const { data: newIngredient, error: insertError } = await supabase
@@ -164,7 +203,7 @@ export const RecipeIngredientsManager = () => {
           category,
           description: `${name} for cooking`,
           is_active: true,
-          display_order: 100,
+          display_order: smartDisplayOrder,
         })
         .select()
         .single();
