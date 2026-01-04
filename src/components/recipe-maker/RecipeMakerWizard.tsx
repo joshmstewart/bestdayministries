@@ -281,6 +281,8 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                     onToggleExpand={() => setIsToolsExpanded(prev => !prev)}
                     title="My Kitchen Tools"
                     showIngredients={false}
+                    isSaving={isSaving}
+                    lastSaved={lastSaved}
                   />
                   
                   <Collapsible open={isToolsExpanded} onOpenChange={setIsToolsExpanded}>
@@ -299,22 +301,6 @@ export const RecipeMakerWizard = ({ userId }: RecipeMakerWizardProps) => {
                   </Collapsible>
                 </div>
 
-                {/* Save indicator */}
-                {(ingredients.length > 0 || tools.length > 0) && (
-                  <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        <span>Saving...</span>
-                      </>
-                    ) : lastSaved ? (
-                      <>
-                        <Check className="h-3 w-3 text-green-600" />
-                        <span className="text-green-600">Saved</span>
-                      </>
-                    ) : null}
-                  </div>
-                )}
 
                 {/* Ingredients Section - always expanded */}
                 <div className="space-y-3">
