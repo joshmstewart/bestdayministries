@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb } from "lucide-react";
+import { Check, X, BookmarkPlus, Loader2, ShoppingBasket, Lightbulb, Wrench } from "lucide-react";
 
 interface Recipe {
   id: string;
@@ -20,12 +20,14 @@ interface Recipe {
   ingredients: string[];
   steps: string[];
   tips: string[];
+  tools?: string[];
   image_url: string | null;
 }
 
 interface RecipeDetailDialogProps {
   recipe: Recipe;
   userIngredients: string[];
+  userTools?: string[];
   userId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,6 +37,7 @@ interface RecipeDetailDialogProps {
 export const RecipeDetailDialog = ({
   recipe,
   userIngredients,
+  userTools = [],
   userId,
   open,
   onOpenChange,
@@ -62,6 +65,18 @@ export const RecipeDetailDialog = ({
 
   const haveCount = ingredientMatches.filter((m) => m.hasIt).length;
   const needCount = ingredientMatches.filter((m) => !m.hasIt).length;
+
+  // Categorize tools
+  const recipeTools = recipe.tools || [];
+  const toolMatches = recipeTools.map((tool) => {
+    const hasTool = userTools.some(
+      (ut) => tool.toLowerCase().includes(ut.toLowerCase()) || ut.toLowerCase().includes(tool.toLowerCase()),
+    );
+    return { tool, hasTool };
+  });
+
+  const haveToolsCount = toolMatches.filter((m) => m.hasTool).length;
+  const needToolsCount = toolMatches.filter((m) => !m.hasTool).length;
 
   const addToCookbook = async () => {
     if (!userId) {
@@ -93,7 +108,7 @@ export const RecipeDetailDialog = ({
 
       const { data: canonicalPublic } = await supabase
         .from("public_recipes")
-        .select("title, description, ingredients, steps, tips, image_url")
+        .select("title, description, ingredients, steps, tips, tools, image_url")
         .eq("id", recipe.id)
         .maybeSingle();
 
@@ -105,6 +120,7 @@ export const RecipeDetailDialog = ({
             ingredients: canonicalPublic.ingredients,
             steps: canonicalPublic.steps,
             tips: (canonicalPublic.tips || []) as string[],
+            tools: (canonicalPublic.tools || []) as string[],
             image_url: canonicalPublic.image_url,
             source_recipe_id: recipe.id,
           }
@@ -115,6 +131,7 @@ export const RecipeDetailDialog = ({
             ingredients: recipe.ingredients,
             steps: recipe.steps,
             tips: recipe.tips || [],
+            tools: recipe.tools || [],
             image_url: recipe.image_url,
           };
 
@@ -224,6 +241,60 @@ export const RecipeDetailDialog = ({
                 </ul>
               </CardContent>
             </Card>
+
+            {/* Tools with match status */}
+            {recipeTools.length > 0 && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Wrench className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Tools Needed</h3>
+                    {userTools.length > 0 && (
+                      <div className="flex gap-2 ml-auto">
+                        <Badge variant="secondary" className="gap-1 text-xs">
+                          <Check className="h-3 w-3 text-green-500" />
+                          {haveToolsCount}
+                        </Badge>
+                        {needToolsCount > 0 && (
+                          <Badge variant="outline" className="gap-1 text-xs">
+                            <X className="h-3 w-3" />
+                            {needToolsCount}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <ul className="space-y-2">
+                    {toolMatches.map(({ tool, hasTool }, index) => (
+                      <li
+                        key={index}
+                        className={`flex items-center gap-2 text-sm p-2 rounded-lg ${
+                          userTools.length === 0
+                            ? "bg-muted"
+                            : hasTool
+                              ? "bg-green-50 dark:bg-green-900/20"
+                              : "bg-orange-50 dark:bg-orange-900/20"
+                        }`}
+                      >
+                        {userTools.length > 0 && (
+                          hasTool ? (
+                            <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                          ) : (
+                            <X className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                          )
+                        )}
+                        <span>{tool}</span>
+                        {userTools.length > 0 && !hasTool && (
+                          <span className="text-xs text-orange-600 dark:text-orange-400 ml-auto">
+                            Need
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Steps */}
             <div className="space-y-3">

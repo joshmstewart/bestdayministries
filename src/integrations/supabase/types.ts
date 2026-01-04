@@ -4023,6 +4023,7 @@ export type Database = {
           steps: string[]
           tips: string[] | null
           title: string
+          tools: string[] | null
           updated_at: string
         }
         Insert: {
@@ -4038,6 +4039,7 @@ export type Database = {
           steps?: string[]
           tips?: string[] | null
           title: string
+          tools?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -4053,6 +4055,7 @@ export type Database = {
           steps?: string[]
           tips?: string[] | null
           title?: string
+          tools?: string[] | null
           updated_at?: string
         }
         Relationships: []
@@ -4474,6 +4477,7 @@ export type Database = {
           times_made: number
           tips: string[] | null
           title: string
+          tools: string[] | null
           updated_at: string
           user_id: string
         }
@@ -4490,6 +4494,7 @@ export type Database = {
           times_made?: number
           tips?: string[] | null
           title: string
+          tools?: string[] | null
           updated_at?: string
           user_id: string
         }
@@ -4506,6 +4511,7 @@ export type Database = {
           times_made?: number
           tips?: string[] | null
           title?: string
+          tools?: string[] | null
           updated_at?: string
           user_id?: string
         }
