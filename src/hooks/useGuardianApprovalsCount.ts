@@ -1,58 +1,27 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useGuardianApprovalsCount = () => {
+  const { user, isGuardian, loading: authLoading } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isGuardian, setIsGuardian] = useState(false);
 
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
+  const fetchApprovalsCount = useCallback(async () => {
+    if (!user || !isGuardian) {
+      setCount(0);
+      setLoading(false);
+      return;
+    }
 
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      // Fetch role from user_roles table (security requirement)
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const guardianStatus = roleData?.role === "caregiver";
-      setIsGuardian(guardianStatus);
-
-      if (guardianStatus) {
-        await fetchApprovalsCount(user.id);
-        cleanup = setupRealtimeSubscriptions(user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    init();
-
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, []);
-
-
-  const fetchApprovalsCount = async (userId: string) => {
     try {
-      // Get all linked besties for this guardian
+      // Get all linked besties and their approval requirements
       const { data: links, error: linksError } = await supabase
         .from("caregiver_bestie_links")
         .select("bestie_id, require_post_approval, require_comment_approval, require_message_approval")
-        .eq("caregiver_id", userId);
+        .eq("caregiver_id", user.id);
 
       if (linksError) throw linksError;
-
       if (!links || links.length === 0) {
         setCount(0);
         setLoading(false);
@@ -61,137 +30,109 @@ export const useGuardianApprovalsCount = () => {
 
       let totalCount = 0;
 
-      // Count pending posts for besties where post approval is required
-      const bestiesRequiringPostApproval = links
-        .filter(link => link.require_post_approval)
-        .map(link => link.bestie_id);
+      // Fetch pending posts, comments, and messages in parallel
+      const postLinks = links.filter(l => l.require_post_approval);
+      const commentLinks = links.filter(l => l.require_comment_approval);
+      const messageLinks = links.filter(l => l.require_message_approval);
 
-      if (bestiesRequiringPostApproval.length > 0) {
-        const { count: postsCount, error: postsError } = await supabase
+      const results: { count: number | null }[] = [];
+
+      if (postLinks.length > 0) {
+        const { count } = await supabase
           .from("discussion_posts")
           .select("*", { count: "exact", head: true })
-          .in("author_id", bestiesRequiringPostApproval)
+          .in("author_id", postLinks.map(l => l.bestie_id))
           .eq("approval_status", "pending_approval");
-
-        if (postsError) throw postsError;
-        totalCount += postsCount || 0;
+        results.push({ count });
       }
 
-      // Count pending comments for besties where comment approval is required
-      const bestiesRequiringCommentApproval = links
-        .filter(link => link.require_comment_approval)
-        .map(link => link.bestie_id);
-
-      if (bestiesRequiringCommentApproval.length > 0) {
-        const { count: commentsCount, error: commentsError } = await supabase
+      if (commentLinks.length > 0) {
+        const { count } = await supabase
           .from("discussion_comments")
           .select("*", { count: "exact", head: true })
-          .in("author_id", bestiesRequiringCommentApproval)
+          .in("author_id", commentLinks.map(l => l.bestie_id))
           .eq("approval_status", "pending_approval");
-
-        if (commentsError) throw commentsError;
-        totalCount += commentsCount || 0;
+        results.push({ count });
       }
 
-      // Count pending sponsor messages for besties where message approval is required
-      const bestiesRequiringMessageApproval = links
-        .filter(link => link.require_message_approval)
-        .map(link => link.bestie_id);
-
-      if (bestiesRequiringMessageApproval.length > 0) {
-        const { count: messagesCount, error: messagesError } = await supabase
+      if (messageLinks.length > 0) {
+        const { count } = await supabase
           .from("sponsor_messages")
           .select("*", { count: "exact", head: true })
-          .in("bestie_id", bestiesRequiringMessageApproval)
+          .in("bestie_id", messageLinks.map(l => l.bestie_id))
           .eq("status", "pending_approval");
-
-        if (messagesError) throw messagesError;
-        totalCount += messagesCount || 0;
+        results.push({ count });
       }
+
+      results.forEach(result => {
+        if (result.count) {
+          totalCount += result.count;
+        }
+      });
 
       setCount(totalCount);
     } catch (error) {
-      console.error("Error fetching approvals count:", error);
+      console.error("Error fetching guardian approvals count:", error);
       setCount(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isGuardian]);
 
-  const setupRealtimeSubscriptions = (userId: string) => {
-    // Set up realtime subscription for posts
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!isGuardian) {
+      setLoading(false);
+      return;
+    }
+
+    fetchApprovalsCount();
+
+    // Set up realtime subscriptions
     const postsChannel = supabase
-      .channel('guardian-posts-changes')
+      .channel("guardian-approvals-posts")
       .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'discussion_posts'
-        },
-        () => {
-          fetchApprovalsCount(userId);
-        }
+        "postgres_changes",
+        { event: "*", schema: "public", table: "discussion_posts" },
+        () => fetchApprovalsCount()
       )
       .subscribe();
 
-    // Set up realtime subscription for comments
     const commentsChannel = supabase
-      .channel('guardian-comments-changes')
+      .channel("guardian-approvals-comments")
       .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'discussion_comments'
-        },
-        () => {
-          fetchApprovalsCount(userId);
-        }
+        "postgres_changes",
+        { event: "*", schema: "public", table: "discussion_comments" },
+        () => fetchApprovalsCount()
       )
       .subscribe();
 
-    // Set up realtime subscription for sponsor messages
     const messagesChannel = supabase
-      .channel('guardian-messages-changes')
+      .channel("guardian-approvals-messages")
       .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'sponsor_messages'
-        },
-        () => {
-          fetchApprovalsCount(userId);
-        }
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sponsor_messages" },
+        () => fetchApprovalsCount()
       )
       .subscribe();
 
-    // Set up realtime subscription for link changes
     const linksChannel = supabase
-      .channel('guardian-links-changes')
+      .channel("guardian-approvals-links")
       .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'caregiver_bestie_links',
-          filter: `caregiver_id=eq.${userId}`
-        },
-        () => {
-          fetchApprovalsCount(userId);
-        }
+        "postgres_changes",
+        { event: "*", schema: "public", table: "caregiver_bestie_links" },
+        () => fetchApprovalsCount()
       )
       .subscribe();
 
-    // Cleanup function
     return () => {
       supabase.removeChannel(postsChannel);
       supabase.removeChannel(commentsChannel);
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(linksChannel);
     };
-  };
+  }, [authLoading, isGuardian, fetchApprovalsCount]);
 
-  return { count, loading, refetch: fetchApprovalsCount, isGuardian };
+  return { count, loading: loading || authLoading, refetch: fetchApprovalsCount, isGuardian };
 };

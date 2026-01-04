@@ -1,60 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const usePendingVendorsCount = () => {
+  const { isAdmin, loading: authLoading } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    let cleanup: (() => void) | undefined;
+  const fetchPendingVendorsCount = useCallback(async () => {
+    if (!isAdmin) {
+      setCount(0);
+      setLoading(false);
+      return;
+    }
 
-    const init = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user || !mounted) {
-          if (mounted) setLoading(false);
-          return;
-        }
-
-        // Fetch role from user_roles table (security requirement)
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (!mounted) return;
-
-        // Check for admin-level access (owner role automatically has admin access)
-        const adminStatus = roleData?.role === "admin" || roleData?.role === "owner";
-        setIsAdmin(adminStatus);
-
-        if (adminStatus) {
-          await fetchPendingVendorsCount();
-          if (mounted) {
-            cleanup = setupRealtimeSubscription();
-          }
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        if (mounted) setLoading(false);
-      }
-    };
-
-    init();
-
-    return () => {
-      mounted = false;
-      if (cleanup) cleanup();
-    };
-  }, []);
-
-  const fetchPendingVendorsCount = async () => {
     try {
       const { count: vendorsCount, error } = await supabase
         .from("vendors")
@@ -62,7 +21,6 @@ export const usePendingVendorsCount = () => {
         .eq("status", "pending");
 
       if (error) throw error;
-
       setCount(vendorsCount || 0);
     } catch (error) {
       console.error("Error fetching pending vendors count:", error);
@@ -70,30 +28,31 @@ export const usePendingVendorsCount = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin]);
 
-  const setupRealtimeSubscription = () => {
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
+    fetchPendingVendorsCount();
+
     const channel = supabase
-      .channel('vendors-changes')
+      .channel("vendors-changes")
       .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'vendors'
-        },
-        () => {
-          console.log('Vendor changed, refetching pending vendors count');
-          fetchPendingVendorsCount();
-        }
+        "postgres_changes",
+        { event: "*", schema: "public", table: "vendors" },
+        () => fetchPendingVendorsCount()
       )
       .subscribe();
 
-    // Return cleanup function
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  }, [authLoading, isAdmin, fetchPendingVendorsCount]);
 
-  return { count, loading, refetch: fetchPendingVendorsCount, isAdmin };
+  return { count, loading: loading || authLoading, refetch: fetchPendingVendorsCount, isAdmin };
 };

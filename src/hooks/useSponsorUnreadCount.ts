@@ -1,25 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useSponsorUnreadCount = () => {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUnreadCount();
-    const cleanup = setupRealtimeSubscription();
-    return cleanup;
-  }, []);
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) {
+      setCount(0);
+      setLoading(false);
+      return;
+    }
 
-  const fetchUnreadCount = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setCount(0);
-        setLoading(false);
-        return;
-      }
-
       // Get all sponsorships for this user
       const { data: sponsorships, error: sponsorshipsError } = await supabase
         .from("sponsorships")
@@ -35,7 +30,7 @@ export const useSponsorUnreadCount = () => {
         return;
       }
 
-      // Filter out null bestie_ids (sponsor_besties without linked accounts)
+      // Filter out null bestie_ids
       const bestieIds = sponsorships
         .map(s => s.bestie_id)
         .filter((id): id is string => id !== null);
@@ -63,39 +58,41 @@ export const useSponsorUnreadCount = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const setupRealtimeSubscription = () => {
-    const channel = supabase
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    fetchUnreadCount();
+
+    const messagesChannel = supabase
       .channel("sponsor-messages-unread")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "sponsor_messages",
-        },
-        () => {
-          fetchUnreadCount();
-        }
+        { event: "*", schema: "public", table: "sponsor_messages" },
+        () => fetchUnreadCount()
       )
+      .subscribe();
+
+    const sponsorshipsChannel = supabase
+      .channel("sponsorships-unread")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "sponsorships",
-        },
-        () => {
-          fetchUnreadCount();
-        }
+        { event: "*", schema: "public", table: "sponsorships" },
+        () => fetchUnreadCount()
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(sponsorshipsChannel);
     };
-  };
+  }, [authLoading, isAuthenticated, fetchUnreadCount]);
 
-  return { count, loading, refetch: fetchUnreadCount };
+  return { count, loading: loading || authLoading, refetch: fetchUnreadCount };
 };
