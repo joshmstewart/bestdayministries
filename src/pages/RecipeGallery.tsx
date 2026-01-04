@@ -494,6 +494,7 @@ const RecipeGallery = () => {
             ));
             setSelectedRecipe(prev => prev ? { ...prev, image_url: newImageUrl } : null);
           }}
+          onIngredientChanged={refreshUserData}
         />
       )}
     </div>
