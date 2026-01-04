@@ -38,6 +38,10 @@ interface SavedRecipe {
   tips: string[];
   tools?: string[];
   image_url: string | null;
+  source_recipe_id?: string | null;
+  creator_id?: string;
+  creator_name?: string;
+  saves_count?: number;
   times_made: number;
   is_favorite: boolean;
   last_made_at: string | null;
@@ -368,7 +372,20 @@ const RecipeGallery = () => {
                       <SavedRecipeCard
                         key={recipe.id}
                         recipe={recipe}
-                        onClick={() => setSelectedRecipe(recipe)}
+                        onClick={() => {
+                          const publicRecipe = recipe.source_recipe_id
+                            ? publicRecipes.find((pr) => pr.id === recipe.source_recipe_id)
+                            : publicRecipes.find(
+                                (pr) => pr.title.toLowerCase() === recipe.title.toLowerCase(),
+                              );
+
+                          setSelectedRecipe({
+                            ...recipe,
+                            creator_id: publicRecipe?.creator_id,
+                            creator_name: publicRecipe?.creator_name,
+                            saves_count: publicRecipe?.saves_count,
+                          });
+                        }}
                       />
                     ))}
                   </div>
@@ -513,12 +530,10 @@ const RecipeCard = ({ recipe, userIngredients, userTools = [], isInCookbook, onA
             {(recipe.tools?.length ?? 0) > 0 && (
               <span>{recipe.tools!.length} tools</span>
             )}
-            {recipe.saves_count > 0 && (
-              <span className="flex items-center gap-1">
-                <BookmarkPlus className="h-3 w-3" />
-                {recipe.saves_count}
-              </span>
-            )}
+            <span className="flex items-center gap-1">
+              <BookmarkPlus className="h-3 w-3" />
+              In {recipe.saves_count ?? 0} {(recipe.saves_count ?? 0) === 1 ? "cookbook" : "cookbooks"}
+            </span>
           </div>
           <Button
             variant={isInCookbook ? "secondary" : "outline"}
