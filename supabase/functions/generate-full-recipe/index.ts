@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { recipeName, recipeDescription, availableIngredients } = await req.json();
+    const { recipeName, recipeDescription, availableIngredients, availableTools } = await req.json();
 
     if (!recipeName) {
       return new Response(
@@ -24,6 +24,10 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    const toolsConstraint = availableTools?.length > 0
+      ? `Available kitchen tools: ${availableTools.join(", ")}. Only use these tools if possible, but you may include essential tools they need.`
+      : "";
 
     // Generate the recipe steps
     const recipePrompt = `You are a friendly cooking teacher for adults with intellectual disabilities.
@@ -39,6 +43,7 @@ Instead, include a "safetyNotes" array listing any tasks that might need extra c
 Recipe to create: ${recipeName}
 Description: ${recipeDescription || ""}
 Available ingredients: ${availableIngredients?.join(", ") || "common pantry items"}
+${toolsConstraint}
 
 You MUST respond with a JSON object in this exact format:
 {
@@ -46,6 +51,7 @@ You MUST respond with a JSON object in this exact format:
   "description": "A friendly 1-2 sentence description",
   "safetyNotes": ["Using sharp knife", "Hot stove", "Hot oven"],
   "ingredients": ["ingredient 1 with amount", "ingredient 2 with amount", ...],
+  "tools": ["Tool 1", "Tool 2", ...],
   "steps": [
     "Step 1 in simple words",
     "Step 2 in simple words",
@@ -56,6 +62,8 @@ You MUST respond with a JSON object in this exact format:
     "Another helpful tip"
   ]
 }
+
+The "tools" array should list ALL kitchen tools needed to make this recipe (e.g., "Toaster", "Knife", "Cutting Board", "Mixing Bowl", "Spoon", "Pan", "Pot", "Oven", "Microwave", etc.).
 
 The safetyNotes should list things that might need extra care or help, like:
 - "Using sharp knife for cutting"
