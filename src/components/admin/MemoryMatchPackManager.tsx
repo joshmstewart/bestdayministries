@@ -120,6 +120,9 @@ export const MemoryMatchPackManager = () => {
     is_active: true,
   });
   const [savingPack, setSavingPack] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [suggestedItems, setSuggestedItems] = useState<string[]>([]);
+  const [generatingAllContent, setGeneratingAllContent] = useState(false);
 
   useEffect(() => {
     loadPacks();
@@ -405,6 +408,38 @@ export const MemoryMatchPackManager = () => {
     setPackDialogOpen(true);
   };
 
+  const handleGenerateDescription = async () => {
+    if (!packFormData.name.trim()) {
+      toast.error("Please enter a pack name first");
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-memory-match-description",
+        { body: { packName: packFormData.name.trim() } }
+      );
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.description) {
+        setPackFormData((prev) => ({ ...prev, description: data.description }));
+      }
+      if (data?.suggestedItems) {
+        setSuggestedItems(data.suggestedItems);
+      }
+
+      toast.success("Description generated!");
+    } catch (error) {
+      console.error("Failed to generate description:", error);
+      toast.error("Failed to generate description");
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
   const handleSavePack = async () => {
     if (!packFormData.name.trim()) {
       toast.error("Please enter a pack name");
@@ -413,6 +448,8 @@ export const MemoryMatchPackManager = () => {
 
     setSavingPack(true);
     try {
+      let packId: string | null = null;
+
       if (editingPack) {
         const { error } = await supabase
           .from("memory_match_packs")
@@ -425,27 +462,110 @@ export const MemoryMatchPackManager = () => {
           .eq("id", editingPack.id);
 
         if (error) throw error;
+        packId = editingPack.id;
         toast.success("Pack updated");
       } else {
-        const { error } = await supabase.from("memory_match_packs").insert({
-          name: packFormData.name.trim(),
-          description: packFormData.description.trim() || null,
-          price_coins: packFormData.price_coins,
-          is_active: packFormData.is_active,
-          display_order: packs.length,
-        });
+        const { data: newPack, error } = await supabase
+          .from("memory_match_packs")
+          .insert({
+            name: packFormData.name.trim(),
+            description: packFormData.description.trim() || null,
+            price_coins: packFormData.price_coins,
+            is_active: packFormData.is_active,
+            display_order: packs.length,
+          })
+          .select()
+          .single();
 
         if (error) throw error;
+        packId = newPack.id;
         toast.success("Pack created");
       }
 
       setPackDialogOpen(false);
       await loadPacks();
+
+      // If creating new pack and we have suggested items, offer to add them
+      if (!editingPack && packId && suggestedItems.length > 0) {
+        const addItems = window.confirm(
+          `Would you like to add the ${suggestedItems.length} suggested items and generate their icons?\n\n${suggestedItems.join(", ")}`
+        );
+        if (addItems) {
+          await handleAddSuggestedItems(packId, suggestedItems);
+        }
+      }
+
+      setSuggestedItems([]);
     } catch (error) {
       console.error("Failed to save pack:", error);
       toast.error("Failed to save pack");
     } finally {
       setSavingPack(false);
+    }
+  };
+
+  const handleAddSuggestedItems = async (packId: string, items: string[]) => {
+    setGeneratingAllContent(true);
+    const pack = packs.find((p) => p.id === packId) || { name: packFormData.name.trim() };
+
+    try {
+      // Insert all items first
+      const insertData = items.map((name, idx) => ({
+        pack_id: packId,
+        name,
+        display_order: idx,
+        image_url: null,
+      }));
+
+      const { data: insertedImages, error: insertError } = await supabase
+        .from("memory_match_images")
+        .insert(insertData)
+        .select();
+
+      if (insertError) throw insertError;
+
+      toast.success(`Added ${items.length} items! Generating icons...`);
+
+      // Generate icons in batches of 3
+      const BATCH_SIZE = 3;
+      let successCount = 0;
+      const errors: GenerationError[] = [];
+
+      for (let i = 0; i < (insertedImages?.length || 0); i += BATCH_SIZE) {
+        const batch = insertedImages!.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map((img) => generateIcon(img as PackImage, pack.name))
+        );
+
+        results.forEach((result, idx) => {
+          if (result.ok) {
+            successCount++;
+          } else {
+            errors.push({
+              imageName: batch[idx].name,
+              error: result.errorMessage || "Unknown error",
+            });
+          }
+        });
+      }
+
+      if (errors.length > 0) {
+        setErrors(errors);
+        toast.warning(`Generated ${successCount}/${items.length} icons. ${errors.length} failed.`);
+      } else {
+        toast.success(`Generated all ${successCount} icons!`);
+      }
+
+      // Also generate card back
+      const packForCardBack = { id: packId, name: pack.name, description: packFormData.description } as ImagePack;
+      await handleGenerateCardBack(packForCardBack);
+
+      await loadPacks();
+    } catch (error) {
+      console.error("Failed to add suggested items:", error);
+      toast.error("Failed to add suggested items");
+    } finally {
+      setGeneratingAllContent(false);
     }
   };
 
@@ -900,24 +1020,67 @@ export const MemoryMatchPackManager = () => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="pack-name">Pack Name</Label>
-              <Input
-                id="pack-name"
-                placeholder="e.g., Beach Day, Space Adventure"
-                value={packFormData.name}
-                onChange={(e) => setPackFormData((prev) => ({ ...prev, name: e.target.value }))}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="pack-name"
+                  placeholder="e.g., Beach Day, Space Adventure"
+                  value={packFormData.name}
+                  onChange={(e) => setPackFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDescription || !packFormData.name.trim()}
+                  title="Generate description & suggested items from name"
+                >
+                  {generatingDescription ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pack-description">Description</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="pack-description">Description</Label>
+                {generatingDescription && (
+                  <span className="text-xs text-muted-foreground">Generating...</span>
+                )}
+              </div>
               <Textarea
                 id="pack-description"
-                placeholder="Describe this image pack..."
+                placeholder="Describe this image pack... (click the wand to auto-generate)"
                 value={packFormData.description}
                 onChange={(e) =>
                   setPackFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
               />
             </div>
+
+            {/* Suggested Items Preview */}
+            {suggestedItems.length > 0 && !editingPack && (
+              <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
+                <div className="flex items-center gap-2">
+                  <Wand2 className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">Suggested Items ({suggestedItems.length})</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {suggestedItems.map((item, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {item}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  These items will be added and their icons generated after creating the pack.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="pack-price">Price (coins)</Label>
               <Input
