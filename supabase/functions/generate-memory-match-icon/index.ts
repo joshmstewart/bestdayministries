@@ -125,7 +125,7 @@ serve(async (req) => {
       : `STYLE:\n- Clean, high-detail, slightly stylized realism (premium stock icon / app icon)\n- Natural, accurate colors\n- Avoid flat/cartoon styles unless explicitly requested`;
 
     // Request image directly from the AI (solid deterministic background per pack)
-    const iconPrompt = `Create a ${SIZE}x${SIZE} PNG image.\n\nSUBJECT: "${imageName}"\n\n${styleBlock}\n\nCOMPOSITION:\n- Subject should fill about 70-80% of the canvas, centered\n- No borders, no frames, no rounded corners\n\nBACKGROUND:\n- SOLID single-color background: ${backgroundHex}\n- No gradients, no shadows, no vignettes\n- The background MUST be uniformly ${backgroundHex}\n\nOUTPUT:\n- PNG format\n- Sharp rectangular edges\n- Full bleed (use entire canvas)\n`;
+    const iconPrompt = `Create a ${SIZE}x${SIZE} PNG image.\n\nSUBJECT: A SINGLE "${imageName}" - ONE OBJECT ONLY\n\n${styleBlock}\n\nCRITICAL RULES:\n- Show EXACTLY ONE object: the ${imageName}\n- Do NOT add any other objects, characters, or elements\n- Do NOT add decorative items, stars, planets, people, or accessories\n- The image must contain ONLY the single ${imageName} and nothing else\n\nCOMPOSITION:\n- The single object should fill about 70-80% of the canvas, centered\n- No borders, no frames, no rounded corners\n\nBACKGROUND:\n- SOLID single-color background: ${backgroundHex}\n- No gradients, no shadows, no vignettes\n- The background MUST be uniformly ${backgroundHex}\n\nOUTPUT:\n- PNG format\n- Sharp rectangular edges\n- Full bleed (use entire canvas)\n`;
 
     console.log("Generating icon for:", imageName);
     console.log("Pack:", packName);
