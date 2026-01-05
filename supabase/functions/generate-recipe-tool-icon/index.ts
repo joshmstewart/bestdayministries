@@ -24,12 +24,15 @@ serve(async (req) => {
     }
 
     // Generate a prompt for the kitchen tool icon
-    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of a ${toolName} (kitchen tool/equipment). Image must be exactly 256x256 pixels with equal width and height. Simple flat illustration style. Show the kitchen tool clearly and recognizably - include the complete tool as it would appear in a typical kitchen. Solid single-color background filling entire square canvas edge-to-edge.
+    const iconPrompt = `Create a 256x256 pixel icon of a ${toolName} (kitchen tool/equipment). Category: ${category}.
 
-CRITICAL FRAMING: The ${toolName} must fill 70-80% of the image frame - make it LARGE and prominent, not small and distant.
-CRITICAL SHAPE: The image must have SHARP 90-DEGREE CORNERS - absolutely NO rounded corners, NO circular frames, NO curved edges. The card UI will handle any rounding.
+MANDATORY REQUIREMENTS:
+1. FRAMING: The ${toolName} must fill 70-80% of the image - make it LARGE and prominent
+2. CORNERS: RECTANGULAR image with SHARP 90-DEGREE CORNERS ONLY. DO NOT round ANY edges. DO NOT use circular or oval frames. DO NOT add ANY curved borders or vignettes. The corners must be perfectly square like a photograph.
+3. BACKGROUND: Solid single flat color extending to ALL four corners with NO gradients, NO fading, NO corner treatments
+4. STYLE: Simple flat illustration, no text, minimal shadows, clean and recognizable
 
-No text, no gradients, minimal shadows. Make it clean and easily recognizable as a kitchen tool. Category: ${category}.`;
+FORBIDDEN: rounded corners, circular frames, oval shapes, curved edges, border radius, vignette effects, corner fading`;
 
     console.log("Generating icon for recipe tool:", toolName);
     console.log("Prompt:", iconPrompt);

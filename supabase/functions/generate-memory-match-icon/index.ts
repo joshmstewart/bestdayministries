@@ -26,12 +26,17 @@ serve(async (req) => {
     // Use the design style passed in, or default to clean adult-appropriate style
     const style = designStyle || "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements";
 
-    const iconPrompt = `${style}. Create a perfectly square 1:1 aspect ratio icon of a ${imageName}. Image must be exactly 512x512 pixels with equal width and height. 
+    const iconPrompt = `${style}. Create a 512x512 pixel icon of a ${imageName}.
 
-CRITICAL FRAMING: The ${imageName} must fill 70-80% of the image frame - make it LARGE and prominent, not small and distant.
-CRITICAL SHAPE: The image must have SHARP 90-DEGREE CORNERS - absolutely NO rounded corners, NO circular frames, NO curved edges. The card UI will handle any rounding.
+MANDATORY REQUIREMENTS:
+1. FRAMING: The ${imageName} must fill 70-80% of the image - make it LARGE and prominent
+2. CORNERS: RECTANGULAR image with SHARP 90-DEGREE CORNERS ONLY. DO NOT round ANY edges. DO NOT use circular or oval frames. DO NOT add ANY curved borders or vignettes. The corners must be perfectly square like a photograph.
+3. BACKGROUND: Solid single flat color extending to ALL four corners with NO gradients, NO fading, NO corner treatments
+4. STYLE: NO cartoon faces, NO baby/childish characters, NO cute mascots. Just the object itself in a clean, elegant style.
 
-NO cartoon faces, NO baby/childish characters, NO cute mascots. Just the object itself in a clean, elegant style. Make it sophisticated and easily recognizable for adults. Pack theme: ${packName || "General"}.`;
+FORBIDDEN: rounded corners, circular frames, oval shapes, curved edges, border radius, vignette effects, corner fading
+
+Pack theme: ${packName || "General"}.`;
 
     console.log("Generating icon for memory match image:", imageName);
     console.log("Prompt:", iconPrompt);

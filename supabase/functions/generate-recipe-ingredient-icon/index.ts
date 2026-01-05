@@ -24,29 +24,17 @@ serve(async (req) => {
     }
 
     // Generate a prompt for the food ingredient icon - show realistic kitchen/grocery forms
-    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName} (food ingredient). 256x256 pixels. Simple flat illustration style.
+    const iconPrompt = `Create a 256x256 pixel icon of ${ingredientName} (food ingredient). Category: ${category}.
 
-CRITICAL FRAMING: The ${ingredientName} must fill 70-80% of the image frame - make it LARGE and prominent, not small and distant.
-CRITICAL SHAPE: The image must have SHARP 90-DEGREE CORNERS - absolutely NO rounded corners, NO circular frames, NO curved edges. The card UI will handle any rounding.
+MANDATORY REQUIREMENTS:
+1. FRAMING: The ${ingredientName} must fill 70-80% of the image - make it LARGE and prominent
+2. CORNERS: RECTANGULAR image with SHARP 90-DEGREE CORNERS ONLY. DO NOT round ANY edges. DO NOT use circular or oval frames. DO NOT add ANY curved borders or vignettes. The corners must be perfectly square like a photograph.
+3. BACKGROUND: Solid single flat color extending to ALL four corners with NO gradients, NO fading, NO corner treatments
+4. STYLE: Simple flat illustration, no text labels
 
-CRITICAL: Show this ingredient exactly as someone would find it in their kitchen or grocery store:
-- Cereal = colorful cereal box with some cereal spilling out
-- Oatmeal = round oatmeal canister/container
-- Raisins = small box with raisins spilling out
-- Milk = milk carton or jug
-- Cheese = wedge or slices
-- Butter = butter stick in wrapper or on dish
-- Eggs = carton with eggs visible
-- Bread = sliced loaf in bag
-- Pasta = box or clear bag showing pasta shapes
-- Canned goods = can with the food visible or pictured
-- Bottled sauces/condiments = in their bottle
-- Spices = in spice jar
-- Fresh fruits/vegetables = whole or cut to show inside
-- Frozen items = in freezer bag or box
-- Broth/stock = carton or can
+FORBIDDEN: rounded corners, circular frames, oval shapes, curved edges, border radius, vignette effects, corner fading
 
-Show the ACTUAL packaging or common kitchen form. Solid single-color background. No text labels. Make it instantly recognizable. Category: ${category}.`;
+Show this ingredient exactly as found in kitchen/grocery: Cereal=box, Milk=carton/jug, Cheese=wedge/slices, Butter=stick, Eggs=carton, Bread=loaf, Pasta=box, Canned goods=can, Bottled items=bottle, Spices=jar, Fresh produce=whole/cut, Frozen=bag/box, Broth=carton/can.`;
 
     console.log("Generating icon for recipe ingredient:", ingredientName);
     console.log("Prompt:", iconPrompt);
